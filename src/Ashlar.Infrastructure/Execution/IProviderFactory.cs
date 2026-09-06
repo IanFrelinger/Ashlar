@@ -8,7 +8,7 @@ namespace Ashlar.Infrastructure.Execution;
 /// Factory for creating LLM providers.
 /// DEPRECATED: Use Ashlar.Core.Application.Execution.Ports.IProviderFactory instead.
 /// </summary>
-[Obsolete("IProviderFactory has moved to Ashlar.Core.Application.Execution.Ports. Update your using statements.")]
+// TEMP TODO: Migrate callers to Ashlar.Core.Application.Execution.Ports.IProviderFactory then delete this Infrastructure alias
 public interface IProviderFactory : Core.Application.Execution.Ports.IProviderFactory
 {
 }

@@ -10,11 +10,11 @@ namespace Ashlar.Infrastructure.Certification;
 /// Maps domain certification records to portable wire DTOs for external consumers.
 /// DEPRECATED: Use Ashlar.Core.Application.Certification.CertificationRecordMapper instead.
 /// </summary>
-[Obsolete("CertificationRecordMapper has moved to Ashlar.Core.Application.Certification. Update your using statements.")]
+// TEMP TODO: Migrate callers to Ashlar.Core.Application.Certification.CertificationRecordMapper then delete this Infrastructure alias
 public static class CertificationRecordMapper
 {
     /// <summary>To data. DEPRECATED: Use Ashlar.Core.Application.Certification.CertificationRecordMapper.ToData instead.</summary>
-    [Obsolete("Use Ashlar.Core.Application.Certification.CertificationRecordMapper.ToData instead.")]
+    // TEMP TODO: Migrate callers to Ashlar.Core.Application.Certification.CertificationRecordMapper.ToData then delete this method
     public static CertificationRecordData ToData(CertificationRecord record) =>
         Core.Application.Certification.CertificationRecordMapper.ToData(record);
 }
