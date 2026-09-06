@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Ashlar.Abstractions;
 using Ashlar.Certification.Contracts;
+using Ashlar.Core.Application.Certification;
 using Ashlar.Core.Application.Certification.Ports;
-using Ashlar.Infrastructure.Certification;
 
 namespace Ashlar.BackgroundAgents.Security;
 
