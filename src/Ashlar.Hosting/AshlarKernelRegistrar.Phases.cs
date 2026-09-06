@@ -584,21 +584,11 @@ internal static partial class AshlarKernelRegistrar
         });
 
         // Register Application port adapter for IProviderFactory (DIP - BackgroundAgents depends on ports)
+        // Adapter-only: Infra chain already sanitized, no second SanitizingProviderFactory wrap
         services.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
         {
             var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>();
-            Ashlar.Core.Application.Execution.Ports.IProviderFactory appChain = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
-            
-            // Apply PII scrubbing at the Application port level (SanitizingProviderFactory uses Application ports)
-            if (sanitize)
-            {
-                appChain = new SanitizingProviderFactory(
-                    appChain,
-                    sp.GetRequiredService<ICloudSanitizationProxy>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SanitizingProviderFactory>>());
-            }
-            
-            return appChain;
+            return new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
         });
 
     }
