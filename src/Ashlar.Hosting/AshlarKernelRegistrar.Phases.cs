@@ -562,6 +562,15 @@ internal static partial class AshlarKernelRegistrar
                 ? sp.GetRequiredService<ProviderFactory>()
                 : CreateProviderFactory(sp, useAdaptive, sanitize, ephemeralModels);
 
+            // Middle: PII scrubbing when trust is enabled (stays in Infrastructure layer)
+            if (sanitize)
+            {
+                chain = new SanitizingProviderFactory(
+                    chain,
+                    sp.GetRequiredService<ICloudSanitizationProxy>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SanitizingProviderFactory>>());
+            }
+
             // Outermost: load-balancing across providers (stays in Infrastructure layer)
             if (useAdaptive)
             {

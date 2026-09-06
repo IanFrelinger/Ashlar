@@ -13,6 +13,7 @@ public sealed class SanitizingProviderFactory :
     Ashlar.Infrastructure.Execution.IProviderFactory
 {
     private readonly IProviderFactory _inner;
+    private readonly Ashlar.Infrastructure.Execution.IProviderFactory? _infrastructureInner;
     private readonly ICloudSanitizationProxy _proxy;
     private readonly ILogger<SanitizingProviderFactory> _logger;
 
@@ -26,6 +27,7 @@ public sealed class SanitizingProviderFactory :
         ILogger<SanitizingProviderFactory> logger)
     {
         _inner = inner;
+        _infrastructureInner = null;
         _proxy = proxy;
         _logger = logger;
     }
@@ -43,6 +45,7 @@ public sealed class SanitizingProviderFactory :
         ILogger<SanitizingProviderFactory> logger)
     {
         if (infrastructureInner == null) throw new ArgumentNullException(nameof(infrastructureInner));
+        _infrastructureInner = infrastructureInner;
         _inner = new InfrastructureProviderFactoryAdapter(infrastructureInner);
         _proxy = proxy;
         _logger = logger;
