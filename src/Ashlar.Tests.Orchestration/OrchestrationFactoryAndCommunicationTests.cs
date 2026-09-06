@@ -42,7 +42,7 @@ public class OrchestrationFactoryAndCommunicationTests
     public void CreateAgent_null_spec_throws()
     {
         var factory = new AgentFactory(NullLogger<AgentFactory>.Instance, BuildServices());
-        var act = () => factory.CreateAgent(null!);
+        var act = () => factory.CreateAgent((AgentSpawnSpec)null!);
         act.Should().Throw<ArgumentNullException>();
     }
 
