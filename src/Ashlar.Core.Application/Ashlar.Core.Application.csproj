@@ -13,6 +13,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
+        <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
         <!-- Certification evidence types (gates-passed/inputs/proposer/attempts) are
              shared with the portable wire record so the two cannot drift. Contracts
              is a zero-dependency leaf package, not an outer layer. -->

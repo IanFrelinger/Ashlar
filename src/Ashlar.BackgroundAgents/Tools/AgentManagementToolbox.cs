@@ -1,7 +1,7 @@
 using Ashlar.Abstractions;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.Registry;
-using Ashlar.Orchestration.Agents;
+using Ashlar.Core.Application.Orchestration.Ports;
 using Ashlar.Runtime;
 
 namespace Ashlar.BackgroundAgents.Tools;
@@ -21,18 +21,18 @@ public sealed class AgentManagementToolbox : IToolbox
     /// <param name="registry">Background agent registry.</param>
     /// <param name="configLoader">Config loader (for update_agent_config).</param>
     /// <param name="specBuilder">Spec builder (for update_agent_config).</param>
-    /// <param name="agentFactory">Agent factory (for update_agent_config).</param>
+    /// <param name="agentCreator">Agent creator (for update_agent_config).</param>
     public AgentManagementToolbox(
         IBackgroundAgentRegistry registry,
         BackgroundAgentConfigLoader configLoader,
         BackgroundAgentSpecBuilder specBuilder,
-        AgentFactory agentFactory)
+        IAgentCreator agentCreator)
     {
         _registry = new CapabilityRegistry();
         _registry.Register(new EnableAgentTool(registry));
         _registry.Register(new DisableAgentTool(registry));
         _registry.Register(new RestartAgentTool(registry));
-        _registry.Register(new UpdateAgentConfigTool(registry, configLoader, specBuilder, agentFactory));
+        _registry.Register(new UpdateAgentConfigTool(registry, configLoader, specBuilder, agentCreator));
     }
 
     /// <inheritdoc />

@@ -2,7 +2,7 @@ using System.Text.Json;
 using Ashlar.Abstractions;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.Registry;
-using Ashlar.Orchestration.Agents;
+using Ashlar.Core.Application.Orchestration.Ports;
 
 namespace Ashlar.BackgroundAgents.Tools;
 
@@ -23,7 +23,7 @@ public sealed class UpdateAgentConfigTool : ITool
     private readonly IBackgroundAgentRegistry _registry;
     private readonly BackgroundAgentConfigLoader _configLoader;
     private readonly BackgroundAgentSpecBuilder _specBuilder;
-    private readonly AgentFactory _agentFactory;
+    private readonly IAgentCreator _agentCreator;
 
     /// <inheritdoc />
     public string Id => DefaultId;
@@ -37,17 +37,17 @@ public sealed class UpdateAgentConfigTool : ITool
     /// <param name="registry">Background agent registry.</param>
     /// <param name="configLoader">Config loader.</param>
     /// <param name="specBuilder">Spec builder.</param>
-    /// <param name="agentFactory">Agent factory.</param>
+    /// <param name="agentCreator">Agent creator.</param>
     public UpdateAgentConfigTool(
         IBackgroundAgentRegistry registry,
         BackgroundAgentConfigLoader configLoader,
         BackgroundAgentSpecBuilder specBuilder,
-        AgentFactory agentFactory)
+        IAgentCreator agentCreator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _configLoader = configLoader ?? throw new ArgumentNullException(nameof(configLoader));
         _specBuilder = specBuilder ?? throw new ArgumentNullException(nameof(specBuilder));
-        _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
+        _agentCreator = agentCreator ?? throw new ArgumentNullException(nameof(agentCreator));
     }
 
     /// <inheritdoc />
@@ -71,7 +71,7 @@ public sealed class UpdateAgentConfigTool : ITool
                 return new ToolResult(delta, new { ok = false, agentId, error = "not found in config" });
             }
             var spec = _specBuilder.BuildSpec(config);
-            var agent = _agentFactory.CreateAgent(spec);
+            var agent = _agentCreator.CreateAgent(spec);
             await _registry.RegisterAsync(agent, config, AgentRegistrationOrigin.Authored, ct).ConfigureAwait(false);
             var okLog = new[] { $"Re-registered background agent from config: {agentId}" };
             var okDelta = new ActionDelta(s.Tick, s.Tick + 1, okLog);

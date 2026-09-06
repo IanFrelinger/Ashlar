@@ -218,7 +218,7 @@ public sealed class BehaviorExecutorNcrEscalationTests : UnitTestBase
     }
 
     /// <summary>Tests for provider available factory.</summary>
-    private sealed class ProviderAvailableFactory : IProviderFactory
+    private sealed class ProviderAvailableFactory : Ashlar.Infrastructure.Execution.IProviderFactory
     {
         /// <summary>Returns whether  provider available.</summary>
         /// <param name="provider">Provider.</param>

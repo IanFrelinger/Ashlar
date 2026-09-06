@@ -6,6 +6,7 @@ using Ashlar.Orchestration.Architect.Models;
 using Ashlar.Orchestration.Agents.Planning;
 using Ashlar.Orchestration.Agents.Templates;
 using Ashlar.Orchestration.Models;
+using Ashlar.Core.Application.Orchestration.Ports;
 
 namespace Ashlar.Orchestration.Agents;
 
@@ -112,6 +113,35 @@ public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext
         };
 
         return agent;
+    }
+
+    // TEMP P1.2 — delete in thin app PR
+    // Creates a BaseAgent from AgentSpawnSpecDto (Application layer DTO).
+    // Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
+    /// <summary>
+    /// Creates a BaseAgent from AgentSpawnSpecDto (Application layer DTO).
+    /// Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
+    /// </summary>
+    public BaseAgent CreateAgent(AgentSpawnSpecDto dto)
+    {
+        if (dto == null)
+        {
+            throw new ArgumentNullException(nameof(dto));
+        }
+
+        // Map DTO to full AgentSpawnSpec
+        var spec = new AgentSpawnSpec
+        {
+            AgentId = dto.AgentId,
+            Name = dto.Name,
+            Domain = dto.Domain,
+            Goal = dto.Goal,
+            Description = dto.Description,
+            Dependencies = dto.Dependencies,
+            OllamaModel = dto.OllamaModel
+        };
+
+        return CreateAgent(spec);
     }
 
     /// <summary>

@@ -100,7 +100,7 @@ public sealed class RemoteExecutionSafetyTests
         }
     }
 
-    private sealed class FailAfterFirstCallProvider : IProviderFactory
+    private sealed class FailAfterFirstCallProvider : Ashlar.Infrastructure.Execution.IProviderFactory
     {
         private readonly Func<int> _getCallCount;
 
@@ -128,7 +128,7 @@ public sealed class RemoteExecutionSafetyTests
             Task.CompletedTask;
     }
 
-    private sealed class FailingProviderFactory : IProviderFactory
+    private sealed class FailingProviderFactory : Ashlar.Infrastructure.Execution.IProviderFactory
     {
         public bool IsProviderAvailable(string provider) => false;
 
@@ -151,6 +151,6 @@ public sealed class RemoteExecutionSafetyTests
     private sealed class PreferEdgeLoadPolicy : ILoadPolicy
     {
         public LoadPreference GetPreference() => LoadPreference.Edge;
-        public string? ResolveProvider(IProviderFactory factory) => "ollama";
+        public string? ResolveProvider(Ashlar.Infrastructure.Execution.IProviderFactory factory) => "ollama";
     }
 }

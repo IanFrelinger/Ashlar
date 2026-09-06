@@ -2,7 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Ashlar.Abstractions;
-using Ashlar.BackgroundAgents.Agents;
+using Ashlar.Tests.BackgroundAgents.Agents;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Abstractions.Agents;
 using Ashlar.Orchestration.Architect.Models;

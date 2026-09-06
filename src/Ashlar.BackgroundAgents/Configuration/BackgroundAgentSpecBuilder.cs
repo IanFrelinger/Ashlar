@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
 using Ashlar.BackgroundAgents.DataSensitivity;
-using Ashlar.Orchestration.Architect.Models;
+using Ashlar.Core.Application.Orchestration.Ports;
 using System.Text.Json;
 
 namespace Ashlar.BackgroundAgents.Configuration;
 
 /// <summary>
-/// Builder for creating AgentSpawnSpec from BackgroundAgentConfig.
+/// Builder for creating AgentSpawnSpecDto from BackgroundAgentConfig.
 /// 
-/// Converts configuration into the format expected by AgentFactory and Orchestrator.
+/// Converts configuration into the format expected by agent creators.
 /// </summary>
 public class BackgroundAgentSpecBuilder
 {
@@ -29,12 +29,12 @@ public class BackgroundAgentSpecBuilder
     }
 
     /// <summary>
-    /// Build an AgentSpawnSpec from a BackgroundAgentConfig.
+    /// Build an AgentSpawnSpecDto from a BackgroundAgentConfig.
     /// </summary>
     /// <param name="config">The agent configuration.</param>
-    /// <returns>An AgentSpawnSpec ready for agent creation.</returns>
+    /// <returns>An AgentSpawnSpecDto ready for agent creation.</returns>
     /// <exception cref="ArgumentException">Thrown if configuration is invalid.</exception>
-    public AgentSpawnSpec BuildSpec(BackgroundAgentConfig config)
+    public AgentSpawnSpecDto BuildSpec(BackgroundAgentConfig config)
     {
         if (config == null)
             throw new ArgumentNullException(nameof(config));
@@ -65,9 +65,10 @@ public class BackgroundAgentSpecBuilder
             $"RAG: {(config.RAG?.Enabled == true ? "Enabled" : "Disabled")}\n" +
             $"Web Search: {(config.WebSearch?.Enabled == true ? "Enabled" : "Disabled")}";
 
-        return new AgentSpawnSpec
+        return new AgentSpawnSpecDto
         {
             AgentId = config.Id,
+            Name = config.Name,
             Domain = agentType,
             Goal = $"Execute {config.Role} tasks: {string.Join(", ", config.Commands)}",
             Description = description,

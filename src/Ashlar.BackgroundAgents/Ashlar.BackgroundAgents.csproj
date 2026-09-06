@@ -16,7 +16,6 @@
     <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
     <ProjectReference Include="..\Ashlar.Core.Application\Ashlar.Core.Application.csproj" />
     <ProjectReference Include="..\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
-    <ProjectReference Include="..\Ashlar.Orchestration\Ashlar.Orchestration.csproj" />
     <ProjectReference Include="..\Ashlar.Runtime\Ashlar.Runtime.csproj" />
   </ItemGroup>
 

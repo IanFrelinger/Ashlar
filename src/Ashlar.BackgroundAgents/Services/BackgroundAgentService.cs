@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.DataSensitivity;
 using Ashlar.BackgroundAgents.Registry;
-using Ashlar.Orchestration.Agents;
+using Ashlar.Core.Application.Orchestration.Ports;
 
 namespace Ashlar.BackgroundAgents.Services;
 
@@ -23,7 +23,7 @@ public class BackgroundAgentService : BackgroundService
 {
     private readonly BackgroundAgentConfigLoader _configLoader;
     private readonly BackgroundAgentSpecBuilder _specBuilder;
-    private readonly AgentFactory _agentFactory;
+    private readonly IAgentCreator _agentCreator;
     private readonly IBackgroundAgentRegistry _registry;
     private readonly IDataSensitivityRegistry _sensitivityRegistry;
     private readonly ILogger<BackgroundAgentService> _logger;
@@ -32,22 +32,22 @@ public class BackgroundAgentService : BackgroundService
     /// Initializes a new instance of the <see cref="BackgroundAgentService"/> class.
     /// </summary>
     /// <param name="configLoader">The configuration loader.</param>
-    /// <param name="specBuilder">The spec builder for creating AgentSpawnSpec.</param>
-    /// <param name="agentFactory">The agent factory for creating agents.</param>
+    /// <param name="specBuilder">The spec builder for creating AgentSpawnSpecDto.</param>
+    /// <param name="agentCreator">The agent creator for creating agents.</param>
     /// <param name="registry">The agent registry.</param>
     /// <param name="sensitivityRegistry">The sensitivity level registry.</param>
     /// <param name="logger">The logger.</param>
     public BackgroundAgentService(
         BackgroundAgentConfigLoader configLoader,
         BackgroundAgentSpecBuilder specBuilder,
-        AgentFactory agentFactory,
+        IAgentCreator agentCreator,
         IBackgroundAgentRegistry registry,
         IDataSensitivityRegistry sensitivityRegistry,
         ILogger<BackgroundAgentService> logger)
     {
         _configLoader = configLoader ?? throw new ArgumentNullException(nameof(configLoader));
         _specBuilder = specBuilder ?? throw new ArgumentNullException(nameof(specBuilder));
-        _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
+        _agentCreator = agentCreator ?? throw new ArgumentNullException(nameof(agentCreator));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _sensitivityRegistry = sensitivityRegistry ?? throw new ArgumentNullException(nameof(sensitivityRegistry));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -119,11 +119,11 @@ public class BackgroundAgentService : BackgroundService
     {
         _logger.LogDebug("Creating agent {AgentId} from configuration", config.Id);
 
-        // Build AgentSpawnSpec from config
+        // Build AgentSpawnSpecDto from config
         var spec = _specBuilder.BuildSpec(config);
 
-        // Create agent using factory
-        var agent = _agentFactory.CreateAgent(spec);
+        // Create agent using creator
+        var agent = _agentCreator.CreateAgent(spec);
 
         // Register with registry
         await _registry.RegisterAsync(agent, config, AgentRegistrationOrigin.Authored, cancellationToken);

@@ -3,7 +3,7 @@ using Ashlar.Abstractions;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect.Models;
 
-namespace Ashlar.BackgroundAgents.Agents;
+namespace Ashlar.Tests.BackgroundAgents.Agents;
 
 /// <summary>
 /// Meta-agent that manages other background agents (dog-fooding).

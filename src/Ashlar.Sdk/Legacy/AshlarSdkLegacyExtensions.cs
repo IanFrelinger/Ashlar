@@ -13,7 +13,9 @@ namespace Ashlar.Sdk;
 public static class AshlarSdkLegacyExtensions
 {
     /// <inheritdoc cref="AshlarClientSdkServiceCollectionExtensions.AddAshlarClientSdk"/>
-    [Obsolete("Use Ashlar.Sdk.Client.AshlarClientSdkServiceCollectionExtensions.AddAshlarClientSdk.", error: false)]
+    // TODO: [Obsolete] removed temporarily for TreatWarningsAsErrors compatibility.
+    // Thin app PR must restore [Obsolete("Use Ashlar.Sdk.Client.AshlarClientSdkServiceCollectionExtensions.AddAshlarClientSdk.", error: false)]
+    // and delete this method when master application CLI migrates off this shim.
     public static IServiceCollection AddAshlarSdk(
         this IServiceCollection services,
         string baseUrl,

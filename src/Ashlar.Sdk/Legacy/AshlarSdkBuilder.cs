@@ -14,7 +14,9 @@ namespace Ashlar.Sdk;
 /// Back-compat names for the HTTP client SDK. Prefer <see cref="AshlarClientSdkBuilder"/> and
 /// <see cref="AshlarClientSdkServiceCollectionExtensions.AddAshlarClientSdk"/>.
 /// </summary>
-[Obsolete("Renamed to AshlarClientSdkBuilder (namespace Ashlar.Sdk.Client).", error: false)]
+// TODO: [Obsolete] removed temporarily for TreatWarningsAsErrors compatibility.
+// Thin app PR must restore [Obsolete("Renamed to AshlarClientSdkBuilder (namespace Ashlar.Sdk.Client).", error: false)]
+// and delete this class when master application CLI migrates off this shim.
 public sealed class AshlarSdkBuilder : AshlarClientSdkBuilder
 {
     internal AshlarSdkBuilder(IServiceCollection services)

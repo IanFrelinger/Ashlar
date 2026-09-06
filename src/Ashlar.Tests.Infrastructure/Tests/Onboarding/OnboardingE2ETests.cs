@@ -323,7 +323,7 @@ public sealed class OnboardingE2ETests : IDisposable
         var sp = services.BuildServiceProvider();
 
         sp.GetRequiredService<IConfigurationService>().Should().NotBeNull();
-        sp.GetRequiredService<IProviderFactory>().Should().NotBeNull();
+        sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>().Should().NotBeNull();
         sp.GetRequiredService<StrictModeOptions>().Should().NotBeNull();
     }
 
@@ -362,7 +362,7 @@ public sealed class OnboardingE2ETests : IDisposable
             services.AddAshlar();
             var sp = services.BuildServiceProvider();
 
-            var factory = sp.GetRequiredService<IProviderFactory>();
+            var factory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>();
             factory.IsProviderAvailable("mock").Should().BeTrue();
 
             var result = await factory.ExecuteLLMAsync("mock", "system", "hello", new { }, CancellationToken.None);
