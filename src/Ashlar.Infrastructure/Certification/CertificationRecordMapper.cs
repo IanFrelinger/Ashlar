@@ -3,33 +3,18 @@ using Ashlar.Certification.Contracts;
 
 namespace Ashlar.Infrastructure.Certification;
 
-/// <summary>Maps domain certification records to portable wire DTOs for external consumers.</summary>
+// DEPRECATED: CertificationRecordMapper has been moved to Ashlar.Core.Application.Certification
+// This file provides backward compatibility and will be removed in a future release.
+
+/// <summary>
+/// Maps domain certification records to portable wire DTOs for external consumers.
+/// DEPRECATED: Use Ashlar.Core.Application.Certification.CertificationRecordMapper instead.
+/// </summary>
+[Obsolete("CertificationRecordMapper has moved to Ashlar.Core.Application.Certification. Update your using statements.")]
 public static class CertificationRecordMapper
 {
-    /// <summary>To data.</summary>
-    public static CertificationRecordData ToData(CertificationRecord record) => new()
-    {
-        Status = record.Status,
-        Stage = record.Stage,
-        Admitted = record.Admitted,
-        Signed = record.Signed,
-        Timestamp = record.Timestamp,
-        BrickId = record.BrickId,
-        ContentHash = record.ContentHash,
-        EscapeRate = record.EscapeRate,
-        TotalMutants = record.TotalMutants,
-        SurvivingMutants = record.SurvivingMutants,
-        KilledMutants = record.KilledMutants,
-        SurvivingMutantIds = record.SurvivingMutantIds,
-        Signature = record.Signature,
-        Reason = record.Reason,
-        Gate = record.Gate,
-        SchemaVersion = record.SchemaVersion,
-        GatesPassed = record.GatesPassed,
-        Inputs = record.Inputs,
-        Proposer = record.Proposer,
-        Attempts = record.Attempts,
-        Ed25519Signature = record.Ed25519Signature,
-        Ed25519PublicKey = record.Ed25519PublicKey
-    };
+    /// <summary>To data. DEPRECATED: Use Ashlar.Core.Application.Certification.CertificationRecordMapper.ToData instead.</summary>
+    [Obsolete("Use Ashlar.Core.Application.Certification.CertificationRecordMapper.ToData instead.")]
+    public static CertificationRecordData ToData(CertificationRecord record) =>
+        Core.Application.Certification.CertificationRecordMapper.ToData(record);
 }
