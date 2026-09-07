@@ -24,7 +24,8 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/specs/SPEC-006-keys-and-signing.md` — keys and signing (**ACCEPTED** 2026-08-27); every "signed" claim in every other spec resolves here. `docs/specs/` currently holds this one file.
 - `docs/InstanceLedger.md` — the instance ledger: durable course records and their signing story.
 - `docs/certification-evidence.md` — the **falsifiable proof ledger**: every ADMIT/REJECT with the test or spike and the CI run that proved it; "Known v0 limitations" at the end. Read this before judging any "certified" claim.
-- `docs/dogfood-ledger.md` — **dated evidence log** for shippable demos: pass/fail entries with repro steps before any autonomy or design-partner marketing claim. Companion to `DogfoodValidation.md`.
+- `docs/dogfood-ledger.md` — **dated pass/fail dogfood evidence** for autonomy marketing unlock: scheduled CI runs of Strict extend→certify→admit on canary objectives, automatically appended by `.github/workflows/dogfood-continuous-proof.yml`.
+- `docs/dogfood-scorecard.md` — **autonomy marketing thresholds** (last-N green %, mean time-to-admit, Strict rejection rate, consecutive days hold) and self-apply bar. Marketing claims MUST remain HOLD until thresholds met for ~7 consecutive days AND dated Strict production Ed25519 passes appear in the ledger.
 - `docs/certification/since-fences.md` — what the certificate actually binds after the compile-authority fences (gate-emitted artifact, IL fence, certifier identity). Published pin is `ci/published-version`, never `VERSION`.
 - `docs/trust-loop/ashlar-trust-loop-spec.md` — the specification: core invariant, gate legs, proposer/witness separation, tier placement.
 - `docs/trust-loop/trust-loop-integration.md` and `docs/trust-loop/trust-loop-ext-autonomous-self-extension.md` — how the loop lands in the runtime, and the autonomous self-extension extension.

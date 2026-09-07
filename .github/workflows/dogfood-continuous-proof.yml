@@ -1,0 +1,178 @@
+name: Dogfood Continuous Proof
+
+# Scheduled autonomy loop sweeps on canary objectives with automatic ledger updates.
+# Proves Strict extend→certify→admit pipeline stability for autonomy marketing unlock.
+
+on:
+  schedule:
+    # Weekdays (Mon-Fri) at 06:00 UTC
+    - cron: "0 6 * * 1-5"
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/dogfood-continuous-proof.yml'
+      - 'samples/autonomy-objectives/rgb-hex-parse.*'
+      - 'docs/dogfood-ledger.md'
+      - 'scripts/dogfood-continuous-proof.sh'
+  workflow_dispatch:
+
+concurrency:
+  group: dogfood-continuous-proof-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  strict-canary-sweep:
+    name: Strict canary sweep (rgb-hex-parse)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Need write permission to commit ledger updates
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Check Strict Ed25519 readiness
+        id: check-strict
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          # Check if CertificationVerifyOptions.Strict requires Ed25519 signatures
+          # PR #523 merged on master; this verifies the requirement is present.
+          
+          STRICT_FILE="src/Ashlar.Infrastructure/Certification/CertificationVerifyOptions.cs"
+          
+          if [[ ! -f "${STRICT_FILE}" ]]; then
+            echo "strict_ready=false" >> "$GITHUB_OUTPUT"
+            echo "gap_reason=CertificationVerifyOptions.cs not found" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          # Check if Strict property sets RequireEd25519Signature=true
+          if grep -A 20 'public static CertificationVerifyOptions Strict' "${STRICT_FILE}" | \
+             grep -q 'RequireEd25519Signature.*=.*true'; then
+            echo "strict_ready=true" >> "$GITHUB_OUTPUT"
+            echo "gap_reason=" >> "$GITHUB_OUTPUT"
+            echo "✅ Strict Ed25519 requirement detected - PR #523 on master"
+          else
+            echo "strict_ready=false" >> "$GITHUB_OUTPUT"
+            echo "gap_reason=Strict lacks RequireEd25519Signature=true (regression check)" >> "$GITHUB_OUTPUT"
+            echo "⚠️  Strict Ed25519 requirement NOT detected - possible regression"
+          fi
+
+      - name: Run autonomy loop sweep (canary objective)
+        id: sweep
+        if: steps.check-strict.outputs.strict_ready == 'true'
+        shell: bash
+        run: |
+          set +e  # Allow sweep to fail; we'll record the outcome
+          
+          bash scripts/dogfood-continuous-proof.sh run-canary-sweep
+          SWEEP_EXIT=$?
+          
+          echo "sweep_exit_code=${SWEEP_EXIT}" >> "$GITHUB_OUTPUT"
+          
+          if [[ ${SWEEP_EXIT} -eq 0 ]]; then
+            echo "sweep_outcome=PASS" >> "$GITHUB_OUTPUT"
+            echo "sweep_gap=" >> "$GITHUB_OUTPUT"
+          else
+            echo "sweep_outcome=FAIL" >> "$GITHUB_OUTPUT"
+            echo "sweep_gap=Sweep exited with code ${SWEEP_EXIT}" >> "$GITHUB_OUTPUT"
+          fi
+          
+          exit 0  # Don't fail the workflow; we'll append the result regardless
+
+      - name: Record GAP row (Strict not ready)
+        if: steps.check-strict.outputs.strict_ready == 'false'
+        shell: bash
+        run: |
+          bash scripts/dogfood-continuous-proof.sh append-ledger \
+            "$(date -u +%Y-%m-%d)" \
+            "Continuous dogfood proof canary (rgb-hex-parse)" \
+            "GAP" \
+            "${{ steps.check-strict.outputs.gap_reason }}" \
+            "Dogfood Continuous" \
+            "[CI run ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Append ledger row (Strict ready)
+        if: steps.check-strict.outputs.strict_ready == 'true'
+        shell: bash
+        run: |
+          bash scripts/dogfood-continuous-proof.sh append-ledger \
+            "$(date -u +%Y-%m-%d)" \
+            "Continuous dogfood proof canary (rgb-hex-parse)" \
+            "${{ steps.sweep.outputs.sweep_outcome }}" \
+            "${{ steps.sweep.outputs.sweep_gap }}" \
+            "Dogfood Continuous" \
+            "[CI run ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+      - name: Upload sweep artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dogfood-continuous-proof-${{ github.run_id }}
+          path: |
+            test-results/dogfood-sweep-*.log
+            .ashlar/campaign/**/*.json
+            .ashlar/campaign/**/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Commit ledger update
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet docs/dogfood-ledger.md; then
+            echo "No ledger changes to commit"
+            exit 0
+          fi
+          
+          git add docs/dogfood-ledger.md
+          git commit -m "chore: dogfood ledger update from CI run ${{ github.run_id }}
+
+Automated ledger append from scheduled dogfood-continuous-proof workflow.
+
+Date: $(date -u +%Y-%m-%d)
+Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+Canary: rgb-hex-parse"
+          
+          git push origin HEAD:master
+
+      - name: Workflow summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Dogfood Continuous Proof Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Date:** $(date -u +%Y-%m-%d)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Run ID:** ${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Canary:** rgb-hex-parse" >> "$GITHUB_STEP_SUMMARY"
+          
+          if [[ "${{ steps.check-strict.outputs.strict_ready }}" == "true" ]]; then
+            echo "- **Strict Ready:** ✅ Yes (Ed25519 on master)" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Sweep Outcome:** ${{ steps.sweep.outputs.sweep_outcome }}" >> "$GITHUB_STEP_SUMMARY"
+            
+            if [[ -n "${{ steps.sweep.outputs.sweep_gap }}" ]]; then
+              echo "- **Gap:** ${{ steps.sweep.outputs.sweep_gap }}" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "- **Strict Ready:** ❌ No" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Gap:** ${{ steps.check-strict.outputs.gap_reason }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "See \`docs/dogfood-ledger.md\` for dated evidence." >> "$GITHUB_STEP_SUMMARY"
