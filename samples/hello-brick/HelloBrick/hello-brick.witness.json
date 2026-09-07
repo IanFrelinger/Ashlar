@@ -1,0 +1,13 @@
+{
+  "brickId": "hello",
+  "cases": [
+    {
+      "input": { "name": "Ashlar" },
+      "expectedOutput": { "message": "Hello, Ashlar!", "implementation": "Deterministic" }
+    },
+    {
+      "input": { "name": "world" },
+      "expectedOutput": { "message": "Hello, world!", "implementation": "Deterministic" }
+    }
+  ]
+}

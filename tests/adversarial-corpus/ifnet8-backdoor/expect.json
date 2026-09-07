@@ -1,0 +1,16 @@
+{
+  "id": "ifnet8-backdoor",
+  "origin": {
+    "round": "8 (CompiledProgramParityTests, SDK-defined symbol)",
+    "lens": "the SDK defines the twin's symbol for free: #if NET8_0 with a stock csproj",
+    "severity": "CRITICAL"
+  },
+  "class": "A",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "fifthway-ey without the csproj edit: the backdoor sits under #if NET8_0, which Microsoft.NET.Sdk defines for every net8.0 project on its own. The build compiles the backdoor, a default in-process parse does not see it, and the twin split needs no malicious project at all. The legs must judge under the symbols the build defined, the record must carry them, and the backdoor's mutants must survive.",
+  "invariants": {
+    "reasonContains": "WriteAllText",
+    "compileOptionsContains": "NET8_0"
+  }
+}

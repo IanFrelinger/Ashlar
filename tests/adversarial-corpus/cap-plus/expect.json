@@ -1,0 +1,16 @@
+{
+  "id": "cap-plus",
+  "origin": {
+    "round": "adv-mut (/tmp/adv-mut/fx/cap-plus)",
+    "lens": "per-kind mutant cap hides the untested operator",
+    "severity": "HIGH"
+  },
+  "class": "C",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "cap-minus with + discount instead of - discount: the SAME witness accepts both, which is the proof it has no teeth there. Both twins must be rejected at the mutation leg with the discount operator among the survivors.",
+  "invariants": {
+    "survivorsMin": 1,
+    "reasonContains": "discount"
+  }
+}

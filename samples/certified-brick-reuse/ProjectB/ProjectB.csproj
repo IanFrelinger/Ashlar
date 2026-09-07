@@ -7,11 +7,23 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>CertifiedBrickReuse.ProjectB</RootNamespace>
     <AssemblyName>CertifiedBrickReuse.ProjectB</AssemblyName>
+    <!-- Versions are pinned here, not in the repository's Directory.Packages.props: this is a consumer
+         project, and under the root's central package management the explicit Versions below are a
+         restore error (NU1008) — which is what the README's by-hand flow used to stop on. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.0" />
-    <PackageReference Include="Ashlar.Authoring" Version="0.1.0" />
+    <!-- Ashlar.Brick.Contracts follows the certified brick to nuget.org's 0.1.1: the packed
+         Ashlar.Certified.DamageResolver declares >= 0.1.1, and a lower direct pin here would be a
+         package downgrade (NU1605) that fails the restore. The other two stay at 0.1.0 from the
+         local feed scripts/pack-certified-brick-reuse.sh builds — the verifier in
+         Ashlar.Certification.Contracts must be the same code as the signer that produced the
+         record, and both are this checkout. Ashlar.Authoring is deliberately NOT referenced: this
+         program never used it, and its packed dependency graph reaches nuget.org's
+         Ashlar.Core.Application 0.1.1, which pulls Ashlar.Certification.Contracts >= 0.1.1 over the
+         local 0.1.0 and fails the restore with NU1605. -->
+    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.1" />
     <PackageReference Include="Ashlar.Certification.Contracts" Version="0.1.0" />
     <PackageReference Include="Ashlar.Certified.DamageResolver" Version="0.1.0" />
   </ItemGroup>

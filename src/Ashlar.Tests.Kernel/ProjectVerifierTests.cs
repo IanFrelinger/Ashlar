@@ -175,9 +175,10 @@ public sealed class ProjectVerifierTests : IDisposable
     public void An_admitting_mode_with_a_zero_budget_fails_the_envelope()
     {
         var (m, p) = Scaffolded();
-        // Scaffold is sealed with extensions: 0 — valid. Flip the mode without funding it.
+        // The scaffold now ships FUNDED terms (so `policy set self_extend proposing` works on a
+        // fresh project — see ProjectScaffoldTests). Defund it explicitly, then raise the mode.
         p = p.Replace("mode: sealed", "mode: proposing")
-             .Replace("gatesRequired: []", "gatesRequired: [tests]");
+             .Replace("extensions: 1", "extensions: 0");
 
         var result = ProjectVerifier.Verify(m, p, _dir);
 
@@ -190,6 +191,7 @@ public sealed class ProjectVerifierTests : IDisposable
     public void Sealed_with_zero_budget_is_fine_because_it_admits_nothing()
     {
         var (m, p) = Scaffolded();
+        p = p.Replace("extensions: 1", "extensions: 0");
 
         ProjectVerifier.Verify(m, p, _dir).Verified.Should().BeTrue();
     }

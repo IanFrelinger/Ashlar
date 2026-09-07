@@ -1,0 +1,16 @@
+{
+  "id": "recur-brick",
+  "origin": {
+    "round": "9 (/tmp/adv9/recur/RecurBrick)",
+    "lens": "author code on the certifier's threads: a mutant that overflows the stack",
+    "severity": "HIGH"
+  },
+  "class": "B",
+  "expect": "VERDICT",
+  "leg": "mutation",
+  "description": "An honest factorial with a recursive private helper. A mutated recursion step makes the recursion infinite; a StackOverflowException cannot be caught, so the certifier died with exit 134, empty stdout and no verdict. The overflow must now kill a child process, be filed under crashedMutants, and the gate must still produce a signed verdict.",
+  "invariants": {
+    "crashedMutantsMin": 1
+  },
+  "knownIssue": "Equivalent-mutant false rejection: shift-relational-boundary turns the base case (current <= 1) into (current < 1), which computes the same factorial for every input (1 * Factorial(0) == 1), so no witness can kill it and the gate rejects an honest brick. Until the catalog recognises the equivalence the fixture pins only that a verdict is reached without a crash; when it does, change expect to ADMIT."
+}

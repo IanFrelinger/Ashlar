@@ -18,7 +18,7 @@ Ashlar is a self-hosted .NET runtime for AI workflows you can audit and embed in
 **Three things you get, each with a command behind it:**
 
 1. **Auditable workflows.** Submit a task and you get the output **and** the record of what ran: the task is stored under an id, and the trust log carries an entry whose `sourceId` is that id (`POST /api/copilot/task` → `GET /api/trust/dashboard`).
-2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → witness (correctness) → mutation testing (does the witness have teeth) → determinism. The gate is the one required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has proven is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md).
+2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → **witness** (correctness) → mutation testing (does the witness have teeth) → determinism → dependency cleanliness. A *witness* is a list of input → expected-output cases authored **before** the candidate exists and never shown to whoever writes it — which is what lets the gate judge rather than trust. The gate is the one required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has proven is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md). To drive it yourself from published packages, see [`docs/CertificationGate.md`](docs/CertificationGate.md).
 3. **Your infrastructure.** Runs as a CLI, an HTTP API, containers, or embedded in your own host. Local-first: local model routing (Ollama; mock/offline behind an explicit `ASHLAR_ALLOW_MOCK=1`) is the default route and cloud providers are opt-in targets; the API refuses to start on a network exposure profile without auth. There is no hosted Ashlar service.
 
 **Start here:** [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md) — clone, build `Ashlar.Kernel.sln`, run the API on loopback, submit one task, read its audit trail, then run the gate and watch it admit and reject. About fifteen minutes; no Docker, no API keys.
@@ -79,6 +79,9 @@ For layer-by-layer detail see [`docs/Architecture.md`](docs/Architecture.md); fo
 | **Tester / evaluator** | [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md), then [`docs/GettingStarted.md`](docs/GettingStarted.md) for the pipeline and CLI tour | `dotnet build Ashlar.Kernel.sln`, then `dotnet run --project application/src/Ashlar.CLI -- doctor`, then the API + `POST /api/copilot/task` |
 | **Contributor** | [`docs/ProjectTiers.md`](docs/ProjectTiers.md) — canonical repo map, then [`CONTRIBUTING.md`](CONTRIBUTING.md) | `dotnet build application/src/Ashlar.CLI/Ashlar.CLI.csproj` (implicit restore; `--no-restore` only after `scripts/setup/setup.sh` or the dev container has restored) |
 | **Integrator** | [`docs/IntegratorGuide.md`](docs/IntegratorGuide.md), [`docs/DistributionModels.md`](docs/DistributionModels.md), [`docs/sdk.md`](docs/sdk.md), [`docs/SdkIntegrationGuide.md`](docs/SdkIntegrationGuide.md) | NuGet host embed, `Ashlar.Client`, HTTP API, CLI image, compose, or source integration (`consumer-template/CONSUMING.md` for the feed template) |
+| **Package consumer** (no checkout) | [`docs/ConsumingFromNuGet.md`](docs/ConsumingFromNuGet.md) | `<PackageReference Include="Ashlar.Hosting.Bundle" Version="0.1.1" />` — the `Ashlar.*` graph is on nuget.org |
+| **Operator** (runs a deployed project) | [`docs/OperatorLifecycle.md`](docs/OperatorLifecycle.md) | `dotnet tool install --global Ashlar.CLI --version 0.1.1`, then `ashlar init <name>` → `ashlar verify` |
+| **Brick author who wants a certificate** | [`docs/CertificationGate.md`](docs/CertificationGate.md), then [`docs/AuthoringBricks.md`](docs/AuthoringBricks.md) | A brick project referencing only `Ashlar.Brick.Contracts`, a witness, and one `CertifyAsync` call |
 
 ## What Ashlar is not
 
@@ -92,7 +95,7 @@ For layer-by-layer detail see [`docs/Architecture.md`](docs/Architecture.md); fo
 | Area | What it contains | Where to look |
 |------|------------------|---------------|
 | Kernel spine | Abstractions, core/domain/application, contracts, policies, infrastructure, orchestration, background agents, hosting | [`src/`](src/), [`docs/ProjectTiers.md`](docs/ProjectTiers.md) |
-| Observe/adapt/improve | Pattern observation, analysis, adaptation, self-improvement, changelog, dogfood gates | [`docs/GapAnalysis.md`](docs/GapAnalysis.md), [`docs/DogfoodValidation.md`](docs/DogfoodValidation.md) |
+| Observe/adapt/improve | Pattern observation, analysis, adaptation, self-improvement, changelog, dogfood gates, automated campaign | [`docs/GapAnalysis.md`](docs/GapAnalysis.md), [`docs/DogfoodValidation.md`](docs/DogfoodValidation.md), [`docs/DogfoodCampaign.md`](docs/DogfoodCampaign.md) |
 | Federation (peer mesh) | Hub-less, symmetric peer-to-peer sharing of signed `.ashpkg` extensions: a node serves its packages (`GET /mesh/v1/…`), pulls from configured peers / a tailnet / LAN multicast discovery, all re-gated through its own trust root; TLS/mTLS for a private fleet | [`docs/Federation.md`](docs/Federation.md), [`deploy/node.yml`](deploy/node.yml) |
 | Mesh (director/hub) | The older instance mesh: capability advertisement, director/hub flows, trust-tier placement, virtual labs, phase docs | [`docs/MeshPhase0NorthStar.md`](docs/MeshPhase0NorthStar.md), [`docs/MeshVirtualLab.md`](docs/MeshVirtualLab.md) |
 | gRPC transport | Transport contracts, server, standalone host | `src/Ashlar.Transport.Grpc*` |
@@ -122,6 +125,8 @@ Where to read and what to run:
 | A complete, tracked objective + witness + recorded proposal | [`samples/autonomy-objectives/README.md`](samples/autonomy-objectives/README.md) |
 | Fly one real iteration yourself (Docker; Ollama only for `-Live`/`-SweepLive`; a spike, not a supported entry point) | [`spikes/autonomy-first-flight/run-first-flight.ps1`](spikes/autonomy-first-flight/run-first-flight.ps1) — read [`spikes/README.md`](spikes/README.md) first |
 | Author a brick the gate can judge | [`samples/hello-brick/README.md`](samples/hello-brick/README.md), then [`docs/AuthoringBricks.md`](docs/AuthoringBricks.md) |
+| Run the gate yourself, from packages: the legs, the constraints, the rejections | [`docs/CertificationGate.md`](docs/CertificationGate.md) |
+| Own a deployed project: `ashlar init`, `ashlar.policy.yaml`, `ashlar verify` | [`docs/OperatorLifecycle.md`](docs/OperatorLifecycle.md) |
 | The background-agent self-extend safety audit | [`docs/SELF-EXTEND-AUDIT.md`](docs/SELF-EXTEND-AUDIT.md) |
 
 ## Why Ashlar

@@ -51,11 +51,9 @@ public sealed class MutationProbeBrick : DomainBrick
 
     private static string ExtractErrorMessage(string line)
     {
-        var idx = line.IndexOf("ERROR", StringComparison.Ordinal);
-        if (idx < 0)
-            return line.Trim();
-
-        var rest = line[(idx + 5)..].TrimStart(' ', ':');
-        return rest;
+        // The caller only passes lines that contain the marker, so a guard for its absence would be a
+        // branch no witness can reach, and every mutant of an unreachable branch is equivalent. 6 is
+        // the marker plus the separator after it; no TrimStart, so an off-by-one here is observable.
+        return line[(line.IndexOf("ERROR", StringComparison.Ordinal) + 6)..];
     }
 }

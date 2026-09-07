@@ -134,7 +134,8 @@ public static class CompositionProbeFixtures
                         {
                             ["errorCount"] = 2,
                             ["firstErrorMessage"] = "First failure: connection reset"
-                        })
+                        }),
+                    MutationProbeWitnesses.ZeroErrorCase
                 ])).ConfigureAwait(false);
 
         await AdmitBrickAsync(

@@ -1,0 +1,4 @@
+{ "brickId": "shipping", "cases": [
+ { "input": { "length": 100, "width": 100, "height": 100, "weight": 10, "ratePerKg": 2, "surcharge": 0, "discount": 0 }, "expectedOutput": { "total": 400 } },
+ { "input": { "length": 10, "width": 10, "height": 10, "weight": 3, "ratePerKg": 5, "surcharge": 0, "discount": 0 }, "expectedOutput": { "total": 15 } }
+]}

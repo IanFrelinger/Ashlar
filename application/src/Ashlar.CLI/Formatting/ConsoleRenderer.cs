@@ -198,6 +198,21 @@ public class ConsoleRenderer : IConsoleRenderer
     /// <inheritdoc />
     public void RenderOrchestrationResult(OrchestrationResult result)
     {
+        // A success flag that contradicts the progress counter printed two lines below it is not a
+        // success report, it is two facts left for the reader to reconcile. The empty run is
+        // reported as an empty run, before anything congratulatory is printed.
+        if (OrchestrationWorkReport.IsSilentSuccess(result))
+        {
+            foreach (var line in OrchestrationWorkReport.NoWorkReport(result))
+            {
+                Console.Error.WriteLine(line);
+            }
+            Console.Error.WriteLine($"  Agents planned: {result.Decomposition?.Agents.Count ?? 0}");
+            Console.Error.WriteLine($"  Conflicts: {result.Conflicts.Count}");
+            Console.Error.WriteLine($"  Escalations: {result.Escalations.Count}");
+            return;
+        }
+
         if (result.Success)
         {
             Console.Out.WriteLine($"Orchestration completed successfully");

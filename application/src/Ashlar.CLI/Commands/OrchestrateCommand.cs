@@ -155,12 +155,15 @@ public class OrchestrateCommand
                 result = await _orchestrator.OrchestrateAsync(request);
             }
 
+            // Same judgement as the console path: an orchestration where no agent completed is not
+            // ok, and a programmatic caller must not read a different verdict from a person.
+            var didWork = Formatting.OrchestrationWorkReport.DidWork(result);
             return new StructuredOrchestrationResult(
-                Ok: result.Success,
+                Ok: result.Success && didWork,
                 CorrelationId: correlationId,
-                Error: null,
-                ErrorCode: null,
-                Success: result.Success,
+                Error: didWork ? null : "orchestration completed with no agent completing — nothing was produced",
+                ErrorCode: didWork ? null : "ORCHESTRATION_NO_WORK",
+                Success: result.Success && didWork,
                 AgentCount: result.Decomposition?.Agents.Count ?? 0,
                 Conflicts: result.Conflicts.Count,
                 Escalations: result.Escalations.Count);
@@ -257,13 +260,17 @@ public class OrchestrateCommand
 
             if (json)
             {
+                var didWork = Formatting.OrchestrationWorkReport.DidWork(result);
                 var jsonData = new
                 {
-                    ok = result.Success,
+                    // `ok` is what a script branches on, so it must carry the same judgement the
+                    // exit code does: a run where no agent completed is not ok.
+                    ok = result.Success && didWork,
                     correlationId,
                     data = new
                     {
                         success = result.Success,
+                        didWork,
                         agentCount = result.Decomposition?.Agents.Count ?? 0,
                         conflicts = result.Conflicts.Count,
                         escalations = result.Escalations.Count,
@@ -288,7 +295,12 @@ public class OrchestrateCommand
                 _renderer.RenderProgressComplete($"CorrelationId={correlationId} :: orchestration completed");
             }
 
-            return result.Success ? (int)ExitCode.Ok : (int)ExitCode.ValidationFailed;
+            // An orchestration that completed nothing is not a success, whatever the flag says. The
+            // renderer prints the "no agent completed" report for the same condition, so what a
+            // person reads and what a script branches on can never disagree again.
+            return result.Success && Formatting.OrchestrationWorkReport.DidWork(result)
+                ? (int)ExitCode.Ok
+                : (int)ExitCode.ValidationFailed;
         }
         catch (Exception ex)
         {

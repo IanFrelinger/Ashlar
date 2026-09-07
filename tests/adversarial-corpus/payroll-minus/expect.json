@@ -1,0 +1,16 @@
+{
+  "id": "payroll-minus",
+  "origin": {
+    "round": "skeptic-1 (/tmp/skep1-cap/fx/minus)",
+    "lens": "per-kind mutant cap hides the untested operator",
+    "severity": "HIGH"
+  },
+  "class": "C",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "Net pay = gross + bonus - deduction, with a witness (payroll2) whose every case has bonus = 0 and deduction = 0. Under the capped catalog both this brick and payroll-plus ADMITTED with 13 mutants and 0 survivors, because the cap had already spent the swap-arithmetic budget before it reached the deduction operator. The uncapped catalog must surface it.",
+  "invariants": {
+    "survivorsMin": 1,
+    "reasonContains": "deduction"
+  }
+}

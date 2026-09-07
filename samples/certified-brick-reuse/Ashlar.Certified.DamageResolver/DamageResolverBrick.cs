@@ -2,8 +2,16 @@ using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 
 namespace Ashlar.Certified.DamageResolver;
+
 /// <summary>Damage resolver brick.</summary>
-public sealed class DamageResolverBrick : DomainBrick
+/// <remarks>
+/// The base type is written out in full rather than as <c>Brick</c>: this namespace starts with
+/// <c>Ashlar.</c>, so the short name resolves to the <c>Ashlar.Brick</c> namespace that
+/// Ashlar.Brick.Contracts also ships, not to the class. A certified brick is one source file — the
+/// certificate binds one content hash over one text — so the alias that used to be supplied by a
+/// second, injected file lives nowhere any more; the name is spelled out here instead.
+/// </remarks>
+public sealed class DamageResolverBrick : Ashlar.Core.Domain.Bricks.Brick
 {
     public DamageResolverBrick()
     {

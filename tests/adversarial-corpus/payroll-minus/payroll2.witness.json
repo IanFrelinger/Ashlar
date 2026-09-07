@@ -1,0 +1,6 @@
+{ "brickId": "payroll", "cases": [
+  { "input": { "hours": 40, "rate": 10, "extraHours": 0, "bonus": 0, "deduction": 0 }, "expectedOutput": { "net": 400, "band": "high" } },
+  { "input": { "hours": 10, "rate": 15, "extraHours": 5, "bonus": 0, "deduction": 0 }, "expectedOutput": { "net": 300, "band": "low" } },
+  { "input": { "hours": 351, "rate": 1, "extraHours": 0, "bonus": 0, "deduction": 0 }, "expectedOutput": { "net": 351, "band": "high" } },
+  { "input": { "hours": 35, "rate": 10, "extraHours": 0, "bonus": 0, "deduction": 0 }, "expectedOutput": { "net": 350, "band": "low" } }
+]}

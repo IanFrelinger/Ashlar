@@ -49,14 +49,16 @@ public sealed class GenericAgent : BaseAgent
             Spec.Domain,
             Spec.AgentId);
 
-        var result = new
-        {
-            AgentId = Spec.AgentId,
-            Domain = Spec.Domain,
-            Goal = Spec.Goal,
-            Placeholder = true,
-            Output = $"No specialized agent for domain '{Spec.Domain}'; no work performed for goal: {Spec.Goal}"
-        };
+        // A NAMED type, not an anonymous one carrying a bool: the flag was already here and
+        // nothing checked it, so an orchestration made entirely of these still reported success.
+        // Callers now match on the type (see OrchestrationWorkReport in the CLI). Same property
+        // names, so the serialized shape is unchanged.
+        var result = new PlaceholderAgentResult(
+            AgentId: Spec.AgentId,
+            Domain: Spec.Domain,
+            Goal: Spec.Goal,
+            Placeholder: true,
+            Output: $"No specialized agent for domain '{Spec.Domain}'; no work performed for goal: {Spec.Goal}");
 
         return Task.FromResult<object>(result);
     }

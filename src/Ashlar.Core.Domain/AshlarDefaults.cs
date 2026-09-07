@@ -45,6 +45,22 @@ public static class AshlarDefaults
     /// Override: <c>Ashlar:Llm:MockDelayMs</c>.</summary>
     public const int MockDelayMs = 30;
 
+    /// <summary>
+    /// The offline, no-LLM provider name — the framework's OWN default for anything that may run
+    /// without a model behind it (<c>BackgroundAgentConfig.ModelProvider</c>), the sentinel
+    /// <c>BackgroundAgentRegistry</c> reads as "this role consumes no LLM", and a first-class
+    /// offline route in <c>MeaiBackedModel</c>.
+    /// </summary>
+    /// <remarks>
+    /// It is a constant, and every one of those places spells it by reference, because it was
+    /// briefly a literal in four files and absent from a fifth: <c>ProviderFactory.KnownProviders</c>.
+    /// A scaffold carrying the framework's own default then CERTIFIED and refused to RUN — "not a
+    /// model provider this build knows" — on the same directory. A default that the allow-list does
+    /// not contain is not a typo an operator can fix; it is the framework disagreeing with itself,
+    /// so the two must not be able to drift apart again.
+    /// </remarks>
+    public const string DeterministicProviderName = "deterministic";
+
     // ── OpenAI ────────────────────────────────────────────────────────
 
     /// <summary>Default OpenAI model identifier.

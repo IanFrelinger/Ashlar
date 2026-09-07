@@ -742,29 +742,30 @@ static partial class Program
             daemonPatternStoreOpt,
             daemonDisableObservationOpt
         };
-        daemonCmd.SetHandler(
-            /// <summary>Async.</summary>
-            /// <param name="config">Config.</param>
-            /// <param name="duration">Duration.</param>
-            /// <param name="patternStorePath">Pattern store path.</param>
-            /// <param name="disableObservation">Disable observation.</param>
-            /// <param name="formatJson">Format json.</param>
-            async (FileInfo? config, string? duration, string? patternStorePath, bool disableObservation, bool formatJson) =>
-            {
-                var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.BackgroundAgentDaemonCommand>();
-                var exitCode = await cmd.RunAsync(
-                    config?.FullName,
-                    duration,
-                    patternStorePath,
-                    disableObservation,
-                    formatJson);
-                Environment.Exit(exitCode);
-            },
-            daemonConfigOpt,
-            daemonDurationOpt,
-            daemonPatternStoreOpt,
-            daemonDisableObservationOpt,
-            jsonOpt);
+        // The InvocationContext form, not the typed-parameter one, for ONE reason: it is the only
+        // shape that can hand the daemon a real cancellation token. The typed form called RunAsync
+        // with no token, so the daemon's own "did the operator stop me?" guard
+        // (cancellationToken.ThrowIfCancellationRequested) was dead code against
+        // CancellationToken.None, and an ordinary SIGTERM of a `--duration` run was reported as
+        // ok:false / status:faulted with exit 1 and a "faulted" heartbeat.
+        daemonCmd.SetHandler(async (System.CommandLine.Invocation.InvocationContext ctx) =>
+        {
+            var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.BackgroundAgentDaemonCommand>();
+            // ctx.ExitCode, NOT Environment.Exit. GetCancellationToken() is what ARMS
+            // System.CommandLine's CancelOnProcessTermination middleware, and the handler it then
+            // registers on AppDomain.ProcessExit blocks until this invocation completes. Calling
+            // Environment.Exit from inside the invocation therefore deadlocks against a handler
+            // waiting for the invocation to finish — measured as three daemon smoke tests timing
+            // out at 2m30s each. Nothing needed Environment.Exit here: Program.Main returns what
+            // InvokeAsync returns, which is this.
+            ctx.ExitCode = await cmd.RunAsync(
+                ctx.ParseResult.GetValueForOption(daemonConfigOpt)?.FullName,
+                ctx.ParseResult.GetValueForOption(daemonDurationOpt),
+                ctx.ParseResult.GetValueForOption(daemonPatternStoreOpt),
+                ctx.ParseResult.GetValueForOption(daemonDisableObservationOpt),
+                ctx.ParseResult.GetValueForOption(jsonOpt),
+                ctx.GetCancellationToken());
+        });
         backgroundAgentCmd.AddCommand(daemonCmd);
 
         // ashlar background-agent dashboard — localhost read-only operator UI

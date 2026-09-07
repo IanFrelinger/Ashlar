@@ -238,7 +238,7 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
         if (LlmConsumingRoles.Contains(config.Role))
             return;
         var hasProvider = !string.IsNullOrWhiteSpace(config.ModelProvider) &&
-                          !string.Equals(config.ModelProvider, "deterministic", StringComparison.OrdinalIgnoreCase);
+                          !string.Equals(config.ModelProvider, Ashlar.Core.Domain.AshlarDefaults.DeterministicProviderName, StringComparison.OrdinalIgnoreCase);
         var hasName = !string.IsNullOrWhiteSpace(config.ModelName);
         if (!hasProvider && !hasName)
             return;
@@ -704,6 +704,45 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
                 return;
             }
 
+            // An agent whose ROLE has a dedicated execution lane, but whose lane did not engage,
+            // must never fall through to the generic success below. That fall-through is how an
+            // extender in a host that never registered ISelfExtendRunner logged "Execution
+            // completed successfully" every cycle while doing nothing at all — and, because the
+            // extender body is where the invariant-D ceiling lives, how ExtensionCeiling (the
+            // headline blast-radius control) could never fire: the code that consults it was
+            // skipped, silently, by the same condition that skipped the work.
+            //
+            // The lane's preconditions are named individually, because "extender did not run" is
+            // useless and "no ISelfExtendRunner is registered in this host" is actionable.
+            if (UnmetLanePrecondition(instance.Config) is { } unmet)
+            {
+                var message = $"Role '{instance.Config.Role}' did NOT run: {unmet}";
+                _logStore?.Append(agentId, "Error", message);
+                _logger?.LogError(
+                    "Background agent {AgentId} did not execute its role: {Reason}", agentId, unmet);
+                _observations?.Append(new RuntimeObservation(
+                    ts: DateTimeOffset.UtcNow,
+                    source: agentId,
+                    kind: ObservationKind.AgentAction,
+                    summary: message,
+                    severity: ObservationSeverity.Error,
+                    facts: new Dictionary<string, string>
+                    {
+                        ["role"] = instance.Config.Role ?? string.Empty,
+                        ["executed"] = "0",
+                        ["stopped_reason"] = "lane_preconditions_unmet"
+                    },
+                    agentCycle: instance.ExecutionCount));
+                instance.LastCompletedAt = DateTimeOffset.UtcNow;
+                instance.FailureCount++;
+                telemSuccess = false;
+                telemExecuted = 0;
+                telemRationale = message;
+                telemStoppedReason = "lane_preconditions_unmet";
+                telemError = unmet;
+                return;
+            }
+
             // Default: simple success (full agent ThinkAsync + toolbox can be wired later)
             instance.LastCompletedAt = DateTimeOffset.UtcNow;
             instance.SuccessCount++;
@@ -752,6 +791,72 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
                     telemError));
             }
         }
+    }
+
+    /// <summary>
+    /// Why a role with a dedicated execution lane did not reach it, or null when the role has no
+    /// dedicated lane (a purely observational agent, which the generic success branch describes
+    /// correctly).
+    ///
+    /// <para>Each condition mirrors, exactly, one clause of its lane's guard above. If a guard
+    /// changes, this must change with it — the pairing is the point: a lane that can be skipped
+    /// silently is a lane whose absence gets reported as success.</para>
+    /// </summary>
+    private string? UnmetLanePrecondition(BackgroundAgentConfig config)
+    {
+        var role = config.Role ?? string.Empty;
+
+        if (string.Equals(role, "optimizer", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_codeAnalysisRunner is null)
+            {
+                return "no ICodeAnalysisRunner is registered in this host, so there is nothing to run the "
+                     + "analysis. Register one before AddBackgroundAgents(), or change this agent's role.";
+            }
+            if (!TryGetParameter(config, ["Path", "AnalysisPath"], out _))
+            {
+                return "the agent declares no Path (or AnalysisPath) parameter, so there is no code to "
+                     + "analyse. Add Path to the agent's Parameters.";
+            }
+            return null;
+        }
+
+        if (string.Equals(role, "tester", StringComparison.OrdinalIgnoreCase))
+        {
+            return _testRunRunner is null
+                ? "no ITestRunRunner is registered in this host, so no tests can be run. Register one "
+                + "before AddBackgroundAgents(), or change this agent's role."
+                : null;
+        }
+
+        if (string.Equals(role, "extender", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_selfExtendRunner is null)
+            {
+                return "no ISelfExtendRunner is registered in this host, so no self-extend cycle can run — "
+                     + "and because the ExtensionCeiling is enforced inside that cycle, no blast-radius "
+                     + "limit was applied either. AddAshlar()/AddBackgroundAgents() do not register a "
+                     + "runner: register your own ISelfExtendRunner before AddBackgroundAgents(), or use "
+                     + "`ashlar background-agent` from the CLI, which wires one. Until then this agent "
+                     + "does nothing, and says so rather than reporting success.";
+            }
+            if (!TryGetParameter(config, ["RepoRoot", "Path"], out _))
+            {
+                return "the agent declares no RepoRoot (or Path) parameter, so the cycle has no tree to "
+                     + "work in. Add RepoRoot to the agent's Parameters.";
+            }
+            return null;
+        }
+
+        if (string.Equals(role, "self-improver", StringComparison.OrdinalIgnoreCase))
+        {
+            return _selfImprovementLoop is null
+                ? "no ISelfImprovementLoop is registered in this host, so no improvement cycle can run. "
+                + "Register one before AddBackgroundAgents(), or change this agent's role."
+                : null;
+        }
+
+        return null;
     }
 
     private static bool TryGetParameter(BackgroundAgentConfig config, string[] keys, out string value)

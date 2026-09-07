@@ -11,6 +11,13 @@ namespace Ashlar.AI.Pipeline.Models;
 /// </summary>
 public sealed class MeaiBackedModel : IModel
 {
+    /// <summary>
+    /// Provider names that never reach an MEAI chat client. Spelled as literals because this
+    /// project deliberately depends on nothing but <c>Ashlar.Abstractions</c>;
+    /// <c>"deterministic"</c> is the same name as
+    /// <c>Ashlar.Core.Domain.AshlarDefaults.DeterministicProviderName</c>, which is the single
+    /// source for the provider ALLOW-LIST and the framework default. Change one, change this.
+    /// </summary>
     private static readonly HashSet<string> DeterministicProviders = new(StringComparer.OrdinalIgnoreCase)
     {
         "offline", "mock", "echo", "mock-json", "deterministic",

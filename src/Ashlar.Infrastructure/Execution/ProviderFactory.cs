@@ -23,9 +23,11 @@ namespace Ashlar.Infrastructure.Execution;
 /// defaults in <see cref="AshlarDefaults"/>.</para>
 ///
 /// <para><b>Available providers:</b> openai, openai_compat, azure, ollama, local
-/// (in-process ONNX/LLamaSharp), video (SmolVLM2-Video in Docker), and the
-/// test-only mock/offline/mock-json/echo set. To add a new provider, add its
-/// key to <c>_availableProviders</c>, implement availability detection in
+/// (in-process ONNX/LLamaSharp), video (SmolVLM2-Video in Docker), the offline
+/// <c>deterministic</c> route (<see cref="AshlarDefaults.DeterministicProviderName"/>,
+/// the framework's own default for anything that may run with no model behind it),
+/// and the test-only mock/offline/mock-json/echo set. To add a new provider, add its
+/// key to <see cref="KnownProviders"/>, implement availability detection in
 /// <see cref="IsProviderAvailable"/>, and add instantiation logic in the
 /// provider-creation path.</para>
 ///
@@ -61,7 +63,17 @@ public class ProviderFactory : IProviderFactory
 
     // --- Provider catalogue ---
 
-    private readonly HashSet<string> _availableProviders = new()
+    /// <summary>
+    /// Every provider name this build can route to. Public because "is this a provider at all?" is a
+    /// DIFFERENT question from "is it configured and reachable", and callers that conflate the two
+    /// fail open: a misspelled or invented provider name used to sail through, fail at call time,
+    /// and land in the echo fallback, which then reported success over work no model ever saw.
+    ///
+    /// <para>An unreachable provider may degrade. A name that is not a provider cannot — no
+    /// fallback rescues a typo, it only hides it — so callers should refuse a name that is not in
+    /// this set, and say what the set contains.</para>
+    /// </summary>
+    public static readonly IReadOnlySet<string> KnownProviders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "openai",
         "openai_compat",
@@ -72,8 +84,27 @@ public class ProviderFactory : IProviderFactory
         "mock",
         "offline",
         "mock-json",
-        "echo"
+        "echo",
+        // The framework's OWN default (BackgroundAgentConfig.ModelProvider), the no-LLM sentinel
+        // BackgroundAgentRegistry reads, and an offline route MeaiBackedModel handles by name.
+        // Omitting it made a scaffold that ashlar verify had just CERTIFIED refuse to run on the
+        // same directory: "not a model provider this build knows". Spelled from the shared constant
+        // so the allow-list and the default cannot drift apart again.
+        AshlarDefaults.DeterministicProviderName,
     };
+
+    /// <summary>
+    /// True when <paramref name="provider"/> names a provider this build knows how to route to,
+    /// whether or not it is configured. Never confuse this with availability.
+    /// </summary>
+    public static bool IsKnownProvider(string? provider) =>
+        !string.IsNullOrWhiteSpace(provider) && KnownProviders.Contains(provider!.Trim());
+
+    /// <summary>The known provider names, sorted, for refusal messages.</summary>
+    public static string KnownProviderList() =>
+        string.Join(", ", KnownProviders.OrderBy(p => p, StringComparer.Ordinal));
+
+    private readonly HashSet<string> _availableProviders = new(KnownProviders, StringComparer.OrdinalIgnoreCase);
 
     private static bool AllowMock => string.Equals(Environment.GetEnvironmentVariable("ASHLAR_ALLOW_MOCK"), "1", StringComparison.OrdinalIgnoreCase);
 

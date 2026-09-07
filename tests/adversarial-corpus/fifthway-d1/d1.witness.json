@@ -1,0 +1,5 @@
+{ "brickId": "fifthway-overflow", "cases": [
+ { "input": { "baseDamage": 3, "scale": 4 }, "expectedOutput": { "scaled": 12 } },
+ { "input": { "baseDamage": 2147483647, "scale": 2 }, "expectedOutput": { "scaled": -2 } },
+ { "input": { "baseDamage": 0, "scale": 9 }, "expectedOutput": { "scaled": 0 } },
+ { "input": { "baseDamage": -5, "scale": 3 }, "expectedOutput": { "scaled": -15 } } ] }

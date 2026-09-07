@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Ashlar.Manifest;
+using Ashlar.Manifest.Admission;
 using Xunit;
 
 namespace Ashlar.Tests.Kernel;
@@ -37,8 +38,68 @@ public sealed class ProjectScaffoldTests
             SelfExtendMode.Sealed,
             "self-extension is the interesting capability, which is exactly why it must not "
             + "be on for a project someone has had for ninety seconds");
-        policy.SelfExtend.MayAdd.Should().BeEmpty();
-        policy.SelfExtend.Budget.Extensions.Should().Be(0);
+    }
+
+    [Fact]
+    public void The_scaffolded_project_can_actually_be_armed()
+    {
+        // The defect this pins: `ashlar policy set self_extend proposing` — the arming step the
+        // gate's refusal, `policy show` and the scaffold itself all recommend, in three places —
+        // was REFUSED on the project init had just written, because the scaffold shipped
+        // `gatesRequired: []` and a mode that admits must say what it admits against. There was no
+        // supported path from init to an armed node at all.
+        //
+        // Sealed is still the default. What changed is that raising it is now possible.
+        ProjectScaffold.TryScaffold("demo", out _, out var policyYaml, out _).Should().BeTrue();
+
+        foreach (var mode in new[] { SelfExtendMode.Proposing, SelfExtendMode.SelfExtending })
+        {
+            var raised = policyYaml.Replace("mode: sealed", "mode: " + mode);
+            PolicyLoader.TryLoad(raised, out var policy, out var reason)
+                .Should().BeTrue($"the scaffolded policy must be raisable to '{mode}': {reason}");
+            policy!.SelfExtend.Mode.Should().Be(mode);
+
+            // And the raised policy must still VERIFY — a budget of 0 loads fine but fails the
+            // envelope course, which would land the documented path on a red wall one step later.
+            var dir = Path.Combine(Path.GetTempPath(), "arm-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                ProjectScaffold.TryScaffold("demo", out var manifestYaml, out _, out _).Should().BeTrue();
+                var verification = ProjectVerifier.Verify(manifestYaml, raised, dir);
+                verification.Verified.Should().BeTrue(
+                    $"an armed scaffold must still verify: {string.Join(" | ", verification.Courses.Select(c => c.Detail))}");
+            }
+            finally
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void The_armed_terms_permit_nothing_while_the_mode_is_sealed()
+    {
+        // Pre-filling gatesRequired/mayAdd/budget arms nothing by itself: AdmissionGate
+        // short-circuits on sealed before reading any of them. This is the safety argument for
+        // the change above, so it is a test rather than a comment.
+        ProjectScaffold.TryScaffold("demo", out _, out var policyYaml, out _).Should().BeTrue();
+        PolicyLoader.TryLoad(policyYaml, out var policy, out _).Should().BeTrue();
+
+        var proposal = new ExtensionProposal
+        {
+            Id = "p1",
+            Kind = "brick",
+            Summary = "add brick demo",
+            ProposedBy = "main",
+            ProposedAt = DateTimeOffset.UtcNow,
+            Courses = [new CourseResult { Name = "tests", Passed = true, Detail = "ok" }],
+        };
+
+        var outcome = AdmissionGate.Decide(policy!, proposal, admittedInWindow: 0);
+
+        outcome.State.Should().Be(ProposalState.Rejected);
+        outcome.Reason.Should().Contain("sealed");
     }
 
     [Fact]

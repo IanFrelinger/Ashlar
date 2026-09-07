@@ -16,7 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.0" />
+    <!-- 0.1.1 is the first nuget.org release, so this brick certifies from a plain checkout with no
+         local feed: the certification gate and the cert-gate test that drives it against this
+         directory restore it from nuget.org. -->
+    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.1" />
   </ItemGroup>
 
   <ItemGroup>

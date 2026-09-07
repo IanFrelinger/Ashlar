@@ -613,6 +613,10 @@ static partial class Program
         root.AddCommand(new VerifyCommand());
         root.AddCommand(new GatesCommand());
         root.AddCommand(new KeysCommand());
+        // `ashlar ledger reanchor` is the command the kernel's two lossy ledger refusals name.
+        // Without it those refusals could only name a C# method, and a refusal whose fix cannot be
+        // typed is the defect the whole ledger message rewrite exists to remove.
+        root.AddCommand(new LedgerCommand());
         root.AddCommand(new PolicyCommand());
         root.AddCommand(new PkgCommand());
         root.AddCommand(new ExportCommand());

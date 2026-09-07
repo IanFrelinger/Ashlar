@@ -1,0 +1,16 @@
+{
+  "id": "fifthway-d1",
+  "origin": {
+    "round": "5 (/tmp/fifthway/D1)",
+    "lens": "compile-options twin: overflow checking, unchecked half",
+    "severity": "control"
+  },
+  "class": "A",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "baseDamage * scale in a try/catch(OverflowException), built UNCHECKED, with a witness that expects the wrapped value. The catch is dead code in this program, so its literal can never be observed and the mutation leg must say so. The record must disclose that the program was judged unchecked.",
+  "invariants": {
+    "reasonContains": "scaled = -1",
+    "compileOptionsContains": "checkOverflow=false"
+  }
+}

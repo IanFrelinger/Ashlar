@@ -1,0 +1,16 @@
+{
+  "id": "dec-brick",
+  "origin": {
+    "round": "skeptic (/tmp/skep-recur/DecBrick)",
+    "lens": "author code on the certifier's threads: a mutated literal makes the recursion infinite",
+    "severity": "HIGH"
+  },
+  "class": "B",
+  "expect": "VERDICT",
+  "leg": "mutation",
+  "description": "The skeptic's sharpening of recur-brick: the recursion step goes through Dec(x) => x - 1, so mutate-int-literal alone (no operator swap) makes it infinite. Same stack overflow, same dead certifier. Must reach a signed verdict with the overflowing mutants filed under crashedMutants.",
+  "invariants": {
+    "crashedMutantsMin": 1
+  },
+  "knownIssue": "Equivalent-mutant false rejection: (n <= 1) -> (n < 1) computes the same factorial for every input, so the gate rejects an honest brick on a mutant no witness can kill. Pins verdict-without-crash only; change expect to ADMIT when the catalog recognises the equivalence."
+}

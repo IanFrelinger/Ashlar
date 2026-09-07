@@ -276,14 +276,21 @@ public sealed class BackgroundAgentRegistryGapCoverageTests
     }
 
     [Fact]
-    public async Task Optimizer_without_path_falls_through_to_default_success()
+    // RENAMED AND INVERTED. This test used to be called
+    // `Optimizer_without_path_falls_through_to_default_success` and asserted SuccessCount == 1 —
+    // it pinned the defect rather than a behaviour. An optimizer with no Path has nothing to
+    // analyse; running its cycle and recording a success said the agent was healthy when it had
+    // done nothing, in the same breath as every other cycle. See UnwiredLaneReportsFailureTests.
+    public async Task Optimizer_without_path_is_reported_as_a_failure_not_a_success()
     {
         var registry = BuildRegistry(codeAnalysisRunner: new FakeCodeAnalysisRunner(true, "unused", 0));
         var config = new BackgroundAgentConfig { Id = "optimizer-default", Role = "optimizer", Enabled = true };
         await registry.RegisterAuthoredAsync(new GenericAgent(BuildSpec(config), NullLogger<GenericAgent>.Instance), config);
         await registry.ExecuteOnceAsync(config.Id);
 
-        registry.GetAgent(config.Id)!.SuccessCount.Should().Be(1);
+        var instance = registry.GetAgent(config.Id)!;
+        instance.SuccessCount.Should().Be(0);
+        instance.FailureCount.Should().Be(1);
     }
 
     [Fact]
@@ -378,7 +385,10 @@ public sealed class BackgroundAgentRegistryGapCoverageTests
     }
 
     [Fact]
-    public async Task Extender_without_repo_root_skips_self_extend_runner()
+    // RENAMED AND INVERTED, for the same reason as the optimizer case above. The runner is still
+    // not called — that half was always right — but the cycle no longer records a success for it.
+    // "Skipped" and "succeeded" are different facts, and the registry used to report the second.
+    public async Task Extender_without_repo_root_skips_the_runner_and_reports_a_failure()
     {
         var runner = new RecordingSelfExtendRunner();
         var registry = BuildRegistry(selfExtendRunner: runner);
@@ -387,7 +397,9 @@ public sealed class BackgroundAgentRegistryGapCoverageTests
         await registry.ExecuteOnceAsync(config.Id);
 
         runner.LastRepoRoot.Should().BeNull();
-        registry.GetAgent(config.Id)!.SuccessCount.Should().Be(1);
+        var instance = registry.GetAgent(config.Id)!;
+        instance.SuccessCount.Should().Be(0);
+        instance.FailureCount.Should().Be(1);
     }
 
     [Fact]

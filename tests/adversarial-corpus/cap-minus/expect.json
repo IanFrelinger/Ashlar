@@ -1,0 +1,16 @@
+{
+  "id": "cap-minus",
+  "origin": {
+    "round": "adv-mut (/tmp/adv-mut/fx/cap-minus)",
+    "lens": "per-kind mutant cap hides the untested operator",
+    "severity": "HIGH"
+  },
+  "class": "C",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "Seven-input shipping cost; the witness sets surcharge and discount to 0 in every case, so the operator in front of discount is unobservable. A catalog that capped mutants per kind never generated that swap and the toothless witness certified. The catalog must surface it as a survivor.",
+  "invariants": {
+    "survivorsMin": 1,
+    "reasonContains": "discount"
+  }
+}

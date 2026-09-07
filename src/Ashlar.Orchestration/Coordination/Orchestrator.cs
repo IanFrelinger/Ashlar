@@ -489,6 +489,15 @@ public sealed class Orchestrator
                 : null;
             var integratedOutput = _outputIntegrator.Integrate(decomposition.Agents, outputs);
 
+            // Snapshot progress BEFORE shutdown. GetActiveAgents() is empty once the lifecycle
+            // manager has torn the agents down, so taking the summary after step 6 reported
+            // "0/0 agents completed" for every run that ever finished — including runs where
+            // every agent completed. That number is what `ashlar run` prints beside
+            // "Orchestration completed successfully", and a caller cannot tell a run that did
+            // nothing from a run that did everything if the measurement is taken after the
+            // subject has left.
+            var progressSummary = _progressTracker.GetSummary(_lifecycleManager.GetActiveAgents());
+
             // Step 6: Shutdown all agents
             await _lifecycleManager.ShutdownAllAsync(cancellationToken);
 
@@ -511,7 +520,7 @@ public sealed class Orchestrator
                 ResolvedConflicts = resolvedConflicts,
                 UnresolvedConflicts = unresolvedConflicts,
                 Escalations = _escalationManager.GetAllEscalations(),
-                ProgressSummary = _progressTracker.GetSummary(_lifecycleManager.GetActiveAgents()),
+                ProgressSummary = progressSummary,
                 CorrelationId = correlationId
             };
         }

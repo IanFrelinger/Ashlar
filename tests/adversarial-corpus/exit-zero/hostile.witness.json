@@ -1,0 +1,1 @@
+{ "brickId": "hostile", "cases": [ { "input": { "value": 1 }, "expectedOutput": { "echo": 1 } } ] }

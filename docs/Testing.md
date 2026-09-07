@@ -214,12 +214,13 @@ ashlar validate
 # equivalent:
 dotnet run --project application/src/Ashlar.CLI -- validate
 
-# ashlar dogfood: add --verbose to stream build/test output
+# Dogfood (always the repo's dev/test container — SDK lives there)
+make dogfood-block2
+make dogfood-campaign
+bash scripts/run-dogfood-campaign.sh
+# Already inside the container (or after `bash scripts/run-in-devcontainer.sh`):
 ashlar dogfood block2 --verbose
-ashlar dogfood all --verbose
-# equivalent:
-dotnet run --project application/src/Ashlar.CLI -- dogfood block2 --verbose
-dotnet run --project application/src/Ashlar.CLI -- dogfood all --verbose
+dotnet run --project application/src/Ashlar.CLI -- dogfood campaign --verbose
 
 # Integration tests only
 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
@@ -243,6 +244,8 @@ gh workflow run "Cross-Platform Tests" -f scope=adaptation
 
 # Dogfood (North Star gates)
 make dogfood-all
+make dogfood-campaign
+make dogfood-campaign-full
 ```
 
 ## Execution Routing Smoke + Stress Tests

@@ -1,0 +1,10 @@
+path-regex	reason
+^CHANGELOG\.md$	historical ledger of past in-repo paths and version claims
+^LICENSING\.md$	records graduation then extraction of the release-manager vertical
+^docs/CommercialExtractionPlan\.md$	historical extraction plan
+^docs/ExecutionPlan\.md$	historical plan; not an operator front door
+^docs/OpenCoreBoundary\.md$	records the extraction event
+^docs/ProjectTiers\.md$	records the extraction event
+^docs/DistributionModels\.md$	records the out-of-tree consumer proof
+^docs/DogfoodCampaign\.md$	explains the unpublished-VERSION rule by citing both numbers
+^docs/CertificationGate\.md$	canonical 0.1.1-vs-0.1.2 page; package snippets are checkout pins, not nuget.org install instructions

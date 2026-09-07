@@ -1,0 +1,16 @@
+{
+  "id": "fifthway-a",
+  "origin": {
+    "round": "5 (/tmp/fifthway/A)",
+    "lens": "compile-options twin, honest half",
+    "severity": "control"
+  },
+  "class": "A",
+  "expect": "ADMIT",
+  "description": "The honest twin of fifthway-b: the same FifthBrick.cs built WITHOUT ASHLAR_EVIL computes baseDamage - armor, and its witness says so. Must keep admitting, or the fix over-rejects.",
+  "invariants": {
+    "survivorsMax": 0,
+    "totalMutantsMin": 1,
+    "compileOptionsNotContains": "ASHLAR_EVIL"
+  }
+}

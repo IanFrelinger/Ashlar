@@ -1,0 +1,16 @@
+{
+  "id": "exit-zero",
+  "origin": {
+    "round": "8 (BoundedCandidateExecutionTests, exit-0 row)",
+    "lens": "author code on the certifier's threads: the candidate ends the process with exit code 0",
+    "severity": "CRITICAL"
+  },
+  "class": "B",
+  "expect": "REJECT",
+  "leg": "correctness",
+  "description": "ExecuteAsync calls Environment.Exit(0). Run on the certifier's own threads this ended the TEST HOST with exit code 0 and no failure, the one exit code every script reads as success. The candidate must run in a child process, the correctness leg must record the crash by its exit code, and the certifier must survive to say so. A candidate that fails correctness never reaches the mutation leg.",
+  "invariants": {
+    "reasonContains": "exit code 0",
+    "totalMutantsMax": 0
+  }
+}

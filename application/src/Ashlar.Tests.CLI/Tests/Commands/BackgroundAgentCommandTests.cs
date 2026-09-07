@@ -235,31 +235,77 @@ public class BackgroundAgentCommandTests : UnitTestBase
         registry.Verify(r => r.StartAsync("autoscale-extender-1", It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private async Task TestDaemonRejectsInvalidDuration()
+    /// <summary>
+    /// Runs the daemon until it has parked once, and returns what it printed.
+    ///
+    /// <para>Both daemon facts below used to call <c>RunAsync</c> with no cancellation and assert
+    /// <c>exit 1</c>. That contract no longer exists: the daemon PARKS on a failed precondition
+    /// instead of exiting, because a non-zero exit under <c>restart: unless-stopped</c> is a
+    /// restart loop that writes to the card as fast as the machine allows (the reasoning is at the
+    /// top of <c>BackgroundAgentDaemonCommand.RunAsync</c>). So <c>RunAsync</c> never returned, and
+    /// this suite hung for the whole 480s test timeout rather than failing — a suite that cannot
+    /// finish reports nothing at all.</para>
+    ///
+    /// <para>The behaviour is right and the assertion was stale, so the assertion moved: a bad
+    /// precondition must PARK, must say why, and must keep the node alive. Cancellation is what
+    /// ends the loop, exactly as Ctrl+C or <c>docker stop</c> does in production.</para>
+    /// </summary>
+    private static async Task<(int ExitCode, string Output)> RunDaemonUntilParkedAsync(
+        string? configPath, string? duration)
     {
         var command = new BackgroundAgentDaemonCommand();
-        var exitCode = await command.RunAsync(
-            configPath: null,
-            duration: "invalid",
-            patternStorePath: null,
-            disableObservation: false,
-            formatJson: true);
-        /// <summary>Assert equal.</summary>
-        AssertEqual(1, exitCode);
+        var original = Console.Out;
+        var captured = new StringWriter();
+        // The first park is immediate; the loop then sleeps on a 5s backoff. Cancelling inside that
+        // sleep is the only exit, and it is the one an operator has too.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            Console.SetOut(captured);
+            var exitCode = await command.RunAsync(
+                configPath: configPath,
+                duration: duration,
+                patternStorePath: null,
+                disableObservation: false,
+                formatJson: true,
+                cancellationToken: cts.Token);
+            return (exitCode, captured.ToString());
+        }
+        finally
+        {
+            Console.SetOut(original);
+        }
+    }
+
+    private async Task TestDaemonRejectsInvalidDuration()
+    {
+        var (exitCode, output) = await RunDaemonUntilParkedAsync(configPath: null, duration: "invalid");
+
+        // Cancellation is a clean stop, so the exit code is 0; the REFUSAL is in the parked report.
+        AssertEqual(0, exitCode);
+        AssertTrue(output.Contains("\"parked\"", StringComparison.Ordinal),
+            $"a malformed --duration must park and say so, got: {output}");
+        AssertTrue(output.Contains("\"ok\":false", StringComparison.Ordinal),
+            $"a parked node is not ok, got: {output}");
+        AssertTrue(output.Contains("invalid --duration value", StringComparison.Ordinal),
+            $"the park reason must name the offending value, got: {output}");
+        AssertTrue(output.Contains("correct --duration, and start it again", StringComparison.Ordinal),
+            $"argv cannot change while the process runs, so the refusal must name how to stop it, got: {output}");
     }
 
     private async Task TestDaemonRejectsMissingConfig()
     {
-        var command = new BackgroundAgentDaemonCommand();
         var missingPath = Path.Combine(Path.GetTempPath(), $"ashlar-missing-{Guid.NewGuid():N}.json");
-        var exitCode = await command.RunAsync(
-            configPath: missingPath,
-            duration: "1s",
-            patternStorePath: null,
-            disableObservation: false,
-            formatJson: true);
-        /// <summary>Assert equal.</summary>
-        AssertEqual(1, exitCode);
+
+        var (exitCode, output) = await RunDaemonUntilParkedAsync(configPath: missingPath, duration: "1s");
+
+        AssertEqual(0, exitCode);
+        AssertTrue(output.Contains("\"parked\"", StringComparison.Ordinal),
+            $"a missing config must park - it can appear when a volume finishes mounting, got: {output}");
+        AssertTrue(output.Contains("config file not found", StringComparison.Ordinal),
+            $"the park reason must name the missing file, got: {output}");
+        AssertTrue(output.Contains("\"ok\":false", StringComparison.Ordinal),
+            $"a node that never started is not ok, got: {output}");
     }
 
     private Task TestCalculateDesiredAgentCount()

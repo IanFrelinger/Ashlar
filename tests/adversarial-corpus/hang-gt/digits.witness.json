@@ -1,0 +1,6 @@
+{ "brickId": "digits", "cases": [
+ { "input": { "value": 12345 }, "expectedOutput": { "digits": 5 } },
+ { "input": { "value": 7 }, "expectedOutput": { "digits": 1 } },
+ { "input": { "value": 100 }, "expectedOutput": { "digits": 3 } },
+ { "input": { "value": 0 }, "expectedOutput": { "digits": 0 } }
+]}

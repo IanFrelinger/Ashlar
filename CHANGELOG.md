@@ -10,6 +10,7 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ### Added
 
+- **Automated dogfood campaign.** `make dogfood-campaign` (and every other `make dogfood-*` target) runs inside the repo's Dev Container via `scripts/run-in-devcontainer.sh` so the .NET SDK is not a host install. A release-manager coordinator dispatches specialist sub-agents (docs-drift, regression, developer-tool); silence is fail-closed. Agent set: `docs/background-agents/examples/dogfood-campaign.json`. Operator page: `docs/DogfoodCampaign.md`.
 - **Product split scaffolds** under `products/` (workstation, cluster, cloud, native) and framework distributed contracts (`ExecutionEnvelope`, `ResultEvidence`, `ITaskScheduler`, `INativeExecutionHost`).
 - **`AshlarDeploymentProfile.SecureWorkstation`** — local trust, agents, RAG, and observation without runtime transport. `AirGapped` remains the slim offline profile. Under AirGapped, MCP client, A2A, and MCP server are all refused. Under SecureWorkstation, MCP client and A2A refuse enablement; local MCP server remains allowed.
 - **`products-gate`** runs extractable product scaffolds plus `DistributedContractTests`.

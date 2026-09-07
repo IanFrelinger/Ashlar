@@ -65,6 +65,23 @@ public sealed record LedgerVerification
 
     /// <summary>The most recent entry, or null when the ledger is empty.</summary>
     public LedgerEntry? Head { get; init; }
+
+    /// <summary>
+    /// True only when this result came from ACCEPTING A DESTROYED HISTORY: every entry was gone
+    /// from under a live anchor, and <see cref="InstanceLedger.ReanchorAsync"/> started the history
+    /// again with the loss recorded as its first signed entry.
+    /// </summary>
+    /// <remarks>
+    /// It exists because <see cref="Count"/> means something different in that one case, and the
+    /// difference is the kind a caller gets wrong silently. Everywhere else <see cref="Count"/> is
+    /// how many entries SURVIVED. Here nothing survived: the count is 1, and that 1 is the marker
+    /// the re-anchor just wrote. A caller that renders "N surviving entries" without consulting
+    /// this tells an operator whose whole history was deleted that one entry of it came back —
+    /// which is the reassurance this entire mechanism exists to refuse to give. The flag is on the
+    /// result rather than left to the caller to infer, because inferring it means sniffing the
+    /// refusal text, and a rewording would silently turn the message back into a lie.
+    /// </remarks>
+    public bool DestroyedHistoryAccepted { get; init; }
 }
 
 /// <summary>
@@ -75,11 +92,15 @@ public sealed record LedgerVerification
 /// <para>INTEGRITY, stated honestly. Every entry is signed (SPEC-006 keys) and carries the hash
 /// of its predecessor, so MODIFYING a past entry, INSERTING one, or REORDERING the chain is
 /// detectable and refused loudly — the same fail-closed stance as the gate store, because a
-/// forged history is worse than a missing one. What v1 does NOT defend against is TRUNCATION of
-/// the tail: without an external anchor, dropping the last N entries leaves a shorter but
-/// internally-consistent chain. The policy's <c>truncate_ledger</c> never-entry is the v1
-/// guard for that (the runtime may not rewrite the ledger); a persisted, anti-rollback head
-/// anchor is v2. This class does not pretend otherwise.</para>
+/// forged history is worse than a missing one. TRUNCATION of the tail is detected too, but by a
+/// different mechanism, because a chain cannot see its own end being cut: a signed
+/// <see cref="LedgerHeadAnchor"/> beside the directory pins how long the history is, and every
+/// read checks it (see <c>InstanceLedgerAnchor.cs</c>). The policy's <c>truncate_ledger</c>
+/// never-entry remains the runtime-side guard.</para>
+///
+/// <para>What it still does NOT defend against is an attacker holding the operator's signing key,
+/// who can rewrite history and re-anchor it. That needs a trust root outside the machine, and
+/// this class does not pretend to be one.</para>
 /// </summary>
 public sealed partial class InstanceLedger
 {
@@ -125,6 +146,23 @@ public sealed partial class InstanceLedger
     /// a cross-process lock so two racing verifies cannot claim the same sequence number. The
     /// existing chain is verified BEFORE it is extended: a corrupt ledger is never silently grown.
     /// </summary>
+    /// <remarks>
+    /// <para>Append used to call the same anchor check the READ path uses, before writing
+    /// anything. Every state that made a read refuse therefore made append refuse too — including
+    /// the state an ordinary crash produces — so the fix all five refusals named ("re-certify with
+    /// a signed <c>ashlar verify</c>") returned the byte-identical refusal and exit 65, and the
+    /// only thing that actually worked was deleting the ledger by hand: the exact destructive act
+    /// the anchor exists to detect. A project could be bricked for good by a power cut.</para>
+    ///
+    /// <para>So the two checks are now different checks, on purpose. The chain-level verification
+    /// is unchanged and total: a bad signature, a broken link, a gap or a reordering still refuses
+    /// here, so a re-pin never vouches for text that did not verify. The ANCHOR check
+    /// (<see cref="InspectAnchorForAppendLocked"/>) repairs forward only — it refuses exactly the
+    /// states truncation produces (chain shorter than the anchor, or entries gone entirely) and
+    /// re-pins the ones truncation cannot produce. What it repairs, it records: a failed
+    /// <c>ledger-anchor</c> course inside the entry it writes, so the repair is in the signed
+    /// history rather than in place of it.</para>
+    /// </remarks>
     public async Task<LedgerEntry> AppendVerificationAsync(
         SigningIdentity signer, string subject, bool verified, IReadOnlyList<LedgerCourse> courses,
         DateTimeOffset now, CancellationToken ct = default)
@@ -141,7 +179,17 @@ public sealed partial class InstanceLedger
         // fail-closed: you cannot bury a broken chain under a fresh, valid-looking entry.
         var existing = ReadChain();
         VerifyChainLocked(existing);
+        var anchorRepair = InspectAnchorForAppendLocked(existing);
         var head = existing.Count > 0 ? existing[^1] : null;
+
+        var recorded = anchorRepair is null
+            ? courses
+            : [.. courses, new LedgerCourse
+                {
+                    Name = AnchorRepairCourseName,
+                    Passed = false,
+                    Detail = anchorRepair,
+                }];
 
         var unsigned = new LedgerEntry
         {
@@ -150,7 +198,7 @@ public sealed partial class InstanceLedger
             Kind = "verification",
             Subject = subject,
             Verified = verified,
-            Courses = courses,
+            Courses = recorded,
             Prev = head is null ? null : HashOf(head),
         };
         var signed = unsigned with
@@ -165,6 +213,19 @@ public sealed partial class InstanceLedger
         {
             await JsonSerializer.SerializeAsync(stream, signed, Json, ct).ConfigureAwait(false);
         }
+
+        // Phase one of the anchor move, BEFORE the entry lands: keep the committed position
+        // exactly where it is and merely declare the entry about to appear. A crash, kill or
+        // ENOSPC anywhere from here to the second write now leaves the chain on one of two
+        // positions this one signed document already names, so the reader accepts it instead of
+        // refusing a length it has no way to explain. There is no phase one for the genesis entry:
+        // with nothing committed there is no position to keep, and an anchor pinning entry 0 would
+        // read as "the history was deleted" on a project that was never certified.
+        if (head is not null)
+        {
+            WriteAnchor(signer, head, now, pending: signed);
+        }
+
         try
         {
             // No overwrite: a sequence file that already exists means the chain moved under us,
@@ -180,8 +241,184 @@ public sealed partial class InstanceLedger
                 $"Corrupt ledger: entry {signed.Seq} already exists on disk while holding the append lock. "
                 + $"The history moved unexpectedly — refusing to overwrite it. ({ex.Message})");
         }
+
+        // Phase two: the entry is durably on disk, so the anchor commits to it and the in-flight
+        // declaration is cleared.
+        WriteAnchor(signer, signed, now, pending: null);
         return signed;
     }
+
+    /// <summary>
+    /// Re-pins the head anchor over the chain as it stands, after verifying every entry in it.
+    /// The explicit, signed re-anchor: it writes NO entry and extends nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>This is the recovery path for BOTH states <see cref="AppendVerificationAsync"/>
+    /// deliberately refuses — a chain SHORTER than its anchor, and an anchor with no entries left
+    /// beneath it. It used to be the recovery path for only the first: the second was rejected
+    /// here before anything happened, which left the refusal that names this command naming a
+    /// command that refuses. The second is handled by
+    /// <see cref="AcceptDestroyedHistoryLocked"/>, which writes the loss down rather than pinning
+    /// nothing. Those two states are what truncation looks like, and letting an ordinary
+    /// <c>ashlar verify</c> clear them would mean a fresh valid-looking head could always be
+    /// written over a history someone deleted. Accepting that loss has to be a separate decision,
+    /// taken deliberately, by someone holding the operator key — which is exactly what calling
+    /// this is.</para>
+    ///
+    /// <para>It weakens nothing the chain guarantees: <see cref="VerifyChainLocked"/> runs first
+    /// and in full, so a tampered, reordered or unsigned entry still refuses. What it asserts is
+    /// only the one thing a chain cannot assert about itself — that this is how long the history
+    /// is meant to be.</para>
+    /// </remarks>
+    /// <param name="signer">The operator key. The anchor it writes is pinned to this key, and a
+    /// read then requires the chain's head entry to carry the same signer.</param>
+    /// <param name="now">Timestamp for the anchor (UTC).</param>
+    /// <param name="ct">Cancellation.</param>
+    /// <returns>The chain the anchor was re-pinned over.</returns>
+    public async Task<LedgerVerification> ReanchorAsync(
+        SigningIdentity signer, DateTimeOffset now, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(signer);
+
+        Directory.CreateDirectory(_dir);
+        using var _ = await AcquireLockAsync(ct).ConfigureAwait(false);
+        SweepStrayTmp();
+
+        var entries = ReadChain();
+        VerifyChainLocked(entries);
+
+        if (entries.Count == 0)
+        {
+            return await AcceptDestroyedHistoryLocked(signer, now, ct).ConfigureAwait(false);
+        }
+
+        WriteAnchor(signer, entries[^1], now, pending: null);
+        return new LedgerVerification { Count = entries.Count, Head = entries[^1] };
+    }
+
+    /// <summary>
+    /// The entries-gone half of a re-anchor: start the history again, with the destruction as its
+    /// first signed entry.
+    /// </summary>
+    /// <remarks>
+    /// <para>This used to be a refusal, and the refusal was the bug. Two states carry the "restore
+    /// from backup, or accept the loss with <c>ashlar ledger reanchor</c>" recovery sentence: a
+    /// chain shorter than its anchor, and entries gone from under a live anchor. For the second the
+    /// named command could not run — <see cref="ReanchorAsync"/> rejected an empty ledger before
+    /// doing anything — so status refused, the fix it named refused, verify refused, and the only
+    /// escape was deleting <c>ledger.head.json</c> by hand: the act that makes the destruction
+    /// invisible, which is precisely what the refusal exists to prevent. A refusal whose only
+    /// working fix is the thing it warns against is not fail-closed, it is a dead end.</para>
+    ///
+    /// <para>An anchor genuinely cannot pin nothing, so the honest act is not to write one over an
+    /// empty directory — it is to make the loss the first thing in the new history. The genesis
+    /// entry records the destroyed anchor's position and hash as a failed
+    /// <c>ledger-anchor</c> course, exactly as an ordinary append records the disagreements it
+    /// repairs forward, and its <c>Subject</c> is the destroyed head's hash — the one piece of the
+    /// old history that survived. So the loss is permanent and PERMANENTLY VISIBLE, signed by
+    /// whoever accepted it, rather than erased by a file deletion nothing records.</para>
+    ///
+    /// <para>What this does not weaken: an ordinary <c>ashlar verify</c> still cannot reach here.
+    /// <see cref="AppendVerificationAsync"/> refuses the same state, unchanged, so a fresh
+    /// valid-looking head still cannot be written over a deleted history as a side effect of
+    /// verifying. Accepting the loss stays a separate act, taken deliberately, by someone holding
+    /// the operator key.</para>
+    /// </remarks>
+    private async Task<LedgerVerification> AcceptDestroyedHistoryLocked(
+        SigningIdentity signer, DateTimeOffset now, CancellationToken ct)
+    {
+        var destroyed = ReadAnchor();
+        if (destroyed is null)
+        {
+            throw new InvalidOperationException(
+                "Nothing to re-anchor: there are no ledger entries and no head anchor either. That is not a "
+                + "shortened history, it is a project that was never certified — there is no disagreement to "
+                + "accept and nothing an anchor could pin. Fix: certify it with `ashlar keys init && ashlar "
+                + "verify`. Refusing to write a pin that points at nothing.");
+        }
+
+        // Whether the destroyed anchor's own signature verified. This is recorded rather than
+        // enforced: an anchor with no entries beneath it is refused for being an anchor with no
+        // entries beneath it, BEFORE its signature is looked at, in the read path and in the append
+        // path alike — deliberately, because checking the signature first would send an operator
+        // whose entries are gone and whose anchor is also unsigned to `ashlar verify`, which
+        // refuses that same state. That is the dead end this whole mechanism exists to remove. So
+        // the state stays acceptable, and what changes is only the honesty of the record: the
+        // sequence and hash below are the anchor's CLAIM about how much history there was, and
+        // when nothing signed that claim the entry says so instead of repeating it as fact.
+        var attested = destroyed.Sig is not null && destroyed.Signer is not null
+            && OperatorKey.Verify(
+                destroyed.Signer,
+                CanonicalJson.Bytes(destroyed with { Sig = null, Signer = null }),
+                destroyed.Sig);
+
+        var found = attested
+            ? $"the head anchor pinned entry {destroyed.Seq} (hash {HashOrNone(destroyed.Hash)}), and every entry "
+              + "beneath it was gone: the whole history had been deleted."
+            : $"the head anchor claimed to pin entry {destroyed.Seq} (hash {HashOrNone(destroyed.Hash)}), and every "
+              + "entry beneath it was gone: the whole history had been deleted. That anchor's own signature did NOT "
+              + "verify, so the length recorded above is what was found on disk rather than anything the operator "
+              + "key ever attested.";
+
+        var detail =
+            found
+            + " That loss was accepted deliberately, with the operator "
+            + "key, by `ashlar ledger reanchor --yes`. Nothing was recovered — this entry is the record that "
+            + "there was something to recover, so the deletion stays visible instead of looking like a project "
+            + "that had never been certified.";
+
+        var unsigned = new LedgerEntry
+        {
+            Seq = 1,
+            At = now,
+            Kind = "verification",
+            // The destroyed head's hash: the only fragment of the old history still on disk, and
+            // already the SHA-256 hex this field is defined to carry.
+            Subject = destroyed.Hash,
+            Verified = false,
+            Courses = [new LedgerCourse { Name = AnchorRepairCourseName, Passed = false, Detail = detail }],
+            Prev = null,
+        };
+        var signed = unsigned with
+        {
+            Sig = signer.Sign(CanonicalJson.Bytes(unsigned)),
+            Signer = signer.PublicKeyBase64,
+        };
+
+        var path = Path.Combine(_dir, PathFor(signed.Seq));
+        var tmp = path + ".tmp";
+        await using (var stream = File.Create(tmp))
+        {
+            await JsonSerializer.SerializeAsync(stream, signed, Json, ct).ConfigureAwait(false);
+        }
+
+        try
+        {
+            File.Move(tmp, path, overwrite: false);
+        }
+        catch (IOException ex)
+        {
+            TryDelete(tmp);
+            throw new InvalidOperationException(
+                $"Corrupt ledger: entry {signed.Seq} already exists on disk while holding the append lock. "
+                + $"The history moved unexpectedly — refusing to overwrite it. ({ex.Message})");
+        }
+
+        // A crash between the two writes leaves one entry under an anchor pinning the old, higher
+        // sequence — the ordinary "chain shorter than its anchor" state, which this same command
+        // clears on a second run. There is no phase-one pending anchor for a genesis entry: the
+        // old anchor names a history none of whose entries exist, so there is no position to keep.
+        WriteAnchor(signer, signed, now, pending: null);
+
+        // Count 1, and NOTHING survived to make it. The flag is what stops a caller reporting the
+        // marker as a recovered entry; see LedgerVerification.DestroyedHistoryAccepted.
+        return new LedgerVerification { Count = 1, Head = signed, DestroyedHistoryAccepted = true };
+    }
+
+    /// <summary>The destroyed anchor's head hash, or a phrase saying it carried none — so a record
+    /// of a loss never contains a dangling "hash " with nothing after it.</summary>
+    private static string HashOrNone(string? hash) =>
+        string.IsNullOrEmpty(hash) ? "none recorded" : hash;
 
     private static void TryDelete(string path)
     {
@@ -231,6 +468,7 @@ public sealed partial class InstanceLedger
     {
         var entries = ReadChain();
         VerifyChainLocked(entries);
+        VerifyAnchorLocked(entries);
         return new LedgerVerification
         {
             Count = entries.Count,

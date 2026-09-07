@@ -424,92 +424,82 @@ ashlar-ready-gate:
 validate-safe:
 	@bash scripts/validate-safe.sh
 
+# Dogfood uses the repo's dev/test container. The .NET SDK lives there — do not
+# install one on the host. scripts/run-in-devcontainer.sh is a no-op inside that
+# container, so nested make recipes do not start a second Docker.
+DEVBOX := bash scripts/run-in-devcontainer.sh
+DOGFOOD_INFRA := src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj
+
 # Dogfood Block 1: verify observation pipeline watches Ashlar's own dev workflow
 dogfood-block1:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock1Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock1Tests" --no-build -v minimal'
 
 # Dogfood Block 2: verify static analyzer runs against Block 1 (Observation) code
 dogfood-block2:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock2Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock2Tests" --no-build -v minimal'
 
 # Dogfood Block 3: adaptation engine decomposes/recompiles Ashlar brick
 dogfood-block3:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock3Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock3Tests" --no-build -v minimal'
 
 # Dogfood Block 4: promote Ashlar fix via inheritance
 dogfood-block4:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock4Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock4Tests" --no-build -v minimal'
 
 # Dogfood Block 5: autonomy controls on Ashlar dev workflow
 dogfood-block5:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock5Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock5Tests" --no-build -v minimal'
 
 # Dogfood Block 6: SelfContextAssembler answers 24h question
 dogfood-block6:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock6Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock6Tests" --no-build -v minimal'
 
 # Dogfood Block 7: Composition engine composes for Ashlar problem
 dogfood-block7:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock7Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock7Tests" --no-build -v minimal'
 
 # Dogfood Block 8: Parallel test matrix against Ashlar tests
 dogfood-block8:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock8Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock8Tests" --no-build -v minimal'
 
 # Phase D: Composition-driven testing (Block 7–8)
 dogfood-block8-composed:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock8ComposedTests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock8ComposedTests" --no-build -v minimal'
 
 # Dogfood Block 9: Instance mesh discover/advertise
 dogfood-block9:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock9Tests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock9Tests" --no-build -v minimal'
 
 # Phase E: Local IPC mesh - two instances share capability
 dogfood-block9-ipc:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock9LocalIpcTests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodBlock9LocalIpcTests" --no-build -v minimal'
 
-# Dogfood Blocks 1–6 (Phase C validation)
+# Dogfood Blocks 1–6 (Phase C validation) — one container for the whole phase
 dogfood-phase-c:
-	$(MAKE) dogfood-block1
-	$(MAKE) dogfood-block2
-	$(MAKE) dogfood-block3
-	$(MAKE) dogfood-block4
-	$(MAKE) dogfood-block5
-	$(MAKE) dogfood-block6
+	$(DEVBOX) bash -lc '$(MAKE) dogfood-block1 && $(MAKE) dogfood-block2 && $(MAKE) dogfood-block3 && $(MAKE) dogfood-block4 && $(MAKE) dogfood-block5 && $(MAKE) dogfood-block6'
 
 # Dogfood Blocks 7–9 (Phase D+E validation)
 dogfood-phase-de:
-	$(MAKE) dogfood-block7
-	$(MAKE) dogfood-block8
-	$(MAKE) dogfood-block9
+	$(DEVBOX) bash -lc '$(MAKE) dogfood-block7 && $(MAKE) dogfood-block8 && $(MAKE) dogfood-block9'
 
 # Dogfood Phase F: closed-loop improve on Ashlar
 dogfood-closedloop:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodClosedLoopTests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodClosedLoopTests" --no-build -v minimal'
 
 # Phase F: Continuous self-improvement loop (changelog, test failure store)
 dogfood-phasef:
-	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodPhaseFTests" --no-build -v minimal
+	$(DEVBOX) bash -lc 'dotnet build $(DOGFOOD_INFRA) -v minimal && dotnet test $(DOGFOOD_INFRA) --filter "FullyQualifiedName~DogfoodPhaseFTests" --no-build -v minimal'
 
-# All dogfood blocks (1–9) + Phase F closed-loop + Phase F
+# Automated dogfood campaign: specialists report to the release manager
+dogfood-campaign:
+	$(DEVBOX) bash scripts/run-dogfood-campaign.sh
+
+dogfood-campaign-full:
+	$(DEVBOX) bash scripts/run-dogfood-campaign.sh --full
+
+# All dogfood blocks (1–9) + Phase F + campaign — one container for the lot
 dogfood-all:
-	$(MAKE) dogfood-phase-c
-	$(MAKE) dogfood-phase-de
-	$(MAKE) dogfood-closedloop
-	$(MAKE) dogfood-phasef
+	$(DEVBOX) bash -lc '$(MAKE) dogfood-phase-c && $(MAKE) dogfood-phase-de && $(MAKE) dogfood-closedloop && $(MAKE) dogfood-phasef && $(MAKE) dogfood-campaign'
 
 # Review summary Markdown from JSON (C#-driven; replaces scripts/review-summary-md.sh)
 review-summary:

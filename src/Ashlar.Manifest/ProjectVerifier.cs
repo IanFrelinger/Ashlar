@@ -13,11 +13,44 @@ public sealed record CourseResult
     public required string Detail { get; init; }
 }
 
+/// <summary>
+/// What a verification was ABOUT — the honest answer to "certified in what?".
+///
+/// <para>A verdict without a scope is the defect this record exists to close: <c>ashlar verify</c>
+/// printed CERTIFIED over a project containing no code at all, and nothing in the output said the
+/// signature covered two YAML documents and nothing else. A certification verb that certifies
+/// nothing has to say so.</para>
+/// </summary>
+public sealed record CertificationScope
+{
+    /// <summary>Authored <c>.cs</c> files found under the project (build output excluded).</summary>
+    public required int SourceFiles { get; init; }
+
+    /// <summary>Bricks declared in <c>ashlar.yaml</c>.</summary>
+    public required int DeclaredBricks { get; init; }
+
+    /// <summary>Declared bricks that resolved to source in this project.</summary>
+    public required int ResolvedBricks { get; init; }
+
+    /// <summary>False when the project holds no source at all — the verdict then covers documents only.</summary>
+    public bool CoversCode => SourceFiles > 0;
+
+    /// <summary>One line naming exactly what the verdict covers. Rendered beside every verdict.</summary>
+    public string Summary => CoversCode
+        ? $"covers ashlar.yaml + ashlar.policy.yaml · {SourceFiles} source file{(SourceFiles == 1 ? string.Empty : "s")}"
+          + $" · {ResolvedBricks}/{DeclaredBricks} declared brick{(DeclaredBricks == 1 ? string.Empty : "s")} resolved"
+        : "covers ashlar.yaml + ashlar.policy.yaml ONLY — this project contains no source code, "
+          + "so nothing here attests an implementation";
+}
+
 /// <summary>The outcome of verifying a project.</summary>
 public sealed record ProjectVerification
 {
     /// <summary>Courses in the order they ran.</summary>
     public required IReadOnlyList<CourseResult> Courses { get; init; }
+
+    /// <summary>What the verdict covers. Never null — a verdict always names its own scope.</summary>
+    public required CertificationScope Scope { get; init; }
 
     /// <summary>True only when every course passed.</summary>
     public bool Verified => Courses.All(c => c.Passed);
@@ -46,6 +79,10 @@ public static class ProjectVerifier
     {
         var courses = new List<CourseResult>();
 
+        // Scanned up front so the SCOPE is known even when the contract itself fails to load: a
+        // caller must always be able to say what the verdict was about, including "nothing".
+        var inventory = BrickSourceResolver.Scan(projectDirectory);
+
         // ── course 1 · contract ─────────────────────────────────────────────
         var manifestOk = ManifestLoader.TryLoad(manifestYaml, out var manifest, out var manifestReason);
         var policyOk = PolicyLoader.TryLoad(policyYaml, out var policy, out var policyReason);
@@ -58,7 +95,16 @@ public static class ProjectVerifier
                 Detail = !manifestOk ? $"ashlar.yaml: {manifestReason}" : $"ashlar.policy.yaml: {policyReason}",
             });
             // Later courses depend on parsed documents; a broken contract is the whole verdict.
-            return new ProjectVerification { Courses = courses };
+            return new ProjectVerification
+            {
+                Courses = courses,
+                Scope = new CertificationScope
+                {
+                    SourceFiles = inventory.SourceFiles.Count,
+                    DeclaredBricks = 0,
+                    ResolvedBricks = 0,
+                },
+            };
         }
         courses.Add(new CourseResult
         {
@@ -68,7 +114,7 @@ public static class ProjectVerifier
         });
 
         // ── course 2 · composition ──────────────────────────────────────────
-        courses.Add(VerifyComposition(manifest));
+        courses.Add(VerifyComposition(manifest, inventory, projectDirectory, out var resolvedBricks));
 
         // ── course 3 · envelope ─────────────────────────────────────────────
         courses.Add(VerifyEnvelope(policy!, projectDirectory));
@@ -80,7 +126,16 @@ public static class ProjectVerifier
             courses.Add(provenance);
         }
 
-        return new ProjectVerification { Courses = courses };
+        return new ProjectVerification
+        {
+            Courses = courses,
+            Scope = new CertificationScope
+            {
+                SourceFiles = inventory.SourceFiles.Count,
+                DeclaredBricks = manifest.Bricks.Count,
+                ResolvedBricks = resolvedBricks,
+            },
+        };
     }
 
     /// <summary>
@@ -98,15 +153,20 @@ public static class ProjectVerifier
     {
         var stateRoot = Path.Combine(projectDirectory, ".ashlar");
         var ledgerDir = Path.Combine(stateRoot, "ledger");
+        var ledger = new Ledger.InstanceLedger(stateRoot);
         var hasEntries = Directory.Exists(ledgerDir)
             && Directory.EnumerateFiles(ledgerDir, "*.json").Any(f => !f.EndsWith(".json.tmp", StringComparison.Ordinal));
-        if (!hasEntries)
+        // The head anchor counts as evidence of certification in its own right. Gating only on
+        // entries meant that deleting the whole ledger directory removed the course itself, so a
+        // destroyed history read as "never certified" — the loudest failure becoming the quietest,
+        // and the exact move a tail-truncating attacker escalates to.
+        if (!hasEntries && !ledger.HasHeadAnchor)
         {
             return null;
         }
         try
         {
-            var chain = new Ledger.InstanceLedger(stateRoot).VerifyChain();
+            var chain = ledger.VerifyChain();
             var currentSubject = Ledger.InstanceLedger.Subject(manifestYaml, policyYaml);
             if (!string.Equals(chain.Head?.Subject, currentSubject, StringComparison.Ordinal))
             {
@@ -131,9 +191,23 @@ public static class ProjectVerifier
         }
     }
 
-    private static CourseResult VerifyComposition(AshlarManifest manifest)
+    /// <summary>
+    /// The composition course. Checks that the parts the manifest names are coherent AND that the
+    /// bricks it declares are actually here.
+    ///
+    /// <para>Brick resolution is the half that used to be missing. A <c>bricks:</c> entry naming
+    /// something that exists nowhere on disk passed this course, so a signed ledger entry attested
+    /// a composition that could not run. Declaring a dependency is a claim about the project; the
+    /// course now checks it, and refuses by name when it does not hold.</para>
+    /// </summary>
+    private static CourseResult VerifyComposition(
+        AshlarManifest manifest,
+        ProjectSourceInventory inventory,
+        string projectDirectory,
+        out int resolvedBricks)
     {
         var failures = new List<string>();
+        resolvedBricks = 0;
 
         if (manifest.Agents.Count == 0)
         {
@@ -156,11 +230,31 @@ public static class ProjectVerifier
             if (string.IsNullOrWhiteSpace(brick.Id) || string.IsNullOrWhiteSpace(brick.Version))
             {
                 failures.Add("a brick entry is missing id or version");
+                continue;
             }
+
+            // The declared brick must EXIST. Certifying a composition whose parts are not here is
+            // certifying nothing, and doing it quietly is worse than not doing it at all.
+            if (BrickSourceResolver.Resolve(inventory, brick.Id).Count > 0)
+            {
+                resolvedBricks++;
+                continue;
+            }
+
+            failures.Add(
+                $"brick '{brick.Id}' ({brick.Version}) is declared but nothing in this project implements it — "
+                + $"searched for {BrickSourceResolver.DescribeSearch(brick.Id)}, under '{projectDirectory}'. "
+                + "Add the brick's source (a certified brick is a project you build here), or delete the entry "
+                + "from the bricks: list in ashlar.yaml. A certification cannot cover code that is not present.");
         }
 
+        var detail = "agents gated · targets declared"
+            + (manifest.Bricks.Count > 0
+                ? $" · {resolvedBricks}/{manifest.Bricks.Count} declared brick{(manifest.Bricks.Count == 1 ? string.Empty : "s")} resolved"
+                : string.Empty);
+
         return failures.Count == 0
-            ? new CourseResult { Name = "composition", Passed = true, Detail = "agents gated · targets declared" }
+            ? new CourseResult { Name = "composition", Passed = true, Detail = detail }
             : new CourseResult { Name = "composition", Passed = false, Detail = string.Join("; ", failures) };
     }
 

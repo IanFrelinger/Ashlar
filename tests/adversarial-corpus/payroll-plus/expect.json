@@ -1,0 +1,16 @@
+{
+  "id": "payroll-plus",
+  "origin": {
+    "round": "skeptic-1 (/tmp/skep1-cap/fx/plus)",
+    "lens": "per-kind mutant cap hides the untested operator",
+    "severity": "HIGH"
+  },
+  "class": "C",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "payroll-minus with + deduction: the same witness accepts both twins, so a certificate for either says nothing about deductions. Both must be rejected with the deduction operator among the survivors.",
+  "invariants": {
+    "survivorsMin": 1,
+    "reasonContains": "deduction"
+  }
+}

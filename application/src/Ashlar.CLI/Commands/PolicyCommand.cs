@@ -156,6 +156,13 @@ public sealed class PolicyCommand : Command
         if (!PolicyLoader.TryLoad(edited, out var reparsed, out var newReason))
         {
             stderr.WriteLine($"setting mode to '{mode}' would make the policy invalid: {newReason} Nothing was written.");
+            // A refusal on the ARMING command has to name the missing step, or the operator is
+            // told the only documented path off `sealed` is closed and given nowhere to go. This
+            // is the case a project scaffolded before the terms were pre-filled lands in.
+            foreach (var line in MissingArmingTerms(current))
+            {
+                stderr.WriteLine(line);
+            }
             return 1;
         }
 
@@ -200,6 +207,54 @@ public sealed class PolicyCommand : Command
         });
         stdout.WriteLine("  (The daemon re-reads the policy each cycle — no restart needed.)");
         return 0;
+    }
+
+    /// <summary>
+    /// The terms a policy must carry before the dial can be raised off <c>sealed</c>, listed as the
+    /// exact YAML to add.
+    ///
+    /// <para>Why this exists: <c>ashlar policy set self_extend proposing</c> is the arming step the
+    /// gate's own refusal, <c>policy show</c> and the scaffolded policy all recommend — and on a
+    /// project scaffolded with <c>gatesRequired: []</c> it is refused, because a mode that admits
+    /// must say what it admits against. The refusal was correct and led nowhere: it named a rule,
+    /// not a step. There has to be a supported path from <c>init</c> to an armed node, and where the
+    /// documents do not yet allow one the CLI must say precisely what to write.</para>
+    /// </summary>
+    public static IReadOnlyList<string> MissingArmingTerms(AshlarPolicy policy)
+    {
+        var lines = new List<string>();
+        var edits = new List<string>();
+
+        if (policy.SelfExtend.GatesRequired.Count == 0)
+        {
+            edits.Add("    gatesRequired: [tests]   # every gate here must have RUN and PASSED before anything is admitted");
+        }
+        if (policy.SelfExtend.MayAdd.Count == 0)
+        {
+            edits.Add("    mayAdd: [brick]          # the only kind an application may ever add to itself");
+        }
+        if (policy.SelfExtend.Budget.Extensions < 1)
+        {
+            edits.Add("    budget:");
+            edits.Add("      extensions: 1          # 0 admits nothing, and `ashlar verify` fails an unsealed policy that can never admit");
+            edits.Add($"      window: {policy.SelfExtend.Budget.Window}");
+        }
+
+        if (edits.Count == 0)
+        {
+            return lines;
+        }
+
+        lines.Add(string.Empty);
+        lines.Add("The missing step is in ashlar.policy.yaml, under selfExtend: — these are the TERMS the dial");
+        lines.Add("turns on. While the mode is sealed they permit nothing, so filling them in arms nothing by");
+        lines.Add("itself; the mode is the only thing that arms. Add (or raise) these, then run the set again:");
+        lines.Add(string.Empty);
+        lines.Add("  selfExtend:");
+        lines.AddRange(edits);
+        lines.Add(string.Empty);
+        lines.Add("Projects scaffolded by a newer `ashlar init` already carry them.");
+        return lines;
     }
 
     /// <summary>

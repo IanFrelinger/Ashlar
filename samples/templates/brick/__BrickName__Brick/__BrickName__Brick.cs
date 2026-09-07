@@ -24,7 +24,11 @@ public sealed class __BrickName__Brick : Brick
             ],
             Outputs =
             [
-                new BrickOutputDefinition("message", "string", "Greeting text")
+                new BrickOutputDefinition("message", "string", "Greeting text"),
+                // Every key ExecuteAsync writes must be declared here: the certification gate's
+                // analyzer leg (ASHLAR0002) refuses an undeclared output, because consumers read
+                // this interface to learn what the brick produces.
+                new BrickOutputDefinition("implementation", "string", "Implementation type the brick ran under")
             ]
         };
     }

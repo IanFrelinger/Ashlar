@@ -1,0 +1,16 @@
+{
+  "id": "static-minus",
+  "origin": {
+    "round": "adv-mut (/tmp/adv-mut/fx/static-minus)",
+    "lens": "catalog scope: only ExecuteAsync was mutated",
+    "severity": "HIGH"
+  },
+  "class": "C",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "ExecuteAsync delegates to a private static Resolve helper; the witness sets armor to 0 everywhere, so the helper's operator is unobservable. When the catalog mutated only the ExecuteAsync body every mutant was killed and the brick certified with a helper nobody tested. Every member body is in scope: the survivors must be in Resolve.",
+  "invariants": {
+    "survivorsMin": 1,
+    "reasonContains": "Resolve("
+  }
+}

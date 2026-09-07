@@ -113,7 +113,11 @@ public static class CloudBundle
             + "- `app/` — the project: contract, operator-owned policy, signed ledger.\n"
             + "- `Dockerfile` — the runtime image + this app.\n"
             + "- `entrypoint.sh` — verify-then-run.\n"
-            + "- `bundle.json` — what is inside and what certifies it.\n";
+            + "- `bundle.json` — what is inside and what certifies it.\n"
+            // The same disclosure the native bundle makes: the directories under app/ that the
+            // export created rather than copied. The container entrypoint verifies before it runs,
+            // so the sandbox root has to be in the image — and that has to be visible, not implied.
+            + NativeBundle.PolicyDirectoryNote(projectDir);
         WriteText(Path.Combine(bundleDir, "README.md"), readme, written, bundleDir);
 
         return written;

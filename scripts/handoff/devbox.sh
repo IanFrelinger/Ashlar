@@ -71,6 +71,7 @@ if [[ $# -eq 0 ]]; then
     -v "${NUGET_VOLUME}:/root/.nuget/packages" \
     -w "$WORKDIR" \
     -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    -e ASHLAR_IN_DEVCONTAINER=1 \
     "$IMAGE" bash -l
 fi
 
@@ -79,6 +80,7 @@ fi
 PAYLOAD="$(cat <<'PRE'
 set -euo pipefail
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
+export ASHLAR_IN_DEVCONTAINER=1
 git config --global --add safe.directory /workspace 2>/dev/null || true
 PRE
 )"
@@ -91,5 +93,6 @@ exec docker run --rm \
   -v "${NUGET_VOLUME}:/root/.nuget/packages" \
   -w "$WORKDIR" \
   -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+  -e ASHLAR_IN_DEVCONTAINER=1 \
   "$IMAGE" \
   bash -lc "echo $B64 | base64 -d | bash"

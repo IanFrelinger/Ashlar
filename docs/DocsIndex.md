@@ -31,7 +31,9 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/governed-pipeline.md` — the governed MEAI model pipeline every proposal flows through.
 - **`docs/RunningASelfExtendingNode.md`** — the **operator guide** to running a node that extends itself unattended (A0–A5): the two dials, `ashlar policy set self_extend` / `policy show`, the build course + post-apply canary/rollback, budgets, and the `background-agent report` / `disarm` safety front doors.
 - `docs/SELF-EXTEND-AUDIT.md` — background-agent self-extend safety audit (four invariants, all enforced on the live path as of 2026-08-16).
-- `docs/AuthoringBricks.md` + `samples/hello-brick/README.md` — author a brick the gate can judge (`ProjectReference` into `src/`; no NuGet feed needed).
+- **`docs/CertificationGate.md`** — **the builder-facing gate page**: what a *witness* is, the five legs and what each refuses, how a package-only consumer invokes `CertifyAsync`, what a rejection looks like, and the two-package / own-project rule a certifiable brick must satisfy.
+- **`docs/OperatorLifecycle.md`** — the **operator persona**: `ashlar init` and the two documents, the operator-owned `ashlar.policy.yaml`, the `ashlar verify` VERIFIED→CERTIFIED reveal, the self-extend dial, `ashlar gates`, and `ashlar pkg` / `keys` trust.
+- `docs/AuthoringBricks.md` + `samples/hello-brick/README.md` — author a brick the gate can judge (the sample is package-only and certifies as checked in — `ShippedSampleCertificationTests` pins it; `docs/CertificationGate.md` explains the shape).
 - `samples/autonomy-objectives/README.md` — a complete tracked objective + witness + recorded model proposal, and how to feed it to the loop.
 - `spikes/README.md` — what each spike under `spikes/` is, which ledger rows cite it, and why none of them is a supported entry point; `spikes/autonomy-first-flight/run-first-flight.ps1` flies one real iteration (Docker + Ollama).
 - `scripts/run-cert-gate.sh` + `scripts/cert-gate-config.sh` — reproduce the CI `cert-gate` locally with the same filter.
@@ -81,6 +83,8 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 ## Demo / Rollout Walkthroughs
 
 - `scripts/oh-shit-demo.sh` — high-signal end-to-end demo script (bootstrap, chat, orchestration, dogfood).
+- `docs/DogfoodCampaign.md` — automated dogfood campaign: release manager + specialist sub-agents (`make dogfood-campaign`, always inside the dev/test container).
+- `docs/DogfoodValidation.md` — North Star dogfood blocks 1–9, closed loop, Phase F, and the campaign gate.
 
 ## Security / Trust
 

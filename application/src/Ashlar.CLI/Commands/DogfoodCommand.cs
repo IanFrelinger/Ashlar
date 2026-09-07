@@ -52,5 +52,31 @@ public sealed class DogfoodCommand : Command
             Environment.Exit(await DogfoodAllCommand.ExecuteAsync(json, verbose));
         });
         AddCommand(allCmd);
+
+        var campaignCmd = new Command("campaign", "Automated dogfood campaign: specialist sub-agents report to the release manager");
+        campaignCmd.AddOption(jsonOpt);
+        var campaignVerboseOpt = new Option<bool>("--verbose", () => false, "List specialists before dispatch");
+        var fullOpt = new Option<bool>("--full", () => false, "Run the full regression lane (cert-gate --fast) instead of the cheap slice");
+        var configOpt = new Option<string?>("--config", () => null, "Campaign agent-set JSON (default: docs/background-agents/examples/dogfood-campaign.json)");
+        var outputOpt = new Option<string?>("--output", () => null, "Directory for report.json / observations.jsonl (default: .ashlar/dogfood-campaign)");
+        var laneOpt = new Option<string?>("--lane", () => null, "Run a single specialist (DocsDrift, Regression, DevTool, or an agent id)");
+        campaignCmd.AddOption(campaignVerboseOpt);
+        campaignCmd.AddOption(fullOpt);
+        campaignCmd.AddOption(configOpt);
+        campaignCmd.AddOption(outputOpt);
+        campaignCmd.AddOption(laneOpt);
+        campaignCmd.SetHandler(async (InvocationContext ctx) =>
+        {
+            var json = ctx.ParseResult.GetValueForOption(jsonOpt);
+            var verbose = ctx.ParseResult.GetValueForOption(campaignVerboseOpt);
+            var full = ctx.ParseResult.GetValueForOption(fullOpt);
+            var config = ctx.ParseResult.GetValueForOption(configOpt);
+            var output = ctx.ParseResult.GetValueForOption(outputOpt);
+            var lane = ctx.ParseResult.GetValueForOption(laneOpt);
+            // Do not Environment.Exit here: leftover MSBuild / VBCSCompiler nodes from a
+            // specialist's `dotnet test` make Exit hang inside the container.
+            ctx.ExitCode = await DogfoodCampaignCommand.ExecuteAsync(json, full, verbose, config, output, lane, ctx.GetCancellationToken());
+        });
+        AddCommand(campaignCmd);
     }
 }

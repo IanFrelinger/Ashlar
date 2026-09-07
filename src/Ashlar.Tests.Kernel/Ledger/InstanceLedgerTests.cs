@@ -8,9 +8,10 @@ namespace Ashlar.Tests.Kernel.Ledger;
 
 /// <summary>
 /// The instance ledger: a signed, hash-chained, append-only history. These tests pin the two
-/// promises that make it worth having — every entry is signed and chained, so tampering with the
-/// past is detected and refused loudly (fail-closed) — and the one it deliberately does NOT make
-/// (tail truncation is a v2 concern), by proving the detectable shapes throw and absence does not.
+/// promise that makes it worth having — every entry is signed and chained, so tampering with the
+/// past is detected and refused loudly (fail-closed) — by proving each detectable shape throws
+/// while absence does not. Tail truncation is the shape the chain alone cannot see; it is pinned
+/// separately in InstanceLedgerTruncationTests, against the signed head anchor.
 /// </summary>
 public sealed class InstanceLedgerTests : IDisposable
 {

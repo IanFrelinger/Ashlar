@@ -1,0 +1,17 @@
+{
+  "id": "fifthway-b",
+  "origin": {
+    "round": "5 (/tmp/fifthway/B)",
+    "lens": "compile-options twin: DefineConstants switches the computed branch",
+    "severity": "HIGH"
+  },
+  "class": "A",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "Byte-identical source to fifthway-a, built with ASHLAR_EVIL so the assembly computes baseDamage + armor. Before the legs compiled under the build's own options they mutated the DEAD minus branch and the record named a survivor at a line the assembly does not contain. The legs must judge the plus branch: any survivor named must sit on it.",
+  "invariants": {
+    "reasonContains": "baseDamage + armor",
+    "reasonNotContains": "baseDamage - armor",
+    "compileOptionsContains": "ASHLAR_EVIL"
+  }
+}

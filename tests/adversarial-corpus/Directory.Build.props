@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Deliberately empty, and load-bearing BECAUSE it is empty — the same shield samples/ carries.
+
+  MSBuild imports the FIRST Directory.Build.props it finds walking up from a project, so this file
+  keeps the repository-root Directory.Build.props (TreatWarningsAsErrors, the audit PackageReference
+  overrides, pack metadata, ...) out of every fixture under tests/adversarial-corpus/. A fixture is a
+  brick the way a consumer ships one: one project, one package reference, and exactly the .csproj
+  it carries. Some fixtures ARE their csproj (a DefineConstants, a CheckForOverflowUnderflow), and
+  an inherited property would change what the gate is being asked to judge.
+
+  A fixture may carry its own Directory.Build.props when the props file IS the attack
+  (props-injection). MSBuild then imports that one and stops, so it shields the fixture exactly as
+  this file does — and it must not chain to a parent.
+
+  No test project reaches into this directory: it sits outside every project directory, so no
+  Compile glob ever compiles a fixture brick into a test assembly. Each fixture is built by
+  BrickCertificationProjectLoader, exactly as the certification gate builds a real brick.
+  Directories whose name starts with an underscore (_shared) hold material fixtures reference; the
+  theory does not treat them as fixtures.
+-->
+<Project>
+</Project>

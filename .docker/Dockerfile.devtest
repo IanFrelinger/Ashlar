@@ -23,10 +23,11 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
 
 # jq, for asserting on --format-json output from scenario scripts.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends jq \
+ && apt-get install -y --no-install-recommends jq make \
  && rm -rf /var/lib/apt/lists/*
 
 # DOTNET_ROLL_FORWARD is deliberately NOT set here. With 8.0 present, rolling forward is the
 # behaviour this image exists to avoid.
 ENV DOTNET_NOLOGO=1 \
-    DOTNET_CLI_TELEMETRY_OPTOUT=1
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    ASHLAR_IN_DEVCONTAINER=1

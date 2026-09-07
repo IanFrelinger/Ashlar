@@ -20,8 +20,11 @@ pack() {
 }
 
 echo "==> Pack base contracts to ${FEED}"
+# Only the two packages Project B consumes from this feed. Ashlar.Authoring used to be packed here
+# too; nothing consumed it, and its packed dependency graph (Ashlar.Core.Application at the repo
+# VERSION, which is on nuget.org) dragged nuget.org's Ashlar.Certification.Contracts over the local
+# one and failed Project B's restore with NU1605 — the verifier must be the same code as the signer.
 pack src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj
-pack src/Ashlar.Authoring/Ashlar.Authoring.csproj
 pack src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj
 
 cat > "${CFG}" <<EOF
@@ -35,6 +38,9 @@ cat > "${CFG}" <<EOF
 </configuration>
 EOF
 
+# Honoured by the export tool below: the brick restores Ashlar.Brick.Contracts through this config
+# (local feed first, then nuget.org). A loader-stage refusal exits 4 with the gate's own message and,
+# via set -e, stops this script there.
 export ASHLAR_CERT_NUGET_CONFIG="${CFG}"
 
 echo "==> Certify damage-resolver and write content-bound record"

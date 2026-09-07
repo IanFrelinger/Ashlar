@@ -100,9 +100,9 @@ Use this file to create GitHub issues in the recommended execution order.
 
 ## 11) [Phase 90] First application-suite vertical — ✅ COMPLETE
 
-**Status:** Implemented. Engineering release manager at `apps/release-manager/` with four background agents (repo-monitor, test-runner, slo-collector, report-generator). Runs as daemon via `ashlar background-agent daemon --config`. Uses kernel primitives (background agents, trust controls, pipelines) without bypasses.
+**Status:** Implemented, then extracted 2026-09-01 to [ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager) (nuget.org consumer). In-tree, `ashlar dogfood campaign` runs a release-manager coordinator whose specialist sub-agents report docs-drift, regression, and developer-tool verdicts.
 
-**Evidence:** Agent set config, operator docs in `apps/release-manager/README.md`. All agents configured with exfiltration policy and data sensitivity controls.
+**Evidence:** `docs/background-agents/examples/dogfood-campaign.json`, `docs/DogfoodCampaign.md`. Specialists publish observations; silence is fail-closed.
 
 ---
 

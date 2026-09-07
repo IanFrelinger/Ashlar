@@ -1,0 +1,16 @@
+{
+  "id": "static-plus",
+  "origin": {
+    "round": "adv-mut (/tmp/adv-mut/fx/static-plus)",
+    "lens": "catalog scope: only ExecuteAsync was mutated",
+    "severity": "HIGH"
+  },
+  "class": "C",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "static-minus with + armor in the helper; the same toothless witness accepts both twins. Survivors must be in Resolve.",
+  "invariants": {
+    "survivorsMin": 1,
+    "reasonContains": "Resolve("
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "fifthway-d2",
+  "origin": {
+    "round": "5 (/tmp/fifthway/D2)",
+    "lens": "compile-options twin: mutants compiled unchecked while the build was checked",
+    "severity": "MEDIUM"
+  },
+  "class": "A",
+  "expect": "ADMIT",
+  "description": "The same source as fifthway-d1 with CheckForOverflowUnderflow=true, and a witness that expects the caught overflow. Before the legs took the build's options every mutant was compiled UNCHECKED, so the overflow case killed all of them for a reason the shipped brick does not have (wrap instead of throw): manufactured kills. The mutants must compile checked, and the record must say so.",
+  "invariants": {
+    "survivorsMax": 0,
+    "totalMutantsMin": 1,
+    "compileOptionsContains": "checkOverflow=true"
+  }
+}

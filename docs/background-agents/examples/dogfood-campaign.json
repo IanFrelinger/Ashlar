@@ -1,0 +1,78 @@
+{
+  "BackgroundAgents": {
+    "Agents": [
+      {
+        "Id": "release-manager",
+        "Name": "Release Manager",
+        "Role": "release-manager",
+        "ModelProvider": "deterministic",
+        "Commands": ["campaign"],
+        "Parameters": {
+          "CampaignId": "dev-tool-dogfood"
+        },
+        "Schedule": {
+          "Type": "Interval",
+          "Interval": "06:00:00"
+        },
+        "Enabled": true,
+        "MaxDataSensitivity": "Public",
+        "ExfiltrationPolicy": {
+          "RequireLocalOnly": true,
+          "BlockExternalLLMs": true
+        }
+      },
+      {
+        "Id": "docs-drift",
+        "Name": "Documentation Drift Auditor",
+        "Role": "docs-auditor",
+        "ParentId": "release-manager",
+        "ModelProvider": "deterministic",
+        "Commands": ["audit"],
+        "Parameters": {
+          "Lane": "DocsDrift"
+        },
+        "Schedule": {
+          "Type": "Interval",
+          "Interval": "06:00:00"
+        },
+        "Enabled": true,
+        "MaxDataSensitivity": "Public"
+      },
+      {
+        "Id": "regression",
+        "Name": "Regression Auditor",
+        "Role": "tester",
+        "ParentId": "release-manager",
+        "ModelProvider": "deterministic",
+        "Commands": ["test"],
+        "Parameters": {
+          "Lane": "Regression",
+          "Filter": "CampaignAgentSetConventionTests"
+        },
+        "Schedule": {
+          "Type": "Interval",
+          "Interval": "06:00:00"
+        },
+        "Enabled": true,
+        "MaxDataSensitivity": "Public"
+      },
+      {
+        "Id": "dev-tool",
+        "Name": "Developer Tool Auditor",
+        "Role": "dev-tool-auditor",
+        "ParentId": "release-manager",
+        "ModelProvider": "deterministic",
+        "Commands": ["audit"],
+        "Parameters": {
+          "Lane": "DevTool"
+        },
+        "Schedule": {
+          "Type": "Interval",
+          "Interval": "06:00:00"
+        },
+        "Enabled": true,
+        "MaxDataSensitivity": "Public"
+      }
+    ]
+  }
+}

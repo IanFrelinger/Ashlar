@@ -16,3 +16,8 @@ ci/nupkg-layout.tsv text eol=lf
 .devcontainer/post-create.sh text eol=lf
 scripts/start-ashlar-api-dev.sh text eol=lf
 scripts/stop-ashlar-api-dev.sh text eol=lf
+
+# The certified sample bricks: the tracked certification-record.json binds a SHA-256 over the exact
+# bytes of the brick source, so it must be LF on every checkout, not per-platform.
+samples/certified-brick-reuse/Ashlar.Certified.DamageResolver/*.cs text eol=lf
+samples/hello-brick/HelloBrick/*.cs text eol=lf

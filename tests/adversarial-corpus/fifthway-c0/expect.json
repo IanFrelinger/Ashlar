@@ -1,0 +1,16 @@
+{
+  "id": "fifthway-c0",
+  "origin": {
+    "round": "5 (/tmp/fifthway/C0)",
+    "lens": "fence coverage, unguarded half",
+    "severity": "control"
+  },
+  "class": "A",
+  "expect": "REJECT",
+  "leg": "fence",
+  "description": "A brick that reads HOME and DateTime.Now, writes undeclared outputs and a file, with nothing guarding the lines. The fence catches it; this is the control fifthway-c1 is measured against.",
+  "invariants": {
+    "reasonContains": "ASHLAR0006",
+    "totalMutantsMax": 0
+  }
+}

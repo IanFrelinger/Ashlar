@@ -47,7 +47,7 @@ Recommended steps:
 
 ## Building a custom background agent
 
-Background agents are configured via JSON agent sets (see `apps/runtime-studio/config/agent_set.local.json` in this repo, or the extracted [ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager) `config/agent_set.release_manager.json`). Each agent specifies `Role`, `ModelProvider`, `Commands`, `Schedule`, and `ExfiltrationPolicy`.
+Background agents are configured via JSON agent sets (see `apps/runtime-studio/config/agent_set.local.json` and the in-tree dogfood campaign set `docs/background-agents/examples/dogfood-campaign.json`). The extracted product is [ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager) (`config/agent_set.release_manager.json`). Each agent specifies `Role`, `ModelProvider`, `Commands`, `Schedule`, and `ExfiltrationPolicy`.
 
 To run a custom set locally:
 

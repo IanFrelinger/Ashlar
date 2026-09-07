@@ -43,4 +43,42 @@
     <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
   </ItemGroup>
 
+  <!--
+    THE ANALYZER ROLE, IN THE PACKAGE.
+
+    This package shipped its assembly ONLY under lib/netstandard2.0/. NuGet loads analyzers from
+    analyzers/dotnet/cs/ and nowhere else, so a `<PackageReference Include="Ashlar.Analyzers" />`
+    added every rule to the compile-time reference set and ran none of them. The analyzer fence —
+    one of the certification gate's five legs — was therefore silently inert for every brick author
+    consuming Ashlar from nuget.org, which is the whole external audience. Nothing said so: the
+    build was clean, because a rule that never runs never fires.
+
+    The assembly is packed into BOTH locations, deliberately:
+      * lib/netstandard2.0/ — Ashlar.Infrastructure references this assembly as an ordinary
+        library at RUNTIME (AnalyzerFenceGate constructs the catalog and attaches it to candidate
+        compilations). Removing the lib/ copy would break the packed hosting graph.
+      * analyzers/dotnet/cs/ — the only path the C# compiler looks at. This is the copy that makes
+        the fence actually run in a consumer's build.
+    They are the same file in two roles, which is exactly what this project already is in-repo:
+    every in-tree consumer references it with OutputItemType="Analyzer" AND
+    ReferenceOutputAssembly="true".
+
+    CONSEQUENCE FOR BRICK AUTHORS, stated plainly because it was once stated wrongly. Because the
+    lib/ leg is real, a PackageReference to this package DOES put an assembly into the referencing
+    project's compile set and output. It is NOT true that "the analyzers put nothing into the built
+    brick" — that is only true of the shape BrickDependencyChecker requires:
+
+        <PackageReference Include="Ashlar.Analyzers" Version="..." ExcludeAssets="runtime;compile" />
+
+    PrivateAssets="all" does NOT achieve it: PrivateAssets governs transitive flow to YOUR
+    consumers, not what YOUR project receives. ExcludeAssets="runtime;compile" leaves the
+    `analyzers` asset group untouched, so the rules still run, while the DLL stays out of the brick.
+  -->
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
+          Visible="false" />
+  </ItemGroup>
+
 </Project>

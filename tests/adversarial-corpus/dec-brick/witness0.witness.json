@@ -1,0 +1,8 @@
+{
+  "brickId": "skep-factorial",
+  "cases": [
+    { "input": { "n": 0 }, "expectedOutput": { "factorial": 1 } },
+    { "input": { "n": 3 }, "expectedOutput": { "factorial": 6 } },
+    { "input": { "n": 5 }, "expectedOutput": { "factorial": 120 } }
+  ]
+}

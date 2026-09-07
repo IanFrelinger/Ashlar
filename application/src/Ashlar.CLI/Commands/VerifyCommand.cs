@@ -162,15 +162,37 @@ public sealed class VerifyCommand : Command
 
     // VERIFIED, not CERTIFIED: with no operator key there is no signature to claim. The unsigned
     // note is load-bearing honesty — `ashlar keys init` upgrades this to CERTIFIED.
-    private static void RenderUnsigned(ProjectVerification result) =>
+    private static void RenderUnsigned(ProjectVerification result)
+    {
         Console.WriteLine(
             $"  {Gold("✓ VERIFIED")}  {Dim($"{result.Courses.Count} courses · unsigned — run `ashlar keys init` to certify")}");
+        RenderScope(result);
+    }
 
     // CERTIFIED means signed: a real Ed25519 signature over this verification is now the head of
     // the project's instance ledger.
-    private static void RenderCertified(ProjectVerification result, string fingerprint, int seq) =>
+    private static void RenderCertified(ProjectVerification result, string fingerprint, int seq)
+    {
         Console.WriteLine(
             $"  {Gold("✓ CERTIFIED")}  {Dim($"{result.Courses.Count} courses · signed {fingerprint} · ledger #{seq}")}");
+        RenderScope(result);
+    }
+
+    /// <summary>
+    /// Names what the verdict covers, on every verdict. A verdict on its own invites the reader to
+    /// supply their own scope, and the scope they supply is always "my application" — which is how
+    /// CERTIFIED came to be printed, and a ledger entry signed, over a project holding no code at
+    /// all. When there is nothing to certify, this line says so in the same breath as the verdict.
+    /// </summary>
+    private static void RenderScope(ProjectVerification result)
+    {
+        var scope = result.Scope;
+        Console.WriteLine($"  {Dim("scope")}      {Dim(scope.Summary)}");
+        if (!scope.CoversCode)
+        {
+            Console.WriteLine($"  {Dim("           add the code this project is meant to run, then verify again to certify it.")}");
+        }
+    }
 
     private static void RenderFailed(ProjectVerification result)
     {

@@ -3,23 +3,68 @@
   "stage": "S0-S2",
   "admitted": true,
   "signed": true,
-  "timestamp": "2026-06-22T04:16:52.9738173+00:00",
+  "timestamp": "2026-09-03T07:13:33.5487256+00:00",
   "brickId": "damage-resolver",
-  "contentHash": "TabnO5oqc3oxfLzb3tibk9/QWFMVq7ZZc0rFjUrvHoc=",
+  "contentHash": "rPxj86wxnhQT1xexONKPrBL74GKnS0rrLC\u002BEg0f27fw=",
   "escapeRate": 0,
-  "totalMutants": 7,
+  "totalMutants": 6,
   "survivingMutants": 0,
   "killedMutants": [
-    "mutate-int-literal-40",
-    "mutate-int-literal-42",
-    "mutate-string-literal-34",
-    "mutate-string-literal-35",
-    "mutate-string-literal-36",
-    "mutate-string-literal-37",
-    "remove-statement-34"
+    "mutate-int-literal-48",
+    "mutate-int-literal-50",
+    "mutate-string-literal-53",
+    "swap-arithmetic-op-48",
+    "swap-arithmetic-op-48#2",
+    "swap-arithmetic-op-50"
   ],
   "survivingMutantIds": [],
-  "signature": "A\u002BNXKc3/E1c6JsBgYI392ePkndL53ZbqcYXL2UK2Jb4=",
+  "timedOutMutants": [],
+  "crashedMutants": [],
+  "signature": "RtdYb\u002BsbC8HY14hjF\u002BOJKUpOROW1RAR/Il9M1AJ0pEI=",
   "reason": null,
-  "gate": "Ashlar.Infrastructure.Certification.CertificationGate"
+  "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+  "schemaVersion": 3,
+  "gatesPassed": [
+    {
+      "name": "analyzer-gate",
+      "version": "1",
+      "configuration": "analyzerAssemblyVersion=0.1.2.0;severityFloor=Warning;diagnosticsEvaluated=0;manifestRules=none;touchSet=none"
+    },
+    {
+      "name": "correctness-witness",
+      "version": "1",
+      "configuration": "execution=local-process;perCaseTimeoutMs=5000;perUnitTimeoutMs=30000;totalTimeoutMs=600000;heapLimitMb=1024;certifier=Ashlar.Infrastructure/1.0.0;sourceRevision=028f587a73224b9528d802a689880259fa57511e;certifierMvid=c28819c4cad24704ad8eee5a7e451bf8"
+    },
+    {
+      "name": "mutation-gate",
+      "version": "1",
+      "configuration": "escapeRateThreshold=0;mutationCatalog=2;execution=local-process;perCaseTimeoutMs=5000;perUnitTimeoutMs=30000;totalTimeoutMs=600000;heapLimitMb=1024;certifier=Ashlar.Infrastructure/1.0.0;sourceRevision=028f587a73224b9528d802a689880259fa57511e;certifierMvid=c28819c4cad24704ad8eee5a7e451bf8"
+    },
+    {
+      "name": "determinism",
+      "version": "1",
+      "configuration": "execution=local-process;perCaseTimeoutMs=5000;perUnitTimeoutMs=30000;totalTimeoutMs=600000;heapLimitMb=1024;certifier=Ashlar.Infrastructure/1.0.0;sourceRevision=028f587a73224b9528d802a689880259fa57511e;certifierMvid=c28819c4cad24704ad8eee5a7e451bf8"
+    },
+    {
+      "name": "dependency-graph",
+      "version": "1",
+      "configuration": null
+    }
+  ],
+  "inputs": [
+    {
+      "kind": "witness",
+      "id": "damage-resolver",
+      "hash": "ylwnKKTH0rWrBf5CHS\u002BU3OXS4aPqbTwC3G\u002BBVQb2sgA="
+    },
+    {
+      "kind": "compile-options",
+      "id": "langVersion=12.0;checkOverflow=false;nullable=Enable;unsafe=false;symbols=NET,NET5_0_OR_GREATER,NET6_0_OR_GREATER,NET7_0_OR_GREATER,NET8_0,NET8_0_OR_GREATER,NETCOREAPP,NETCOREAPP1_0_OR_GREATER,NETCOREAPP1_1_OR_GREATER,NETCOREAPP2_0_OR_GREATER,NETCOREAPP2_1_OR_GREATER,NETCOREAPP2_2_OR_GREATER,NETCOREAPP3_0_OR_GREATER,NETCOREAPP3_1_OR_GREATER,RELEASE,TRACE;globalUsings=global using System.Collections.Generic; global using System.IO; global using System.Linq; global using System.Net.Http; global using System.Threading.Tasks; global using System.Threading; global using System;",
+      "hash": "rEtj4VFnJH8LYJJzNzaqRgG2\u002BN\u002BGe4L5Ve\u002BbFdk9/X0="
+    }
+  ],
+  "proposer": null,
+  "attempts": [],
+  "ed25519Signature": null,
+  "ed25519PublicKey": null
 }

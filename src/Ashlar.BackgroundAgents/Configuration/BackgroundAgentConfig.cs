@@ -1,3 +1,5 @@
+using Ashlar.Core.Domain;
+
 namespace Ashlar.BackgroundAgents.Configuration;
 
 /// <summary>
@@ -36,8 +38,14 @@ public class BackgroundAgentConfig
 
     /// <summary>
     /// Model provider ("openai", "azure", "ollama", "deterministic").
+    ///
+    /// <para>Defaults to <see cref="AshlarDefaults.DeterministicProviderName"/> — the offline,
+    /// no-LLM route — and is spelled from that constant rather than a literal, because
+    /// <c>ProviderFactory.KnownProviders</c> must contain whatever this default is. When the two
+    /// drifted apart, a scaffold that <c>ashlar verify</c> had just certified refused to run on
+    /// the same directory.</para>
     /// </summary>
-    public string ModelProvider { get; set; } = "deterministic";
+    public string ModelProvider { get; set; } = AshlarDefaults.DeterministicProviderName;
 
     /// <summary>
     /// Specific model name (optional, e.g., "gpt-4", "llama2").

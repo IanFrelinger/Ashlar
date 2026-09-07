@@ -1,0 +1,4 @@
+{ "brickId": "damage", "cases": [
+ { "input": { "baseDamage": 5, "armor": 0 }, "expectedOutput": { "finalDamage": 5 } },
+ { "input": { "baseDamage": 12, "armor": 0 }, "expectedOutput": { "finalDamage": 12 } }
+]}

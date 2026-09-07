@@ -1,0 +1,16 @@
+{
+  "id": "internal-minus",
+  "origin": {
+    "round": "adv-mut (/tmp/adv-mut/fx/internal-minus)",
+    "lens": "catalog scope: an instance helper with internal accessibility",
+    "severity": "HIGH"
+  },
+  "class": "C",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "static-minus with the helper made an internal instance method, a different member shape the catalog must not treat differently. Survivors must be in Resolve.",
+  "invariants": {
+    "survivorsMin": 1,
+    "reasonContains": "Resolve("
+  }
+}

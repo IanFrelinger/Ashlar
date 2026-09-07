@@ -108,7 +108,7 @@
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Engineering Release Manager | RESOLVED | First vertical at `apps/release-manager/` — 4 background agents (repo-monitor, test-runner, slo-collector, report-generator) using kernel primitives. |
+| Engineering Release Manager | RESOLVED | Extracted 2026-09-01 to [ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager). In-tree dogfood campaign (`ashlar dogfood campaign`) keeps a release-manager coordinator with specialist sub-agents. |
 | Copilot MVP | RESOLVED | Task submission → execution → audit trail via API + web portal. See `docs/CopilotMvpWalkthrough.md`. |
 | Document Editor, Spreadsheet, etc. | MISSING | Future work. Framework is the foundation. |
 

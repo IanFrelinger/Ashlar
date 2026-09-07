@@ -10,25 +10,58 @@ namespace CertifiedBrickReuse.ProjectB;
 /// <summary>Program.</summary>
 internal static class Program
 {
+    private const string Usage =
+        "Usage: ProjectB <path-to-DamageResolverBrick.cs> <path-to-certification-record.json>";
+
     public static async Task<int> Main(string[] args)
     {
-        var brickSourcePath = args.ElementAtOrDefault(0)
-            /// <summary>Invalid operation exception.</summary>
-            /// <param name="<path-to-certification-record.json>""><path-to-certification-record.json>".</param>
-            ?? throw new InvalidOperationException("Usage: ProjectB <path-to-DamageResolverBrick.cs> <path-to-certification-record.json>");
-        var recordPath = args.ElementAtOrDefault(1)
-            /// <summary>Invalid operation exception.</summary>
-            /// <param name="<path-to-certification-record.json>""><path-to-certification-record.json>".</param>
-            ?? throw new InvalidOperationException("Usage: ProjectB <path-to-DamageResolverBrick.cs> <path-to-certification-record.json>");
+        // Argument parsing is explicit and positional. The two files are not interchangeable: the
+        // source is hashed, the record is parsed as JSON. Handing them over in the wrong order used to
+        // surface as an unhandled JsonException (exit 134) instead of a usage line.
+        if (args.Length != 2)
+        {
+            return UsageError($"expected 2 arguments, got {args.Length}.");
+        }
+
+        var brickSourcePath = args[0];
+        var recordPath = args[1];
+
+        if (!brickSourcePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+            || !recordPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            return UsageError(
+                $"the first argument must be the brick source (.cs) and the second the certification record (.json); got '{brickSourcePath}' and '{recordPath}'.");
+        }
+
+        if (!File.Exists(brickSourcePath))
+        {
+            return UsageError($"brick source not found: '{brickSourcePath}'.");
+        }
+
+        if (!File.Exists(recordPath))
+        {
+            return UsageError($"certification record not found: '{recordPath}'.");
+        }
 
         var source = await File.ReadAllTextAsync(brickSourcePath).ConfigureAwait(false);
         var recordJson = await File.ReadAllTextAsync(recordPath).ConfigureAwait(false);
-        var record = JsonSerializer.Deserialize<CertificationRecordData>(
-            recordJson,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-            /// <summary>Invalid operation exception.</summary>
-            /// <param name="JSON."">Json.".</param>
-            ?? throw new InvalidOperationException("Invalid certification record JSON.");
+
+        CertificationRecordData? record;
+        try
+        {
+            record = JsonSerializer.Deserialize<CertificationRecordData>(
+                recordJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException ex)
+        {
+            return UsageError($"'{recordPath}' is not a certification record: {ex.Message}");
+        }
+
+        if (record is null)
+        {
+            return UsageError($"'{recordPath}' is not a certification record (JSON null).");
+        }
 
         var artifactPath = args.ElementAtOrDefault(2);
         CertificationTrustResult trust;
@@ -68,5 +101,12 @@ internal static class Program
 
         Console.WriteLine($"TRUSTED finalDamage={output.Get<int>("finalDamage")}");
         return 0;
+    }
+
+    private static int UsageError(string detail)
+    {
+        Console.Error.WriteLine($"ProjectB: {detail}");
+        Console.Error.WriteLine(Usage);
+        return 2;
     }
 }

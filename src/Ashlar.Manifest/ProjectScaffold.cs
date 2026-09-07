@@ -138,12 +138,26 @@ public static class ProjectScaffold
           # sealed | proposing | self-extending. New projects start sealed: raise the dial
           # deliberately, after you have watched the thing run.
           #   ashlar policy set self_extend proposing
+          #
+          # THE DIAL IS THE ONLY THING THAT ARMS. The three keys under it are the TERMS the
+          # dial turns on, and while the mode is sealed they permit nothing at all — sealed
+          # short-circuits admission before any of them is read. They are filled in here so
+          # that the command above works on the project you just scaffolded: a policy with an
+          # empty gatesRequired cannot be raised to proposing at all (an extension path with
+          # no gates is not a gate), and one with a zero budget raises to a mode that can
+          # never admit anything, which `ashlar verify` then fails. Tighten these before you
+          # raise the dial, not after.
           mode: sealed
+          # How many extensions may be admitted per window once the dial is raised.
           budget:
-            extensions: 0
+            extensions: 1
             window: 24h
-          mayAdd: []
-          gatesRequired: []
+          # Kinds the application may add to ITSELF. Only 'brick' is ever permitted — a brick
+          # adds capability inside the envelope; a tool or a capability would widen it.
+          mayAdd: [brick]
+          # Every one of these must have RUN and PASSED before anything is admitted. A gate
+          # that did not run did not pass.
+          gatesRequired: [tests]
 
         # Mandatory. The loader refuses a policy that omits any of these — they are listed
         # here so the whole envelope is visible in one place, not because they are optional.

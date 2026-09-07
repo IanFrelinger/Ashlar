@@ -1,0 +1,9 @@
+{
+  "brickId": "adv-factorial",
+  "cases": [
+    { "input": { "n": 3 }, "expectedOutput": { "factorial": 6 } },
+    { "input": { "n": 5 }, "expectedOutput": { "factorial": 120 } },
+    { "input": { "n": 10 }, "expectedOutput": { "factorial": 3628800 } },
+    { "input": { "n": 12 }, "expectedOutput": { "factorial": 479001600 } }
+  ]
+}

@@ -5,9 +5,19 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <PackageId>HelloBrick</PackageId>
+    <!-- Versions are pinned here, not in the repository's Directory.Packages.props, because this is the
+         shape a brick has OUTSIDE the checkout: one project, one package. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj" />
+    <!-- The one dependency a certified brick needs: the authoring contracts, from nuget.org. The gate's
+         dependency leg allows exactly Ashlar.Brick.Contracts and Ashlar.Authoring, and refuses any
+         ProjectReference — so this sample references the package, not src/. -->
+    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="hello-brick.witness.json" Pack="false" />
   </ItemGroup>
 </Project>

@@ -4,14 +4,18 @@ using Ashlar.Core.Domain.Execution;
 namespace HelloBrick;
 
 /// <summary>
-/// Example code-authored Ashlar brick generated from the code-brick template.
+/// Example code-authored Ashlar brick: the smallest brick the certification gate admits.
 /// </summary>
-public sealed class HelloBrick : DomainBrick
+/// <remarks>
+/// One source file, one package (Ashlar.Brick.Contracts), one witness beside it
+/// (<c>hello-brick.witness.json</c>). The gate binds its signed content hash over exactly this text.
+/// </remarks>
+public sealed class HelloBrick : Brick
 {
     public HelloBrick()
     {
         Id = "hello";
-        Name = "Hello DomainBrick";
+        Name = "Hello Brick";
         Version = "1.0.0";
         Icon = "🧱";
         Category = BrickCategory.Transform;
@@ -24,7 +28,8 @@ public sealed class HelloBrick : DomainBrick
             ],
             Outputs =
             [
-                new BrickOutputDefinition("message", "string", "Greeting text")
+                new BrickOutputDefinition("message", "string", "Greeting text"),
+                new BrickOutputDefinition("implementation", "string", "Implementation the brick ran as")
             ]
         };
     }

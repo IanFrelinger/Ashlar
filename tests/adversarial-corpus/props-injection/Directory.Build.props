@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The attack. MSBuild imports the FIRST Directory.Build.props it finds walking up from the project,
+  so this file — not the corpus shield one level up — is what the fixture's build evaluates, and it
+  adds a compile item the .csproj never mentions, from a directory the brick does not own. Before
+  the loader took the source set from MSBuild's own evaluation, a *.cs glob over the brick
+  directory hashed InjectedBrick.cs alone and the certificate was signed over half the program.
+-->
+<Project>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)../_shared/InjectedPayload.cs" Link="InjectedPayload.cs" />
+  </ItemGroup>
+</Project>

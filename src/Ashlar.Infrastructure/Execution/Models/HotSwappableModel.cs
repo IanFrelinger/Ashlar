@@ -15,6 +15,10 @@ namespace Ashlar.Infrastructure.Execution.Models;
 /// - Else -> deterministic.
 ///
 /// If provider-backed execution fails, it falls back to deterministic.
+///
+/// <para>One name is NOT eligible for that fallback: a provider this build does not know. Falling
+/// back on an unreachable provider is a degradation; falling back on a misspelled one hides a
+/// mistake and answers with an echo, so an unknown name is refused outright — see CompleteAsync.</para>
 /// </summary>
 public sealed class HotSwappableModel : IModel
 {
@@ -46,6 +50,26 @@ public sealed class HotSwappableModel : IModel
         if (string.IsNullOrWhiteSpace(provider))
         {
             provider = Environment.GetEnvironmentVariable("ASHLAR_MODEL_PROVIDER");
+        }
+
+        // A provider NAME that this build cannot route to is not a degraded provider — it is a
+        // typo or a stale config, and no fallback rescues it. Letting it through meant the routed
+        // call failed at request time, the catch below treated that as "provider unreachable", and
+        // (under ASHLAR_ALLOW_MOCK=1) the echo model answered — which is how `self-extend run
+        // --provider does-not-exist` reported "ok / passed QA gates" over work no model ever saw.
+        //
+        // Checked BEFORE the deterministic branch, because that branch routes to the provider too.
+        // Unreachable may degrade; unknown may not.
+        if (!string.IsNullOrWhiteSpace(provider) && !ProviderFactory.IsKnownProvider(provider))
+        {
+            throw new ModelUnavailableException(
+                $"'{provider}' is not a model provider this build knows. Known providers: "
+                + ProviderFactory.KnownProviderList() + ". "
+                + "This is refused rather than degraded to the echo model on purpose: an unreachable "
+                + "provider is a condition to fall back from, but a name that is not a provider is a "
+                + "mistake, and falling back would report success over a model that was never called. "
+                + "Fix the name (--provider, ASHLAR_MODEL_PROVIDER, or the agent's model.provider in "
+                + "ashlar.yaml), or use `mock` to run offline on canned responses.");
         }
 
         // Deterministic preference:

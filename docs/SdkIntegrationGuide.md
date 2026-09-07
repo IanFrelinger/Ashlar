@@ -43,7 +43,7 @@ services.AddAshlar(options =>
 
 - **Bricks:** Implement `Brick` (domain behavior unit). Register via `sdk.RegisterBrick<T>()`.
 - **Agents:** Implement `IAgent` and provide an `AgentCard`. Register via `sdk.RegisterAgent<T>()` + `sdk.RegisterAgentCard(...)`.
-- **Background agents:** Configure via agent set JSON (see `apps/runtime-studio/config/` in this repo, or the extracted [ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager) configs).
+- **Background agents:** Configure via agent set JSON. In-tree examples: `apps/runtime-studio/config/agent_set.local.json` and the dogfood campaign set `docs/background-agents/examples/dogfood-campaign.json`. The extracted release-manager vertical lives at [ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager).
 
 ## Reference Integration
 

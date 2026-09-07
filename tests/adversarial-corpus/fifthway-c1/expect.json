@@ -1,0 +1,16 @@
+{
+  "id": "fifthway-c1",
+  "origin": {
+    "round": "5 (/tmp/fifthway/C1)",
+    "lens": "fence blind to a branch the SDK compiles: #if NET",
+    "severity": "CRITICAL"
+  },
+  "class": "A",
+  "expect": "REJECT",
+  "leg": "fence",
+  "description": "fifthway-c0 with the leaking lines wrapped in #if NET. The SDK defines NET for every net8.0 project, so the build compiles them; a fence parsing with no symbols saw a clean brick and the gate ADMITTED a brick that reads the host clock and writes files. The fence must see the branch the compiler compiled.",
+  "invariants": {
+    "reasonContains": "ASHLAR0006",
+    "totalMutantsMax": 0
+  }
+}

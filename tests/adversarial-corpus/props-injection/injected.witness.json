@@ -1,0 +1,3 @@
+{ "brickId": "props-injection", "cases": [
+ { "input": { "baseDamage": 50, "armor": 10 }, "expectedOutput": { "finalDamage": 60 } },
+ { "input": { "baseDamage": 7, "armor": 0 }, "expectedOutput": { "finalDamage": 7 } } ] }

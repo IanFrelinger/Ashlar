@@ -1,0 +1,12 @@
+{
+  "id": "props-injection",
+  "origin": {
+    "round": "source-set bypass (Directory.Build.props injection; the shape samples/Directory.Build.props used to have)",
+    "lens": "a compile item outside the brick directory, declared where a csproj scan cannot see it",
+    "severity": "CRITICAL"
+  },
+  "class": "A",
+  "expect": "REFUSE",
+  "messageContains": "outside the brick directory",
+  "description": "A Directory.Build.props beside the brick adds ../_shared/InjectedPayload.cs to the compilation. The csproj never mentions it, so a loader reading the csproj as XML and globbing *.cs in the directory hashed, fenced and mutated half the program and signed a certificate over it. The loader must take the source set from the evaluated project and refuse the outside item by name, before any build."
+}

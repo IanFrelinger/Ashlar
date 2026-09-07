@@ -1,0 +1,6 @@
+{ "brickId": "fifthway-damage", "cases": [
+ { "input": { "baseDamage": 50, "armor": 10 }, "expectedOutput": { "finalDamage": 60 } },
+ { "input": { "baseDamage": 100, "armor": 20 }, "expectedOutput": { "finalDamage": 120 } },
+ { "input": { "baseDamage": 10, "armor": 50 }, "expectedOutput": { "finalDamage": 60 } },
+ { "input": { "baseDamage": 7, "armor": 0 }, "expectedOutput": { "finalDamage": 7 } },
+ { "input": { "baseDamage": 3, "armor": 3 }, "expectedOutput": { "finalDamage": 6 } } ] }

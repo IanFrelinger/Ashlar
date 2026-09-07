@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Versions are pinned here, not in the repository's Directory.Packages.props, because this is the
+         shape a brick has OUTSIDE the checkout: one project, one package (see samples/hello-brick). -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <!-- The attack: the same FifthBrick.cs as fifthway-a, built with the other branch of its #if. -->
+    <DefineConstants>$(DefineConstants);ASHLAR_EVIL</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.1" />
+  </ItemGroup>
+</Project>

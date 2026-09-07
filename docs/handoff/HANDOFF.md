@@ -378,9 +378,11 @@ breakage hid.
 `_handoff/game-layer/README.md` has the steps. `GameLayer` is a placeholder — pick
 the real name first.
 
-**Nothing is published to nuget.org and there are zero git tags**, so there is no
-package to consume yet. Until Wave 6 lands, use a `ProjectReference` into a sibling
-checkout, or a local folder feed. `consumer-template/` exists for this.
+**Superseded 2026-09-01:** `Ashlar.*` **is** on nuget.org at `0.1.1`, so a sibling
+repository can consume it by `PackageReference` with no feed setup — see
+`docs/ConsumingFromNuGet.md`. A `ProjectReference` into a sibling checkout, or a local
+folder feed, remains an option for an unreleased version. `consumer-template/` carries
+the pins.
 
 ---
 

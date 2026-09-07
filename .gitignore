@@ -117,3 +117,6 @@ brick.pp
 
 # Claude Code machine-local permission grants (overnight autonomy)
 .claude/settings.local.json
+
+# Parallel agent worktrees (local only)
+.worktrees/

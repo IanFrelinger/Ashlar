@@ -1,0 +1,17 @@
+{
+  "id": "hang-gt",
+  "origin": {
+    "round": "adv-mut (/tmp/adv-mut/fx/hang-gt)",
+    "lens": "author code on the certifier's threads: a mutant that never returns",
+    "severity": "CRITICAL"
+  },
+  "class": "B",
+  "expect": "ADMIT",
+  "description": "An honest digit counter with while (n > 0). shift-relational-boundary makes it while (n >= 0), which never terminates once n reaches 0, and nothing bounded mutant execution: the certifier spun forever inside a reflective Invoke and no verdict was ever produced. The mutant must now be stopped by the wall clock, filed under timedOutMutants (not laundered into killedMutants), and the gate must still reach ADMIT inside a bounded wall clock.",
+  "invariants": {
+    "timedOutMutantsMin": 1,
+    "survivorsMax": 0,
+    "wallSecondsMax": 240,
+    "gatePassConfigurationContains": "perCaseTimeoutMs"
+  }
+}

@@ -82,6 +82,20 @@ public sealed class RunCommand : Command
             Console.WriteLine("  no agent declares a model — running on the offline mock provider.");
             Console.WriteLine("  point an agent at a real one in ashlar.yaml when you have it.");
         }
+        // A provider named in ashlar.yaml that this build cannot route to is a contract error, and
+        // it is refused here rather than at request time, where the echo fallback would have
+        // answered for it and the run would have reported success over a model never called.
+        if (!Ashlar.Infrastructure.Execution.ProviderFactory.IsKnownProvider(provider))
+        {
+            Console.Error.WriteLine(
+                $"refusing to run: ashlar.yaml names model provider '{provider}', which this build does not know.");
+            Console.Error.WriteLine(
+                $"known providers: {Ashlar.Infrastructure.Execution.ProviderFactory.KnownProviderList()}");
+            Console.Error.WriteLine(
+                "fix the agent's model.provider in ashlar.yaml — use `mock` to run offline on canned responses.");
+            return 65;
+        }
+
         if (string.Equals(provider, "mock", StringComparison.OrdinalIgnoreCase))
         {
             // The mock provider is explicitly opted into by the manifest; mirror the flag the

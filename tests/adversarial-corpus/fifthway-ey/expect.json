@@ -1,0 +1,16 @@
+{
+  "id": "fifthway-ey",
+  "origin": {
+    "round": "5 (/tmp/fifthway/EY)",
+    "lens": "DefineConstants twin: identical contentHash, different program",
+    "severity": "CRITICAL"
+  },
+  "class": "A",
+  "expect": "REJECT",
+  "leg": "mutation",
+  "description": "Byte-identical source to fifthway-ex; the csproj adds ASHLAR_EVIL and the build compiles a File.WriteAllText backdoor into ExecuteAsync. Both twins ADMITTED with the same signed hash until the legs compiled under the build's options. No witness can observe a file write, so the mutants inside the backdoor survive and the reason must name that code. (The oracle wrote under /tmp/fifthway/out; the path is made temp-local here so the verdict does not depend on that directory existing.)",
+  "invariants": {
+    "reasonContains": "WriteAllText",
+    "compileOptionsContains": "ASHLAR_EVIL"
+  }
+}

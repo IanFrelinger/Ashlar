@@ -149,3 +149,14 @@ Ashlar's North Star: every capability must be used by Ashlar on itself. Each blo
 - Run `ashlar changelog --since 7d` to generate changelog from promoted adaptation records
 
 **Status:** Implemented. `DogfoodPhaseFTests.ChangelogGenerator_WithPromotedRecords_GeneratesMarkdown` and `DogfoodPhaseFTests.TestFailureStore_RecordAndQuery_ReturnsStoredFailures` validate the gate.
+
+## Automated dogfood campaign (release manager + specialists)
+
+**Gate:** A release-manager coordinator dispatches specialist sub-agents for documentation drift, regressions, and developer-tool usability. Every specialist must report back; silence is a blocker.
+
+**Validation:**
+- Run `dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodCampaignTests"`
+- Or `make dogfood-campaign` / `bash scripts/run-dogfood-campaign.sh` (enters the dev/test container; the SDK lives there)
+- Specialists: `docs-drift` (docs-auditor), `regression` (tester), `dev-tool` (dev-tool-auditor). Agent set: `docs/background-agents/examples/dogfood-campaign.json`. Operator page: [DogfoodCampaign.md](DogfoodCampaign.md).
+
+**Status:** Implemented. `DogfoodCampaignTests.Campaign_specialists_report_to_the_release_manager_against_this_repo` validates the gate.

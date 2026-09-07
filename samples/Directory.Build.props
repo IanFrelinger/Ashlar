@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Deliberately empty, and load-bearing BECAUSE it is empty.
+
+  MSBuild imports the FIRST Directory.Build.props it finds walking up from a project, so this file
+  is what keeps the repository-root Directory.Build.props (TreatWarningsAsErrors, the audit
+  PackageReference overrides, pack metadata, ...) out of every project under samples/. The samples
+  are meant to build the way a consumer's project builds.
+
+  This file used to inject <Compile Include="../src/Ashlar.Compat/GlobalUsings.DomainBrick.cs" />
+  into HelloBrick and Ashlar.Certified.DamageResolver. The certification gate now takes the
+  compiled source set from the compiler's own record and refuses any compile item that resolves
+  outside the brick directory (a file compiled into the signed assembly while sitting outside the
+  content hash, the analyzer fence and the mutation leg). The injection was exactly that shape —
+  both samples only ever certified because it was invisible to the old *.cs glob — so it is gone,
+  and each brick names its base type in its own single source file instead.
+-->
 <Project>
-  <ItemGroup Condition="
-    '$(MSBuildProjectName)' == 'HelloBrick' OR
-    '$(MSBuildProjectName)' == 'Ashlar.Certified.DamageResolver'
-    ">
-    <Compile Include="$(MSBuildThisFileDirectory)../src/Ashlar.Compat/GlobalUsings.DomainBrick.cs" Link="GlobalUsings.DomainBrick.cs" />
-  </ItemGroup>
 </Project>
