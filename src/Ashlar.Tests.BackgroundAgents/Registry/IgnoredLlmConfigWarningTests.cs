@@ -8,6 +8,7 @@ using Ashlar.BackgroundAgents.Scheduling;
 using Ashlar.Orchestration.Agents;
 using Xunit;
 using Ashlar.Tests.BackgroundAgents.Registry;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.Registry;
 
@@ -45,7 +46,7 @@ public sealed class IgnoredLlmConfigWarningTests
         };
 
         var spec = new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null).BuildSpec(config);
-        await registry.RegisterAuthoredAsync(new GenericAgent(spec, NullLogger<GenericAgent>.Instance), config);
+        await registry.RegisterAuthoredAsync(new GenericAgent(spec.ToOrchestrationSpec(), NullLogger<GenericAgent>.Instance), config);
 
         if (expectWarning)
             captured.Should().Contain(m => m.Contains("IGNORED", StringComparison.Ordinal) && m.Contains("agent-x"));
