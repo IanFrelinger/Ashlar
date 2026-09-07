@@ -565,10 +565,12 @@ internal static partial class AshlarKernelRegistrar
             // Middle: PII scrubbing when trust is enabled (stays in Infrastructure layer)
             if (sanitize)
             {
-                chain = new SanitizingProviderFactory(
-                    chain,
+                var appChain = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(chain);
+                var sanitizingFactory = new SanitizingProviderFactory(
+                    appChain,
                     sp.GetRequiredService<ICloudSanitizationProxy>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SanitizingProviderFactory>>());
+                chain = sanitizingFactory;
             }
 
             // Outermost: load-balancing across providers (stays in Infrastructure layer)
