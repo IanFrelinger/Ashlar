@@ -108,20 +108,30 @@ public sealed class ImproveCommand : Command
             .AddSharedAdaptationCache();
 
         serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.ProviderFactory>();
+        serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
+            sp => sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>());
+        
         if (trustEnabled)
         {
             serviceCollection.AddSingleton<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy,
                 Ashlar.BackgroundAgents.Trust.CloudSanitizationProxy>();
-            serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(sp =>
-                new Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory(
-                    sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>(),
+            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
+            {
+                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>();
+                var adapter = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
+                return new Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory(
+                    adapter,
                     sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>()));
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>());
+            });
         }
         else
         {
-            serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
-                sp => sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>());
+            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
+            {
+                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>();
+                return new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
+            });
         }
 
         if (self)
