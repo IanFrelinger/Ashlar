@@ -115,6 +115,36 @@ public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext
         return agent;
     }
 
+    // TEMP — delete in #544b after application/ CLI migrates to AgentCreatorAdapter
+    // Overload accepting AgentSpawnSpecDto (Application layer DTO) for backward compatibility.
+    // Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
+    /// <summary>
+    /// Creates a BaseAgent from AgentSpawnSpecDto (Application layer DTO).
+    /// Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
+    /// TEMP shim for application/ CLI — #544b will delete after migration.
+    /// </summary>
+    public IAgent CreateAgent(AgentSpawnSpecDto dto)
+    {
+        if (dto == null)
+        {
+            throw new ArgumentNullException(nameof(dto));
+        }
+
+        // Map DTO to full AgentSpawnSpec
+        var spec = new AgentSpawnSpec
+        {
+            AgentId = dto.AgentId,
+            Name = dto.Name,
+            Domain = dto.Domain,
+            Goal = dto.Goal,
+            Description = dto.Description,
+            Dependencies = dto.Dependencies,
+            OllamaModel = dto.OllamaModel
+        };
+
+        return CreateAgent(spec);
+    }
+
     /// <summary>
     /// Creates an AgentContainer wrapping the agent.
     /// 
