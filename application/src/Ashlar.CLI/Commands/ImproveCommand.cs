@@ -113,10 +113,15 @@ public sealed class ImproveCommand : Command
             serviceCollection.AddSingleton<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy,
                 Ashlar.BackgroundAgents.Trust.CloudSanitizationProxy>();
             serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(sp =>
-                new Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory(
-                    sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>(),
+            {
+                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
+                var appFactory = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
+                var sanitizingFactory = new Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory(
+                    appFactory,
                     sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>()));
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>());
+                return sanitizingFactory;
+            });
         }
         else
         {

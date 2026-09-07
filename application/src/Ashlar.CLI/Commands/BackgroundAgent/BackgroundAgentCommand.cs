@@ -15,7 +15,7 @@ public class BackgroundAgentCommand
     private readonly BackgroundAgentConfigLoader _configLoader;
     private readonly IBackgroundAgentRegistry _registry;
     private readonly BackgroundAgentSpecBuilder _specBuilder;
-    private readonly Ashlar.Orchestration.Agents.AgentFactory _agentFactory;
+    private readonly Ashlar.Core.Application.Orchestration.Ports.IAgentCreator _agentFactory;
     private readonly ILogger<BackgroundAgentCommand> _logger;
 
     /// <summary>Creates a new BackgroundAgentCommand instance.</summary>
@@ -23,7 +23,7 @@ public class BackgroundAgentCommand
         BackgroundAgentConfigLoader configLoader,
         IBackgroundAgentRegistry registry,
         BackgroundAgentSpecBuilder specBuilder,
-        Ashlar.Orchestration.Agents.AgentFactory agentFactory,
+        Ashlar.Core.Application.Orchestration.Ports.IAgentCreator agentFactory,
         ILogger<BackgroundAgentCommand> logger)
     {
         _configLoader = configLoader ?? throw new ArgumentNullException(nameof(configLoader));

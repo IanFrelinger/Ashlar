@@ -217,6 +217,7 @@ public sealed class BackgroundAgentServiceTests
         var services = new ServiceCollection();
         services.AddLogging();
         var sp = services.BuildServiceProvider();
-        return new AgentFactory(sp.GetRequiredService<ILogger<AgentFactory>>(), sp);
+        var agentFactory = new AgentFactory(sp.GetRequiredService<ILogger<AgentFactory>>(), sp);
+        return new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, sp.GetRequiredService<ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
     }
 }

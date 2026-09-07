@@ -22,7 +22,7 @@ namespace Ashlar.Orchestration.Agents;
 /// 
 /// Uses dependency injection to resolve agent dependencies (loggers, adapters, etc.).
 /// </summary>
-public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext, IAgentCreator
+public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext
 {
     private readonly ILogger<AgentFactory> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -113,35 +113,6 @@ public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext, 
         };
 
         return agent;
-    }
-
-    // TEMP P1.2 — delete in thin app PR
-    // Creates a BaseAgent from AgentSpawnSpecDto (Application layer DTO).
-    // Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
-    /// <summary>
-    /// Creates a BaseAgent from AgentSpawnSpecDto (Application layer DTO).
-    /// Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
-    /// </summary>
-    public IAgent CreateAgent(AgentSpawnSpecDto dto)
-    {
-        if (dto == null)
-        {
-            throw new ArgumentNullException(nameof(dto));
-        }
-
-        // Map DTO to full AgentSpawnSpec
-        var spec = new AgentSpawnSpec
-        {
-            AgentId = dto.AgentId,
-            Name = dto.Name,
-            Domain = dto.Domain,
-            Goal = dto.Goal,
-            Description = dto.Description,
-            Dependencies = dto.Dependencies,
-            OllamaModel = dto.OllamaModel
-        };
-
-        return CreateAgent(spec);
     }
 
     /// <summary>
