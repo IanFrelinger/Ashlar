@@ -22,7 +22,7 @@ namespace Ashlar.Orchestration.Agents;
 /// 
 /// Uses dependency injection to resolve agent dependencies (loggers, adapters, etc.).
 /// </summary>
-public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext
+public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext, IAgentCreator
 {
     private readonly ILogger<AgentFactory> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -122,7 +122,7 @@ public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext
     /// Creates a BaseAgent from AgentSpawnSpecDto (Application layer DTO).
     /// Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
     /// </summary>
-    public BaseAgent CreateAgent(AgentSpawnSpecDto dto)
+    public IAgent CreateAgent(AgentSpawnSpecDto dto)
     {
         if (dto == null)
         {
