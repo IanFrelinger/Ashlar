@@ -7,7 +7,7 @@ using Ashlar.Core.Application.Persistence.Ports;
 using Ashlar.Infrastructure.Persistence;
 using Xunit;
 
-namespace Ashlar.Tests.Orchestration.Database;
+namespace Ashlar.Tests.Infrastructure.Tests.Persistence;
 
 /// <summary>Tests for postgres database provisioner gap coverage.</summary>
 public sealed class PostgresDatabaseProvisionerGapCoverageTests

@@ -2,6 +2,8 @@ using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
 using Ashlar.Infrastructure.Execution;
 
+using Ashlar.Core.Application.Execution.Ports;
+
 namespace Ashlar.Infrastructure.Execution.Models;
 
 /// <summary>

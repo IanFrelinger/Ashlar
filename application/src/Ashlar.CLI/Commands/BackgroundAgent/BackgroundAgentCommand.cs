@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.DataSensitivity;
 using Ashlar.BackgroundAgents.Registry;
+using Ashlar.Core.Application.Orchestration.Ports;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
 
@@ -15,7 +16,7 @@ public class BackgroundAgentCommand
     private readonly BackgroundAgentConfigLoader _configLoader;
     private readonly IBackgroundAgentRegistry _registry;
     private readonly BackgroundAgentSpecBuilder _specBuilder;
-    private readonly Ashlar.Orchestration.Agents.AgentFactory _agentFactory;
+    private readonly IAgentCreator _agentCreator;
     private readonly ILogger<BackgroundAgentCommand> _logger;
 
     /// <summary>Creates a new BackgroundAgentCommand instance.</summary>
@@ -23,13 +24,13 @@ public class BackgroundAgentCommand
         BackgroundAgentConfigLoader configLoader,
         IBackgroundAgentRegistry registry,
         BackgroundAgentSpecBuilder specBuilder,
-        Ashlar.Orchestration.Agents.AgentFactory agentFactory,
+        IAgentCreator agentCreator,
         ILogger<BackgroundAgentCommand> logger)
     {
         _configLoader = configLoader ?? throw new ArgumentNullException(nameof(configLoader));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _specBuilder = specBuilder ?? throw new ArgumentNullException(nameof(specBuilder));
-        _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
+        _agentCreator = agentCreator ?? throw new ArgumentNullException(nameof(agentCreator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -321,7 +322,7 @@ public class BackgroundAgentCommand
                     knownIds.Add(autoId);
                     var autoConfig = CloneForAutoscale(template, autoId);
                     var spec = _specBuilder.BuildSpec(autoConfig);
-                    var agent = _agentFactory.CreateAgent(spec);
+                    var agent = _agentCreator.CreateAgent(spec);
                     await _registry.RegisterAsync(agent, autoConfig, cancellationToken: ct);
                     await _registry.StartAsync(autoId, ct);
                     created.Add(autoId);
@@ -405,7 +406,7 @@ public class BackgroundAgentCommand
         var config = configs.FirstOrDefault(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"Agent '{id}' not found in configuration");
         var spec = _specBuilder.BuildSpec(config);
-        var agent = _agentFactory.CreateAgent(spec);
+        var agent = _agentCreator.CreateAgent(spec);
         await _registry.RegisterAsync(agent, config, AgentRegistrationOrigin.Authored, ct);
     }
 

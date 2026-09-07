@@ -6,6 +6,7 @@ using Ashlar.Abstractions.Execution;
 using Ashlar.Abstractions.Transport;
 using Ashlar.Core.Application.Common.Ports;
 using Ashlar.Core.Application.Common.Services;
+using Ashlar.Core.Application.Resilience.Ports;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect;
 using Ashlar.Orchestration.Architect.Models;
@@ -399,6 +400,12 @@ public sealed class OrchestratorTransportTests
         var loops = new SequentialLoopKernel();
         var metrics = new OrchestrationMetrics(
             provider.GetRequiredService<ILogger<OrchestrationMetrics>>());
+        var resilientExecutor = new TestResilientExecutor();
+        var circuitBreaker = new Ashlar.Orchestration.Resilience.CircuitBreaker(
+            name: "orchestration-agent-transport",
+            failureThreshold: 3,
+            timeout: TimeSpan.FromSeconds(30),
+            logger: provider.GetService<ILogger<Ashlar.Orchestration.Resilience.CircuitBreaker>>());
 
         return new Orchestrator(
             architect,
@@ -415,7 +422,9 @@ public sealed class OrchestratorTransportTests
             loops,
             provider.GetRequiredService<ILogger<Orchestrator>>(),
             metrics: metrics,
-            invocationHooks: invocationHooks);
+            invocationHooks: invocationHooks,
+            resilientExecutor: resilientExecutor,
+            circuitBreaker: circuitBreaker);
     }
 
     /// <summary>Metadata append hook.</summary>
@@ -483,6 +492,18 @@ public sealed class OrchestratorTransportTests
         {
             AfterSuccessCount++;
             return Task.FromResult(output);
+        }
+    }
+
+    /// <summary>Test stub for IResilientExecutor.</summary>
+    private sealed class TestResilientExecutor : IResilientExecutor
+    {
+        public Task<T> ExecuteAsync<T>(
+            Func<CancellationToken, Task<T>> operation,
+            RetryPolicy policy,
+            CancellationToken cancellationToken = default)
+        {
+            return operation(cancellationToken);
         }
     }
 }

@@ -1,6 +1,9 @@
 using System.Diagnostics;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using Ashlar.Abstractions;
 using Ashlar.Infrastructure.Analysis.Rules;
 using Xunit;
 
@@ -12,7 +15,8 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public void CodeQualityRule_exposes_metadata()
     {
-        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance);
+        var mockTool = CreateMockAnalyzeTool();
+        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance, mockTool.Object);
         rule.Name.Should().Be("CodeQuality");
         rule.Description.Should().NotBeNullOrWhiteSpace();
     }
@@ -24,7 +28,8 @@ public class InfrastructureAnalysisGapCoverageTests
         await File.WriteAllTextAsync(path, "not a pe file");
         try
         {
-            var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance);
+            var mockTool = CreateMockAnalyzeTool();
+            var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance, mockTool.Object);
             var violations = await rule.AnalyzeAsync(new FileInfo(path));
             violations.Should().BeEmpty();
         }
@@ -37,7 +42,8 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public async Task CodeQualityRule_handles_missing_files_gracefully()
     {
-        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance);
+        var mockTool = CreateMockAnalyzeTool();
+        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance, mockTool.Object);
         var violations = await rule.AnalyzeAsync(new FileInfo(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".dll")));
         violations.Should().BeEmpty();
     }
@@ -45,7 +51,8 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public void SecurityAnalysisRule_exposes_metadata()
     {
-        var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance);
+        var mockTool = CreateMockSecurityScanTool();
+        var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance, mockTool.Object);
         rule.Name.Should().Be("SecurityScan");
     }
 
@@ -56,7 +63,8 @@ public class InfrastructureAnalysisGapCoverageTests
         await File.WriteAllTextAsync(path, "not a pe file");
         try
         {
-            var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance);
+            var mockTool = CreateMockSecurityScanToolWithFindings(1);
+            var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance, mockTool.Object);
             var violations = await rule.AnalyzeAsync(new FileInfo(path));
             violations.Should().ContainSingle(v =>
                 v.Rule == "SecurityScan" &&
@@ -72,7 +80,8 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public async Task SecurityAnalysisRule_records_scan_errors_as_violations()
     {
-        var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance);
+        var mockTool = CreateMockSecurityScanToolThatThrows();
+        var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance, mockTool.Object);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -86,7 +95,8 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public async Task CodeQualityRule_analyzes_managed_test_assembly()
     {
-        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance);
+        var mockTool = CreateMockAnalyzeToolWithComplexity(25);
+        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance, mockTool.Object);
         var assemblyPath = typeof(InfrastructureAnalysisGapCoverageTests).Assembly.Location;
 
         var violations = await rule.AnalyzeAsync(new FileInfo(assemblyPath));
@@ -100,7 +110,8 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public async Task SecurityAnalysisRule_analyzes_managed_test_assembly()
     {
-        var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance);
+        var mockTool = CreateMockSecurityScanTool();
+        var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance, mockTool.Object);
         var assemblyPath = typeof(InfrastructureAnalysisGapCoverageTests).Assembly.Location;
 
         var violations = await rule.AnalyzeAsync(new FileInfo(assemblyPath));
@@ -111,14 +122,16 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public void CodeQualityRule_constructor_rejects_null_logger()
     {
-        var act = () => new CodeQualityRule(null!);
+        var mockTool = CreateMockAnalyzeTool();
+        var act = () => new CodeQualityRule(null!, mockTool.Object);
         act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
     public async Task CodeQualityRule_logs_and_returns_empty_on_unexpected_analysis_errors()
     {
-        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance);
+        var mockTool = CreateMockAnalyzeTool();
+        var rule = new CodeQualityRule(NullLogger<CodeQualityRule>.Instance, mockTool.Object);
         var dir = Path.Combine(Path.GetTempPath(), "ashlar-not-an-assembly-" + Guid.NewGuid());
         Directory.CreateDirectory(dir);
         try
@@ -135,7 +148,8 @@ public class InfrastructureAnalysisGapCoverageTests
     [Fact]
     public void SecurityAnalysisRule_constructor_rejects_null_logger()
     {
-        var act = () => new SecurityAnalysisRule(null!);
+        var mockTool = CreateMockSecurityScanTool();
+        var act = () => new SecurityAnalysisRule(null!, mockTool.Object);
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -145,7 +159,8 @@ public class InfrastructureAnalysisGapCoverageTests
         var assemblyPath = await BuildDangerousTestAssemblyAsync();
         try
         {
-            var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance);
+            var mockTool = CreateMockSecurityScanToolWithFindings(1);
+            var rule = new SecurityAnalysisRule(NullLogger<SecurityAnalysisRule>.Instance, mockTool.Object);
             var violations = await rule.AnalyzeAsync(new FileInfo(assemblyPath));
 
             violations.Should().ContainSingle(v =>
@@ -224,5 +239,50 @@ public class InfrastructureAnalysisGapCoverageTests
         var stderr = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
         return (process.ExitCode, stdout, stderr);
+    }
+
+    private static Mock<ITool> CreateMockAnalyzeTool()
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.analyze");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResult(new ActionDelta(0, 0, Array.Empty<string>()), JsonSerializer.SerializeToElement(new { Complexity = 5 })));
+        return mock;
+    }
+
+    private static Mock<ITool> CreateMockAnalyzeToolWithComplexity(int complexity)
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.analyze");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResult(new ActionDelta(0, 0, Array.Empty<string>()), JsonSerializer.SerializeToElement(new { Complexity = complexity })));
+        return mock;
+    }
+
+    private static Mock<ITool> CreateMockSecurityScanTool()
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.security_scan");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResult(new ActionDelta(0, 0, Array.Empty<string>()), JsonSerializer.SerializeToElement(new { Count = 0 })));
+        return mock;
+    }
+
+    private static Mock<ITool> CreateMockSecurityScanToolWithFindings(int count)
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.security_scan");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResult(new ActionDelta(0, 0, Array.Empty<string>()), JsonSerializer.SerializeToElement(new { Count = count })));
+        return mock;
+    }
+
+    private static Mock<ITool> CreateMockSecurityScanToolThatThrows()
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.security_scan");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException("Operation cancelled"));
+        return mock;
     }
 }

@@ -29,6 +29,8 @@
     <ProjectReference Include="..\Ashlar.Contracts\Ashlar.Contracts.csproj" />
     <ProjectReference Include="..\Ashlar.Transport.Grpc\Ashlar.Transport.Grpc.csproj" />
     <ProjectReference Include="..\Ashlar.Runtime\Ashlar.Runtime.csproj" />
+    <ProjectReference Include="..\Ashlar.Tools.Assembly\Ashlar.Tools.Assembly.csproj" />
+    <ProjectReference Include="..\Ashlar.Tools.Dev\Ashlar.Tools.Dev.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -17,7 +17,6 @@ using Ashlar.Orchestration.Resilience;
 using Ashlar.Orchestration.Models;
 using Ashlar.Orchestration.Transport;
 using Ashlar.Core.Application.Resilience.Ports;
-using Ashlar.Infrastructure.Resilience;
 using Ashlar.Core.Application.Common.Ports;
 
 namespace Ashlar.Orchestration.Coordination;
@@ -57,9 +56,8 @@ public sealed class Orchestrator
     private readonly IAgentTransport _agentTransport;
     private readonly NegotiationProtocol? _negotiationProtocol;
     private readonly OrchestrationMetrics? _metrics;
-    private readonly RetryPolicy _retryPolicy;
+    private readonly ICircuitBreaker _circuitBreaker;
     private readonly IResilientExecutor _resilientExecutor;
-    private readonly CircuitBreaker _circuitBreaker;
     private readonly ILoopKernel _loops;
     private readonly ILogger<Orchestrator> _logger;
     private readonly IOrchestrationRuntimeSpecAccessor? _runtimeSpecAccessor;
@@ -91,6 +89,8 @@ public sealed class Orchestrator
     /// <param name="barrierAuditLog">Optional barrier audit log for invocation events.</param>
     /// <param name="barrierOptions">Optional barrier options for guard behavior.</param>
     /// <param name="invocationHooks">Optional hooks that run before each transport send and after successful invocations.</param>
+    /// <param name="resilientExecutor">Optional resilient executor for retry logic.</param>
+    /// <param name="circuitBreaker">Optional circuit breaker for fault tolerance.</param>
     public Orchestrator(
         IArchitectAgent architect,
         IAgentRuntimeFactory agentRuntimeFactory,
@@ -113,7 +113,8 @@ public sealed class Orchestrator
         IBarrierAuditLog? barrierAuditLog = null,
         IOptions<BarrierOptions>? barrierOptions = null,
         IEnumerable<IAgentTransportInvocationHook>? invocationHooks = null,
-        IResilientExecutor? resilientExecutor = null)
+        IResilientExecutor? resilientExecutor = null,
+        ICircuitBreaker? circuitBreaker = null)
     {
         _architect = architect ?? throw new ArgumentNullException(nameof(architect));
         _agentRuntimeFactory = agentRuntimeFactory ?? throw new ArgumentNullException(nameof(agentRuntimeFactory));
@@ -126,18 +127,8 @@ public sealed class Orchestrator
         _outputIntegrator = outputIntegrator ?? throw new ArgumentNullException(nameof(outputIntegrator));
         _agentBus = agentBus ?? throw new ArgumentNullException(nameof(agentBus));
         _agentTransport = agentTransport ?? throw new ArgumentNullException(nameof(agentTransport));
-        // Same shape as before the two RetryPolicy types were merged: fixed 1ms
-        // delay, 3 attempts, retry only on transport timeouts. The retry-on-what
-        // predicate now lives in the policy instead of being passed per call.
-        _retryPolicy = RetryPolicy.FixedDelay(
-            maxAttempts: 3,
-            delay: TimeSpan.FromMilliseconds(1),
-            isTransient: static ex => ex is TimeoutException);
-        _resilientExecutor = resilientExecutor ?? new ResilientExecutor();
-        _circuitBreaker = new CircuitBreaker(
-            name: "orchestration-agent-transport",
-            failureThreshold: 3,
-            timeout: TimeSpan.FromSeconds(30));
+        _resilientExecutor = resilientExecutor ?? throw new ArgumentNullException(nameof(resilientExecutor));
+        _circuitBreaker = circuitBreaker ?? throw new ArgumentNullException(nameof(circuitBreaker));
         _loops = loops ?? throw new ArgumentNullException(nameof(loops));
         _negotiationProtocol = negotiationProtocol;
         _metrics = metrics;
@@ -582,6 +573,11 @@ public sealed class Orchestrator
         AgentResult initialResult,
         CancellationToken cancellationToken)
     {
+        var retryPolicy = RetryPolicy.FixedDelay(
+            maxAttempts: 3,
+            delay: TimeSpan.FromMilliseconds(1),
+            isTransient: static ex => ex is TimeoutException);
+
         try
         {
             return await _resilientExecutor.ExecuteAsync(
@@ -600,7 +596,7 @@ public sealed class Orchestrator
 
                     return retryResult;
                 },
-                _retryPolicy,
+                retryPolicy,
                 cancellationToken);
         }
         catch (TimeoutException ex)

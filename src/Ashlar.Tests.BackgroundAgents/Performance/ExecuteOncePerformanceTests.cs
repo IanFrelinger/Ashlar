@@ -11,6 +11,7 @@ using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect.Models;
 using Xunit;
 using Ashlar.Tests.BackgroundAgents.Registry;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.Performance;
 
@@ -82,7 +83,7 @@ public class ExecuteOncePerformanceTests
         var agentConfig = configs[0];
         var spec = specBuilder.BuildSpec(agentConfig);
         var logger = sp.GetRequiredService<ILogger<GenericAgent>>();
-        var agent = new GenericAgent(spec, logger);
+        var agent = new GenericAgent(spec.ToOrchestrationSpec(), logger);
         await registry.RegisterAuthoredAsync(agent, agentConfig);
         return (registry, agentConfig.Id);
     }

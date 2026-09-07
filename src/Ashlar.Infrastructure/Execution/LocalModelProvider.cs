@@ -2,6 +2,8 @@ using LLama;
 using LLama.Common;
 using Microsoft.Extensions.Logging;
 
+using Ashlar.Core.Application.Execution.Ports;
+
 namespace Ashlar.Infrastructure.Execution;
 
 /// <summary>

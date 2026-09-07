@@ -115,11 +115,12 @@ public sealed class UpdateAgentConfigToolTests
         services.AddLogging();
         var sp = services.BuildServiceProvider();
         var agentFactory = new AgentFactory(sp.GetRequiredService<ILogger<AgentFactory>>(), sp);
+        var agentCreator = new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, sp.GetRequiredService<ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
         return new UpdateAgentConfigTool(
             registry,
             loader,
             new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null),
-            agentFactory);
+            agentCreator);
     }
 
     /// <summary>Creates config loader.</summary>

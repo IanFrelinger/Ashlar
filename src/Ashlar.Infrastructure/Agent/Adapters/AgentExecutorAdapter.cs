@@ -6,8 +6,6 @@ using Ashlar.Core.Domain.Exceptions;
 using Ashlar.Abstractions;
 using Ashlar.Runtime;
 using Ashlar.Core.Application.Maintenance.Ports;
-using Ashlar.Tools.Assembly;
-using Ashlar.Tools.Dev;
 using Ashlar.Policies;
 using System.Reflection;
 
@@ -64,33 +62,21 @@ public class AgentExecutorAdapter : IAgentExecutor
                     $"Use 'ashlar agent list' to see available agents.");
             }
 
-            // Set up toolbox with available tools
+            // Set up toolbox with available tools from DI
             var registry = new CapabilityRegistry();
-            registry.Register(new AssemblyAnalyzeTool());
-            registry.Register(new AssemblyDecompileTool());
-            registry.Register(new AssemblySecurityScanTool());
             
-            // Register dev tools if available
-            try
-            {
-                var dotnetTestTool = new DotnetTestTool();
-                registry.Register(dotnetTestTool);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to register DotnetTestTool");
-            }
-
-            var cleanupService = _serviceProvider.GetService<IArtifactCleanupService>();
-            if (cleanupService != null)
+            // Get all registered tools from the service provider
+            var tools = _serviceProvider.GetServices<ITool>();
+            foreach (var tool in tools)
             {
                 try
                 {
-                    registry.Register(new CleanArtifactsTool(cleanupService));
+                    registry.Register(tool);
+                    _logger.LogDebug("Registered tool: {ToolId}", tool.Id);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to register CleanArtifactsTool");
+                    _logger.LogWarning(ex, "Failed to register tool: {ToolId}", tool.Id);
                 }
             }
 

@@ -13,6 +13,7 @@ using Ashlar.Orchestration.Agents;
 using Ashlar.Tests.BackgroundAgents.Registry;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.SelfExtend;
 
@@ -284,6 +285,6 @@ sandbox:
     {
         var sensitivity = new DataSensitivityRegistry();
         var builder = new BackgroundAgentSpecBuilder(sensitivity, null);
-        return builder.BuildSpec(c);
+        return builder.BuildSpec(c).ToOrchestrationSpec();
     }
 }

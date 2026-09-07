@@ -325,4 +325,28 @@ public sealed class HostingDeploymentProfileTests
             Environment.SetEnvironmentVariable("ASHLAR_DEPLOYMENT_PROFILE", prev);
         }
     }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task FullProfile_RegistersToolsAndAnalysisRulesViaDI()
+    {
+        await Task.CompletedTask;
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAshlar();
+        var sp = services.BuildServiceProvider();
+
+        var tools = sp.GetServices<Ashlar.Abstractions.ITool>().ToList();
+        tools.Should().NotBeEmpty("tools should be registered as ITool");
+        
+        tools.Should().Contain(t => t.Id == "assembly.analyze", "AssemblyAnalyzeTool should be registered");
+        tools.Should().Contain(t => t.Id == "assembly.decompile", "AssemblyDecompileTool should be registered");
+        tools.Should().Contain(t => t.Id == "assembly.security_scan", "AssemblySecurityScanTool should be registered");
+        tools.Should().Contain(t => t.Id == "dotnet.test", "DotnetTestTool should be registered");
+
+        using var scope = sp.CreateScope();
+        var rules = scope.ServiceProvider.GetServices<Ashlar.Infrastructure.Analysis.Rules.IAnalysisRule>().ToList();
+        rules.Should().NotBeEmpty("analysis rules should be registered");
+        rules.Should().Contain(r => r.Name == "SecurityScan", "SecurityAnalysisRule should be registered");
+        rules.Should().Contain(r => r.Name == "CodeQuality", "CodeQualityRule should be registered");
+    }
 }

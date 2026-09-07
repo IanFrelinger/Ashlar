@@ -8,7 +8,7 @@ using Npgsql;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Ashlar.Tests.Orchestration.Database;
+namespace Ashlar.Tests.Infrastructure.Tests.Persistence;
 
 /// <summary>Tests for postgres database provisioner integration.</summary>
 [Collection("PostgresDocker")]

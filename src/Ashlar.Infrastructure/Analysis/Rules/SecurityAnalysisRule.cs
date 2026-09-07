@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.Analysis.Models;
 using Ashlar.Core.Domain.Values;
-using Ashlar.Tools.Assembly;
 using Ashlar.Abstractions;
 using System.Text.Json;
 
@@ -11,7 +10,7 @@ namespace Ashlar.Infrastructure.Analysis.Rules;
 /// Analysis rule for security scanning.
 /// 
 /// Responsibilities:
-/// - Scans assemblies for security vulnerabilities using AssemblySecurityScanTool
+/// - Scans assemblies for security vulnerabilities using an ITool implementation
 /// - Reports security findings as violations
 /// - Assigns high severity to security issues
 /// 
@@ -21,11 +20,13 @@ namespace Ashlar.Infrastructure.Analysis.Rules;
 public class SecurityAnalysisRule : IAnalysisRule
 {
     private readonly ILogger<SecurityAnalysisRule> _logger;
+    private readonly ITool _securityScanTool;
 
     /// <summary>Initializes a new security analysis rule.</summary>
-    public SecurityAnalysisRule(ILogger<SecurityAnalysisRule> logger)
+    public SecurityAnalysisRule(ILogger<SecurityAnalysisRule> logger, ITool securityScanTool)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _securityScanTool = securityScanTool ?? throw new ArgumentNullException(nameof(securityScanTool));
     }
 
     /// <summary>Name.</summary>
@@ -42,15 +43,14 @@ public class SecurityAnalysisRule : IAnalysisRule
 
         try
         {
-            var securityTool = new AssemblySecurityScanTool();
             var snapshot = new WorldSnapshot(0, new Dictionary<string, object?>());
 
             // Use JsonSerializer to safely encode the path. Raw string interpolation breaks
             // on Windows paths because the backslashes (\U, \b, \n …) become invalid JSON escapes.
             var argsElement = JsonSerializer.SerializeToElement(new { path = assemblyFile.FullName });
-            var securityCall = new ToolCall("assembly.security_scan", argsElement);
+            var securityCall = new ToolCall(_securityScanTool.Id, argsElement);
 
-            var result = await securityTool.InvokeAsync(securityCall, snapshot, cancellationToken);
+            var result = await _securityScanTool.InvokeAsync(securityCall, snapshot, cancellationToken);
 
             if (TryGetPayloadElement(result.Payload, out var jsonElement))
             {
