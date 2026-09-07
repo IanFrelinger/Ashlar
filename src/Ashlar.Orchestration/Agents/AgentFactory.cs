@@ -122,7 +122,7 @@ public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext, 
     /// Creates a BaseAgent from AgentSpawnSpecDto (Application layer DTO).
     /// Maps DTO to AgentSpawnSpec and delegates to CreateAgent(AgentSpawnSpec).
     /// </summary>
-    public BaseAgent CreateAgent(AgentSpawnSpecDto dto)
+    public IAgent CreateAgent(AgentSpawnSpecDto dto)
     {
         if (dto == null)
         {
