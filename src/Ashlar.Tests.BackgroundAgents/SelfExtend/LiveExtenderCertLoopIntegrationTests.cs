@@ -45,6 +45,13 @@ public sealed class LiveExtenderCertLoopIntegrationTests : IDisposable
 sandbox:
   enforce_writable_allowlist: true
   writable: [src/]
+self_extend:
+  mode: self-extending
+  may_add: [brick]
+  gates_required: [sandbox, build]
+  budget:
+    extensions: 10
+    window: 1h
 ");
 
         _certStore = new InMemoryCertificationRecordStore();
