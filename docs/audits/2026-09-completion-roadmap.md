@@ -15,7 +15,7 @@ Ashlar has **proven the technical foundation** for autonomous self-extension: ce
 - ✅ Autonomous iteration harness proven through P6/S5 campaigns
 - ✅ Tier 0 autonomous admission with rollback/quarantine cycle
 - ✅ Product split architecture documented and boundary-gated
-- ⚠️  Certification signature model has exploitable downgrades (limitations 7–9)
+- ⚠️  Certification composition signer vulnerability remains (limitation 9; limitations 7–8 closed by PR #523)
 - ⚠️  Adversarial validation coverage incomplete
 - ⚠️  Product repos not extracted; Forge product surface undefined
 - ⚠️  Public ledger for autonomous runs not implemented
@@ -24,7 +24,7 @@ Ashlar has **proven the technical foundation** for autonomous self-extension: ce
 
 Six milestones (M0–M6) progress from honesty baseline to commercial claims. Each milestone has clear **exit criteria**, **dependencies**, and **ownership**. Conservative estimate: **M0–M3 can close in the current development cycle**; M4–M6 require product-team coordination and sustained dogfood operation.
 
-**Key Risk:** Certification schema vulnerabilities (limitations 7–9) are **publicly documented**; adversaries can strip signatures or downgrade to weak lanes. M1 MUST close these before any commercial claim.
+**Key Risk:** Certification composition signer vulnerability (limitation 9) is **publicly documented**; composition records ignore explicitly supplied keys. Limitations 7–8 (signature stripping, schema downgrade) were closed by PR #523. M1 MUST close limitation 9 before any commercial claim.
 
 ---
 
@@ -37,7 +37,7 @@ Six milestones (M0–M6) progress from honesty baseline to commercial claims. Ea
 | Capability | Evidence | Limitations |
 |-----------|----------|-------------|
 | **Autonomous brick generation & certification** | P6 live model proposals; S5 3/5 certified at qwen3.8:27b; cert-gate CI runs 27918340788, 27918244198 | Single-task family (damage→health compositions); recorded/replay model only in CI; live models local-only |
-| **Safety invariants enforced** | SELF-EXTEND-AUDIT verdicts A–D all ENFORCED; SelfExtendInvariant*Tests pass | Certification signature downgrade exploits documented (limitations 7–9); no adversarial campaign yet |
+| **Safety invariants enforced** | SELF-EXTEND-AUDIT verdicts A–D all ENFORCED; SelfExtendInvariant*Tests pass | Certification composition signer vulnerability remains (limitation 9; limitations 7–8 closed); no adversarial campaign yet |
 | **Tier-based admission control** | Trust-loop spec sections 3, 7; Tier 0/1/2 classifier structural | Tier definitions not adversarially validated; kernel-touch smuggling untested |
 | **Session containment** | P3-P5 flights: in-session build + execution; Docker backend hardening M26 | Host retains orchestration, mutant compilation, judgment (limitation 4); read-only rootfs unflown on live daemon |
 | **Rollback & quarantine** | Trust-loop spec R5.1–R5.4; swap-host generation retention | Watch-window breach → auto-rollback path unflown (mechanism exists, not proven) |
@@ -53,7 +53,7 @@ Six milestones (M0–M6) progress from honesty baseline to commercial claims. Ea
 
 **NOT Claimable:**
 - ❌ "Adversarially hardened autonomous extension" (no adversarial campaign)
-- ❌ "Production-ready unattended operation" (signature vulnerabilities public)
+- ❌ "Production-ready unattended operation" (limitation 9 remains exploitable; no public ledger yet)
 - ❌ "Public audit trail" (no ledger yet)
 - ❌ "Forge product" (not extracted, not integrated)
 
@@ -78,35 +78,27 @@ Six milestones (M0–M6) progress from honesty baseline to commercial claims. Ea
 
 #### M1.1: Certification Schema Hardening
 
-**Problem:** Limitations 7–9 allow signature stripping, schema downgrade, and key injection bypass.
+**Problem:** Limitation 9 allows composition signer key injection bypass. (Limitations 7–8 already closed by PR #523.)
 
-**Fixes Required:**
+**Status of Limitations 7–8 (CLOSED by PR #523, commit 966e6bf4):**
+- ✅ Signature stripping (limitation 7): `CertificationVerifyOptions.Default` and `.Strict` now set `RequireEd25519Signature = true`
+- ✅ Schema downgrade (limitation 8): `MinimumSchemaVersion = 2` enforced fail-closed by default
 
-1. **Close signature downgrade (limitation 7)**
-   - Implement `CertificationVerifyOptions.RequireEd25519Signature` (already drafted, not compiled)
-   - Implement `TrustedEd25519PublicKeys` pinning against `operator.pub` ONLY (not `~/.ashlar/keys/trusted/`)
-   - Default REMAINS permissive for netstandard2.0 compatibility; hardened deployments opt in
-   - **Exit:** `FileCertificationRecordStore` refuses stripped-signature records when `RequireEd25519Signature=true`; test via `SchemaVersionFloorTests` pattern (forge a record, strip signature, verify → refusal)
+**Remaining Fix Required:**
 
-2. **Close schema downgrade (limitation 8)**
-   - Enforce `CertificationVerifyOptions.MinimumSchemaVersion` (already drafted, not compiled)
-   - Test: forged record with rewritten `Gate` field verifies at floor 0, refused at floor 2
-   - **Exit:** `SchemaVersionFloorTests` pass; CI gates set `MinimumSchemaVersion=2` for all trust-bearing paths
-
-3. **Fix composition signer key injection (limitation 9)**
+1. **Fix composition signer key injection (limitation 9)**
    - `CompositionCertificationRecordSigner` constructor honors explicitly supplied `brickSigner` instead of discarding it
    - Remove `_ = brickSigner;` discard; thread through key resolution
    - **Exit:** Host passing real key via `brickSigner` mints compositions under that key, not committed constant
 
 **Acceptance:**
-- All three fixes compiled, tested, merged
-- CI cert-gate updated to require floor 2 + signature
-- Limitation 7–9 sections in certification-evidence.md marked CLOSED with fix commit refs
+- Limitation 9 fix compiled, tested, merged
+- Limitation 9 section in certification-evidence.md marked CLOSED with fix commit ref
 
 **Owner:** Runtime team (cryptography/certification subsystem)  
 **Dependencies:** None  
-**Risk:** netstandard2.0 consumers break if we flip defaults; keep defaults permissive, document opt-in hardening  
-**Effort:** 3–5 days (fixes are drafted, need compilation + tests)
+**Risk:** Composition path consumers must supply real keys; migration guidance needed  
+**Effort:** 1–2 days (only limitation 9 remains; 7–8 already closed)
 
 #### M1.2: Hold-Admit-Swap CI Proof
 
@@ -122,7 +114,7 @@ Six milestones (M0–M6) progress from honesty baseline to commercial claims. Ea
 - **Exit:** CI green; test demonstrates Tier 1 hold → admit → swap with no false admits
 
 **Owner:** CI/platform team  
-**Dependencies:** M1.1 (certification hardening)  
+**Dependencies:** M1.1 (limitation 9 closure)  
 **Effort:** 2–3 days
 
 #### M1.3: Canary Tier 0 Swap in CI
@@ -173,7 +165,8 @@ Six milestones (M0–M6) progress from honesty baseline to commercial claims. Ea
 
 ### M1 Exit Criteria
 
-- [ ] **M1.1** Limitations 7–9 closed; certification-evidence.md updated
+- [x] **M1.1a** Limitations 7–8 closed (PR #523, commit 966e6bf4)
+- [ ] **M1.1b** Limitation 9 closed; certification-evidence.md updated
 - [ ] **M1.2** Tier 1 hold → admit → swap proven in CI
 - [ ] **M1.3** Tier 0 autonomous swap proven in CI (canary)
 - [ ] **M1.4** Pause, rollback, quarantine proven in CI
@@ -330,8 +323,8 @@ github.com/IanFrelinger/ashlar-forge/
    ```
 
 3. **Forge CI calls Ashlar cert-gate:**
-   - `forge-gate.yml` includes step: `run: bash scripts/run-forge-cert-gate.sh`
-   - Script uses Ashlar's `CertificationGate` via `ICertificationGate` DI
+   - `forge-gate.yml` would include a cert-gate step (script not yet implemented)
+   - Planned script would use Ashlar's `CertificationGate` via `ICertificationGate` DI
 
 **Acceptance:**
 - Forge `ForgeService.GenerateAppAsync` calls `ICertificationGate.CertifyAsync`
@@ -664,7 +657,7 @@ M0 (baseline) → M1 (harden) → M2 (adversarial) → M3 (Forge scaffold)
 | **Legal blocks autonomous claims (M6.2)** | Launch delayed | Start legal review early (during M4); prepare fallback: "Autonomous with operator oversight" (Tier 1 only) |
 | **Forge team unavailable (M3–M4)** | Product demo blocked | Core team can stub Forge scaffold; defer full Forge.Verify to post-launch |
 | **Public ledger attracts adversarial scrutiny** | Reputation risk | Expect it; have incident-response plan; ledger shows we patch findings (not hide them) |
-| **Signature vulnerability (limitation 7–9) exploited before M1 close** | **Critical** | **Emergency fix:** Disable Ed25519-optional mode; require signatures immediately (breaks netstandard2.0 consumers — acceptable risk) |
+| **Composition signer vulnerability (limitation 9) exploited before M1 close** | **Medium** | Fix composition key injection immediately; limitations 7–8 already closed (signature/schema hardening) |
 
 ---
 
@@ -675,7 +668,7 @@ M0 (baseline) → M1 (harden) → M2 (adversarial) → M3 (Forge scaffold)
 **Owns:** M1 (hardening), M2 (adversarial validation)
 
 **Responsibilities:**
-- Close certification vulnerabilities (limitations 7–9)
+- Close remaining certification vulnerability (limitation 9; 7–8 already closed)
 - Implement disarm mechanisms (pause, rollback, quarantine)
 - Write adversarial test pack (16 tests)
 - Maintain cert-gate, kernel-gate, adversarial-gate CI
@@ -759,7 +752,7 @@ M0 (baseline) → M1 (harden) → M2 (adversarial) → M3 (Forge scaffold)
 
 ### M1–M2: Technical Hardening
 
-- **Zero** exploitable signature downgrades (limitations 7–9 closed)
+- **Zero** exploitable certification vulnerabilities (limitation 9 closed; 7–8 already closed by PR #523)
 - **Zero** false certificates in adversarial campaign (16/16 tests green)
 - **100%** disarm mechanism coverage (pause, rollback, quarantine CI-proven)
 
@@ -786,12 +779,12 @@ M0 (baseline) → M1 (harden) → M2 (adversarial) → M3 (Forge scaffold)
 
 1. **CEO sign-off on M0 baseline** (this document)
 2. **Assign owners to M1–M6** (framework, product, CI, legal teams)
-3. **Begin M1.1** (certification hardening) — limitations 7–9 are public; this is urgent
+3. **Begin M1.1b** (close limitation 9) — composition signer vulnerability is public and remains exploitable
 4. **Schedule legal kick-off** for M6.2 (2-week lead time needed)
 
 ### Strategic Priorities
 
-**Priority 1: M1 (harden)** — Closes public vulnerabilities; must complete before any commercial claim.
+**Priority 1: M1 (harden)** — Closes remaining certification vulnerability (limitation 9); must complete before any commercial claim.
 
 **Priority 2: M2 (adversarial)** — Proves safety model; required for "adversarially validated" claim.
 
@@ -859,7 +852,7 @@ M0 (baseline) → M1 (harden) → M2 (adversarial) → M3 (Forge scaffold)
 |----------|----------|-----------|
 | **Architecture.md** | `docs/Architecture.md` | Framework layers, trust architecture |
 | **SELF-EXTEND-AUDIT.md** | `docs/SELF-EXTEND-AUDIT.md` | Invariants A–D enforcement proof |
-| **certification-evidence.md** | `docs/certification-evidence.md` | Current certification proof ledger; limitations 7–9 |
+| **certification-evidence.md** | `docs/certification-evidence.md` | Current certification proof ledger; limitations 7–8 closed, limitation 9 open |
 | **trust-loop-spec.md** | `docs/trust-loop/ashlar-trust-loop-spec.md` | Trust-loop normative spec (§8 adversarial) |
 | **self-extend-spec.md** | `docs/trust-loop/trust-loop-ext-autonomous-self-extension.md` | Autonomous-specific spec (tier model, recursion discipline) |
 | **product-split.md** | `docs/architecture/product-split.md` | Framework vs. product boundary |
