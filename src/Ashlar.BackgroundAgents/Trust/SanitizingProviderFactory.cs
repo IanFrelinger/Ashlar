@@ -30,6 +30,25 @@ public sealed class SanitizingProviderFactory :
         _logger = logger;
     }
 
+    // TEMP — delete in #544b after application/ CLI migrates to Application-port constructor
+    // Constructor accepting Infrastructure.Execution.IProviderFactory for ImproveCommand DI compatibility.
+    // Adapts Infrastructure type to Application port.
+    /// <summary>
+    /// Creates a sanitizing wrapper accepting Infrastructure.Execution.IProviderFactory.
+    /// Wraps Infrastructure type as Application port adapter.
+    /// TEMP shim for application/ CLI — #544b will delete after migration.
+    /// </summary>
+    public SanitizingProviderFactory(
+        Ashlar.Infrastructure.Execution.IProviderFactory infrastructureInner,
+        ICloudSanitizationProxy proxy,
+        ILogger<SanitizingProviderFactory> logger)
+    {
+        if (infrastructureInner == null) throw new ArgumentNullException(nameof(infrastructureInner));
+        _inner = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infrastructureInner);
+        _proxy = proxy;
+        _logger = logger;
+    }
+
     /// <inheritdoc />
     public bool IsProviderAvailable(string provider) => _inner.IsProviderAvailable(provider);
 
