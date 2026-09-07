@@ -10,6 +10,7 @@ using Ashlar.BackgroundAgents.Scheduling;
 using Ashlar.Orchestration.Agents;
 using Xunit;
 using Ashlar.Tests.BackgroundAgents.Registry;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.Registry;
 
@@ -139,7 +140,7 @@ public sealed class SelfExtendParameterFlowTests
     {
         var sensitivity = new DataSensitivityRegistry();
         var builder = new BackgroundAgentSpecBuilder(sensitivity, null);
-        return builder.BuildSpec(c);
+        return builder.BuildSpec(c).ToOrchestrationSpec();
     }
 
     private sealed class RecordingSelfExtendRunner : ISelfExtendRunner

@@ -11,6 +11,7 @@ using Ashlar.BackgroundAgents.Testing;
 using Ashlar.Orchestration.Agents;
 using Xunit;
 using Ashlar.Tests.BackgroundAgents.Registry;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.Registry;
 
@@ -139,7 +140,7 @@ public sealed class ObservationsPublishingTests
     {
         var sensitivity = new DataSensitivityRegistry();
         var builder = new BackgroundAgentSpecBuilder(sensitivity, null);
-        return builder.BuildSpec(c);
+        return builder.BuildSpec(c).ToOrchestrationSpec();
     }
 
     private sealed class InMemoryObservationStore : IObservationStore
