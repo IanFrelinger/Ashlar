@@ -94,30 +94,31 @@ append_ledger() {
   
   local temp_ledger="${LEDGER}.tmp"
   local in_table=false
-  local table_ended=false
   local row_inserted=false
   
   while IFS= read -r line || [[ -n "${line}" ]]; do
-    echo "${line}" >> "${temp_ledger}"
-    
     # Detect table header
     if [[ "${line}" =~ ^\|[[:space:]]*Date[[:space:]]*\| ]]; then
+      echo "${line}" >> "${temp_ledger}"
       in_table=true
       continue
     fi
     
     # Detect table separator (|------|------|...)
     if ${in_table} && [[ "${line}" =~ ^\|[-[:space:]]+\| ]]; then
+      echo "${line}" >> "${temp_ledger}"
       continue
     fi
     
-    # If we're in the table and hit a blank line or heading, insert the row
+    # If we're in the table and hit a blank line or heading, insert the row BEFORE the terminator
     if ${in_table} && ! ${row_inserted} && [[ -z "${line}" || "${line}" =~ ^## ]]; then
       echo "| ${date} | ${demo} | ${pass_fail} | ${gap} | ${owner} | ${repro} |" >> "${temp_ledger}"
       row_inserted=true
-      table_ended=true
       in_table=false
     fi
+    
+    # Write the current line (including the terminating blank/heading after the row)
+    echo "${line}" >> "${temp_ledger}"
   done < "${LEDGER}"
   
   # If we never found the end of the table (file ended while in table), append now
