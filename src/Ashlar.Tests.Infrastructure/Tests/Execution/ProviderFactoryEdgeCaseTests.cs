@@ -5,6 +5,8 @@ using Ashlar.Infrastructure.Execution;
 using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
+using Ashlar.Core.Application.Execution.Ports;
+
 namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 
 /// <summary>

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using Ashlar.Core.Application.Resilience.Ports;
 
 namespace Ashlar.Orchestration.Resilience;
 
@@ -19,7 +20,7 @@ namespace Ashlar.Orchestration.Resilience;
 /// 
 /// Thread-safe implementation using concurrent collections and locks.
 /// </summary>
-public sealed class CircuitBreaker
+public sealed class CircuitBreaker : ICircuitBreaker
 {
     private readonly string _name;
     private readonly int _failureThreshold;

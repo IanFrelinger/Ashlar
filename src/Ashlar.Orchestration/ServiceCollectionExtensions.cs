@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Ashlar.Abstractions;
 using Ashlar.Core.Application.Common.Ports;
 using Ashlar.Core.Application.Common.Services;
+using Ashlar.Core.Application.Resilience.Ports;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect;
 using Ashlar.Orchestration.Architect.Parsers;
@@ -22,6 +23,7 @@ using Ashlar.Orchestration.Resources;
 using Ashlar.Orchestration.Transport;
 using Ashlar.Orchestration.Validation;
 using Ashlar.Orchestration.Models;
+using Ashlar.Orchestration.Resilience;
 using Ashlar.Abstractions.Barriers;
 using Ashlar.Abstractions.Routing;
 using Ashlar.Abstractions.Transport;
@@ -108,6 +110,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SynthesisEngine>();
         services.AddSingleton<NegotiationProtocol>();
 
+        // Resilience (ports from Core.Application)
+        // Note: IResilientExecutor is registered by the Hosting layer.
+        // ICircuitBreaker implementation is in Orchestration.Resilience.
+        services.AddSingleton<ICircuitBreaker>(sp => new CircuitBreaker(
+            name: "orchestration-agent-transport",
+            failureThreshold: 3,
+            timeout: TimeSpan.FromSeconds(30),
+            logger: sp.GetService<ILogger<CircuitBreaker>>()));
+
         // Metrics
         services.AddSingleton<OrchestrationMetrics>();
 
@@ -133,7 +144,9 @@ public static class ServiceCollectionExtensions
             barrierHierarchy: sp.GetService<BarrierHierarchy>(),
             barrierAuditLog: sp.GetService<IBarrierAuditLog>(),
             barrierOptions: sp.GetService<IOptions<BarrierOptions>>(),
-            invocationHooks: sp.GetServices<IAgentTransportInvocationHook>()));
+            invocationHooks: sp.GetServices<IAgentTransportInvocationHook>(),
+            resilientExecutor: sp.GetRequiredService<IResilientExecutor>(),
+            circuitBreaker: sp.GetRequiredService<ICircuitBreaker>()));
 
         return services;
     }

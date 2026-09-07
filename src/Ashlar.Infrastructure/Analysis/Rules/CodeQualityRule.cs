@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.Analysis.Models;
 using Ashlar.Core.Domain.Values;
-using Ashlar.Tools.Assembly;
 using Ashlar.Abstractions;
 using System.Text.Json;
 
@@ -11,7 +10,7 @@ namespace Ashlar.Infrastructure.Analysis.Rules;
 /// Analysis rule for code quality metrics (cyclomatic complexity, maintainability).
 /// 
 /// Responsibilities:
-/// - Analyzes code quality metrics using AssemblyAnalyzeTool
+/// - Analyzes code quality metrics using an ITool implementation
 /// - Detects high cyclomatic complexity
 /// - Reports maintainability issues as violations
 /// 
@@ -21,11 +20,13 @@ namespace Ashlar.Infrastructure.Analysis.Rules;
 public class CodeQualityRule : IAnalysisRule
 {
     private readonly ILogger<CodeQualityRule> _logger;
+    private readonly ITool _analyzeTool;
 
     /// <summary>Initializes a new code quality rule.</summary>
-    public CodeQualityRule(ILogger<CodeQualityRule> logger)
+    public CodeQualityRule(ILogger<CodeQualityRule> logger, ITool analyzeTool)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _analyzeTool = analyzeTool ?? throw new ArgumentNullException(nameof(analyzeTool));
     }
 
     /// <summary>Name.</summary>
@@ -42,15 +43,14 @@ public class CodeQualityRule : IAnalysisRule
 
         try
         {
-            var analyzeTool = new AssemblyAnalyzeTool();
             var snapshot = new WorldSnapshot(0, new Dictionary<string, object?>());
 
             // Use JsonSerializer to safely encode the path. Raw string interpolation breaks
             // on Windows paths because the backslashes (\U, \b, \n …) become invalid JSON escapes.
             var argsElement = JsonSerializer.SerializeToElement(new { path = assemblyFile.FullName });
-            var analyzeCall = new ToolCall("assembly.analyze", argsElement);
+            var analyzeCall = new ToolCall(_analyzeTool.Id, argsElement);
 
-            var result = await analyzeTool.InvokeAsync(analyzeCall, snapshot, cancellationToken);
+            var result = await _analyzeTool.InvokeAsync(analyzeCall, snapshot, cancellationToken);
 
             // Parse analysis results for quality metrics
             if (TryGetPayloadElement(result.Payload, out var jsonElement))

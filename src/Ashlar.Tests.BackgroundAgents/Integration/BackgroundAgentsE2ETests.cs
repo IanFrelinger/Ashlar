@@ -12,6 +12,7 @@ using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect.Models;
 using Xunit;
 using Ashlar.Tests.BackgroundAgents.Registry;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.Integration;
 
@@ -58,7 +59,7 @@ public class BackgroundAgentsE2ETests
 
         var spec = specBuilder.BuildSpec(agentConfig);
         var logger = sp.GetRequiredService<ILogger<GenericAgent>>();
-        var agent = new GenericAgent(spec, logger);
+        var agent = new GenericAgent(spec.ToOrchestrationSpec(), logger);
         await registry.RegisterAuthoredAsync(agent, agentConfig);
 
         await registry.ExecuteOnceAsync("e2e-agent", default);

@@ -5,6 +5,7 @@ using Ashlar.Core.Application.Testing.Abstractions;
 using Ashlar.Core.Application.Testing.Models;
 using Ashlar.Infrastructure.Analysis.Rules;
 using Ashlar.Tests.Application.Helpers;
+using Ashlar.Abstractions;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Analysis;
 
@@ -74,7 +75,8 @@ public class CodeQualityRuleTests : UnitTestBase
     private void TestRuleProperties()
     {
         var mockLogger = new Mock<ILogger<CodeQualityRule>>();
-        var rule = new CodeQualityRule(mockLogger.Object);
+        var mockTool = CreateMockAnalyzeTool();
+        var rule = new CodeQualityRule(mockLogger.Object, mockTool.Object);
 
         /// <summary>Assert equal.</summary>
         AssertEqual("CodeQuality", rule.Name);
@@ -86,7 +88,8 @@ public class CodeQualityRuleTests : UnitTestBase
     private async Task TestExceptionHandling()
     {
         var mockLogger = new Mock<ILogger<CodeQualityRule>>();
-        var rule = new CodeQualityRule(mockLogger.Object);
+        var mockTool = CreateMockAnalyzeTool();
+        var rule = new CodeQualityRule(mockLogger.Object, mockTool.Object);
 
         // Use a non-existent file - the tool will fail
         var nonExistentFile = new FileInfo(Path.Combine(_tempDir!.FullName, "nonexistent.dll"));
@@ -104,7 +107,8 @@ public class CodeQualityRuleTests : UnitTestBase
     private async Task TestWithNonExistentFile()
     {
         var mockLogger = new Mock<ILogger<CodeQualityRule>>();
-        var rule = new CodeQualityRule(mockLogger.Object);
+        var mockTool = CreateMockAnalyzeTool();
+        var rule = new CodeQualityRule(mockLogger.Object, mockTool.Object);
 
         // Test with a file that doesn't exist
         var file = new FileInfo(Path.Combine(_tempDir!.FullName, "test.dll"));
@@ -115,6 +119,15 @@ public class CodeQualityRuleTests : UnitTestBase
         /// <summary>Assert not null.</summary>
         AssertNotNull(violations);
         // Should not throw, even if file doesn't exist
+    }
+
+    private static Mock<ITool> CreateMockAnalyzeTool()
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.analyze");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResult(new ActionDelta(0, 0, Array.Empty<string>()), System.Text.Json.JsonSerializer.SerializeToElement(new { Complexity = 5 })));
+        return mock;
     }
 }
 
