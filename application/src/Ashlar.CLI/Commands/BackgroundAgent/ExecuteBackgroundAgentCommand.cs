@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.Registry;
-using Ashlar.Core.Application.Orchestration.Ports;
+using Ashlar.Orchestration.Agents;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
 
@@ -14,7 +14,7 @@ public class ExecuteBackgroundAgentCommand
     private readonly BackgroundAgentConfigLoader _configLoader;
     private readonly IBackgroundAgentRegistry _registry;
     private readonly BackgroundAgentSpecBuilder _specBuilder;
-    private readonly IAgentCreator _agentFactory;
+    private readonly AgentFactory _agentFactory;
     private readonly ILogger<ExecuteBackgroundAgentCommand> _logger;
 
     /// <summary>Creates a new ExecuteBackgroundAgentCommand instance.</summary>
@@ -22,7 +22,7 @@ public class ExecuteBackgroundAgentCommand
         BackgroundAgentConfigLoader configLoader,
         IBackgroundAgentRegistry registry,
         BackgroundAgentSpecBuilder specBuilder,
-        IAgentCreator agentFactory,
+        AgentFactory agentFactory,
         ILogger<ExecuteBackgroundAgentCommand> logger)
     {
         _configLoader = configLoader ?? throw new ArgumentNullException(nameof(configLoader));
