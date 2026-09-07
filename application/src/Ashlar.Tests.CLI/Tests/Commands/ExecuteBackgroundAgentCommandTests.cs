@@ -75,9 +75,10 @@ public class ExecuteBackgroundAgentCommandTests : UnitTestBase
         var specBuilder = new BackgroundAgentSpecBuilder(sensitivityRegistry, null);
         var loggerFactory = new Mock<ILogger<AgentFactory>>();
         var agentFactory = new AgentFactory(loggerFactory.Object, new Mock<IServiceProvider>().Object);
+        var agentCreator = new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, Mock.Of<ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
         var logger = new Mock<ILogger<ExecuteBackgroundAgentCommand>>();
 
-        var command = new ExecuteBackgroundAgentCommand(configLoader, registry.Object, specBuilder, agentFactory, logger.Object);
+        var command = new ExecuteBackgroundAgentCommand(configLoader, registry.Object, specBuilder, agentCreator, logger.Object);
         var exitCode = await command.ExecuteAsync("test-agent", runAsync: false, formatJson: false);
         /// <summary>Assert equal.</summary>
         AssertEqual(0, exitCode);

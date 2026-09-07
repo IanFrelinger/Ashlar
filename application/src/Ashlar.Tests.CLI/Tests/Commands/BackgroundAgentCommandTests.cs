@@ -98,13 +98,14 @@ public class BackgroundAgentCommandTests : UnitTestBase
         var loggerFactory = new Mock<ILogger<AgentFactory>>();
         var serviceProvider = new Mock<IServiceProvider>();
         var agentFactory = new AgentFactory(loggerFactory.Object, serviceProvider.Object);
+        var agentCreator = new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, Mock.Of<ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
         var logger = new Mock<ILogger<BackgroundAgentCommand>>();
 
         var command = new BackgroundAgentCommand(
             configLoader,
             registry.Object,
             specBuilder,
-            agentFactory,
+            agentCreator,
             logger.Object);
 
         var exitCode = await command.ListAsync(false, null, null, null);
@@ -123,13 +124,14 @@ public class BackgroundAgentCommandTests : UnitTestBase
         var loggerFactory = new Mock<ILogger<AgentFactory>>();
         var serviceProvider = new Mock<IServiceProvider>();
         var agentFactory = new AgentFactory(loggerFactory.Object, serviceProvider.Object);
+        var agentCreator = new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, Mock.Of<ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
         var logger = new Mock<ILogger<BackgroundAgentCommand>>();
 
         var command = new BackgroundAgentCommand(
             configLoader,
             registry.Object,
             specBuilder,
-            agentFactory,
+            agentCreator,
             logger.Object);
 
         var exitCode = await command.ListAsync(true, null, null, null);
@@ -173,8 +175,9 @@ public class BackgroundAgentCommandTests : UnitTestBase
         var loggerFactory = new Mock<ILogger<AgentFactory>>();
         var serviceProvider = new Mock<IServiceProvider>();
         var agentFactory = new AgentFactory(loggerFactory.Object, serviceProvider.Object);
+        var agentCreator = new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, Mock.Of<ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
         var logger = new Mock<ILogger<BackgroundAgentCommand>>();
-        var command = new BackgroundAgentCommand(configLoader, registry.Object, specBuilder, agentFactory, logger.Object);
+        var command = new BackgroundAgentCommand(configLoader, registry.Object, specBuilder, agentCreator, logger.Object);
 
         var exitCode = await command.AutoScaleAsync(
             role: "extender",
@@ -218,8 +221,9 @@ public class BackgroundAgentCommandTests : UnitTestBase
         var loggerFactory = new Mock<ILogger<AgentFactory>>();
         var serviceProvider = new Mock<IServiceProvider>();
         var agentFactory = new AgentFactory(loggerFactory.Object, serviceProvider.Object);
+        var agentCreator = new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, Mock.Of<ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
         var logger = new Mock<ILogger<BackgroundAgentCommand>>();
-        var command = new BackgroundAgentCommand(configLoader, registry.Object, specBuilder, agentFactory, logger.Object);
+        var command = new BackgroundAgentCommand(configLoader, registry.Object, specBuilder, agentCreator, logger.Object);
 
         var exitCode = await command.AutoScaleAsync(
             role: "extender",

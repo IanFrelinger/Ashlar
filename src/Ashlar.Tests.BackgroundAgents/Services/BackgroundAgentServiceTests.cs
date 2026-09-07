@@ -212,7 +212,7 @@ public sealed class BackgroundAgentServiceTests
     private static BackgroundAgentConfigLoader CreateLoader(IConfiguration config) =>
         new(config, new DataSensitivityRegistry(), null);
 
-    private static AgentFactory CreateAgentFactory()
+    private static Ashlar.Core.Application.Orchestration.Ports.IAgentCreator CreateAgentFactory()
     {
         var services = new ServiceCollection();
         services.AddLogging();
