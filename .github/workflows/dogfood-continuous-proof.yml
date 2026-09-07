@@ -13,7 +13,6 @@ on:
     paths:
       - '.github/workflows/dogfood-continuous-proof.yml'
       - 'samples/autonomy-objectives/rgb-hex-parse.*'
-      - 'docs/dogfood-ledger.md'
       - 'scripts/dogfood-continuous-proof.sh'
   workflow_dispatch:
 
