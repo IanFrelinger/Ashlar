@@ -6,7 +6,6 @@ using Ashlar.Commercial.Fleet.Contracts.Networking.Ports;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 using Ashlar.Commercial.Fleet.Infrastructure.Execution;
-using Ashlar.Infrastructure.Execution;
 using Xunit;
 
 namespace Ashlar.Commercial.Tests.Fleet.Execution;
@@ -28,7 +27,7 @@ public class AdaptiveBrickCacheTests
     }
 
     [Fact]
-    public void GetBrick_DelegatesToInner_WhenNotCached()
+    public void GetBrick_DelegatesToInner_AndCaches()
     {
         var inner = new StubBrickRegistry();
         var brick = new TestBrick { Id = "b1", Name = "B1" };
@@ -43,7 +42,7 @@ public class AdaptiveBrickCacheTests
         result!.Id.Should().Be("b1");
         var stats = cache.GetCacheStats();
         stats.HitRate.Should().Be(0);
-        stats.Entries.Should().Be(0);
+        stats.Entries.Should().Be(1); // Now caches all bricks
     }
 
     [Fact]
@@ -70,7 +69,7 @@ public class AdaptiveBrickCacheTests
         cache.GetBrick("x");
         var stats = cache.GetCacheStats();
 
-        stats.Entries.Should().Be(0);
+        stats.Entries.Should().Be(1); // Now caches all bricks
         stats.EvictionCount.Should().Be(0);
     }
 
@@ -86,10 +85,10 @@ public class AdaptiveBrickCacheTests
     }
 
     [Fact]
-    public void GetBrick_caches_remote_bricks_and_reports_hits()
+    public void GetBrick_caches_bricks_and_reports_hits()
     {
         var inner = new StubBrickRegistry();
-        inner.Add(CreateRemoteBrick("remote-1"));
+        inner.Add(new TestBrick { Id = "cached-1", Name = "Cached1" });
 
         var tracker = new BrickUsageTracker(Options.Create(new BrickUsageTrackerOptions()));
         var cache = new AdaptiveBrickCache(inner, tracker, Options.Create(new AdaptiveBrickCacheOptions
@@ -98,8 +97,8 @@ public class AdaptiveBrickCacheTests
             HotBrickTtlSeconds = 120,
         }));
 
-        cache.GetBrick("remote-1").Should().NotBeNull();
-        cache.GetBrick("remote-1").Should().NotBeNull();
+        cache.GetBrick("cached-1").Should().NotBeNull();
+        cache.GetBrick("cached-1").Should().NotBeNull();
 
         var stats = cache.GetCacheStats();
         stats.Entries.Should().Be(1);
@@ -107,10 +106,10 @@ public class AdaptiveBrickCacheTests
     }
 
     [Fact]
-    public async Task GetBrick_evicts_expired_remote_entries()
+    public async Task GetBrick_evicts_expired_entries()
     {
         var inner = new StubBrickRegistry();
-        inner.Add(CreateRemoteBrick("remote-expire"));
+        inner.Add(new TestBrick { Id = "expire-1", Name = "Expire1" });
 
         var tracker = new BrickUsageTracker(Options.Create(new BrickUsageTrackerOptions()));
         var cache = new AdaptiveBrickCache(inner, tracker, Options.Create(new AdaptiveBrickCacheOptions
@@ -119,24 +118,11 @@ public class AdaptiveBrickCacheTests
             HotBrickTtlSeconds = 0,
         }));
 
-        cache.GetBrick("remote-expire");
+        cache.GetBrick("expire-1");
         await Task.Delay(15);
-        cache.GetBrick("remote-expire");
+        cache.GetBrick("expire-1");
 
         cache.GetCacheStats().EvictionCount.Should().BeGreaterThan(0);
-    }
-
-    private static RemoteBrick CreateRemoteBrick(string id)
-    {
-        var entry = new Ashlar.Brick.Contracts.BrickCatalogEntryDto
-        {
-            Id = id,
-            Name = id,
-            Category = "Control",
-            Description = "remote test brick",
-            HostBaseUrl = "http://127.0.0.1:9",
-        };
-        return new RemoteBrick(entry, new HttpClient(), "http://127.0.0.1:9");
     }
 
     private sealed class TestBrick : DomainBrick
