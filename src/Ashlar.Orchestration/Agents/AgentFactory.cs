@@ -22,7 +22,7 @@ namespace Ashlar.Orchestration.Agents;
 /// 
 /// Uses dependency injection to resolve agent dependencies (loggers, adapters, etc.).
 /// </summary>
-public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext, IAgentCreator
+public sealed class AgentFactory : IAgentRuntimeFactory, IAgentCreationContext
 {
     private readonly ILogger<AgentFactory> _logger;
     private readonly IServiceProvider _serviceProvider;

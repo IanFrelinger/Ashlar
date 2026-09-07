@@ -25,9 +25,9 @@ public sealed class SanitizingProviderFactory :
         ICloudSanitizationProxy proxy,
         ILogger<SanitizingProviderFactory> logger)
     {
-        _inner = inner;
-        _proxy = proxy;
-        _logger = logger;
+        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        _proxy = proxy ?? throw new ArgumentNullException(nameof(proxy));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <inheritdoc />
