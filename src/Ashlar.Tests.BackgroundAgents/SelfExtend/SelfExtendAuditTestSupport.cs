@@ -14,6 +14,7 @@ using Ashlar.Infrastructure.Certification;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect.Models;
 using Ashlar.Runtime;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.SelfExtend;
 
@@ -73,7 +74,7 @@ internal static class SelfExtendAuditTestSupport
     }
 
     internal static AgentSpawnSpec BuildSpec(BackgroundAgentConfig config) =>
-        new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null).BuildSpec(config);
+        new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null).BuildSpec(config).ToOrchestrationSpec();
 
     internal static BackgroundAgentConfig ExtenderConfig(string id, string repoRoot) => new()
     {
