@@ -14,16 +14,16 @@ public sealed class SanitizingProviderFactory :
     IProviderFactory,
     Ashlar.Infrastructure.Execution.IProviderFactory
 {
-    private readonly IProviderFactory _inner;
+    private readonly Ashlar.Infrastructure.Execution.IProviderFactory _inner;
     private readonly ICloudSanitizationProxy _proxy;
     private readonly ILogger<SanitizingProviderFactory> _logger;
 
     /// <summary>
     /// Creates a sanitizing wrapper around the inner provider factory.
-    /// Accepts Application port IProviderFactory.
+    /// Accepts Infrastructure IProviderFactory.
     /// </summary>
     public SanitizingProviderFactory(
-        IProviderFactory inner,
+        Ashlar.Infrastructure.Execution.IProviderFactory inner,
         ICloudSanitizationProxy proxy,
         ILogger<SanitizingProviderFactory> logger)
     {
