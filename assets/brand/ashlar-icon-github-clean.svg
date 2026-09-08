@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#2B2420"/>
+  
+  <g transform="rotate(-4 256 256)">
+    <!-- Background blob -->
+    <path d="M 256 60 C 330 56 402 88 428 152 C 452 212 448 300 424 358 C 398 420 330 452 256 450 C 182 448 116 418 90 358 C 66 300 64 208 92 150 C 120 92 182 64 256 60 Z"
+          fill="#14100D" transform="translate(10,12)"/>
+    <path d="M 256 60 C 330 56 402 88 428 152 C 452 212 448 300 424 358 C 398 420 330 452 256 450 C 182 448 116 418 90 358 C 66 300 64 208 92 150 C 120 92 182 64 256 60 Z"
+          fill="#F7F2E5" transform="translate(256 256) scale(1.07) translate(-256 -256)"/>
+    <path d="M 256 60 C 330 56 402 88 428 152 C 452 212 448 300 424 358 C 398 420 330 452 256 450 C 182 448 116 418 90 358 C 66 300 64 208 92 150 C 120 92 182 64 256 60 Z"
+          fill="#7E8F6E"/>
+
+    <!-- Connection line (simplified, no tape) -->
+    <path d="M 172 358 Q 202 322 226 290 Q 252 254 270 226 Q 296 184 310 158" 
+          fill="none" stroke="#2B2420" stroke-width="11" stroke-linecap="round"/>
+
+    <!-- Bottom node -->
+    <circle cx="168" cy="364" r="30" fill="#F7F2E5" stroke="#2B2420" stroke-width="8"/>
+    <circle cx="168" cy="364" r="11" fill="#2B2420"/>
+
+    <!-- Middle node -->
+    <circle cx="270" cy="226" r="30" fill="#F7F2E5" stroke="#2B2420" stroke-width="8"/>
+    <circle cx="270" cy="226" r="11" fill="#2B2420"/>
+
+    <!-- Top node (gold = certified) -->
+    <circle cx="316" cy="150" r="34" fill="#D1A23C" stroke="#2B2420" stroke-width="8"/>
+    <circle cx="316" cy="150" r="12" fill="#2B2420"/>
+  </g>
+</svg>
