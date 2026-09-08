@@ -12,35 +12,57 @@ public class InfrastructurePipelinesGapCoverageTests
     [Fact]
     public async Task DefaultAgenticStageExecutionAdapter_executes_stage()
     {
-        var adapter = new DefaultAgenticStageExecutionAdapter(
-            NullLogger<DefaultAgenticStageExecutionAdapter>.Instance);
+        // CI may set ASHLAR_ALLOW_MOCK=1 for perf gates; clear it to test the placeholder path.
+        var prevMock = Environment.GetEnvironmentVariable("ASHLAR_ALLOW_MOCK");
+        try
+        {
+            Environment.SetEnvironmentVariable("ASHLAR_ALLOW_MOCK", null);
 
-        adapter.AdapterKey.Should().Be("default");
-        adapter.WorkerType.Should().Be(PipelineWorkerType.Agentic);
+            var adapter = new DefaultAgenticStageExecutionAdapter(
+                NullLogger<DefaultAgenticStageExecutionAdapter>.Instance);
 
-        // The default adapter is a placeholder that performs no work. It must report FAILURE,
-        // not fabricated success — otherwise `ashlar pipeline run` claims stages ran when they
-        // did not. (Was: Succeeded=true, Output "...:ok".)
-        var result = await adapter.ExecuteAsync(SampleRequest("stage-a"), CancellationToken.None);
-        result.Succeeded.Should().BeFalse();
-        result.WorkerId.Should().Be("agentic-default");
-        result.Output.Should().Contain("agentic:stage-a:no-op");
-        result.Error.Should().Contain("No agentic pipeline adapter is configured");
+            adapter.AdapterKey.Should().Be("default");
+            adapter.WorkerType.Should().Be(PipelineWorkerType.Agentic);
+
+            // The default adapter is a placeholder that performs no work. It must report FAILURE,
+            // not fabricated success — otherwise `ashlar pipeline run` claims stages ran when they
+            // did not. (Was: Succeeded=true, Output "...:ok".)
+            var result = await adapter.ExecuteAsync(SampleRequest("stage-a"), CancellationToken.None);
+            result.Succeeded.Should().BeFalse();
+            result.WorkerId.Should().Be("agentic-default");
+            result.Output.Should().Contain("agentic:stage-a:no-op");
+            result.Error.Should().Contain("No agentic pipeline adapter is configured");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASHLAR_ALLOW_MOCK", prevMock);
+        }
     }
 
     [Fact]
     public async Task DefaultDeterministicStageExecutionAdapter_executes_stage()
     {
-        var adapter = new DefaultDeterministicStageExecutionAdapter(
-            NullLogger<DefaultDeterministicStageExecutionAdapter>.Instance);
+        // CI may set ASHLAR_ALLOW_MOCK=1 for perf gates; clear it to test the placeholder path.
+        var prevMock = Environment.GetEnvironmentVariable("ASHLAR_ALLOW_MOCK");
+        try
+        {
+            Environment.SetEnvironmentVariable("ASHLAR_ALLOW_MOCK", null);
 
-        adapter.WorkerType.Should().Be(PipelineWorkerType.Deterministic);
+            var adapter = new DefaultDeterministicStageExecutionAdapter(
+                NullLogger<DefaultDeterministicStageExecutionAdapter>.Instance);
 
-        // Placeholder → must fail, not fabricate success. (Was: Succeeded=true, "...:ok".)
-        var result = await adapter.ExecuteAsync(SampleRequest("stage-d"), CancellationToken.None);
-        result.Succeeded.Should().BeFalse();
-        result.Output.Should().Contain("deterministic:stage-d:no-op");
-        result.Error.Should().Contain("No deterministic pipeline adapter is configured");
+            adapter.WorkerType.Should().Be(PipelineWorkerType.Deterministic);
+
+            // Placeholder → must fail, not fabricate success. (Was: Succeeded=true, "...:ok".)
+            var result = await adapter.ExecuteAsync(SampleRequest("stage-d"), CancellationToken.None);
+            result.Succeeded.Should().BeFalse();
+            result.Output.Should().Contain("deterministic:stage-d:no-op");
+            result.Error.Should().Contain("No deterministic pipeline adapter is configured");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASHLAR_ALLOW_MOCK", prevMock);
+        }
     }
 
     [Fact]
