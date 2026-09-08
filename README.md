@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/ashlar-logo-chaos.svg" alt="Ashlar" width="520">
+  <img src="assets/brand/ashlar-logo-flat.svg" alt="Ashlar" width="520">
 </p>
 
 # Ashlar
@@ -9,7 +9,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](global.json)
 
-> **Ashlar: local-first .NET runtime for auditable AI workflows you embed — every artifact certified, every action on the record.**
+> **Local-first .NET runtime for auditable AI workflows you embed — every artifact certified, every action on the record.**
 
 **Website:** [Marketing landing page](site/) — open-core product site with commercial pricing and integration guides.
 
