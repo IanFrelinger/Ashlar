@@ -57,4 +57,4 @@ there is one copy of the bytes. Both parts are required: `PackageIcon` alone (wi
 
 - The node-"o" (bullseye + gold scribble ring) is the mark. Don't outline it, recolor it, or separate the dot from the ring.
 - Gold means certified — in the logo, in the terminal, everywhere. Never use it decoratively.
-- The doodles (tape, sparkles, `certified!` notes) are collage garnish: fine on hero/social surfaces, never on the icon-only marks beyond what's already there.
+- Collage elements (tape, sparkles, doodles, `certified!` notes) belong in `marketing/experiments/` only. Do not use them on hero/social primary surfaces or icon-only marks.
