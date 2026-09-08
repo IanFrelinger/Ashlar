@@ -47,10 +47,10 @@ sandbox:
   root: .
   enforce_writable_allowlist: true
   writable: [src/]
-selfExtend:
+self_extend:
   mode: self-extending
-  mayAdd: [brick]
-  gatesRequired: [sandbox, build]
+  may_add: [brick]
+  gates_required: [sandbox, build]
   budget:
     extensions: 10
     window: 1h
