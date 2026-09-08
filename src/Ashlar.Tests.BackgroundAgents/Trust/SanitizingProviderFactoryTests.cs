@@ -133,7 +133,6 @@ public sealed class SanitizingProviderFactoryTests
                 It.IsAny<object>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("frames");
-        var inner = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraMock.Object);
 
         var proxy = new Mock<ICloudSanitizationProxy>();
         proxy.Setup(p => p.SanitizeForCloud(It.IsAny<OutgoingContext>(), It.IsAny<CancellationToken>()))
@@ -144,7 +143,7 @@ public sealed class SanitizingProviderFactoryTests
                 Provider = "openai",
             }));
 
-        var factory = new SanitizingProviderFactory(inner, proxy.Object, NullLogger<SanitizingProviderFactory>.Instance);
+        var factory = new SanitizingProviderFactory(infraMock.Object, proxy.Object, NullLogger<SanitizingProviderFactory>.Instance);
         var result = await factory.ExecuteVisionMultiFrameAsync(
             "openai",
             "sys",
@@ -162,7 +161,6 @@ public sealed class SanitizingProviderFactoryTests
         var infraMock = new Mock<Ashlar.Infrastructure.Execution.IProviderFactory>();
         infraMock.Setup(i => i.ExecuteVideoAsync("clean-sys", "clean-user", It.IsAny<IReadOnlyList<byte[]>>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("video-ok");
-        var inner = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraMock.Object);
 
         var proxy = new Mock<ICloudSanitizationProxy>();
         proxy.Setup(p => p.SanitizeForCloud(It.IsAny<OutgoingContext>(), It.IsAny<CancellationToken>()))
@@ -173,7 +171,7 @@ public sealed class SanitizingProviderFactoryTests
                 Provider = "video",
             }));
 
-        var factory = new SanitizingProviderFactory(inner, proxy.Object, NullLogger<SanitizingProviderFactory>.Instance);
+        var factory = new SanitizingProviderFactory(infraMock.Object, proxy.Object, NullLogger<SanitizingProviderFactory>.Instance);
         var result = await factory.ExecuteVideoAsync("dirty-sys", "dirty-user", new[] { new byte[] { 1 } }, new { }, CancellationToken.None);
 
         result.Should().Be("video-ok");
@@ -183,12 +181,11 @@ public sealed class SanitizingProviderFactoryTests
     public async Task ExecuteVideoAsync_BlocksWhenSanitizerDenies()
     {
         var infraMock = new Mock<Ashlar.Infrastructure.Execution.IProviderFactory>();
-        var inner = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraMock.Object);
         var proxy = new Mock<ICloudSanitizationProxy>();
         proxy.Setup(p => p.SanitizeForCloud(It.IsAny<OutgoingContext>(), It.IsAny<CancellationToken>()))
             .Returns(SanitizationResult.Blocked("video blocked"));
 
-        var factory = new SanitizingProviderFactory(inner, proxy.Object, NullLogger<SanitizingProviderFactory>.Instance);
+        var factory = new SanitizingProviderFactory(infraMock.Object, proxy.Object, NullLogger<SanitizingProviderFactory>.Instance);
         var act = () => factory.ExecuteVideoAsync("sys", "user", new[] { new byte[] { 1 } }, new { }, CancellationToken.None);
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*video blocked*");
     }
@@ -198,11 +195,10 @@ public sealed class SanitizingProviderFactoryTests
     {
         var infraMock = new Mock<Ashlar.Infrastructure.Execution.IProviderFactory>();
         infraMock.Setup(x => x.IsProviderAvailable("ollama")).Returns(true);
-        var innerMock = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraMock.Object);
 
         var proxy = new CloudSanitizationProxy(contentFilter: null);
         var factory = new SanitizingProviderFactory(
-            innerMock,
+            infraMock.Object,
             proxy,
             NullLogger<SanitizingProviderFactory>.Instance);
 
