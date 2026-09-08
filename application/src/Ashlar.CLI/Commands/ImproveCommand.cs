@@ -114,23 +114,25 @@ public sealed class ImproveCommand : Command
             serviceCollection.AddSingleton<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy,
                 Ashlar.BackgroundAgents.Trust.CloudSanitizationProxy>();
             
-            // Register ONE SanitizingProviderFactory instance for BOTH interfaces (dual-implements)
-            // This ensures ALL consumers (Infrastructure + Application) get sanitized access
+            // Register ONE SanitizingProviderFactory wrapping Infrastructure ProviderFactory
+            // Infrastructure chain stays Infrastructure; adapt at edge for Application port
             serviceCollection.AddSingleton<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>(sp =>
             {
-                var baseFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
-                var adapter = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(baseFactory);
+                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
                 return new Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory(
-                    adapter,
+                    infraFactory,
                     sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>());
             });
             
-            // Register the same SanitizingProviderFactory instance as BOTH interfaces
+            // Dual-register: Infra gets sanitizing instance, App gets adapter wrapping it at edge
             serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
                 sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
-            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(
-                sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
+            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
+            {
+                var sanitizing = sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>();
+                return new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(sanitizing);
+            });
         }
         else
         {
