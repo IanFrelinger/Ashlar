@@ -133,6 +133,7 @@ The plans below describe programs that have since finished; they are kept as the
 
 ## Additional Material
 
+- **`docs/marketing/positioning.md`** — **marketing positioning guide**: product name, one-liner, everyday frame ("receipts for AI actions" + "bouncer for new skills"), precision line (trust log + cert-gate), is/isn't clarity, what's live vs roadmap (Cloud = waitlist; autonomy = HOLD), funnel stages, visual lock, product naming, and messaging guardrails for sales/social consistency.
 - `assets/brand/BRAND.md` — the **brand kit**: palette, wordmark/icon SVG masters, NuGet/GitHub/social assets, and where each file gets wired; `docs/ashlar-terminal-style.md` — the CLI's **terminal style guide** (palette roles, glyph vocabulary, line format), implemented by the reference `assets/brand/AshlarConsole.cs`.
 - `docs/communications/linkedin-distribution-channels.md` — optional **LinkedIn** copy emphasizing **distribution channels** (NuGet, HTTP, CLI, Compose, mesh) with pointers to **`docs/DistributionModels.md`**.
 - `docs/Persistence.md` — persistence behavior and options.

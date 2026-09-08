@@ -26,7 +26,17 @@ Type: Baloo 2 ExtraBold (wordmark). Embedded as subsets inside the SVGs — no f
 
 **Design:** The landing page (`site/index.html`) and OG card use a clean, modern developer-tool aesthetic (Linear/Vercel/Notion-adjacent): flat, typographic, official brand assets only. Old collage imagery (tape, doodles, sparkles, "nexo" wordmark) is archived in `marketing/experiments/` and not used on primary marketing surfaces.
 
-## NuGet icon wiring — already done
+## GHCR Image Names
+
+**Note:** The published GHCR container images (`nexo-cli`, `nexo-api`) retain their original names until the next republish. This is intentional to avoid breaking existing deployments. When referencing images:
+- Current: `ghcr.io/ianfrelinger/nexo-cli:0.1.2`
+- Future: `ghcr.io/ianfrelinger/ashlar-cli:X.Y.Z` (post-republish)
+
+See `docs/DistributionModels.md` for image usage and pinning guidance.
+
+## GitHub Avatar Upload
+
+**Recommended:** Use `ashlar-icon-github-clean.svg` as the preferred avatar upload (GitHub Settings → Picture). The clean variant without collage elements aligns with the flat visual lock. PNG regeneration from the clean SVG can be done later if needed (one-click export at any size).
 
 Wired repo-wide in `Directory.Build.props`; every packable project picks it up, no per-project
 change needed:
