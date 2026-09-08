@@ -125,14 +125,11 @@ public sealed class ImproveCommand : Command
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>());
             });
             
-            // Dual-register: Infra gets sanitizing instance, App gets adapter wrapping it at edge
+            // Dual-register: SAME Sanitizing instance for both Infra and App ports
             serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
                 sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
-            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
-            {
-                var sanitizing = sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>();
-                return new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(sanitizing);
-            });
+            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(
+                sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
         }
         else
         {
