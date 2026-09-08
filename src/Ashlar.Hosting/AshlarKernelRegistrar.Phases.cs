@@ -554,6 +554,20 @@ internal static partial class AshlarKernelRegistrar
             services.TryAddSingleton<ILoadPolicy, PreferenceLoadPolicy>();
         }
 
+        // Register SanitizingProviderFactory as concrete singleton when trust enabled
+        // so both Infrastructure and Application ports can resolve to the SAME instance
+        if (sanitize)
+        {
+            services.AddSingleton<SanitizingProviderFactory>(sp =>
+            {
+                var inner = sp.GetRequiredService<ProviderFactory>();
+                return new SanitizingProviderFactory(
+                    inner,
+                    sp.GetRequiredService<ICloudSanitizationProxy>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SanitizingProviderFactory>>());
+            });
+        }
+
         services.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(sp =>
         {
             // Innermost: the bare factory. Resolved when it was registered above so
@@ -565,12 +579,7 @@ internal static partial class AshlarKernelRegistrar
             // Middle: PII scrubbing when trust is enabled (stays in Infrastructure layer)
             if (sanitize)
             {
-                var appChain = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(chain);
-                var sanitizingFactory = new SanitizingProviderFactory(
-                    appChain,
-                    sp.GetRequiredService<ICloudSanitizationProxy>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SanitizingProviderFactory>>());
-                chain = sanitizingFactory;
+                chain = sp.GetRequiredService<SanitizingProviderFactory>();
             }
 
             // Outermost: load-balancing across providers (stays in Infrastructure layer)
@@ -585,10 +594,14 @@ internal static partial class AshlarKernelRegistrar
             return chain;
         });
 
-        // Register Application port adapter for IProviderFactory (DIP - BackgroundAgents depends on ports)
-        // Adapter-only: Infra chain already sanitized, no second SanitizingProviderFactory wrap
+        // Register Application port: SAME SanitizingProviderFactory instance when trust enabled
+        // No Adapter wrapping — SanitizingProviderFactory dual-implements both ports
         services.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
         {
+            if (sanitize)
+            {
+                return sp.GetRequiredService<SanitizingProviderFactory>();
+            }
             var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>();
             return new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
         });

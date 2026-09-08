@@ -207,14 +207,17 @@ public static class ServiceCollectionExtensions
                 var resilient = sp.GetRequiredService<Ashlar.Core.Application.Resilience.Ports.IResilientExecutor>();
                 return new Ashlar.Infrastructure.Execution.ProviderFactory(logger, lifecycle, resilient);
             });
-            services.AddSingleton<IProviderFactory>(sp =>
+            services.AddSingleton<SanitizingProviderFactory>(sp =>
             {
                 var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
-                var adapter = new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
                 var proxy = sp.GetRequiredService<ICloudSanitizationProxy>();
                 var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SanitizingProviderFactory>>();
-                return new SanitizingProviderFactory(adapter, proxy, logger);
+                return new SanitizingProviderFactory(infraFactory, proxy, logger);
             });
+            services.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(sp =>
+                sp.GetRequiredService<SanitizingProviderFactory>());
+            services.AddSingleton<IProviderFactory>(sp =>
+                sp.GetRequiredService<SanitizingProviderFactory>());
         }
 
         return services;
