@@ -560,9 +560,7 @@ internal static partial class AshlarKernelRegistrar
         {
             services.AddSingleton<SanitizingProviderFactory>(sp =>
             {
-                var inner = useAdaptive
-                    ? sp.GetRequiredService<ProviderFactory>()
-                    : CreateProviderFactory(sp, useAdaptive, sanitize, ephemeralModels);
+                var inner = sp.GetRequiredService<ProviderFactory>();
                 return new SanitizingProviderFactory(
                     inner,
                     sp.GetRequiredService<ICloudSanitizationProxy>(),
