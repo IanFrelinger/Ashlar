@@ -5,7 +5,6 @@ using Ashlar.Commercial.Fleet.Contracts.Networking.Models;
 using Ashlar.Commercial.Fleet.Contracts.Networking.Ports;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
-using Ashlar.Infrastructure.Execution;
 
 namespace Ashlar.Commercial.Fleet.Infrastructure.Execution;
 /// <summary>
@@ -57,11 +56,9 @@ public sealed class AdaptiveBrickCache : IAdaptiveBrickCache
         var brick = _inner.GetBrick(id);
         if (brick == null) return null;
 
-        if (brick is RemoteBrick)
-        {
-            var ttlSeconds = GetTtlSeconds(id);
-            _cache[id] = (brick, now.AddSeconds(ttlSeconds));
-        }
+        // Cache all bricks (not just remote) with usage-aware TTL
+        var ttlSeconds = GetTtlSeconds(id);
+        _cache[id] = (brick, now.AddSeconds(ttlSeconds));
 
         return brick;
     }
