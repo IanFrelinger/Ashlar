@@ -21,6 +21,7 @@ namespace Ashlar.Mcp.Client.Tests;
 /// over in-memory pipes — no sockets, no mocked protocol. This is the compatibility proof for
 /// both adapter directions at once.
 /// </summary>
+[Collection(DeploymentProfileEnvironmentCollection.Name)]
 public sealed class McpRoundTripTests
 {
     private sealed class EchoDelta : IActionDelta
