@@ -49,8 +49,6 @@ Until one of those lands per gate, only unfiltered checks are safe to require. `
 
 Human runs this; agents cannot change repository settings. The `contexts` array below lists the **four currently required checks**. `Readiness summary` is the commented-out candidate — uncomment it only after one green `master` run confirms the gate reports on every PR. The PATCH replaces the whole array: omitting an existing context silently un-requires it.
 
-To add `Readiness summary` to the required checks list, uncomment the `"Readiness summary"` line (note the leading comma) in the JSON below after one successful green `master` run of the readiness gate.
-
 ```bash
 OWNER="IanFrelinger"
 REPO="Ashlar"
@@ -65,6 +63,8 @@ cat > /tmp/ashlar-required-checks.json <<'JSON'
       "build-core",
       "shell-lint",
       "lychee (README + docs)"
+      # Uncomment after one green master run of the readiness gate:
+      # ,"Readiness summary"
     ]
   }
 }
@@ -155,7 +155,7 @@ Despite their names, **`cross-platform-tests`** and **`prod-dry-run-pr`** do not
 
 ## Policy
 
-- The only merge-blocking check is `cert-gate`. Treat every other gate as a review signal and read red checks before merging; that is a process rule, not a setting.
+- Four checks are merge-blocking: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`. Treat every other gate as a review signal and read red checks before merging; that is a process rule, not a setting.
 - To promote a gate to required, first make it always report on PRs (always-report job or in-job path filtering), then add its context to branch protection and to the table at the top of this file in the same change.
 - Release workflows (`release*`, `runtime-release*`, `rc-gate`, `reusable-*`) are not PR branch-protection checks.
 - Branch protection is not represented by YAML; when the setting changes, update this file (and [`GitHubBranchProtection.md`](GitHubBranchProtection.md)) in the same PR.

@@ -108,7 +108,7 @@ The trust loop is *how* "auditable" and "certified" are true rather than asserte
 
 Status, honestly:
 
-- **The gate is CI-proven.** `cert-gate` (`bash scripts/run-cert-gate.sh`) is a required status check on `master` (alongside `build-core`, `shell-lint`, and `lychee (README + docs)`); each ADMIT/REJECT it has proven is a ledger row with the CI run in [`docs/certification-evidence.md`](docs/certification-evidence.md).
+- **The gate is CI-proven.** `cert-gate` (`bash scripts/run-cert-gate.sh`) is a required status check on `master` alongside build integrity (`build-core`), shell syntax verification (`shell-lint`), and docs link validation (`lychee (README + docs)`); each ADMIT/REJECT it has proven is a ledger row with the CI run in [`docs/certification-evidence.md`](docs/certification-evidence.md).
 - **The in-process autonomy loop is spike-grade and ships in hold mode.** `HoldAdmission=true` by default: it certifies fully and admits nothing until you flip it. Its evidence is local spike runs (ledger rows P2 through S5), it needs Docker plus a local Ollama model, and the ledger records the holes it exposed (including an equivalent-mutant soundness gap in S5). Do not read "certified" as "safe to run unattended" yet.
 - **The operator-governed self-extend path (A0–A5) is the supported one.** A node's background-agent extender proposes changes against its own policy, and every proposal faces the same admission gate — with a real in-process **build course** (a proposal that does not compile is never admissible) and, when applied, a **post-apply canary that auto-rolls-back** a change that fails verification. It ships **sealed** (a fresh project changes nothing after deploy). You raise the dial deliberately, one node at a time, with `ashlar policy set self_extend proposing` (propose & hold for review) or `self-extending` (auto-admit within budget, canary-gated). Two safety front doors: `ashlar background-agent report` (what ran overnight, and what was held/admitted/reverted) and `ashlar background-agent disarm` (emergency stop → Passive, no restart). See [`docs/RunningASelfExtendingNode.md`](docs/RunningASelfExtendingNode.md).
 
@@ -440,7 +440,7 @@ Start here:
 - [`docs/DistributionModels.md`](docs/DistributionModels.md) — NuGet, HTTP, CLI, compose, source, mesh distribution channels.
 - [`docs/Architecture.md`](docs/Architecture.md) — architecture and subsystem overview.
 - [`docs/Conventions.md`](docs/Conventions.md) — current code conventions and migration honesty.
-- [`docs/CiGateInventory.md`](docs/CiGateInventory.md) — CI workflow trigger map and what branch protection actually requires (`cert-gate` only).
+- [`docs/CiGateInventory.md`](docs/CiGateInventory.md) — CI workflow trigger map and what branch protection actually requires (four checks: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`).
 - [`docs/TrustAndInformationArchitecture.md`](docs/TrustAndInformationArchitecture.md) — trust model, barriers, audit, sensitivity.
 - [`docs/Configuration.md`](docs/Configuration.md) — environment/config options.
 - [`docs/ProductionReadinessGate-v1.md`](docs/ProductionReadinessGate-v1.md) — production gate procedure.
