@@ -4,7 +4,7 @@ Thanks for contributing.
 
 ## Branching and releases
 
-Development is trunk-based: `master` is the only long-lived branch. Branch protection requires **one** status check, `cert-gate` (plus "up to date with base"); every other workflow is advisory — see [`docs/CiGateInventory.md`](docs/CiGateInventory.md) and "Layer boundary and what master actually enforces" below.
+Development is trunk-based: `master` is the only long-lived branch. Branch protection requires **four** status checks: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)` (plus "up to date with base"); every other workflow is advisory — see [`docs/CiGateInventory.md`](docs/CiGateInventory.md) and "Layer boundary and what master actually enforces" below.
 
 **Additional checks safe to require:** `shell-lint` and `lychee (README + docs)` both run on every PR (no path filters) and always report a status. They are deliberately configured this way to be safe as required checks. See [`docs/CiGateInventory.md`](docs/CiGateInventory.md) § "Checks that are safe to require" for the complete list and exact check names for branch protection.
 
@@ -23,7 +23,7 @@ Development is trunk-based: `master` is the only long-lived branch. Branch prote
 - Also rejects head branches named `application/*` targeting those bases, and PRs into `application/*` bases that touch `src/`.
 - Plural `applications/` and `apps/` are **not** governed by this gate; `dependency-boundary` forbids `src/` → `products/` (and legacy `applications/` paths). Product-scaffold tests run in `products-gate` (path-filtered, advisory).
 
-**Reality check.** `layer-boundary / verify` is **not** a required status check — `master` requires only `cert-gate` — so a PR that edits `application/src/Ashlar.API` or `Ashlar.CLI` without an exemption **merges with a red, non-required `verify`**. That is exactly how the fixes to the hosts have landed (for example the MCP/A2A wiring in #269 and the 2026-08-16 API/CLI hardening PRs). This is a known gap: the rule as written would block routine host work, and requiring the check would need either an exemption redesign (e.g. allow `application/` changes into `master` when they carry a ProdStyle test) or an always-report job plus a branch-protection change (tracked in [`docs/CiGateInventory.md`](docs/CiGateInventory.md)). Until then: read a red `verify` before merging, and say in the PR description which exemption applies or why the host change is intended.
+**Reality check.** `layer-boundary / verify` is **not** a required status check — `master` requires `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`, but not `layer-boundary` — so a PR that edits `application/src/Ashlar.API` or `Ashlar.CLI` without an exemption **merges with a red, non-required `verify`**. That is exactly how the fixes to the hosts have landed (for example the MCP/A2A wiring in #269 and the 2026-08-16 API/CLI hardening PRs). This is a known gap: the rule as written would block routine host work, and requiring the check would need either an exemption redesign (e.g. allow `application/` changes into `master` when they carry a ProdStyle test) or an always-report job plus a branch-protection change (tracked in [`docs/CiGateInventory.md`](docs/CiGateInventory.md)). Until then: read a red `verify` before merging, and say in the PR description which exemption applies or why the host change is intended.
 
 ## Recommended dev workflow (container + CLI)
 

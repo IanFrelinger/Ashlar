@@ -49,6 +49,8 @@ Until one of those lands per gate, only unfiltered checks are safe to require. `
 
 Human runs this; agents cannot change repository settings. The `contexts` array below lists the **four currently required checks**. `Readiness summary` is the commented-out candidate — uncomment it only after one green `master` run confirms the gate reports on every PR. The PATCH replaces the whole array: omitting an existing context silently un-requires it.
 
+To add `Readiness summary` to the required checks list, uncomment the `"Readiness summary"` line (note the leading comma) in the JSON below after one successful green `master` run of the readiness gate.
+
 ```bash
 OWNER="IanFrelinger"
 REPO="Ashlar"
@@ -63,8 +65,6 @@ cat > /tmp/ashlar-required-checks.json <<'JSON'
       "build-core",
       "shell-lint",
       "lychee (README + docs)"
-      # Uncomment after one green master run of the readiness gate:
-      # ,"Readiness summary"
     ]
   }
 }
@@ -162,7 +162,7 @@ Despite their names, **`cross-platform-tests`** and **`prod-dry-run-pr`** do not
 
 ## Pruning (2026-08-16)
 
-Every workflow file was classified from `gh run list --workflow <file> --limit 15 --json conclusion,createdAt,event` plus its `on:` block (PR `ci/workflow-pruning`; the full 62-row table is in that PR's description). Classes: **active-green**, **active-flaky**, **dead** (no run in 60 days and no `push`/`pull_request`/`schedule` trigger that can fire), **duplicate**, **always-red**. Only `cert-gate` is required by branch protection (verified with `gh api repos/IanFrelinger/Ashlar/branches/master/protection`), so none of the changes below affects merges.
+Every workflow file was classified from `gh run list --workflow <file> --limit 15 --json conclusion,createdAt,event` plus its `on:` block (PR `ci/workflow-pruning`; the full 62-row table is in that PR's description). Classes: **active-green**, **active-flaky**, **dead** (no run in 60 days and no `push`/`pull_request`/`schedule` trigger that can fire), **duplicate**, **always-red**. At the time of pruning (2026-08-16), only `cert-gate` was required by branch protection; as of 2026-09-09, four checks are required: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)` (verified with `gh api repos/IanFrelinger/Ashlar/branches/master/protection`).
 
 **Deleted (7)** — recoverable from git history at `71963059`:
 
