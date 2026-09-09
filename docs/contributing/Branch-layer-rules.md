@@ -11,7 +11,7 @@ CI workflow **`.github/workflows/layer-boundary.yml`** enforces:
 
 Plural `applications/` (removed 2026-08-31) and `apps/` (host configs) are **not** covered by this gate; `dependency-boundary` forbids `src/` → `products/` (and legacy `applications/` paths). Extractable product scaffolds live under `products/`.
 
-**Enforcement status (2026-09-09):** `layer-boundary / verify` is **not** a required status check on `master` — branch protection requires `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`, but not `layer-boundary` — so host PRs without an exemption merge with a red, non-required `verify`. See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) ("Layer boundary and what master actually enforces") and [`docs/CiGateInventory.md`](../CiGateInventory.md).
+**Enforcement status (2026-09-09):** `layer-boundary / verify` is **not** a required status check on `master` — branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, and `Readiness summary`, but not `layer-boundary` — so host PRs without an exemption merge with a red, non-required `verify`. See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) ("Layer boundary and what master actually enforces") and [`docs/CiGateInventory.md`](../CiGateInventory.md).
 
 ## Enable required check on GitHub
 

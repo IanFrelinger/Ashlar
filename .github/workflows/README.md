@@ -28,31 +28,34 @@ before merge if your branch protection expects a green check from that workflow.
 
 ## Branch protection (recommended after workflow changes)
 
-`master` currently requires four status checks: **`cert-gate`**, **`build-core`**, **`shell-lint`**
-and **`lychee (README + docs)`** (all unfiltered, all run on every PR; verified 2026-09-09 with
-`gh api repos/IanFrelinger/Ashlar/branches/master/protection`). Every other gate is advisory.
+`master` currently requires five status checks: **`cert-gate`**, **`build-core`**, **`shell-lint`**,
+**`lychee (README + docs)`** and **`Readiness summary`** (all run on every PR and always report;
+verified 2026-09-09 with `gh api repos/IanFrelinger/Ashlar/branches/master/protection`). Every
+other gate is advisory.
 
-**Intended next required context: `Readiness summary`** (`full-platform-readiness-gate.yml`).
-It now runs on every PR without a path filter and always reports (see above), so it can be
-required without deadlocking PRs that never trigger it. Add it only after one green `master`
-run of the changed workflow confirms the behaviour.
+**`Readiness summary`** (`full-platform-readiness-gate.yml`) became the fifth required context on
+2026-09-09. It could not be required while the workflow was path-filtered — a required context
+that never reports deadlocks the PR — so #571 made it run on every PR with the path filter inside
+the workflow (the `changes` job, see above); it always reports, and it was added to branch
+protection after one green `master` run of the changed workflow confirmed the behaviour.
 
 ### CI Hardening (September 2026)
 
-To eliminate the cert-gate SPOF, the following **fast, unfiltered** workflows run on every PR
+To eliminate the cert-gate SPOF, the following workflows run on every PR and always report,
 and are now required checks (added by a repository administrator):
 
 - **`build-core`** — fast compile check (~2–3 min) that catches build breakage before heavier tests run
 - **`shell-lint`** — bash syntax + shellcheck (~30s) that prevents ops breakage
 - **`lychee (README + docs)`** — doc link validation (~30s) that keeps documentation healthy
 - **`cert-gate`** — hermetic certification tests (existing required check)
+- **`Readiness summary`** — full-platform readiness gate; added 2026-09-09 after #571 made it report on every PR (~1 min when no core path changed)
 
-**Rationale:** If `cert-gate` is cancelled, flaky, or times out, the other three required checks
-still prevent merge of broken code. This adds redundancy without slowing CI (total <5 min excluding cert-gate).
+**Rationale:** If `cert-gate` is cancelled, flaky, or times out, the other four required checks
+still prevent merge of broken code. The three September checks add <5 min in total; `Readiness summary`
+adds ~1 min when no core path changed and the full platform matrix (~20 min) when one did.
 
-**Done (repo admin):** `build-core`, `shell-lint` and `lychee (README + docs)` are in the
-`master` branch protection rule alongside `cert-gate`. The next candidate is `Readiness summary`
-(see above).
+**Done (repo admin):** `build-core`, `shell-lint`, `lychee (README + docs)` and `Readiness summary`
+are in the `master` branch protection rule alongside `cert-gate` (see above).
 
 Path-filtered workflows cannot be made required
 without an always-report job — a required context that never reports blocks the merge.
