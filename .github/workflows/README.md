@@ -5,11 +5,13 @@ minute costs, and branch-noise on `cursor/**` and other integration branches. Th
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
 the summary of the 56 files is:
 
-- **17 run on `pull_request`** — only `cert-gate`, `layer-boundary`, `uat-gate`, `build-gate`,
-  `shell-lint`, and `docs-link-check` on every PR; the rest are path-filtered (kernel/application/
-  security/coverage/testing-strategy/other path-scoped gates) plus the label-driven
-  `release-staging-on-label`.
-- **20 run on `push` only** (path-filtered, `master`/`main`/`cursor/**`), all with
+- **18 run on `pull_request`** — only `cert-gate`, `layer-boundary`, `uat-gate`, `build-gate`,
+  `shell-lint`, `docs-link-check` and `full-platform-readiness-gate` on every PR; the rest are
+  path-filtered (kernel/application/security/coverage/testing-strategy/other path-scoped gates)
+  plus the label-driven `release-staging-on-label`. `full-platform-readiness-gate` filters
+  paths *inside* the workflow (a `changes` job) so its `Readiness summary` check always reports:
+  heavy platform lanes run only when a core path changed, otherwise the summary passes in ~1 min.
+- **19 run on `push` only** (path-filtered, `master`/`main`/`cursor/**`), all with
   `workflow_dispatch` as well — post-merge signals such as `mcp-a2a-gate`, `grpc-transport-gate`,
   `onboarding-docs-guard`, `container-image-publish`.
 - **17 are `workflow_dispatch` only**, including `cross-platform-tests` and `prod-dry-run-pr`
@@ -26,13 +28,19 @@ before merge if your branch protection expects a green check from that workflow.
 
 ## Branch protection (recommended after workflow changes)
 
-`master` currently requires exactly one status check: **`cert-gate`** (unfiltered, runs on
-every PR). Every other gate is advisory.
+`master` currently requires four status checks: **`cert-gate`**, **`build-core`**, **`shell-lint`**
+and **`lychee (README + docs)`** (all unfiltered, all run on every PR; verified 2026-09-09 with
+`gh api repos/IanFrelinger/Ashlar/branches/master/protection`). Every other gate is advisory.
+
+**Intended next required context: `Readiness summary`** (`full-platform-readiness-gate.yml`).
+It now runs on every PR without a path filter and always reports (see above), so it can be
+required without deadlocking PRs that never trigger it. Add it only after one green `master`
+run of the changed workflow confirms the behaviour.
 
 ### CI Hardening (September 2026)
 
-To eliminate the cert-gate SPOF, the following **fast, unfiltered** workflows now run on every PR
-and should be added as required checks by a repository administrator:
+To eliminate the cert-gate SPOF, the following **fast, unfiltered** workflows run on every PR
+and are now required checks (added by a repository administrator):
 
 - **`build-core`** — fast compile check (~2–3 min) that catches build breakage before heavier tests run
 - **`shell-lint`** — bash syntax + shellcheck (~30s) that prevents ops breakage
@@ -42,11 +50,9 @@ and should be added as required checks by a repository administrator:
 **Rationale:** If `cert-gate` is cancelled, flaky, or times out, the other three required checks
 still prevent merge of broken code. This adds redundancy without slowing CI (total <5 min excluding cert-gate).
 
-**Action required (repo admin only):**
-Navigate to **Settings → Branches → Branch protection rule for `master`** and add these required status checks:
-- `build-core`
-- `shell-lint`
-- `lychee (README + docs)`
+**Done (repo admin):** `build-core`, `shell-lint` and `lychee (README + docs)` are in the
+`master` branch protection rule alongside `cert-gate`. The next candidate is `Readiness summary`
+(see above).
 
 Path-filtered workflows cannot be made required
 without an always-report job — a required context that never reports blocks the merge.
