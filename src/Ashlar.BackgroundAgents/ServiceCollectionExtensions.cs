@@ -22,10 +22,11 @@ using Ashlar.BackgroundAgents.Trust;
 using Ashlar.BackgroundAgents.WebSearch;
 using Ashlar.BackgroundAgents.Observation;
 using Ashlar.Core.Application.Trust.Ports;
+using Ashlar.Core.Application.Orchestration.Ports;
+using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Infrastructure.Observation;
 using Ashlar.Infrastructure.Trust;
 using Ashlar.Infrastructure.Trust.Sdk.Extensions;
-using Ashlar.Orchestration.Agents;
 
 namespace Ashlar.BackgroundAgents;
 
@@ -133,8 +134,8 @@ public static class ServiceCollectionExtensions
             var registry = sp.GetRequiredService<IBackgroundAgentRegistry>();
             var configLoader = sp.GetRequiredService<BackgroundAgentConfigLoader>();
             var specBuilder = sp.GetRequiredService<BackgroundAgentSpecBuilder>();
-            var agentFactory = sp.GetRequiredService<AgentFactory>();
-            return new AgentManagementToolbox(registry, configLoader, specBuilder, agentFactory);
+            var agentCreator = sp.GetRequiredService<IAgentCreator>();
+            return new AgentManagementToolbox(registry, configLoader, specBuilder, agentCreator);
         });
         if (registerHostedService)
             services.AddHostedService<BackgroundAgentService>();
@@ -206,13 +207,17 @@ public static class ServiceCollectionExtensions
                 var resilient = sp.GetRequiredService<Ashlar.Core.Application.Resilience.Ports.IResilientExecutor>();
                 return new Ashlar.Infrastructure.Execution.ProviderFactory(logger, lifecycle, resilient);
             });
-            services.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(sp =>
+            services.AddSingleton<SanitizingProviderFactory>(sp =>
             {
-                var inner = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
+                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
                 var proxy = sp.GetRequiredService<ICloudSanitizationProxy>();
                 var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SanitizingProviderFactory>>();
-                return new SanitizingProviderFactory(inner, proxy, logger);
+                return new SanitizingProviderFactory(infraFactory, proxy, logger);
             });
+            services.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(sp =>
+                sp.GetRequiredService<SanitizingProviderFactory>());
+            services.AddSingleton<IProviderFactory>(sp =>
+                sp.GetRequiredService<SanitizingProviderFactory>());
         }
 
         return services;

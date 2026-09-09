@@ -73,7 +73,18 @@ public sealed class BackgroundAgentLifecycleE2ETests
             .BuildServiceProvider();
 
         var configs = await configLoader.LoadAsync(default);
-        var spec = specBuilder.BuildSpec(configs[0]);
+        var specDto = specBuilder.BuildSpec(configs[0]);
+        // Convert DTO to full spec for GenericAgent constructor
+        var spec = new Ashlar.Orchestration.Architect.Models.AgentSpawnSpec
+        {
+            AgentId = specDto.AgentId,
+            Name = specDto.Name,
+            Domain = specDto.Domain,
+            Goal = specDto.Goal,
+            Description = specDto.Description,
+            Dependencies = specDto.Dependencies,
+            OllamaModel = specDto.OllamaModel
+        };
         var agent = new GenericAgent(spec, services.GetRequiredService<ILogger<GenericAgent>>());
         await registry.RegisterAsync(agent, configs[0], AgentRegistrationOrigin.Authored);
         return agent;

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Npgsql;
 using Xunit;
 
-namespace Ashlar.Tests.Orchestration.Database;
+namespace Ashlar.Tests.Infrastructure.Tests.Persistence;
 
 [CollectionDefinition("PostgresDocker", DisableParallelization = true)]
 public sealed class PostgresDockerCollection : ICollectionFixture<PostgresDockerFixture>;

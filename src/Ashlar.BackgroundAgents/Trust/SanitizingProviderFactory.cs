@@ -1,29 +1,35 @@
 using Microsoft.Extensions.Logging;
-using Ashlar.Infrastructure.Execution;
+using Ashlar.Core.Application.Execution.Ports;
 
 namespace Ashlar.BackgroundAgents.Trust;
 
 /// <summary>
+/// Intentional dual-port edge adapter for trust boundary DI.
 /// Wraps IProviderFactory and sanitizes outgoing context before delegating.
 /// Blocks when classification is uncertain. Logs all redactions.
+/// Implements both Application port and Infrastructure interface to allow
+/// ImproveCommand to register ONE sanitized instance for all consumers.
 /// </summary>
-public sealed class SanitizingProviderFactory : IProviderFactory
+public sealed class SanitizingProviderFactory : 
+    IProviderFactory,
+    Ashlar.Infrastructure.Execution.IProviderFactory
 {
-    private readonly IProviderFactory _inner;
+    private readonly Ashlar.Infrastructure.Execution.IProviderFactory _inner;
     private readonly ICloudSanitizationProxy _proxy;
     private readonly ILogger<SanitizingProviderFactory> _logger;
 
     /// <summary>
     /// Creates a sanitizing wrapper around the inner provider factory.
+    /// Accepts Infrastructure IProviderFactory.
     /// </summary>
     public SanitizingProviderFactory(
-        IProviderFactory inner,
+        Ashlar.Infrastructure.Execution.IProviderFactory inner,
         ICloudSanitizationProxy proxy,
         ILogger<SanitizingProviderFactory> logger)
     {
-        _inner = inner;
-        _proxy = proxy;
-        _logger = logger;
+        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        _proxy = proxy ?? throw new ArgumentNullException(nameof(proxy));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <inheritdoc />

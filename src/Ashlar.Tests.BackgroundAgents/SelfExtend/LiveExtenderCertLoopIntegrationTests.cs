@@ -13,6 +13,7 @@ using Ashlar.Orchestration.Agents;
 using Ashlar.Tests.BackgroundAgents.Registry;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.SelfExtend;
 
@@ -40,10 +41,25 @@ public sealed class LiveExtenderCertLoopIntegrationTests : IDisposable
         // Create an ashlar project so the admission bridge activates
         File.WriteAllText(
             Path.Combine(_repoRoot, "ashlar.policy.yaml"),
-            @"gates: [sandbox, build]
+            @"apiVersion: ashlar/v1
+kind: Policy
 sandbox:
+  root: .
   enforce_writable_allowlist: true
   writable: [src/]
+self_extend:
+  mode: self-extending
+  may_add: [brick]
+  gates_required: [sandbox, build]
+  budget:
+    extensions: 10
+    window: 1h
+never:
+  - modify_gate
+  - widen_sandbox
+  - access_signing_keys
+  - truncate_ledger
+  - grant_capability
 ");
 
         _certStore = new InMemoryCertificationRecordStore();
@@ -88,10 +104,7 @@ sandbox:
 
         var agent = new GenericAgent(BuildSpec(config), NullLogger<GenericAgent>.Instance);
         await _registry.RegisterAuthoredAsync(agent, config);
-        await _registry.StartAllAsync(default);
-
-        // Give the cycle time to complete
-        await Task.Delay(100);
+        await _registry.ExecuteOnceAsync(config.Id);
 
         // The canary should have been invoked
         _canary.VerifyCallCount.Should().Be(1);
@@ -123,8 +136,7 @@ sandbox:
 
         var agent = new GenericAgent(BuildSpec(config), NullLogger<GenericAgent>.Instance);
         await _registry.RegisterAuthoredAsync(agent, config);
-        await _registry.StartAllAsync(default);
-        await Task.Delay(100);
+        await _registry.ExecuteOnceAsync(config.Id);
 
         // The canary should have been invoked
         _canary.VerifyCallCount.Should().Be(1);
@@ -284,6 +296,6 @@ sandbox:
     {
         var sensitivity = new DataSensitivityRegistry();
         var builder = new BackgroundAgentSpecBuilder(sensitivity, null);
-        return builder.BuildSpec(c);
+        return builder.BuildSpec(c).ToOrchestrationSpec();
     }
 }

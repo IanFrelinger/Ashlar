@@ -14,6 +14,10 @@ using Ashlar.Infrastructure.Certification;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect.Models;
 using Ashlar.Runtime;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
+#if NET8_0_OR_GREATER
+using NSec.Cryptography;
+#endif
 
 namespace Ashlar.Tests.BackgroundAgents.SelfExtend;
 
@@ -73,7 +77,7 @@ internal static class SelfExtendAuditTestSupport
     }
 
     internal static AgentSpawnSpec BuildSpec(BackgroundAgentConfig config) =>
-        new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null).BuildSpec(config);
+        new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null).BuildSpec(config).ToOrchestrationSpec();
 
     internal static BackgroundAgentConfig ExtenderConfig(string id, string repoRoot) => new()
     {
@@ -93,6 +97,38 @@ internal static class SelfExtendAuditTestSupport
         var source = $"namespace {namespaceName}; public sealed class {className} {{ }}";
         var brickId = Ashlar.BackgroundAgents.Security.BrickAdmissionPathHelper.ClassNameToBrickId(className);
         var hash = BrickContentHasher.ComputeSha256(source);
+        
+#if NET8_0_OR_GREATER
+        var (privateKey, publicKey) = CreateEd25519Key();
+        
+        var data = new CertificationRecordData
+        {
+            Status = "PASS",
+            Stage = "admit",
+            Admitted = true,
+            Signed = true,
+            Timestamp = DateTimeOffset.UtcNow,
+            BrickId = brickId,
+            ContentHash = hash,
+            SchemaVersion = CertificationRecordData.TrustLoopSchemaVersion,
+            Ed25519PublicKey = publicKey,
+            Inputs =
+            [
+                new CertificationInput
+                {
+                    Kind = CertificationInputKinds.GateEmittedArtifact,
+                    Id = className,
+                    Hash = hash
+                },
+                CertifierIdentity.ToInput()
+            ]
+        };
+        data = data with 
+        { 
+            Signature = CertificationRecordSigning.Sign(data),
+            Ed25519Signature = CertificationRecordEd25519.Sign(data, Convert.FromBase64String(privateKey))
+        };
+#else
         var data = new CertificationRecordData
         {
             Status = "PASS",
@@ -115,6 +151,7 @@ internal static class SelfExtendAuditTestSupport
             ]
         };
         data = data with { Signature = CertificationRecordSigning.Sign(data) };
+#endif
 
         var store = new InMemoryCertificationRecordStore();
         store.Save(new CertificationRecord
@@ -128,11 +165,25 @@ internal static class SelfExtendAuditTestSupport
             ContentHash = data.ContentHash,
             Signature = data.Signature,
             SchemaVersion = data.SchemaVersion,
-            Inputs = data.Inputs
+            Inputs = data.Inputs,
+            Ed25519Signature = data.Ed25519Signature,
+            Ed25519PublicKey = data.Ed25519PublicKey
         });
 
         return (store, brickId, source);
     }
+
+#if NET8_0_OR_GREATER
+    private static (string PrivateKeyBase64, string PublicKeyBase64) CreateEd25519Key()
+    {
+        using var key = Key.Create(
+            SignatureAlgorithm.Ed25519,
+            new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
+        return (
+            Convert.ToBase64String(key.Export(KeyBlobFormat.RawPrivateKey)),
+            Convert.ToBase64String(key.PublicKey.Export(KeyBlobFormat.RawPublicKey)));
+    }
+#endif
 
     internal sealed class CountingSelfExtendRunner : ISelfExtendRunner
     {

@@ -8,6 +8,7 @@ using Moq;
 using Ashlar.Abstractions.Barriers;
 using Ashlar.Abstractions.Transport;
 using Ashlar.Core.Application.Common.Services;
+using Ashlar.Core.Application.Resilience.Ports;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect;
 using Ashlar.Orchestration.Architect.Models;
@@ -714,6 +715,12 @@ public class OrchestrationOrchestratorGapCoverageTests
         var agentBus = new AgentBus(provider.GetRequiredService<ILogger<AgentBus>>());
         var loops = new SequentialLoopKernel();
         metrics ??= new OrchestrationMetrics(provider.GetRequiredService<ILogger<OrchestrationMetrics>>());
+        var resilientExecutor = new TestResilientExecutor();
+        var circuitBreaker = new Ashlar.Orchestration.Resilience.CircuitBreaker(
+            name: "orchestration-agent-transport",
+            failureThreshold: 3,
+            timeout: TimeSpan.FromSeconds(30),
+            logger: provider.GetService<ILogger<Ashlar.Orchestration.Resilience.CircuitBreaker>>());
 
         return new Orchestrator(
             architect,
@@ -734,6 +741,20 @@ public class OrchestrationOrchestratorGapCoverageTests
             barrierContextAccessor: barrierAccessor,
             barrierHierarchy: barrierHierarchy,
             barrierAuditLog: barrierAudit,
-            barrierOptions: barrierOptions != null ? Options.Create(barrierOptions) : null);
+            barrierOptions: barrierOptions != null ? Options.Create(barrierOptions) : null,
+            resilientExecutor: resilientExecutor,
+            circuitBreaker: circuitBreaker);
+    }
+
+    /// <summary>Test stub for IResilientExecutor.</summary>
+    private sealed class TestResilientExecutor : IResilientExecutor
+    {
+        public Task<T> ExecuteAsync<T>(
+            Func<CancellationToken, Task<T>> operation,
+            RetryPolicy policy,
+            CancellationToken cancellationToken = default)
+        {
+            return operation(cancellationToken);
+        }
     }
 }

@@ -22,7 +22,8 @@ public class AgentManagementToolboxTests
         var registry = new Mock<IBackgroundAgentRegistry>().Object;
         var specBuilder = new BackgroundAgentSpecBuilder(sensitivityRegistry, null);
         var agentFactory = new AgentFactory(Mock.Of<Microsoft.Extensions.Logging.ILogger<AgentFactory>>(), Mock.Of<IServiceProvider>());
-        var toolbox = new AgentManagementToolbox(registry, configLoader, specBuilder, agentFactory);
+        var agentCreator = new Ashlar.Orchestration.Adapters.AgentCreatorAdapter(agentFactory, Mock.Of<Microsoft.Extensions.Logging.ILogger<Ashlar.Orchestration.Adapters.AgentCreatorAdapter>>());
+        var toolbox = new AgentManagementToolbox(registry, configLoader, specBuilder, agentCreator);
 
         var schemas = toolbox.Schemas().ToList();
 

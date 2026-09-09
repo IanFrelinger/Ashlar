@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Ashlar.Abstractions;
 using Ashlar.Core.Application.Analysis.Models;
 using Ashlar.Core.Application.Testing.Abstractions;
 using Ashlar.Core.Application.Testing.Models;
@@ -75,7 +77,8 @@ public class SecurityAnalysisRuleTests : UnitTestBase
     private void TestRuleProperties()
     {
         var mockLogger = new Mock<ILogger<SecurityAnalysisRule>>();
-        var rule = new SecurityAnalysisRule(mockLogger.Object);
+        var mockTool = CreateMockSecurityScanTool();
+        var rule = new SecurityAnalysisRule(mockLogger.Object, mockTool.Object);
 
         /// <summary>Assert equal.</summary>
         AssertEqual("SecurityScan", rule.Name);
@@ -87,7 +90,8 @@ public class SecurityAnalysisRuleTests : UnitTestBase
     private async Task TestExceptionHandling()
     {
         var mockLogger = new Mock<ILogger<SecurityAnalysisRule>>();
-        var rule = new SecurityAnalysisRule(mockLogger.Object);
+        var mockTool = CreateMockSecurityScanToolThatThrows();
+        var rule = new SecurityAnalysisRule(mockLogger.Object, mockTool.Object);
 
         // Use a non-existent file - the tool will fail and the rule should handle it gracefully
         var nonExistentFile = new FileInfo(Path.Combine(_tempDir!.FullName, "nonexistent.dll"));
@@ -118,7 +122,8 @@ public class SecurityAnalysisRuleTests : UnitTestBase
     private async Task TestWithNonExistentFile()
     {
         var mockLogger = new Mock<ILogger<SecurityAnalysisRule>>();
-        var rule = new SecurityAnalysisRule(mockLogger.Object);
+        var mockTool = CreateMockSecurityScanTool();
+        var rule = new SecurityAnalysisRule(mockLogger.Object, mockTool.Object);
 
         // Test with a file that doesn't exist
         var file = new FileInfo(Path.Combine(_tempDir!.FullName, "test.dll"));
@@ -130,6 +135,24 @@ public class SecurityAnalysisRuleTests : UnitTestBase
         AssertNotNull(violations);
         // May have violations or be empty depending on tool behavior
         // The important thing is it doesn't throw
+    }
+
+    private static Mock<ITool> CreateMockSecurityScanTool()
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.security_scan");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ToolResult(new ActionDelta(0, 0, Array.Empty<string>()), JsonSerializer.SerializeToElement(new { Count = 0 })));
+        return mock;
+    }
+
+    private static Mock<ITool> CreateMockSecurityScanToolThatThrows()
+    {
+        var mock = new Mock<ITool>();
+        mock.Setup(t => t.Id).Returns("assembly.security_scan");
+        mock.Setup(t => t.InvokeAsync(It.IsAny<ToolCall>(), It.IsAny<WorldSnapshot>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Tool invocation failed"));
+        return mock;
     }
 }
 

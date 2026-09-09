@@ -18,6 +18,7 @@ using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect.Models;
 using Xunit;
 using Ashlar.Tests.BackgroundAgents.Registry;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.Registry;
 
@@ -482,7 +483,7 @@ public sealed class BackgroundAgentRegistryGapCoverageTests
     /// <summary>Creates spec.</summary>
     /// <param name="config">Config.</param>
     private static AgentSpawnSpec BuildSpec(BackgroundAgentConfig config) =>
-        new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null).BuildSpec(config);
+        new BackgroundAgentSpecBuilder(new DataSensitivityRegistry(), null).BuildSpec(config).ToOrchestrationSpec();
 
     /// <summary>In memory observation store.</summary>
     private sealed class InMemoryObservationStore : IObservationStore

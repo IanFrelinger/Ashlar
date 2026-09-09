@@ -70,6 +70,7 @@
     <PackageReference Include="CsCheck" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Docker.DotNet" />
+    <PackageReference Include="Npgsql" />
     <PackageReference Include="coverlet.msbuild">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

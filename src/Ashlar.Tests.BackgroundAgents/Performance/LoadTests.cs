@@ -11,6 +11,7 @@ using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect.Models;
 using Xunit;
 using Ashlar.Tests.BackgroundAgents.Registry;
+using Ashlar.Tests.BackgroundAgents.TestHelpers;
 
 namespace Ashlar.Tests.BackgroundAgents.Performance;
 
@@ -122,7 +123,7 @@ public class LoadTests
         foreach (var agentConfig in configs)
         {
             var spec = specBuilder.BuildSpec(agentConfig);
-            var agent = new GenericAgent(spec, logger);
+            var agent = new GenericAgent(spec.ToOrchestrationSpec(), logger);
             await registry.RegisterAuthoredAsync(agent, agentConfig);
             agentIds.Add(agentConfig.Id);
         }
