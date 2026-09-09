@@ -143,31 +143,29 @@ public class ValidationServiceAdapter : IValidationService
                     // a net9.0-only project produced "The argument <dll> is invalid" from VSTest
                     // for an output that was never built.
                     var framework = SelectTestFramework(csprojPath);
-                    var exitCode = await RunDotnetTestForValidateAsync(
+                    var runStartedUtc = DateTime.UtcNow;
+                    var run = await RunDotnetTestForValidateAsync(
                         csprojPath,
                         framework,
                         streamOutput: progress != null,
                         cancellationToken).ConfigureAwait(false);
 
-                    // Try to find and parse TRX files
-                    var trxFiles = Directory.GetFiles(
-                        projectDir,
-                        "*.trx",
-                        SearchOption.AllDirectories)
-                        .OrderByDescending(f => new FileInfo(f).LastWriteTime)
-                        .Take(1) // Get most recent TRX file
-                        .Select(f => new FileInfo(f))
-                        .ToList();
+                    // Only artifacts this run wrote count. The most recent TRX under the project
+                    // used to be taken regardless of age, so a run that died before writing one
+                    // was judged on a stale file from an earlier run.
+                    var trxFile = FindArtifactWrittenSince(projectDir, "*.trx", runStartedUtc);
+                    var sequenceFile = FindArtifactWrittenSince(projectDir, "Sequence_*.xml", runStartedUtc);
 
-                    if (trxFiles.Any())
+                    var executed = new List<TestResult>();
+                    if (trxFile is not null)
                     {
                         // Parse TRX file for detailed results
-                        var parsedResults = await _testResultParser.ParseAsync(trxFiles.First(), cancellationToken);
+                        var parsedResults = await _testResultParser.ParseAsync(trxFile, cancellationToken);
 
                         // Skipped tests were not run: they are neither passes nor failures and
                         // stay out of the per-test list (consumers list `!Passed` as failures).
                         // Their count is still reported.
-                        var executed = parsedResults.Where(r => !r.Skipped).ToList();
+                        executed = parsedResults.Where(r => !r.Skipped).ToList();
                         var skipped = parsedResults.Count - executed.Count;
                         if (skipped > 0)
                         {
@@ -183,17 +181,39 @@ public class ValidationServiceAdapter : IValidationService
                         totalTestsFailed += executed.Count(r => !r.Passed);
                         totalTestsSkipped += skipped;
                     }
-                    else
+
+                    // A TRX only records the tests that reported before the run ended. When the
+                    // Blame collector kills a hung host (#566) the results captured so far are
+                    // all green, every test scheduled after the kill never runs, and `dotnet test`
+                    // exits non-zero — the exit code and console output are the only evidence,
+                    // so the run is judged on them too, not on the TRX alone.
+                    var abort = DetectAbortedTestRun(run.ExitCode, run.Output, trxFile is not null, executed, sequenceFile);
+                    if (abort is not null)
                     {
-                        // Fallback when no TRX: use exit code
+                        _logger.LogWarning(
+                            "{Project}: test run did not complete: {Reason}",
+                            testProject.Name,
+                            abort.Describe());
+                        allTestResults.Add(new TestResult
+                        {
+                            Name = $"{testProject.Name} (test run aborted)",
+                            Passed = false,
+                            Message = abort.Describe()
+                        });
+                        totalTestsFailed++;
+                        totalTestsRun++;
+                    }
+                    else if (trxFile is null)
+                    {
+                        // Clean exit without a TRX (nothing matched the filter): the exit code
+                        // is the verdict, as before.
                         allTestResults.Add(new TestResult
                         {
                             Name = testProject.Name,
-                            Passed = exitCode == 0,
-                            Message = exitCode == 0 ? "Tests passed" : "Test execution failed"
+                            Passed = true,
+                            Message = "Tests passed"
                         });
-                        if (exitCode == 0) totalTestsPassed++;
-                        else totalTestsFailed++;
+                        totalTestsPassed++;
                         totalTestsRun++;
                     }
                 }
@@ -375,10 +395,213 @@ public class ValidationServiceAdapter : IValidationService
     }
 
     /// <summary>
-    /// Runs <c>dotnet test</c> for validate: one framework (see <see cref="SelectTestFramework"/>),
-    /// TRX for parsing, optional console streaming.
+    /// Console lines from the <c>vstest</c> console logger and the Blame collector that mean
+    /// the run ended before every scheduled test ran. Matched at the start of a trimmed line
+    /// (the Blame one after its collector prefix) so a test's own display name or output that
+    /// happens to quote one of them — a Theory case, say — cannot trip the detector.
     /// </summary>
-    private static async Task<int> RunDotnetTestForValidateAsync(
+    private static readonly string[] AbortedRunLinePrefixes =
+    {
+        "The active test run was aborted",
+        "Test Run Aborted",
+        "Test host process crashed",
+        "Total tests: Unknown",
+    };
+
+    private const string BlameCollectorPrefix = "Data collector 'Blame' message:";
+    private const string BlameInactivityMarker = "The specified inactivity time of";
+    private const string LastRunningTestMarker = "The test running when the crash occurred:";
+
+    /// <summary>
+    /// Console lines that mean the run legitimately executed nothing. <c>dotnet test</c> may
+    /// exit non-zero for these depending on SDK version and runsettings; a project whose
+    /// filter matches no test is not a failed project, so they keep the exit-code verdict off.
+    /// </summary>
+    private static readonly string[] NoTestsMatchedLinePrefixes =
+    {
+        "No test matches the given testcase filter",
+        "No test is available",
+    };
+
+    /// <summary>
+    /// Why one <c>dotnet test</c> run cannot be trusted as complete: the reason line, the test
+    /// that was running when the host went down (when the Blame collector or the console said),
+    /// and how many results the TRX had captured before that point.
+    /// </summary>
+    internal sealed record TestRunAbort(string Reason, string? LastRunningTest, int ResultsRecorded)
+    {
+        /// <summary>One line suitable for the failure entry and the log.</summary>
+        public string Describe()
+        {
+            var text = Reason;
+            if (!string.IsNullOrWhiteSpace(LastRunningTest))
+                text += $"; last running test: {LastRunningTest}";
+            text += $"; {ResultsRecorded} result(s) were recorded before the run ended and tests scheduled after it never ran";
+            return text;
+        }
+    }
+
+    /// <summary>
+    /// Judges one <c>dotnet test</c> invocation on everything it left behind, not on the TRX
+    /// alone. Returns null when the run completed — it exited 0, or every failure it exited
+    /// non-zero for is recorded in the TRX — and a <see cref="TestRunAbort"/> when a non-zero
+    /// exit is not explained by the TRX:
+    /// <list type="bullet">
+    /// <item>the console carries a vstest abort line or a Blame inactivity (hang-kill) message,
+    /// in which case the reason names the test that was running if the console or the Blame
+    /// <c>Sequence_*.xml</c> did;</item>
+    /// <item>the TRX records no failed test — the run stopped before it could fail one, or
+    /// wrote no TRX at all — unless the console says the filter simply matched nothing, which
+    /// stays a pass.</item>
+    /// </list>
+    /// A non-zero exit with failed tests in the TRX is an ordinary red run: the TRX already
+    /// names each failure, so nothing is added. Warnings never count.
+    /// </summary>
+    internal static TestRunAbort? DetectAbortedTestRun(
+        int exitCode,
+        string consoleOutput,
+        bool trxFound,
+        IReadOnlyList<TestResult> executedResults,
+        FileInfo? sequenceFile)
+    {
+        // A clean exit is trusted. vstest fails the VSTestTask (MSB4181) whenever it aborts a
+        // run, so `dotnet test` cannot exit 0 after a hang-kill or a host crash; and abort lines
+        // can reach this console second-hand — a test that itself drives `dotnet test` echoes
+        // its child's stderr — so they are evidence only when the exit code agrees.
+        if (exitCode == 0)
+            return null;
+
+        var lines = SplitLines(consoleOutput);
+        var recorded = executedResults.Count;
+
+        var abortLine = lines.FirstOrDefault(IsAbortedRunLine);
+        if (abortLine is not null)
+        {
+            var lastTest = ExtractLastRunningTest(lines) ?? ReadLastTestFromSequenceFile(sequenceFile);
+            return new TestRunAbort($"test host did not finish the run: {abortLine}", lastTest, recorded);
+        }
+
+        // Ordinary failing tests: the TRX names them and the exit code merely agrees.
+        if (executedResults.Any(r => !r.Passed))
+            return null;
+
+        if (lines.Any(l => NoTestsMatchedLinePrefixes.Any(p => l.StartsWith(p, StringComparison.OrdinalIgnoreCase))))
+            return null;
+
+        var lastRunning = ExtractLastRunningTest(lines) ?? ReadLastTestFromSequenceFile(sequenceFile);
+        var reason = trxFound
+            ? $"dotnet test exited {exitCode} but the TRX records no failed test"
+            : $"dotnet test exited {exitCode} and wrote no TRX for this run";
+        return new TestRunAbort(reason, lastRunning, recorded);
+    }
+
+    private static bool IsAbortedRunLine(string line)
+    {
+        foreach (var prefix in AbortedRunLinePrefixes)
+        {
+            if (line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        if (line.StartsWith(BlameCollectorPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var rest = line.Substring(BlameCollectorPrefix.Length).TrimStart();
+            return rest.StartsWith(BlameInactivityMarker, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The test named after "The test running when the crash occurred:" — on the same line
+    /// after the colon, or on the next non-empty line. Null when the console never said.
+    /// </summary>
+    internal static string? ExtractLastRunningTest(IReadOnlyList<string> lines)
+    {
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            if (!line.StartsWith(LastRunningTestMarker, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var inline = line.Substring(LastRunningTestMarker.Length).Trim();
+            if (inline.Length > 0)
+                return inline;
+
+            for (var j = i + 1; j < lines.Count; j++)
+            {
+                if (lines[j].Length > 0)
+                    return lines[j];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The last <c>&lt;Test&gt;</c> the Blame collector appended to its <c>Sequence_*.xml</c>
+    /// before the host went down — the test that was running at that moment. Null when there is
+    /// no file, it is unreadable, or it lists no test.
+    /// </summary>
+    internal static string? ReadLastTestFromSequenceFile(FileInfo? sequenceFile)
+    {
+        if (sequenceFile is null || !sequenceFile.Exists)
+            return null;
+
+        try
+        {
+            var doc = System.Xml.Linq.XDocument.Load(sequenceFile.FullName);
+            var last = doc.Descendants().LastOrDefault(e => e.Name.LocalName == "Test");
+            if (last is null)
+                return null;
+
+            foreach (var attribute in new[] { "Name", "name", "FullyQualifiedName", "DisplayName" })
+            {
+                var value = last.Attribute(attribute)?.Value?.Trim();
+                if (!string.IsNullOrEmpty(value))
+                    return value;
+            }
+
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static IReadOnlyList<string> SplitLines(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return Array.Empty<string>();
+        return text.Split('\n').Select(l => l.Trim()).ToList();
+    }
+
+    /// <summary>
+    /// The newest file under <paramref name="directory"/> matching <paramref name="pattern"/>
+    /// that was written by the run that started at <paramref name="runStartedUtc"/> (a small
+    /// tolerance covers coarse filesystem timestamps). Null when the run wrote none.
+    /// </summary>
+    private static FileInfo? FindArtifactWrittenSince(string directory, string pattern, DateTime runStartedUtc)
+    {
+        var notBefore = runStartedUtc - TimeSpan.FromSeconds(10);
+        return Directory.GetFiles(directory, pattern, SearchOption.AllDirectories)
+            .Select(f => new FileInfo(f))
+            .Where(f => f.LastWriteTimeUtc >= notBefore)
+            .OrderByDescending(f => f.LastWriteTimeUtc)
+            .FirstOrDefault();
+    }
+
+    /// <summary>Exit code and captured console output of one <c>dotnet test</c> run.</summary>
+    internal sealed record DotnetTestRun(int ExitCode, string Output);
+
+    /// <summary>
+    /// Runs <c>dotnet test</c> for validate: one framework (see <see cref="SelectTestFramework"/>),
+    /// TRX for parsing, optional console streaming. Stdout and stderr are also retained (the
+    /// last <see cref="MaxRetainedOutputLines"/> lines) so the run can be judged on what vstest
+    /// and the Blame collector said, not only on the exit code.
+    /// </summary>
+    private static async Task<DotnetTestRun> RunDotnetTestForValidateAsync(
         string csprojPath, string? framework, bool streamOutput, CancellationToken ct)
     {
         var verbosity = streamOutput ? "normal" : "minimal";
@@ -399,20 +622,40 @@ public class ValidationServiceAdapter : IValidationService
 
         var p = Process.Start(psi);
         if (p is null)
-            return -1;
+            return new DotnetTestRun(-1, string.Empty);
+
+        var retained = new Queue<string>();
+        var retainedLock = new object();
+        void Retain(string line)
+        {
+            lock (retainedLock)
+            {
+                retained.Enqueue(line);
+                while (retained.Count > MaxRetainedOutputLines)
+                    retained.Dequeue();
+            }
+        }
+
+        string Captured()
+        {
+            lock (retainedLock)
+                return string.Join('\n', retained);
+        }
 
         using (p)
         {
-            if (streamOutput)
+            p.OutputDataReceived += (_, e) =>
             {
-                p.OutputDataReceived += (_, e) => { if (e.Data is not null) Console.Out.WriteLine(e.Data); };
-                p.ErrorDataReceived += (_, e) => { if (e.Data is not null) Console.Error.WriteLine(e.Data); };
-            }
-            else
+                if (e.Data is null) return;
+                Retain(e.Data);
+                if (streamOutput) Console.Out.WriteLine(e.Data);
+            };
+            p.ErrorDataReceived += (_, e) =>
             {
-                p.OutputDataReceived += (_, _) => { };
-                p.ErrorDataReceived += (_, e) => { if (e.Data is not null) Console.Error.WriteLine(e.Data); };
-            }
+                if (e.Data is null) return;
+                Retain(e.Data);
+                Console.Error.WriteLine(e.Data);
+            };
 
             p.BeginOutputReadLine();
             p.BeginErrorReadLine();
@@ -420,13 +663,15 @@ public class ValidationServiceAdapter : IValidationService
             try
             {
                 await p.WaitForExitAsync(ct).ConfigureAwait(false);
-                return p.ExitCode;
+                return new DotnetTestRun(p.ExitCode, Captured());
             }
             catch (OperationCanceledException)
             {
                 try { p.Kill(entireProcessTree: true); } catch { /* ignore */ }
-                return -1;
+                return new DotnetTestRun(-1, Captured());
             }
         }
     }
+
+    private const int MaxRetainedOutputLines = 10_000;
 }
