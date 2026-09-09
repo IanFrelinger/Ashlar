@@ -81,6 +81,8 @@ public sealed class MeshKnowledgeReplicationTests : IDisposable
 
         public Task LogAsync(AdaptationRecord record, CancellationToken cancellationToken = default)
         {
+            if (_records.Any(r => r.Id == record.Id))
+                throw new LiteException($"duplicate key: Id '{record.Id}' already exists");
             _records.Add(record);
             return Task.CompletedTask;
         }
@@ -104,6 +106,8 @@ public sealed class MeshKnowledgeReplicationTests : IDisposable
 
         public Task AddAsync(ObservedPattern pattern, CancellationToken cancellationToken = default)
         {
+            if (_patterns.Any(p => p.PatternId == pattern.PatternId))
+                throw new LiteException($"duplicate key: PatternId '{pattern.PatternId}' already exists");
             _patterns.Add(pattern);
             return Task.CompletedTask;
         }
@@ -123,4 +127,13 @@ public sealed class MeshKnowledgeReplicationTests : IDisposable
             return Task.CompletedTask;
         }
     }
+
+    /// <summary>
+    /// Stand-in for LiteDB's duplicate-key exception. Fleet has no LiteDB reference, so
+    /// <c>MeshKnowledgeImportService.IsDuplicateInsert</c> matches on the runtime type name
+    /// "LiteException" plus a "duplicate" message; this mirrors the nested class used in
+    /// <see cref="MeshKnowledgeImportServiceGapCoverageTests"/> so the skip path is exercised
+    /// through the duplicate filter rather than the generic catch-all.
+    /// </summary>
+    private sealed class LiteException(string message) : Exception(message);
 }
