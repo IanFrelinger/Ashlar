@@ -440,7 +440,7 @@ Start here:
 - [`docs/DistributionModels.md`](docs/DistributionModels.md) — NuGet, HTTP, CLI, compose, source, mesh distribution channels.
 - [`docs/Architecture.md`](docs/Architecture.md) — architecture and subsystem overview.
 - [`docs/Conventions.md`](docs/Conventions.md) — current code conventions and migration honesty.
-- [`docs/CiGateInventory.md`](docs/CiGateInventory.md) — CI workflow trigger map and what branch protection actually requires (`cert-gate` only).
+- [`docs/CiGateInventory.md`](docs/CiGateInventory.md) — CI workflow trigger map and what branch protection actually requires (four checks: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`).
 - [`docs/TrustAndInformationArchitecture.md`](docs/TrustAndInformationArchitecture.md) — trust model, barriers, audit, sensitivity.
 - [`docs/Configuration.md`](docs/Configuration.md) — environment/config options.
 - [`docs/ProductionReadinessGate-v1.md`](docs/ProductionReadinessGate-v1.md) — production gate procedure.
