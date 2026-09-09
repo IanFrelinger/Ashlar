@@ -59,7 +59,7 @@ These are **blockers** for any public release candidate tag. Every item referenc
 
 **Action required:** 
 - ✅ **Done** — branch protection requires all four checks (see [CEO-only actions](#5-ceo-only-actions-list))
-- **Follow-up (any contributor, separate PR):** `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` still describe `cert-gate` as the only required check — bring them in line with the live setting
+- ✅ **Done** — `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` updated to match live setting (PRs #572, #573); `docs/DocsIndex.md` was the remaining miss, corrected by this PR
 
 **What sales/marketing may claim:**
 - ✅ "Every PR gated by hermetic certification + build integrity + docs verification"
@@ -293,7 +293,7 @@ These actions require **repository administrator** or **organization owner** per
 
 **Status:** ✅ **DONE** — [#511](https://github.com/IanFrelinger/Ashlar/pull/511) **merged** (2026-09-06T01:37:01Z); `master` branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`; `enforce_admins` on).
 
-**Follow-up (any contributor, separate PR):** `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` still say `cert-gate` is the only required check — update them to match the live setting.
+**Follow-up:** ✅ **Done** — `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` updated to match live setting (PRs #572, #573); `docs/DocsIndex.md` was the remaining miss, corrected by this PR.
 
 **Reference (how it was configured; CEO/admin only):**
 

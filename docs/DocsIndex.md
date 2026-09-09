@@ -19,7 +19,7 @@ Setup helpers (escape hatches, not the first-run path): `scripts/setup/setup.sh`
 
 ## Trust loop / certification (experimental, hold-mode)
 
-The trust loop is how "certified" is a checkable claim: analyzer fence → witness → mutation testing → determinism, then a signed certificate bound to the artifact's content hash. The gate is CI-proven (`cert-gate` is the only required check on `master`); the autonomy loop on top of it is **experimental and ships in hold mode** (`HoldAdmission=true` — it certifies fully and admits nothing), and its evidence is local spike runs.
+The trust loop is how "certified" is a checkable claim: analyzer fence → witness → mutation testing → determinism, then a signed certificate bound to the artifact's content hash. The gate is CI-proven (`master` requires four checks: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`); the autonomy loop on top of it is **experimental and ships in hold mode** (`HoldAdmission=true` — it certifies fully and admits nothing), and its evidence is local spike runs.
 
 - `docs/specs/SPEC-006-keys-and-signing.md` — keys and signing (**ACCEPTED** 2026-08-27); every "signed" claim in every other spec resolves here. `docs/specs/` currently holds this one file.
 - `docs/InstanceLedger.md` — the instance ledger: durable course records and their signing story.
@@ -61,7 +61,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `.github/workflows/onboarding-quickstart-gate.yml` — runs first-run onboarding commands in native + container lanes.
 - `.github/workflows/container-image-gate.yml` — container image buildability and smoke-run gate.
 - `.github/workflows/distribution-matrix-gate.yml` — **parallel** gates: NuGet local-pack consumer, CLI image + subcommand help smoke, API image + `curl` `/health` + `/api/status`, `Ashlar.Client` in-process test, pack-graph alignment (plus **weekly** schedule).
-- `docs/CiGateInventory.md` — one-row-per-workflow trigger map (57 files, including `products-gate`) and the enforced branch-protection state (`cert-gate` is the only required check).
+- `docs/CiGateInventory.md` — one-row-per-workflow trigger map (57 files, including `products-gate`) and the enforced branch-protection state (`master` requires four checks: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`).
 - `.github/workflows/release.yml` — **one entry**: tag `v*.*.*` → GHCR (`nexo-cli`, `nexo-api`) + NuGet; run summary with pin lines.
 - `.github/workflows/container-image-publish.yml` — GHCR on **main** path-filtered pushes + manual (tags use `release.yml` only).
 - `.github/workflows/release-nuget.yml` — **NuGet-only** manual dispatch; after push to nuget.org, **Verify NuGet consumer** (same reusable job as **release.yml**).
