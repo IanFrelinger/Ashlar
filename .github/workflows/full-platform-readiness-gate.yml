@@ -9,14 +9,27 @@
 # Native runners: ubuntu, macOS, Windows
 # Container runners: Ubuntu, Alpine, Debian (Docker on ubuntu-latest)
 #
-# Manual-first — see .github/workflows/README.md
+# Trigger policy (see .github/workflows/README.md, docs/CiGateInventory.md):
+#   - pull_request: UNFILTERED on purpose. The `changes` job decides in-workflow whether any
+#     core path (READINESS_PATHS below) is in the PR diff; only then do the heavy platform
+#     lanes run. Otherwise they are skipped and "Readiness summary" passes in ~1 minute.
+#     This is what lets "Readiness summary" become a required status check later without
+#     deadlock: a required context that never reports leaves a PR at "Expected — Waiting for
+#     status" forever, and enforce_admins=true means nobody can bypass it.
+#   - push (master/main/cursor/**), schedule, workflow_dispatch: always run the heavy lanes.
 name: Full Platform Readiness Gate
 
 on:
   schedule:
     - cron: "0 6 * * 1"  # Monday 06:00 UTC
+  # No `paths:` filter here on purpose — every PR must get a "Readiness summary" status.
+  # Path scoping for PRs happens in the `changes` job below.
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [master, main, "cursor/**"]
+    # KEEP IN SYNC with READINESS_PATHS in the `changes` job below. YAML anchors do not work
+    # across `on:` and `jobs:` in GitHub Actions, so the list is duplicated by necessity.
     paths:
       - ".github/workflows/full-platform-readiness-gate.yml"
       - ".docker/Dockerfile.*"
@@ -38,6 +51,13 @@ on:
       - "src/Ashlar.BackgroundAgents/**"
       - "src/Ashlar.Tests.BackgroundAgents/**"
       - "src/Ashlar.Tests.Infrastructure/**"
+      # Added after PR #561 (CLI + Fleet test fixes): its branch touched only the CLI test
+      # project, commercial/ and the orchestration/kernel test projects, none of which were
+      # listed, so the gate never ran and the fix could not be gate-proven before merge.
+      - "application/src/Ashlar.Tests.CLI/**"
+      - "commercial/**"
+      - "src/Ashlar.Tests.Orchestration/**"
+      - "src/Ashlar.Tests.Kernel/**"
       - "scripts/pack-ashlar-hosting-graph.sh"
       - "scripts/pack-ashlar-hosting-graph.ps1"
       - "scripts/verify-stable-sdk-host-sample-packages.sh"
@@ -61,10 +81,126 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────
+  # Change detection: does this PR touch a core path? (~30s)
+  # On push / schedule / workflow_dispatch there is no PR base, so run_heavy is
+  # unconditionally true and this job is a no-op pass-through.
+  # ─────────────────────────────────────────────────────────────────────
+  changes:
+    name: "Changes — core paths touched?"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      run_heavy: ${{ steps.filter.outputs.run_heavy }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether the heavy platform lanes must run
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            echo "Event is '$EVENT_NAME' (no PR base to diff against) — heavy lanes run unconditionally."
+            echo "run_heavy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # KEEP IN SYNC with `on.push.paths` at the top of this file (same globs, same order).
+          # `**` is rewritten to `*` for bash matching: an unquoted `*` in [[ == ]] matches `/` too.
+          READINESS_PATHS=(
+            ".github/workflows/full-platform-readiness-gate.yml"
+            ".docker/Dockerfile.*"
+            "scripts/setup/**"
+            "scripts/install/**"
+            "application/src/Ashlar.CLI/**"
+            "src/Ashlar.Hosting/**"
+            "src/Ashlar.Abstractions/**"
+            "src/Ashlar.Core.Domain/**"
+            "src/Ashlar.Core.Application/**"
+            "src/Ashlar.Brick.Contracts/**"
+            "src/Ashlar.Policies/**"
+            "src/Ashlar.Tools.Assembly/**"
+            "src/Ashlar.Tools.Dev/**"
+            "src/Ashlar.Transport.Grpc/**"
+            "src/Ashlar.Runtime/**"
+            "src/Ashlar.Infrastructure/**"
+            "src/Ashlar.Orchestration/**"
+            "src/Ashlar.BackgroundAgents/**"
+            "src/Ashlar.Tests.BackgroundAgents/**"
+            "src/Ashlar.Tests.Infrastructure/**"
+            # Added after PR #561 (CLI + Fleet test fixes) — see the matching comment in on.push.paths.
+            "application/src/Ashlar.Tests.CLI/**"
+            "commercial/**"
+            "src/Ashlar.Tests.Orchestration/**"
+            "src/Ashlar.Tests.Kernel/**"
+            "scripts/pack-ashlar-hosting-graph.sh"
+            "scripts/pack-ashlar-hosting-graph.ps1"
+            "scripts/verify-stable-sdk-host-sample-packages.sh"
+            "scripts/verify-stable-sdk-host-sample-packages.ps1"
+            "docs/samples/StableSdkHostSample/**"
+            "docs/samples/NugetOrgRestoreVerify/**"
+            "global.json"
+            "Directory.Build.props"
+            "Directory.Packages.props"
+          )
+
+          if [[ -z "${BASE_SHA:-}" || -z "${HEAD_SHA:-}" ]]; then
+            echo "::warning::Missing PR base/head SHA — failing safe: heavy lanes will run."
+            echo "run_heavy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! MERGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA" 2>/dev/null); then
+            echo "::warning::Could not compute merge-base of $BASE_SHA and $HEAD_SHA — failing safe: heavy lanes will run."
+            echo "run_heavy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$MERGE_BASE" "$HEAD_SHA")
+          echo "Merge-base: $MERGE_BASE  Head: $HEAD_SHA"
+          echo "Changed files:"
+          echo "$CHANGED" | sed 's/^/  /'
+
+          RUN_HEAVY=false
+          MATCHED=()
+          while IFS= read -r f; do
+            [[ -z "$f" ]] && continue
+            for pat in "${READINESS_PATHS[@]}"; do
+              bash_pat="${pat//\*\*/*}"
+              # shellcheck disable=SC2053  # unquoted RHS is intentional: glob match
+              if [[ "$f" == $bash_pat ]]; then
+                MATCHED+=("$f  (matches $pat)")
+                RUN_HEAVY=true
+                break
+              fi
+            done
+          done <<< "$CHANGED"
+
+          if [[ "$RUN_HEAVY" == "true" ]]; then
+            echo "Core paths touched — heavy platform lanes will run:"
+            printf '  %s\n' "${MATCHED[@]}"
+          else
+            echo "No core path touched — heavy platform lanes are skipped; Readiness summary will pass."
+          fi
+          echo "run_heavy=$RUN_HEAVY" >> "$GITHUB_OUTPUT"
+
+  # ─────────────────────────────────────────────────────────────────────
   # Native runners: Ubuntu, macOS, Windows
   # ─────────────────────────────────────────────────────────────────────
   native-platform:
     name: "${{ matrix.label }} — setup · discover · dry-run"
+    needs: changes
+    if: needs.changes.outputs.run_heavy == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -231,6 +367,8 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   container-platform:
     name: "${{ matrix.label }} (container) — setup · discover · dry-run"
+    needs: changes
+    if: needs.changes.outputs.run_heavy == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -329,6 +467,8 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   docker-cli-image:
     name: "Docker CLI image — build · smoke · discover"
+    needs: changes
+    if: needs.changes.outputs.run_heavy == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -358,7 +498,10 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   docker-all-images:
     name: "Docker ${{ matrix.label }} — build · smoke"
-    if: github.event_name != 'pull_request'
+    needs: changes
+    # Production images are never built on PRs (kept from before the PR trigger existed);
+    # on push/schedule/dispatch they additionally follow the shared run_heavy decision.
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run_heavy == 'true'
     runs-on: ubuntu-latest
     # Builds take ~1 minute each (layer cache); the smoke below is bounded at 2 minutes.
     # The previous 90-minute budget only ever measured how long a hung smoke could hang.
@@ -406,12 +549,15 @@ jobs:
           echo
 
   # ─────────────────────────────────────────────────────────────────────
-  # Summary gate: fails if any platform failed
+  # Summary gate: fails if any platform failed.
+  # Always runs (if: always()) and always reports, which is what makes "Readiness summary"
+  # safe to require in branch protection. A heavy lane that was *skipped* (no core path in
+  # the PR diff, or docker-all-images on a PR) counts as a pass; failure/cancelled fail.
   # ─────────────────────────────────────────────────────────────────────
   readiness-summary:
     name: "Readiness summary"
     runs-on: ubuntu-latest
-    needs: [native-platform, container-platform, docker-cli-image, docker-all-images]
+    needs: [changes, native-platform, container-platform, docker-cli-image, docker-all-images]
     if: always()
     steps:
       - name: Download all artifacts
@@ -428,13 +574,27 @@ jobs:
           echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
 
           OVERALL=0
+
+          # The change detector must itself have succeeded: if it failed, every heavy lane was
+          # skipped because of a broken detector, not because nothing relevant changed.
+          if [[ "${{ needs.changes.result }}" != "success" ]]; then
+            echo "::error::changes job result was '${{ needs.changes.result }}' — cannot trust the skip decision."
+            OVERALL=1
+          fi
+
+          if [[ "${{ needs.changes.outputs.run_heavy }}" != "true" ]]; then
+            echo "Heavy platform lanes were skipped: no core path in this PR's diff (see the 'changes' job)." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
           for job_status in "${{ needs.native-platform.result }}" "${{ needs.container-platform.result }}" "${{ needs.docker-cli-image.result }}" "${{ needs.docker-all-images.result }}"; do
             case "$job_status" in
               success) ;;
-              cancelled|skipped)
-                echo "::warning::Job result was ${job_status}; not counted as a hard failure."
+              skipped)
+                echo "::notice::Job result was skipped (heavy lane not required for this event/diff); counted as a pass."
                 ;;
               *)
+                # failure or cancelled
                 OVERALL=1
                 ;;
             esac

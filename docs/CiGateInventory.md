@@ -6,13 +6,18 @@ Snapshot: **57 workflow files** under `.github/workflows/` (`git ls-files ".gith
 
 ## Required checks (branch protection) — what is enforced today
 
-`master` branch protection requires **exactly one** status-check context:
+`master` branch protection requires **four** status-check contexts:
 
 | Context | Workflow | Runs on |
 | --- | --- | --- |
 | `cert-gate` | `.github/workflows/cert-gate.yml` (job `cert-gate`) | every `pull_request`, every push to `master`, `workflow_dispatch` — no path filter |
+| `build-core` | `.github/workflows/build-gate.yml` (job `build-core`) | every `pull_request` — no path filter |
+| `shell-lint` | `.github/workflows/shell-lint.yml` (job `shell-lint`) | every `pull_request` — no path filter |
+| `lychee (README + docs)` | `.github/workflows/docs-link-check.yml` (job `lychee (README + docs)`) | every `pull_request` — no path filter |
 
-Verified with `gh api repos/IanFrelinger/Ashlar/branches/master/protection` (`required_status_checks.contexts == ["cert-gate"]`, `strict: true`, `enforce_admins: true`). Everything else in this document is **advisory**: a red `layer-boundary / verify`, `Kernel Gate / kernel-gate`, or `Docs Link Check / lychee` does not block a merge. Earlier revisions of this file listed 15 required contexts; that was never the repository setting.
+Verified 2026-09-09 with `gh api repos/IanFrelinger/Ashlar/branches/master/protection` (`required_status_checks.contexts == ["cert-gate", "build-core", "shell-lint", "lychee (README + docs)"]`, `strict: true`, `enforce_admins: true`). Everything else in this document is **advisory**: a red `layer-boundary / verify`, `Kernel Gate / kernel-gate`, or `Full Platform Readiness Gate / Readiness summary` does not block a merge. Earlier revisions of this file listed 15 required contexts; that was never the repository setting.
+
+**Intended next required context: `Readiness summary`** (`full-platform-readiness-gate.yml`). Since 2026-09-09 that workflow runs on **every** PR with no path filter: a first `changes` job diffs the PR against its merge-base and only runs the heavy platform lanes when a core path changed; otherwise the lanes are skipped and `Readiness summary` passes in about a minute. It therefore always reports and can be required without deadlock (a required context that never reports leaves a PR at "Expected — Waiting for status" forever, and `enforce_admins: true` means nobody can bypass it). Add it to branch protection only after one green `master` run confirms the change.
 
 ### Checks that are safe to require (always report on PRs)
 
@@ -25,6 +30,7 @@ These workflows have **no path filter** on `pull_request:` and will **always** p
 | `lychee (README + docs)` | `docs-link-check.yml` | `lychee (README + docs)` | External link validation; ~30s; safe to require |
 | `verify` | `layer-boundary.yml` | `verify` | Kernel-first layer boundary (paths: "**"); deliberate exemptions exist |
 | `uat` and `uat cross-platform` | `uat-gate.yml` | `uat`, `uat cross-platform` | Always runs (no paths); UAT smoke tests |
+| `Readiness summary` | `full-platform-readiness-gate.yml` | `readiness-summary` | Always reports (in-job path filter via the `changes` job; heavy lanes skipped when no core path changed, ~1 min); **intended next required context** once one green `master` run confirms it |
 
 **Action for CEO/admins:** To require `shell-lint` or `lychee (README + docs)`, add their exact check names to the `contexts` array in the branch protection snippet below. The workflows already always report — no YAML changes needed.
 
@@ -71,8 +77,8 @@ Counts by trigger class (57 files):
 
 | Class | Count | Meaning |
 | --- | --- | --- |
-| Runs on `pull_request` | 15 | 5 unfiltered (`cert-gate`, `shell-lint`, `docs-link-check`, `layer-boundary`, `uat-gate`), 9 path-filtered (including `products-gate`), 1 label-driven (`release-staging-on-label`) |
-| Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 20 | Post-merge / scheduled signal; never blocks a PR |
+| Runs on `pull_request` | 16 | 6 unfiltered (`cert-gate`, `shell-lint`, `docs-link-check`, `layer-boundary`, `uat-gate`, `full-platform-readiness-gate` — path filter inside the workflow), 9 path-filtered (including `products-gate`), 1 label-driven (`release-staging-on-label`) |
+| Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 19 | Post-merge / scheduled signal; never blocks a PR |
 | `workflow_dispatch` only | 17 | Manual lanes (mesh labs, multi-env Docker suites, ship/ops/perf, release plumbing) |
 | Tag / release event | 2 | `release.yml` (`v*.*.*` tags), `devlog-ghost-release.yml` (`release: published`) |
 | Reusable (`workflow_call`) | 3 | `reusable-*` |
@@ -87,6 +93,7 @@ Five workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `
 | `shell-lint.yml` | Shell lint / `shell-lint` | **every PR** (no paths) — **safe to require** | dispatch — always reports; cheap parse/lint check |
 | `docs-link-check.yml` | Docs Link Check / `lychee (README + docs)` | **every PR** (no paths) — **safe to require** | push, dispatch — always reports; ~30s lychee run |
 | `layer-boundary.yml` | layer-boundary / `verify` | every PR (`paths: "**"`, types opened/synchronize/reopened/edited) | — |
+| `full-platform-readiness-gate.yml` | Full Platform Readiness Gate / `changes`, platform lanes, `Readiness summary` | **every PR** (no paths; types opened/synchronize/reopened/ready_for_review) — `changes` job runs the heavy lanes only when a core path is in the diff (Dockerfiles, setup/install scripts, spine sources, CLI + CLI tests, `commercial/**`, Orchestration/Kernel test projects, StableSdkHostSample); otherwise `Readiness summary` passes in ~1 min. Production images (`docker-all-images`) never build on PRs. | push `master`/`main`/`cursor/**` (same path list), **weekly schedule**, dispatch |
 | `uat-gate.yml` | UAT / `uat`, `uat cross-platform` | **every PR** (no paths — deliberate, see file header) | push `master`, dispatch |
 | `application-gate.yml` | Application Gate / `application-gate` | paths: `application/**`, VirtualProduction tests, `scripts/application-gate*.sh`, `scripts/prod-dry-run.sh`, `Makefile`, … | dispatch |
 | `dependency-boundary.yml` | dependency-boundary / `verify` | paths: `**/*.csproj`, `commercial/**`, `application/**`, `src/**`, `LICENSING.md`, boundary scripts | push, dispatch |
@@ -113,7 +120,6 @@ All of these also accept `workflow_dispatch`. Branch filters are `master`, `main
 | `dr-gate.yml` | dr-gate | `master` only; `scripts/dr-gate*.sh` |
 | `environment-setup-gate-v1.yml` | Environment Setup Gate v1 | `master`/`main`; `scripts/setup/**`, CLI |
 | `friend-mesh-prefab-gate.yml` | Friend mesh prefab gate | friend-mesh compose, `.docker/Dockerfile.api`, `Ashlar.API` |
-| `full-platform-readiness-gate.yml` | Full Platform Readiness Gate | Dockerfiles, setup/install scripts, spine sources, StableSdkHostSample; **weekly schedule** |
 | `grpc-transport-gate.yml` | gRPC transport gate | `src/Ashlar.Transport.Grpc/**`, `src/Ashlar.Tests.Transport/**` |
 | `mcp-a2a-gate.yml` | MCP + A2A protocol gate | also `application/**` branches; `src/Ashlar.Mcp.*`, `src/Ashlar.Transport.A2A*`, `Ashlar.API` |
 | `onboarding-docs-guard.yml` | Onboarding Docs Guard | README, `docs/**/*.md`, `scripts/*.sh`, `scripts/*.ps1`, `Makefile`, `**/*.csproj` (ProjectTiers guard) |
