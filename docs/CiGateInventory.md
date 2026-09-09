@@ -155,7 +155,7 @@ Despite their names, **`cross-platform-tests`** and **`prod-dry-run-pr`** do not
 
 ## Policy
 
-- The only merge-blocking check is `cert-gate`. Treat every other gate as a review signal and read red checks before merging; that is a process rule, not a setting.
+- Four checks are merge-blocking: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`. Treat every other gate as a review signal and read red checks before merging; that is a process rule, not a setting.
 - To promote a gate to required, first make it always report on PRs (always-report job or in-job path filtering), then add its context to branch protection and to the table at the top of this file in the same change.
 - Release workflows (`release*`, `runtime-release*`, `rc-gate`, `reusable-*`) are not PR branch-protection checks.
 - Branch protection is not represented by YAML; when the setting changes, update this file (and [`GitHubBranchProtection.md`](GitHubBranchProtection.md)) in the same PR.
