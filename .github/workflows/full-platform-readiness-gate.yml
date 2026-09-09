@@ -37,6 +37,7 @@ on:
       - "src/Ashlar.Orchestration/**"
       - "src/Ashlar.BackgroundAgents/**"
       - "src/Ashlar.Tests.BackgroundAgents/**"
+      - "src/Ashlar.Tests.Infrastructure/**"
       - "scripts/pack-ashlar-hosting-graph.sh"
       - "scripts/pack-ashlar-hosting-graph.ps1"
       - "scripts/verify-stable-sdk-host-sample-packages.sh"
