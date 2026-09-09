@@ -23,6 +23,7 @@ namespace Ashlar.Tests.BackgroundAgents.Autonomy;
 /// never handed to a proposer as something to repair. No model, no container, no real gate:
 /// a scripted session runner and a scripted gate make the harness's inputs observable.
 /// </summary>
+[Collection(AutonomyTempProjectFilesCollection.Name)]
 public sealed class AutonomyLoopServiceTests : IDisposable
 {
     private const string ObjectiveId = "loop-probe";

@@ -14,6 +14,7 @@ namespace Ashlar.Tests.Application.Tests.Generation;
 /// the assertion helpers describe control flow — the repair loop is driven for real,
 /// only its I/O edges are faked.
 /// </summary>
+[Collection(OfflineAgentEnvironmentCollection.Name)]
 public sealed class AgentTestKitTests
 {
     [Fact]

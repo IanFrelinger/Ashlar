@@ -1,6 +1,7 @@
 using Ashlar.Agents.TestKit;
 using Ashlar.Bricks.SqlProfile;
 using Ashlar.Core.Domain.Bricks.Ports;
+using Xunit;
 
 namespace Ashlar.Tests.Application.Tests.Generation;
 
@@ -8,6 +9,7 @@ namespace Ashlar.Tests.Application.Tests.Generation;
 /// Part (e): the SQL profile against the SHARED conformance suite. Every case here
 /// is inherited — this file supplies only what is genuinely profile-specific.
 /// </summary>
+[Collection(OfflineAgentEnvironmentCollection.Name)]
 public sealed class SqlProfileConformanceTests
     : AgentProfileConformanceTests<SqlAgentProfileFactory>
 {
