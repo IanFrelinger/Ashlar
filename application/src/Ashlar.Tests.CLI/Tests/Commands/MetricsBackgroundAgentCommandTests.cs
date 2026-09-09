@@ -61,9 +61,22 @@ public class MetricsBackgroundAgentCommandTests : UnitTestBase
         var modeStore = new InMemoryAggressivenessModeStore();
         var logger = new Mock<ILogger<MetricsBackgroundAgentCommand>>();
         var command = new MetricsBackgroundAgentCommand(registry.Object, modeStore, logger.Object);
-        var exitCode = await command.ExecuteAsync("missing", false);
-        /// <summary>Assert equal.</summary>
-        AssertEqual(1, exitCode);
+
+        var swErr = new StringWriter();
+        try
+        {
+            Console.SetError(swErr);
+            var exitCode = await command.ExecuteAsync("missing", false);
+            /// <summary>Assert equal.</summary>
+            AssertEqual(1, exitCode);
+        }
+        finally
+        {
+            Console.SetError(ConsoleCapture.Error);
+        }
+
+        var errorOutput = swErr.ToString();
+        AssertTrue(errorOutput.Contains("not found"), "Error output must indicate agent not found");
     }
 
     private async Task TestMetricsSucceeds()

@@ -81,6 +81,8 @@ public sealed class MeshKnowledgeReplicationTests : IDisposable
 
         public Task LogAsync(AdaptationRecord record, CancellationToken cancellationToken = default)
         {
+            if (_records.Any(r => r.Id == record.Id))
+                throw new InvalidOperationException($"duplicate key: Id '{record.Id}' already exists");
             _records.Add(record);
             return Task.CompletedTask;
         }
@@ -104,6 +106,8 @@ public sealed class MeshKnowledgeReplicationTests : IDisposable
 
         public Task AddAsync(ObservedPattern pattern, CancellationToken cancellationToken = default)
         {
+            if (_patterns.Any(p => p.PatternId == pattern.PatternId))
+                throw new InvalidOperationException($"duplicate key: PatternId '{pattern.PatternId}' already exists");
             _patterns.Add(pattern);
             return Task.CompletedTask;
         }
