@@ -26,13 +26,14 @@ These workflows have **no path filter** on `pull_request:` and will **always** p
 | Check name (exact context for branch protection) | Workflow file | Job name | Notes |
 | --- | --- | --- | --- |
 | `cert-gate` | `cert-gate.yml` | `cert-gate` | **Currently required** — hermetic certification gate |
-| `shell-lint` | `shell-lint.yml` | `shell-lint` | Parse errors + shellcheck -S error; ~5s; safe to require |
-| `lychee (README + docs)` | `docs-link-check.yml` | `lychee (README + docs)` | External link validation; ~30s; safe to require |
+| `build-core` | `build-gate.yml` | `build-core` | **Currently required** — compiles `Ashlar.LocalDevCore.slnf` (Ashlar.CLI, Tests.Domain, Tests.Infrastructure); no tests |
+| `shell-lint` | `shell-lint.yml` | `shell-lint` | **Currently required** — parse errors + shellcheck -S error; ~5s |
+| `lychee (README + docs)` | `docs-link-check.yml` | `lychee (README + docs)` | **Currently required** — external link validation; ~30s |
 | `verify` | `layer-boundary.yml` | `verify` | Kernel-first layer boundary (paths: "**"); deliberate exemptions exist |
 | `uat` and `uat cross-platform` | `uat-gate.yml` | `uat`, `uat cross-platform` | Always runs (no paths); UAT smoke tests |
 | `Readiness summary` | `full-platform-readiness-gate.yml` | `readiness-summary` | Always reports (in-job path filter via the `changes` job; heavy lanes skipped when no core path changed, ~1 min); **intended next required context** once one green `master` run confirms it |
 
-**Action for CEO/admins:** To require `shell-lint` or `lychee (README + docs)`, add their exact check names to the `contexts` array in the branch protection snippet below. The workflows already always report — no YAML changes needed.
+**Action for CEO/admins:** `cert-gate`, `build-core`, `shell-lint` and `lychee (README + docs)` are already required (verified via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`, 2026-09-09). The next candidate is `Readiness summary`: after one green `master` run of the readiness gate with the in-workflow `changes` filter, add it to the `contexts` array in the snippet below. Note that the PATCH **replaces the whole array**, so every context that must stay required has to be listed.
 
 ### Why the other gates are not required (and cannot simply be added)
 
@@ -46,23 +47,24 @@ Until one of those lands per gate, only unfiltered checks are safe to require. `
 
 ### Branch protection update snippet
 
-Human runs this; agents cannot change repository settings. The `contexts` array below shows the **current required check** (`cert-gate` only). To also require `shell-lint` and/or `lychee (README + docs)`, add their exact names to the array — both workflows already always report.
+Human runs this; agents cannot change repository settings. The `contexts` array below lists the **four currently required checks**. `Readiness summary` is the commented-out candidate — uncomment it only after one green `master` run confirms the gate reports on every PR. The PATCH replaces the whole array: omitting an existing context silently un-requires it.
 
 ```bash
 OWNER="IanFrelinger"
 REPO="Ashlar"
 BRANCH="master"
 
-# Example: require cert-gate + shell-lint + lychee (COMMENTED OUT — adjust before running)
 cat > /tmp/ashlar-required-checks.json <<'JSON'
 {
   "required_status_checks": {
     "strict": true,
     "contexts": [
-      "cert-gate"
-      # Uncomment to also require (both are safe to require):
-      # ,"shell-lint"
-      # ,"lychee (README + docs)"
+      "cert-gate",
+      "build-core",
+      "shell-lint",
+      "lychee (README + docs)"
+      # Uncomment after one green master run of the readiness gate:
+      # ,"Readiness summary"
     ]
   }
 }
