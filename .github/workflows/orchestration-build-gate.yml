@@ -1,0 +1,65 @@
+# Orchestration build gate: compile Orchestration tests when Orchestration or hosting DI changes.
+# Catches compilation errors in Orchestration wiring before they break master.
+# Hygiene PR after #521/#534 master-red lesson: Orchestration changes can break downstream
+# test projects without breaking the Orchestration project itself.
+
+name: Orchestration Build Gate
+
+on:
+  pull_request:
+    paths:
+      - "src/Ashlar.Orchestration/**"
+      - "src/Ashlar.Tests.Orchestration/**"
+      - "src/Ashlar.Tests.Infrastructure/**"
+      - "src/Ashlar.Hosting/AshlarKernelRegistrar*.cs"
+      - ".github/workflows/orchestration-build-gate.yml"
+  push:
+    branches: [master, main]
+    paths:
+      - "src/Ashlar.Orchestration/**"
+      - "src/Ashlar.Tests.Orchestration/**"
+      - "src/Ashlar.Tests.Infrastructure/**"
+      - "src/Ashlar.Hosting/AshlarKernelRegistrar*.cs"
+      - ".github/workflows/orchestration-build-gate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: orchestration-build-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-orchestration-tests:
+    name: build-orchestration-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore Orchestration tests
+        run: dotnet restore src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj
+
+      - name: Build Orchestration tests
+        run: dotnet build src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj --no-restore -v minimal
+
+      - name: Restore Infrastructure tests
+        run: dotnet restore src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj
+
+      - name: Build Infrastructure tests
+        run: dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --no-restore -v minimal
+
+      - name: Job summary
+        if: success()
+        run: |
+          echo "✅ Orchestration test projects build succeeded" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Built:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj\`" >> $GITHUB_STEP_SUMMARY
