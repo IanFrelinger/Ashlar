@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -13,9 +14,22 @@ using Xunit;
 
 namespace Ashlar.Commercial.Tests.Fleet.Networking;
 
-/// <summary>Tests for infrastructure networking gap coverage.</summary>
+/// <summary>
+/// Tests for infrastructure networking gap coverage.
+/// HttpNetworkBus.DeliverAsync does not invoke subscribers inline: it schedules each matching
+/// handler via a fire-and-forget Task.Run, starts the peer relay without awaiting it, and returns
+/// Task.CompletedTask immediately; the heartbeat loop likewise runs on a background Task.Run.
+/// Handlers therefore run on a thread-pool thread at some later point, so these tests synchronize
+/// on an explicit signal completed by the subscriber (or the fake HTTP handler) rather than sleeping.
+/// </summary>
 public class InfrastructureNetworkingGapCoverageTests
 {
+    /// <summary>
+    /// Upper bound for waiting on a delivery that is expected to happen. A genuine bug
+    /// (handler never invoked) fails fast with a TimeoutException instead of hanging.
+    /// </summary>
+    private static readonly TimeSpan DeliveryTimeout = TimeSpan.FromSeconds(10);
+
     [Fact]
     public void Networking_options_expose_defaults()
     {
@@ -61,16 +75,16 @@ public class InfrastructureNetworkingGapCoverageTests
     public async Task HttpNetworkBus_delivers_subscribed_events_and_deduplicates()
     {
         var bus = CreateBus(new NetworkBusOptions { NodeId = "local", PeerUrls = [] });
-        NetworkEvent? received = null;
+        var delivered = new TaskCompletionSource<NetworkEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         var sub = await bus.SubscribeAsync("test", (evt, _) =>
         {
-            received = evt;
+            delivered.TrySetResult(evt);
             return Task.CompletedTask;
         });
 
         var evt = Event("e1", "test");
         await bus.DeliverAsync(evt);
-        await Task.Delay(50);
+        var received = await delivered.Task.WaitAsync(DeliveryTimeout);
         received.Should().NotBeNull();
 
         await bus.DeliverAsync(evt);
@@ -100,17 +114,27 @@ public class InfrastructureNetworkingGapCoverageTests
     public async Task HttpNetworkBus_delivers_only_matching_event_types()
     {
         var bus = CreateBus(new NetworkBusOptions { NodeId = "local", PeerUrls = [] });
-        var received = new List<string>();
+        // ConcurrentQueue: the handler runs on a thread-pool thread while the test thread reads.
+        var received = new ConcurrentQueue<string>();
+        var pingDelivered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var sub = await bus.SubscribeAsync("ping", (evt, _) =>
         {
-            received.Add(evt.EventType);
+            received.Enqueue(evt.EventType);
+            pingDelivered.TrySetResult(true);
             return Task.CompletedTask;
         });
 
         await bus.DeliverAsync(Event("e4", "pong"));
         await bus.DeliverAsync(Event("e5", "ping"));
-        await Task.Delay(50);
 
+        // Positive half: wait for the handler to signal that the matching event arrived.
+        await pingDelivered.Task.WaitAsync(DeliveryTimeout);
+
+        // Negative half: "pong" must NOT be delivered. There is no signal for "nothing happened",
+        // so allow a short grace after the positive signal. This grace can only produce a false
+        // PASS (if the bus were both broken and slow enough to deliver "pong" after 50 ms); it can
+        // never produce a false FAIL, because a correct bus never schedules the handler for "pong".
+        await Task.Delay(50);
         received.Should().ContainSingle().Which.Should().Be("ping");
         sub.Dispose();
         bus.Dispose();
@@ -205,16 +229,19 @@ public class InfrastructureNetworkingGapCoverageTests
     public async Task HttpNetworkBus_wildcard_subscription_receives_all_event_types()
     {
         var bus = CreateBus(new NetworkBusOptions { NodeId = "local", PeerUrls = [] });
-        var received = new List<string>();
+        // ConcurrentQueue: the two handler invocations run concurrently on thread-pool threads.
+        var received = new ConcurrentQueue<string>();
+        var bothDelivered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var sub = await bus.SubscribeAsync("*", (evt, _) =>
         {
-            received.Add(evt.EventType);
+            received.Enqueue(evt.EventType);
+            if (received.Count >= 2) bothDelivered.TrySetResult(true);
             return Task.CompletedTask;
         });
 
         await bus.DeliverAsync(Event("e9", "alpha"));
         await bus.DeliverAsync(Event("e10", "beta"));
-        await Task.Delay(50);
+        await bothDelivered.Task.WaitAsync(DeliveryTimeout);
 
         received.Should().BeEquivalentTo(new[] { "alpha", "beta" });
         sub.Dispose();
@@ -230,13 +257,15 @@ public class InfrastructureNetworkingGapCoverageTests
         await bus.DeliverAsync(Event("evict-3", "c"));
 
         var redelivered = 0;
+        var redeliverySignal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var sub = await bus.SubscribeAsync("a", (_, _) =>
         {
             Interlocked.Increment(ref redelivered);
+            redeliverySignal.TrySetResult(true);
             return Task.CompletedTask;
         });
         await bus.DeliverAsync(Event("evict-1", "a"));
-        await Task.Delay(50);
+        await redeliverySignal.Task.WaitAsync(DeliveryTimeout);
 
         redelivered.Should().Be(1);
         sub.Dispose();
@@ -263,7 +292,9 @@ public class InfrastructureNetworkingGapCoverageTests
     [Fact]
     public async Task HttpNetworkBus_deliver_relays_to_peers_except_source()
     {
-        var sentTo = new List<string>();
+        // ConcurrentQueue: the relay runs un-awaited on a thread-pool thread while the test thread reads.
+        var sentTo = new ConcurrentQueue<string>();
+        var relayed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var bus = CreateBus(
             new NetworkBusOptions
             {
@@ -274,7 +305,8 @@ public class InfrastructureNetworkingGapCoverageTests
             /// <summary>Fake handler.</summary>
             new FakeHandler((req, _) =>
             {
-                sentTo.Add(req.RequestUri!.Host);
+                sentTo.Enqueue(req.RequestUri!.Host);
+                relayed.TrySetResult(true);
                 /// <summary>Json.</summary>
                 return Json(HttpStatusCode.OK, "{}");
             }));
@@ -286,7 +318,11 @@ public class InfrastructureNetworkingGapCoverageTests
             MaxHops = 2,
         };
         await bus.DeliverAsync(evt);
-        await Task.Delay(100);
+
+        // The relay visits peers sequentially in registration order and skips the source peer
+        // synchronously before awaiting the send to the next one, so once any request has been
+        // observed every send the relay will ever make has already been recorded.
+        await relayed.Task.WaitAsync(DeliveryTimeout);
 
         sentTo.Should().ContainSingle().Which.Should().Be("peer-b.example.com");
         bus.Dispose();
@@ -305,6 +341,7 @@ public class InfrastructureNetworkingGapCoverageTests
     public async Task HttpNetworkBus_heartbeat_broadcasts_to_peers()
     {
         var sent = 0;
+        var heartbeatSent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var bus = CreateBus(
             new NetworkBusOptions
             {
@@ -316,11 +353,14 @@ public class InfrastructureNetworkingGapCoverageTests
             new FakeHandler((_, _) =>
             {
                 Interlocked.Increment(ref sent);
+                heartbeatSent.TrySetResult(true);
                 /// <summary>Json.</summary>
                 return Json(HttpStatusCode.OK, "{}");
             }));
 
-        await Task.Delay(1300);
+        // The heartbeat loop runs on a background Task.Run with a 1 s Task.Delay before its first
+        // broadcast; wait for the fake handler to observe that broadcast instead of sleeping.
+        await heartbeatSent.Task.WaitAsync(DeliveryTimeout);
         sent.Should().BeGreaterThan(0);
         bus.Dispose();
     }
