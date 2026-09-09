@@ -47,7 +47,7 @@ Until one of those lands per gate, only unfiltered checks are safe to require. `
 
 ### Branch protection update snippet
 
-Human runs this; agents cannot change repository settings. The `contexts` array below lists the **four currently required checks**. `Readiness summary` is the commented-out candidate — uncomment it only after one green `master` run confirms the gate reports on every PR. The PATCH replaces the whole array: omitting an existing context silently un-requires it.
+Human runs this; agents cannot change repository settings. The `contexts` array below lists the **four currently required checks**. `Readiness summary` is the next candidate — add `"Readiness summary"` to the array only after one green `master` run confirms the gate reports on every PR (heredoc bodies must stay valid JSON, so there is no commented-out placeholder). The PATCH replaces the whole array: omitting an existing context silently un-requires it.
 
 ```bash
 OWNER="IanFrelinger"
@@ -63,8 +63,6 @@ cat > /tmp/ashlar-required-checks.json <<'JSON'
       "build-core",
       "shell-lint",
       "lychee (README + docs)"
-      # Uncomment after one green master run of the readiness gate:
-      # ,"Readiness summary"
     ]
   }
 }
