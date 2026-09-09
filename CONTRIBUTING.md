@@ -4,9 +4,9 @@ Thanks for contributing.
 
 ## Branching and releases
 
-Development is trunk-based: `master` is the only long-lived branch. Branch protection requires **one** status check, `cert-gate` (plus "up to date with base"); every other workflow is advisory — see [`docs/CiGateInventory.md`](docs/CiGateInventory.md) and "Layer boundary and what master actually enforces" below.
+Development is trunk-based: `master` is the only long-lived branch. Branch protection requires **four** status checks: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)` (plus "up to date with base"); every other workflow is advisory — see [`docs/CiGateInventory.md`](docs/CiGateInventory.md) and "Layer boundary and what master actually enforces" below.
 
-**Additional checks safe to require:** `shell-lint` and `lychee (README + docs)` both run on every PR (no path filters) and always report a status. They are deliberately configured this way to be safe as required checks. See [`docs/CiGateInventory.md`](docs/CiGateInventory.md) § "Checks that are safe to require" for the complete list and exact check names for branch protection.
+These four checks run on every PR (no path filters) and always report a status, so they are safe as required checks and will not block PRs that don't touch their relevant code paths.
 
 - Branch from the latest `master`, keep branches short-lived (days, not weeks), one concern per branch.
 - Name branches `<type>/<topic>` using the same types as Conventional Commits: `feat/…`, `fix/…`, `docs/…`, `chore/…`, `ci/…`, `refactor/…`, `test/…`. For multi-PR efforts, put the epic name at the front of the topic so related branches sort together: `feat/trust-loop-hot-swap`, `feat/trust-loop-fence-probe`. Do **not** name a head branch `application/*` when it targets `master` (the layer-boundary gate rejects that pairing).

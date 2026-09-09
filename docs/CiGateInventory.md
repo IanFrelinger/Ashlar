@@ -6,13 +6,16 @@ Snapshot: **57 workflow files** under `.github/workflows/` (`git ls-files ".gith
 
 ## Required checks (branch protection) — what is enforced today
 
-`master` branch protection requires **exactly one** status-check context:
+`master` branch protection requires **four** status-check contexts:
 
-| Context | Workflow | Runs on |
-| --- | --- | --- |
-| `cert-gate` | `.github/workflows/cert-gate.yml` (job `cert-gate`) | every `pull_request`, every push to `master`, `workflow_dispatch` — no path filter |
+| Context | Workflow | Runs on | Purpose |
+| --- | --- | --- | --- |
+| `cert-gate` | `.github/workflows/cert-gate.yml` (job `cert-gate`) | every `pull_request`, every push to `master`, `workflow_dispatch` — no path filter | Hermetic certification gate |
+| `build-core` | `.github/workflows/build-gate.yml` (job `build-core`) | every `pull_request`, every push to `master`, `workflow_dispatch` — no path filter | Fast compile check (~2-3 min) |
+| `shell-lint` | `.github/workflows/shell-lint.yml` (job `shell-lint`) | every `pull_request`, `workflow_dispatch` — no path filter | Shell script syntax verification (~30s) |
+| `lychee (README + docs)` | `.github/workflows/docs-link-check.yml` (job `lychee`) | every `pull_request`, every push to `master`, `workflow_dispatch` — no path filter | Docs link validation (~30s) |
 
-Verified with `gh api repos/IanFrelinger/Ashlar/branches/master/protection` (`required_status_checks.contexts == ["cert-gate"]`, `strict: true`, `enforce_admins: true`). Everything else in this document is **advisory**: a red `layer-boundary / verify`, `Kernel Gate / kernel-gate`, or `Docs Link Check / lychee` does not block a merge. Earlier revisions of this file listed 15 required contexts; that was never the repository setting.
+Verified with `gh api repos/IanFrelinger/Ashlar/branches/master/protection` on 2026-09-09 (`required_status_checks.contexts == ["cert-gate", "build-core", "shell-lint", "lychee (README + docs)"]`, `strict: true`, `enforce_admins: true`). Everything else in this document is **advisory**: a red `layer-boundary / verify`, `Kernel Gate / kernel-gate`, etc. does not block a merge.
 
 ### Checks that are safe to require (always report on PRs)
 
@@ -20,13 +23,14 @@ These workflows have **no path filter** on `pull_request:` and will **always** p
 
 | Check name (exact context for branch protection) | Workflow file | Job name | Notes |
 | --- | --- | --- | --- |
-| `cert-gate` | `cert-gate.yml` | `cert-gate` | **Currently required** — hermetic certification gate |
-| `shell-lint` | `shell-lint.yml` | `shell-lint` | Parse errors + shellcheck -S error; ~5s; safe to require |
-| `lychee (README + docs)` | `docs-link-check.yml` | `lychee (README + docs)` | External link validation; ~30s; safe to require |
+| `cert-gate` | `cert-gate.yml` | `cert-gate` | **Required** — hermetic certification gate |
+| `build-core` | `build-gate.yml` | `build-core` | **Required** — fast compile check (~2-3 min) |
+| `shell-lint` | `shell-lint.yml` | `shell-lint` | **Required** — parse errors + shellcheck -S error (~30s) |
+| `lychee (README + docs)` | `docs-link-check.yml` | `lychee (README + docs)` | **Required** — external link validation (~30s) |
 | `verify` | `layer-boundary.yml` | `verify` | Kernel-first layer boundary (paths: "**"); deliberate exemptions exist |
 | `uat` and `uat cross-platform` | `uat-gate.yml` | `uat`, `uat cross-platform` | Always runs (no paths); UAT smoke tests |
 
-**Action for CEO/admins:** To require `shell-lint` or `lychee (README + docs)`, add their exact check names to the `contexts` array in the branch protection snippet below. The workflows already always report — no YAML changes needed.
+The four checks listed as **Required** are already configured in branch protection. Additional checks like `verify` could be added without requiring workflow changes.
 
 ### Why the other gates are not required (and cannot simply be added)
 
@@ -40,23 +44,23 @@ Until one of those lands per gate, only unfiltered checks are safe to require. `
 
 ### Branch protection update snippet
 
-Human runs this; agents cannot change repository settings. The `contexts` array below shows the **current required check** (`cert-gate` only). To also require `shell-lint` and/or `lychee (README + docs)`, add their exact names to the array — both workflows already always report.
+Human runs this; agents cannot change repository settings. The `contexts` array below shows the **current required checks** (four contexts as of 2026-09-09).
 
 ```bash
 OWNER="IanFrelinger"
 REPO="Ashlar"
 BRANCH="master"
 
-# Example: require cert-gate + shell-lint + lychee (COMMENTED OUT — adjust before running)
+# Current required checks (do not modify without coordination)
 cat > /tmp/ashlar-required-checks.json <<'JSON'
 {
   "required_status_checks": {
     "strict": true,
     "contexts": [
-      "cert-gate"
-      # Uncomment to also require (both are safe to require):
-      # ,"shell-lint"
-      # ,"lychee (README + docs)"
+      "cert-gate",
+      "build-core",
+      "shell-lint",
+      "lychee (README + docs)"
     ]
   }
 }
@@ -147,7 +151,7 @@ Despite their names, **`cross-platform-tests`** and **`prod-dry-run-pr`** do not
 
 ## Policy
 
-- The only merge-blocking check is `cert-gate`. Treat every other gate as a review signal and read red checks before merging; that is a process rule, not a setting.
+- Four checks are merge-blocking: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`. Treat every other gate as a review signal and read red checks before merging; that is a process rule, not a setting.
 - To promote a gate to required, first make it always report on PRs (always-report job or in-job path filtering), then add its context to branch protection and to the table at the top of this file in the same change.
 - Release workflows (`release*`, `runtime-release*`, `rc-gate`, `reusable-*`) are not PR branch-protection checks.
 - Branch protection is not represented by YAML; when the setting changes, update this file (and [`GitHubBranchProtection.md`](GitHubBranchProtection.md)) in the same PR.
