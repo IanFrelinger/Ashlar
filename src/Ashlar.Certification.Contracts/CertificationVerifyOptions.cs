@@ -5,7 +5,7 @@ namespace Ashlar.Certification.Contracts;
 /// </summary>
 /// <remarks>
 /// <para><b>Default and Strict are now fail-closed.</b> Both require trust-loop schema (v2+)
-/// and Ed25519 signatures to close limitations 7-9 from certification-evidence.md.
+/// and Ed25519 signatures to close limitations 7–8 from certification-evidence.md.
 /// Use <see cref="Legacy"/> only for testing or migrating pre-trust-loop records. Production
 /// paths should use <see cref="Strict"/>.</para>
 ///
