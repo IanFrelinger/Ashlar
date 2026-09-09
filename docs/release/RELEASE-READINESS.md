@@ -11,9 +11,9 @@
 Ashlar ships as an **embeddable local-first .NET runtime** with cert-gate + trust log. Commercial model: Community free → design partner → Builder/Team/Enterprise tiers; Cloud PAYG later. Dual revenue streams: flagship product on Ashlar runtime + engine licensing (Fortnite+Unreal model). North star: successful embeds, not autonomous self-extension hype before the dogfood ledger exists.
 
 **Current state:**
-- **Runtime (Ashlar):** P0 trust holes being closed; CI not yet redundant; cert-loop honesty incomplete in docs/landing
+- **Runtime (Ashlar):** P0 trust PRs merged (limitations 7-8 closed by PR #523; limitation 9 open); CI redundancy live (four required checks on `master`); cert-loop honesty shipped in docs/landing
 - **Product (Forge):** Scaffold exists; no public Cursor-safe claims without ledger (P3 hold)
-- **Recommendation:** Design-partner private only until runtime P0s close + CI hardening complete
+- **Recommendation:** Design-partner private only until limitation 9 closes + external validation; autonomy marketing stays HOLD per `docs/dogfood-ledger.md` / `docs/dogfood-scorecard.md`
 
 **This document provides:**
 1. [Runtime release bar (Ashlar)](#1-runtime-release-bar-ashlar) — must-close issues before tagging release candidates
@@ -32,7 +32,7 @@ These are **blockers** for any public release candidate tag. Every item referenc
 
 | Item | Issue | Status | Release impact |
 |------|-------|--------|----------------|
-| **P0 trust signature holes (limitations 7-9)** | [#513](https://github.com/IanFrelinger/Ashlar/pull/513) | ⚠️ **PARTIAL** (merged 2026-09-06T02:23:51Z) | Fail-closed defaults landed; **Limitation 7 NOT fully closed** — Strict production paths still lack `RequireEd25519Signature` (follow-up PR pending per `docs/dogfood-ledger.md`) |
+| **P0 trust signature holes (limitations 7-9)** | [#513](https://github.com/IanFrelinger/Ashlar/pull/513), [#523](https://github.com/IanFrelinger/Ashlar/pull/523) | ⚠️ **PARTIAL** (#513 merged 2026-09-06T02:23:51Z; #523 merged 2026-09-06T05:58:54Z) | Fail-closed defaults landed (#513); **limitations 7-8 CLOSED by PR #523 (2026-09-06)** — `CertificationVerifyOptions.Default`/`Strict` now set `RequireEd25519Signature = true` + `MinimumSchemaVersion = 2`; **limitation 9 OPEN** (`CompositionCertificationRecordSigner` discards an explicitly supplied key) — see `docs/certification-evidence.md` limitations 7-9 and `docs/dogfood-ledger.md` |
 | **Cert-loop honesty in landing/docs** | [#514](https://github.com/IanFrelinger/Ashlar/pull/514), [#505](https://github.com/IanFrelinger/Ashlar/pull/505), [#506](https://github.com/IanFrelinger/Ashlar/pull/506) | ✅ **COMPLETE** (all merged: #505, #506, #514 merged 2026-09-06T01:31:06Z) | Marketing landing honest; cert-loop defect fixes shipped |
 | **Cert-loop integration live path** | [#512](https://github.com/IanFrelinger/Ashlar/pull/512) | ✅ **COMPLETE** (merged 2026-09-06T01:40:20Z) | Certified loop integration + canary verification enforced, live on master |
 
@@ -47,18 +47,19 @@ These are **blockers** for any public release candidate tag. Every item referenc
 - ✅ "Trust log auditable via `/api/trust/dashboard`; every decision on the record"
 - ✅ "Fail-closed admission: proposals face real gate, uncertified code rejected"
 
-**What sales/marketing must NOT claim (until P3 ledger exists):**
-- ❌ "Autonomous self-extension safe for unattended production" — ships in hold mode, ledger documents spike-grade status
+**What sales/marketing must NOT claim (until the dogfood ledger shows dated Strict E2E passes):**
+- ❌ "Autonomous self-extension safe for unattended production" — ships in hold mode; `docs/dogfood-ledger.md` has cert-path / INFRA ONLY entries but no dated E2E pass yet
 - ❌ "No human oversight required" — operator-governed path is supported, autonomous path is experimental
 
 ### 1.2 CI redundancy (P0)
 
 | Item | Issue | Status | Release impact |
 |------|-------|--------|----------------|
-| **CI not SPOF** | [#511](https://github.com/IanFrelinger/Ashlar/pull/511) | ⚠️ **PARTIAL** (merged 2026-09-06T01:37:01Z) | Four complementary workflows on master; **branch protection update still needed** to make `build-core`, `shell-lint`, `lychee` required checks |
+| **CI not SPOF** | [#511](https://github.com/IanFrelinger/Ashlar/pull/511) | ✅ **COMPLETE** (merged 2026-09-06T01:37:01Z; branch protection updated) | `master` branch protection now requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`) |
 
 **Action required:** 
-- **CEO/admin:** Update branch protection settings to add `build-core`, `shell-lint`, `lychee (README + docs)` as required checks (see [CEO-only actions](#5-ceo-only-actions-list))
+- ✅ **Done** — branch protection requires all four checks (see [CEO-only actions](#5-ceo-only-actions-list))
+- **Follow-up (any contributor, separate PR):** `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` still describe `cert-gate` as the only required check — bring them in line with the live setting
 
 **What sales/marketing may claim:**
 - ✅ "Every PR gated by hermetic certification + build integrity + docs verification"
@@ -69,7 +70,7 @@ These are **blockers** for any public release candidate tag. Every item referenc
 | Item | Documentation | Status | Release impact |
 |------|---------------|--------|----------------|
 | **Certification evidence ledger current** | `docs/certification-evidence.md` | ✅ **COMPLETE** | All proven admits/rejects documented with CI runs; known v0 limitations 1-9 listed with closure dates where applicable |
-| **Self-extend audit transparent** | `docs/SELF-EXTEND-AUDIT.md` | ✅ **COMPLETE** | Invariants A-D enforced status documented; convergence gap vs certified loop stated (line 103) |
+| **Self-extend audit transparent** | `docs/SELF-EXTEND-AUDIT.md` | ✅ **COMPLETE** | Invariants A-D enforced status documented; convergence gap vs certified loop stated (§ "Cert-loop integration") |
 | **Landing page claims honest** | `site/index.html` | ✅ **COMPLETE** | Cloud marked "coming soon"; no autonomous claims; SDK examples grounded in real API |
 | **README trust claims grounded** | `README.md` | ✅ **COMPLETE** | Links to evidence ledger, audit docs; spike-grade vs supported paths distinguished |
 
@@ -121,7 +122,7 @@ These are **blockers** for any public release candidate tag. Every item referenc
 
 | Item | Blocker | Release impact |
 |------|---------|----------------|
-| **Dogfood ledger exists** | P3 open: Cursor adapter needs multi-cycle unattended evidence beyond spike | Until ledger: no "production-ready Cursor integration" claims; design-partner private only with explicit "experimental, hold mode" disclosure |
+| **Dogfood ledger shows dated E2E passes** | P3 open: `docs/dogfood-ledger.md` exists but holds only cert-path close / INFRA ONLY entries (no dated Strict E2E pass yet); scorecard unlock criteria in `docs/dogfood-scorecard.md` unmet | Until dated passes: no "production-ready Cursor integration" claims; design-partner private only with explicit "experimental, hold mode" disclosure |
 
 **What sales/marketing may claim (design-partner private only):**
 - ✅ "Experimental Cursor adapter available for design partners under hold mode"
@@ -198,16 +199,16 @@ Map release bars to **commercial funnel stages**: Aware → Eval → Embed → D
 - Provide feedback on autonomous proposal workflow
 
 **Must be true:**
-- ⚠️ P0 trust holes closed (PR #513 **PARTIAL** — fail-closed defaults merged; Limitation 7 residual follow-up pending)
+- ⚠️ P0 trust holes closed (PRs #513 + #523 merged 2026-09-06 — limitations 7-8 closed; limitation 9 still open)
 - ✅ Cert-loop integration complete (PR #512 merged 2026-09-06)
-- ⚠️ CI redundancy in place (PR #511 merged; **branch protection update needed**)
+- ✅ CI redundancy in place (PR #511 merged; branch protection requires all four checks)
 - ✅ Known limitations documented honestly
 - ✅ Design partner agreement includes "experimental" disclosure for Forge features
 - ✅ Support channel established (GitHub Discussions or direct contact)
 
 **Funnel success:** Design partner deploys → sees value → willing to pay
 
-**Current readiness:** ⚠️ **NEAR for runtime** (P0 PRs merged; branch protection + Limitation 7 follow-up remaining); ⚠️ **HOLD for Forge** (pending P3 ledger)
+**Current readiness:** ⚠️ **NEAR for runtime** (P0 PRs merged, branch protection live; limitation 9 remaining); ⚠️ **HOLD for Forge** (pending dated ledger passes)
 
 ### 3.5 Paid (Builder/Team/Enterprise tiers)
 
@@ -238,8 +239,8 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 **Go criteria (ALL must be true):**
 
-- [ ] **P0 trust holes closed:** PR #513 fail-closed defaults merged (✅ 2026-09-06); **Limitation 7 follow-up PR merged** (residual: Strict+Ed25519, currently pending)
-- [ ] **CI redundancy live:** PR #511 merged (✅ 2026-09-06) + branch protection updated (**protection update pending**)
+- [ ] **P0 trust holes closed:** PR #513 fail-closed defaults merged (✅ 2026-09-06); limitations 7-8 closed by PR #523 (✅ 2026-09-06); **limitation 9 (composition signer key discard) still open** — roadmap M1 requires close before commercial claims (`docs/audits/2026-09-completion-roadmap.md`)
+- [x] **CI redundancy live:** PR #511 merged (✅ 2026-09-06) + branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (✅ verified 2026-09-09)
 - [x] **Cert-loop integration:** PR #512 merged + verified (✅ 2026-09-06)
 - [x] **Cert-loop honesty complete:** PRs #505 (✅ merged), #506 (✅ merged), #514 (✅ merged 2026-09-06) + docs audited
 - [ ] **Known limitations documented:** `certification-evidence.md` + `SELF-EXTEND-AUDIT.md` current
@@ -253,19 +254,19 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 **No-go criteria (ANY one blocks public release):**
 
-- [x] **ACTIVE BLOCKER:** Limitation 7 follow-up PR not merged (Strict+Ed25519 enforcement) — **currently pending**
-- [x] **ACTIVE BLOCKER:** Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — **CEO action needed**
+- [x] **ACTIVE BLOCKER:** Limitation 9 (composition signer discards supplied key) not closed — **currently open** (limitations 7-8 closed by PR #523, 2026-09-06)
+- [ ] Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — ✅ resolved (all four checks required; verified 2026-09-09)
 - [ ] Landing page contains false Cloud GA or autonomous production claims
 - [ ] TesterQuickstart fails on clean machine
 - [ ] Security defaults allow unauthenticated network exposure without explicit opt-in
 
-**Current recommendation:** ⚠️ **NO-GO for public v0.x** — Branch protection update + Limitation 7 follow-up PR required, then external validation
+**Current recommendation:** ⚠️ **NO-GO for public v0.x** — Limitation 9 close + external validation + remaining CEO actions (Pages, social preview, Discussions) required
 
 ### 4.2 Design-partner private release
 
 **Go criteria (LESS restrictive than public):**
 
-- [x] **P0 trust holes closed:** PR #513 merged (✅ 2026-09-06; Limitation 7 follow-up disclosed in design-partner agreement)
+- [x] **P0 trust holes closed:** PRs #513 + #523 merged (✅ 2026-09-06; limitations 7-8 closed; limitation 9 residual disclosed in design-partner agreement)
 - [x] **Cert-loop integration:** PR #512 merged (✅ 2026-09-06)
 - [ ] **CI primary gate working:** `cert-gate` reliable (redundancy nice-to-have, not blocker)
 - [ ] **Known limitations documented:** Limitations 1-9 in `certification-evidence.md`
@@ -278,9 +279,9 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 - [ ] Cert-gate consistently failing on master
 - [ ] No design-partner agreement (no legal protection for experimental features)
-- [ ] Limitation 7 (Strict+Ed25519) not disclosed in design-partner agreement
+- [ ] Limitation 9 (composition signer key discard) not disclosed in design-partner agreement
 
-**Current recommendation:** ✅ **GO design-partner private** — P0 PRs merged; disclose Limitation 7 residual (Strict+Ed25519 follow-up pending) in agreement
+**Current recommendation:** ✅ **GO design-partner private** (runtime pilots) — P0 PRs merged; disclose limitation 9 residual in agreement. Autonomy / design-partner **marketing claims** remain **HOLD** per `docs/dogfood-ledger.md` and `docs/dogfood-scorecard.md` until scorecard thresholds hold ~7 consecutive days and dated Strict+Ed25519 E2E passes appear in the ledger.
 
 ---
 
@@ -290,9 +291,11 @@ These actions require **repository administrator** or **organization owner** per
 
 ### 5.1 Branch protection (CI hardening)
 
-**Issue:** [#511](https://github.com/IanFrelinger/Ashlar/pull/511) **merged** (2026-09-06T01:37:01Z); workflows on master, branch protection update remains.
+**Status:** ✅ **DONE** — [#511](https://github.com/IanFrelinger/Ashlar/pull/511) **merged** (2026-09-06T01:37:01Z); `master` branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`; `enforce_admins` on).
 
-**Action required (CEO/admin only):**
+**Follow-up (any contributor, separate PR):** `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` still say `cert-gate` is the only required check — update them to match the live setting.
+
+**Reference (how it was configured; CEO/admin only):**
 
 1. Navigate to **Settings → Branches → Branch protection rule for `master`**
 2. Under "Require status checks to pass before merging", add these required checks:
@@ -353,7 +356,7 @@ These actions require **repository administrator** or **organization owner** per
 
 ### 5.5 Contact channel (customer funnel)
 
-**Current state:** README references `https://github.com/IanFrelinger/Ashlar/discussions` (GitHub Discussions).
+**Current state:** Landing page (`site/index.html`, "Talk commercial" button) links to `https://github.com/IanFrelinger/Ashlar/discussions`; Discussions is **not yet enabled** on the repo (`has_discussions: false`, verified 2026-09-09). README does not currently link Discussions.
 
 **Options:**
 
@@ -384,23 +387,24 @@ These actions require **repository administrator** or **organization owner** per
 
 ## 6. Release decision summary
 
-### Recommendation: Design-partner private ready; public v0.x needs branch protection + Limitation 7 follow-up
+### Recommendation: Design-partner private ready; public v0.x needs limitation 9 close + external validation + remaining CEO actions
 
 **Rationale:**
 - Runtime P0 PRs merged — ✅ (#513 fail-closed defaults, #512 cert-loop, #511 workflows, #514 landing) all landed 2026-09-06
-- Limitation 7 residual — ⚠️ **Strict production paths lack `RequireEd25519Signature`** (follow-up PR pending per `docs/dogfood-ledger.md`)
+- Limitations 7-8 — ✅ closed by PR #523 (2026-09-06; `Default`/`Strict` require Ed25519 signature + schema floor 2; ledger entry in `docs/dogfood-ledger.md`)
+- Limitation 9 — ⚠️ **OPEN** (`CompositionCertificationRecordSigner` discards an explicitly supplied key; roadmap M1 blocker for commercial claims)
 - CI redundancy workflows on master — ✅ (PR #511 merged)
-- Branch protection not updated — ⚠️ **CEO action needed** (`build-core`, `shell-lint`, `lychee` not yet required)
+- Branch protection — ✅ requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (verified 2026-09-09)
 - Known limitations documented honestly ✅
 - Forge needs P3 ledger before public claims ⚠️
 
 **Path forward:**
 
-1. **NOW:** Go design-partner private (runtime P0 PRs merged; disclose Limitation 7 residual in agreement; Forge hold-mode with disclosure)
-2. **NEXT:** CEO actions (branch protection, Pages, social preview, Discussions)
-3. **PARALLEL:** Limitation 7 follow-up PR (Strict+Ed25519 enforcement for production paths)
+1. **NOW:** Go design-partner private (runtime P0 PRs merged; disclose limitation 9 residual in agreement; Forge hold-mode with disclosure; no autonomy marketing claims)
+2. **NEXT:** CEO actions (Pages, social preview, Discussions)
+3. **PARALLEL:** Limitation 9 fix (composition signer honours supplied key — roadmap M1)
 4. **THEN:** External validation (docs tested by non-contributor)
-5. **FINALLY:** Public v0.x release (branch protection live + Limitation 7 follow-up merged + validation complete)
+5. **FINALLY:** Public v0.x release (limitation 9 closed + validation complete + CEO actions done)
 
 ### What to tell prospects TODAY
 
@@ -408,20 +412,19 @@ These actions require **repository administrator** or **organization owner** per
 
 ✅ **Yes for embedded runtime use cases (design-partner private):**
 - "Ashlar runtime (cert-gate + trust log) ready for design-partner pilots"
-- "P0 trust PRs merged (2026-09-06): fail-closed defaults, cert-loop integration, CI workflows, landing honesty"
+- "P0 trust PRs merged (2026-09-06): fail-closed defaults, Strict+Ed25519 required (#523), cert-loop integration, CI workflows, landing honesty"
 - "NuGet packages published, HTTP API works, CLI tested"
 - "Fail-closed admission: uncertified code rejected"
-- "Known residual: Limitation 7 (Strict production paths lack `RequireEd25519Signature`; follow-up PR pending) — disclosed in design-partner agreement"
+- "Known residual: limitation 9 (composition signer ignores an explicitly supplied key; fix pending) — disclosed in design-partner agreement; limitations 7-8 closed by PR #523"
 
 ⚠️ **Not yet for public v0.x:**
-- "Branch protection update pending (CEO action) to make CI redundancy live"
-- "Limitation 7 follow-up PR pending for full Strict+Ed25519 enforcement"
+- "Limitation 9 fix pending (composition signer key handling)"
 - "External validation needed before public announcement"
 
 ⚠️ **Not yet for autonomous self-extension:**
 - "Autonomous loop ships in hold mode (experimental)"
 - "Seeking design partners for Forge product (adaptive factory + Cursor adapter)"
-- "Multi-cycle unattended evidence pending (P3 open)"
+- "Multi-cycle unattended evidence pending (P3 open; dogfood ledger has no dated Strict E2E pass yet — marketing HOLD per `docs/dogfood-scorecard.md`)"
 
 ❌ **Not production-ready for:**
 - Unattended autonomous code generation (hold mode only)
@@ -450,7 +453,7 @@ These actions require **repository administrator** or **organization owner** per
 | **P3 ledger delays Forge GA** | Revenue from Forge pushed to 2027 | Focus on runtime embeds (proven value); Forge design-partner private generates feedback |
 | **Design partners churn before paid** | Revenue target missed | Tight feedback loop, fast bug fixes, clear support boundaries |
 | **Competitor (e.g. Copilot) moves faster on trust/audit** | Differentiation weakens | Double down on fail-closed admission + cert-gate teeth (our moat); emphasize local-first |
-| **Branch protection not updated → CI SPOF persists** | Broken code merges if cert-gate flaky | CEO action (5.1) before next PR merge; interim: manual review rigor |
+| **Limitation 9 open → composition trust chain weak** | Composition records minted under the committed dev key even when the operator supplies a real key | Roadmap M1 fix (composition signer honours supplied key) before commercial claims; disclose in design-partner agreement |
 | **Contact channel (Discussions) not enabled** | Funnel breaks at Aware → Eval | CEO action (5.5) before public announcement |
 
 ---
@@ -463,6 +466,9 @@ These actions require **repository administrator** or **organization owner** per
 - `docs/SELF-EXTEND-AUDIT.md` — Self-extend invariants A-D enforcement audit
 - `docs/trust-loop/ashlar-trust-loop-spec.md` — Trust loop spec (analyzer fence, witness, mutation, determinism)
 - `docs/governed-pipeline.md` — Governed model pipeline (proposals flow through)
+- `docs/dogfood-ledger.md` — Dated dogfood evidence (PR #523 lim-7/8 close entry; no E2E pass yet)
+- `docs/dogfood-scorecard.md` — Autonomy marketing unlock thresholds (HOLD status)
+- `docs/audits/2026-09-completion-roadmap.md` — Completion roadmap (M1: close limitation 9)
 
 ### 8.2 Product / commercial
 
@@ -480,8 +486,8 @@ These actions require **repository administrator** or **organization owner** per
 
 ### 8.4 Known limitations (open issues)
 
-- `docs/certification-evidence.md` lines 644-830 (limitations 1-9, some closed, some residual)
-- `docs/SELF-EXTEND-AUDIT.md` line 103 (convergence gap: certified loop vs legacy extender)
+- `docs/certification-evidence.md` § "Known v0 limitations" (lines 644-844; limitations 1-9 — 7-8 closed 2026-09-06, 9 open, others residual)
+- `docs/SELF-EXTEND-AUDIT.md` § "Cert-loop integration" (convergence gap: certified loop vs legacy extender)
 
 ### 8.5 Marketing / landing
 
@@ -495,9 +501,9 @@ These actions require **repository administrator** or **organization owner** per
 ## Document maintenance
 
 **Owner:** CEO / founder  
-**Last updated:** 2026-09-06 04:51 UTC (P0 PRs #511/#512/#513/#514 merged; design-partner go; public v0.x needs branch protection + Limitation 7 follow-up)  
-**Next review:** After branch protection update + Limitation 7 follow-up PR merge, before public v0.x announcement  
-**Update triggers:** Branch protection live, Limitation 7 follow-up merged, P3 ledger complete, design partner converts to paid, CEO actions completed
+**Last updated:** 2026-09-09 (P0 PRs #511/#512/#513/#514 merged 2026-09-06; limitations 7-8 closed by PR #523; branch protection verified live; limitation 9 open; design-partner go, autonomy marketing HOLD)  
+**Next review:** After limitation 9 fix merges, before public v0.x announcement  
+**Update triggers:** Limitation 9 closed, dogfood ledger shows dated Strict E2E passes, design partner converts to paid, CEO actions completed
 
 **How to update:**
 1. Close relevant GitHub issue → mark ✅ in section 1 or 2
