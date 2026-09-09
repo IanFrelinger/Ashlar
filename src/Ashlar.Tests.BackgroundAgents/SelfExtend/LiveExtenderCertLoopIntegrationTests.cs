@@ -45,12 +45,12 @@ public sealed class LiveExtenderCertLoopIntegrationTests : IDisposable
 kind: Policy
 sandbox:
   root: .
-  enforce_writable_allowlist: true
+  enforceWritableAllowlist: true
   writable: [src/]
-self_extend:
+selfExtend:
   mode: self-extending
-  may_add: [brick]
-  gates_required: [sandbox, build]
+  mayAdd: [brick]
+  gatesRequired: [sandbox, build]
   budget:
     extensions: 10
     window: 1h
@@ -106,6 +106,10 @@ never:
         await _registry.RegisterAuthoredAsync(agent, config);
         await _registry.ExecuteOnceAsync(config.Id);
 
+        // If the policy failed to load, the bridge returns a GATE ERROR before the canary is ever
+        // consulted - surface the loader's reason rather than a bare count mismatch.
+        _runner.LastAdmissionOutcome.Should().NotBeNull().And.NotStartWith("GATE ERROR");
+
         // The canary should have been invoked
         _canary.VerifyCallCount.Should().Be(1);
         
@@ -137,6 +141,10 @@ never:
         var agent = new GenericAgent(BuildSpec(config), NullLogger<GenericAgent>.Instance);
         await _registry.RegisterAuthoredAsync(agent, config);
         await _registry.ExecuteOnceAsync(config.Id);
+
+        // If the policy failed to load, the bridge returns a GATE ERROR before the canary is ever
+        // consulted - surface the loader's reason rather than a bare count mismatch.
+        _runner.LastAdmissionOutcome.Should().NotBeNull().And.NotStartWith("GATE ERROR");
 
         // The canary should have been invoked
         _canary.VerifyCallCount.Should().Be(1);
@@ -170,6 +178,9 @@ never:
         private readonly ICertificationRecordStore _certStore;
         private readonly TestCanaryVerification _canary;
         private readonly List<(string Path, string Content)> _proposedChanges = new();
+
+        /// <summary>The string the admission bridge returned on the most recent cycle, for diagnostics.</summary>
+        public string? LastAdmissionOutcome { get; private set; }
 
         public TestSelfExtendRunner(
             string repoRoot, 
@@ -241,6 +252,7 @@ never:
                 proposalIds,
                 compileCheck: compileCheck,
                 verification: _canary);
+            LastAdmissionOutcome = outcome;
 
             return new SelfExtendRunResult(
                 true,
