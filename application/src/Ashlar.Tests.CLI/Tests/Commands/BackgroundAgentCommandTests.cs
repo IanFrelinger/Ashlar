@@ -5,7 +5,6 @@ using Ashlar.CLI.Commands.BackgroundAgent;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.DataSensitivity;
 using Ashlar.BackgroundAgents.Registry;
-using Ashlar.Core.Application.Paths;
 using Ashlar.Core.Application.Testing.Abstractions;
 using Ashlar.Core.Application.Testing.Models;
 using Ashlar.Orchestration.Agents;
@@ -284,17 +283,16 @@ public class BackgroundAgentCommandTests : UnitTestBase
     /// </summary>
     private static async Task<DaemonRun> RunDaemonUntilCancelledAsync(string? configPath, string duration)
     {
-        // Parking writes a heartbeat under the state directory; point it at a throwaway folder
-        // so the test neither touches nor depends on the checkout's .ashlar/state.
-        var stateDir = Path.Combine(Path.GetTempPath(), $"ashlar-daemon-test-{Guid.NewGuid():N}");
-        var previousStateDir = Environment.GetEnvironmentVariable(RepoPathResolver.StateDirectoryEnvironmentVariable);
+        // Parking writes a heartbeat under the default state directory (<repo>/.ashlar/state, gitignored).
+        // Deliberately NOT redirected via ASHLAR_STATE_DIR: environment variables are process-wide and
+        // inherited by child processes, so tests in other collections that spawn `dotnet` during this
+        // window (e.g. ProposalsBackgroundAgentCommandTests) would inherit a temp dir that is then deleted.
         var stdout = new StringWriter();
         var stderr = new StringWriter();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         int exitCode;
         try
         {
-            Environment.SetEnvironmentVariable(RepoPathResolver.StateDirectoryEnvironmentVariable, stateDir);
             Console.SetOut(stdout);
             Console.SetError(stderr);
 
@@ -310,8 +308,6 @@ public class BackgroundAgentCommandTests : UnitTestBase
         {
             Console.SetOut(ConsoleCapture.Out);
             Console.SetError(ConsoleCapture.Error);
-            Environment.SetEnvironmentVariable(RepoPathResolver.StateDirectoryEnvironmentVariable, previousStateDir);
-            try { Directory.Delete(stateDir, recursive: true); } catch { /* best effort */ }
         }
 
         string? parkedReason = null;
