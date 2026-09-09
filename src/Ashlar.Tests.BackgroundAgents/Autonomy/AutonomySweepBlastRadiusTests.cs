@@ -18,6 +18,7 @@ namespace Ashlar.Tests.BackgroundAgents.Autonomy;
 /// not spend more than its budget just because the spending failed, and an artifact a human wrote
 /// that no longer parses may not be reported as an artifact nobody wrote.</para>
 /// </summary>
+[Collection(AutonomyTempProjectFilesCollection.Name)]
 public sealed class AutonomySweepBlastRadiusTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "ashlar-blast-" + Guid.NewGuid().ToString("N"));
