@@ -41,7 +41,7 @@ protection after one green `master` run of the changed workflow confirmed the be
 
 ### CI Hardening (September 2026)
 
-To eliminate the cert-gate SPOF, the following **fast, unfiltered** workflows run on every PR
+To eliminate the cert-gate SPOF, the following workflows run on every PR and always report,
 and are now required checks (added by a repository administrator):
 
 - **`build-core`** — fast compile check (~2–3 min) that catches build breakage before heavier tests run
@@ -51,7 +51,8 @@ and are now required checks (added by a repository administrator):
 - **`Readiness summary`** — full-platform readiness gate; added 2026-09-09 after #571 made it report on every PR (~1 min when no core path changed)
 
 **Rationale:** If `cert-gate` is cancelled, flaky, or times out, the other four required checks
-still prevent merge of broken code. This adds redundancy without slowing CI (total <5 min excluding cert-gate).
+still prevent merge of broken code. The three September checks add <5 min in total; `Readiness summary`
+adds ~1 min when no core path changed and the full platform matrix (~20 min) when one did.
 
 **Done (repo admin):** `build-core`, `shell-lint`, `lychee (README + docs)` and `Readiness summary`
 are in the `master` branch protection rule alongside `cert-gate` (see above).
