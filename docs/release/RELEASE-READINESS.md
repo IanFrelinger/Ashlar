@@ -11,7 +11,7 @@
 Ashlar ships as an **embeddable local-first .NET runtime** with cert-gate + trust log. Commercial model: Community free → design partner → Builder/Team/Enterprise tiers; Cloud PAYG later. Dual revenue streams: flagship product on Ashlar runtime + engine licensing (Fortnite+Unreal model). North star: successful embeds, not autonomous self-extension hype before the dogfood ledger exists.
 
 **Current state:**
-- **Runtime (Ashlar):** P0 trust PRs merged (limitations 7-8 closed by PR #523; limitation 9 open); CI redundancy live (four required checks on `master`); cert-loop honesty shipped in docs/landing
+- **Runtime (Ashlar):** P0 trust PRs merged (limitations 7-8 closed by PR #523; limitation 9 open); CI redundancy live (five required checks on `master`: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`); cert-loop honesty shipped in docs/landing
 - **Product (Forge):** Scaffold exists; no public Cursor-safe claims without ledger (P3 hold)
 - **Recommendation:** Design-partner private only until limitation 9 closes + external validation; autonomy marketing stays HOLD per `docs/dogfood-ledger.md` / `docs/dogfood-scorecard.md`
 
@@ -55,11 +55,11 @@ These are **blockers** for any public release candidate tag. Every item referenc
 
 | Item | Issue | Status | Release impact |
 |------|-------|--------|----------------|
-| **CI not SPOF** | [#511](https://github.com/IanFrelinger/Ashlar/pull/511) | ✅ **COMPLETE** (merged 2026-09-06T01:37:01Z; branch protection updated) | `master` branch protection now requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`) |
+| **CI not SPOF** | [#511](https://github.com/IanFrelinger/Ashlar/pull/511) | ✅ **COMPLETE** (merged 2026-09-06T01:37:01Z; branch protection updated) | `master` branch protection now requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`) |
 
 **Action required:** 
-- ✅ **Done** — branch protection requires all four checks (see [CEO-only actions](#5-ceo-only-actions-list))
-- **Follow-up (any contributor, separate PR):** `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` still describe `cert-gate` as the only required check — bring them in line with the live setting
+- ✅ **Done** — branch protection requires all five checks (see [CEO-only actions](#5-ceo-only-actions-list))
+- ✅ **Done** — `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` name all five required checks (#572, #573, and the 2026-09-09 five-checks docs PR)
 
 **What sales/marketing may claim:**
 - ✅ "Every PR gated by hermetic certification + build integrity + docs verification"
@@ -201,7 +201,7 @@ Map release bars to **commercial funnel stages**: Aware → Eval → Embed → D
 **Must be true:**
 - ⚠️ P0 trust holes closed (PRs #513 + #523 merged 2026-09-06 — limitations 7-8 closed; limitation 9 still open)
 - ✅ Cert-loop integration complete (PR #512 merged 2026-09-06)
-- ✅ CI redundancy in place (PR #511 merged; branch protection requires all four checks)
+- ✅ CI redundancy in place (PR #511 merged; branch protection requires all five checks)
 - ✅ Known limitations documented honestly
 - ✅ Design partner agreement includes "experimental" disclosure for Forge features
 - ✅ Support channel established (GitHub Discussions or direct contact)
@@ -240,7 +240,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 **Go criteria (ALL must be true):**
 
 - [ ] **P0 trust holes closed:** PR #513 fail-closed defaults merged (✅ 2026-09-06); limitations 7-8 closed by PR #523 (✅ 2026-09-06); **limitation 9 (composition signer key discard) still open** — roadmap M1 requires close before commercial claims (`docs/audits/2026-09-completion-roadmap.md`)
-- [x] **CI redundancy live:** PR #511 merged (✅ 2026-09-06) + branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (✅ verified 2026-09-09)
+- [x] **CI redundancy live:** PR #511 merged (✅ 2026-09-06) + branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (✅ verified 2026-09-09)
 - [x] **Cert-loop integration:** PR #512 merged + verified (✅ 2026-09-06)
 - [x] **Cert-loop honesty complete:** PRs #505 (✅ merged), #506 (✅ merged), #514 (✅ merged 2026-09-06) + docs audited
 - [ ] **Known limitations documented:** `certification-evidence.md` + `SELF-EXTEND-AUDIT.md` current
@@ -255,7 +255,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 **No-go criteria (ANY one blocks public release):**
 
 - [x] **ACTIVE BLOCKER:** Limitation 9 (composition signer discards supplied key) not closed — **currently open** (limitations 7-8 closed by PR #523, 2026-09-06)
-- [ ] Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — ✅ resolved (all four checks required; verified 2026-09-09)
+- [ ] Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — ✅ resolved (all five checks required; verified 2026-09-09)
 - [ ] Landing page contains false Cloud GA or autonomous production claims
 - [ ] TesterQuickstart fails on clean machine
 - [ ] Security defaults allow unauthenticated network exposure without explicit opt-in
@@ -291,9 +291,9 @@ These actions require **repository administrator** or **organization owner** per
 
 ### 5.1 Branch protection (CI hardening)
 
-**Status:** ✅ **DONE** — [#511](https://github.com/IanFrelinger/Ashlar/pull/511) **merged** (2026-09-06T01:37:01Z); `master` branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`; `enforce_admins` on).
+**Status:** ✅ **DONE** — [#511](https://github.com/IanFrelinger/Ashlar/pull/511) **merged** (2026-09-06T01:37:01Z); `master` branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`; `enforce_admins` on).
 
-**Follow-up (any contributor, separate PR):** `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` still say `cert-gate` is the only required check — update them to match the live setting.
+**Docs:** ✅ `docs/CiGateInventory.md`, `CONTRIBUTING.md`, and `README.md` match the live setting (five required checks) as of 2026-09-09.
 
 **Reference (how it was configured; CEO/admin only):**
 
@@ -304,10 +304,11 @@ These actions require **repository administrator** or **organization owner** per
    - `lychee (README + docs)` (broken docs links, ~30s)
 3. Keep `cert-gate` as required (existing)
 4. **Do NOT remove `cert-gate`** — new checks are redundancy, not replacement
+5. `Readiness summary` was added as the fifth required check on 2026-09-09, once #571 made the readiness gate report on every PR
 
 **Why this matters:** Eliminates CI single point of failure; if `cert-gate` is cancelled or flaky, other gates still block broken code.
 
-**Verify:** Push test PR → confirm all four checks must pass before merge allowed
+**Verify:** Push test PR → confirm all five checks must pass before merge allowed
 
 ### 5.2 GitHub Pages (marketing landing)
 
@@ -394,7 +395,7 @@ These actions require **repository administrator** or **organization owner** per
 - Limitations 7-8 — ✅ closed by PR #523 (2026-09-06; `Default`/`Strict` require Ed25519 signature + schema floor 2; ledger entry in `docs/dogfood-ledger.md`)
 - Limitation 9 — ⚠️ **OPEN** (`CompositionCertificationRecordSigner` discards an explicitly supplied key; roadmap M1 blocker for commercial claims)
 - CI redundancy workflows on master — ✅ (PR #511 merged)
-- Branch protection — ✅ requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` (verified 2026-09-09)
+- Branch protection — ✅ requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (verified 2026-09-09)
 - Known limitations documented honestly ✅
 - Forge needs P3 ledger before public claims ⚠️
 
