@@ -36,7 +36,7 @@ Technical / developer-facing positioning:
 ### ✅ Live (Community / Apache 2.0)
 - Runtime & orchestration
 - Trust log & audit trails
-- Certification gate (CI-proven, one required check on master)
+- Certification gate (CI-proven, required check on master)
 - Local-first model routing (Ollama)
 - NuGet packages, HTTP API, CLI, containers
 - Shared automations + multi-node mesh (federation)
