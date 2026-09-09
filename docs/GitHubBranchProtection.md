@@ -4,23 +4,25 @@ Branch protection cannot run **`release.yml`** (that workflow is triggered by **
 
 ## What `master` enforces today
 
-The upstream `master` rule (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`) requires **four** status checks:
+The upstream `master` rule (verified 2026-09-09 via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`) requires **five** status checks:
 
 - **`cert-gate`** — hermetic certification gate
 - **`build-core`** — fast compile check (~2-3 min)
 - **`shell-lint`** — shell script syntax verification (~30s)
 - **`lychee (README + docs)`** — docs link validation (~30s)
+- **`Readiness summary`** — full-platform readiness gate (`full-platform-readiness-gate.yml`); required since 2026-09-09
 
-All four run on every PR with no path filters and always report a status. Branch protection also enforces "require branches to be up to date" (`strict: true`) and `enforce_admins: true`. Every other gate — `testing-strategy`, `domain-coverage`, `kernel-coverage`, `layer-boundary / verify`, `Kernel Gate`, `Application Gate`, … — reports on PRs when its `paths:` filter matches but does **not** block a merge. The authoritative inventory is [`CiGateInventory.md`](CiGateInventory.md).
+All five run on every PR and always report a status: the first four have no path filter, and `Readiness summary` filters paths *inside* the workflow (a `changes` job, #571) so it reports in ~1 min when no core path changed. It could not be required before that change, because a path-filtered required context never reports on PRs outside its paths and blocks the merge forever. Branch protection also enforces "require branches to be up to date" (`strict: true`) and `enforce_admins: true`. Every other gate — `testing-strategy`, `domain-coverage`, `kernel-coverage`, `layer-boundary / verify`, `Kernel Gate`, `Application Gate`, … — reports on PRs when its `paths:` filter matches but does **not** block a merge. The authoritative inventory is [`CiGateInventory.md`](CiGateInventory.md).
 
 ## Recommended rules for `master` (or `main`) — current setting and optional additions
 
 1. **Require a pull request** before merging (disable direct pushes if your team can tolerate it).
-2. **Require status checks to pass** — the four currently required checks are:
+2. **Require status checks to pass** — the five currently required checks are:
    - **`cert-gate`** ✅ **required** — hermetic certification gate
    - **`build-core`** ✅ **required** — fast compile check
    - **`shell-lint`** ✅ **required** — shell script syntax verification
    - **`lychee (README + docs)`** ✅ **required** — docs link validation
+   - **`Readiness summary`** ✅ **required** — full-platform readiness gate (in-workflow path filter)
    
    **Optional additions** (once each gate always reports on PRs):
    - **`testing-strategy`** — pivot policy (gap freeze, ProdStyle wiring hints); see [Testing strategy pivot v1](architecture/TestingStrategyPivot-v1.md)

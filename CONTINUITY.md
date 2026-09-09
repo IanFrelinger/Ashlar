@@ -117,7 +117,7 @@ Goal: multiple coding agents across nodes co-produce verified extensions.
 
 - **PR flow to master:** any PR touching `application/` needs `[coordinated-integration]` +
   rationale in the PR BODY (layer-boundary gate; docs: `docs/contributing/Branch-layer-rules.md`).
-  Four checks are *required*: `cert-gate`, `build-core`, `shell-lint`, and `lychee (README + docs)`. The `uat (tiers 0-2, 4-10)` job flakes on
+  Five checks are *required*: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, and `Readiness summary`. The `uat (tiers 0-2, 4-10)` job flakes on
   `doc-command-verbatim` — rerun failed jobs once (`gh run rerun <id> --failed`) before
   suspecting the change.
 - **Merge discipline:** arm a background watcher (`gh pr checks N --watch --fail-fast` then
