@@ -41,11 +41,15 @@ public sealed class FullPipelineE2ETests : E2ETestBase
     [Fact(Timeout = 60000)]
     public async Task ImproveWithAutonomySupervised_PromptsUser()
     {
+        // Promotes like Phases14CliE2ETests.ImproveCommand_WithViolations_AppliesFixes, so it is
+        // the other invocation that could document itself into the checkout (#580).
+        var repoDocStampBefore = RepoBrickDocStamp();
         TestHelpers.CreateTempCsFileWithEmptyCatch(TempDir);
 
         var (code, stdout, _) = await RunCliAsync($"improve --autonomy supervised --path \"{TempDir}\" --yes --skip-regression --store-path \"{TempDir}\"");
 
         Assert.True(code == 0 || code == 1);
+        Assert.Equal(repoDocStampBefore, RepoBrickDocStamp());
         var hasPrompt = stdout.Contains("Ashlar suggests", StringComparison.OrdinalIgnoreCase) ||
                         stdout.Contains("Apply?", StringComparison.OrdinalIgnoreCase) ||
                         stdout.Contains("Apply", StringComparison.OrdinalIgnoreCase) ||

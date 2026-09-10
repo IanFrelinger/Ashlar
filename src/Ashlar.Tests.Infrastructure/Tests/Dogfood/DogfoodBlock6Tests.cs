@@ -39,7 +39,7 @@ public sealed class DogfoodBlock6Tests : IDisposable
         var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
             .AddAdaptationInfrastructure(storePath)
-            .AddSelfContextInfrastructure(storePath)
+            .AddSelfContextInfrastructure(storePath, docsRoot: _tempDir)
             .BuildServiceProvider();
 
         var adaptationLog = services.GetRequiredService<IAdaptationLog>();

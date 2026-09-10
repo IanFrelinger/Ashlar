@@ -46,7 +46,7 @@ public sealed class DogfoodClosedLoopTests : TempDirTestBase
             .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
             .AddCodeAnalyzers()
             .AddAdaptationInfrastructure(storePath)
-            .AddSelfContextInfrastructure(storePath)
+            .AddSelfContextInfrastructure(storePath, docsRoot: TempDir)
             .BuildServiceProvider();
 
         var analyzer = services.GetRequiredService<IBrickStaticAnalyzer>();

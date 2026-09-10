@@ -170,6 +170,33 @@ public sealed class RepoPathResolverTests : IDisposable
             "an explicit location is an explicit decision; the legacy fallback only applies to the default");
     }
 
+    // -------------------------------------------------------- ResolveDocsRoot
+
+    [Fact]
+    public void Docs_root_defaults_to_the_root_itself_and_creates_nothing()
+    {
+        var repo = RepoWithSln();
+
+        RepoPathResolver.ResolveDocsRoot(repo, configuredDocsRoot: null).Should().Be(repo,
+            "documenting a promotion in the repo's own docs/bricks/ is the dogfooding behaviour, so unset means the root");
+        Directory.Exists(Path.Combine(repo, "docs")).Should().BeFalse(
+            "resolving a path is not a reason to touch the tree; the writer creates docs/bricks/ when it has something to put there");
+    }
+
+    [Fact]
+    public void Configured_docs_root_wins_absolute_or_relative_to_the_root()
+    {
+        var repo = RepoWithSln();
+        var elsewhere = Dir("elsewhere");
+
+        RepoPathResolver.ResolveDocsRoot(repo, elsewhere).Should().Be(elsewhere,
+            "ASHLAR_DOCS_ROOT is how a test host keeps a child `ashlar improve` from documenting a promotion into the checkout (#580)");
+        RepoPathResolver.ResolveDocsRoot(repo, "  ").Should().Be(repo,
+            "a blank override is no override, matching ASHLAR_STATE_DIR");
+        RepoPathResolver.ResolveDocsRoot(repo, "build/docs").Should().Be(Path.Combine(repo, "build", "docs"),
+            "a relative override hangs off the root, not the CWD");
+    }
+
     private string RepoWithSln()
     {
         var repo = Dir("repo");
