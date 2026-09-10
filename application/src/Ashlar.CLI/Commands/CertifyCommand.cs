@@ -21,6 +21,13 @@ namespace Ashlar.CLI.Commands;
 /// the verb. That is why a refusal here is 1 and not the 65 that <c>verify</c> and <c>gates</c> use
 /// for a course that did not pass: 65 would silently break every existing caller the moment they
 /// moved to the CLI. Do not "unify" the two.</para>
+///
+/// <para>What that map costs: System.CommandLine answers a parse error with 1 as well, so a
+/// mistyped invocation (<c>--witness</c> with no value, an unknown flag) is indistinguishable by
+/// exit code from a brick that was judged and refused. Both handlers here claim back what they
+/// can — a bare <c>certify</c> and a <c>certify brick</c> missing an argument exit 2 — but the
+/// parser's own 1 cannot be reclaimed without giving up the map. The record is the tiebreak: a
+/// refusal always leaves one, a parse error never does.</para>
 /// </summary>
 public sealed class CertifyCommand : Command
 {
@@ -33,6 +40,10 @@ public sealed class CertifyCommand : Command
     /// <summary>Nothing ran: the invocation was missing an argument the tool also requires.</summary>
     private const int ExitUsage = 2;
 
+    /// <summary>Printed by both usage paths, so the two cannot drift into two dialects.</summary>
+    private const string UsageLine =
+        "Usage: ashlar certify brick <brickProjectDir> --witness <witnessSpec.json> [--record <path>]";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -43,6 +54,16 @@ public sealed class CertifyCommand : Command
     public CertifyCommand() : base("certify", "Run a brick through the certification gate and write a signed record.")
     {
         AddCommand(BuildBrick());
+
+        // `keys`, `pkg` and `policy` leave their bare form to System.CommandLine, which reports a
+        // missing subcommand as exit 1. For them 1 is only "failed"; here it is REFUSE, and REFUSE
+        // promises a signed record on disk that a bare `ashlar certify` never wrote. Claiming the
+        // bare verb keeps 2 meaning usage the whole way down, as it does in the tool.
+        this.SetHandler((InvocationContext ctx) =>
+        {
+            Console.Error.WriteLine(UsageLine);
+            ctx.ExitCode = ExitUsage;
+        });
     }
 
     private static Command BuildBrick()
@@ -76,8 +97,7 @@ public sealed class CertifyCommand : Command
             var witness = ctx.ParseResult.GetValueForOption(witnessOpt);
             if (string.IsNullOrWhiteSpace(brickDir) || string.IsNullOrWhiteSpace(witness))
             {
-                Console.Error.WriteLine(
-                    "Usage: ashlar certify brick <brickProjectDir> --witness <witnessSpec.json> [--record <path>]");
+                Console.Error.WriteLine(UsageLine);
                 ctx.ExitCode = ExitUsage;
                 return;
             }

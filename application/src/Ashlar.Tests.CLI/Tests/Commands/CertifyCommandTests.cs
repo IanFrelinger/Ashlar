@@ -161,7 +161,11 @@ public sealed class CertifyCommandTests : IDisposable
             "certify", "brick", brickDir, "--witness", witnessPath, "--record", recordPath);
 
         rc.Should().Be(1, stdout + Environment.NewLine + stderr);
-        stderr.Should().Contain("REJECT (").And.Contain($"Record: {recordPath}");
+        // Naming the stage IS the assertion. This test runs without an operator key, so an honest
+        // brick with a CORRECT witness refuses too — same exit code, same FAIL record, same emitted
+        // binary, only at admission instead. A bare "REJECT (" matches that just as well, so a gate
+        // that had stopped judging the witness at all would leave this test green.
+        stderr.Should().Contain("REJECT (correctness)").And.Contain($"Record: {recordPath}");
         stdout.Should().BeEmpty("a refusal is not a result — nothing goes to stdout");
 
         var record = ReadRecord(recordPath);
@@ -195,6 +199,18 @@ public sealed class CertifyCommandTests : IDisposable
     {
         var (rc, _, stderr) = await RunCliAsync("certify", "brick");
 
+        rc.Should().Be(2);
+        stderr.Should().Contain("Usage: ashlar certify brick");
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Certify_withNoSubcommand_exitsTwo()
+    {
+        var (rc, _, stderr) = await RunCliAsync("certify");
+
+        // Left to System.CommandLine a missing subcommand is exit 1 — the REFUSE code, which for
+        // this verb promises a signed record that nothing here ever wrote. The bare verb carries its
+        // own handler so a half-typed command cannot be read as a verdict on a brick.
         rc.Should().Be(2);
         stderr.Should().Contain("Usage: ashlar certify brick");
     }
@@ -271,6 +287,37 @@ public sealed class CertifyCommandTests : IDisposable
         payload.GetProperty("failureCheck").GetString().Should().Be("load");
         payload.GetProperty("recordPath").GetString().Should().Be(recordPath);
         payload.GetProperty("killedMutants").GetInt32().Should().Be(0, "the brief pins a count, not the id list");
+    }
+
+    [Fact(Timeout = 60_000)]
+    public async Task Certify_withFormatJson_carriesTheMutationNumbersOnAnAdmit()
+    {
+        // The refusal above pins every mutation field in its EMPTY state — no escape rate, no
+        // mutants, no artifact — so a rendering that dropped one of them outright would still
+        // satisfy it. Only an admitted brick has numbers to lose.
+        using var key = OperatorKey();
+        var brickDir = CopyHonestBrick();
+        var recordPath = Path.Combine(_dir, "certification-record.json");
+
+        var (rc, stdout, stderr) = await RunCliAsync(
+            "certify", "brick", brickDir,
+            "--witness", Path.Combine(brickDir, "witness.json"),
+            "--record", recordPath, "--format-json");
+
+        rc.Should().Be(0, stdout + Environment.NewLine + stderr);
+
+        var payload = JsonDocument.Parse(stdout).RootElement;
+        payload.GetProperty("admitted").GetBoolean().Should().BeTrue();
+        payload.GetProperty("outcome").GetString().Should().Be("admitted");
+        payload.GetProperty("escapeRate").ValueKind
+            .Should().Be(JsonValueKind.Number, "a measured escape rate of zero is not the absence of one");
+        payload.GetProperty("escapeRate").GetDouble().Should().Be(0);
+        var total = payload.GetProperty("totalMutants").GetInt32();
+        total.Should().BeGreaterThan(0, "an admit with nothing mutated would mean the suite never ran");
+        payload.GetProperty("killedMutants").GetInt32()
+            .Should().Be(total, "zero escapes means every mutant died — and this is the count, not the id list");
+        payload.GetProperty("artifactPath").GetString()
+            .Should().NotBeNullOrEmpty("the consumer loads the judged binary, so its path is part of the verdict");
     }
 
     [Fact(Timeout = 15000)]
