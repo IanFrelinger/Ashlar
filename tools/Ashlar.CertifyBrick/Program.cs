@@ -1,8 +1,5 @@
 // CLI tool for brick certification workflows.
-using System.Text.Json;
-using Ashlar.Core.Application.Certification.Ports;
 using Ashlar.Infrastructure.Certification;
-using Ashlar.Infrastructure.Certification.Sdk.Extensions;
 
 if (args.Length < 2)
 {
@@ -10,89 +7,34 @@ if (args.Length < 2)
     return 2;
 }
 
-var brickDir = Path.GetFullPath(args[0]);
-var witnessPath = Path.GetFullPath(args[1]);
-var recordPath = args.Length > 2
-    ? Path.GetFullPath(args[2])
-    : Path.Combine(brickDir, "..", "certification-record.json");
-
-var recordDir = Path.GetDirectoryName(recordPath)!;
-Directory.CreateDirectory(recordDir);
-
-var store = new FileCertificationRecordStore(recordDir);
-var signer = new CertificationRecordSigner();
-var gate = new CertificationGate(signer);
-var registry = new CertifiedBrickRegistry(store, signer);
-var admission = new CertifiedBrickAdmission(gate, registry);
-
-try
+// The pipeline moved to BrickCertificationRun so that `ashlar certify brick` runs the SAME code —
+// one gate, one refusal path, one set of files on disk. What stays here is this tool's published
+// contract: the positional argument order, the two output lines, and the 0/1/2 exit map that
+// scripts/certify-brick-gate.sh and its callers already read. The CLI verb mirrors that map for the
+// same reason; if the two ever have to diverge, they diverge in their own callers, not in the seam.
+var result = await BrickCertificationRun.ExecuteAsync(new BrickCertificationRunRequest
 {
-    var request = await BrickCertificationProjectLoader.LoadAsync(brickDir, witnessPath).ConfigureAwait(false);
-    var decision = await admission.CertifyAndAdmitAsync(request).ConfigureAwait(false);
+    BrickProjectDirectory = args[0],
+    WitnessSpecPath = args[1],
+    RecordPath = args.Length > 2 ? args[2] : null
+}).ConfigureAwait(false);
 
-    await File.WriteAllTextAsync(
-        recordPath,
-        JsonSerializer.Serialize(decision.Record, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }))
-        .ConfigureAwait(false);
+switch (result.Outcome)
+{
+    case BrickCertificationOutcome.Admitted:
+        Console.WriteLine($"ADMIT brick={result.Record.BrickId} escape_rate={result.Record.EscapeRate} mutants_killed={result.Record.KilledMutants.Count}");
+        Console.WriteLine($"Record: {result.RecordPath}");
+        return 0;
 
-    if (request.EmittedArtifact is { } artifact)
-    {
-        var artifactPath = Path.Combine(recordDir, CertifiedArtifactExporter.ArtifactFileName);
-        await File.WriteAllBytesAsync(artifactPath, artifact.AssemblyBytes).ConfigureAwait(false);
-    }
-
-    if (!string.Equals(recordPath, Path.Combine(recordDir, $"{decision.Record.BrickId}.json"), StringComparison.OrdinalIgnoreCase))
-    {
-        await File.WriteAllTextAsync(
-            Path.Combine(recordDir, $"{decision.Record.BrickId}.json"),
-            JsonSerializer.Serialize(decision.Record, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }))
-            .ConfigureAwait(false);
-    }
-
-    if (!decision.Admitted)
-    {
-        Console.Error.WriteLine($"REJECT ({decision.FailureCheck}): {decision.Record.Reason}");
-        Console.Error.WriteLine($"Record: {recordPath}");
+    case BrickCertificationOutcome.LoadRefused:
+        // LoadRefusalRecord.Create stores the exception message verbatim as the reason, so this is
+        // the same string the pre-extraction code printed — no exception has to cross the seam.
+        Console.Error.WriteLine($"REJECT (load): {result.Record.Reason}");
+        Console.Error.WriteLine($"Record: {result.RecordPath}");
         return 1;
-    }
 
-    Console.WriteLine($"ADMIT brick={decision.Record.BrickId} escape_rate={decision.Record.EscapeRate} mutants_killed={decision.Record.KilledMutants.Count}");
-    Console.WriteLine($"Record: {recordPath}");
-    return 0;
-}
-catch (Exception ex)
-{
-    // A load/fence refusal used to print the exception and exit with no file.
-    // "No record" is what Get() returns for an unsigned or missing file, so the
-    // refuse was indistinguishable from "never certified." Persist a signed FAIL.
-    var brickId = TryWitnessBrickId(witnessPath) ?? new DirectoryInfo(brickDir).Name;
-    var refusal = LoadRefusalRecord.Create(signer, brickId, ex.Message);
-    try
-    {
-        store.Save(refusal);
-        File.WriteAllText(
-            recordPath,
-            JsonSerializer.Serialize(refusal, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-    }
-    catch
-    {
-        /* still fail closed — the process exit is the refusal */
-    }
-
-    Console.Error.WriteLine($"REJECT (load): {ex.Message}");
-    Console.Error.WriteLine($"Record: {recordPath}");
-    return 1;
-}
-
-static string? TryWitnessBrickId(string path)
-{
-    try
-    {
-        using var doc = JsonDocument.Parse(File.ReadAllText(path));
-        return doc.RootElement.TryGetProperty("brickId", out var id) ? id.GetString() : null;
-    }
-    catch
-    {
-        return null;
-    }
+    default:
+        Console.Error.WriteLine($"REJECT ({result.FailureCheck}): {result.Record.Reason}");
+        Console.Error.WriteLine($"Record: {result.RecordPath}");
+        return 1;
 }

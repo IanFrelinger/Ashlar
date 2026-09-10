@@ -139,8 +139,12 @@ gap tracked rather than deniable. Currently unmet:
 
   *Cost corrected 2026-08-27.* An earlier draft of this section said "~30 call sites must
   opt in explicitly". Of the 31 constructions of `CertificationRecordSigner`, **28 are in
-  test files and exactly three are production**: `FileCertificationRecordStore.cs:31`,
-  `tools/Ashlar.CertifyBrick/Program.cs:23`, `tools/Ashlar.ExportCertifiedBrick/Program.cs:21`.
+  test files and exactly three are production**: `FileCertificationRecordStore.cs:32`,
+  `src/Ashlar.Infrastructure/Certification/BrickCertificationRun.cs:138`,
+  `tools/Ashlar.ExportCertifiedBrick/Program.cs:21`.
+  *(Re-anchored 2026-09-10: the second site was `tools/Ashlar.CertifyBrick/Program.cs:23` until
+  the certification pipeline was extracted into `BrickCertificationRun` so `ashlar certify brick`
+  and the tool share it. The construction moved; the count did not.)*
   The production cost was overstated by an order of magnitude. The *test* cost of any
   design that throws on a missing key was understated: it additionally hits **18**
   `new CertificationGate(` sites and **13** `.AddCertificationGate(` call sites, and breaks

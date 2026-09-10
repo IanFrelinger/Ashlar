@@ -60,6 +60,22 @@ public sealed class RootCommandRegistrationTests
     }
 
     [Fact(Timeout = 15000)]
+    public async Task RootCommand_RegistersCertifyCommand()
+    {
+        await Task.CompletedTask;
+        var root = Ashlar.CLI.Program.BuildRootCommand();
+        var certify = root.Subcommands.SingleOrDefault(s => s.Name == "certify");
+
+        // The gate the whole product rests on. Until this verb existed it was reachable only as
+        // `dotnet run --project tools/Ashlar.CertifyBrick`, i.e. only from a clone of this repo;
+        // losing it from the root would put certification back behind that door with no signal.
+        certify.Should().NotBeNull("`ashlar certify` must stay registered");
+        // The subcommand too: a `certify` with nothing under it is the same silent hole as a
+        // missing verb, and it is the shape `keys`, `pkg` and `export` are already pinned at.
+        certify!.Subcommands.Select(s => s.Name).Should().Contain("brick");
+    }
+
+    [Fact(Timeout = 15000)]
     public async Task RootCommand_RegistersRunCommand()
     {
         await Task.CompletedTask;
