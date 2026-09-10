@@ -4,6 +4,7 @@ using System.Text;
 using FluentAssertions;
 using Ashlar.Infrastructure.Execution.Ollama;
 using Xunit;
+using Ashlar.Tests.Infrastructure.Helpers;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 
@@ -187,7 +188,7 @@ public sealed class OllamaProviderTests
         sut.LastRefreshUtc.Should().NotBeNull();
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Quick)]
     public async Task InitializeAsync_HonoursCancellation()
     {
         // The stub only answers once the caller's token fires, so the request hangs exactly the
