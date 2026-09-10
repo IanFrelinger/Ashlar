@@ -282,10 +282,12 @@ remains 83, and branch coverage at 64.48% shows the headroom is real.
   `IBackgroundAgentRegistry` — it hands it straight to `RepoFsToolboxFactory`.
   Segregating that slice would remove the cycle *structurally* rather than deferring it
   behind `Lazy<T>`.
-- **`OllamaProvider` still blocks in its constructor** (`RefreshModelsAsync(...)
+- ~~**`OllamaProvider` still blocks in its constructor** (`RefreshModelsAsync(...)
   .GetAwaiter().GetResult()`). Reached only when something genuinely wants a provider,
   and changing when its manifest populates would alter `IsAvailable`/`Manifest`
-  semantics, so it was left alone here.
+  semantics, so it was left alone here.~~ **Fixed in #567:** the constructor performs no
+  I/O. Callers load the manifest through `OllamaProvider.InitializeAsync`, and
+  `ProviderFactory`'s background warm-up is bounded to 5 s.
 - **`TestRunnerAdapter.ExecuteTestAsync`** abandons its `runTask` on the per-test
   timeout path. ~~Latent — never executed today.~~ **No longer latent:** the path
   executed on 2026-08-13 (run 31665068194, attempt 1) and its side effect is worse

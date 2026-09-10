@@ -14,7 +14,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Stress;
 /// matching <c>CommandExecutionStressTests</c>. The four tests below assert only that DI scope
 /// creation and Task.WhenAll complete under load, so they register <see cref="NoWarmupProviderFactory"/>
 /// instead of the real <see cref="ProviderFactory"/>: every real instance fires a background Ollama
-/// warm-up whose <c>OllamaProvider</c> ctor blocks a pool thread on HTTP (sync-over-async), and
+/// warm-up, which before #567 blocked a pool thread on HTTP inside the <c>OllamaProvider</c> ctor, and
 /// 200/500/1000 of those starve the thread pool for minutes, which the Blame hang collector
 /// then reports as a crashed test host.
 /// </remarks>

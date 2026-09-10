@@ -4,6 +4,7 @@ using System.Text;
 using FluentAssertions;
 using Ashlar.Infrastructure.Execution.Ollama;
 using Xunit;
+using Ashlar.Tests.Infrastructure.Helpers;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 
@@ -11,7 +12,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 public sealed class OllamaProviderTests
 {
     [Fact]
-    public void Constructor_LoadsManifest_FromTagsEndpoint()
+    public async Task InitializeAsync_LoadsManifest_FromTagsEndpoint()
     {
         var handler = new StubHttpMessageHandler(_ => JsonResponse("""
         {
@@ -24,6 +25,7 @@ public sealed class OllamaProviderTests
 
         using var httpClient = new HttpClient(handler);
         var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+        await sut.InitializeAsync(CancellationToken.None);
 
         sut.IsAvailable.Should().BeTrue();
         sut.Manifest.Select(model => model.Name).Should().Contain(new[] { "llama3.2:3b", "llava:7b" });
@@ -44,6 +46,7 @@ public sealed class OllamaProviderTests
         var handler = new StubHttpMessageHandler(_ => responses.Dequeue());
         using var httpClient = new HttpClient(handler);
         var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+        await sut.InitializeAsync(CancellationToken.None);
 
         var refreshResult = await sut.RefreshModelsAsync();
 
@@ -53,7 +56,7 @@ public sealed class OllamaProviderTests
     }
 
     [Fact]
-    public void ValidateModel_ResolvesBareFamilyName_ToLatestTag()
+    public async Task ValidateModel_ResolvesBareFamilyName_ToLatestTag()
     {
         var handler = new StubHttpMessageHandler(_ => JsonResponse("""
         {
@@ -64,6 +67,7 @@ public sealed class OllamaProviderTests
         """));
         using var httpClient = new HttpClient(handler);
         var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+        await sut.InitializeAsync(CancellationToken.None);
 
         var validation = sut.ValidateModel("llama3.1");
 
@@ -73,7 +77,7 @@ public sealed class OllamaProviderTests
     }
 
     [Fact]
-    public void ValidateModel_WhenMissing_ReturnsStructuredResultError()
+    public async Task ValidateModel_WhenMissing_ReturnsStructuredResultError()
     {
         var handler = new StubHttpMessageHandler(_ => JsonResponse("""
         {
@@ -84,6 +88,7 @@ public sealed class OllamaProviderTests
         """));
         using var httpClient = new HttpClient(handler);
         var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+        await sut.InitializeAsync(CancellationToken.None);
 
         var validation = sut.ValidateModel("mistral:latest");
 
@@ -116,6 +121,7 @@ public sealed class OllamaProviderTests
 
         using var httpClient = new HttpClient(handler);
         var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+        await sut.InitializeAsync(CancellationToken.None);
 
         var health = await sut.CheckHealthAsync();
 
@@ -142,6 +148,7 @@ public sealed class OllamaProviderTests
 
         using var httpClient = new HttpClient(handler);
         var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+        await sut.InitializeAsync(CancellationToken.None);
 
         var result = await sut.ExecuteChatAsync("gemma3:4b", "system", "user", null);
 
@@ -150,6 +157,61 @@ public sealed class OllamaProviderTests
         result.Error!.Code.Should().Be("OLLAMA_MODEL_NOT_FOUND");
         handler.Requests.Should().ContainSingle(request => request.RequestUri!.AbsolutePath == "/api/tags");
         handler.Requests.Should().NotContain(request => request.RequestUri!.AbsolutePath == "/api/chat");
+    }
+
+    [Fact]
+    public async Task Constructor_PerformsNoNetworkIO()
+    {
+        // #567: the constructor used to block a thread-pool thread on /api/tags. It must now do
+        // no I/O at all; the manifest arrives only when InitializeAsync is awaited.
+        var handler = new StubHttpMessageHandler(_ => JsonResponse("""
+        {
+          "models": [
+            { "name": "llama3.2:3b", "size": 1234 }
+          ]
+        }
+        """));
+
+        using var httpClient = new HttpClient(handler);
+        var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+
+        handler.Requests.Should().BeEmpty();
+        sut.IsAvailable.Should().BeFalse();
+        sut.LastRefreshUtc.Should().BeNull();
+
+        var initialization = await sut.InitializeAsync(CancellationToken.None);
+
+        initialization.IsSuccess.Should().BeTrue();
+        handler.Requests.Should().ContainSingle();
+        handler.Requests[0].RequestUri!.AbsolutePath.Should().Be("/api/tags");
+        sut.IsAvailable.Should().BeTrue();
+        sut.LastRefreshUtc.Should().NotBeNull();
+    }
+
+    [Fact(Timeout = TestTimeouts.Quick)]
+    public async Task InitializeAsync_HonoursCancellation()
+    {
+        // The stub only answers once the caller's token fires, so the request hangs exactly the
+        // way an accepted-but-silent Ollama socket does. RefreshModelsAsync documents cancellation
+        // as a failed Result (OLLAMA_TAGS_CANCELLED), not an exception; InitializeAsync inherits that.
+        var handler = new StubHttpMessageHandler(async (_, ct) =>
+        {
+            var pending = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var registration = ct.Register(() => pending.TrySetCanceled(ct));
+            return await pending.Task;
+        });
+
+        using var httpClient = new HttpClient(handler);
+        var sut = new OllamaProvider(httpClient, "http://localhost:11434");
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+
+        var initialization = await sut.InitializeAsync(cts.Token);
+
+        initialization.IsSuccess.Should().BeFalse();
+        initialization.Error.Should().NotBeNull();
+        initialization.Error!.Code.Should().Be("OLLAMA_TAGS_CANCELLED");
+        sut.IsAvailable.Should().BeFalse();
+        handler.Requests.Should().ContainSingle(request => request.RequestUri!.AbsolutePath == "/api/tags");
     }
 
     private static HttpResponseMessage JsonResponse(string json)

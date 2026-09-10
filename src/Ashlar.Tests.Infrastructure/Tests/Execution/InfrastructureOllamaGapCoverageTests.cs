@@ -31,6 +31,7 @@ public class InfrastructureOllamaGapCoverageTests
 
         using var client = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:11434/") };
         var sut = new OllamaProvider(client, "http://localhost:11434");
+        await sut.InitializeAsync(CancellationToken.None);
 
         var text = await sut.ExecuteChatAsync("llava", "system", "user", null);
         text.IsSuccess.Should().BeTrue();
@@ -45,7 +46,7 @@ public class InfrastructureOllamaGapCoverageTests
     }
 
     [Fact]
-    public void OllamaProvider_validate_model_handles_empty_and_prefix_resolution()
+    public async Task OllamaProvider_validate_model_handles_empty_and_prefix_resolution()
     {
         using var client = new HttpClient(new StubHttpMessageHandler(_ => Json("""
         {
@@ -57,6 +58,7 @@ public class InfrastructureOllamaGapCoverageTests
         """))) { BaseAddress = new Uri("http://localhost:11434/") };
 
         var sut = new OllamaProvider(client);
+        await sut.InitializeAsync(CancellationToken.None);
 
         sut.ValidateModel("").Error!.Code.Should().Be("OLLAMA_MODEL_REQUIRED");
         sut.ValidateModel("llama3.2").Value!.Name.Should().Be("llama3.2:3b");
@@ -105,6 +107,7 @@ public class InfrastructureOllamaGapCoverageTests
         })) { BaseAddress = new Uri("http://localhost:11434/") };
 
         var sut = new OllamaProvider(client);
+        await sut.InitializeAsync(CancellationToken.None);
         (await sut.ExecuteChatAsync("m", "s", "u", null)).Error!.Code.Should().Be("OLLAMA_CHAT_MODEL_NOT_FOUND");
 
         using var badJsonClient = new HttpClient(new StubHttpMessageHandler(request =>
@@ -120,6 +123,7 @@ public class InfrastructureOllamaGapCoverageTests
         })) { BaseAddress = new Uri("http://localhost:11434/") };
 
         var badJson = new OllamaProvider(badJsonClient);
+        await badJson.InitializeAsync(CancellationToken.None);
         (await badJson.ExecuteChatAsync("m", "s", "u", null)).Error!.Code.Should().Be("OLLAMA_CHAT_INVALID_RESPONSE");
 
         using var cts = new CancellationTokenSource();
@@ -130,7 +134,7 @@ public class InfrastructureOllamaGapCoverageTests
     }
 
     [Fact]
-    public void OllamaProvider_constructor_tolerates_failed_initial_refresh()
+    public async Task OllamaProvider_initialize_tolerates_failed_initial_refresh()
     {
         using var client = new HttpClient(new StubHttpMessageHandler(_ => throw new HttpRequestException("offline")))
         {
@@ -138,6 +142,7 @@ public class InfrastructureOllamaGapCoverageTests
         };
 
         var sut = new OllamaProvider(client, logger: null);
+        await sut.InitializeAsync(CancellationToken.None);
         sut.IsAvailable.Should().BeFalse();
     }
 

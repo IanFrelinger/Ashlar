@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Domain;
@@ -21,6 +24,84 @@ public sealed class ProviderFactoryEdgeCaseTests
     {
         var logger = new LoggerFactory().CreateLogger<ProviderFactory>();
         return new ProviderFactory(logger);
+    }
+
+    [Fact(Timeout = TestTimeouts.Integration)]
+    public async Task OllamaWarmup_IsBounded_AndTheConstructorNeverBlocks()
+    {
+        // #567: a listener that accepts connections and never writes a byte. The warm-up's
+        // /api/tags request therefore hangs until the warm-up's own 5 s token fires — the
+        // HttpClient timeout is 300 s, so only the bound inside ProviderFactory can end it.
+        // Before the fix the constructor blocked a pool thread on exactly this request.
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var accepted = new List<TcpClient>();
+        var acceptLoop = Task.Run(async () =>
+        {
+            try
+            {
+                while (true)
+                {
+                    var client = await listener.AcceptTcpClientAsync();
+                    lock (accepted)
+                    {
+                        accepted.Add(client);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Listener stopped in the finally below.
+            }
+        });
+
+        // ASHLAR_OLLAMA_BASE_URL takes precedence over OLLAMA_BASE_URL and the default in
+        // ProviderFactory.GetOllamaBaseUrlAsync (no ephemeral lifecycle is passed here).
+        var previous = Environment.GetEnvironmentVariable("ASHLAR_OLLAMA_BASE_URL");
+        try
+        {
+            Environment.SetEnvironmentVariable("ASHLAR_OLLAMA_BASE_URL", $"http://127.0.0.1:{port}");
+
+            var construction = Stopwatch.StartNew();
+            var factory = CreateFactory();
+            construction.Stop();
+
+            construction.Elapsed.Should().BeLessThan(
+                TimeSpan.FromSeconds(1),
+                "constructing the factory must never wait on the network");
+
+            var warmup = factory.OllamaWarmup;
+            var finished = await Task.WhenAny(warmup, Task.Delay(TimeSpan.FromSeconds(15)));
+
+            finished.Should().BeSameAs(warmup, "the warm-up is bounded to about 5 s by its own token");
+            warmup.Status.Should().Be(TaskStatus.RanToCompletion, "the warm-up swallows every failure");
+            await warmup;
+
+            var probed = SpinWait.SpinUntil(
+                () =>
+                {
+                    lock (accepted)
+                    {
+                        return accepted.Count > 0;
+                    }
+                },
+                TimeSpan.FromSeconds(1));
+            probed.Should().BeTrue("the warm-up should have probed the listener named by ASHLAR_OLLAMA_BASE_URL");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASHLAR_OLLAMA_BASE_URL", previous);
+            listener.Stop();
+            await acceptLoop;
+            lock (accepted)
+            {
+                foreach (var client in accepted)
+                {
+                    client.Dispose();
+                }
+            }
+        }
     }
 
     [Fact(Timeout = TestTimeouts.Quick)]

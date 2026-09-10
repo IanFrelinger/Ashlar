@@ -84,7 +84,8 @@ public class ProviderFactory : IProviderFactory
     /// of time avoids a latency spike on the first user request. It runs OFF the
     /// calling thread — constructing this factory must never block on the network,
     /// because that makes every <see cref="IProviderFactory"/> resolution, host startup
-    /// included, wait on a machine that may not be listening.
+    /// included, wait on a machine that may not be listening — and it is fully
+    /// asynchronous and bounded to 5 s, so it never parks a thread-pool thread either.
     /// Failure is non-fatal — Ollama simply won't be available until the next
     /// lazy attempt.
     /// </summary>
@@ -108,20 +109,43 @@ public class ProviderFactory : IProviderFactory
         // The warm-up itself is deliberate and worth keeping: pulling the manifest on
         // first contact costs seconds, and doing it ahead of time avoids that latency
         // on the first user request. What was wrong was doing it synchronously here.
-        // Both GetOllamaBaseUrlAsync and OllamaProvider's constructor block on network
-        // I/O, so CONSTRUCTING this type — and therefore every resolution of
-        // IProviderFactory, including during host startup — waited on a machine that
-        // may not be listening.
+        // GetOllamaBaseUrlAsync can touch the network, and OllamaProvider's constructor
+        // used to block on it, so CONSTRUCTING this type — and therefore every
+        // resolution of IProviderFactory, including during host startup — waited on a
+        // machine that may not be listening.
         //
         // Fire-and-forget is safe precisely because the warm-up is an optimisation and
         // nothing depends on it: the provider is created on demand at each real use
         // site, and failure here has always been non-fatal by design.
-        _ = Task.Run(async () =>
+        //
+        // The work inside is fully async and BOUNDED (#567). Nothing here may call
+        // .GetAwaiter().GetResult(): the OllamaProvider constructor no longer does any
+        // I/O, and the manifest load is awaited through InitializeAsync under a 5 s
+        // token. Without that bound, an absent Ollama parked one pool thread per
+        // factory instance for up to the 300 s HttpClient timeout, and N factories
+        // (each with its own _ollamaProviderLock) starved the pool. Every consumer of
+        // the manifest self-heals when IsAvailable is false — ExecuteOllamaAsync
+        // refreshes on validation failure, and the health paths go through
+        // CheckHealthAsync — so a timed-out warm-up changes no later behaviour.
+        OllamaWarmup = Task.Run(async () =>
         {
             try
             {
-                var baseUrl = await GetOllamaBaseUrlAsync(CancellationToken.None).ConfigureAwait(false);
-                _ = GetOrCreateOllamaProvider(baseUrl);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var baseUrl = await GetOllamaBaseUrlAsync(cts.Token).ConfigureAwait(false);
+                var warmup = await GetOrCreateOllamaProvider(baseUrl).InitializeAsync(cts.Token).ConfigureAwait(false);
+                if (!warmup.IsSuccess)
+                {
+                    // A missing local Ollama is the normal case on most machines; not a warning.
+                    _logger.LogDebug(
+                        "Ollama manifest warm-up did not complete ({Code}: {Message}); the provider will refresh lazily on first use.",
+                        warmup.Error?.Code,
+                        warmup.Error?.Message);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogDebug("Ollama manifest warm-up timed out after 5 s; the provider will refresh lazily on first use.");
             }
             catch (Exception ex)
             {
@@ -129,6 +153,13 @@ public class ProviderFactory : IProviderFactory
             }
         });
     }
+
+    /// <summary>
+    /// The background Ollama manifest warm-up started by the constructor. It never faults —
+    /// every failure is caught and logged — and completes within about 5 s whether or not an
+    /// Ollama instance is listening. Exposed for tests only; production code must not await it.
+    /// </summary>
+    internal Task OllamaWarmup { get; }
 
     private static RetryPolicy CreateLlmRetryPolicy(Func<Exception, bool>? isTransient = null)
     {

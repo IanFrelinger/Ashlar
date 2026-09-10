@@ -33,17 +33,16 @@ public sealed class OllamaProvider
         {
             _httpClient.BaseAddress = new Uri(resolvedBaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
         }
-
-        var initializationResult = RefreshModelsAsync(CancellationToken.None).GetAwaiter().GetResult();
-        if (!initializationResult.IsSuccess)
-        {
-            _logger?.LogWarning(
-                "Failed to initialize Ollama model manifest from {BaseUrl}: {Code} {Message}",
-                _httpClient.BaseAddress,
-                initializationResult.Error?.Code,
-                initializationResult.Error?.Message);
-        }
     }
+
+    /// <summary>
+    /// Loads the model manifest. The constructor performs no I/O; call this once after
+    /// construction, or let the first ValidateModel/CheckHealth path refresh lazily.
+    /// </summary>
+    /// <param name="cancellationToken">Bounds the <c>/api/tags</c> request; cancellation yields a failed result (<c>OLLAMA_TAGS_CANCELLED</c>), never an exception.</param>
+    /// <returns>The manifest on success, or the structured failure from <see cref="RefreshModelsAsync"/>.</returns>
+    public Task<Result<IReadOnlyList<OllamaModelManifest>>> InitializeAsync(CancellationToken cancellationToken) =>
+        RefreshModelsAsync(cancellationToken);
 
     /// <summary>Whether the Ollama endpoint is reachable and has a loaded model manifest.</summary>
     public bool IsAvailable { get; private set; }
