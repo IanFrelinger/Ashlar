@@ -13,6 +13,10 @@
   <!-- xUnit: limit parallelism to reduce memory usage (Cursor, CI) -->
   <ItemGroup>
     <Content Include="Certification/Dogfood/RecordedCompositionProposals/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Golden canonical signing payloads. Shared constant: CanonicalPayloadGoldenTests reads
+         it from the test output, scripts/ns20-canonical-bytes-probe.sh reads the same file from
+         the repo, so the two cannot drift apart and claim an equality neither checked. -->
+    <Content Include="Tests/Certification/canonical-payloads.golden.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../samples/physical-atom-cert/**/*" CopyToOutputDirectory="PreserveNewest" Link="physical-atom-cert/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <!-- Workaround for Castle.Core net6.0 assembly loading issue on .NET 8.0 -->
