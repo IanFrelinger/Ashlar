@@ -2,7 +2,7 @@
 
 This file describes what CI **actually does** on this repository: which workflow files exist, what triggers each one, and which checks branch protection **really** requires. Workflow YAML controls when checks run; GitHub branch protection (a repository setting, not YAML) controls which check names must be green before merge. Where the two disagree, this file follows the settings and says so.
 
-Snapshot: **57 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), verified 2026-09-04. Includes `products-gate.yml` (added with the product-split scaffolds).
+Snapshot: **58 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), verified 2026-09-04. Includes `products-gate.yml` (added with the product-split scaffolds) and `runtime-portability-gate.yml` (the .NET 9 execution lane, added 2026-09-10).
 
 ## Required checks (branch protection) — what is enforced today
 
@@ -75,17 +75,17 @@ gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-
 
 ## Trigger map
 
-Counts by trigger class (57 files):
+Counts by trigger class (58 files):
 
 | Class | Count | Meaning |
 | --- | --- | --- |
-| Runs on `pull_request` | 16 | 6 unfiltered (`cert-gate`, `shell-lint`, `docs-link-check`, `layer-boundary`, `uat-gate`, `full-platform-readiness-gate` — path filter inside the workflow), 9 path-filtered (including `products-gate`), 1 label-driven (`release-staging-on-label`) |
+| Runs on `pull_request` | 17 | 6 unfiltered (`cert-gate`, `shell-lint`, `docs-link-check`, `layer-boundary`, `uat-gate`, `full-platform-readiness-gate` — path filter inside the workflow), 10 path-filtered (including `products-gate` and `runtime-portability-gate`), 1 label-driven (`release-staging-on-label`) |
 | Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 19 | Post-merge / scheduled signal; never blocks a PR |
 | `workflow_dispatch` only | 17 | Manual lanes (mesh labs, multi-env Docker suites, ship/ops/perf, release plumbing) |
 | Tag / release event | 2 | `release.yml` (`v*.*.*` tags), `devlog-ghost-release.yml` (`release: published`) |
 | Reusable (`workflow_call`) | 3 | `reusable-*` |
 
-Five workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `rc-gate` (06:00 on the 1st of each month), `mesh-lab-tls-gate` (Tue 07:00). (`mesh-lab-stress-gate` lost its schedule 2026-08-16 and is dispatch-only.)
+Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of each month), `mesh-lab-tls-gate` (Tue 07:00). (`mesh-lab-stress-gate` lost its schedule 2026-08-16 and is dispatch-only.)
 
 ### PR-triggered workflows
 
@@ -107,6 +107,7 @@ Five workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `
 | `release-staging-on-label.yml` | Release staging on label / `dispatch-staging-release` | `types: [labeled]` only | — |
 | `products-gate.yml` | products-gate / `product scaffolds` | paths: `products/**`, distributed contracts, deployment-profile sources, `ci/test-ownership.tsv` | push `master`/`main`/`cursor/**`, dispatch — **advisory**; runs `products/Ashlar.Products.sln` plus `DistributedContractTests`. Does **not** run the dependency-boundary script (that is `dependency-boundary.yml`). |
 | `portability-gate.yml` | Portability Gate | paths: `application/src/Ashlar.CLI/**`, `src/Ashlar.Manifest/**`, `scripts/e2e-loop.sh` | dispatch |
+| `runtime-portability-gate.yml` | Runtime Portability Gate / `net9-runtime-consumer` | paths: `scripts/portability/**`, `src/Ashlar.Certification.Contracts/**`, `src/Ashlar.Compat/**`, the canonical-payload golden corpus, `Directory.Build.props`/`.targets`, `Directory.Packages.props`, `global.json` | push `master`/`main`/`cursor/**`, **weekly schedule** (Mon 11:00 UTC), dispatch — **advisory**. The only 9.0.x runtime pin in CI: `scripts/portability/net9-probe.sh` packs `Ashlar.Certification.Contracts` on SDK 10 and **executes** a net9.0 consumer of the nupkg on the 9.0 runtime, where NuGet binds it to the `lib/net8.0` asset — golden canonical bytes, HMAC + Ed25519 mint/verify, Default/Strict/pinned verdicts and every tamper code. Path-filtered, so it cannot be required; it does not use `continue-on-error`, so a red run is a real runtime regression. Not the same thing as `portability-gate.yml` (CLI loop on three OSes). |
 
 ### Push-only (path-filtered) workflows
 

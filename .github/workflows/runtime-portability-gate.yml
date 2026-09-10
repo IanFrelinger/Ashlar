@@ -1,0 +1,137 @@
+# Runtime Portability Gate
+#
+# Every other gate builds and runs on the 8.0 and 10.0 runtimes. Ashlar.Certification.Contracts
+# ships lib/net8.0 for everything between those, and a net9.0 consumer is silently bound to that
+# asset by NuGet — an asset never once executed on a 9.0.x runtime in CI, because no workflow
+# pins 9.0.x at all. This gate does: it packs the contracts with the SDK from global.json, then
+# EXECUTES a consumer on the 9.0 runtime (scripts/portability/net9-probe.sh) that mints and
+# verifies a record with HMAC and Ed25519 and compares the canonical signing bytes against the
+# checked-in golden corpus. Execution, not compilation: the ns2.0 asset was compiled in three
+# CI places and nothing caught anything until a probe actually ran it.
+#
+# ADVISORY. Path-filtered, so it cannot be a required status check (a required context that
+# never reports blocks the merge forever — see docs/CiGateInventory.md). It does not use
+# `continue-on-error`: a red run here is a real runtime regression and must be read as one.
+# Promotion to required goes through the always-report pattern (#571) and the branch-protection
+# docs in the same PR.
+name: Runtime Portability Gate
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly: setup-dotnet resolves 9.0.x / 10.0.x to whatever patch is current, so a runtime
+    # patch can change this lane's answer without any push to the repo.
+    - cron: "0 11 * * 1"
+  push:
+    branches:
+      - master
+      - main
+      - "cursor/**"
+    paths:
+      - ".github/workflows/runtime-portability-gate.yml"
+      - "scripts/portability/**"
+      - "src/Ashlar.Certification.Contracts/**"
+      - "src/Ashlar.Compat/**"
+      - "src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "Directory.Packages.props"
+      - "global.json"
+  pull_request:
+    paths:
+      - ".github/workflows/runtime-portability-gate.yml"
+      - "scripts/portability/**"
+      - "src/Ashlar.Certification.Contracts/**"
+      - "src/Ashlar.Compat/**"
+      - "src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "Directory.Packages.props"
+      - "global.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-portability-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  net9-runtime-consumer:
+    name: net9.0 runtime ← lib/net8.0 asset (execute)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NET9_PROBE_WORKDIR: ${{ runner.temp }}/net9-probe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          # 10.0.x builds and packs (global.json); 9.0.x is the runtime under test and is pinned
+          # nowhere else in CI. The consumer's runtimeconfig asks for 9.0 with the default Minor
+          # roll-forward, so 10.0.x beside it is not selected — and the probe asserts the major.
+          dotnet-version: |
+            10.0.x
+            9.0.x
+
+      - name: Installed runtimes
+        shell: bash
+        run: dotnet --list-runtimes
+
+      - name: Pack contracts (SDK 10), publish net9.0 consumer, execute on the 9.0 runtime
+        shell: bash
+        run: bash scripts/portability/net9-probe.sh
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="${NET9_PROBE_WORKDIR}/net9-probe.log"
+          {
+            echo "## Runtime Portability Gate — .NET 9"
+            echo ""
+            if [[ ! -f "${LOG}" ]]; then
+              echo "No probe log at \`${LOG}\` — the build phase failed before the consumer ran (see the job log)."
+            else
+              # The probe prints one line per check; the summary only re-reads them.
+              runtime="$(grep -m1 '^runtime:' "${LOG}" | sed 's/^runtime: *//' || true)"
+              contracts="$(grep -m1 '^contracts:' "${LOG}" | grep -oE '\[[^]]+\]' || true)"
+              nsec="$(grep -m1 '^nsec:' "${LOG}" | grep -oE '\[[^]]+\]' || true)"
+              golden_ok="$(grep -cE '^  OK   v[0-9]' "${LOG}" || true)"
+              golden_fail="$(grep -cE '^  FAIL v[0-9]' "${LOG}" || true)"
+              verdict_ok="$(grep -cE '^  OK   ' "${LOG}" || true)"
+              verdict_fail="$(grep -cE '^  FAIL ' "${LOG}" || true)"
+              result="$(grep -E '^(PASS|FAIL):' "${LOG}" | tail -1 || true)"
+              echo "| Check | Result |"
+              echo "|-------|--------|"
+              echo "| Runtime | \`${runtime:-?}\` |"
+              echo "| Contracts asset loaded | \`${contracts:-not loaded}\` |"
+              echo "| NSec asset loaded (Ed25519) | \`${nsec:-not loaded}\` |"
+              echo "| Golden canonical payloads byte-identical | ${golden_ok} OK / ${golden_fail} FAIL |"
+              echo "| All checks (bytes + mint/verify + verdicts) | ${verdict_ok} OK / ${verdict_fail} FAIL |"
+              echo ""
+              echo "**Result:** ${result:-no PASS/FAIL line — the consumer did not finish}"
+            fi
+            echo ""
+            echo "Advisory lane (not a required status check); a red run is a real .NET 9 runtime regression — read it."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+
+      - name: Upload probe log and resolved deps
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-portability-net9
+          path: |
+            ${{ runner.temp }}/net9-probe/net9-probe.log
+            ${{ runner.temp }}/net9-probe/net9/Net9Probe.deps.json
+            ${{ runner.temp }}/net9-probe/net9/Net9Probe.runtimeconfig.json
+          if-no-files-found: warn
+          retention-days: 14
