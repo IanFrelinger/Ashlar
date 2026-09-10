@@ -69,7 +69,19 @@ public static class CertificationRecordEd25519
             return false;
         }
 
-        var payload = Encoding.UTF8.GetBytes(CertificationRecordSigning.BuildPayload(record));
+        byte[] payload;
+        try
+        {
+            payload = Encoding.UTF8.GetBytes(CertificationRecordSigning.BuildPayload(record));
+        }
+        catch (CanonicalPayloadException)
+        {
+            // Same reason as the HMAC path: the payload could not be established as its declared
+            // shape, so there is nothing to verify against — and a verifier refuses rather than
+            // throwing into its host.
+            return false;
+        }
+
         return Algorithm.Verify(publicKey, payload, signature);
     }
 

@@ -52,7 +52,11 @@ public static class CertificationRecordSigning
 
     /// <summary>
     /// Verifies the record's <see cref="CertificationRecordData.Signature"/> against the canonical payload.
-    /// Returns false when the signature is missing, malformed, or does not match.
+    /// Returns false when the signature is missing, malformed, does not match, or when the
+    /// canonical payload itself is not in its declared shape. A verifier answers the question
+    /// it was asked, so an unusable payload is a refusal here rather than an exception thrown
+    /// into the host; <see cref="CertificationTrustVerifier"/> reports it as its own failure
+    /// code so the two faults stay distinguishable.
     /// </summary>
     /// <param name="record">Record containing the signature to verify.</param>
     /// <param name="hmacKey">Optional explicit key; falls back to environment or <see cref="DefaultDevKey"/>.</param>
@@ -69,6 +73,10 @@ public static class CertificationRecordSigning
                 Convert.FromBase64String(expected));
         }
         catch (FormatException)
+        {
+            return false;
+        }
+        catch (CanonicalPayloadException)
         {
             return false;
         }
@@ -101,13 +109,24 @@ public static class CertificationRecordSigning
     /// is semantic and preserved.
     /// </summary>
     /// <param name="record">Record to serialize.</param>
+    /// <exception cref="CanonicalPayloadException">
+    /// The serializer did not produce the lane's declared shape. Serialization here is
+    /// reflection-based, which does not survive trimming or ahead-of-time publishing, so the
+    /// payload can silently come out empty or short. These bytes back every signature, so a
+    /// payload that is not the declared shape is refused rather than signed.
+    /// </exception>
     public static string BuildPayload(CertificationRecordData record)
     {
         if (record.SchemaVersion is null)
-            return BuildLegacyPayload(record);
+            return EnsureCanonical(BuildLegacyPayload(record), versioned: false);
 
+        return EnsureCanonical(BuildVersionedPayload(record, record.SchemaVersion.Value), versioned: true);
+    }
+
+    private static string BuildVersionedPayload(CertificationRecordData record, int schemaVersion)
+    {
         var clone = new VersionedPayload(
-            record.SchemaVersion.Value,
+            schemaVersion,
             record.Status,
             record.Stage,
             record.Admitted,
@@ -160,6 +179,144 @@ public static class CertificationRecordSigning
             record.Reason
         };
         return JsonSerializer.Serialize(clone, PayloadOptions);
+    }
+
+    // The property-NAME sequence each lane must produce. This is what makes "degenerate"
+    // definable without guessing at size or emptiness: PayloadOptions carries no
+    // JsonIgnoreCondition, so every declared property is emitted for every record whatever its
+    // values, and a minimal legitimate record still carries every one of these names with
+    // nulls. The sequence therefore depends on the payload TYPE and not on any field value —
+    // there is no legitimate record it can reject — and it catches in one check everything
+    // reflection-based serialization can lose when it is trimmed away or published
+    // ahead-of-time: an empty object, missing properties, and a reordering, which would
+    // silently invalidate every signature ever written.
+    private static readonly string[] LegacyPayloadNames =
+    {
+        "status", "stage", "admitted", "signed", "timestamp", "brickId", "contentHash",
+        "escapeRate", "totalMutants", "survivingMutants", "killedMutants", "survivingMutantIds",
+        "reason"
+    };
+
+    private static readonly string[] VersionedPayloadNames =
+    {
+        "schemaVersion", "status", "stage", "admitted", "signed", "timestamp", "brickId",
+        "contentHash", "escapeRate", "totalMutants", "survivingMutants", "killedMutants",
+        "survivingMutantIds", "reason", "gate", "gatesPassed", "inputs", "proposer", "attempts",
+        "ed25519PublicKey"
+    };
+
+    private static readonly string[] GatePassNames = { "name", "version", "configuration" };
+
+    private static readonly string[] InputNames = { "kind", "id", "hash" };
+
+    private static readonly string[] ProposerNames = { "identity", "parameters", "seed" };
+
+    private static readonly string[] AttemptNames = { "index", "outcome", "failureCategory", "durationSeconds" };
+
+    /// <summary>
+    /// Returns <paramref name="payload"/> when it carries the exact property-name sequence its
+    /// lane declares, and throws otherwise. Re-parsing with <see cref="JsonDocument"/> is
+    /// deliberate: the parser is reflection-free, so it still works in exactly the publish
+    /// configurations that break the serializer that produced the payload.
+    /// Internal rather than private so the guard can be exercised against payloads this
+    /// process cannot make the serializer emit — the publish modes that produce them are not
+    /// reproducible inside a test host.
+    /// </summary>
+    internal static string EnsureCanonical(string payload, bool versioned)
+    {
+        var lane = versioned ? "v2" : "v1";
+        JsonDocument document;
+        try
+        {
+            document = JsonDocument.Parse(payload);
+        }
+        catch (JsonException ex)
+        {
+            throw new CanonicalPayloadException(
+                $"The {lane} canonical certification payload did not serialize to parseable JSON, "
+                + "so it cannot back a signature.",
+                ex);
+        }
+
+        using (document)
+        {
+            var root = document.RootElement;
+            RequireShape(root, versioned ? VersionedPayloadNames : LegacyPayloadNames, lane, "payload");
+
+            // v1 has no nested objects; its arrays hold strings only.
+            if (!versioned)
+                return payload;
+
+            // Each collection member's kind is established before it is enumerated. The name
+            // sequence above establishes that these members are present, not what they are, and
+            // enumerating one that is not an array throws past every handler on the verification
+            // path — where the contract is a refusal, never an exception raised in the host.
+            foreach (var gatePass in RequireArray(root.GetProperty("gatesPassed"), lane, "gatesPassed").EnumerateArray())
+                RequireShape(gatePass, GatePassNames, lane, "gatesPassed[]");
+
+            foreach (var input in RequireArray(root.GetProperty("inputs"), lane, "inputs").EnumerateArray())
+                RequireShape(input, InputNames, lane, "inputs[]");
+
+            // proposer.parameters is deliberately left unchecked below: its keys are
+            // caller-supplied and emitted verbatim, so they are values here, not shape.
+            var proposer = root.GetProperty("proposer");
+            if (proposer.ValueKind != JsonValueKind.Null)
+                RequireShape(proposer, ProposerNames, lane, "proposer");
+
+            foreach (var attempt in RequireArray(root.GetProperty("attempts"), lane, "attempts").EnumerateArray())
+                RequireShape(attempt, AttemptNames, lane, "attempts[]");
+        }
+
+        return payload;
+    }
+
+    private static void RequireShape(JsonElement element, string[] expected, string lane, string path)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new CanonicalPayloadException(
+                $"The {lane} canonical certification payload is not its declared shape: "
+                + $"'{path}' serialized as {element.ValueKind}, expected an object.");
+        }
+
+        var observed = new List<string>(expected.Length);
+        foreach (var property in element.EnumerateObject())
+            observed.Add(property.Name);
+
+        if (observed.Count == expected.Length)
+        {
+            var matched = true;
+            for (var i = 0; i < expected.Length; i++)
+            {
+                if (!string.Equals(observed[i], expected[i], StringComparison.Ordinal))
+                {
+                    matched = false;
+                    break;
+                }
+            }
+
+            if (matched)
+                return;
+        }
+
+        // Property names only, never values: this message reaches logs and refusal text.
+        throw new CanonicalPayloadException(
+            $"The {lane} canonical certification payload is not its declared shape at '{path}'. "
+            + $"Expected {expected.Length} properties [{string.Join(", ", expected)}] in that order; "
+            + $"got {observed.Count} [{string.Join(", ", observed)}]. "
+            + "These bytes back every signature over this record, so they are refused rather than used.");
+    }
+
+    private static JsonElement RequireArray(JsonElement element, string lane, string path)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw new CanonicalPayloadException(
+                $"The {lane} canonical certification payload is not its declared shape: "
+                + $"'{path}' serialized as {element.ValueKind}, expected an array.");
+        }
+
+        return element;
     }
 
     private sealed record VersionedPayload(
