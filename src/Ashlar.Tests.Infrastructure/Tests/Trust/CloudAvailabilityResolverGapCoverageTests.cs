@@ -7,6 +7,7 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Trust;
 
 /// <summary>Tests for cloud availability resolver gap coverage.</summary>
+[Collection("EnvironmentVariables")]
 public sealed class CloudAvailabilityResolverGapCoverageTests : IDisposable
 {
     private readonly string? _savedAirgap;

@@ -8,8 +8,15 @@ namespace Ashlar.Tests.Infrastructure.Framework;
 /// <summary>
 /// Bridges <c>UnitTestBase</c> suites in this assembly to xUnit / VSTest via <see cref="UnitTestFrameworkBridge"/>.
 /// Excludes <c>SimpleTestForRunner</c> (helper exercised only from <c>TestRunnerAdapterTests</c>).
+///
+/// <para>In <c>ProcessCwd</c> because two of the suites it executes in-process flip the working
+/// directory: <c>AgentExecutorAdapterTests</c> and <c>ValidationServiceAdapterTests</c>. The
+/// attribute has to live here — those suites are not xUnit classes, so a <c>[Collection]</c> on
+/// them would be ignored; this theory is what actually runs them. See
+/// <see cref="Helpers.ProcessCwdCollection"/>.</para>
 /// </summary>
 [Trait("Category", "ProdStyle")]
+[Collection("ProcessCwd")]
 public sealed class UnitTestBridgeTests
 {
     public static TheoryData<Type> UnitTestTypes { get; } = BuildTheoryData();

@@ -11,6 +11,7 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Trust;
 
 /// <summary>Tests for trust service collection extensions gap coverage.</summary>
+[Collection("EnvironmentVariables")]
 public sealed class TrustServiceCollectionExtensionsGapCoverageTests
 {
     [Fact]

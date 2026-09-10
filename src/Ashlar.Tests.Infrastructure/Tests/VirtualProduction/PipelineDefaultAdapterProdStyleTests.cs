@@ -20,11 +20,18 @@ namespace Ashlar.Tests.Infrastructure.Tests.VirtualProduction;
 /// </summary>
 [Trait("Category", "ProdStyle")]
 [Trait("Category", "E2E")]
+[Collection("EnvironmentVariables")]
 public sealed class PipelineDefaultAdapterProdStyleTests
 {
     [Fact(Timeout = TestTimeouts.E2E)]
     public async Task Default_deterministic_adapter_from_real_composition_reports_failure_not_fabricated_success()
     {
+        // The CI Windows lane exports ASHLAR_ALLOW_MOCK=1, and the default adapter treats that as
+        // permission to report a stage it never ran as succeeded. Clear it for this test so the
+        // unconfigured-adapter contract is what is under assertion. (Parallel writers of the same
+        // variable are handled by the EnvironmentVariables collection on this class.)
+        using var allowMock = EnvironmentVariableScope.Unset("ASHLAR_ALLOW_MOCK");
+
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddPipelineCompositionLayer();

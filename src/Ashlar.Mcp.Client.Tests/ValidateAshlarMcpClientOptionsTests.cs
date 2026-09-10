@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Ashlar.Mcp.Client.Tests;
 
+[Collection(DeploymentProfileEnvironmentCollection.Name)]
 public sealed class ValidateAshlarMcpClientOptionsTests
 {
     private static readonly ValidateAshlarMcpClientOptions Validator = new();

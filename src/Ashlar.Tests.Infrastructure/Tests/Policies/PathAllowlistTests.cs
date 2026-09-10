@@ -160,7 +160,6 @@ public sealed class PathAllowlistTests
     public void Approve_RepoFsWrite_WithSandboxRootConfigured_AllowsPathUnderSandboxRoot()
     {
         var sandboxRoot = Path.Combine(Path.GetTempPath(), "ashlar-sandbox");
-        Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", sandboxRoot);
         var fullPath = Path.GetFullPath(Path.Combine(sandboxRoot, "workspaces/project-a/generated/file.cs"));
         var json = JsonSerializer.SerializeToElement(new { path = fullPath });
         var call = new ToolCall("repo.fs.write", json);
@@ -170,14 +169,12 @@ public sealed class PathAllowlistTests
 
         result.Should().BeTrue();
         reason.Should().Be("OK");
-        Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", null);
     }
 
     [Fact]
     public void Approve_RepoFsWrite_WithSandboxRootConfigured_RejectsEscapePath()
     {
         var sandboxRoot = Path.Combine(Path.GetTempPath(), "ashlar-sandbox");
-        Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", sandboxRoot);
         var escaped = Path.GetFullPath(Path.Combine(sandboxRoot, "../outside/file.cs"));
         var json = JsonSerializer.SerializeToElement(new { path = escaped });
         var call = new ToolCall("repo.fs.write", json);
@@ -187,14 +184,12 @@ public sealed class PathAllowlistTests
 
         result.Should().BeFalse();
         reason.Should().Contain("outside SandboxRoot");
-        Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", null);
     }
 
     [Fact]
     public void Approve_RepoFsWrite_WithSandboxRootConfigured_RejectsAbsolutePathOutsideSandboxRoot()
     {
         var sandboxRoot = Path.Combine(Path.GetTempPath(), "ashlar-sandbox");
-        Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", sandboxRoot);
         var outsidePath = Path.Combine(Path.GetTempPath(), "elsewhere", "file.cs");
         var json = JsonSerializer.SerializeToElement(new { path = outsidePath });
         var call = new ToolCall("repo.fs.write", json);
@@ -204,7 +199,6 @@ public sealed class PathAllowlistTests
 
         result.Should().BeFalse();
         reason.Should().Contain("outside SandboxRoot");
-        Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", null);
     }
 
     [Fact]

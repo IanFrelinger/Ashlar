@@ -1,75 +1,58 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Ashlar.Infrastructure.Trust;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Trust;
 
 /// <summary>Tests for cloud availability resolver.</summary>
+[Collection("EnvironmentVariables")]
 public sealed class CloudAvailabilityResolverTests
 {
     [Fact]
     public async Task IsAirGappedAsync_WhenAshlarAirgapEnvIs1_ReturnsTrue()
     {
-        Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", "1");
-        try
-        {
-            var logger = new LoggerFactory().CreateLogger<CloudAvailabilityResolver>();
-            var resolver = new CloudAvailabilityResolver(logger);
+        using var airgap = new EnvironmentVariableScope("ASHLAR_AIRGAP", "1");
 
-            var result = await resolver.IsAirGappedAsync();
+        var logger = new LoggerFactory().CreateLogger<CloudAvailabilityResolver>();
+        var resolver = new CloudAvailabilityResolver(logger);
 
-            result.Should().BeTrue();
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", null);
-        }
+        var result = await resolver.IsAirGappedAsync();
+
+        result.Should().BeTrue();
     }
 
     [Fact]
     public async Task IsAirGappedAsync_WhenAshlarAirgapEnvIsTrue_ReturnsTrue()
     {
-        Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", "true");
-        try
-        {
-            var logger = new LoggerFactory().CreateLogger<CloudAvailabilityResolver>();
-            var resolver = new CloudAvailabilityResolver(logger);
+        using var airgap = new EnvironmentVariableScope("ASHLAR_AIRGAP", "true");
 
-            var result = await resolver.IsAirGappedAsync();
+        var logger = new LoggerFactory().CreateLogger<CloudAvailabilityResolver>();
+        var resolver = new CloudAvailabilityResolver(logger);
 
-            result.Should().BeTrue();
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", null);
-        }
+        var result = await resolver.IsAirGappedAsync();
+
+        result.Should().BeTrue();
     }
 
     [Fact]
     public async Task IsAirGappedAsync_WhenAshlarAirgapEnvIs0_ReturnsFalse()
     {
-        Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", "0");
-        try
-        {
-            var logger = new LoggerFactory().CreateLogger<CloudAvailabilityResolver>();
-            var resolver = new CloudAvailabilityResolver(logger);
+        using var airgap = new EnvironmentVariableScope("ASHLAR_AIRGAP", "0");
 
-            var result = await resolver.IsAirGappedAsync();
+        var logger = new LoggerFactory().CreateLogger<CloudAvailabilityResolver>();
+        var resolver = new CloudAvailabilityResolver(logger);
 
-            result.Should().BeFalse();
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", null);
-        }
+        var result = await resolver.IsAirGappedAsync();
+
+        result.Should().BeFalse();
     }
 
     [Fact]
     public async Task IsAirGappedAsync_WithConfigFileContainingAirGappedTrue_ReturnsTrue()
     {
-        var prevEnv = Environment.GetEnvironmentVariable("ASHLAR_AIRGAP");
-        Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", null);
+        using var airgap = EnvironmentVariableScope.Unset("ASHLAR_AIRGAP");
         var configPath = Path.Combine(Path.GetTempPath(), $"ashlar-cloud-resolver-{Guid.NewGuid():N}.json");
         try
         {
@@ -83,7 +66,6 @@ public sealed class CloudAvailabilityResolverTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("ASHLAR_AIRGAP", prevEnv);
             if (File.Exists(configPath))
                 File.Delete(configPath);
         }

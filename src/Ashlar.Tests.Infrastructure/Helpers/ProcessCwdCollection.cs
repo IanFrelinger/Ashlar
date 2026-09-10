@@ -16,6 +16,14 @@ namespace Ashlar.Tests.Infrastructure.Helpers;
 /// class here is the whole fix; do not create a second cwd collection under another name —
 /// the point is that a reviewer can grep for one attribute and see every cwd mutator.</para>
 ///
+/// <para>One member is not itself a cwd mutator: <c>Framework.UnitTestBridgeTests</c>. It runs
+/// the assembly's <c>UnitTestBase</c> suites in-process, and two of them —
+/// <c>Tests.Agent.AgentExecutorAdapterTests</c> and
+/// <c>Tests.Validation.ValidationServiceAdapterTests</c> — call
+/// <c>Directory.SetCurrentDirectory</c> and hold the new cwd across an <c>await</c>. Those
+/// suites are not xUnit classes, so a <c>[Collection]</c> on them is ignored; the attribute has
+/// to go on the bridge theory that executes them.</para>
+///
 /// <para>Note what this does NOT fix: a test that waits a fixed interval for background I/O
 /// still flakes under a starved thread pool (coverlet on a loaded runner). Wait for the
 /// observable effect instead — see <c>FileBarrierAuditSinkGapCoverageTests.WaitUntilAsync</c>.</para>

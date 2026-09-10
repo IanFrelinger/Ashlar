@@ -11,6 +11,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 /// <summary>
 /// Tests for ProviderFactory.
 /// </summary>
+[Collection("EnvironmentVariables")]
 public class ProviderFactoryTests : UnitTestBase
 {
     [Fact]

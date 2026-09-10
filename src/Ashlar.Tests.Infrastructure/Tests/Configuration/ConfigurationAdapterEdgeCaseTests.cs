@@ -16,6 +16,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Configuration;
 /// concurrent load/save, empty files, and round-trip fidelity.
 /// </summary>
 [Trait("Category", "E2E")]
+[Collection("EnvironmentVariables")]
 public sealed class ConfigurationAdapterEdgeCaseTests : IDisposable
 {
     private readonly string _tempDir;
