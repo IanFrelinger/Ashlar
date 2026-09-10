@@ -78,4 +78,29 @@ public class InMemoryVectorStoreTests
         results.Should().HaveCount(1);
         results[0].Id.Should().Be("public-doc");
     }
+
+    // Pins the dimension guard in InMemoryVectorStore.SearchAsync, the twin of the one in
+    // SqliteVectorStore.SearchAsync. Without it the document below is still scored:
+    // VectorMath.CosineSimilarity returns 0 when the two vectors differ in length, and the
+    // search admits everything at or above minScore -- so at minScore 0.0 a document written
+    // by a differently-dimensioned generator comes back as a score-0.0 hit.
+    [Fact]
+    public async Task SearchAsync_DocumentOfDifferentDimension_IsSkippedNotReturnedAtScoreZero()
+    {
+        var store = new InMemoryVectorStore();
+
+        var indexedGen = new TokenEmbeddingGenerator(16);
+        await store.IndexAsync(
+            "stale-doc",
+            "hello world",
+            await indexedGen.GenerateAsync("hello world", default),
+            null,
+            default);
+
+        var queryGen = new TokenEmbeddingGenerator(32);
+        var queryEmb = await queryGen.GenerateAsync("hello world", default);
+        var results = await store.SearchAsync(queryEmb, 5, 0.0, null, default);
+
+        results.Should().BeEmpty();
+    }
 }
