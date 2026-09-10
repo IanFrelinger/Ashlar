@@ -389,6 +389,10 @@ public sealed class AttestedStateLogBindingTests
 
         public ITransitionReplayer CreateReplayer() => new PhaseReplayer(_schema);
 
+        // Deliberately still serializes an anonymous type, where CertifiedTransitionBuilder now
+        // writes the payload field by field. That is what makes this a witness rather than a
+        // copy: the two reach the same bytes by different routes, so a change to either one is
+        // visible here. Do not "share" it with the production builder.
         public static string ComputeEntryHash(
             string priorStateHash,
             string action,

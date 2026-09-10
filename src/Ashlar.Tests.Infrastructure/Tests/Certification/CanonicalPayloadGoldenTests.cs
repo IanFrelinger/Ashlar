@@ -12,10 +12,11 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para>
 /// These bytes are the message every HMAC and Ed25519 certification signature is computed
 /// over, so their stability is the whole basis on which a signature written yesterday still
-/// verifies today. They are produced by reflection-based <c>System.Text.Json</c>, whose
-/// output depends on the runtime, the serializer version and the publish mode rather than on
-/// anything this repository declares — so "the bytes did not change" is an assertion, not a
-/// property that can be reasoned about. This suite makes it one.
+/// verifies today. They are written field by field rather than serialized from an object
+/// graph, so their order and their names are a property of this repository — but their
+/// encoding is still <c>Utf8JsonWriter</c>'s, and the package ships three target frameworks
+/// against three different <c>System.Text.Json</c> builds. "The bytes did not change" stays an
+/// assertion rather than something that can be reasoned about. This suite makes it one.
 /// </para>
 /// <para>
 /// The corpus lives in <c>canonical-payloads.golden.json</c> rather than in this file because
