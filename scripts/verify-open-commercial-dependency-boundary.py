@@ -38,6 +38,8 @@ EXCLUDED_CSPROJ: set[str] = {
     # Template project uses tokenized ProjectReference replaced by `ashlar new brick`.
     "samples/templates/brick/__BrickName__Brick/__BrickName__Brick.csproj",
     "samples/templates/brick/__BrickName__Brick.Tests/__BrickName__Brick.Tests.csproj",
+    # Reference consumer host; its ProjectReference is rendered by scripts/verify-external-product-shape.sh.
+    "consumer-template/host/ExternalProductHost.csproj",
 }
 
 COMMERCIAL_PATH_MARKERS = (

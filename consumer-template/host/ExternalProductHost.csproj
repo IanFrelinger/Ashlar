@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Ashlar.Authoring" Version="__ASHLAR_VERSION__" />
+    <PackageReference Include="Ashlar.Hosting.Bundle" Version="__ASHLAR_VERSION__" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../brick/__BRICK_PROJECT_NAME__/__BRICK_PROJECT_NAME__.csproj" />
+  </ItemGroup>
+</Project>

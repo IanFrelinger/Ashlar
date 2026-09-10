@@ -41,7 +41,7 @@ With **central package management**, use `Directory.Packages.props` in this fold
 ## Layout (typical PoP)
 
 - **Brick project** — references `Ashlar.Authoring` (+ `Ashlar.Brick.Contracts` types); scaffold with `ashlar new brick --ashlar-version <version>` from a CLI tool-installed at the same version (`dotnet tool install --global Ashlar.CLI --version <version>` from nuget.org, or `--add-source <feed>` for a staging/pre-release cut).
-- **Host** — `Ashlar.Authoring` + `Ashlar.Hosting.Bundle`; register bricks with `AddAshlarBrick<T>()` before `AddAshlar()`; expose `GET /health` and `POST /api/bricks/{id}/execute` (see `scripts/verify-external-product-shape.sh` for a minimal reference).
+- **Host** — `Ashlar.Authoring` + `Ashlar.Hosting.Bundle`; register bricks with `AddAshlarBrick<T>()` before `AddAshlar()`; expose `GET /health` and `POST /api/bricks/{id}/execute` (a complete minimal host lives in `consumer-template/host/Program.cs`; its `__TOKEN__` markers are explained in `consumer-template/host/README.md`).
 - **Client** — `Ashlar.Sdk`; call `IAshlarClient.InvokeAsync(HttpMethod.Post, "api/bricks/{id}/execute", …)` against the host base URL.
 
 ## Verification in Ashlar

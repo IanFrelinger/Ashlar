@@ -372,7 +372,7 @@ Ashlar/                           # the repo/clone directory (github.com/IanFrel
 ├── deploy/                       # compose/ stacks and k8s/ manifests
 ├── infra/                        # terraform
 ├── extensions/                   # ashlar-vscode (→ ashlar-workstation product)
-├── consumer-template/            # nuget.config + Directory.Packages.props for external consumers
+├── consumer-template/            # nuget.config + Directory.Packages.props + host/ reference host for external consumers
 ├── config/                       # trust policy packs
 ├── scripts/                      # setup, install, CI, release helpers
 ├── .devcontainer/

@@ -16,3 +16,6 @@ ci/nupkg-layout.tsv text eol=lf
 .devcontainer/post-create.sh text eol=lf
 scripts/start-ashlar-api-dev.sh text eol=lf
 scripts/stop-ashlar-api-dev.sh text eol=lf
+# The reference consumer host is copied verbatim into a generated tree by
+# scripts/verify-external-product-shape.sh; CRLF here would change the bytes that gate compares.
+consumer-template/host/** text eol=lf
