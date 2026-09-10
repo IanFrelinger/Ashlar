@@ -21,6 +21,10 @@
          regeneration ritual as the brick corpus above; read by
          CompositionCanonicalPayloadGoldenTests. -->
     <Content Include="Tests/Certification/composition-payloads.golden.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Golden canonical entry-hash payloads for certified state transitions. Shared constant:
+         CertifiedTransitionEntryHashGoldenTests reads it from the test output, the ns2.0 and
+         net9 probes read the same file from the repo. -->
+    <Content Include="Tests/Certification/transition-entry-hashes.golden.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../samples/physical-atom-cert/**/*" CopyToOutputDirectory="PreserveNewest" Link="physical-atom-cert/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <!-- Workaround for Castle.Core net6.0 assembly loading issue on .NET 8.0 -->

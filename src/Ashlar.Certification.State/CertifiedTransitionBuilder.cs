@@ -12,6 +12,24 @@ public sealed class CertifiedTransitionBuilder
         string action,
         string behaviorCertContentHash,
         string resultingStateHash,
+        string prevEntryHash) =>
+        Contracts.BrickContentHasher.ComputeSha256(BuildCanonicalPayload(
+            priorStateHash,
+            action,
+            behaviorCertContentHash,
+            resultingStateHash,
+            prevEntryHash));
+
+    // The bytes StateLogVerifier's decision rests on: it recomputes this hash for every entry
+    // and refuses the log when it does not match the stored one. Internal rather than inlined
+    // above so CertifiedTransitionEntryHashGoldenTests can pin the bytes themselves — a pin
+    // that could only observe the hash would report "the hash moved" rather than which byte
+    // moved it.
+    internal static string BuildCanonicalPayload(
+        string priorStateHash,
+        string action,
+        string behaviorCertContentHash,
+        string resultingStateHash,
         string prevEntryHash)
     {
         var payload = new
@@ -23,11 +41,9 @@ public sealed class CertifiedTransitionBuilder
             resultingStateHash
         };
 
-        var canonical = JsonSerializer.Serialize(
+        return JsonSerializer.Serialize(
             payload,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-
-        return Contracts.BrickContentHasher.ComputeSha256(canonical);
     }
 
     public CertifiedTransition Create(
