@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Microsoft.Extensions.AI;
 
 namespace Ashlar.AI.Pipeline.Embeddings;
@@ -7,6 +8,19 @@ namespace Ashlar.AI.Pipeline.Embeddings;
 /// Deterministic local embedding generator (token-hash bag-of-words), MEAI-shaped.
 /// Does not collide with Ashlar.BackgroundAgents.RAG.IEmbeddingGenerator.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Deterministic means <em>across processes</em>, not merely within one. These vectors are written
+/// into a vector store and later scored against a query vector produced by a different process, so
+/// a token must land in the same bucket in every run or the whole index becomes noise on restart.
+/// </para>
+/// <para>
+/// The bucket index is therefore derived from a hand-rolled FNV-1a hash rather than from
+/// <see cref="string.GetHashCode()"/>, which .NET randomizes per process (Marvin hash, per-process
+/// seed). The same defect in the sibling generator in Ashlar.BackgroundAgents.RAG produced a real
+/// CI failure where an indexed document could not be found by a search for its own text.
+/// </para>
+/// </remarks>
 public sealed class TokenHashEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<float>>
 {
     private readonly int _dimensions;
@@ -47,6 +61,32 @@ public sealed class TokenHashEmbeddingGenerator : IEmbeddingGenerator<string, Em
     {
     }
 
+    /// <summary>
+    /// FNV-1a 32-bit over the UTF-8 bytes of the lower-invariant token.
+    /// </summary>
+    /// <remarks>
+    /// Hand-rolled on purpose: <see cref="string.GetHashCode()"/> is randomized per process and
+    /// these bucket indices are compared across processes. Kept unsigned so the bucket is taken
+    /// with an unsigned modulo — the previous <c>Math.Abs(hash) % _dimensions</c> also threw
+    /// <see cref="OverflowException"/> whenever the hash came back as <see cref="int.MinValue"/>.
+    /// Mirrors Ashlar.BackgroundAgents.RAG.TokenEmbeddingGenerator.StableTokenHash; the two live in
+    /// assemblies with no shared dependency, so the constants are duplicated rather than referenced.
+    /// </remarks>
+    internal static uint StableTokenHash(string token)
+    {
+        const uint offsetBasis = 2166136261;
+        const uint prime = 16777619;
+
+        var hash = offsetBasis;
+        foreach (var b in Encoding.UTF8.GetBytes(token.ToLowerInvariant()))
+        {
+            hash ^= b;
+            hash *= prime;
+        }
+
+        return hash;
+    }
+
     private float[] Embed(string text)
     {
         var vector = new float[_dimensions];
@@ -54,8 +94,7 @@ public sealed class TokenHashEmbeddingGenerator : IEmbeddingGenerator<string, Em
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         foreach (var token in tokens)
         {
-            var hash = token.ToLowerInvariant().GetHashCode();
-            var index = Math.Abs(hash) % _dimensions;
+            var index = (int)(StableTokenHash(token) % (uint)_dimensions);
             vector[index] += 1f;
         }
 

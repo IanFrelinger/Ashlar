@@ -58,6 +58,15 @@ public sealed class InMemoryVectorStore : IVectorStore
                     continue;
             }
 
+            // Skip documents of a different dimension rather than scoring them. This is the
+            // same guard SqliteVectorStore.SearchAsync applies, for the same reason:
+            // CosineSimilarity returns 0 for a length mismatch and the filter below admits
+            // anything at or above minScore, so at the common minScore of 0.0 a document
+            // written by a differently-dimensioned generator would come back as a score-0.0
+            // hit instead of being ignored.
+            if (doc.Embedding.Length != embedding.Length)
+                continue;
+
             var score = VectorMath.CosineSimilarity(querySpan, doc.Embedding.AsSpan());
             if (score >= minScore)
                 results.Add(new VectorSearchResult(docId, doc.Text, score, doc.SensitivityLevelName));
