@@ -151,14 +151,38 @@ internal static class Net9Probe
             failures++;
         }
 
-        failures += CheckCanonicalBytes(path);
-        failures += CheckMintAndVerify();
+        // The build phase read the lib/net8.0 binding off deps.json; this is the same claim
+        // asserted by the process that actually runs, against the assembly it actually loaded.
+        // A tree bound to a different asset stops HERE, with a verdict: run on, and the
+        // netstandard2.0 asset (for one) faults on a System.Text.Json it cannot find before a
+        // single check line is printed, which is a crash, not a FAIL.
+        if (ExpectTfm("contracts", contracts) != 0)
+        {
+            failures++;
+        }
+        else
+        {
+            failures += CheckCanonicalBytes(path);
+            failures += CheckMintAndVerify();
+        }
+
         Console.WriteLine(failures == 0 ? "PASS: net9.0 probe" : "FAIL: net9.0 probe (" + failures + " failures)");
         return failures == 0 ? 0 : 1;
     }
 
     private static string Tfm(Assembly a) =>
         a.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName ?? "(no TargetFrameworkAttribute)";
+
+    // net9.0 has no asset of its own in either package; lib/net8.0 is the one NuGet must pick.
+    private const string ExpectedTfm = ".NETCoreApp,Version=v8.0";
+
+    private static int ExpectTfm(string what, Assembly a)
+    {
+        var tfm = Tfm(a);
+        var ok = tfm == ExpectedTfm;
+        Console.WriteLine((ok ? "  OK   " : "  FAIL ") + what + " bound to [" + tfm + "]" + (ok ? "" : ", expected [" + ExpectedTfm + "]"));
+        return ok ? 0 : 1;
+    }
 
     // Same loop as scripts/ns20-canonical-bytes-probe.sh: the payload string, its SHA-256 and
     // its UTF-8 byte length must all match the checked-in corpus.
@@ -218,6 +242,7 @@ internal static class Net9Probe
             var nsecName = typeof(CertificationRecordEd25519).Assembly.GetReferencedAssemblies().First(a => a.Name == "NSec.Cryptography");
             var nsec = Assembly.Load(nsecName);
             Console.WriteLine("nsec:      " + nsec.Location + "  [" + Tfm(nsec) + "]");
+            failures += ExpectTfm("nsec", nsec);
         }
         catch (Exception ex)
         {
@@ -324,11 +349,54 @@ PROG
   cp "${GOLDEN}" "${WORK}/canonical-payloads.golden.json"
 fi
 
+# The consumer's exit code is one signal; what it printed is the other, and this lane trusts
+# neither alone. A consumer that returned 0 without running anything (an empty log), or one
+# that ran the bytes loop and nothing else, must not turn the lane green — a lane that exists
+# because compile-only proved nothing cannot itself pass on a bare exit code. So the log must
+# carry the PASS verdict, one OK line per golden case (an empty or truncated bytes section
+# cannot pass), both signature checks, and both assemblies bound to the net8.0 asset.
+check_log() {
+  local consumer_rc="$1"
+  local failed=0
+  if [[ "${consumer_rc}" != "0" ]]; then
+    echo "net9-probe: the consumer exited ${consumer_rc}" >&2
+    failed=1
+  fi
+  if ! grep -qx 'PASS: net9.0 probe' "${LOG}"; then
+    echo "net9-probe: ${LOG} carries no 'PASS: net9.0 probe' line" >&2
+    failed=1
+  fi
+  local cases ok
+  cases="$(grep -c '"payloadSha256"' "${WORK}/canonical-payloads.golden.json" || true)"
+  ok="$(grep -cE '^  OK   .*  [0-9A-F]{64}  [0-9]+ bytes$' "${LOG}" || true)"
+  if [[ "${cases}" == "0" || "${ok}" != "${cases}" ]]; then
+    echo "net9-probe: ${ok} golden OK line(s) in ${LOG}, but the corpus has ${cases} case(s)" >&2
+    failed=1
+  fi
+  local pattern
+  for pattern in \
+    '^  OK   hmac VerifySignature = True' \
+    '^  OK   ed25519 VerifySignature = True' \
+    '^contracts: .*\[\.NETCoreApp,Version=v8\.0\]' \
+    '^nsec: .*\[\.NETCoreApp,Version=v8\.0\]'; do
+    if ! grep -qE "${pattern}" "${LOG}"; then
+      echo "net9-probe: ${LOG} has no line matching ${pattern}" >&2
+      failed=1
+    fi
+  done
+  if [[ "${failed}" == "1" ]]; then
+    echo "net9-probe: FAIL — the consumer's output does not support a pass (see ${LOG})" >&2
+    exit 1
+  fi
+  echo "net9-probe: log checked — ${ok}/${cases} golden cases, HMAC + Ed25519 verified, both assemblies on lib/net8.0"
+}
+
 if [[ "${DO_RUN}" == "1" ]]; then
   if [[ ! -f "${WORK}/net9/Net9Probe.dll" ]]; then
     echo "net9-probe: no built consumer under ${WORK}/net9 — run --build-only first (same NET9_PROBE_WORKDIR)" >&2
     exit 1
   fi
+  CONSUMER_RC=0
   if [[ "${RUN_IN_DOCKER}" == "1" ]]; then
     echo "== net9 probe: execute the net8.0 asset on the 9.0 runtime in ${SDK9_IMAGE} =="
     # Docker on Windows wants a Windows-shaped host path and no MSYS path mangling.
@@ -340,7 +408,7 @@ if [[ "${DO_RUN}" == "1" ]]; then
       -v "${MOUNT}:/probe:ro" \
       -e DOTNET_NOLOGO=1 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
       "${SDK9_IMAGE}" \
-      dotnet /probe/net9/Net9Probe.dll /probe/canonical-payloads.golden.json | tee "${LOG}"
+      dotnet /probe/net9/Net9Probe.dll /probe/canonical-payloads.golden.json | tee "${LOG}" || CONSUMER_RC=$?
   else
     echo "== net9 probe: execute the net8.0 asset on the local 9.0 runtime =="
     if ! dotnet --list-runtimes | grep -q '^Microsoft.NETCore.App 9\.'; then
@@ -350,6 +418,7 @@ if [[ "${DO_RUN}" == "1" ]]; then
     fi
     # The consumer's runtimeconfig asks for 9.0 with the default (Minor) roll-forward, so a
     # 10.x runtime installed beside it is not selected; the consumer asserts the major in-process.
-    dotnet "${WORK}/net9/Net9Probe.dll" "${WORK}/canonical-payloads.golden.json" | tee "${LOG}"
+    dotnet "${WORK}/net9/Net9Probe.dll" "${WORK}/canonical-payloads.golden.json" | tee "${LOG}" || CONSUMER_RC=$?
   fi
+  check_log "${CONSUMER_RC}"
 fi
