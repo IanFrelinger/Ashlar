@@ -94,6 +94,12 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
 
             if (blob == null || blob.Length == 0)
                 continue;
+            // Skip rows of a different dimension rather than scoring them. CosineSimilarity returns
+            // 0 for a length mismatch, and the filter below admits anything at or above minScore —
+            // so with the common minScore of 0.0 a stale row of the wrong dimension would come back
+            // as a score-0.0 hit instead of being ignored.
+            if (blob.Length != embedding.Length * sizeof(float))
+                continue;
             var docEmbedding = BlobToFloatArray(blob);
             var score = VectorMath.CosineSimilarity(embedding.AsSpan(), docEmbedding.AsSpan());
             if (score >= minScore)

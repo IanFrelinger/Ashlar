@@ -8,6 +8,24 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// Simple token-based embedding generator (fallback when no external embedding API).
 /// Produces deterministic vectors from word tokens for approximate similarity search.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Determinism here means <em>cross-process</em> determinism: the same token yields the same
+/// vector in every process, on every machine, forever. That is a hard requirement rather than a
+/// nicety, because <see cref="SqliteVectorStore"/> persists these vectors as raw float32 blobs and
+/// a later process compares its freshly generated query vector against them. A vector basis that
+/// changed between runs would turn every persisted corpus into noise the moment the writing
+/// process exited.
+/// </para>
+/// <para>
+/// This is why the per-token seed is hashed by hand with FNV-1a rather than with
+/// <see cref="string.GetHashCode()"/> or <see cref="StringComparer.OrdinalIgnoreCase"/>: .NET
+/// randomizes string hashing per process (Marvin hash, per-process seed), so a seed taken from
+/// those APIs is stable only for the lifetime of one process. Using one here produced a real CI
+/// failure — indexing reported a document, and the search that followed scored it below zero and
+/// returned nothing.
+/// </para>
+/// </remarks>
 public sealed class TokenEmbeddingGenerator : IEmbeddingGenerator
 {
     private const int DefaultDimension = AshlarDefaults.EmbeddingDefaultDimension;
@@ -55,7 +73,7 @@ public sealed class TokenEmbeddingGenerator : IEmbeddingGenerator
         return _tokenCache.GetOrAdd(token, t =>
         {
             var v = new float[_dimension];
-            var hash = (uint)StringComparer.OrdinalIgnoreCase.GetHashCode(t);
+            var hash = StableTokenHash(t);
             for (var i = 0; i < _dimension; i++)
             {
                 hash = (hash * 31 + (uint)i) ^ (hash >> 13);
@@ -64,6 +82,35 @@ public sealed class TokenEmbeddingGenerator : IEmbeddingGenerator
             VectorMath.NormalizeInPlace(v);
             return v;
         });
+    }
+
+    /// <summary>
+    /// FNV-1a 32-bit over the UTF-8 bytes of the lower-invariant token.
+    /// </summary>
+    /// <remarks>
+    /// Hand-rolled on purpose. <see cref="string.GetHashCode()"/> and the
+    /// <see cref="StringComparer"/> hash codes are randomized per process, and these vectors are
+    /// persisted and compared across processes. FNV-1a is fixed by its constants (offset basis
+    /// 2166136261, prime 16777619), so this value is part of the on-disk contract: changing it
+    /// invalidates every persisted embedding.
+    /// The token is lowercased here so that the vector never depends on the caller's casing, which
+    /// keeps it consistent with the case-insensitive token cache.
+    /// </remarks>
+    /// <param name="token">Token to hash.</param>
+    /// <returns>A process-independent 32-bit hash.</returns>
+    internal static uint StableTokenHash(string token)
+    {
+        const uint offsetBasis = 2166136261;
+        const uint prime = 16777619;
+
+        var hash = offsetBasis;
+        foreach (var b in Encoding.UTF8.GetBytes(token.ToLowerInvariant()))
+        {
+            hash ^= b;
+            hash *= prime;
+        }
+
+        return hash;
     }
 
     private static IEnumerable<string> Tokenize(string text)
