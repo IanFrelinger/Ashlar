@@ -1,0 +1,183 @@
+{
+  "_readme": "Golden canonical signing payloads. These bytes back every certification signature, so they are pinned here and read by BOTH the in-repo golden test and the netstandard2.0 parity probe (scripts/ns20-canonical-bytes-probe.sh) - one constant, two readers. To regenerate a case deliberately, copy the actual payload the failing test prints into this file. Regenerate ONLY when the canonical form is deliberately changed, and understand that changing it invalidates every signature already written. Doubles are deliberately restricted to exactly representable values: decimal formatting of arbitrary doubles is not yet identical across the targets this package ships for.",
+  "cases": [
+    {
+      "name": "v1-legacy-populated",
+      "why": "Every v1 field carrying a non-default value, plus the fields the v1 lane must structurally exclude (signature, ed25519Signature, ed25519PublicKey, gate). Mutant id lists are supplied out of order to pin the ordinal sort, and the reason string pins the escaping of quote, angle brackets, ampersand, apostrophe, plus and non-ASCII.",
+      "record": {
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-01-02T03:04:05.1234567\u002B00:00",
+        "brickId": "golden-legacy-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0.5,
+        "totalMutants": 7,
+        "survivingMutants": 2,
+        "killedMutants": [
+          "m-2",
+          "m-10",
+          "m-1"
+        ],
+        "survivingMutantIds": [
+          "s-2",
+          "s-1"
+        ],
+        "reason": "golden fixture \u2014 quote \u0022 angle \u003C \u0026 \u003E apostrophe \u0027 plus \u002B caf\u00E9",
+        "signature": "SIGNATURE-MUST-NOT-APPEAR",
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "ed25519Signature": "ED25519-SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519PublicKey": "3q2\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      },
+      "payloadSha256": "E8ED6042BAAD811A5F76F3980809E0091F1C8A30FD613C2E7B300D197EFA4E57",
+      "payloadByteLength": 435,
+      "payload": "{\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-01-02T03:04:05.1234567Z\u0022,\u0022brickId\u0022:\u0022golden-legacy-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:0.5,\u0022totalMutants\u0022:7,\u0022survivingMutants\u0022:2,\u0022killedMutants\u0022:[\u0022m-1\u0022,\u0022m-10\u0022,\u0022m-2\u0022],\u0022survivingMutantIds\u0022:[\u0022s-1\u0022,\u0022s-2\u0022],\u0022reason\u0022:\u0022golden fixture \\u2014 quote \\u0022 angle \\u003C \\u0026 \\u003E apostrophe \\u0027 plus \\u002B caf\\u00E9\u0022}"
+    },
+    {
+      "name": "v1-legacy-minimal",
+      "why": "Only the required members. Pins that the v1 payload still carries all 13 names with null values - a small payload is legitimate, an empty one is not.",
+      "record": {
+        "status": "FAIL",
+        "stage": "S0",
+        "admitted": false,
+        "signed": false,
+        "timestamp": "2026-01-02T03:04:05\u002B00:00",
+        "brickId": "golden-minimal-brick"
+      },
+      "payloadSha256": "BC038A904CA99F1CC289FA90173F010415FD34AC5B53CC817B5428F687A45CD6",
+      "payloadByteLength": 276,
+      "payload": "{\u0022status\u0022:\u0022FAIL\u0022,\u0022stage\u0022:\u0022S0\u0022,\u0022admitted\u0022:false,\u0022signed\u0022:false,\u0022timestamp\u0022:\u00222026-01-02T03:04:05.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-minimal-brick\u0022,\u0022contentHash\u0022:null,\u0022escapeRate\u0022:null,\u0022totalMutants\u0022:null,\u0022survivingMutants\u0022:null,\u0022killedMutants\u0022:[],\u0022survivingMutantIds\u0022:[],\u0022reason\u0022:null}"
+    },
+    {
+      "name": "v2-populated",
+      "why": "Every v2 field and every nested shape. gatesPassed and attempts are supplied in caller order (semantic, preserved); inputs and mutant ids are supplied out of order to pin the ordinal sort; proposer parameters are supplied out of order with mixed case to pin the ordinal key sort and the fact that dictionary keys are emitted verbatim rather than camel-cased.",
+      "record": {
+        "schemaVersion": 2,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00\u002B00:00",
+        "brickId": "golden-trust-loop-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0,
+        "totalMutants": 4,
+        "survivingMutants": 0,
+        "killedMutants": [
+          "m-2",
+          "m-10",
+          "m-1"
+        ],
+        "survivingMutantIds": [],
+        "reason": null,
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "gatesPassed": [
+          {
+            "name": "analyzer-gate",
+            "version": "1",
+            "configuration": "severityFloor=Warning"
+          },
+          {
+            "name": "correctness-witness",
+            "version": null,
+            "configuration": null
+          },
+          {
+            "name": "mutation-gate",
+            "version": "1",
+            "configuration": "escapeRateThreshold=0"
+          }
+        ],
+        "inputs": [
+          {
+            "kind": "witness",
+            "id": "golden-trust-loop-brick",
+            "hash": "witness-hash"
+          },
+          {
+            "kind": "context",
+            "id": "b-context",
+            "hash": "context-hash-b"
+          },
+          {
+            "kind": "context",
+            "id": "a-context",
+            "hash": "context-hash-a"
+          }
+        ],
+        "proposer": {
+          "identity": "agent://proposer-1",
+          "parameters": {
+            "temperature": "0",
+            "IterationLimit": "3",
+            "beta": "x"
+          },
+          "seed": "42"
+        },
+        "attempts": [
+          {
+            "index": 1,
+            "outcome": "fail",
+            "failureCategory": "mutation",
+            "durationSeconds": 0.5
+          },
+          {
+            "index": 2,
+            "outcome": "pass",
+            "failureCategory": null,
+            "durationSeconds": 0.25
+          }
+        ],
+        "signature": "SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519Signature": "ED25519-SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519PublicKey": "3q2\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      },
+      "payloadSha256": "638182E94741ED1F905ABD694A049387AACC5A3E7C8C6CDD915F795720CEB14A",
+      "payloadByteLength": 1213,
+      "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-trust-loop-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:0,\u0022totalMutants\u0022:4,\u0022survivingMutants\u0022:0,\u0022killedMutants\u0022:[\u0022m-1\u0022,\u0022m-10\u0022,\u0022m-2\u0022],\u0022survivingMutantIds\u0022:[],\u0022reason\u0022:null,\u0022gate\u0022:\u0022Ashlar.Infrastructure.Certification.CertificationGate\u0022,\u0022gatesPassed\u0022:[{\u0022name\u0022:\u0022analyzer-gate\u0022,\u0022version\u0022:\u00221\u0022,\u0022configuration\u0022:\u0022severityFloor=Warning\u0022},{\u0022name\u0022:\u0022correctness-witness\u0022,\u0022version\u0022:null,\u0022configuration\u0022:null},{\u0022name\u0022:\u0022mutation-gate\u0022,\u0022version\u0022:\u00221\u0022,\u0022configuration\u0022:\u0022escapeRateThreshold=0\u0022}],\u0022inputs\u0022:[{\u0022kind\u0022:\u0022context\u0022,\u0022id\u0022:\u0022a-context\u0022,\u0022hash\u0022:\u0022context-hash-a\u0022},{\u0022kind\u0022:\u0022context\u0022,\u0022id\u0022:\u0022b-context\u0022,\u0022hash\u0022:\u0022context-hash-b\u0022},{\u0022kind\u0022:\u0022witness\u0022,\u0022id\u0022:\u0022golden-trust-loop-brick\u0022,\u0022hash\u0022:\u0022witness-hash\u0022}],\u0022proposer\u0022:{\u0022identity\u0022:\u0022agent://proposer-1\u0022,\u0022parameters\u0022:{\u0022IterationLimit\u0022:\u00223\u0022,\u0022beta\u0022:\u0022x\u0022,\u0022temperature\u0022:\u00220\u0022},\u0022seed\u0022:\u002242\u0022},\u0022attempts\u0022:[{\u0022index\u0022:1,\u0022outcome\u0022:\u0022fail\u0022,\u0022failureCategory\u0022:\u0022mutation\u0022,\u0022durationSeconds\u0022:0.5},{\u0022index\u0022:2,\u0022outcome\u0022:\u0022pass\u0022,\u0022failureCategory\u0022:null,\u0022durationSeconds\u0022:0.25}],\u0022ed25519PublicKey\u0022:\u00223q2\\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\u0022}"
+    },
+    {
+      "name": "v2-minimal",
+      "why": "The load-refusal shape: required members plus a schema version. Pins that the v2 payload still carries all 20 names.",
+      "record": {
+        "schemaVersion": 2,
+        "status": "FAIL",
+        "stage": "load",
+        "admitted": false,
+        "signed": false,
+        "timestamp": "2026-08-12T10:00:00\u002B00:00",
+        "brickId": "golden-refusal-brick"
+      },
+      "payloadSha256": "92BEC029516E276311F0986BEB538BC4E90D48434CCA6860D8DC25ED8AB64723",
+      "payloadByteLength": 391,
+      "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022FAIL\u0022,\u0022stage\u0022:\u0022load\u0022,\u0022admitted\u0022:false,\u0022signed\u0022:false,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-refusal-brick\u0022,\u0022contentHash\u0022:null,\u0022escapeRate\u0022:null,\u0022totalMutants\u0022:null,\u0022survivingMutants\u0022:null,\u0022killedMutants\u0022:[],\u0022survivingMutantIds\u0022:[],\u0022reason\u0022:null,\u0022gate\u0022:null,\u0022gatesPassed\u0022:[],\u0022inputs\u0022:[],\u0022proposer\u0022:null,\u0022attempts\u0022:[],\u0022ed25519PublicKey\u0022:null}"
+    },
+    {
+      "name": "v2-escaping",
+      "why": "Non-ASCII, a control character, a surrogate pair, a tab, and every character the default JavaScript encoder escapes - in brickId and reason. Pins the encoder and its uppercase hex.",
+      "record": {
+        "schemaVersion": 2,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00\u002B00:00",
+        "brickId": "caf\u00E9-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0,
+        "totalMutants": 1,
+        "survivingMutants": 0,
+        "killedMutants": [
+          "m-1"
+        ],
+        "survivingMutantIds": [],
+        "reason": "caf\u00E9 \u003Cscript\u003E \u0026 \u0027quote\u0022 \u002B \u2014 \u0001 \uD83D\uDE00 tab\there",
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate"
+      },
+      "payloadSha256": "2E496D625B56E5B62353A6DCDE4A2BBFFEF902CA3F2BC7CE5C8243AA97C5B6C9",
+      "payloadByteLength": 565,
+      "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022caf\\u00E9-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:0,\u0022totalMutants\u0022:1,\u0022survivingMutants\u0022:0,\u0022killedMutants\u0022:[\u0022m-1\u0022],\u0022survivingMutantIds\u0022:[],\u0022reason\u0022:\u0022caf\\u00E9 \\u003Cscript\\u003E \\u0026 \\u0027quote\\u0022 \\u002B \\u2014 \\u0001 \\uD83D\\uDE00 tab\\there\u0022,\u0022gate\u0022:\u0022Ashlar.Infrastructure.Certification.CertificationGate\u0022,\u0022gatesPassed\u0022:[],\u0022inputs\u0022:[],\u0022proposer\u0022:null,\u0022attempts\u0022:[],\u0022ed25519PublicKey\u0022:null}"
+    }
+  ]
+}
