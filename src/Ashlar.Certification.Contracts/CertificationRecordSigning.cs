@@ -96,8 +96,6 @@ public static class CertificationRecordSigning
 #endif
     }
 
-    private static readonly JsonSerializerOptions PayloadOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-
     /// <summary>
     /// Whether <paramref name="schemaVersion"/> selects a canonical payload lane: null is the
     /// legacy v1 lane, <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> is v2, and
@@ -123,20 +121,19 @@ public static class CertificationRecordSigning
     /// </summary>
     /// <param name="record">Record to serialize.</param>
     /// <exception cref="CanonicalPayloadException">
-    /// The serializer did not produce the lane's declared shape, or the record's schema version
-    /// selects no lane at all. Serialization here is reflection-based, which does not survive
-    /// trimming or ahead-of-time publishing, so the payload can silently come out empty or
-    /// short; and a version this code has never seen would otherwise be serialized under a
-    /// shape chosen by guesswork. These bytes back every signature, so in either case they are
-    /// refused rather than signed.
+    /// The emitter did not produce the lane's declared shape, the record's schema version
+    /// selects no lane at all, or a proposer parameter key repeats so the payload would carry a
+    /// duplicate property name and describe no single record. A version this code has never
+    /// seen would otherwise be written under a shape chosen by guesswork. These bytes back
+    /// every signature, so in each case they are refused rather than signed.
     /// </exception>
     public static string BuildPayload(CertificationRecordData record)
     {
         if (record.SchemaVersion is null)
-            return EnsureCanonical(BuildLegacyPayload(record), versioned: false);
+            return EnsureCanonical(WritePayload(record, schemaVersion: null), versioned: false);
 
         if (record.SchemaVersion.Value == CertificationRecordData.TrustLoopSchemaVersion)
-            return EnsureCanonical(BuildVersionedPayload(record, record.SchemaVersion.Value), versioned: true);
+            return EnsureCanonical(WritePayload(record, record.SchemaVersion.Value), versioned: true);
 
         // An unknown version selects no lane. Serializing it under the v2 shape would emit the
         // version verbatim inside bytes whose meaning this code cannot know, and a record so
@@ -149,104 +146,291 @@ public static class CertificationRecordSigning
             + "so no signature can be computed or checked over it.");
     }
 
-    private static string BuildVersionedPayload(CertificationRecordData record, int schemaVersion)
+    // The largest payload in the golden corpus is 1213 bytes. A starting size, not a limit.
+    private const int PayloadBufferHint = 2048;
+
+    // The canonical payload is WRITTEN, not serialized from an object graph. Reflection-based
+    // serialization does not survive trimming or ahead-of-time publishing: under a trimmed
+    // publish the payload could serialize to an empty object, and bytes that back a signature
+    // must never be silently empty. Written this way the byte order is the statement order
+    // below and the names are the constants above, so the canonical form is a property of this
+    // file rather than of whichever System.Text.Json build a consumer resolves — this package
+    // ships netstandard2.0, net8.0 and net10.0, which are three different serializer builds
+    // behind one "canonical bytes" claim.
+    //
+    // Utf8JsonWriter still does the encoding, deliberately: its defaults are compact output and
+    // the default JavaScript encoder, and WriteNumber(double) keeps whatever decimal form the
+    // target produces. This change is about how the bytes are ORDERED and NAMED and must not
+    // move one of them; canonical-payloads.golden.json is what says it did not.
+    private static string WritePayload(CertificationRecordData record, int? schemaVersion)
     {
-        var clone = new VersionedPayload(
-            schemaVersion,
-            record.Status,
-            record.Stage,
-            record.Admitted,
-            record.Signed,
-            record.Timestamp.UtcDateTime.ToString("O"),
-            record.BrickId,
-            record.ContentHash,
-            record.EscapeRate,
-            record.TotalMutants,
-            record.SurvivingMutants,
-            record.KilledMutants.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-            record.SurvivingMutantIds.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-            record.Reason,
-            record.Gate,
-            record.GatesPassed.Select(g => new GatePassPayload(g.Name, g.Version, g.Configuration)).ToArray(),
-            record.Inputs
-                .OrderBy(i => i.Kind, StringComparer.Ordinal)
-                .ThenBy(i => i.Id, StringComparer.Ordinal)
-                .Select(i => new InputPayload(i.Kind, i.Id, i.Hash))
-                .ToArray(),
-            record.Proposer is null
-                ? null
-                : new ProposerPayload(
-                    record.Proposer.Identity,
-                    record.Proposer.Parameters
-                        .OrderBy(p => p.Key, StringComparer.Ordinal)
-                        .ToDictionary(p => p.Key, p => p.Value),
-                    record.Proposer.Seed),
-            record.Attempts.Select(a => new AttemptPayload(a.Index, a.Outcome, a.FailureCategory, a.DurationSeconds)).ToArray(),
-            record.Ed25519PublicKey);
-        return JsonSerializer.Serialize(clone, PayloadOptions);
+        using var buffer = new MemoryStream(PayloadBufferHint);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+
+            // v2 is v1's names in the same order with schemaVersion prepended and six appended,
+            // so the two lanes are one method under two brackets rather than two transcriptions
+            // that could drift apart in the thirteen names they share.
+            if (schemaVersion is not null)
+                writer.WriteNumber(Names.SchemaVersion, schemaVersion.Value);
+
+            WriteStringOrNull(writer, Names.Status, record.Status);
+            WriteStringOrNull(writer, Names.Stage, record.Stage);
+            writer.WriteBoolean(Names.Admitted, record.Admitted);
+            writer.WriteBoolean(Names.Signed, record.Signed);
+
+            // The round-trip form of the UTC DateTime, written as a STRING. Utf8JsonWriter's own
+            // DateTimeOffset overload emits "+00:00" and trims trailing fractional zeros, which
+            // is a different message for the same instant.
+            WriteStringOrNull(writer, Names.Timestamp, record.Timestamp.UtcDateTime.ToString("O"));
+            WriteStringOrNull(writer, Names.BrickId, record.BrickId);
+            WriteStringOrNull(writer, Names.ContentHash, record.ContentHash);
+            WriteNumberOrNull(writer, Names.EscapeRate, record.EscapeRate);
+            WriteNumberOrNull(writer, Names.TotalMutants, record.TotalMutants);
+            WriteNumberOrNull(writer, Names.SurvivingMutants, record.SurvivingMutants);
+            WriteOrdinalSorted(writer, Names.KilledMutants, record.KilledMutants);
+            WriteOrdinalSorted(writer, Names.SurvivingMutantIds, record.SurvivingMutantIds);
+            WriteStringOrNull(writer, Names.Reason, record.Reason);
+
+            if (schemaVersion is not null)
+            {
+                WriteStringOrNull(writer, Names.Gate, record.Gate);
+
+                // Gate and attempt order is semantic and preserved; inputs and mutant ids are
+                // sorted, because their caller order carries nothing and would otherwise be the
+                // thing that decides the bytes.
+                writer.WriteStartArray(Names.GatesPassed);
+                foreach (var gatePass in record.GatesPassed)
+                {
+                    writer.WriteStartObject();
+                    WriteStringOrNull(writer, Names.Name, gatePass.Name);
+                    WriteStringOrNull(writer, Names.Version, gatePass.Version);
+                    WriteStringOrNull(writer, Names.Configuration, gatePass.Configuration);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();
+
+                writer.WriteStartArray(Names.Inputs);
+                foreach (var input in record.Inputs
+                    .OrderBy(i => i.Kind, StringComparer.Ordinal)
+                    .ThenBy(i => i.Id, StringComparer.Ordinal))
+                {
+                    writer.WriteStartObject();
+                    WriteStringOrNull(writer, Names.Kind, input.Kind);
+                    WriteStringOrNull(writer, Names.Id, input.Id);
+                    WriteStringOrNull(writer, Names.Hash, input.Hash);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();
+
+                WriteProposer(writer, record.Proposer);
+
+                writer.WriteStartArray(Names.Attempts);
+                foreach (var attempt in record.Attempts)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteNumber(Names.Index, attempt.Index);
+                    WriteStringOrNull(writer, Names.Outcome, attempt.Outcome);
+                    WriteStringOrNull(writer, Names.FailureCategory, attempt.FailureCategory);
+                    WriteNumberOrNull(writer, Names.DurationSeconds, attempt.DurationSeconds);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndArray();
+
+                WriteStringOrNull(writer, Names.Ed25519PublicKey, record.Ed25519PublicKey);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        return Encoding.UTF8.GetString(buffer.ToArray());
     }
 
-    private static string BuildLegacyPayload(CertificationRecordData record)
+    // proposer.parameters is the one place in the payload whose property names are supplied by
+    // the caller: no key policy is configured, so keys are emitted verbatim in ordinal order.
+    // They are written straight from the sorted sequence — the intermediate dictionary the
+    // previous code built to carry them relied on Dictionary&lt;,&gt; preserving insertion
+    // order, which is a property of that type rather than a statement this payload makes.
+    private static void WriteProposer(Utf8JsonWriter writer, CertificationProposer? proposer)
     {
-        var clone = new
+        if (proposer is null)
         {
-            record.Status,
-            record.Stage,
-            record.Admitted,
-            record.Signed,
-            Timestamp = record.Timestamp.UtcDateTime.ToString("O"),
-            record.BrickId,
-            record.ContentHash,
-            record.EscapeRate,
-            record.TotalMutants,
-            record.SurvivingMutants,
-            KilledMutants = record.KilledMutants.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-            SurvivingMutantIds = record.SurvivingMutantIds.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-            record.Reason
-        };
-        return JsonSerializer.Serialize(clone, PayloadOptions);
+            // The literal null, never an empty object: a record with no proposer and a record
+            // with an empty one are different records and must not share a signature.
+            writer.WriteNull(Names.Proposer);
+            return;
+        }
+
+        writer.WriteStartObject(Names.Proposer);
+        WriteStringOrNull(writer, Names.Identity, proposer.Identity);
+
+        writer.WriteStartObject(Names.Parameters);
+        string? previousKey = null;
+        foreach (var parameter in proposer.Parameters.OrderBy(p => p.Key, StringComparer.Ordinal))
+        {
+            // The sort is ordinal, so a repeated key arrives next to its twin. Utf8JsonWriter
+            // does not reject a duplicate property name, and a payload carrying one describes no
+            // single record, so it is refused in the same vehicle every other unusable payload
+            // uses. The key itself is not named: this message reaches logs and refusal text, and
+            // these keys are caller data rather than shape.
+            if (string.Equals(previousKey, parameter.Key, StringComparison.Ordinal))
+            {
+                throw new CanonicalPayloadException(
+                    "The v2 canonical certification payload cannot be written: the proposer supplied "
+                    + "the same parameter key more than once, so the payload would carry a duplicate "
+                    + "property name and describe no single record.");
+            }
+
+            previousKey = parameter.Key;
+            WriteStringOrNull(writer, parameter.Key, parameter.Value);
+        }
+
+        writer.WriteEndObject();
+
+        WriteStringOrNull(writer, Names.Seed, proposer.Seed);
+        writer.WriteEndObject();
+    }
+
+    // Every helper below writes the literal null rather than omitting the property, at every
+    // level. Nothing here is conditional on a value, which is what keeps the name sequence an
+    // invariant of the lane rather than of the record — and therefore what lets EnsureCanonical
+    // define a degenerate payload as a shape rather than as a size.
+    private static void WriteStringOrNull(Utf8JsonWriter writer, string name, string? value)
+    {
+        if (value is null)
+            writer.WriteNull(name);
+        else
+            writer.WriteString(name, value);
+    }
+
+    private static void WriteNumberOrNull(Utf8JsonWriter writer, string name, int? value)
+    {
+        if (value is null)
+            writer.WriteNull(name);
+        else
+            writer.WriteNumber(name, value.Value);
+    }
+
+    // WriteNumber(double) rather than a formatted string. The decimal form of an arbitrary
+    // double is not identical across the three targets this package ships for, and reproducing
+    // each target's own form is what keeps this change byte-neutral; choosing one form here
+    // would be a different change, and would move signatures already written. The golden corpus
+    // restricts doubles to exactly representable values for the same reason.
+    private static void WriteNumberOrNull(Utf8JsonWriter writer, string name, double? value)
+    {
+        if (value is null)
+            writer.WriteNull(name);
+        else
+            writer.WriteNumber(name, value.Value);
+    }
+
+    private static void WriteOrdinalSorted(Utf8JsonWriter writer, string name, IReadOnlyList<string> values)
+    {
+        writer.WriteStartArray(name);
+        foreach (string? value in values.OrderBy(x => x, StringComparer.Ordinal))
+        {
+            if (value is null)
+                writer.WriteNullValue();
+            else
+                writer.WriteStringValue(value);
+        }
+
+        writer.WriteEndArray();
+    }
+
+    // Every property name in the payload, spelled once and read twice: the emitter writes them
+    // and the shape guard below checks them, so the two cannot disagree about a spelling. Two of
+    // these are not what inspection suggests — camel casing lowercases a leading RUN, which is
+    // why it is "brickId" and not "brickID", and "ed25519PublicKey" and not "ed25519publicKey" —
+    // and a one-character difference in either changes every signature in that lane.
+    private static class Names
+    {
+        internal const string SchemaVersion = "schemaVersion";
+        internal const string Status = "status";
+        internal const string Stage = "stage";
+        internal const string Admitted = "admitted";
+        internal const string Signed = "signed";
+        internal const string Timestamp = "timestamp";
+        internal const string BrickId = "brickId";
+        internal const string ContentHash = "contentHash";
+        internal const string EscapeRate = "escapeRate";
+        internal const string TotalMutants = "totalMutants";
+        internal const string SurvivingMutants = "survivingMutants";
+        internal const string KilledMutants = "killedMutants";
+        internal const string SurvivingMutantIds = "survivingMutantIds";
+        internal const string Reason = "reason";
+        internal const string Gate = "gate";
+        internal const string GatesPassed = "gatesPassed";
+        internal const string Inputs = "inputs";
+        internal const string Proposer = "proposer";
+        internal const string Attempts = "attempts";
+        internal const string Ed25519PublicKey = "ed25519PublicKey";
+        internal const string Name = "name";
+        internal const string Version = "version";
+        internal const string Configuration = "configuration";
+        internal const string Kind = "kind";
+        internal const string Id = "id";
+        internal const string Hash = "hash";
+        internal const string Identity = "identity";
+        internal const string Parameters = "parameters";
+        internal const string Seed = "seed";
+        internal const string Index = "index";
+        internal const string Outcome = "outcome";
+        internal const string FailureCategory = "failureCategory";
+        internal const string DurationSeconds = "durationSeconds";
     }
 
     // The property-NAME sequence each lane must produce. This is what makes "degenerate"
-    // definable without guessing at size or emptiness: PayloadOptions carries no
-    // JsonIgnoreCondition, so every declared property is emitted for every record whatever its
-    // values, and a minimal legitimate record still carries every one of these names with
-    // nulls. The sequence therefore depends on the payload TYPE and not on any field value —
-    // there is no legitimate record it can reject — and it catches in one check everything
-    // reflection-based serialization can lose when it is trimmed away or published
-    // ahead-of-time: an empty object, missing properties, and a reordering, which would
-    // silently invalidate every signature ever written.
+    // definable without guessing at size or emptiness: nothing is ever omitted, so every
+    // declared property is emitted for every record whatever its values, and a minimal
+    // legitimate record still carries every one of these names with nulls. The sequence
+    // therefore depends on the lane and not on any field value — there is no legitimate record
+    // it can reject — and it catches in one check an empty object, a missing property, and a
+    // reordering, which loses no information but changes the bytes and would silently
+    // invalidate every signature ever written.
+    //
+    // The emitter above leaves the serializer no room to decide any of that, which makes this a
+    // post-condition an editing mistake trips rather than a deployment fault it detects. It is
+    // kept for exactly that reason: it is the one thing standing between a mistyped name or a
+    // swapped pair of statements and a silently re-shaped signed payload.
     private static readonly string[] LegacyPayloadNames =
     {
-        "status", "stage", "admitted", "signed", "timestamp", "brickId", "contentHash",
-        "escapeRate", "totalMutants", "survivingMutants", "killedMutants", "survivingMutantIds",
-        "reason"
+        Names.Status, Names.Stage, Names.Admitted, Names.Signed, Names.Timestamp, Names.BrickId,
+        Names.ContentHash, Names.EscapeRate, Names.TotalMutants, Names.SurvivingMutants,
+        Names.KilledMutants, Names.SurvivingMutantIds, Names.Reason
     };
 
     private static readonly string[] VersionedPayloadNames =
     {
-        "schemaVersion", "status", "stage", "admitted", "signed", "timestamp", "brickId",
-        "contentHash", "escapeRate", "totalMutants", "survivingMutants", "killedMutants",
-        "survivingMutantIds", "reason", "gate", "gatesPassed", "inputs", "proposer", "attempts",
-        "ed25519PublicKey"
+        Names.SchemaVersion, Names.Status, Names.Stage, Names.Admitted, Names.Signed,
+        Names.Timestamp, Names.BrickId, Names.ContentHash, Names.EscapeRate, Names.TotalMutants,
+        Names.SurvivingMutants, Names.KilledMutants, Names.SurvivingMutantIds, Names.Reason,
+        Names.Gate, Names.GatesPassed, Names.Inputs, Names.Proposer, Names.Attempts,
+        Names.Ed25519PublicKey
     };
 
-    private static readonly string[] GatePassNames = { "name", "version", "configuration" };
+    private static readonly string[] GatePassNames = { Names.Name, Names.Version, Names.Configuration };
 
-    private static readonly string[] InputNames = { "kind", "id", "hash" };
+    private static readonly string[] InputNames = { Names.Kind, Names.Id, Names.Hash };
 
-    private static readonly string[] ProposerNames = { "identity", "parameters", "seed" };
+    private static readonly string[] ProposerNames = { Names.Identity, Names.Parameters, Names.Seed };
 
-    private static readonly string[] AttemptNames = { "index", "outcome", "failureCategory", "durationSeconds" };
+    private static readonly string[] AttemptNames = { Names.Index, Names.Outcome, Names.FailureCategory, Names.DurationSeconds };
 
     /// <summary>
     /// Returns <paramref name="payload"/> when it carries the exact property-name sequence its
-    /// lane declares, and throws otherwise. Re-parsing with <see cref="JsonDocument"/> is
-    /// deliberate: the parser is reflection-free, so it still works in exactly the publish
-    /// configurations that break the serializer that produced the payload.
-    /// Internal rather than private so the guard can be exercised against payloads this
-    /// process cannot make the serializer emit — the publish modes that produce them are not
-    /// reproducible inside a test host.
+    /// lane declares, and throws otherwise. No input to the emitter can produce another
+    /// sequence, so this is a post-condition on the emitter rather than a check on the runtime:
+    /// it asserts that the bytes about to back a signature are the shape this file says they
+    /// are, which is what a mistyped name or a swapped pair of write statements would break.
+    /// Re-parsing with <see cref="JsonDocument"/> keeps the check reflection-free, so it holds
+    /// in every publish mode the emitter itself holds in.
+    /// Internal rather than private so it can be exercised directly against payloads no input
+    /// to the emitter can produce.
     /// </summary>
     internal static string EnsureCanonical(string payload, bool versioned)
     {
@@ -344,36 +528,6 @@ public static class CertificationRecordSigning
 
         return element;
     }
-
-    private sealed record VersionedPayload(
-        int SchemaVersion,
-        string Status,
-        string Stage,
-        bool Admitted,
-        bool Signed,
-        string Timestamp,
-        string BrickId,
-        string? ContentHash,
-        double? EscapeRate,
-        int? TotalMutants,
-        int? SurvivingMutants,
-        string[] KilledMutants,
-        string[] SurvivingMutantIds,
-        string? Reason,
-        string? Gate,
-        GatePassPayload[] GatesPassed,
-        InputPayload[] Inputs,
-        ProposerPayload? Proposer,
-        AttemptPayload[] Attempts,
-        string? Ed25519PublicKey);
-
-    private sealed record GatePassPayload(string Name, string? Version, string? Configuration);
-
-    private sealed record InputPayload(string Kind, string Id, string Hash);
-
-    private sealed record ProposerPayload(string Identity, Dictionary<string, string> Parameters, string? Seed);
-
-    private sealed record AttemptPayload(int Index, string Outcome, string? FailureCategory, double? DurationSeconds);
 
     private static string ResolveKey(string? hmacKey)
     {

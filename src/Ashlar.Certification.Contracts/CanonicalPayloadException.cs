@@ -1,15 +1,22 @@
 namespace Ashlar.Certification.Contracts;
 
 /// <summary>
-/// Thrown when the canonical signing payload does not have the exact shape its lane declares.
+/// Thrown when the canonical signing payload does not have the exact shape its lane declares,
+/// or cannot be written at all.
 /// <para>
-/// The canonical payload is built by reflection-based <c>System.Text.Json</c>, which is not a
-/// guarantee: reflection-based serialization does not survive trimming or ahead-of-time
-/// publishing, and under those publish modes the payload can come out as the empty object
-/// <c>{}</c> or missing properties, with no exception and no warning. Those bytes are the
-/// message every HMAC and Ed25519 certification signature is computed over, so a payload that
-/// is not the declared shape does not describe the record it claims to cover. Minting one is
-/// refused; the alternative is a certificate whose bytes nobody can vouch for.
+/// Those bytes are the message every HMAC and Ed25519 certification signature is computed over,
+/// so a payload that is not the declared shape does not describe the record it claims to cover.
+/// Minting one is refused; the alternative is a certificate whose bytes nobody can vouch for.
+/// The payload is written field by field rather than serialized from an object graph, precisely
+/// so that its shape is decided here: reflection-based serialization does not survive trimming
+/// or ahead-of-time publishing, and under a trimmed publish the payload could serialize to an
+/// empty object with no exception and no warning. What remains is a post-condition on the
+/// writer, which is what an editing mistake in it would trip.
+/// </para>
+/// <para>
+/// Also thrown when the payload cannot be written as a single well-formed record at all — a
+/// proposer supplying the same parameter key twice, whose keys are emitted verbatim and would
+/// therefore produce a duplicate property name.
 /// </para>
 /// <para>
 /// Also thrown when the record's schema version selects no lane at all
