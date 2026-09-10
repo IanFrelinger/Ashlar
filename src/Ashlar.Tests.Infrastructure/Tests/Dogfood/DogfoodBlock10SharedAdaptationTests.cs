@@ -43,7 +43,7 @@ public sealed class DogfoodBlock10SharedAdaptationTests : TempDirTestBase
         var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
             .AddAdaptationInfrastructure(_storePath)
-            .AddSelfContextInfrastructure(_storePath)
+            .AddSelfContextInfrastructure(_storePath, docsRoot: TempDir)
             .AddSharedAdaptationCache(_sharedPath, mockRegression)
             .BuildServiceProvider();
 

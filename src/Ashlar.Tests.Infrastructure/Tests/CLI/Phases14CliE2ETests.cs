@@ -97,9 +97,17 @@ public sealed class Phases14CliE2ETests : E2ETestBase
         Assert.True(code == 0 || code == 1);
     }
 
+    /// <summary>
+    /// This is the invocation that wrote <c>docs/bricks/unknown.md</c> into the checkout (#580):
+    /// the fix to EmptyCatch.cs is promoted, EmptyCatch.cs maps to no brick, and the child
+    /// process documented the promotion under the repo root. The document must now land under
+    /// <see cref="TempDirTestBase.TempDir"/>, where <see cref="E2ETestBase.RunCliAsync"/> points
+    /// <c>ASHLAR_DOCS_ROOT</c>, and the checkout must be untouched.
+    /// </summary>
     [Fact(Timeout = 60000)]
     public async Task ImproveCommand_WithViolations_AppliesFixes()
     {
+        var repoDocStampBefore = RepoBrickDocStamp();
         var csPath = Path.Combine(TempDir, "EmptyCatch.cs");
         await File.WriteAllTextAsync(csPath, """
             using System;
@@ -118,9 +126,18 @@ public sealed class Phases14CliE2ETests : E2ETestBase
 
         Assert.True(code == 0 || code == 1);
         var content = await File.ReadAllTextAsync(csPath);
+        var fixApplied = content.Contains("Trace.WriteLine", StringComparison.Ordinal);
         Assert.True(
-            content.Contains("Trace.WriteLine", StringComparison.Ordinal) || code == 0,
+            fixApplied || code == 0,
             "File should be modified with Trace.WriteLine when violations were fixed, or exit 0 if no violations");
+
+        Assert.Equal(repoDocStampBefore, RepoBrickDocStamp());
+        if (fixApplied)
+        {
+            Assert.True(
+                File.Exists(Path.Combine(TempDir, "docs", "bricks", "unknown.md")),
+                "a promoted fix is documented under ASHLAR_DOCS_ROOT; if this is missing the child process ignored the variable and the document went somewhere else");
+        }
     }
 
     [Fact(Timeout = 60000)]

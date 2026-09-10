@@ -102,7 +102,7 @@ public sealed class ImmutableCoreTests : TempDirTestBase
             .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
             .AddCodeAnalyzers()
             .AddAdaptationInfrastructure(storePath)
-            .AddSelfContextInfrastructure(storePath)
+            .AddSelfContextInfrastructure(storePath, docsRoot: TempDir)
             .BuildServiceProvider();
 
         var registry = services.GetRequiredService<IImmutableCoreRegistry>();

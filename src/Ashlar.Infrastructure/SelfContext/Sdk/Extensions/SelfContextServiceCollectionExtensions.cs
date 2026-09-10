@@ -21,7 +21,15 @@ public static class SelfContextServiceCollectionExtensions
     /// When <paramref name="patternStorePath"/> is provided, adds observation core so IPatternStore is available.
     /// Requires IAdaptationLog to be registered (from AddAdaptationInfrastructure).
     /// </summary>
-    public static IServiceCollection AddSelfContextInfrastructure(this IServiceCollection services, string? patternStorePath = null)
+    /// <param name="services">The service collection.</param>
+    /// <param name="patternStorePath">Pattern store path; the tracer and test-failure stores are co-located with it. Null uses the state directory.</param>
+    /// <param name="docsRoot">
+    /// Root the documentation updater writes <c>docs/bricks/</c> beneath. Null keeps the
+    /// production default (<c>ASHLAR_DOCS_ROOT</c>, else the repository root). A test that builds
+    /// this container passes its temporary directory, for the same reason it passes a temporary
+    /// <paramref name="patternStorePath"/>: nothing a test does may land in the checkout.
+    /// </param>
+    public static IServiceCollection AddSelfContextInfrastructure(this IServiceCollection services, string? patternStorePath = null, string? docsRoot = null)
     {
         if (!string.IsNullOrEmpty(patternStorePath))
             services.AddObservationCore(patternStorePath);
@@ -47,7 +55,7 @@ public static class SelfContextServiceCollectionExtensions
             return new KnowledgeQueryService(adaptationLog, patternStore, userKnowledgeStore);
         });
         services.AddChangelogGenerator();
-        services.AddDocumentationUpdater();
+        services.AddDocumentationUpdater(docsRoot);
         return services;
     }
 
@@ -63,9 +71,20 @@ public static class SelfContextServiceCollectionExtensions
     /// <summary>
     /// Adds IDocumentationUpdater. Requires IAdaptationLog and IChangelogGenerator. Phase F.
     /// </summary>
-    public static IServiceCollection AddDocumentationUpdater(this IServiceCollection services)
+    /// <remarks>
+    /// Registered through a factory so <paramref name="docsRoot"/> reaches the constructor. The
+    /// previous <c>AddSingleton&lt;IDocumentationUpdater, DocumentationUpdater&gt;()</c> could only
+    /// ever select the two-argument constructor — a string is not a resolvable service — which
+    /// pinned every container, test containers included, to the repository root (#580).
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="docsRoot">Root for <c>docs/bricks/</c>; null keeps the production default.</param>
+    public static IServiceCollection AddDocumentationUpdater(this IServiceCollection services, string? docsRoot = null)
     {
-        services.AddSingleton<IDocumentationUpdater, DocumentationUpdater>();
+        services.AddSingleton<IDocumentationUpdater>(sp => new DocumentationUpdater(
+            sp.GetRequiredService<IAdaptationLog>(),
+            sp.GetRequiredService<IChangelogGenerator>(),
+            docsRoot));
         return services;
     }
 }

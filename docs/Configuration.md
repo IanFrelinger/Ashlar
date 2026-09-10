@@ -18,6 +18,7 @@ The tables below list keys in `Ashlar:A:B` form with the `Ashlar__A__B` environm
 |----------|-------------|---------|
 | `ASHLAR_CONFIG_PATH` | Path to config file | `~/.ashlar/config.json` |
 | `ASHLAR_STATE_DIR` | Runtime-state directory for LiteDB stores and snapshots (see "Runtime state" below); absolute, or relative to the resolved repo/app root | `<repo or app root>/.ashlar/state` |
+| `ASHLAR_DOCS_ROOT` | Root that `ashlar improve` writes promoted-adaptation documentation (`docs/bricks/<brick>.md`) beneath; absolute, or relative to the resolved repo/app root. The CLI E2E tests point it at their temp directory so a promotion never lands in the checkout | `<repo or app root>` (Ashlar documents itself in its own tree) |
 | `ASHLAR_MESH_INSTANCES_PATH` | Path to **`instances.json`** for **`ashlar mesh`** discovery | `~/.ashlar/instances.json` |
 | `ASHLAR_MESH_TRUST_POLICY` | Peer trust policy for `ashlar mesh` discovery **and** capability requests: **`any`**, **`allowlist`** (only **`admitted: true`** peers), **`trusted-only`**, **`trusted-preferred`**; any other value normalizes to `trusted-preferred` (fail-closed). Falls back to `ASHLAR_PEER_TRUST_POLICY` when unset (`MeshTrustPolicyConfiguration`) | unset → **`any`** for discovery, **`trusted-preferred`** for capability requests |
 | `ASHLAR_MESH_DIRECTOR_BASE_URL` | Base URL for **commercial mesh director CLI** (`dotnet run --project commercial/src/Ashlar.Commercial.MeshDirector -- director ...`) HTTP calls | unset |
