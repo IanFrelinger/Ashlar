@@ -189,7 +189,7 @@ RAG sensitivity is **`IDataSensitivityRegistry` levels**, not `PeerTrustTier`. P
 | Type | Path | Role |
 |------|------|------|
 | `IEmbeddingGenerator` | `src/Ashlar.BackgroundAgents/RAG/IEmbeddingGenerator.cs` | **Ashlar-local** `GenerateAsync → float[]` — **name collision with MEAI** |
-| `TokenEmbeddingGenerator` | same | Deterministic bag-of-words (dim 64 from `AshlarDefaults`) |
+| `TokenEmbeddingGenerator` | same | Bag-of-words, dim 64 from `AshlarDefaults`. Deterministic **across processes** since the FNV-1a fix; before it the per-token seed came from a per-process randomized string hash |
 | `IVectorStore` / `InMemoryVectorStore` | same | Default DI store |
 | `SqliteVectorStore` | same | Implemented + tested; **not** registered in `AddBackgroundAgentsRAG` |
 | `IRAGService` / `RAGService` | same | Embed + index/search façade |
@@ -408,7 +408,7 @@ Landing branch: `cursor/meai-phase5-vectordata-5a04`
 ### Delivered
 - Package: `Microsoft.Extensions.VectorData.Abstractions` **10.7.0** + in-process `InProcessVectorStore` / `InProcessChunkCollection` (no preview SK connector — version mismatch with VectorData 10.7)
 - `ChunkRecord`, `TrustTierOrder`, `VectorDataRagService` (index / search with caller-tier filter / reindex)
-- Governed embeddings: `TokenHashEmbeddingGenerator` → **Auditing** → **Sanitizing** (outer) — same AsyncLocal visibility pattern as chat
+- Governed embeddings: `TokenHashEmbeddingGenerator` → **Auditing** → **Sanitizing** (outer) — same AsyncLocal visibility pattern as chat. The generator buckets tokens by FNV-1a, not `String.GetHashCode()`, so a bucket index means the same thing in every process
 - Hosting Phase 13b: VectorData RAG + governance defaults always; chat pipeline still flag-gated
 - CLI: `ashlar background-agent rag reindex-meai` (`MeaiRagReindexCommand`) — leaves legacy RAG store read-only
 - AWS CPM aligned to v4 so Bedrock MEAI + DynamoDB co-restore: Core `4.0.100.4`, DynamoDBv2 `4.0.101.1`, S3 `4.0.101`, Lambda `4.0.103`
