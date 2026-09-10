@@ -76,8 +76,9 @@ public static class CertificationRecordEd25519
         }
         catch (CanonicalPayloadException)
         {
-            // Same reason as the HMAC path: a payload that is not its declared shape is not a
-            // signature that fails to match, but it is still a refusal rather than a throw.
+            // Same reason as the HMAC path: the payload could not be established as its declared
+            // shape, so there is nothing to verify against — and a verifier refuses rather than
+            // throwing into its host.
             return false;
         }
 

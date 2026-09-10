@@ -8,9 +8,8 @@ namespace Ashlar.Certification.Contracts;
 /// publishing, and under those publish modes the payload can come out as the empty object
 /// <c>{}</c> or missing properties, with no exception and no warning. Those bytes are the
 /// message every HMAC and Ed25519 certification signature is computed over, so a payload that
-/// is not the declared shape is not a weaker signature — it is a signature over something
-/// other than the record. Minting one is refused; the alternative is a certificate whose
-/// bytes nobody can vouch for.
+/// is not the declared shape does not describe the record it claims to cover. Minting one is
+/// refused; the alternative is a certificate whose bytes nobody can vouch for.
 /// </para>
 /// <para>
 /// On the signing side this propagates, because a loud failure at mint time is the correct

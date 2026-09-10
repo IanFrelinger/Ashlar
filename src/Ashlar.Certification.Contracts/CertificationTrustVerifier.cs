@@ -48,11 +48,10 @@ public static class CertificationTrustVerifier
         if (string.IsNullOrWhiteSpace(record.ContentHash))
             return Untrusted("content-hash-missing", "Certification record has no content hash.");
 
-        // Built BEFORE the signature is compared, and unconditionally, because a degenerate
-        // canonical payload is not a signature that fails — both sides of the comparison would
-        // be computed from the same degenerate bytes, so it can just as easily be a signature
-        // that MATCHES while covering almost nothing of the record. "Matched" is only an answer
-        // worth reporting once the bytes it matched over are known to be the declared shape.
+        // Built BEFORE the signature is compared, and unconditionally. Both sides of a comparison
+        // recompute the payload from the same serializer, so the comparison cannot establish
+        // anything about bytes whose shape has not been established first. Establish the shape,
+        // then compare.
         try
         {
             CertificationRecordSigning.BuildPayload(record);
@@ -60,6 +59,17 @@ public static class CertificationTrustVerifier
         catch (CanonicalPayloadException ex)
         {
             return Untrusted("payload-not-canonical", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            // Record JSON arrives from a file and is deserialized without its non-null
+            // annotations being enforced, so building the payload can fail on a member the
+            // shape guard never gets to see. Every way of failing to establish the bytes is the
+            // same answer — they cannot back a signature — and the caller is owed that answer
+            // rather than an exception raised in its host.
+            return Untrusted(
+                "payload-unbuildable",
+                $"Certification record canonical payload could not be built: {ex.Message}");
         }
 
         if (!CertificationRecordSigning.VerifySignature(record, hmacKey))

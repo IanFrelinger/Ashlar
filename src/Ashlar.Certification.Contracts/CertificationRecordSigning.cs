@@ -247,10 +247,14 @@ public static class CertificationRecordSigning
             if (!versioned)
                 return payload;
 
-            foreach (var gatePass in root.GetProperty("gatesPassed").EnumerateArray())
+            // Each collection member's kind is established before it is enumerated. The name
+            // sequence above establishes that these members are present, not what they are, and
+            // enumerating one that is not an array throws past every handler on the verification
+            // path — where the contract is a refusal, never an exception raised in the host.
+            foreach (var gatePass in RequireArray(root.GetProperty("gatesPassed"), lane, "gatesPassed").EnumerateArray())
                 RequireShape(gatePass, GatePassNames, lane, "gatesPassed[]");
 
-            foreach (var input in root.GetProperty("inputs").EnumerateArray())
+            foreach (var input in RequireArray(root.GetProperty("inputs"), lane, "inputs").EnumerateArray())
                 RequireShape(input, InputNames, lane, "inputs[]");
 
             // proposer.parameters is deliberately left unchecked below: its keys are
@@ -259,7 +263,7 @@ public static class CertificationRecordSigning
             if (proposer.ValueKind != JsonValueKind.Null)
                 RequireShape(proposer, ProposerNames, lane, "proposer");
 
-            foreach (var attempt in root.GetProperty("attempts").EnumerateArray())
+            foreach (var attempt in RequireArray(root.GetProperty("attempts"), lane, "attempts").EnumerateArray())
                 RequireShape(attempt, AttemptNames, lane, "attempts[]");
         }
 
@@ -301,6 +305,18 @@ public static class CertificationRecordSigning
             + $"Expected {expected.Length} properties [{string.Join(", ", expected)}] in that order; "
             + $"got {observed.Count} [{string.Join(", ", observed)}]. "
             + "These bytes back every signature over this record, so they are refused rather than used.");
+    }
+
+    private static JsonElement RequireArray(JsonElement element, string lane, string path)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw new CanonicalPayloadException(
+                $"The {lane} canonical certification payload is not its declared shape: "
+                + $"'{path}' serialized as {element.ValueKind}, expected an array.");
+        }
+
+        return element;
     }
 
     private sealed record VersionedPayload(

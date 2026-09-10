@@ -143,8 +143,32 @@ public sealed class CanonicalPayloadGuardTests
     [MemberData(nameof(DegenerateNestedShapes))]
     public void DegenerateNestedShape_IsRefused(string member, string replacement)
     {
-        // The trust-loop evidence lives in these nested shapes. A payload that keeps all twenty
-        // top-level names while emptying them out would still look plausible from the outside.
+        // The trust-loop evidence lives in these nested shapes, so the top-level name check is
+        // not sufficient on its own: each nested element's shape has to be established too.
+        var payload = MinimalV2Payload.Replace(NestedOriginal(member), replacement);
+        payload.Should().NotBe(MinimalV2Payload, "the fixture must actually have been modified");
+
+        Action act = () => _ = CertificationRecordSigning.EnsureCanonical(payload, versioned: true);
+
+        act.Should().Throw<CanonicalPayloadException>().Which.Message.Should().Contain(member);
+    }
+
+    public static TheoryData<string, string> NonArrayNestedMembers => new()
+    {
+        { "gatesPassed", "\"gatesPassed\":null" },
+        { "gatesPassed", "\"gatesPassed\":{}" },
+        { "inputs", "\"inputs\":\"x\"" },
+        { "attempts", "\"attempts\":0" },
+    };
+
+    [Theory]
+    [MemberData(nameof(NonArrayNestedMembers))]
+    public void NonArrayNestedMember_IsRefused(string member, string replacement)
+    {
+        // A collection member that is not a collection has to be refused in the same terms as one
+        // whose elements are the wrong shape. Enumerating it instead raises an exception no
+        // handler on the verification path catches, which would put the refusal contract — and
+        // the payload-not-canonical failure code — out of reach for exactly these inputs.
         var payload = MinimalV2Payload.Replace(NestedOriginal(member), replacement);
         payload.Should().NotBe(MinimalV2Payload, "the fixture must actually have been modified");
 
@@ -188,6 +212,33 @@ public sealed class CanonicalPayloadGuardTests
         var payload = CertificationRecordSigning.BuildPayload(record);
 
         CertificationRecordSigning.EnsureCanonical(payload, versioned: true).Should().BeSameAs(payload);
+    }
+
+    [Fact]
+    public void RecordThatCannotProduceAPayload_IsRefusedRatherThanThrown()
+    {
+        // The shape guard is not the only way building the bytes can fail. A record's collections
+        // come from its own JSON and the deserializer does not enforce the non-null annotations on
+        // their elements, so BuildPayload can fail before the guard sees any bytes at all. That is
+        // still a record whose payload could not be established, and the verifier owes its caller
+        // that answer rather than an exception raised in the caller's host.
+        var record = new CertificationRecordData
+        {
+            Status = "PASS",
+            Stage = "S0-S2",
+            Admitted = true,
+            Signed = true,
+            Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
+            BrickId = "guard-brick",
+            ContentHash = "hash-abc",
+            SchemaVersion = CertificationRecordData.TrustLoopSchemaVersion,
+            GatesPassed = new CertificationGatePass[] { null! },
+        };
+
+        var trust = CertificationTrustVerifier.Verify(record, "class GuardProbe { }");
+
+        trust.Trusted.Should().BeFalse();
+        trust.FailureCode.Should().Be("payload-unbuildable");
     }
 
     private static string NestedOriginal(string member) => member switch
