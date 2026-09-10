@@ -9,6 +9,7 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Trust;
 
 /// <summary>Tests for infrastructure trust gap coverage.</summary>
+[Collection("EnvironmentVariables")]
 public class InfrastructureTrustGapCoverageTests
 {
     [Fact]

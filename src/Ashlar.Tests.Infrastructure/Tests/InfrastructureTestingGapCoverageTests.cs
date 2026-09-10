@@ -14,6 +14,7 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests;
 
 /// <summary>Tests for infrastructure testing gap coverage.</summary>
+[Collection("CompatibilityTestHooks")]
 public class InfrastructureTestingGapCoverageTests
 {
     [Fact]

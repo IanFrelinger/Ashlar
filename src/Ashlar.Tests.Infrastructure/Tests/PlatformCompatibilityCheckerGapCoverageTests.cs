@@ -7,6 +7,7 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests;
 
 /// <summary>Tests for platform compatibility checker gap coverage.</summary>
+[Collection("CompatibilityTestHooks")]
 public class PlatformCompatibilityCheckerGapCoverageTests : IDisposable
 {
     /// <summary>Platform compatibility checker gap coverage tests.</summary>

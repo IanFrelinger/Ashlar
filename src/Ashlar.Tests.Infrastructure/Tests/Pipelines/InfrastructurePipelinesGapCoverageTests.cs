@@ -7,6 +7,7 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Pipelines;
 
 /// <summary>Tests for infrastructure pipelines gap coverage.</summary>
+[Collection("EnvironmentVariables")]
 public class InfrastructurePipelinesGapCoverageTests
 {
     [Fact]

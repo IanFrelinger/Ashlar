@@ -8,6 +8,7 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 
 /// <summary>Tests for hot swappable model gap coverage.</summary>
+[Collection("EnvironmentVariables")]
 public sealed class HotSwappableModelGapCoverageTests
 {
     [Fact]

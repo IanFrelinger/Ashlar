@@ -3,12 +3,14 @@ using System.Text.Json;
 using FluentAssertions;
 using Ashlar.Abstractions;
 using Ashlar.Policies.Dev;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Policies;
 
 /// <summary>Tests for path allowlist gap coverage.</summary>
 [Trait("Category", "Unit")]
+[Collection("EnvironmentVariables")]
 public sealed class PathAllowlistGapCoverageTests
 {
     private static readonly WorldSnapshot EmptySnapshot = new(0, new Dictionary<string, object?>());
@@ -26,19 +28,13 @@ public sealed class PathAllowlistGapCoverageTests
     [Fact]
     public void Constructor_reads_extra_prefixes_from_environment_variable()
     {
-        Environment.SetEnvironmentVariable("ASHLAR_PATH_ALLOWLIST_EXTRA", "generated/, staging");
-        try
-        {
-            var policy = new PathAllowlist();
-            var call = CreateToolCall("repo.fs.write", "generated/output.txt");
+        using var extra = new EnvironmentVariableScope("ASHLAR_PATH_ALLOWLIST_EXTRA", "generated/, staging");
 
-            policy.Approve(call, EmptySnapshot, out var reason).Should().BeTrue();
-            reason.Should().Be("OK");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASHLAR_PATH_ALLOWLIST_EXTRA", null);
-        }
+        var policy = new PathAllowlist();
+        var call = CreateToolCall("repo.fs.write", "generated/output.txt");
+
+        policy.Approve(call, EmptySnapshot, out var reason).Should().BeTrue();
+        reason.Should().Be("OK");
     }
 
     [Fact]
@@ -65,20 +61,14 @@ public sealed class PathAllowlistGapCoverageTests
     [Fact]
     public void Approve_rejects_invalid_sandbox_root_from_environment()
     {
-        Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", "\0invalid");
-        try
-        {
-            var policy = new PathAllowlist();
-            var absolutePath = Path.Combine(Path.GetTempPath(), "outside.txt");
-            var call = CreateToolCall("repo.fs.write", absolutePath);
+        using var sandboxRoot = new EnvironmentVariableScope("ASHLAR_SANDBOX_ROOT", "\0invalid");
 
-            policy.Approve(call, EmptySnapshot, out var reason).Should().BeFalse();
-            reason.Should().Contain("absolute path");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASHLAR_SANDBOX_ROOT", null);
-        }
+        var policy = new PathAllowlist();
+        var absolutePath = Path.Combine(Path.GetTempPath(), "outside.txt");
+        var call = CreateToolCall("repo.fs.write", absolutePath);
+
+        policy.Approve(call, EmptySnapshot, out var reason).Should().BeFalse();
+        reason.Should().Contain("absolute path");
     }
 
     [Fact]
