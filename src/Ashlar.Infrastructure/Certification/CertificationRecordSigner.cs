@@ -101,6 +101,13 @@ public sealed class CertificationRecordSigner
         if ((data.SchemaVersion ?? 0) < strictness.MinimumSchemaVersion)
             return false;
 
+        // A version that selects no payload lane cannot be verified. VerifySignature would refuse
+        // it anyway (BuildPayload throws, which it turns into false), but the reason is stated
+        // here so this tier reads the same as CertificationTrustVerifier, which reports it as
+        // schema-version-unknown. This tier returns bool, so that code is only available there.
+        if (!CertificationRecordSigning.IsKnownSchemaVersion(data.SchemaVersion))
+            return false;
+
         if (!CertificationRecordSigning.VerifySignature(data, _hmacKey))
             return false;
 

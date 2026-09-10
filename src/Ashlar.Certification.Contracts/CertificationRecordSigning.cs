@@ -99,28 +99,54 @@ public static class CertificationRecordSigning
     private static readonly JsonSerializerOptions PayloadOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     /// <summary>
+    /// Whether <paramref name="schemaVersion"/> selects a canonical payload lane: null is the
+    /// legacy v1 lane, <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> is v2, and
+    /// nothing else does. The single source of truth for the signing and the verification
+    /// paths, so the two cannot disagree about which versions exist. A floor
+    /// (<see cref="CertificationVerifyOptions.MinimumSchemaVersion"/>) says "at least this
+    /// new"; it cannot say "a version this code knows", which is what this answers.
+    /// </summary>
+    /// <param name="schemaVersion">The record's declared schema version, null for legacy v1.</param>
+    public static bool IsKnownSchemaVersion(int? schemaVersion) =>
+        schemaVersion is null || schemaVersion.Value == CertificationRecordData.TrustLoopSchemaVersion;
+
+    /// <summary>
     /// Builds the canonical JSON payload used for signing and verification.
     /// Records without a <see cref="CertificationRecordData.SchemaVersion"/> use the
     /// legacy v1 payload byte-for-byte, so pre-trust-loop signatures stay valid.
-    /// Versioned records sign the extended payload, which additionally covers
-    /// <c>Gate</c>, the trust-loop evidence fields, and the Ed25519 public key.
-    /// Both signature fields are structurally excluded. Mutant id lists and input
-    /// entries are sorted for deterministic serialization; gate and attempt order
-    /// is semantic and preserved.
+    /// Records at <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> sign the
+    /// extended payload, which additionally covers <c>Gate</c>, the trust-loop evidence
+    /// fields, and the Ed25519 public key. No other version selects a lane
+    /// (<see cref="IsKnownSchemaVersion"/>). Both signature fields are structurally
+    /// excluded. Mutant id lists and input entries are sorted for deterministic
+    /// serialization; gate and attempt order is semantic and preserved.
     /// </summary>
     /// <param name="record">Record to serialize.</param>
     /// <exception cref="CanonicalPayloadException">
-    /// The serializer did not produce the lane's declared shape. Serialization here is
-    /// reflection-based, which does not survive trimming or ahead-of-time publishing, so the
-    /// payload can silently come out empty or short. These bytes back every signature, so a
-    /// payload that is not the declared shape is refused rather than signed.
+    /// The serializer did not produce the lane's declared shape, or the record's schema version
+    /// selects no lane at all. Serialization here is reflection-based, which does not survive
+    /// trimming or ahead-of-time publishing, so the payload can silently come out empty or
+    /// short; and a version this code has never seen would otherwise be serialized under a
+    /// shape chosen by guesswork. These bytes back every signature, so in either case they are
+    /// refused rather than signed.
     /// </exception>
     public static string BuildPayload(CertificationRecordData record)
     {
         if (record.SchemaVersion is null)
             return EnsureCanonical(BuildLegacyPayload(record), versioned: false);
 
-        return EnsureCanonical(BuildVersionedPayload(record, record.SchemaVersion.Value), versioned: true);
+        if (record.SchemaVersion.Value == CertificationRecordData.TrustLoopSchemaVersion)
+            return EnsureCanonical(BuildVersionedPayload(record, record.SchemaVersion.Value), versioned: true);
+
+        // An unknown version selects no lane. Serializing it under the v2 shape would emit the
+        // version verbatim inside bytes whose meaning this code cannot know, and a record so
+        // stamped would clear every floor at or below its number. An unknown schema version is
+        // an error, not a guess — the same exception as a degenerate payload, so it propagates
+        // at mint time and is refused on every verification path.
+        throw new CanonicalPayloadException(
+            $"Certification record schema version {record.SchemaVersion.Value} does not select a canonical "
+            + $"payload lane (known versions: none for v1, {CertificationRecordData.TrustLoopSchemaVersion} for v2), "
+            + "so no signature can be computed or checked over it.");
     }
 
     private static string BuildVersionedPayload(CertificationRecordData record, int schemaVersion)

@@ -25,7 +25,8 @@
   <ItemGroup>
     <PackageReference Include="System.Text.Json" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
     <!-- Ed25519 dual-write signing; NSec has no netstandard2.0 target, so those
-         consumers verify HMAC-only (see CertificationRecordEd25519). -->
+         consumers verify HMAC-only records and refuse any record carrying an Ed25519
+         signature they cannot evaluate (see CertificationRecordEd25519). -->
     <PackageReference Include="NSec.Cryptography" Condition="'$(TargetFramework)' != 'netstandard2.0'" />
   </ItemGroup>
 
