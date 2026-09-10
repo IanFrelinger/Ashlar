@@ -15,6 +15,8 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
     private readonly string _connectionString;
     private readonly ConcurrentQueue<DataDecisionAuditEntry> _buffer = new();
     private const int BufferFlushThreshold = 10;
+    private readonly object _indexGate = new();
+    private bool _indexesReady;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -141,15 +143,24 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
         FlushBuffer();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<AuditDoc>(CollectionName);
-        col.EnsureIndex(x => x.Timestamp);
+        // The index is declared by FlushBuffer, the write path. A read has no business declaring one.
+        // BsonExpression, not LINQ, for the same reason EnsureIndexes uses the string overload:
+        // LiteDB resolves a LINQ predicate through a BsonMapper that is not safe to drive from
+        // several threads at once, and a read concurrent with a write can throw
+        // NotSupportedException out of LinqExpressionVisitor.ResolveMember. Reads and writes here
+        // ARE concurrent -- this log is one shared instance behind both IDataDecisionAuditLog and
+        // ISanitizationAuditLog, buffering writes from any caller. Parameters are bound rather
+        // than interpolated, so a caller-supplied value cannot alter the filter.
         var query = col.Query();
         if (since.HasValue)
-            query = query.Where(x => x.Timestamp >= since.Value);
+            // Serialize through the same mapper that wrote the documents, so the comparison is against
+            // the representation actually stored rather than whatever a DateTimeOffset converts to.
+            query = query.Where("$.Timestamp >= @0", BsonMapper.Global.Serialize(since.Value));
         if (until.HasValue)
-            query = query.Where(x => x.Timestamp <= until.Value);
+            query = query.Where("$.Timestamp <= @0", BsonMapper.Global.Serialize(until.Value));
         if (!string.IsNullOrEmpty(eventType))
-            query = query.Where(x => x.EventType == eventType);
-        var docs = query.OrderByDescending(x => x.Timestamp).Limit(maxCount).ToList();
+            query = query.Where("$.EventType = @0", eventType);
+        var docs = query.OrderByDescending("$.Timestamp").Limit(maxCount).ToList();
         return docs.Select(ToEntry).ToList();
     }
 
@@ -306,9 +317,33 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
         if (toFlush.Count == 0) return;
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<AuditDoc>(CollectionName);
-        col.EnsureIndex(x => x.Timestamp);
+        EnsureIndexes(col);
         foreach (var entry in toFlush)
             col.Insert(ToDoc(entry));
+    }
+
+    /// <summary>
+    /// Declares the indexes once per store, by field name.
+    /// </summary>
+    /// <remarks>
+    /// Two problems with declaring them on every write. LiteDB resolves an <c>EnsureIndex(x =&gt; x.Field)</c>
+    /// expression through a BsonMapper that is not safe to drive from several threads at once —
+    /// concurrent writers threw <c>NotSupportedException</c> out of <c>LinqExpressionVisitor.ResolveMember</c>
+    /// (green on Windows, red in CI on Linux, which is the timing difference doing what timing
+    /// differences do). And re-declaring an index that already exists is work no write needs to repeat.
+    /// The string overload skips the expression visitor entirely; the flag skips the call after the
+    /// first success.
+    /// </remarks>
+    private void EnsureIndexes(ILiteCollection<AuditDoc> col)
+    {
+        if (Volatile.Read(ref _indexesReady)) return;
+
+        lock (_indexGate)
+        {
+            if (_indexesReady) return;
+            col.EnsureIndex(nameof(AuditDoc.Timestamp));
+            Volatile.Write(ref _indexesReady, true);
+        }
     }
 
     private static AuditDoc ToDoc(DataDecisionAuditEntry e)

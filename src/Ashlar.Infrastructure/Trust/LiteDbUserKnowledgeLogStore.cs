@@ -11,6 +11,8 @@ namespace Ashlar.Infrastructure.Trust;
 public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
 {
     private readonly string _connectionString;
+    private readonly object _indexGate = new();
+    private bool _indexesReady;
 
     private const string CollectionName = "user_knowledge_log";
 
@@ -34,7 +36,7 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
     {
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
-        EnsureIndex(col);
+        EnsureIndexes(col);
 
         var existing = col.FindById(entry.Id);
         var version = existing != null ? existing.Version + 1 : entry.Version;
@@ -75,7 +77,11 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
     {
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
-        var doc = col.FindOne(x => x.Id == id && x.DeletedAt == null);
+        // $._id, not $.Id: Id carries [BsonId], so that is the field name LiteDB actually stored and
+        // the one the LINQ form resolved to. "$.Id = @0" would compile, run, throw nothing, and match
+        // no document at all. BsonExpression rather than LINQ for the usual reason -- this is the
+        // HTTP read path behind GET /knowledge/query, concurrent with UpsertAsync and DeleteAsync.
+        var doc = col.FindOne("$._id = @0 AND $.DeletedAt = null", id);
         if (doc == null) return Task.FromResult<UserKnowledgeLogEntry?>(null);
         return Task.FromResult<UserKnowledgeLogEntry?>(ToEntry(doc));
     }
@@ -85,10 +91,19 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
     {
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
-        var query = col.Query().Where(x => x.DeletedAt == null);
+        // BsonExpression, not LINQ, for the same reason EnsureIndexes uses the string overload:
+        // LiteDB resolves a LINQ predicate through a BsonMapper that is not safe to drive from
+        // several threads at once, and a read concurrent with a write can throw
+        // NotSupportedException out of LinqExpressionVisitor.ResolveMember. Reads and writes here
+        // ARE concurrent -- this is the HTTP read path behind GET /knowledge/query, running
+        // against UpsertAsync and DeleteAsync. Parameters are bound rather than interpolated, so
+        // a caller-supplied value cannot alter the filter.
+        // "$.DeletedAt = null" matches an explicit null AND a document written before the field
+        // existed, which is exactly what the LINQ form matched.
+        var query = col.Query().Where("$.DeletedAt = null");
         if (!string.IsNullOrEmpty(dataType))
-            query = query.Where(x => x.DataType == dataType);
-        var docs = query.OrderByDescending(x => x.UpdatedAt).Limit(maxCount).ToList();
+            query = query.Where("$.DataType = @0", dataType);
+        var docs = query.OrderByDescending("$.UpdatedAt").Limit(maxCount).ToList();
         var entries = docs.Select(ToEntry).ToList();
         return Task.FromResult<IReadOnlyList<UserKnowledgeLogEntry>>(entries);
     }
@@ -107,10 +122,29 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
         return UserKnowledgeLogExportHelper.ToMarkdown(entries);
     }
 
-    private static void EnsureIndex(ILiteCollection<KnowledgeLogDoc> col)
+    /// <summary>
+    /// Declares the indexes once per store, by field name.
+    /// </summary>
+    /// <remarks>
+    /// Two problems with declaring them on every write. LiteDB resolves an <c>EnsureIndex(x =&gt; x.Field)</c>
+    /// expression through a BsonMapper that is not safe to drive from several threads at once —
+    /// concurrent writers threw <c>NotSupportedException</c> out of <c>LinqExpressionVisitor.ResolveMember</c>
+    /// (green on Windows, red in CI on Linux, which is the timing difference doing what timing
+    /// differences do). And re-declaring an index that already exists is work no write needs to repeat.
+    /// The string overload skips the expression visitor entirely; the flag skips the call after the
+    /// first success.
+    /// </remarks>
+    private void EnsureIndexes(ILiteCollection<KnowledgeLogDoc> col)
     {
-        col.EnsureIndex(x => x.UpdatedAt);
-        col.EnsureIndex(x => x.DataType);
+        if (Volatile.Read(ref _indexesReady)) return;
+
+        lock (_indexGate)
+        {
+            if (_indexesReady) return;
+            col.EnsureIndex(nameof(KnowledgeLogDoc.UpdatedAt));
+            col.EnsureIndex(nameof(KnowledgeLogDoc.DataType));
+            Volatile.Write(ref _indexesReady, true);
+        }
     }
 
     private static UserKnowledgeLogEntry ToEntry(KnowledgeLogDoc doc)

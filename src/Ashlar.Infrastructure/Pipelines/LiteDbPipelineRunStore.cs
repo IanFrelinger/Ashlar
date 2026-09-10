@@ -31,7 +31,13 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         {
             using var db = new LiteDatabase(_databasePath);
             var col = db.GetCollection<PipelineRunDocument>(CollectionName);
-            col.EnsureIndex(x => x.RunId, unique: true);
+            // No EnsureIndex here, and deliberately not the by-name form the other stores moved to.
+            // RunId carries [BsonId], so LiteDB resolved `x => x.RunId` to $._id and the call landed
+            // on the unique _id index the collection already maintains -- it created nothing, while
+            // still driving the BsonMapper expression visitor that is not thread-safe. Declaring
+            // `nameof(PipelineRunDocument.RunId)` instead would NOT be the same call: it would build a
+            // second index over $.RunId, a path no stored document has, with unique:false -- silently
+            // dropping the uniqueness this line was asking for. _id enforces it, as it always did.
             col.Upsert(ToDocument(run));
         }
 

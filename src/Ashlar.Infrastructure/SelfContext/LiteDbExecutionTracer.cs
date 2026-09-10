@@ -12,6 +12,8 @@ public sealed class LiteDbExecutionTracer : IExecutionTracer
 {
     private const string CollectionName = "execution_traces";
     private readonly string _connectionString;
+    private readonly object _indexGate = new();
+    private bool _indexesReady;
 
     /// <summary>Initializes a new lite db execution tracer.</summary>
     public LiteDbExecutionTracer(string pathOrConnectionString)
@@ -44,12 +46,21 @@ public sealed class LiteDbExecutionTracer : IExecutionTracer
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<TraceDoc>(CollectionName);
+        // BsonExpression, not LINQ, for the same reason EnsureIndexes uses the string overload:
+        // LiteDB resolves a LINQ predicate through a BsonMapper that is not safe to drive from
+        // several threads at once, and a read concurrent with a write can throw
+        // NotSupportedException out of LinqExpressionVisitor.ResolveMember. Reads and writes here
+        // ARE concurrent -- QueryAsync reads the trace while TraceAsync, which is called from
+        // wherever work happens, writes to it. Parameters are bound rather than interpolated, so
+        // a caller-supplied value cannot alter the filter.
         var query = col.Query();
         if (since.HasValue)
-            query = query.Where(x => x.Timestamp >= since.Value);
+            // Serialize through the same mapper that wrote the documents, so the comparison is against
+            // the representation actually stored rather than whatever a DateTimeOffset converts to.
+            query = query.Where("$.Timestamp >= @0", BsonMapper.Global.Serialize(since.Value));
         if (until.HasValue)
-            query = query.Where(x => x.Timestamp <= until.Value);
-        var docs = query.OrderByDescending(x => x.Timestamp).Limit(500).ToList();
+            query = query.Where("$.Timestamp <= @0", BsonMapper.Global.Serialize(until.Value));
+        var docs = query.OrderByDescending("$.Timestamp").Limit(500).ToList();
         var entries = docs.Select(ToEntry).ToList();
         return Task.FromResult<IReadOnlyList<ExecutionTraceEntry>>(entries);
     }
@@ -59,9 +70,33 @@ public sealed class LiteDbExecutionTracer : IExecutionTracer
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<TraceDoc>(CollectionName);
-        col.EnsureIndex(x => x.Timestamp);
+        EnsureIndexes(col);
         col.Insert(ToDoc(entry));
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Declares the indexes once per store, by field name.
+    /// </summary>
+    /// <remarks>
+    /// Two problems with declaring them on every write. LiteDB resolves an <c>EnsureIndex(x =&gt; x.Field)</c>
+    /// expression through a BsonMapper that is not safe to drive from several threads at once —
+    /// concurrent writers threw <c>NotSupportedException</c> out of <c>LinqExpressionVisitor.ResolveMember</c>
+    /// (green on Windows, red in CI on Linux, which is the timing difference doing what timing
+    /// differences do). And re-declaring an index that already exists is work no write needs to repeat.
+    /// The string overload skips the expression visitor entirely; the flag skips the call after the
+    /// first success.
+    /// </remarks>
+    private void EnsureIndexes(ILiteCollection<TraceDoc> col)
+    {
+        if (Volatile.Read(ref _indexesReady)) return;
+
+        lock (_indexGate)
+        {
+            if (_indexesReady) return;
+            col.EnsureIndex(nameof(TraceDoc.Timestamp));
+            Volatile.Write(ref _indexesReady, true);
+        }
     }
 
     private static TraceDoc ToDoc(ExecutionTraceEntry e)
