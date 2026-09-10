@@ -19,9 +19,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// </para>
 /// <para>
 /// The corpus lives in <c>canonical-payloads.golden.json</c> rather than in this file because
-/// <c>scripts/ns20-canonical-bytes-probe.sh</c> reads the same file to check the
-/// netstandard2.0 asset against the same constants. Two independently typed copies would
-/// drift, and the cross-target equality claim would quietly evaporate with them.
+/// <c>scripts/ns20-canonical-bytes-probe.sh</c> (the netstandard2.0 asset under Mono) and
+/// <c>scripts/portability/net9-probe.sh</c> (the net8.0 asset on the 9.0 runtime) read the
+/// same file to check those assets against the same constants. Independently typed copies
+/// would drift, and the cross-target equality claim would quietly evaporate with them.
 /// </para>
 /// </summary>
 [Trait("Category", "Certification")]

@@ -3,9 +3,9 @@
 Workflows in this directory are **manual-first** to reduce duplicate CI load, surprise
 minute costs, and branch-noise on `cursor/**` and other integration branches. The full,
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
-the summary of the 56 files is:
+the summary of the 57 files is:
 
-- **18 run on `pull_request`** — only `cert-gate`, `layer-boundary`, `uat-gate`, `build-gate`,
+- **19 run on `pull_request`** — only `cert-gate`, `layer-boundary`, `uat-gate`, `build-gate`,
   `shell-lint`, `docs-link-check` and `full-platform-readiness-gate` on every PR; the rest are
   path-filtered (kernel/application/security/coverage/testing-strategy/other path-scoped gates)
   plus the label-driven `release-staging-on-label`. `full-platform-readiness-gate` filters
@@ -19,9 +19,10 @@ the summary of the 56 files is:
   `gh workflow run "<Workflow name>" --ref <branch>`.
 - **Tag-driven releases** stay automatic where required (`release.yml` on `v*.*.*` tags,
   `devlog-ghost-release.yml` on published releases).
-- **Schedules** still exist on five workflows: `distribution-matrix-gate` (Mon 10:00 UTC),
+- **Schedules** still exist on six workflows: `distribution-matrix-gate` (Mon 10:00 UTC),
   `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00),
-  `rc-gate` (06:00 on the 1st of the month) and `mesh-lab-tls-gate` (Tue 07:00). Everything else is push- or dispatch-driven.
+  `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of the month) and
+  `mesh-lab-tls-gate` (Tue 07:00). Everything else is push- or dispatch-driven.
 
 When you change a workflow file, open a PR and run the relevant workflow(s) manually
 before merge if your branch protection expects a green check from that workflow.
