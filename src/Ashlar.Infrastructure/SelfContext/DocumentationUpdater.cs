@@ -14,9 +14,11 @@ public sealed class DocumentationUpdater : IDocumentationUpdater
     private readonly string? _docsRoot;
 
     /// <summary>
-    /// Initializes a new documentation updater writing under the repository root. This is the
-    /// constructor dependency injection selects: <c>docsRoot</c> is not a registered service, so
-    /// the three-argument overload is never resolvable from the container.
+    /// Initializes a new documentation updater with no explicit root; the location is resolved at
+    /// write time as described on the three-argument overload. Kept for hand-constructed callers.
+    /// The container registration goes through a factory and always passes a root, because
+    /// <c>docsRoot</c> is not a registered service and constructor selection could only ever
+    /// land here — which is how every test container ended up writing into the checkout (#580).
     /// </summary>
     public DocumentationUpdater(IAdaptationLog adaptationLog, IChangelogGenerator changelogGenerator)
         : this(adaptationLog, changelogGenerator, null)
@@ -29,13 +31,17 @@ public sealed class DocumentationUpdater : IDocumentationUpdater
     /// <param name="adaptationLog">Adaptation log to read promoted records from.</param>
     /// <param name="changelogGenerator">Changelog generator for the document body.</param>
     /// <param name="docsRoot">
-    /// Directory to write <c>docs/bricks/</c> beneath. Null means the repository root, which is
-    /// the dogfooding behaviour: Ashlar documents itself in its own tree.
-    /// <para>Tests MUST pass a temporary directory. Writing under the repo root means a test
-    /// mutates tracked files in the developer's working tree, and cleanup in a <c>finally</c> is
-    /// not enough — a run killed partway through (a cancelled CI job, Ctrl+C, a stopped container)
-    /// leaves the residue behind, which is how docs/bricks/unknown.md turned up modified with no
-    /// obvious author.</para>
+    /// Directory to write <c>docs/bricks/</c> beneath. Null means
+    /// <see cref="RepoPathResolver.ResolveDocsRoot(string?)"/>: <c>ASHLAR_DOCS_ROOT</c> when set,
+    /// else the repository root, which is the dogfooding behaviour: Ashlar documents itself in
+    /// its own tree.
+    /// <para>Tests MUST pass a temporary directory — through <c>docsRoot</c> on
+    /// <c>AddSelfContextInfrastructure</c> when composing a container, and through
+    /// <c>ASHLAR_DOCS_ROOT</c> when driving the CLI as a child process, which composes its own.
+    /// Writing under the repo root means a test mutates tracked files in the developer's working
+    /// tree, and cleanup in a <c>finally</c> is not enough — a run killed partway through (a
+    /// cancelled CI job, Ctrl+C, a stopped container) leaves the residue behind, which is how
+    /// docs/bricks/unknown.md turned up modified with no obvious author.</para>
     /// </param>
     public DocumentationUpdater(
         IAdaptationLog adaptationLog,
@@ -49,7 +55,7 @@ public sealed class DocumentationUpdater : IDocumentationUpdater
 
     /// <summary>Resolved lazily so the repo-root walk happens at write time, not construction.</summary>
     private string BricksDirectory =>
-        Path.Combine(_docsRoot ?? RepoPathResolver.FindRepoRoot(), "docs", "bricks");
+        Path.Combine(_docsRoot ?? RepoPathResolver.ResolveDocsRoot(), "docs", "bricks");
 
     /// <summary>Update for adaptation asynchronously.</summary>
     public async Task UpdateForAdaptationAsync(string adaptationId, CancellationToken ct = default)

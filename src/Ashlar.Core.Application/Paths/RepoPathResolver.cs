@@ -17,6 +17,13 @@ public static class RepoPathResolver
     public const string DefaultStateDirectoryRelativePath = ".ashlar/state";
 
     /// <summary>
+    /// Environment variable that overrides where promoted-adaptation documentation
+    /// (<c>docs/bricks/</c>) is written. Absolute, or relative to the resolved repo/app root.
+    /// Unset means the repo root itself: Ashlar documents itself in its own tree.
+    /// </summary>
+    public const string DocsRootEnvironmentVariable = "ASHLAR_DOCS_ROOT";
+
+    /// <summary>
     /// Walks up from the given directory until Ashlar.sln is found.
     /// </summary>
     /// <param name="startDir">Starting directory. Defaults to <see cref="Environment.CurrentDirectory"/>.</param>
@@ -108,6 +115,45 @@ public static class RepoPathResolver
         }
 
         return stateDir;
+    }
+
+    /// <summary>
+    /// Resolves the root that promoted-adaptation documentation (<c>docs/bricks/</c>) is written
+    /// beneath. Reads <see cref="DocsRootEnvironmentVariable"/> and defers to
+    /// <see cref="ResolveDocsRoot(string, string?)"/>.
+    /// </summary>
+    /// <param name="repoRoot">Repository / application root. If null, uses <see cref="FindRepoRoot"/>.</param>
+    /// <returns>Absolute documentation root. Not created here; the writer creates <c>docs/bricks/</c> when it has something to put there.</returns>
+    public static string ResolveDocsRoot(string? repoRoot = null)
+        => ResolveDocsRoot(
+            repoRoot ?? FindRepoRoot(),
+            Environment.GetEnvironmentVariable(DocsRootEnvironmentVariable));
+
+    /// <summary>
+    /// Resolves the documentation root from an explicit root and an optional override.
+    /// Precedence: <paramref name="configuredDocsRoot"/> (absolute, or relative to
+    /// <paramref name="repoRoot"/>) → <paramref name="repoRoot"/>.
+    /// </summary>
+    /// <remarks>
+    /// The override exists for a process that cannot be handed a path in code. The CLI E2E tests
+    /// run <c>ashlar improve</c> as a child process that composes its own container, so a
+    /// promotion there documented itself wherever that process resolved the root — the
+    /// developer's checkout, as <c>docs/bricks/unknown.md</c> (#580). The environment is the one
+    /// channel a test host has into that process, and it is the same channel
+    /// <see cref="StateDirectoryEnvironmentVariable"/> already uses for the state directory.
+    /// </remarks>
+    /// <param name="repoRoot">Repository / application root the default and relative overrides hang off.</param>
+    /// <param name="configuredDocsRoot">Override (normally the <c>ASHLAR_DOCS_ROOT</c> value); null or blank = none.</param>
+    /// <returns>Absolute documentation root.</returns>
+    public static string ResolveDocsRoot(string repoRoot, string? configuredDocsRoot)
+    {
+        var root = string.IsNullOrWhiteSpace(repoRoot) ? Directory.GetCurrentDirectory() : repoRoot;
+        if (string.IsNullOrWhiteSpace(configuredDocsRoot))
+            return Path.GetFullPath(root);
+
+        // netstandard2.0 has no nullable annotation on IsNullOrWhiteSpace; the '!' is safe here.
+        var configured = configuredDocsRoot!.Trim();
+        return Path.GetFullPath(Path.IsPathRooted(configured) ? configured : Path.Combine(root, configured));
     }
 
     /// <summary>
