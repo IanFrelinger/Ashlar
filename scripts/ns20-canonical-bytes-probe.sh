@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # ns20-canonical-bytes-probe.sh — check that the netstandard2.0 asset of
 # Ashlar.Certification.Contracts produces the SAME canonical signing payload bytes as the
-# net8.0 and net10.0 assets, and that its verifier reaches the SAME verdict for the same record.
+# net8.0 and net10.0 assets, that its verifier reaches the SAME verdict for the same record,
+# and that the netstandard2.0 asset of Ashlar.Certification.State can be handed options it is
+# able to evaluate.
 #
 # WHY THIS IS A SCRIPT AND NOT AN xunit LEG
 # -----------------------------------------
@@ -21,6 +23,13 @@
 # verdict the other targets would contradict. HMAC-only records are the shape every target can
 # evaluate completely, and they must stay trusted here. The set of records ns2.0 trusts is a
 # subset of what net8.0 trusts, never a superset — this probe is what measures that.
+#
+# StateLogVerifier is probed for the same reason. Its parameterless-options signature means
+# Strict, and Strict requires an Ed25519 signature, so on this asset that signature can never
+# return a trusted verdict; the overload that takes CertificationVerifyOptions is the
+# configuration escape, and it must trust an HMAC-only log under Legacy while still refusing a
+# certificate that carries an Ed25519 signature — the escape selects options the asset can
+# evaluate, it does not widen what the asset can trust.
 #
 # THE CONSTANTS ARE NOT DUPLICATED. This probe reads the same
 # src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json that
@@ -63,9 +72,10 @@ if [[ ! -f "${GOLDEN}" ]]; then
 fi
 
 if [[ "${DO_BUILD}" == "1" ]]; then
-  echo "== ns2.0 probe: build the shipped netstandard2.0 asset =="
+  echo "== ns2.0 probe: build the shipped netstandard2.0 assets =="
   rm -rf "${WORK}/ns20" "${WORK}/consumer" "${WORK}/net472"
-  dotnet build "${ROOT}/src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj" \
+  # State references Contracts, so one build emits both netstandard2.0 assets side by side.
+  dotnet build "${ROOT}/src/Ashlar.Certification.State/Ashlar.Certification.State.csproj" \
     -c Release -f netstandard2.0 -o "${WORK}/ns20" --nologo -v minimal
 
   echo "== ns2.0 probe: author the net472 consumer =="
@@ -93,6 +103,9 @@ if [[ "${DO_BUILD}" == "1" ]]; then
     <Reference Include="Ashlar.Certification.Contracts">
       <HintPath>${WORK}/ns20/Ashlar.Certification.Contracts.dll</HintPath>
     </Reference>
+    <Reference Include="Ashlar.Certification.State">
+      <HintPath>${WORK}/ns20/Ashlar.Certification.State.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <!-- The same shims the netstandard2.0 asset itself compiles against, so a consumer can see
@@ -113,6 +126,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Ashlar.Certification.Contracts;
+using Ashlar.Certification.State;
 
 internal static class Ns20CanonicalBytesProbe
 {
@@ -130,9 +144,11 @@ internal static class Ns20CanonicalBytesProbe
 
         Console.WriteLine("runtime: " + RuntimeDescription());
         Console.WriteLine("contracts: " + typeof(CertificationRecordSigning).Assembly.Location);
+        Console.WriteLine("state:     " + typeof(StateLogVerifier).Assembly.Location);
 
         var failures = CheckCanonicalBytes(path);
         failures += CheckVerifierParity(path);
+        failures += CheckStateLogOptions(path);
         return failures == 0 ? 0 : 1;
     }
 
@@ -257,6 +273,101 @@ internal static class Ns20CanonicalBytesProbe
             ? "PASS: " + checkedCases + " verifier verdicts on the netstandard2.0 asset agree with net8.0."
             : "FAIL: " + failures + " of " + checkedCases + " verifier verdicts on the netstandard2.0 asset contradict net8.0.");
         return failures;
+    }
+
+    // StateLogVerifier on this asset. The parameterless-options signature means Strict, which
+    // requires an Ed25519 signature this asset cannot evaluate, so it must refuse even an
+    // HMAC-only certificate; the options overload with Legacy must trust that certificate; and
+    // the same overload must still refuse a certificate carrying an Ed25519 signature, because
+    // selecting evaluable options does not make the un-evaluable check evaluable.
+    private static int CheckStateLogOptions(string path)
+    {
+        Console.WriteLine("== state log: StateLogVerifier must be able to evaluate the options it is given ==");
+        CertificationRecordData hmacOnly = null;
+        CertificationRecordData carryingEd25519 = null;
+        using (var document = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var element in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var record = JsonSerializer.Deserialize<CertificationRecordData>(
+                    element.GetProperty("record").GetRawText(), RecordOptions);
+                if (!record.Admitted || record.Status != "PASS" || !record.Signed)
+                    continue;
+                if (string.IsNullOrWhiteSpace(record.Ed25519Signature))
+                    hmacOnly = hmacOnly ?? Bind(record);
+                else
+                    carryingEd25519 = carryingEd25519 ?? Bind(record);
+            }
+        }
+
+        if (hmacOnly == null || carryingEd25519 == null)
+        {
+            Console.WriteLine("FAIL: the golden corpus must carry an admitted HMAC-only record and an admitted record with an Ed25519 signature.");
+            return 1;
+        }
+
+        // Both records are bound to the same source, so they share one content hash and one
+        // log resolves against either of them.
+        var schema = new StateSchema("{\"version\":1,\"stateBinding\":{\"version\":\"ns20-probe-v1\",\"hashLength\":44}}");
+        var certHash = hmacOnly.ContentHash;
+        var transition = new CertifiedTransitionBuilder().Create(
+            schema.ComputeBoundStateHash("genesis"),
+            "phase:advance",
+            certHash,
+            schema.ComputeBoundStateHash("phase:one"),
+            CertifiedTransition.GenesisPrevEntryHash);
+        var log = new AttestedStateLog(new[] { transition });
+        var hmacOnlyResolver = new SingleCertificateResolver(certHash, hmacOnly, ParityBrickSource);
+        var ed25519Resolver = new SingleCertificateResolver(certHash, carryingEd25519, ParityBrickSource);
+
+        var failures = 0;
+        failures += ExpectLog(
+            "existing signature (Strict), HMAC-only certificate",
+            StateLogVerifier.Verify(log, schema, hmacOnlyResolver, ParityHmacKey),
+            expectTrusted: false, expectedCode: "behavior-cert-untrusted", reasonContains: "ed25519-verification-unavailable");
+        failures += ExpectLog(
+            "options overload (Legacy), HMAC-only certificate",
+            StateLogVerifier.Verify(log, schema, hmacOnlyResolver, ParityHmacKey, null, CertificationVerifyOptions.Legacy),
+            expectTrusted: true, expectedCode: null, reasonContains: null);
+        failures += ExpectLog(
+            "options overload (Legacy), certificate carrying an Ed25519 signature",
+            StateLogVerifier.Verify(log, schema, ed25519Resolver, ParityHmacKey, null, CertificationVerifyOptions.Legacy),
+            expectTrusted: false, expectedCode: "behavior-cert-untrusted", reasonContains: "ed25519-signature-unverifiable");
+
+        Console.WriteLine(failures == 0
+            ? "PASS: 3 state-log verdicts on the netstandard2.0 asset are the ones its options can deliver."
+            : "FAIL: " + failures + " of 3 state-log verdicts on the netstandard2.0 asset are wrong.");
+        return failures;
+    }
+
+    private static int ExpectLog(string label, StateLogTrustResult result, bool expectTrusted, string expectedCode, string reasonContains)
+    {
+        var verdict = result.Trusted ? "TRUSTED (" + result.VerifiedTransitions + " transitions)" : "REFUSED " + result.FailureCode + ": " + result.Reason;
+        var ok = result.Trusted == expectTrusted
+            && (expectTrusted || result.FailureCode == expectedCode)
+            && (reasonContains == null || (result.Reason ?? string.Empty).Contains(reasonContains));
+        var expected = expectTrusted ? "TRUSTED" : "REFUSED " + expectedCode + (reasonContains == null ? string.Empty : " containing " + reasonContains);
+        Console.WriteLine("  " + (ok ? "OK  " : "FAIL") + " " + label + " -> " + verdict + (ok ? string.Empty : "  (expected " + expected + ")"));
+        return ok ? 0 : 1;
+    }
+
+    private sealed class SingleCertificateResolver : ICertificateResolver
+    {
+        private readonly string _hash;
+        private readonly CertificationRecordData _record;
+        private readonly string _source;
+
+        public SingleCertificateResolver(string hash, CertificationRecordData record, string source)
+        {
+            _hash = hash;
+            _record = record;
+            _source = source;
+        }
+
+        public CertificateResolveResult Resolve(string behaviorCertContentHash) =>
+            behaviorCertContentHash == _hash
+                ? new CertificateResolveResult(true, _record, _source)
+                : new CertificateResolveResult(false, null, null);
     }
 
     private static CertificationRecordData Bind(CertificationRecordData record)

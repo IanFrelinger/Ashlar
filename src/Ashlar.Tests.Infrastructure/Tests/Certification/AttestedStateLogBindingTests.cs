@@ -182,6 +182,57 @@ public sealed class AttestedStateLogBindingTests
         result.VerifiedTransitions.Should().Be(log.Count);
     }
 
+    // ---------- Options overload ----------
+
+    [Fact]
+    public void Verify_WithoutOptions_IsStrict()
+    {
+        // The existing signature must keep meaning Strict — same verdict, same code, same reason,
+        // same count — for a log it trusts and for one it refuses.
+        var log = Witness.BuildValidLog();
+        foreach (var resolver in new[] { Witness.CreateResolver(), Witness.CreateHmacOnlyResolver() })
+        {
+            var implicitStrict = StateLogVerifier.Verify(log, Witness.CreateSchema(), resolver, HmacKey);
+            var explicitStrict = StateLogVerifier.Verify(log, Witness.CreateSchema(), resolver, HmacKey, null, CertificationVerifyOptions.Strict);
+
+            implicitStrict.Trusted.Should().Be(explicitStrict.Trusted);
+            implicitStrict.FailureCode.Should().Be(explicitStrict.FailureCode);
+            implicitStrict.Reason.Should().Be(explicitStrict.Reason);
+            implicitStrict.VerifiedTransitions.Should().Be(explicitStrict.VerifiedTransitions);
+        }
+    }
+
+    [Fact]
+    public void Verify_WithLegacyOptions_TrustsAnHmacOnlyLog_ThatStrictRefuses()
+    {
+        // The configuration escape: the same log, the same HMAC-only certificates, refused by the
+        // default because Strict requires an Ed25519 signature, and trusted under options that
+        // do not. Strict's own verdict is unchanged by the overload existing.
+        var log = Witness.BuildValidLog();
+        var resolver = Witness.CreateHmacOnlyResolver();
+
+        var strict = StateLogVerifier.Verify(log, Witness.CreateSchema(), resolver, HmacKey);
+        var legacy = StateLogVerifier.Verify(log, Witness.CreateSchema(), resolver, HmacKey, null, CertificationVerifyOptions.Legacy);
+
+        strict.Trusted.Should().BeFalse();
+        strict.FailureCode.Should().Be("behavior-cert-untrusted");
+        strict.Reason.Should().Contain("ed25519-signature-required", "the inner verifier's code surfaces in the reason");
+        legacy.Trusted.Should().BeTrue($"{legacy.FailureCode}: {legacy.Reason}");
+        legacy.VerifiedTransitions.Should().Be(log.Count);
+    }
+
+    [Fact]
+    public void Verify_WithNullOptions_IsRefused()
+    {
+        // Null arguments are refusals in this verifier, not exceptions, and a verifier that was not
+        // told how strict to be must not guess a default.
+        var result = StateLogVerifier.Verify(Witness.BuildValidLog(), Witness.CreateSchema(), Witness.CreateResolver(), HmacKey, null, null!);
+
+        result.Trusted.Should().BeFalse();
+        result.FailureCode.Should().Be("verify-options-missing");
+        result.VerifiedTransitions.Should().Be(0);
+    }
+
     private static StateLogTrustResult VerifyTier1(AttestedStateLog log) =>
         StateLogVerifier.Verify(log, Witness.CreateSchema(), Witness.CreateResolver(), HmacKey);
 
@@ -324,6 +375,18 @@ public sealed class AttestedStateLogBindingTests
                 [BetaCertHash] = (_betaRecord, BehaviorBetaSource)
             });
 
+        /// <summary>
+        /// The same certificates with their Ed25519 fields stripped and the HMAC recomputed: the
+        /// only certificate shape every target framework can evaluate completely. The content
+        /// hashes are unchanged, so the same log resolves against either resolver.
+        /// </summary>
+        public ICertificateResolver CreateHmacOnlyResolver() =>
+            new MapCertificateResolver(new Dictionary<string, (CertificationRecordData, string)>
+            {
+                [AlphaCertHash] = (HmacOnly(_alphaRecord), BehaviorAlphaSource),
+                [BetaCertHash] = (HmacOnly(_betaRecord), BehaviorBetaSource)
+            });
+
         public ITransitionReplayer CreateReplayer() => new PhaseReplayer(_schema);
 
         public static string ComputeEntryHash(
@@ -411,6 +474,12 @@ public sealed class AttestedStateLogBindingTests
                 Signature = CertificationRecordSigning.Sign(record, hmacKey),
                 Ed25519Signature = CertificationRecordEd25519.Sign(record, Convert.FromBase64String(privateKey))
             };
+        }
+
+        private static CertificationRecordData HmacOnly(CertificationRecordData record)
+        {
+            var stripped = record with { Ed25519Signature = null, Ed25519PublicKey = null, Signature = null };
+            return stripped with { Signature = CertificationRecordSigning.Sign(stripped, HmacKey) };
         }
 
         private static (string PrivateKeyBase64, string PublicKeyBase64) CreateEd25519Key()
