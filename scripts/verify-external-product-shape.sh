@@ -4,6 +4,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TEMPLATE_DIR="${ROOT}/consumer-template/host"
 VERSION="${ASHLAR_EXTERNAL_PRODUCT_VERIFY_VERSION:-9.9.9-local}"
 WORK="${ASHLAR_EXTERNAL_PRODUCT_VERIFY_WORK:-$(mktemp -d)}"
 FEED="${WORK}/feed"
@@ -43,6 +44,26 @@ pack() {
     -p:PackageVersion="${VERSION}" \
     -p:IncludeTestProjectReferences=false \
     -v minimal
+}
+
+render() {
+  # The host is a checked-in template rather than a heredoc so that consumer-template/host/ is a
+  # thing a reader can open, compile and diff. The __TOKEN__ markers are legal C# identifiers and
+  # legal MSBuild text, so the template still parses as the file it is a template for.
+  local src="$1"
+  local dst="$2"
+  sed -e "s|__ASHLAR_VERSION__|${VERSION}|g" \
+      -e "s|__BRICK_PROJECT_NAME__|${BRICK_PROJECT_NAME}|g" \
+      -e "s|__BRICK_NAMESPACE__|${BRICK_NAMESPACE}|g" \
+      -e "s|__BRICK_CLASS__|${BRICK_CLASS}|g" \
+      "${src}" > "${dst}"
+  # The generated-tree guard further down only greps for repo-relative paths, so a token that
+  # nobody substituted would sail past it and resurface as a compile error a hundred lines later.
+  if grep -q '__[A-Z_]\+__' "${dst}"; then
+    echo "Unsubstituted template token in ${dst}:" >&2
+    grep -n '__[A-Z_]\+__' "${dst}" >&2
+    exit 1
+  fi
 }
 
 echo "==> Packing consumer surface as version ${VERSION} into ${FEED}"
@@ -211,129 +232,8 @@ HOST_DIR="${CONSUMER_ROOT}/host/ExternalProductHost"
 CLIENT_DIR="${CONSUMER_ROOT}/client/ExternalProductClient"
 mkdir -p "${HOST_DIR}" "${CLIENT_DIR}"
 
-cat > "${HOST_DIR}/ExternalProductHost.csproj" <<EOF
-<Project Sdk="Microsoft.NET.Sdk.Web">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Ashlar.Authoring" Version="${VERSION}" />
-    <PackageReference Include="Ashlar.Hosting.Bundle" Version="${VERSION}" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="../../brick/${BRICK_PROJECT_NAME}/${BRICK_PROJECT_NAME}.csproj" />
-  </ItemGroup>
-</Project>
-EOF
-
-cat > "${HOST_DIR}/Program.cs" <<'HOSTCS'
-using Ashlar.Authoring;
-using Ashlar.Brick.Contracts;
-using Ashlar.Core.Application.Bricks;
-using Ashlar.Core.Domain.Bricks;
-using Ashlar.Core.Domain.Execution;
-using Ashlar.Hosting;
-using Ashlar.Infrastructure.Execution;
-HOSTCS
-
-if [[ "${USE_PROBE_BRICK}" -eq 1 ]]; then
-  cat >> "${HOST_DIR}/Program.cs" <<HOSTCS
-using ${BRICK_NAMESPACE};
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddAshlarBrick<${BRICK_NAMESPACE}.${BRICK_CLASS}>();
-HOSTCS
-else
-  cat >> "${HOST_DIR}/Program.cs" <<'HOSTCS'
-using IntensityBrick;
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddAshlarBrick<IntensityBrick.IntensityBrick>();
-HOSTCS
-fi
-
-cat >> "${HOST_DIR}/Program.cs" <<'HOSTCS'
-builder.Services.AddAshlar(options =>
-{
-    options.RegisterBackgroundAgentHostedService = false;
-});
-
-var app = builder.Build();
-
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTimeOffset.UtcNow }));
-
-app.MapPost("/api/bricks/{brickId}/execute", async (
-    string brickId,
-    BrickExecuteRequestDto request,
-    IBrickRegistry brickRegistry,
-    CancellationToken cancellationToken) =>
-{
-    if (string.IsNullOrWhiteSpace(brickId))
-        return Results.BadRequest(new { title = "brickId is required" });
-    if (request is null)
-        return Results.BadRequest(new { title = "Request body is required" });
-    if (!string.IsNullOrEmpty(request.BrickId) &&
-        !string.Equals(request.BrickId, brickId, StringComparison.OrdinalIgnoreCase))
-    {
-        return Results.BadRequest(new { title = "BrickId in body must match route" });
-    }
-
-    var brick = brickRegistry.GetBrick(brickId);
-    if (brick is null)
-        return Results.NotFound();
-
-    if (!Enum.TryParse<ImplementationType>(request.Implementation, true, out var implementation))
-        implementation = ImplementationType.Deterministic;
-
-    var context = ToExecutionContext(request.ExecutionContext);
-    var input = BrickValueSerializer.FromWireToBrickInput(request.Input);
-    BrickInputDefaults.Apply(brick, input);
-
-    try
-    {
-        var output = await brick.ExecuteAsync(input, implementation, context, cancellationToken).ConfigureAwait(false);
-        return Results.Ok(new BrickExecuteResponseDto
-        {
-            Success = true,
-            Summary = output.Summary,
-            Output = BrickValueSerializer.ToWireDictionary(output)
-        });
-    }
-    catch (Exception ex)
-    {
-        return Results.Ok(new BrickExecuteResponseDto
-        {
-            Success = false,
-            Error = ex.Message
-        });
-    }
-});
-
-app.Run();
-
-static Ashlar.Infrastructure.Execution.ExecutionContext ToExecutionContext(ExecutionContextDto? dto)
-{
-    if (dto is null)
-        return new Ashlar.Infrastructure.Execution.ExecutionContext();
-
-    return new Ashlar.Infrastructure.Execution.ExecutionContext
-    {
-        AgentId = dto.AgentId ?? string.Empty,
-        BehaviorId = dto.BehaviorId ?? string.Empty,
-        IsAirGapped = dto.IsAirGapped,
-        AuditMode = dto.AuditMode,
-        Provider = dto.Provider ?? "openai",
-        Variables = dto.Variables is null
-            ? new Dictionary<string, object>()
-            : new Dictionary<string, object>(dto.Variables)
-    };
-}
-HOSTCS
+render "${TEMPLATE_DIR}/ExternalProductHost.csproj" "${HOST_DIR}/ExternalProductHost.csproj"
+render "${TEMPLATE_DIR}/Program.cs" "${HOST_DIR}/Program.cs"
 
 cat > "${CLIENT_DIR}/ExternalProductClient.csproj" <<EOF
 <Project Sdk="Microsoft.NET.Sdk">

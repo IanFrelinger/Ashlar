@@ -612,6 +612,7 @@ static partial class Program
         root.AddCommand(new InitCommand());
         root.AddCommand(new VerifyCommand());
         root.AddCommand(new GatesCommand());
+        root.AddCommand(new CertifyCommand());
         root.AddCommand(new KeysCommand());
         root.AddCommand(new PolicyCommand());
         root.AddCommand(new PkgCommand());
