@@ -253,7 +253,7 @@ public static class CertificationRecordSigning
     // proposer.parameters is the one place in the payload whose property names are supplied by
     // the caller: no key policy is configured, so keys are emitted verbatim in ordinal order.
     // They are written straight from the sorted sequence — the intermediate dictionary the
-    // previous code built to carry them relied on Dictionary&lt;,&gt; preserving insertion
+    // previous code built to carry them relied on Dictionary<,> preserving insertion
     // order, which is a property of that type rather than a statement this payload makes.
     private static void WriteProposer(Utf8JsonWriter writer, CertificationProposer? proposer)
     {
