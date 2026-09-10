@@ -84,7 +84,9 @@ public sealed record CertificationRecordData
     /// <summary>
     /// Base64 Ed25519 signature over the same canonical payload as
     /// <see cref="Signature"/>, written alongside it during the dual-write
-    /// transition window. Verified whenever present; absent on HMAC-only records.
+    /// transition window. Evaluated whenever present on targets that can, and refused whenever
+    /// present on targets that cannot (netstandard2.0), so every target reaches the same
+    /// verdict for the same bytes; absent on HMAC-only records.
     /// </summary>
     public string? Ed25519Signature { get; init; }
 

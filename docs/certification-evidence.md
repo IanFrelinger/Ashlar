@@ -719,7 +719,13 @@ redundant guard is exactly what a careful proposer writes.
    signers (`ed25519-key-not-trusted`); pinning implies the signature it pins. Both are
    threaded through **both** verification tiers, and on netstandard2.0 — which cannot evaluate
    Ed25519 at all — requesting either causes a refusal (`ed25519-verification-unavailable`)
-   rather than an unchecked pass. **Every default is unchanged**, so for an unconfigured
+   rather than an unchecked pass. *Update, 2026-09-10:* on netstandard2.0 a record that
+   **carries** an Ed25519 signature is now refused under every options instance, Legacy
+   included (`ed25519-signature-unverifiable`): the net8.0+ assets refuse that record unless
+   the signature verifies, and a target that cannot run the check must not reach a verdict
+   the others contradict. Only HMAC-only records can be trusted on that asset.
+   `VerifierParityTests` pins the net8.0 side and `scripts/ns20-canonical-bytes-probe.sh`
+   measures the netstandard2.0 side under Mono, both against the same golden corpus. **Every default is unchanged**, so for an unconfigured
    deployment this row is downgraded from an open hole to a *configurable* one, not closed.
    Not compiled — see the provenance note below.
 
@@ -783,8 +789,9 @@ redundant guard is exactly what a careful proposer writes.
    the signed bytes entirely. So an attacker who has already performed limitation 7's strip
    can then rewrite **the gate name and the list of gates that passed** under a valid HMAC —
    which reaches the core invariant of the trust-loop spec. A record can claim to have passed
-   gates it never ran. On netstandard2.0 the Ed25519 block is compiled out entirely, so
-   nothing needs downgrading there at all.
+   gates it never ran. On netstandard2.0 the Ed25519 signature cannot be evaluated, and until
+   2026-09-10 a present one was skipped entirely, so nothing needed downgrading there at
+   all; a present signature is now refused there (`ed25519-signature-unverifiable`).
 
    **There was no minimum accepted schema version anywhere in the repository** when this row
    was written — a repo-wide grep for `SchemaVersion >=`, `SchemaVersion <`, `MinimumSchema`

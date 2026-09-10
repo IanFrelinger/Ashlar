@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ns20-canonical-bytes-probe.sh — check that the netstandard2.0 asset of
 # Ashlar.Certification.Contracts produces the SAME canonical signing payload bytes as the
-# net8.0 and net10.0 assets.
+# net8.0 and net10.0 assets, and that its verifier reaches the SAME verdict for the same record.
 #
 # WHY THIS IS A SCRIPT AND NOT AN xunit LEG
 # -----------------------------------------
@@ -13,14 +13,19 @@
 # differently would recompute a different message and refuse certificates the other targets
 # accept, and the package ships netstandard2.0 specifically for external consumers.
 #
-# Ed25519 is deliberately out of scope: NSec ships lib/net8.0 only, so the ns2.0 lane is
-# HMAC-only by construction (see CertificationRecordEd25519). The payload bytes are the shared
-# artifact and the only thing that has to match.
+# Ed25519 cannot be EVALUATED on this asset: NSec ships lib/net8.0 only, so the ns2.0 lane can
+# only ever check the HMAC (see CertificationRecordEd25519). That is exactly why the verifier
+# verdict is probed as well as the bytes. A record that carries an Ed25519 signature is refused
+# by the net8.0+ assets unless the signature verifies; the ns2.0 asset cannot run that check, so
+# it must refuse the record too (ed25519-signature-unverifiable) rather than fall through to a
+# verdict the other targets would contradict. HMAC-only records are the shape every target can
+# evaluate completely, and they must stay trusted here. The set of records ns2.0 trusts is a
+# subset of what net8.0 trusts, never a superset — this probe is what measures that.
 #
 # THE CONSTANTS ARE NOT DUPLICATED. This probe reads the same
 # src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json that
-# CanonicalPayloadGoldenTests reads. Two independently typed copies would drift, and the
-# cross-target equality claim would quietly evaporate with them.
+# CanonicalPayloadGoldenTests and VerifierParityTests read. Two independently typed copies
+# would drift, and the cross-target equality claim would quietly evaporate with them.
 #
 # Usage:
 #   scripts/ns20-canonical-bytes-probe.sh                 # build + run (needs dotnet AND docker)
@@ -111,15 +116,31 @@ using Ashlar.Certification.Contracts;
 
 internal static class Ns20CanonicalBytesProbe
 {
+    // Fixed so the run is reproducible; nothing here is a real key. Every record is re-bound
+    // to this source and re-signed with this key before it is verified, so the only thing the
+    // corpus contributes is the record shape and the Ed25519 fields as pinned there.
+    private const string ParityHmacKey = "ns20-verifier-parity-probe-hmac";
+    private const string ParityBrickSource = "class Ns20ParityProbe { }";
+
+    private static readonly JsonSerializerOptions RecordOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
     private static int Main(string[] args)
     {
         var path = args.Length > 0 ? args[0] : "canonical-payloads.golden.json";
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var failures = 0;
-        var checkedCases = 0;
 
         Console.WriteLine("runtime: " + RuntimeDescription());
         Console.WriteLine("contracts: " + typeof(CertificationRecordSigning).Assembly.Location);
+
+        var failures = CheckCanonicalBytes(path);
+        failures += CheckVerifierParity(path);
+        return failures == 0 ? 0 : 1;
+    }
+
+    private static int CheckCanonicalBytes(string path)
+    {
+        Console.WriteLine("== canonical bytes: BuildPayload must be byte-identical to the golden corpus ==");
+        var failures = 0;
+        var checkedCases = 0;
 
         using (var document = JsonDocument.Parse(File.ReadAllText(path)))
         {
@@ -127,7 +148,7 @@ internal static class Ns20CanonicalBytesProbe
             {
                 var name = element.GetProperty("name").GetString();
                 var record = JsonSerializer.Deserialize<CertificationRecordData>(
-                    element.GetProperty("record").GetRawText(), options);
+                    element.GetProperty("record").GetRawText(), RecordOptions);
                 var expectedPayload = element.GetProperty("payload").GetString();
                 var expectedSha = element.GetProperty("payloadSha256").GetString();
 
@@ -164,7 +185,93 @@ internal static class Ns20CanonicalBytesProbe
         Console.WriteLine(failures == 0
             ? "PASS: " + checkedCases + " canonical payloads are byte-identical on the netstandard2.0 asset."
             : "FAIL: " + failures + " of " + checkedCases + " canonical payloads differ on the netstandard2.0 asset.");
-        return failures == 0 ? 0 : 1;
+        return failures;
+    }
+
+    // The other half of parity. VerifierParityTests runs the same corpus records through the
+    // net8.0 asset and expects ed25519-signature-invalid where this expects
+    // ed25519-signature-unverifiable, and TRUSTED for the HMAC-only shapes on both. Legacy
+    // options are used deliberately: they are the options under which nothing REQUIRES an
+    // Ed25519 signature, so the only thing that can make the ns2.0 asset refuse a record that
+    // carries one is the presence of the signature itself.
+    private static int CheckVerifierParity(string path)
+    {
+        Console.WriteLine("== verifier parity: the same record must reach the same verdict on every target (Legacy options) ==");
+        var failures = 0;
+        var checkedCases = 0;
+
+        using (var document = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var element in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var name = element.GetProperty("name").GetString();
+                var record = JsonSerializer.Deserialize<CertificationRecordData>(
+                    element.GetProperty("record").GetRawText(), RecordOptions);
+
+                // Only an admitted, signed PASS record reaches the signature checks; the minimal
+                // FAIL cases are payload fixtures, not verifier inputs.
+                if (!record.Admitted || record.Status != "PASS" || !record.Signed)
+                    continue;
+
+                var bound = Bind(record);
+                if (!string.IsNullOrWhiteSpace(bound.Ed25519Signature))
+                {
+                    // The corpus placeholder is not Base64; a well-formed 64-byte signature that is
+                    // simply not over these bytes is the other way a present signature can fail to
+                    // verify. Neither is in the HMAC payload, so neither disturbs the HMAC.
+                    checkedCases++;
+                    failures += Expect(
+                        name + " (Ed25519 signature present, not Base64)",
+                        CertificationTrustVerifier.Verify(bound, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                        expectTrusted: false,
+                        expectedCode: "ed25519-signature-unverifiable");
+
+                    checkedCases++;
+                    var wellFormed = bound with { Ed25519Signature = Convert.ToBase64String(new byte[64]) };
+                    failures += Expect(
+                        name + " (Ed25519 signature present, well-formed, does not verify)",
+                        CertificationTrustVerifier.Verify(wellFormed, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                        expectTrusted: false,
+                        expectedCode: "ed25519-signature-unverifiable");
+                }
+
+                // The same record as an HMAC-only record: every target can evaluate this shape
+                // completely, so it must stay trusted here exactly as it is on net8.0.
+                checkedCases++;
+                var hmacOnly = Bind(record with { Ed25519Signature = null, Ed25519PublicKey = null });
+                failures += Expect(
+                    name + " (HMAC-only)",
+                    CertificationTrustVerifier.Verify(hmacOnly, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                    expectTrusted: true,
+                    expectedCode: null);
+            }
+        }
+
+        if (checkedCases == 0)
+        {
+            Console.WriteLine("FAIL: no admitted record in the golden corpus; a parity probe that verifies nothing is not a passing probe.");
+            return 1;
+        }
+
+        Console.WriteLine(failures == 0
+            ? "PASS: " + checkedCases + " verifier verdicts on the netstandard2.0 asset agree with net8.0."
+            : "FAIL: " + failures + " of " + checkedCases + " verifier verdicts on the netstandard2.0 asset contradict net8.0.");
+        return failures;
+    }
+
+    private static CertificationRecordData Bind(CertificationRecordData record)
+    {
+        var bound = record with { ContentHash = BrickContentHasher.ComputeSha256(ParityBrickSource), Signature = null };
+        return bound with { Signature = CertificationRecordSigning.Sign(bound, ParityHmacKey) };
+    }
+
+    private static int Expect(string label, CertificationTrustResult result, bool expectTrusted, string expectedCode)
+    {
+        var verdict = result.Trusted ? "TRUSTED" : "REFUSED " + result.FailureCode;
+        var expected = expectTrusted ? "TRUSTED" : "REFUSED " + expectedCode;
+        var ok = result.Trusted == expectTrusted && (expectTrusted || result.FailureCode == expectedCode);
+        Console.WriteLine("  " + (ok ? "OK  " : "FAIL") + " " + label + " -> " + verdict + (ok ? string.Empty : "  (expected " + expected + ")"));
+        return ok ? 0 : 1;
     }
 
     private static string RuntimeDescription()
