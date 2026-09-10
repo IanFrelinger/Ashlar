@@ -78,7 +78,11 @@ public sealed class CompositionCertificationRecordSigner
         }
     }
 
-    private static string BuildPayload(CompositionCertificationRecord record)
+    // Internal rather than private so CompositionCanonicalPayloadGoldenTests can pin these
+    // bytes directly. They are the message every composition admission signature is computed
+    // over, and a pin that could only observe them through a signature would report "the
+    // signature moved" rather than which byte did.
+    internal static string BuildPayload(CompositionCertificationRecord record)
     {
         var clone = new
         {
