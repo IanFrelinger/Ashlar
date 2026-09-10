@@ -98,7 +98,13 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     /// mapper that has never seen the document type, <see cref="Rounds"/> times, and fails if any of
     /// them threw.
     /// </summary>
-    private void RaceOnAColdMapper(string what, Action<int, string> work)
+    /// <param name="seed">
+    /// Optional per-thread setup, run single-threaded and BEFORE the mapper is reset, so a racer can
+    /// find a populated database without having written it itself. Whatever a racer does first builds
+    /// the document type's mapper for the rest of that racer's work, so a call path can only be raced
+    /// cold if everything it needs on disk was put there outside the race.
+    /// </param>
+    private void RaceOnAColdMapper(string what, Action<int, string> work, Action<int, string>? seed = null)
     {
         var previousMapper = BsonMapper.Global;
         try
@@ -106,8 +112,17 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
             var errors = new ConcurrentBag<Exception>();
             for (var round = 0; round < Rounds; round++)
             {
+                var dbPaths = new string[Threads];
+                for (var i = 0; i < Threads; i++)
+                    dbPaths[i] = Path.Combine(TempDir, $"{what}-{round}-{i}.db");
+
+                if (seed is not null)
+                    for (var i = 0; i < Threads; i++)
+                        seed(i, dbPaths[i]);
+
                 // A mapper that has never seen the document type. Every round needs its own, because
-                // the previous round left the type fully built and the race only exists while it is not.
+                // the previous round left the type fully built and the race only exists while it is not
+                // -- and because seeding, where a case does it, built the type as well.
                 BsonMapper.Global = new BsonMapper();
 
                 using var start = new Barrier(Threads);
@@ -115,7 +130,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
                 for (var i = 0; i < Threads; i++)
                 {
                     var index = i;
-                    var dbPath = Path.Combine(TempDir, $"{what}-{round}-{index}.db");
+                    var dbPath = dbPaths[index];
                     // LongRunning so these are real threads rather than pool work items that could be
                     // serialised onto one thread and never overlap.
                     racers[i] = Task.Factory.StartNew(
@@ -169,6 +184,48 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
 
             store.QueryAsync(Anchor.AddMinutes(-1), Anchor.AddMinutes(1)).GetAwaiter().GetResult();
         });
+    }
+
+    /// <summary>
+    /// The same store, raced by threads that only READ.
+    /// </summary>
+    /// <remarks>
+    /// Every other case here writes before it reads, and that write builds the document type's mapper
+    /// -- so the read runs warm and pins nothing about how the query is expressed. This case seeds
+    /// each thread's file outside the race and then resets the mapper, so <c>QueryAsync</c> is the
+    /// first thing to touch the type. Measured against the LINQ form of that query: it throws
+    /// <c>NotSupportedException</c> here while every other case in this class stays green, which is
+    /// what makes the <c>Where("$.Field ...")</c> and <c>OrderByDescending("$.Field")</c> rewrites
+    /// load-bearing rather than defensive.
+    ///
+    /// A read-only race is the real deployment shape too, not a test contrivance:
+    /// <c>SelfImprovementLoop</c> queries a history that another process wrote, so its mapper is cold
+    /// for a document type that only ever arrives from disk.
+    ///
+    /// One store carries this. The mechanism is the shared <c>BsonMapper.Global</c> and it is the same
+    /// for all nine converted queries; repeating the case per store would multiply runtime without
+    /// exercising anything new.
+    /// </remarks>
+    [Fact]
+    public void LiteDbTestFailureStore_survives_concurrent_first_use_that_only_reads()
+    {
+        RaceOnAColdMapper(
+            "test-failure-read-only",
+            (_, dbPath) =>
+            {
+                var store = new LiteDbTestFailureStore(dbPath);
+                store.QueryAsync(Anchor.AddMinutes(-1), Anchor.AddMinutes(1)).GetAwaiter().GetResult();
+            },
+            seed: (index, dbPath) =>
+            {
+                var store = new LiteDbTestFailureStore(dbPath);
+                store.RecordAsync(new TestFailureRecord
+                {
+                    Id = $"fail-{index}",
+                    Timestamp = Anchor,
+                    TestName = "seeded before the race",
+                }).GetAwaiter().GetResult();
+            });
     }
 
     [Fact]
