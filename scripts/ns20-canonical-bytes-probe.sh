@@ -24,6 +24,10 @@
 # evaluate completely, and they must stay trusted here. The set of records ns2.0 trusts is a
 # subset of what net8.0 trusts, never a superset — this probe is what measures that.
 #
+# An unknown schema version is probed too: only null (v1) and 2 (v2) select a payload lane,
+# and this asset must refuse any other version the same way net8.0 does
+# (schema-version-unknown), rather than serialize it under a shape chosen by guesswork.
+#
 # StateLogVerifier is probed for the same reason. Its parameterless-options signature means
 # Strict, and Strict requires an Ed25519 signature, so on this asset that signature can never
 # return a trusted verdict; the overload that takes CertificationVerifyOptions is the
@@ -149,6 +153,7 @@ internal static class Ns20CanonicalBytesProbe
         var failures = CheckCanonicalBytes(path);
         failures += CheckVerifierParity(path);
         failures += CheckStateLogOptions(path);
+        failures += CheckUnknownSchemaVersion(path);
         return failures == 0 ? 0 : 1;
     }
 
@@ -368,6 +373,71 @@ internal static class Ns20CanonicalBytesProbe
             behaviorCertContentHash == _hash
                 ? new CertificateResolveResult(true, _record, _source)
                 : new CertificateResolveResult(false, null, null);
+    }
+
+    // Only null (v1) and 2 (v2) select a payload lane. Anything else must be refused here as
+    // it is on net8.0: BuildPayload throws CanonicalPayloadException and the verifier reports
+    // schema-version-unknown under Legacy and under Default alike (the floor of 2 is cleared
+    // by these numbers, which is exactly why the floor alone is not the answer).
+    private static int CheckUnknownSchemaVersion(string path)
+    {
+        Console.WriteLine("== unknown schema version: only null (v1) and 2 (v2) select a payload lane ==");
+        CertificationRecordData admitted = null;
+        using (var document = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var element in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var record = JsonSerializer.Deserialize<CertificationRecordData>(
+                    element.GetProperty("record").GetRawText(), RecordOptions);
+                if (record.Admitted && record.Status == "PASS" && record.Signed && string.IsNullOrWhiteSpace(record.Ed25519Signature))
+                {
+                    admitted = Bind(record);
+                    break;
+                }
+            }
+        }
+
+        if (admitted == null)
+        {
+            Console.WriteLine("FAIL: the golden corpus must carry an admitted HMAC-only record.");
+            return 1;
+        }
+
+        var failures = 0;
+        foreach (var version in new[] { 3, int.MaxValue })
+        {
+            var stamped = admitted with { SchemaVersion = version };
+            string buildOutcome;
+            try
+            {
+                CertificationRecordSigning.BuildPayload(stamped);
+                buildOutcome = "payload built";
+            }
+            catch (CanonicalPayloadException)
+            {
+                buildOutcome = "CanonicalPayloadException";
+            }
+
+            var buildOk = buildOutcome == "CanonicalPayloadException";
+            failures += buildOk ? 0 : 1;
+            Console.WriteLine("  " + (buildOk ? "OK  " : "FAIL") + " schemaVersion " + version + ": BuildPayload -> " + buildOutcome + (buildOk ? string.Empty : "  (expected CanonicalPayloadException)"));
+
+            failures += Expect(
+                "schemaVersion " + version + " under Legacy",
+                CertificationTrustVerifier.Verify(stamped, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                expectTrusted: false,
+                expectedCode: "schema-version-unknown");
+            failures += Expect(
+                "schemaVersion " + version + " under Default (clears the floor of 2)",
+                CertificationTrustVerifier.Verify(stamped, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Default),
+                expectTrusted: false,
+                expectedCode: "schema-version-unknown");
+        }
+
+        Console.WriteLine(failures == 0
+            ? "PASS: 6 unknown-schema-version outcomes on the netstandard2.0 asset are refusals."
+            : "FAIL: " + failures + " of 6 unknown-schema-version outcomes on the netstandard2.0 asset are not refusals.");
+        return failures;
     }
 
     private static CertificationRecordData Bind(CertificationRecordData record)

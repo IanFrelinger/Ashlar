@@ -42,6 +42,23 @@ public static class CertificationTrustVerifier
                 + $"the minimum accepted version {strictness.MinimumSchemaVersion}.");
         }
 
+        // The floor says "at least this new"; it does not say "a version this verifier knows".
+        // BuildPayload selects its lane on the version, and a version it has never seen selects
+        // no lane, so there are no bytes to compare any signature against. Refused with its own
+        // code rather than left to surface as payload-not-canonical, because that code is
+        // documented as the serializer degrading under trimming or ahead-of-time publishing — a
+        // deployment fault — and an unknown version is a record fault; conflating them would
+        // point an operator at the wrong thing. An unknown schema version is an error, not a
+        // guess. Floor first, so an explicit version below the floor still reports the floor.
+        if (!CertificationRecordSigning.IsKnownSchemaVersion(record.SchemaVersion))
+        {
+            return Untrusted(
+                "schema-version-unknown",
+                $"Certification record schema version {record.SchemaVersion} is not a version this verifier knows "
+                + $"(known: none for v1, {CertificationRecordData.TrustLoopSchemaVersion} for v2); a record whose "
+                + "payload lane cannot be established cannot be verified.");
+        }
+
         if (!record.Signed)
             return Untrusted("record-unsigned", "Certification record is not signed.");
 

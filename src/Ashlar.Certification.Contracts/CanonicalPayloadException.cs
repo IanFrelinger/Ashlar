@@ -12,6 +12,14 @@ namespace Ashlar.Certification.Contracts;
 /// refused; the alternative is a certificate whose bytes nobody can vouch for.
 /// </para>
 /// <para>
+/// Also thrown when the record's schema version selects no lane at all
+/// (<c>CertificationRecordSigning.IsKnownSchemaVersion</c>): a version this code has never seen
+/// would otherwise be serialized under a shape chosen by guesswork, and an unknown schema
+/// version is an error, not a guess. <c>CertificationTrustVerifier</c> reports that case with
+/// its own code, <c>schema-version-unknown</c>, so a record fault is not read as the
+/// deployment fault above.
+/// </para>
+/// <para>
 /// On the signing side this propagates, because a loud failure at mint time is the correct
 /// outcome. On the verification side it is caught and turned into a refusal
 /// (<c>CertificationRecordSigning.VerifySignature</c> returns false;

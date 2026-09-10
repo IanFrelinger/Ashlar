@@ -809,6 +809,17 @@ redundant guard is exactly what a careful proposer writes.
    `schema-version-below-floor`. Combined with Ed25519 requirement (limitation 7), this closes
    the schema-downgrade attack. Only `Legacy` option accepts schema version 0.
 
+   *Update, 2026-09-10:* a floor says "at least this new"; it does not say "a version this
+   verifier knows". `BuildPayload` used to select the v2 lane on `SchemaVersion is not null`,
+   so a record stamped 3, 7 or `int.MaxValue` was serialized in the v2 shape with the version
+   verbatim and cleared every floor at or below its number. Only null (v1) and 2 (v2) select
+   a lane now (`CertificationRecordSigning.IsKnownSchemaVersion`, one source of truth for both
+   paths); anything else is refused at mint time (`CanonicalPayloadException` from
+   `BuildPayload` and `Sign`) and on every verification path (`schema-version-unknown` from
+   `CertificationTrustVerifier`, false from `CertificationRecordSigner.Verify`). An unknown
+   schema version is an error, not a guess. Byte-neutral for every valid record: the golden
+   corpus is unchanged and the netstandard2.0 probe reaches the same refusal under Mono.
+
    The consequence for planning is the important part: **hardening a new schema version
    closes nothing on its own.** Any design that adds a stricter v3 lane while v1 and v2
    remain verifiable under the committed constant is bypassed by minting a v1 record. The
