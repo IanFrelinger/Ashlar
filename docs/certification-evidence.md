@@ -719,7 +719,13 @@ redundant guard is exactly what a careful proposer writes.
    signers (`ed25519-key-not-trusted`); pinning implies the signature it pins. Both are
    threaded through **both** verification tiers, and on netstandard2.0 — which cannot evaluate
    Ed25519 at all — requesting either causes a refusal (`ed25519-verification-unavailable`)
-   rather than an unchecked pass. **Every default is unchanged**, so for an unconfigured
+   rather than an unchecked pass. *Update, 2026-09-10:* on netstandard2.0 a record that
+   **carries** an Ed25519 signature is now refused under every options instance, Legacy
+   included (`ed25519-signature-unverifiable`): the net8.0+ assets refuse that record unless
+   the signature verifies, and a target that cannot run the check must not reach a verdict
+   the others contradict. Only HMAC-only records can be trusted on that asset.
+   `VerifierParityTests` pins the net8.0 side and `scripts/ns20-canonical-bytes-probe.sh`
+   measures the netstandard2.0 side under Mono, both against the same golden corpus. **Every default is unchanged**, so for an unconfigured
    deployment this row is downgraded from an open hole to a *configurable* one, not closed.
    Not compiled — see the provenance note below.
 
@@ -783,8 +789,9 @@ redundant guard is exactly what a careful proposer writes.
    the signed bytes entirely. So an attacker who has already performed limitation 7's strip
    can then rewrite **the gate name and the list of gates that passed** under a valid HMAC —
    which reaches the core invariant of the trust-loop spec. A record can claim to have passed
-   gates it never ran. On netstandard2.0 the Ed25519 block is compiled out entirely, so
-   nothing needs downgrading there at all.
+   gates it never ran. On netstandard2.0 the Ed25519 signature cannot be evaluated, and until
+   2026-09-10 a present one was skipped entirely, so nothing needed downgrading there at
+   all; a present signature is now refused there (`ed25519-signature-unverifiable`).
 
    **There was no minimum accepted schema version anywhere in the repository** when this row
    was written — a repo-wide grep for `SchemaVersion >=`, `SchemaVersion <`, `MinimumSchema`
@@ -801,6 +808,17 @@ redundant guard is exactly what a careful proposer writes.
    fail-closed by default. Production paths reject legacy-schema records with
    `schema-version-below-floor`. Combined with Ed25519 requirement (limitation 7), this closes
    the schema-downgrade attack. Only `Legacy` option accepts schema version 0.
+
+   *Update, 2026-09-10:* a floor says "at least this new"; it does not say "a version this
+   verifier knows". `BuildPayload` used to select the v2 lane on `SchemaVersion is not null`,
+   so a record stamped 3, 7 or `int.MaxValue` was serialized in the v2 shape with the version
+   verbatim and cleared every floor at or below its number. Only null (v1) and 2 (v2) select
+   a lane now (`CertificationRecordSigning.IsKnownSchemaVersion`, one source of truth for both
+   paths); anything else is refused at mint time (`CanonicalPayloadException` from
+   `BuildPayload` and `Sign`) and on every verification path (`schema-version-unknown` from
+   `CertificationTrustVerifier`, false from `CertificationRecordSigner.Verify`). An unknown
+   schema version is an error, not a guess. Byte-neutral for every valid record: the golden
+   corpus is unchanged and the netstandard2.0 probe reaches the same refusal under Mono.
 
    The consequence for planning is the important part: **hardening a new schema version
    closes nothing on its own.** Any design that adds a stricter v3 lane while v1 and v2

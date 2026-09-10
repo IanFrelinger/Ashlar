@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # ns20-canonical-bytes-probe.sh — check that the netstandard2.0 asset of
 # Ashlar.Certification.Contracts produces the SAME canonical signing payload bytes as the
-# net8.0 and net10.0 assets.
+# net8.0 and net10.0 assets, that its verifier reaches the SAME verdict for the same record,
+# and that the netstandard2.0 asset of Ashlar.Certification.State can be handed options it is
+# able to evaluate.
 #
 # WHY THIS IS A SCRIPT AND NOT AN xunit LEG
 # -----------------------------------------
@@ -13,14 +15,30 @@
 # differently would recompute a different message and refuse certificates the other targets
 # accept, and the package ships netstandard2.0 specifically for external consumers.
 #
-# Ed25519 is deliberately out of scope: NSec ships lib/net8.0 only, so the ns2.0 lane is
-# HMAC-only by construction (see CertificationRecordEd25519). The payload bytes are the shared
-# artifact and the only thing that has to match.
+# Ed25519 cannot be EVALUATED on this asset: NSec ships lib/net8.0 only, so the ns2.0 lane can
+# only ever check the HMAC (see CertificationRecordEd25519). That is exactly why the verifier
+# verdict is probed as well as the bytes. A record that carries an Ed25519 signature is refused
+# by the net8.0+ assets unless the signature verifies; the ns2.0 asset cannot run that check, so
+# it must refuse the record too (ed25519-signature-unverifiable) rather than fall through to a
+# verdict the other targets would contradict. HMAC-only records are the shape every target can
+# evaluate completely, and they must stay trusted here. The set of records ns2.0 trusts is a
+# subset of what net8.0 trusts, never a superset — this probe is what measures that.
+#
+# An unknown schema version is probed too: only null (v1) and 2 (v2) select a payload lane,
+# and this asset must refuse any other version the same way net8.0 does
+# (schema-version-unknown), rather than serialize it under a shape chosen by guesswork.
+#
+# StateLogVerifier is probed for the same reason. Its parameterless-options signature means
+# Strict, and Strict requires an Ed25519 signature, so on this asset that signature can never
+# return a trusted verdict; the overload that takes CertificationVerifyOptions is the
+# configuration escape, and it must trust an HMAC-only log under Legacy while still refusing a
+# certificate that carries an Ed25519 signature — the escape selects options the asset can
+# evaluate, it does not widen what the asset can trust.
 #
 # THE CONSTANTS ARE NOT DUPLICATED. This probe reads the same
 # src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json that
-# CanonicalPayloadGoldenTests reads. Two independently typed copies would drift, and the
-# cross-target equality claim would quietly evaporate with them.
+# CanonicalPayloadGoldenTests and VerifierParityTests read. Two independently typed copies
+# would drift, and the cross-target equality claim would quietly evaporate with them.
 #
 # Usage:
 #   scripts/ns20-canonical-bytes-probe.sh                 # build + run (needs dotnet AND docker)
@@ -58,9 +76,10 @@ if [[ ! -f "${GOLDEN}" ]]; then
 fi
 
 if [[ "${DO_BUILD}" == "1" ]]; then
-  echo "== ns2.0 probe: build the shipped netstandard2.0 asset =="
+  echo "== ns2.0 probe: build the shipped netstandard2.0 assets =="
   rm -rf "${WORK}/ns20" "${WORK}/consumer" "${WORK}/net472"
-  dotnet build "${ROOT}/src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj" \
+  # State references Contracts, so one build emits both netstandard2.0 assets side by side.
+  dotnet build "${ROOT}/src/Ashlar.Certification.State/Ashlar.Certification.State.csproj" \
     -c Release -f netstandard2.0 -o "${WORK}/ns20" --nologo -v minimal
 
   echo "== ns2.0 probe: author the net472 consumer =="
@@ -88,6 +107,9 @@ if [[ "${DO_BUILD}" == "1" ]]; then
     <Reference Include="Ashlar.Certification.Contracts">
       <HintPath>${WORK}/ns20/Ashlar.Certification.Contracts.dll</HintPath>
     </Reference>
+    <Reference Include="Ashlar.Certification.State">
+      <HintPath>${WORK}/ns20/Ashlar.Certification.State.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <!-- The same shims the netstandard2.0 asset itself compiles against, so a consumer can see
@@ -108,18 +130,38 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Ashlar.Certification.Contracts;
+using Ashlar.Certification.State;
 
 internal static class Ns20CanonicalBytesProbe
 {
+    // Fixed so the run is reproducible; nothing here is a real key. Every record is re-bound
+    // to this source and re-signed with this key before it is verified, so the only thing the
+    // corpus contributes is the record shape and the Ed25519 fields as pinned there.
+    private const string ParityHmacKey = "ns20-verifier-parity-probe-hmac";
+    private const string ParityBrickSource = "class Ns20ParityProbe { }";
+
+    private static readonly JsonSerializerOptions RecordOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
     private static int Main(string[] args)
     {
         var path = args.Length > 0 ? args[0] : "canonical-payloads.golden.json";
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var failures = 0;
-        var checkedCases = 0;
 
         Console.WriteLine("runtime: " + RuntimeDescription());
         Console.WriteLine("contracts: " + typeof(CertificationRecordSigning).Assembly.Location);
+        Console.WriteLine("state:     " + typeof(StateLogVerifier).Assembly.Location);
+
+        var failures = CheckCanonicalBytes(path);
+        failures += CheckVerifierParity(path);
+        failures += CheckStateLogOptions(path);
+        failures += CheckUnknownSchemaVersion(path);
+        return failures == 0 ? 0 : 1;
+    }
+
+    private static int CheckCanonicalBytes(string path)
+    {
+        Console.WriteLine("== canonical bytes: BuildPayload must be byte-identical to the golden corpus ==");
+        var failures = 0;
+        var checkedCases = 0;
 
         using (var document = JsonDocument.Parse(File.ReadAllText(path)))
         {
@@ -127,7 +169,7 @@ internal static class Ns20CanonicalBytesProbe
             {
                 var name = element.GetProperty("name").GetString();
                 var record = JsonSerializer.Deserialize<CertificationRecordData>(
-                    element.GetProperty("record").GetRawText(), options);
+                    element.GetProperty("record").GetRawText(), RecordOptions);
                 var expectedPayload = element.GetProperty("payload").GetString();
                 var expectedSha = element.GetProperty("payloadSha256").GetString();
 
@@ -164,7 +206,253 @@ internal static class Ns20CanonicalBytesProbe
         Console.WriteLine(failures == 0
             ? "PASS: " + checkedCases + " canonical payloads are byte-identical on the netstandard2.0 asset."
             : "FAIL: " + failures + " of " + checkedCases + " canonical payloads differ on the netstandard2.0 asset.");
-        return failures == 0 ? 0 : 1;
+        return failures;
+    }
+
+    // The other half of parity. VerifierParityTests runs the same corpus records through the
+    // net8.0 asset and expects ed25519-signature-invalid where this expects
+    // ed25519-signature-unverifiable, and TRUSTED for the HMAC-only shapes on both. Legacy
+    // options are used deliberately: they are the options under which nothing REQUIRES an
+    // Ed25519 signature, so the only thing that can make the ns2.0 asset refuse a record that
+    // carries one is the presence of the signature itself.
+    private static int CheckVerifierParity(string path)
+    {
+        Console.WriteLine("== verifier parity: the same record must reach the same verdict on every target (Legacy options) ==");
+        var failures = 0;
+        var checkedCases = 0;
+
+        using (var document = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var element in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var name = element.GetProperty("name").GetString();
+                var record = JsonSerializer.Deserialize<CertificationRecordData>(
+                    element.GetProperty("record").GetRawText(), RecordOptions);
+
+                // Only an admitted, signed PASS record reaches the signature checks; the minimal
+                // FAIL cases are payload fixtures, not verifier inputs.
+                if (!record.Admitted || record.Status != "PASS" || !record.Signed)
+                    continue;
+
+                var bound = Bind(record);
+                if (!string.IsNullOrWhiteSpace(bound.Ed25519Signature))
+                {
+                    // The corpus placeholder is not Base64; a well-formed 64-byte signature that is
+                    // simply not over these bytes is the other way a present signature can fail to
+                    // verify. Neither is in the HMAC payload, so neither disturbs the HMAC.
+                    checkedCases++;
+                    failures += Expect(
+                        name + " (Ed25519 signature present, not Base64)",
+                        CertificationTrustVerifier.Verify(bound, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                        expectTrusted: false,
+                        expectedCode: "ed25519-signature-unverifiable");
+
+                    checkedCases++;
+                    var wellFormed = bound with { Ed25519Signature = Convert.ToBase64String(new byte[64]) };
+                    failures += Expect(
+                        name + " (Ed25519 signature present, well-formed, does not verify)",
+                        CertificationTrustVerifier.Verify(wellFormed, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                        expectTrusted: false,
+                        expectedCode: "ed25519-signature-unverifiable");
+                }
+
+                // The same record as an HMAC-only record: every target can evaluate this shape
+                // completely, so it must stay trusted here exactly as it is on net8.0.
+                checkedCases++;
+                var hmacOnly = Bind(record with { Ed25519Signature = null, Ed25519PublicKey = null });
+                failures += Expect(
+                    name + " (HMAC-only)",
+                    CertificationTrustVerifier.Verify(hmacOnly, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                    expectTrusted: true,
+                    expectedCode: null);
+            }
+        }
+
+        if (checkedCases == 0)
+        {
+            Console.WriteLine("FAIL: no admitted record in the golden corpus; a parity probe that verifies nothing is not a passing probe.");
+            return 1;
+        }
+
+        Console.WriteLine(failures == 0
+            ? "PASS: " + checkedCases + " verifier verdicts on the netstandard2.0 asset agree with net8.0."
+            : "FAIL: " + failures + " of " + checkedCases + " verifier verdicts on the netstandard2.0 asset contradict net8.0.");
+        return failures;
+    }
+
+    // StateLogVerifier on this asset. The parameterless-options signature means Strict, which
+    // requires an Ed25519 signature this asset cannot evaluate, so it must refuse even an
+    // HMAC-only certificate; the options overload with Legacy must trust that certificate; and
+    // the same overload must still refuse a certificate carrying an Ed25519 signature, because
+    // selecting evaluable options does not make the un-evaluable check evaluable.
+    private static int CheckStateLogOptions(string path)
+    {
+        Console.WriteLine("== state log: StateLogVerifier must be able to evaluate the options it is given ==");
+        CertificationRecordData hmacOnly = null;
+        CertificationRecordData carryingEd25519 = null;
+        using (var document = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var element in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var record = JsonSerializer.Deserialize<CertificationRecordData>(
+                    element.GetProperty("record").GetRawText(), RecordOptions);
+                if (!record.Admitted || record.Status != "PASS" || !record.Signed)
+                    continue;
+                if (string.IsNullOrWhiteSpace(record.Ed25519Signature))
+                    hmacOnly = hmacOnly ?? Bind(record);
+                else
+                    carryingEd25519 = carryingEd25519 ?? Bind(record);
+            }
+        }
+
+        if (hmacOnly == null || carryingEd25519 == null)
+        {
+            Console.WriteLine("FAIL: the golden corpus must carry an admitted HMAC-only record and an admitted record with an Ed25519 signature.");
+            return 1;
+        }
+
+        // Both records are bound to the same source, so they share one content hash and one
+        // log resolves against either of them.
+        var schema = new StateSchema("{\"version\":1,\"stateBinding\":{\"version\":\"ns20-probe-v1\",\"hashLength\":44}}");
+        var certHash = hmacOnly.ContentHash;
+        var transition = new CertifiedTransitionBuilder().Create(
+            schema.ComputeBoundStateHash("genesis"),
+            "phase:advance",
+            certHash,
+            schema.ComputeBoundStateHash("phase:one"),
+            CertifiedTransition.GenesisPrevEntryHash);
+        var log = new AttestedStateLog(new[] { transition });
+        var hmacOnlyResolver = new SingleCertificateResolver(certHash, hmacOnly, ParityBrickSource);
+        var ed25519Resolver = new SingleCertificateResolver(certHash, carryingEd25519, ParityBrickSource);
+
+        var failures = 0;
+        failures += ExpectLog(
+            "existing signature (Strict), HMAC-only certificate",
+            StateLogVerifier.Verify(log, schema, hmacOnlyResolver, ParityHmacKey),
+            expectTrusted: false, expectedCode: "behavior-cert-untrusted", reasonContains: "ed25519-verification-unavailable");
+        failures += ExpectLog(
+            "options overload (Legacy), HMAC-only certificate",
+            StateLogVerifier.Verify(log, schema, hmacOnlyResolver, ParityHmacKey, null, CertificationVerifyOptions.Legacy),
+            expectTrusted: true, expectedCode: null, reasonContains: null);
+        failures += ExpectLog(
+            "options overload (Legacy), certificate carrying an Ed25519 signature",
+            StateLogVerifier.Verify(log, schema, ed25519Resolver, ParityHmacKey, null, CertificationVerifyOptions.Legacy),
+            expectTrusted: false, expectedCode: "behavior-cert-untrusted", reasonContains: "ed25519-signature-unverifiable");
+
+        Console.WriteLine(failures == 0
+            ? "PASS: 3 state-log verdicts on the netstandard2.0 asset are the ones its options can deliver."
+            : "FAIL: " + failures + " of 3 state-log verdicts on the netstandard2.0 asset are wrong.");
+        return failures;
+    }
+
+    private static int ExpectLog(string label, StateLogTrustResult result, bool expectTrusted, string expectedCode, string reasonContains)
+    {
+        var verdict = result.Trusted ? "TRUSTED (" + result.VerifiedTransitions + " transitions)" : "REFUSED " + result.FailureCode + ": " + result.Reason;
+        var ok = result.Trusted == expectTrusted
+            && (expectTrusted || result.FailureCode == expectedCode)
+            && (reasonContains == null || (result.Reason ?? string.Empty).Contains(reasonContains));
+        var expected = expectTrusted ? "TRUSTED" : "REFUSED " + expectedCode + (reasonContains == null ? string.Empty : " containing " + reasonContains);
+        Console.WriteLine("  " + (ok ? "OK  " : "FAIL") + " " + label + " -> " + verdict + (ok ? string.Empty : "  (expected " + expected + ")"));
+        return ok ? 0 : 1;
+    }
+
+    private sealed class SingleCertificateResolver : ICertificateResolver
+    {
+        private readonly string _hash;
+        private readonly CertificationRecordData _record;
+        private readonly string _source;
+
+        public SingleCertificateResolver(string hash, CertificationRecordData record, string source)
+        {
+            _hash = hash;
+            _record = record;
+            _source = source;
+        }
+
+        public CertificateResolveResult Resolve(string behaviorCertContentHash) =>
+            behaviorCertContentHash == _hash
+                ? new CertificateResolveResult(true, _record, _source)
+                : new CertificateResolveResult(false, null, null);
+    }
+
+    // Only null (v1) and 2 (v2) select a payload lane. Anything else must be refused here as
+    // it is on net8.0: BuildPayload throws CanonicalPayloadException and the verifier reports
+    // schema-version-unknown under Legacy and under Default alike (the floor of 2 is cleared
+    // by these numbers, which is exactly why the floor alone is not the answer).
+    private static int CheckUnknownSchemaVersion(string path)
+    {
+        Console.WriteLine("== unknown schema version: only null (v1) and 2 (v2) select a payload lane ==");
+        CertificationRecordData admitted = null;
+        using (var document = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var element in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var record = JsonSerializer.Deserialize<CertificationRecordData>(
+                    element.GetProperty("record").GetRawText(), RecordOptions);
+                if (record.Admitted && record.Status == "PASS" && record.Signed && string.IsNullOrWhiteSpace(record.Ed25519Signature))
+                {
+                    admitted = Bind(record);
+                    break;
+                }
+            }
+        }
+
+        if (admitted == null)
+        {
+            Console.WriteLine("FAIL: the golden corpus must carry an admitted HMAC-only record.");
+            return 1;
+        }
+
+        var failures = 0;
+        foreach (var version in new[] { 3, int.MaxValue })
+        {
+            var stamped = admitted with { SchemaVersion = version };
+            string buildOutcome;
+            try
+            {
+                CertificationRecordSigning.BuildPayload(stamped);
+                buildOutcome = "payload built";
+            }
+            catch (CanonicalPayloadException)
+            {
+                buildOutcome = "CanonicalPayloadException";
+            }
+
+            var buildOk = buildOutcome == "CanonicalPayloadException";
+            failures += buildOk ? 0 : 1;
+            Console.WriteLine("  " + (buildOk ? "OK  " : "FAIL") + " schemaVersion " + version + ": BuildPayload -> " + buildOutcome + (buildOk ? string.Empty : "  (expected CanonicalPayloadException)"));
+
+            failures += Expect(
+                "schemaVersion " + version + " under Legacy",
+                CertificationTrustVerifier.Verify(stamped, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Legacy),
+                expectTrusted: false,
+                expectedCode: "schema-version-unknown");
+            failures += Expect(
+                "schemaVersion " + version + " under Default (clears the floor of 2)",
+                CertificationTrustVerifier.Verify(stamped, ParityBrickSource, ParityHmacKey, CertificationVerifyOptions.Default),
+                expectTrusted: false,
+                expectedCode: "schema-version-unknown");
+        }
+
+        Console.WriteLine(failures == 0
+            ? "PASS: 6 unknown-schema-version outcomes on the netstandard2.0 asset are refusals."
+            : "FAIL: " + failures + " of 6 unknown-schema-version outcomes on the netstandard2.0 asset are not refusals.");
+        return failures;
+    }
+
+    private static CertificationRecordData Bind(CertificationRecordData record)
+    {
+        var bound = record with { ContentHash = BrickContentHasher.ComputeSha256(ParityBrickSource), Signature = null };
+        return bound with { Signature = CertificationRecordSigning.Sign(bound, ParityHmacKey) };
+    }
+
+    private static int Expect(string label, CertificationTrustResult result, bool expectTrusted, string expectedCode)
+    {
+        var verdict = result.Trusted ? "TRUSTED" : "REFUSED " + result.FailureCode;
+        var expected = expectTrusted ? "TRUSTED" : "REFUSED " + expectedCode;
+        var ok = result.Trusted == expectTrusted && (expectTrusted || result.FailureCode == expectedCode);
+        Console.WriteLine("  " + (ok ? "OK  " : "FAIL") + " " + label + " -> " + verdict + (ok ? string.Empty : "  (expected " + expected + ")"));
+        return ok ? 0 : 1;
     }
 
     private static string RuntimeDescription()

@@ -77,8 +77,10 @@ public sealed class CertificationVerifyOptions
     /// <remarks>
     /// Without this, the Ed25519 check is conditional on a field the record itself carries,
     /// so an attacker removes the field rather than forging it. On netstandard2.0 the
-    /// signature cannot be evaluated at all, so this option causes a refusal there rather
-    /// than a silent pass — never a "verified" verdict a consumer could not actually check.
+    /// signature cannot be evaluated at all: a record that carries one is refused there whatever
+    /// the options (<c>ed25519-signature-unverifiable</c>), and this option turns an absent one
+    /// into a refusal as well (<c>ed25519-verification-unavailable</c>) rather than a silent
+    /// pass — never a "verified" verdict a consumer could not actually check.
     /// </remarks>
     public bool RequireEd25519Signature { get; init; }
 

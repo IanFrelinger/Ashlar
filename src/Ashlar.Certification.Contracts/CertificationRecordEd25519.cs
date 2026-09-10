@@ -9,8 +9,10 @@ namespace Ashlar.Certification.Contracts;
 /// HMAC signature over the same canonical payload (<see cref="CertificationRecordSigning.BuildPayload"/>).
 /// Asymmetric so verifiers do not hold minting capability, which lets certificates
 /// compose across trust domains (spec R2.6). Unavailable on netstandard2.0 consumers,
-/// which fall back to HMAC-only verification; the HMAC payload covers the Ed25519
-/// public key, so these fields are still tamper-evident inside the symmetric domain.
+/// which can evaluate the HMAC alone: they verify HMAC-only records and refuse any record
+/// that carries an Ed25519 signature (<c>ed25519-signature-unverifiable</c>), because a
+/// signature that cannot be checked is refused rather than skipped. The HMAC payload covers
+/// the Ed25519 public key, so that field is still tamper-evident inside the symmetric domain.
 /// There is deliberately no default development private key: without a configured key
 /// the minter writes HMAC-only records, and verification enforces the Ed25519
 /// signature whenever a record carries one.

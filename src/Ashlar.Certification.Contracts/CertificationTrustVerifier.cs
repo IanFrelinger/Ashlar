@@ -42,6 +42,23 @@ public static class CertificationTrustVerifier
                 + $"the minimum accepted version {strictness.MinimumSchemaVersion}.");
         }
 
+        // The floor says "at least this new"; it does not say "a version this verifier knows".
+        // BuildPayload selects its lane on the version, and a version it has never seen selects
+        // no lane, so there are no bytes to compare any signature against. Refused with its own
+        // code rather than left to surface as payload-not-canonical, because that code is
+        // documented as the serializer degrading under trimming or ahead-of-time publishing — a
+        // deployment fault — and an unknown version is a record fault; conflating them would
+        // point an operator at the wrong thing. An unknown schema version is an error, not a
+        // guess. Floor first, so an explicit version below the floor still reports the floor.
+        if (!CertificationRecordSigning.IsKnownSchemaVersion(record.SchemaVersion))
+        {
+            return Untrusted(
+                "schema-version-unknown",
+                $"Certification record schema version {record.SchemaVersion} is not a version this verifier knows "
+                + $"(known: none for v1, {CertificationRecordData.TrustLoopSchemaVersion} for v2); a record whose "
+                + "payload lane cannot be established cannot be verified.");
+        }
+
         if (!record.Signed)
             return Untrusted("record-unsigned", "Certification record is not signed.");
 
@@ -75,26 +92,57 @@ public static class CertificationTrustVerifier
         if (!CertificationRecordSigning.VerifySignature(record, hmacKey))
             return Untrusted("signature-invalid", "Certification record signature is invalid.");
 
-#if NET8_0_OR_GREATER
         // Dual-write window: the Ed25519 signature is enforced whenever present. Presence is
         // controlled by the record's own bytes, so this alone is not a strictness control —
-        // an attacker removes the field rather than forging it. RequireEd25519Signature is
-        // what turns absence into a refusal.
+        // a record can arrive without the field as easily as with a bad one.
+        // RequireEd25519Signature is what turns absence into a refusal.
+        //
+        // The presence test and the key test sit OUTSIDE the target-framework fence on purpose.
+        // "Present" has to mean the same bytes on every target, and a signature without a key
+        // needs no cryptography to refuse; only the evaluation itself differs per target. Keeping
+        // the prelude shared is what makes the failure code for a multi-fault record the same
+        // on every target, not just the verdict.
         if (!string.IsNullOrWhiteSpace(record.Ed25519Signature))
         {
             if (string.IsNullOrWhiteSpace(record.Ed25519PublicKey))
                 return Untrusted("ed25519-key-missing", "Certification record carries an Ed25519 signature but no public key.");
 
+#if NET8_0_OR_GREATER
             if (!CertificationRecordEd25519.VerifySignature(record))
                 return Untrusted("ed25519-signature-invalid", "Certification record Ed25519 signature is invalid.");
+#else
+            // netstandard2.0 has no NSec target, so the signature cannot be evaluated here. A
+            // signature that cannot be checked is refused rather than skipped: the net8.0+
+            // targets refuse this record unless the signature verifies, so falling through to
+            // the content-hash check would trust here what they refuse there — the same bytes,
+            // a contradictory verdict. The set of records this target trusts is therefore a
+            // subset of what the others trust (HMAC-only records), never a superset.
+            return Untrusted(
+                "ed25519-signature-unverifiable",
+                "Certification record carries an Ed25519 signature that this build cannot evaluate "
+                + "(netstandard2.0 has no NSec target). A signature that cannot be checked is refused rather than skipped.");
+#endif
         }
         else if (strictness.RequireEd25519Signature || strictness.PinningEnabled)
         {
+#if NET8_0_OR_GREATER
             return Untrusted(
                 "ed25519-signature-required",
                 "Certification record carries no Ed25519 signature and this verifier requires one.");
+#else
+            // Under strictness the absence is refused here as well, in this target's own terms:
+            // returning "trusted" for a check that did not run — or stamping a record as pinned
+            // when the signature math never executed — would be worse than the silent skip it
+            // replaces. Only an absent signature reaches this code; a present one was refused
+            // above.
+            return Untrusted(
+                "ed25519-verification-unavailable",
+                "Ed25519 strictness was requested but this build cannot verify Ed25519 signatures "
+                + "(netstandard2.0 has no NSec target). Refusing rather than reporting an unchecked pass.");
+#endif
         }
 
+#if NET8_0_OR_GREATER
         // Pinning closes the remaining gap: VerifySignature checks the signature against the
         // public key the RECORD carries, so a record signed with an attacker's own keypair is
         // self-consistent and passes. Requiring a signature without pinning only forces the
@@ -105,19 +153,6 @@ public static class CertificationTrustVerifier
             return Untrusted(
                 "ed25519-key-not-trusted",
                 "Certification record is signed by a key this verifier does not accept.");
-        }
-#else
-        // netstandard2.0 has no NSec target, so the signature cannot be evaluated here.
-        // Under Legacy options this lane behaves as the HMAC-only path (which covers the
-        // Ed25519 public key). Under strictness it REFUSES rather than skipping: returning
-        // "trusted" for a check that did not run — or stamping a record as pinned when the
-        // signature math never executed — would be worse than the silent skip it replaces.
-        if (strictness.RequireEd25519Signature || strictness.PinningEnabled)
-        {
-            return Untrusted(
-                "ed25519-verification-unavailable",
-                "Ed25519 strictness was requested but this build cannot verify Ed25519 signatures "
-                + "(netstandard2.0 has no NSec target). Refusing rather than reporting an unchecked pass.");
         }
 #endif
 
