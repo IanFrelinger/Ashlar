@@ -520,4 +520,41 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
         }
     }
 
+    [Fact]
+    public void LiteDbUserKnowledgeLogStore_survives_concurrent_first_use()
+    {
+        RaceOnAColdMapper("user-knowledge", "user_knowledge_log", (index, dbPath) =>
+        {
+            var store = new LiteDbUserKnowledgeLogStore(dbPath);
+            store.UpsertAsync(new UserKnowledgeLogEntry
+            {
+                Id = $"entry-{index}",
+                DataType = "preference",
+                Content = "content",
+            }).GetAwaiter().GetResult();
+
+            store.GetByIdAsync($"entry-{index}").GetAwaiter().GetResult();
+            store.GetAsync("preference").GetAwaiter().GetResult();
+        });
+    }
+
+    [Fact]
+    public void LiteDbCopilotTaskStore_survives_concurrent_first_use()
+    {
+        // The store the pattern came from. It is already converted; this keeps it that way.
+        RaceOnAColdMapper("copilot-task", "copilot_tasks", (index, dbPath) =>
+        {
+            var store = new LiteDbCopilotTaskStore(dbPath);
+            store.StoreAsync(new CopilotTaskRecord
+            {
+                TaskId = $"task-{index}",
+                TenantId = "default",
+                Task = "concurrent probe",
+                SubmittedAt = Anchor,
+                Success = true,
+            }).GetAwaiter().GetResult();
+
+            store.QueryAsync(maxCount: 10, since: Anchor.AddMinutes(-1)).GetAwaiter().GetResult();
+        });
+    }
 }

@@ -24,6 +24,22 @@ namespace Ashlar.Commercial.Tests.Fleet;
 /// <c>MeshTaskDoc</c> would pin nothing. This class joins <see cref="LiteDbFleetCollection"/>, which
 /// already runs alone, because that reset is process-global. What the lookup RETURNS is pinned by
 /// <c>LiteDbMeshTaskRegistryGapCoverageTests</c>, deterministically and on a warm mapper.
+///
+/// Two things this class used to let through, and no longer does.
+///
+/// It tolerated any exception whose stack passed through LiteDB, on the grounds that the remaining
+/// mapper races were LiteDB's to fix and unavoidable at the call site. They were unavoidable at the
+/// call site; they were not unavoidable. <c>LiteDbDocumentMapper</c> builds the document type once,
+/// single-threaded, before a racer can reach it, so there is nothing left for that hatch to excuse.
+/// It also excused precisely the throw the serialize-only version of that warm-up still produced —
+/// <c>InvalidOperationException</c> out of <c>BsonMapper.GetTypeCtor</c> under <c>Deserialize</c>,
+/// which is why the warm-up now round-trips through <c>ToObject</c> as well.
+///
+/// And it declined to look at what reached disk, which is the larger half of this defect: a document
+/// serialized from a half-built <c>EntityMapper</c> is written with fields missing and the insert
+/// returns success. So every raced file is now reopened RAW — the non-generic <c>GetCollection</c>,
+/// never through the type's mapper, which would fill a missing field with a default — and checked
+/// against a warm single-threaded reference write.
 /// </remarks>
 [Collection(nameof(LiteDbFleetCollection))]
 public sealed class LiteDbMeshTaskRegistryMapperConcurrencyTests : IDisposable
@@ -37,9 +53,12 @@ public sealed class LiteDbMeshTaskRegistryMapperConcurrencyTests : IDisposable
     /// One round is not enough to pin this reliably from inside a test host. Measured in the devtest
     /// container against the pre-fix code: a console harness doing the identical race failed 18 of 20
     /// rounds, while a single-round test passed five runs in a row; at ten rounds the test failed five
-    /// runs out of five. It still costs a fraction of a second.
+    /// runs out of five.
+    ///
+    /// Twenty rather than that ten, to match the core suite: the corruption assertion below is the
+    /// one that has to hold, and throw counts are the timing-sensitive half of the signal.
     /// </remarks>
-    private const int Rounds = 10;
+    private const int Rounds = 20;
 
     private readonly string _root;
 
@@ -63,55 +82,92 @@ public sealed class LiteDbMeshTaskRegistryMapperConcurrencyTests : IDisposable
         }
     }
 
+    [Fact]
+    public void Concurrent_first_use_neither_throws_nor_writes_short_documents()
+    {
+        var (errors, shortDocuments) = RaceOnAColdMapper();
+
+        errors.Should().BeEmpty(
+            "concurrent first use of MeshTaskDoc must not throw — not NotSupportedException out of " +
+            "LinqExpressionVisitor.ResolveMember, and not out of the serializer, the collection " +
+            "lookup or the deserializer either");
+
+        shortDocuments.Should().BeEmpty(
+            "every mesh task written while racing must carry every field the reference write " +
+            "carried. A document serialized from a half-built EntityMapper is written short and the " +
+            "insert still returns success, which is how this defect does most of its damage");
+    }
+
     /// <summary>
-    /// True when an exception came out of LiteDB itself rather than out of the store or this test.
+    /// One racer's work: create a task, then read it back through the unlocked lookup.
     /// </summary>
     /// <remarks>
-    /// LiteDB 5.0.21 publishes a type's <c>EntityMapper</c> into its cache before that mapper's member
-    /// list is filled, so a thread arriving while it is half-built can fail in at least three places:
-    /// <c>NotSupportedException</c> out of <c>LinqExpressionVisitor.ResolveMember</c>;
-    /// <c>InvalidOperationException("Collection was modified")</c> out of
-    /// <c>BsonMapper.SerializeObject</c>, under <c>LiteCollection.Insert</c>; and the same exception
-    /// out of <c>EntityMapper.get_Id</c>, under <c>LiteDatabase.GetCollection&lt;T&gt;</c>. Only the
-    /// first goes through an expression, so only the first can be avoided at the call site — and that
-    /// is the one CI hit and the one asserted on by name below. The other two are inside LiteDB's own
-    /// document conversion and collection lookup, every caller reaches them, and they were already
-    /// firing underneath the <c>NotSupportedException</c> before this fix.
-    ///
-    /// So the second assertion tolerates them by ORIGIN rather than by exception shape, which would
-    /// mean chasing each new manifestation. Anything raised outside LiteDB — the store, or an
-    /// assertion inside a racer — still fails.
+    /// The read is not decoration. <c>MeshTaskDoc.Affinity</c> is a
+    /// <c>Dictionary&lt;string, string&gt;</c> whose own <c>EntityMapper</c> LiteDB builds lazily on
+    /// the READ path, in <c>GetTypeCtor</c> — so a warm-up that only serialized left this call a
+    /// concurrent first touch, and it threw here in 5 of 8 measured iterations.
     /// </remarks>
-    private static bool CameFromLiteDb(Exception ex) =>
-        ex.StackTrace?.Contains("LiteDB.", StringComparison.Ordinal) == true;
-
-    [Fact]
-    public void Concurrent_first_use_does_not_throw_out_of_the_bson_mapper()
+    private static void Race(int index, string dbPath)
     {
-        var errors = RaceOnAColdMapper();
+        var registry = new LiteDbMeshTaskRegistry(dbPath);
+        var key = $"idem-{index}";
+        registry.CreateAsync(new MeshTaskCreateSpec(
+            $"task-{index}",
+            1,
+            Array.Empty<string>(),
+            null,
+            0,
+            null,
+            IdempotencyKey: key)).GetAwaiter().GetResult();
 
-        errors.Should().NotContain(
-            e => e is NotSupportedException,
-            "concurrent first use of MeshTaskDoc must not throw NotSupportedException out of " +
-            "LinqExpressionVisitor.ResolveMember");
+        // The unlocked read path — the one CreateAsync's index declaration races against on another
+        // thread.
+        registry.TryGetByIdempotencyKeyAsync(key).GetAwaiter().GetResult();
+    }
 
-        errors.Where(e => !CameFromLiteDb(e)).Should().BeEmpty(
-            "nothing outside LiteDB should have failed while racing the mesh task registry");
+    /// <summary>
+    /// The widest document a racer writes when nothing is racing it.
+    /// </summary>
+    /// <remarks>
+    /// A reference rather than a hand-counted constant: a field added to <c>MeshTaskDoc</c> must not
+    /// need this file edited, and a constant that drifted low would silently stop detecting anything.
+    /// Single threaded, so the mapper it serializes through cannot be half-built.
+    /// </remarks>
+    private int WidestDocument()
+    {
+        var referencePath = Path.Combine(_root, "mesh-reference.db");
+        Race(0, referencePath);
+
+        using var db = new LiteDatabase($"Filename={referencePath}");
+        var widest = 0;
+        foreach (var document in db.GetCollection("mesh_tasks").FindAll())
+            widest = Math.Max(widest, document.Keys.Count);
+        return widest;
     }
 
     /// <summary>
     /// Drives the registry from <see cref="Threads"/> real threads released together, against a
     /// mapper that has never seen the document type, <see cref="Rounds"/> times, and returns
-    /// whatever they threw.
+    /// whatever they threw together with whatever reached disk short.
     /// </summary>
-    private IReadOnlyList<Exception> RaceOnAColdMapper()
+    private (IReadOnlyList<Exception> Errors, IReadOnlyList<string> ShortDocuments) RaceOnAColdMapper()
     {
         var previousMapper = BsonMapper.Global;
         try
         {
+            var widest = WidestDocument();
+            widest.Should().BeGreaterThan(0, "the reference write must produce a document to compare against");
+
             var errors = new ConcurrentBag<Exception>();
+            var shortDocuments = new List<string>();
             for (var round = 0; round < Rounds; round++)
             {
+                var dbPaths = new string[Threads];
+                for (var i = 0; i < Threads; i++)
+                    // Each thread on its own file: the CI shape, and it keeps LiteDB's per-file lock
+                    // out of the way so a failure here can only be the mapper.
+                    dbPaths[i] = Path.Combine(_root, $"mesh-{round}-{i}.db");
+
                 // A mapper that has never seen the document type. Every round needs its own, because
                 // the previous round left the type fully built and the race only exists while it is not.
                 BsonMapper.Global = new BsonMapper();
@@ -121,9 +177,7 @@ public sealed class LiteDbMeshTaskRegistryMapperConcurrencyTests : IDisposable
                 for (var i = 0; i < Threads; i++)
                 {
                     var index = i;
-                    // Each thread on its own file: the CI shape, and it keeps LiteDB's per-file lock
-                    // out of the way so a failure here can only be the mapper.
-                    var dbPath = Path.Combine(_root, $"mesh-{round}-{index}.db");
+                    var dbPath = dbPaths[index];
                     // LongRunning so these are real threads rather than pool work items that could be
                     // serialised onto one thread and never overlap.
                     racers[i] = Task.Factory.StartNew(
@@ -132,20 +186,7 @@ public sealed class LiteDbMeshTaskRegistryMapperConcurrencyTests : IDisposable
                             start.SignalAndWait();
                             try
                             {
-                                var registry = new LiteDbMeshTaskRegistry(dbPath);
-                                var key = $"idem-{index}";
-                                registry.CreateAsync(new MeshTaskCreateSpec(
-                                    $"task-{index}",
-                                    1,
-                                    Array.Empty<string>(),
-                                    null,
-                                    0,
-                                    null,
-                                    IdempotencyKey: key)).GetAwaiter().GetResult();
-
-                                // The unlocked read path — the one CreateAsync's index declaration
-                                // races against on another thread.
-                                registry.TryGetByIdempotencyKeyAsync(key).GetAwaiter().GetResult();
+                                Race(index, dbPath);
                             }
                             catch (Exception ex)
                             {
@@ -156,9 +197,21 @@ public sealed class LiteDbMeshTaskRegistryMapperConcurrencyTests : IDisposable
                 }
 
                 Task.WaitAll(racers);
+
+                // Raw, never through the type's mapper: deserializing would fill a field the writer
+                // never wrote with its default and report the document as intact.
+                foreach (var dbPath in dbPaths)
+                {
+                    if (!File.Exists(dbPath)) continue;
+
+                    using var db = new LiteDatabase($"Filename={dbPath}");
+                    foreach (var document in db.GetCollection("mesh_tasks").FindAll())
+                        if (document.Keys.Count < widest)
+                            shortDocuments.Add($"{document.Keys.Count}/{widest} keys: [{string.Join(",", document.Keys)}]");
+                }
             }
 
-            return errors.ToList();
+            return (errors.ToList(), shortDocuments);
         }
         finally
         {
