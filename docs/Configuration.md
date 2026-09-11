@@ -496,6 +496,8 @@ Bound from the `Ashlar:Barriers` section (`appsettings.json` or `Ashlar__Barrier
 | `ASHLAR_LOAD_PREFERENCE` | Default load balancing preference | unset |
 | `ASHLAR_EXECUTION_REMOTE_URL` | Remote execution endpoint URL for hosting | unset |
 
+`ASHLAR_LOCAL_MODEL_PATH` alone is not enough to get the `local` provider: the GGUF weights are loaded by `LLamaSharp.Backend.Cpu`, which the `Ashlar.*` libraries reference with `PrivateAssets="all"` so that no consumer inherits its four same-named CPU-variant native payloads (they collide on `dotnet publish -r <rid>` with `NETSDK1152`). A deployable host opts in with its own `<PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.25.0" />` — `application/src/Ashlar.API` and `application/src/Ashlar.CLI` do, which is why the shipped images keep the capability. Missing the opt-in is never a build error, and `IsAvailable()` does not detect it — it only checks that `ASHLAR_LOCAL_MODEL_PATH` names an existing file. With the variable unset (the shipped default) routing simply never selects `local`; with it set but no backend present, the first execution fails at `LLamaWeights.LoadFromFile` and surfaces as `ModelUnavailableException` wrapping the missing native library. See [consumer-template/CONSUMING.md](../consumer-template/CONSUMING.md#local-model-inference-is-opt-in) for the consumer-side snippet, including the CPU-variant prune a RID publish needs.
+
 ## Config File
 
 `~/.ashlar/config.json` (or path from `ASHLAR_CONFIG_PATH`):

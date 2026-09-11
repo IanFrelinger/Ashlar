@@ -28,3 +28,11 @@ any survive. Copying this host by hand means doing the same four replacements yo
 
 Edits here change what CI verifies, so treat this directory as gate input rather than documentation:
 the workflow's path filters list `consumer-template/host/**` for exactly that reason.
+
+## Publishing this host for a RID
+
+The gate also renders a second copy of these files with `<RuntimeIdentifier>` and `<SelfContained>` in
+the csproj, publishes it, and runs the published binary — a container image is built that way, and a
+RID publish resolves native assets differently enough from `dotnet build` that it failed on this exact
+template while the build stage stayed green. See the RID-publish section of
+[../CONSUMING.md](../CONSUMING.md), including the opt-in for local GGUF inference.
