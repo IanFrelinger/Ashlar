@@ -31,6 +31,14 @@
 
   <ItemGroup>
     <PackageReference Include="MediatR" />
+    <!-- Local GGUF inference opt-in. Ashlar.Infrastructure marks this backend PrivateAssets=all so
+         that no consumer inherits its four colliding CPU-variant native sets, which means every
+         deployable host that wants LocalModelProvider (the "local" provider, gated on
+         ASHLAR_LOCAL_MODEL_PATH) has to re-add it. Dropping this line is a silent capability
+         loss, not a build error: "local" just reports unavailable. The API Dockerfiles publish
+         without -r, so the four variants keep their own runtimes/<rid>/native/<variant>/ folders;
+         a RID publish needs the variant prune documented in consumer-template/CONSUMING.md. -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <!-- OTLP export (traces + metrics), active only when OTEL_EXPORTER_OTLP_ENDPOINT is set. -->
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />

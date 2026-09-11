@@ -85,6 +85,12 @@
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Docker.DotNet" />
     <PackageReference Include="Npgsql" />
+    <!-- LLamaSharp.Backend.Cpu is PrivateAssets=all in Ashlar.Infrastructure, so its natives no
+         longer arrive through the ProjectReference. LocalModelProviderIntegrationTests downloads a
+         260K GGUF and runs real inference, which needs them in the test output: without this line
+         those tests fail with ModelUnavailableException instead of skipping, because the skip is
+         keyed on the model file existing, not on the backend being present. -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" />
     <PackageReference Include="coverlet.msbuild">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
