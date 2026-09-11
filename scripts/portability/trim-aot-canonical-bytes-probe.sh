@@ -21,6 +21,14 @@
 # reflection-based deserializer would fail for its own reasons in exactly the configurations
 # under test, and would prove nothing about the writer.
 #
+# POSITIVE AND NEGATIVE. Byte equality alone is a weak assertion: a build whose verifier had
+# been trimmed into unconditional agreement would emit the right bytes and pass. So each
+# published binary is also required to say NO - to a tampered signature, to a content hash that
+# does not bind, to a schema version that selects no payload lane, to a proposer that supplies
+# one parameter key twice, to a double JSON has no number for - and the byte comparison itself
+# is shown to be live by feeding it a deliberately mutated expectation. This is the shape
+# scripts/portability/net9-probe.sh already uses for the same reason.
+#
 # THE CONSTANTS ARE NOT DUPLICATED. This probe reads the same
 # src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json and
 # transition-entry-hashes.golden.json the xunit golden suites and the netstandard2.0 probe read.
@@ -35,7 +43,9 @@
 #   scripts/portability/trim-aot-canonical-bytes-probe.sh trim-full  # one, by name
 #
 # Configuration names: trim-partial, trim-full, trim-full-reflection-on, aot.
-# TRIM_AOT_PROBE_WORKDIR pins the scratch directory.
+# TRIM_AOT_PROBE_WORKDIR pins the scratch directory; every check line is teed to
+# ${TRIM_AOT_PROBE_WORKDIR}/trim-aot-probe.log so a CI job can re-read the results rather than
+# re-derive them, and so a summary that reports nothing is not mistaken for a summary of nothing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -58,6 +68,12 @@ if [[ -z "${WORK}" ]]; then
   trap 'rm -rf "${WORK}"' EXIT
 fi
 mkdir -p "${WORK}/consumer"
+
+# One log carrying every check line. A CI job re-reads this rather than re-deriving the result
+# from the raw step output - and a summary step that finds no log says so, rather than rendering
+# an empty table that reads like a pass.
+LOG="${WORK}/trim-aot-probe.log"
+: >"${LOG}"
 
 cp "${GOLDEN}" "${WORK}/canonical-payloads.golden.json"
 cp "${TRANSITIONS}" "${WORK}/transition-entry-hashes.golden.json"
@@ -116,6 +132,7 @@ internal static class TrimAotCanonicalBytesProbe
 
         var failures = CheckCanonicalBytes(goldenPath);
         failures += CheckTransitionEntryHashes(transitionsPath);
+        failures += CheckRefusals(goldenPath);
         Console.WriteLine(failures == 0 ? "PROBE PASS" : "PROBE FAIL (" + failures + ")");
         return failures == 0 ? 0 : 1;
     }
@@ -209,6 +226,144 @@ internal static class TrimAotCanonicalBytesProbe
             ? "PASS: " + checkedCases + " transition entry hashes are identical."
             : "FAIL: " + failures + " of " + checkedCases + " transition entry hashes differ.");
         return failures;
+    }
+
+    // Byte equality says the writer agrees with the corpus. It says nothing about whether this
+    // build can still refuse anything: a verifier trimmed into unconditional agreement emits the
+    // same bytes and passes every check above. Each of these is a case where the published binary
+    // must answer no, and the last one makes the comparison itself prove it is live.
+    private static int CheckRefusals(string goldenPath)
+    {
+        Console.WriteLine("== refusals: the published binary must still be able to say no ==");
+        const string hmacKey = "trim-aot-canonical-bytes-probe-hmac";
+        const string brickSource = "class TrimAotCanonicalBytesProbeBrick { }";
+        var failures = 0;
+        var checks = 0;
+
+        var bound = new CertificationRecordData
+        {
+            Status = "PASS",
+            Stage = "S0-S2",
+            Admitted = true,
+            Signed = true,
+            Timestamp = new DateTimeOffset(2026, 9, 10, 0, 0, 0, TimeSpan.Zero),
+            BrickId = "trim-aot-probe-brick",
+            ContentHash = BrickContentHasher.ComputeSha256(brickSource),
+        };
+        bound = bound with { Signature = CertificationRecordSigning.Sign(bound, hmacKey) };
+
+        // The baseline. Without it every refusal below could be produced by a build that refuses
+        // everything, which is not the property under test either.
+        failures += ExpectVerdict(ref checks, "untampered v1 record under Legacy", bound, brickSource, hmacKey, null);
+
+        var forged = Convert.FromBase64String(bound.Signature!);
+        forged[0] ^= 0x01;
+        failures += ExpectVerdict(ref checks, "signature altered by one bit",
+            bound with { Signature = Convert.ToBase64String(forged) }, brickSource, hmacKey, "signature-invalid");
+        failures += ExpectVerdict(ref checks, "signature over other bytes (wrong key)",
+            bound, brickSource, "another-key", "signature-invalid");
+        failures += ExpectVerdict(ref checks, "content hash no longer binds",
+            bound, brickSource + " ", hmacKey, "content-hash-mismatch");
+
+        // A version that selects no payload lane has no bytes for a signature to cover, so it must
+        // be refused with its own code rather than serialized under a lane chosen by guesswork.
+        var unknownVersion = bound with { SchemaVersion = 3 };
+        failures += ExpectVerdict(ref checks, "schemaVersion 3 selects no lane",
+            unknownVersion, brickSource, hmacKey, "schema-version-unknown");
+        failures += ExpectRefusesToBuild(ref checks, "schemaVersion 3 payload", unknownVersion);
+
+        // A JSON writer does not reject a duplicate property name, so this payload would be signed
+        // happily and would describe no single record. Only a custom IReadOnlyDictionary can
+        // produce it - and it is exactly the kind of refusal a trimmed publish could drop.
+        var duplicateKey = bound with
+        {
+            SchemaVersion = CertificationRecordData.TrustLoopSchemaVersion,
+            Proposer = new CertificationProposer
+            {
+                Identity = "agent://trim-aot-probe",
+                Parameters = new RepeatedKeyParameters(
+                    new KeyValuePair<string, string>("seed", "1"),
+                    new KeyValuePair<string, string>("seed", "2")),
+            },
+        };
+        failures += ExpectRefusesToBuild(ref checks, "repeated proposer parameter key", duplicateKey);
+        failures += Expect(ref checks, "repeated key refuses verification rather than throwing",
+            !CertificationRecordSigning.VerifySignature(duplicateKey, hmacKey));
+
+        // JSON has no number for these, so refusal is the canonical answer. Refused as a
+        // canonical-payload fault, not left to throw ArgumentException past the verifier's catch.
+        foreach (var nonFinite in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+        {
+            failures += ExpectRefusesToBuild(ref checks, "escapeRate " + nonFinite.ToString(CultureInfo.InvariantCulture),
+                bound with { EscapeRate = nonFinite });
+        }
+
+        // And the comparison itself. Feed it an expectation that is deliberately wrong: if this
+        // reports a match, every OK line above means nothing.
+        using (var document = JsonDocument.Parse(File.ReadAllText(goldenPath)))
+        {
+            var first = document.RootElement.GetProperty("cases")[0];
+            var payload = CertificationRecordSigning.BuildPayload(ReadRecord(first.GetProperty("record")));
+            var mutated = first.GetProperty("payload").GetString()! + " ";
+            failures += Expect(ref checks, "a mutated expectation is not accepted as a match", payload != mutated);
+        }
+
+        if (checks == 0)
+        {
+            Console.WriteLine("FAIL: no refusal was exercised; a probe that checks nothing is not a passing probe.");
+            return 1;
+        }
+
+        Console.WriteLine(failures == 0
+            ? "PASS: " + checks + " refusals answered as they do on a plain build."
+            : "FAIL: " + failures + " of " + checks + " refusals did not.");
+        return failures;
+    }
+
+    private static int Expect(ref int checks, string what, bool ok)
+    {
+        checks++;
+        Console.WriteLine((ok ? "  OK   " : "  FAIL ") + what);
+        return ok ? 0 : 1;
+    }
+
+    private static int ExpectVerdict(
+        ref int checks, string what, CertificationRecordData record, string source, string key, string? expectedCode)
+    {
+        // Legacy options throughout: this consumer signs HMAC only, and Default would refuse for
+        // want of an Ed25519 signature before reaching the code each case is about.
+        var result = CertificationTrustVerifier.Verify(record, source, key, CertificationVerifyOptions.Legacy);
+        var ok = expectedCode is null ? result.Trusted : !result.Trusted && result.FailureCode == expectedCode;
+        checks++;
+        Console.WriteLine((ok ? "  OK   " : "  FAIL ") + what + " -> "
+            + (result.Trusted ? "TRUSTED" : result.FailureCode) + (ok ? string.Empty : "  (expected " + (expectedCode ?? "TRUSTED") + ")"));
+        return ok ? 0 : 1;
+    }
+
+    private static int ExpectRefusesToBuild(ref int checks, string what, CertificationRecordData record)
+    {
+        string outcome;
+        bool ok;
+        try
+        {
+            _ = CertificationRecordSigning.BuildPayload(record);
+            outcome = "returned a payload";
+            ok = false;
+        }
+        catch (CanonicalPayloadException)
+        {
+            outcome = "CanonicalPayloadException";
+            ok = true;
+        }
+        catch (Exception ex)
+        {
+            outcome = ex.GetType().Name + " (not the canonical-payload refusal)";
+            ok = false;
+        }
+
+        checks++;
+        Console.WriteLine((ok ? "  OK   " : "  FAIL ") + what + " -> " + outcome);
+        return ok ? 0 : 1;
     }
 
     // The corpus is read with JsonDocument and hand-written property access on purpose. The
@@ -338,6 +493,44 @@ internal static class TrimAotCanonicalBytesProbe
 
     private static double? Dbl(JsonElement e, string name) =>
         e.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetDouble() : null;
+
+    // Yields the same key twice. Dictionary<,> cannot, which is the only reason this exists.
+    private sealed class RepeatedKeyParameters : IReadOnlyDictionary<string, string>
+    {
+        private readonly KeyValuePair<string, string>[] _entries;
+
+        public RepeatedKeyParameters(params KeyValuePair<string, string>[] entries) => _entries = entries;
+
+        public int Count => _entries.Length;
+
+        public IEnumerable<string> Keys => _entries.Select(e => e.Key);
+
+        public IEnumerable<string> Values => _entries.Select(e => e.Value);
+
+        public string this[string key] => _entries.First(e => e.Key == key).Value;
+
+        public bool ContainsKey(string key) => _entries.Any(e => e.Key == key);
+
+        public bool TryGetValue(string key, out string value)
+        {
+            foreach (var entry in _entries)
+            {
+                if (entry.Key == key)
+                {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            value = null!;
+            return false;
+        }
+
+        public IEnumerator<KeyValuePair<string, string>> GetEnumerator() =>
+            ((IEnumerable<KeyValuePair<string, string>>)_entries).GetEnumerator();
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 }
 PROG
 
@@ -350,6 +543,7 @@ run_configuration() {
 
   local out="${WORK}/publish/${label}"
   local log="${WORK}/${label}.publish.log"
+  echo "configuration: ${label}" >>"${LOG}"
   echo ""
   echo "== ${label}: publish self-contained ${RID} =="
   write_consumer_project "${properties}"
@@ -364,12 +558,14 @@ run_configuration() {
   local warnings
   warnings="$(grep -cE ': warning (IL|AOT|TRIM)[0-9]+' "${log}" || true)"
   echo "   trim/AOT analysis warnings: ${warnings}"
+  echo "trim/AOT analysis warnings: ${warnings}" >>"${LOG}"
 
   echo "== ${label}: run the published binary =="
+  # set -o pipefail is in effect, so tee does not swallow a failing binary.
   "${out}/TrimAotCanonicalBytesProbe" \
     "${WORK}/canonical-payloads.golden.json" \
     "${WORK}/transition-entry-hashes.golden.json" \
-    "${label}"
+    "${label}" 2>&1 | tee -a "${LOG}"
 }
 
 FAILURES=0
