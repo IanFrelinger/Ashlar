@@ -3,7 +3,7 @@
   "cases": [
     {
       "name": "composition-populated",
-      "why": "Every field carrying a non-default value, plus the two the composition payload must structurally exclude (signature, gate). Structural mutant id lists are supplied out of order to pin the ordinal sort, and the reason string pins the escaping of quote, angle brackets, ampersand, apostrophe, plus and non-ASCII.",
+      "why": "Every field carrying a non-default value, plus the two the composition payload must structurally exclude (signature, gate). Structural mutant id lists are supplied out of order to pin that the lists are sorted at all - these ids collate the same way under ordinal and culture rules, so which comparer does the sorting is pinned by the composition-mutant-id-ordering case below rather than by this one. The reason string pins the escaping of quote, angle brackets, ampersand, apostrophe, plus and non-ASCII.",
       "record": {
         "status": "PASS",
         "stage": "S0-S2",
@@ -30,6 +30,33 @@
       "payloadSha256": "A46FC0A63E37C53DE6F7BF8424B79C43A0773682AB1EB7080C38E0F57C313307",
       "payloadByteLength": 436,
       "payload": "{\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-01-02T03:04:05.1234567Z\u0022,\u0022compositionId\u0022:\u0022golden-composition\u0022,\u0022compositionEscapeRate\u0022:0.5,\u0022totalStructuralMutants\u0022:7,\u0022survivingStructuralMutants\u0022:2,\u0022killedStructuralMutantIds\u0022:[\u0022m-1\u0022,\u0022m-10\u0022,\u0022m-2\u0022],\u0022survivingStructuralMutantIds\u0022:[\u0022s-1\u0022,\u0022s-2\u0022],\u0022reason\u0022:\u0022golden fixture \\u2014 quote \\u0022 angle \\u003C \\u0026 \\u003E apostrophe \\u0027 plus \\u002B caf\\u00E9\u0022}"
+    },
+    {
+      "name": "composition-mutant-id-ordering",
+      "why": "Structural mutant ids chosen so that ordinal and culture collation disagree: ordinal compares UTF-16 code units, so every uppercase initial sorts ahead of every lowercase one, where culture rules order the same ids alphabetically and case-blind. Ordinal gives B-1 before a-2 and S-2 before s-1; culture rules give the reverse of both. Ids that read like real mutant ids sort identically under either comparer, which is why they pin that a sort happens but not which comparer performs it.",
+      "record": {
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-01-02T03:04:05+00:00",
+        "compositionId": "golden-mutant-id-ordering",
+        "totalStructuralMutants": 6,
+        "survivingStructuralMutants": 2,
+        "killedStructuralMutantIds": [
+          "a-2",
+          "m-2",
+          "B-1",
+          "m-10"
+        ],
+        "survivingStructuralMutantIds": [
+          "s-1",
+          "S-2"
+        ]
+      },
+      "payloadSha256": "A412A1AF495703225A9C9C08DF759335728FDF38EA888E80A18CDBD9CE8E5D99",
+      "payloadByteLength": 351,
+      "payload": "{\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-01-02T03:04:05.0000000Z\u0022,\u0022compositionId\u0022:\u0022golden-mutant-id-ordering\u0022,\u0022compositionEscapeRate\u0022:null,\u0022totalStructuralMutants\u0022:6,\u0022survivingStructuralMutants\u0022:2,\u0022killedStructuralMutantIds\u0022:[\u0022B-1\u0022,\u0022a-2\u0022,\u0022m-10\u0022,\u0022m-2\u0022],\u0022survivingStructuralMutantIds\u0022:[\u0022S-2\u0022,\u0022s-1\u0022],\u0022reason\u0022:null}"
     },
     {
       "name": "composition-minimal",

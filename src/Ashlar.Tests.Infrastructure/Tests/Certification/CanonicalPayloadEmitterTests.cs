@@ -12,8 +12,11 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// makes the payload's shape, order and escaping a fact rather than an intention. It cannot
 /// cover inputs a corpus entry is not allowed to hold — a repeated dictionary key, a null
 /// inside a list declared non-null, a timestamp carrying a non-zero offset — and those are
-/// exactly the inputs where a writer and a serializer could quietly disagree. Each is asserted
-/// here against the behaviour the payload is documented to have.
+/// exactly the inputs where a writer and a serializer could quietly disagree. Nor can it pin
+/// which comparer orders a sorted sequence: ids that read like real ones collate identically
+/// under ordinal and culture rules, so a corpus built from them would keep passing if the
+/// comparer changed. Each is asserted here against the behaviour the payload is documented to
+/// have.
 /// </para>
 /// </summary>
 [Trait("Category", "Certification")]
@@ -96,6 +99,53 @@ public sealed class CanonicalPayloadEmitterTests
 
         CertificationRecordSigning.BuildPayload(record).Should()
             .Contain("\"parameters\":{\"IterationLimit\":\"3\",\"beta\":\"x\",\"temperature\":\"0\"}");
+    }
+
+    [Fact]
+    public void MutantIdLists_AreOrderedByTheOrdinalComparer_NotACultureOne()
+    {
+        // Which comparer is the decision; that some sort happens is not. Ids that read like real
+        // mutant ids ("m-1", "m-10", "m-2") collate the same way under both rules, so a corpus
+        // case built from them pins the sort without pinning the comparer. These four are chosen
+        // to disagree: ordinal compares UTF-16 code units, putting the digit first, then the
+        // uppercase letter, then the underscore, then the lowercase letter — where culture rules
+        // collate the underscore first and treat "a" and "B" as an alphabetic pair.
+        var record = Minimal() with
+        {
+            KilledMutants = new[] { "a", "B", "_z", "0" },
+            SurvivingMutantIds = new[] { "a", "B", "_z", "0" },
+        };
+
+        var payload = CertificationRecordSigning.BuildPayload(record);
+
+        payload.Should().Contain("\"killedMutants\":[\"0\",\"B\",\"_z\",\"a\"]");
+        payload.Should().Contain("\"survivingMutantIds\":[\"0\",\"B\",\"_z\",\"a\"]");
+    }
+
+    [Fact]
+    public void Inputs_AreOrderedByOrdinalKind_ThenOrdinalId()
+    {
+        // Two decisions in one sequence, and each is pinned by an entry the other would move.
+        // Kinds and ids differ only in case, so ordinal orders "B" ahead of "a" where culture
+        // rules order them the other way round; and the two "B" entries swap if the id comparer
+        // is consulted before the kind one.
+        var record = Minimal() with
+        {
+            Inputs = new[]
+            {
+                new CertificationInput { Kind = "a", Id = "1", Hash = "hash-a1" },
+                new CertificationInput { Kind = "B", Id = "a", Hash = "hash-Ba" },
+                new CertificationInput { Kind = "B", Id = "B", Hash = "hash-BB" },
+            },
+        };
+
+        var payload = CertificationRecordSigning.BuildPayload(record);
+
+        payload.Should().Contain(
+            "\"inputs\":["
+            + "{\"kind\":\"B\",\"id\":\"B\",\"hash\":\"hash-BB\"},"
+            + "{\"kind\":\"B\",\"id\":\"a\",\"hash\":\"hash-Ba\"},"
+            + "{\"kind\":\"a\",\"id\":\"1\",\"hash\":\"hash-a1\"}]");
     }
 
     [Fact]
