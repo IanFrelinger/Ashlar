@@ -28,13 +28,13 @@ namespace Ashlar.Core.Application.Persistence;
 /// a hand-copied helper in commercial, which is exactly the shape that let the previous two rounds
 /// of this bug fix one store and leave the rest. It is pure string manipulation and takes no
 /// dependency on LiteDB, so the netstandard2.0 leg of this assembly still compiles; that leg is also
-/// why the <c>Connection=</c> probe below is <c>IndexOf</c> rather than
-/// <c>Contains(string, StringComparison)</c>, which netstandard2.0 does not have.</para>
+/// why the option probe below splits and compares with <c>Equals(string, StringComparison)</c>
+/// rather than <c>Contains(string, StringComparison)</c>, which netstandard2.0 does not have.</para>
 /// </remarks>
 public static class LiteDbConnectionString
 {
     private const string FilenamePrefix = "Filename=";
-    private const string ConnectionKey = "Connection=";
+    private const string ConnectionKey = "Connection";
 
     /// <summary>
     /// Normalizes a store's configured path (or connection string) into one that opens in Shared mode.
@@ -85,8 +85,36 @@ public static class LiteDbConnectionString
             withFilename = FilenamePrefix + trimmed;
         }
 
-        return withFilename.IndexOf(ConnectionKey, StringComparison.OrdinalIgnoreCase) >= 0
+        return StatesConnectionMode(withFilename)
             ? withFilename
             : withFilename + ";Connection=Shared";
+    }
+
+    /// <summary>
+    /// Whether the composed string already states a <c>Connection=</c> option of its own.
+    /// </summary>
+    /// <remarks>
+    /// Anchored on the option delimiter rather than searched for anywhere in the text, because the
+    /// filename is part of that text: a path whose own spelling contains <c>Connection=</c>
+    /// (<c>/var/state/Connection=x/state.db</c>) would otherwise answer for a mode nobody chose and
+    /// the store would open Direct — silently, which is the single outcome this class exists to
+    /// prevent. Index 0 is the <c>Filename=</c> segment and is never an option key.
+    /// </remarks>
+    private static bool StatesConnectionMode(string connectionString)
+    {
+        var options = connectionString.Split(';');
+
+        for (var i = 1; i < options.Length; i++)
+        {
+            var separator = options[i].IndexOf('=');
+            if (separator < 0)
+                continue;
+
+            var key = options[i].Substring(0, separator).Trim();
+            if (key.Equals(ConnectionKey, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 }

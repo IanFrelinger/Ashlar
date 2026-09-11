@@ -40,6 +40,7 @@ public sealed class LiteDbConnectionStringTests
     [Theory]
     [InlineData("Filename=/tmp/custom.db;Connection=Direct")]
     [InlineData("Filename=/tmp/custom.db;connection=direct")]
+    [InlineData("Filename=/var/state/Connection=x/custom.db;Connection=Direct")]
     public void An_explicit_mode_supplied_by_the_caller_is_left_alone(string connectionString)
     {
         LiteDbConnectionString.ForSharedAccess(connectionString).Should().Be(connectionString);
@@ -65,6 +66,21 @@ public sealed class LiteDbConnectionStringTests
         var act = () => LiteDbConnectionString.ForSharedAccess("/var/weird;dir/state.db");
 
         act.Should().Throw<ArgumentException>().WithParameterName("pathOrConnectionString");
+    }
+
+    /// <summary>
+    /// The filename is part of the string the mode is probed for, so an unanchored search would read
+    /// a path that merely SPELLS <c>Connection=</c> as a mode the caller had chosen and hand back a
+    /// Direct connection — the same silent-wrong-mode failure the ';' rejection above is written
+    /// against, one layer further in, and one no convention test can see because the store does call
+    /// the helper.
+    /// </summary>
+    [Theory]
+    [InlineData("/var/state/Connection=x/state.db", "Filename=/var/state/Connection=x/state.db;Connection=Shared")]
+    [InlineData("Filename=/var/state/Connection=x/state.db", "Filename=/var/state/Connection=x/state.db;Connection=Shared")]
+    public void A_path_that_merely_spells_the_option_still_gets_shared_mode(string path, string expected)
+    {
+        LiteDbConnectionString.ForSharedAccess(path).Should().Be(expected);
     }
 
     /// <summary>The store's own parameter name is what a caller sees, not this method's.</summary>
