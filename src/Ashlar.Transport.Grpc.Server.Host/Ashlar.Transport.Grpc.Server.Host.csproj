@@ -11,4 +11,16 @@
     <ProjectReference Include="..\Ashlar.Hosting\Ashlar.Hosting.csproj" />
     <ProjectReference Include="..\Ashlar.Transport.Grpc.Server\Ashlar.Transport.Grpc.Server.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Local GGUF inference opt-in, same reasoning as application/src/Ashlar.API: the backend is
+         PrivateAssets=all in the libraries, so every deployable host that wants the "local"
+         provider (gated on ASHLAR_LOCAL_MODEL_PATH) re-adds it. Program.cs calls AddAshlar(), so
+         ProviderFactory keeps offering "local" whether or not the natives are present - dropping
+         this line is a silent capability loss that surfaces as ModelUnavailableException at the
+         first inference, never a build error. No Dockerfile builds this host: whoever publishes
+         it chooses the mode, and a RID publish needs the CPU-variant prune documented in
+         consumer-template/CONSUMING.md. -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" />
+  </ItemGroup>
 </Project>

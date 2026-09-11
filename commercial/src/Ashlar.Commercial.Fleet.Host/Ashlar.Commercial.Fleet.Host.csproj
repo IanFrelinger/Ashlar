@@ -14,6 +14,13 @@
   <ItemGroup>
     <PackageReference Include="MediatR" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
+    <!-- Local GGUF inference opt-in, same reasoning as application/src/Ashlar.API. This host
+         would also inherit the natives through its ProjectReference to Ashlar.API, whose own
+         reference is public; stated here because inheriting a capability from another host's
+         packaging choice is not a decision anyone made, and the moment Ashlar.API's reference
+         goes private this line is the only thing keeping Program.cs's "local" provider working
+         (it fails at LLamaWeights.LoadFromFile, never at build). -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" />
     <ProjectReference Include="..\Ashlar.Commercial.Fleet.Api\Ashlar.Commercial.Fleet.Api.csproj" />
     <ProjectReference Include="..\Ashlar.Commercial.Fleet.Contracts\Ashlar.Commercial.Fleet.Contracts.csproj" />
     <ProjectReference Include="..\Ashlar.Commercial.Fleet.Infrastructure\Ashlar.Commercial.Fleet.Infrastructure.csproj" />
