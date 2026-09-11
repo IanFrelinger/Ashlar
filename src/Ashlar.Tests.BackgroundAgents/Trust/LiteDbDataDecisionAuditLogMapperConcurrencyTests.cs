@@ -74,39 +74,30 @@ public sealed class LiteDbDataDecisionAuditLogMapperConcurrencyTests : IDisposab
     }
 
     /// <summary>
-    /// True when an exception came out of LiteDB itself rather than out of the store or this test.
+    /// Concurrent first use of the audit document type must not throw at all.
     /// </summary>
     /// <remarks>
-    /// LiteDB 5.0.21 publishes a type's <c>EntityMapper</c> into its cache before that mapper's member
-    /// list is filled, so a thread arriving while it is half-built can fail in at least three places:
-    /// <c>NotSupportedException</c> out of <c>LinqExpressionVisitor.ResolveMember</c>;
-    /// <c>InvalidOperationException("Collection was modified")</c> out of
-    /// <c>BsonMapper.SerializeObject</c>, under <c>LiteCollection.Insert</c>; and the same exception
-    /// out of <c>EntityMapper.get_Id</c>, under <c>LiteDatabase.GetCollection&lt;T&gt;</c>. Only the
-    /// first goes through an expression, so only the first can be avoided at the call site — and that
-    /// is the one CI hit and the one asserted on by name below. The other two are inside LiteDB's own
-    /// document conversion and collection lookup, every caller reaches them, and they were already
-    /// firing underneath the <c>NotSupportedException</c> before this fix.
+    /// This assertion used to tolerate anything whose stack passed through LiteDB, because the
+    /// remaining mapper races were inside LiteDB's own document conversion and collection lookup and
+    /// no call-site spelling reached them: <c>InvalidOperationException("Collection was modified")</c>
+    /// out of <c>BsonMapper.SerializeObject</c> under <c>Insert</c> and out of
+    /// <c>EntityMapper.get_Id</c> under <c>GetCollection&lt;T&gt;</c>, and
+    /// <c>InvalidCastException</c> out of <c>BsonMapper.DeserializeObject</c> on the read path.
     ///
-    /// So the second assertion tolerates them by ORIGIN rather than by exception shape, which would
-    /// mean chasing each new manifestation. Anything raised outside LiteDB — the store, or an
-    /// assertion inside a racer — still fails.
+    /// <c>LiteDbDocumentMapper</c> removes the concurrent first touch that produced all of them, so
+    /// the hatch has nothing left to excuse and is gone. An exception from LiteDB here now means the
+    /// warm-up stopped covering this type — which is exactly what a future document type with a
+    /// nested element type would look like.
     /// </remarks>
-    private static bool CameFromLiteDb(Exception ex) =>
-        ex.StackTrace?.Contains("LiteDB.", StringComparison.Ordinal) == true;
-
     [Fact]
     public void Concurrent_first_use_does_not_throw_out_of_the_bson_mapper()
     {
         var errors = RaceOnAColdMapper();
 
-        errors.Should().NotContain(
-            e => e is NotSupportedException,
-            "concurrent first use of the audit document type must not throw NotSupportedException " +
-            "out of LinqExpressionVisitor.ResolveMember");
-
-        errors.Where(e => !CameFromLiteDb(e)).Should().BeEmpty(
-            "nothing outside LiteDB should have failed while racing the audit log");
+        errors.Should().BeEmpty(
+            "concurrent first use of the audit document type must not throw — not out of " +
+            "LinqExpressionVisitor.ResolveMember, and not out of the serializer, the collection " +
+            "lookup or the deserializer either");
     }
 
     /// <summary>
