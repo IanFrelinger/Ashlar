@@ -21,8 +21,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// The corpus in <c>transition-entry-hashes.golden.json</c> pins the payload string, its UTF-8
 /// byte length, its SHA-256 and the resulting <c>entryHash</c>. The last of those is the one a
 /// caller can observe through the public API, which is what
-/// <c>scripts/ns20-canonical-bytes-probe.sh</c> and <c>scripts/portability/net9-probe.sh</c>
-/// check on targets where the payload itself is not reachable.
+/// <c>scripts/ns20-canonical-bytes-probe.sh</c> checks on the one target where the payload
+/// itself is not reachable. The .NET 9 probe is not a second reader of these bytes: it
+/// consumes only the certification contracts package, which does not carry this builder.
 /// </para>
 /// </summary>
 [Trait("Category", "Certification")]
