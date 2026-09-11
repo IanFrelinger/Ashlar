@@ -3,6 +3,7 @@ using System.Text.Json;
 using LiteDB;
 using Ashlar.Core.Application.Trust.Models;
 using Ashlar.Core.Application.Trust.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.BackgroundAgents.Trust;
 
@@ -29,6 +30,13 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
             throw new ArgumentNullException(nameof(pathOrConnectionString));
         var trimmed = pathOrConnectionString.Trim();
         _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+
+        // This store is the one built EAGERLY rather than in a factory lambda
+        // (ServiceCollectionExtensions.AddTrustServices), and the singleton it produces stands behind
+        // both IDataDecisionAuditLog and ISanitizationAuditLog, so its type is first touched by
+        // whichever caller wins. Building it here puts that build on the single thread doing the
+        // registration.
+        LiteDbDocumentMapper.EnsureMapped<AuditDoc>();
     }
 
     /// <inheritdoc />
@@ -140,6 +148,10 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
     /// <inheritdoc />
     public IReadOnlyList<DataDecisionAuditEntry> GetRecent(int maxCount, DateTimeOffset? since = null, DateTimeOffset? until = null, string? eventType = null)
     {
+        // The read surface: ExportToJson/Markdown/Csv and the explicit ISanitizationAuditLog.GetRecent
+        // all come through here. DeserializeObject off a half-built mapper is the failure this closes
+        // on this side -- it outnumbered the write-side throws roughly four to one when measured.
+        LiteDbDocumentMapper.EnsureMapped<AuditDoc>();
         FlushBuffer();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<AuditDoc>(CollectionName);
@@ -304,6 +316,9 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
 
     private void Append(DataDecisionAuditEntry entry)
     {
+        // Every Log* method funnels through here, so one call covers the whole write surface -- and it
+        // is taken BEFORE the flush gate below, never inside it.
+        LiteDbDocumentMapper.EnsureMapped<AuditDoc>();
         _buffer.Enqueue(entry);
         if (_buffer.Count >= BufferFlushThreshold)
             FlushBuffer();

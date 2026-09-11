@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Core.Application.Pipelines.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Pipelines;
 
@@ -19,11 +20,15 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         if (string.IsNullOrWhiteSpace(databasePath))
             throw new ArgumentException("Database path is required.", nameof(databasePath));
         _databasePath = databasePath;
+        LiteDbDocumentMapper.EnsureMapped<PipelineRunDocument>();
+        LiteDbDocumentMapper.EnsureMapped<PipelineStageRunDocument>();
     }
 
     /// <summary>Save asynchronously.</summary>
     public Task SaveAsync(PipelineRun run, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<PipelineRunDocument>();
+        LiteDbDocumentMapper.EnsureMapped<PipelineStageRunDocument>();
         cancellationToken.ThrowIfCancellationRequested();
         if (run == null) throw new ArgumentNullException(nameof(run));
 
@@ -47,6 +52,8 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
     /// <summary>Get asynchronously.</summary>
     public Task<PipelineRun?> GetAsync(string runId, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<PipelineRunDocument>();
+        LiteDbDocumentMapper.EnsureMapped<PipelineStageRunDocument>();
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(runId))
             throw new ArgumentException("Run id is required.", nameof(runId));

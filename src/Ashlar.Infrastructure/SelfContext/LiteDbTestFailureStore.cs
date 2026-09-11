@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.SelfContext.Models;
 using Ashlar.Core.Application.SelfContext.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.SelfContext;
 
@@ -21,11 +22,13 @@ public sealed class LiteDbTestFailureStore : ITestFailureStore
             throw new ArgumentNullException(nameof(pathOrConnectionString));
         var trimmed = pathOrConnectionString.Trim();
         _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        LiteDbDocumentMapper.EnsureMapped<TestFailureDoc>();
     }
 
     /// <inheritdoc />
     public Task RecordAsync(TestFailureRecord record, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<TestFailureDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<TestFailureDoc>(CollectionName);
@@ -45,6 +48,7 @@ public sealed class LiteDbTestFailureStore : ITestFailureStore
     /// <inheritdoc />
     public Task<IReadOnlyList<TestFailureRecord>> QueryAsync(DateTimeOffset? since = null, DateTimeOffset? until = null, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<TestFailureDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<TestFailureDoc>(CollectionName);

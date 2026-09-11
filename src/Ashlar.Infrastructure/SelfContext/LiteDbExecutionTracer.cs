@@ -2,6 +2,7 @@ using System.Text.Json;
 using LiteDB;
 using Ashlar.Core.Application.SelfContext.Models;
 using Ashlar.Core.Application.SelfContext.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.SelfContext;
 
@@ -22,11 +23,13 @@ public sealed class LiteDbExecutionTracer : IExecutionTracer
             throw new ArgumentNullException(nameof(pathOrConnectionString));
         var trimmed = pathOrConnectionString.Trim();
         _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        LiteDbDocumentMapper.EnsureMapped<TraceDoc>();
     }
 
     /// <inheritdoc />
     public Task TraceAsync(string operation, IReadOnlyDictionary<string, object>? context = null, string? path = null, string? outcome = null, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<TraceDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         var entry = new ExecutionTraceEntry
         {
@@ -43,6 +46,7 @@ public sealed class LiteDbExecutionTracer : IExecutionTracer
     /// <inheritdoc />
     public Task<IReadOnlyList<ExecutionTraceEntry>> QueryAsync(DateTimeOffset? since = null, DateTimeOffset? until = null, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<TraceDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<TraceDoc>(CollectionName);

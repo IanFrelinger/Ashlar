@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Adaptation.Models;
 using Ashlar.Core.Application.Adaptation.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Adaptation;
 
@@ -21,11 +22,13 @@ public sealed class LiteDbAdaptationLog : IAdaptationLog
             throw new ArgumentNullException(nameof(pathOrConnectionString));
         var trimmed = pathOrConnectionString.Trim();
         _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        LiteDbDocumentMapper.EnsureMapped<AdaptationDoc>();
     }
 
     /// <inheritdoc />
     public Task LogAsync(AdaptationRecord record, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<AdaptationDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<AdaptationDoc>(CollectionName);
@@ -37,6 +40,7 @@ public sealed class LiteDbAdaptationLog : IAdaptationLog
     /// <inheritdoc />
     public Task<IReadOnlyList<AdaptationRecord>> QueryAsync(DateTimeOffset? since = null, DateTimeOffset? until = null, string? brickId = null, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<AdaptationDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<AdaptationDoc>(CollectionName);
