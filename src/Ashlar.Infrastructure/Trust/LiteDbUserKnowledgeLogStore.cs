@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Trust.Models;
 using Ashlar.Core.Application.Trust.Ports;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Trust;
@@ -26,10 +27,7 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
         if (string.IsNullOrWhiteSpace(pathOrConnectionString))
             throw new ArgumentNullException(nameof(pathOrConnectionString));
 
-        var trimmed = pathOrConnectionString.Trim();
-        _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase)
-            ? trimmed
-            : $"Filename={trimmed}";
+        _connectionString = LiteDbConnectionString.ForSharedAccess(pathOrConnectionString, nameof(pathOrConnectionString));
         LiteDbDocumentMapper.EnsureMapped<KnowledgeLogDoc>();
     }
 

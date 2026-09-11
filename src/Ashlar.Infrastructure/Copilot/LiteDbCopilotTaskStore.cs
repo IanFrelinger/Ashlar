@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Copilot.Models;
 using Ashlar.Core.Application.Copilot.Ports;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Copilot;
@@ -20,19 +21,12 @@ public sealed class LiteDbCopilotTaskStore : ICopilotTaskStore
     {
         if (string.IsNullOrWhiteSpace(pathOrConnectionString))
             throw new ArgumentNullException(nameof(pathOrConnectionString));
-        var trimmed = pathOrConnectionString.Trim();
-        var withFilename = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
-
-        // Shared, not LiteDB's default Direct. Direct takes an EXCLUSIVE file lock for the lifetime of
-        // the LiteDatabase instance, and every method here opens one per call, so two concurrent
-        // submissions raced: the second threw IOException ("used by another process") out of an API
-        // request that had already RUN the task. The work happened and its record was lost, which is
-        // the one failure the audit trail cannot absorb. Shared mode serialises through a named mutex
-        // instead — it also covers a second process (the CLI) touching the same file.
-        // An explicit Connection= supplied by the caller is left alone.
-        _connectionString = withFilename.Contains("Connection=", StringComparison.OrdinalIgnoreCase)
-            ? withFilename
-            : $"{withFilename};Connection=Shared";
+        // Shared mode, composed centrally. This store is where the bug was found: UAT tier 10
+        // saw a copilot request that had already RUN its task lose its record, because a second
+        // concurrent submission could not open the file Direct mode held exclusively. The reasoning
+        // and the measurements now live on the helper, which every LiteDB store in the repository
+        // shares.
+        _connectionString = LiteDbConnectionString.ForSharedAccess(pathOrConnectionString, nameof(pathOrConnectionString));
         LiteDbDocumentMapper.EnsureMapped<CopilotTaskDoc>();
     }
 

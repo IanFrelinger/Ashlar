@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.SelfContext.Models;
 using Ashlar.Core.Application.SelfContext.Ports;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.SelfContext;
@@ -20,8 +21,7 @@ public sealed class LiteDbTestFailureStore : ITestFailureStore
     {
         if (string.IsNullOrWhiteSpace(pathOrConnectionString))
             throw new ArgumentNullException(nameof(pathOrConnectionString));
-        var trimmed = pathOrConnectionString.Trim();
-        _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        _connectionString = LiteDbConnectionString.ForSharedAccess(pathOrConnectionString, nameof(pathOrConnectionString));
         LiteDbDocumentMapper.EnsureMapped<TestFailureDoc>();
     }
 

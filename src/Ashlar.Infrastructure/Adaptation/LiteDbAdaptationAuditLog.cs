@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Adaptation.Models;
 using Ashlar.Core.Application.Adaptation.Ports;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Adaptation;
@@ -20,8 +21,7 @@ public sealed class LiteDbAdaptationAuditLog : IAdaptationAuditLog
     {
         if (string.IsNullOrWhiteSpace(pathOrConnectionString))
             throw new ArgumentNullException(nameof(pathOrConnectionString));
-        var trimmed = pathOrConnectionString.Trim();
-        _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        _connectionString = LiteDbConnectionString.ForSharedAccess(pathOrConnectionString, nameof(pathOrConnectionString));
         LiteDbDocumentMapper.EnsureMapped<AuditDoc>();
     }
 

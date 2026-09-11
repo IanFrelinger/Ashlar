@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Commercial.Fleet.Contracts.Models;
 using Ashlar.Commercial.Fleet.Contracts.Ports;
+using Ashlar.Core.Application.Persistence;
 
 namespace Ashlar.Commercial.Fleet.Infrastructure;
 
@@ -16,7 +17,9 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
 
     public LiteDbMeshTaskRegistry(string pathOrConnectionString)
     {
-        _connectionString = LiteDbMeshDirectorConnection.ToConnectionString(pathOrConnectionString);
+        if (string.IsNullOrWhiteSpace(pathOrConnectionString))
+            throw new ArgumentNullException(nameof(pathOrConnectionString));
+        _connectionString = LiteDbConnectionString.ForSharedAccess(pathOrConnectionString, nameof(pathOrConnectionString));
         LiteDbDocumentMapper.EnsureMapped<MeshTaskDoc>();
     }
 
