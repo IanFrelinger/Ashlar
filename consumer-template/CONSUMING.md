@@ -72,6 +72,59 @@ Read from each project's `<TargetFrameworks>`; the `.csproj` is the authority if
 - **Host** — `Ashlar.Authoring` + `Ashlar.Hosting.Bundle`; register bricks with `AddAshlarBrick<T>()` before `AddAshlar()`; expose `GET /health` and `POST /api/bricks/{id}/execute` (a complete minimal host lives in `consumer-template/host/Program.cs`; its `__TOKEN__` markers are explained in `consumer-template/host/README.md`).
 - **Client** — `Ashlar.Sdk`; call `IAshlarClient.InvokeAsync(HttpMethod.Post, "api/bricks/{id}/execute", …)` against the host base URL.
 
+## Publishing for a runtime identifier (`dotnet publish -r <rid>`)
+
+A host built on `Ashlar.Hosting.Bundle` publishes for a RID with nothing extra in the csproj — which matters because a container image is normally built that way:
+
+```xml
+<PropertyGroup>
+  <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+  <SelfContained>false</SelfContained>
+</PropertyGroup>
+```
+
+Put those in the project file rather than passing `-p:RuntimeIdentifier=…` on the command line: a `-p:` switch is a global MSBuild property that also flows into every referenced project, which is a different (and larger) thing than publishing your host for a RID.
+
+**This is fixed from the release after `0.1.2`.** On `0.1.2` and earlier, that publish fails with `NETSDK1152` on 20 duplicate files. `Ashlar.Infrastructure` and `Ashlar.AI.Pipeline` depended on `LLamaSharp.Backend.Cpu`, which ships four same-named CPU-variant native sets — `avx`, `avx2`, `avx512`, `noavx`, each carrying `libggml-base`, `libggml-cpu`, `libggml`, `libllama` and `libmtmd` — under one `runtimes/<rid>/native/` tree. A RID publish flattens that tree into the output root, so the four variants land on the same five paths and the SDK refuses. A RID-less publish keeps the directory structure, which is why the same project publishes fine without `-r` and why this was never a build failure inside Ashlar. Those two packages now carry the backend with `PrivateAssets="all"`, so it is not in their packed dependency list and never enters your restore graph. If you are pinned to `0.1.2` and cannot wait, the prune target below fixes the collision in your own csproj.
+
+Do not reach for `-p:ErrorOnDuplicatePublishOutputFiles=false`. It removes the error by letting one variant win, and records nothing about which: the publish lands five flattened `.so` files, of which `libggml-cpu.so` — the only one that actually differs between the four variants — is whichever the SDK happened to copy last. That is an `avx512` build that `SIGILL`s on older hardware, or a `noavx` one at a large throughput cost, with nothing in the output to say so.
+
+### Local model inference is opt-in
+
+The backend is what loads GGUF weights for the `local` provider (`ASHLAR_LOCAL_MODEL_PATH`). It is composed, never required: the managed `LlamaSharp` package is what the Ashlar assemblies compile against, natives are touched only inside the model load, and a host published without them starts, serves `/health` and executes bricks normally. Nothing else in the graph changes.
+
+If you want local inference, add the backend to your own host project — this is the whole opt-in:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.25.0" />
+</ItemGroup>
+```
+
+Opting in re-inherits the four-variant layout, so if you are **also** publishing for a RID you need to pick one variant yourself. This target does it deterministically:
+
+```xml
+<PropertyGroup>
+  <!-- Only libggml-cpu.so actually differs between the four variants (libggml, libggml-base,
+       libllama and libmtmd are byte-identical across all of them), so this property picks which
+       CPU kernels ship. avx2 covers x86-64 since ~2013; noavx is the universally safe choice at a
+       large throughput cost; avx512 only where you control the fleet. -->
+  <AshlarLlamaCpuVariant>avx2</AshlarLlamaCpuVariant>
+</PropertyGroup>
+<Target Name="PickOneLlamaCpuVariant" AfterTargets="ComputeResolvedFilesToPublishList">
+  <ItemGroup>
+    <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+      Condition="'%(ResolvedFileToPublish.NuGetPackageId)' == 'LLamaSharp.Backend.Cpu' AND !$([System.String]::Copy('%(ResolvedFileToPublish.Identity)').Replace('%5C','/').Contains('/native/$(AshlarLlamaCpuVariant)/'))" />
+  </ItemGroup>
+</Target>
+```
+
+The `Replace` is there so the condition also holds when you publish from Windows, where `Identity` comes back with `\` separators. Write that backslash as `%5C`, MSBuild's escape for it: measured on Linux the escaped and the literal spelling prune identically (five `avx2` files), but a lone `\` immediately before a quote is the one place MSBuild's condition parser can read the separator as an escape of the quote, and the escaped spelling removes the question.
+
+Match on `%(Identity)` — the full path inside the package — and not on `%(RelativePath)`. By this point `RelativePath` has already been flattened to the bare file name, so the `RelativePath` spelling of the condition matches nothing, removes **all five** natives, and still exits 0: a green publish that throws `DllNotFoundException` at the first inference. Count the `.so` (or `.dll`/`.dylib`) files in your publish output rather than trusting the exit code; five is correct, zero means you hit this.
+
+Ashlar measures the default half of this on every run of `scripts/verify-external-product-shape.sh` (the `external-product-shape` job of the distribution matrix gate): it renders this same template with the two publish properties in the csproj, publishes it for `linux-x64`, asserts the output carries **zero** backend natives, then starts the published binary and executes a brick through it.
+
 ## Verification in Ashlar
 
 These pins are the same set exercised by:

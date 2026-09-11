@@ -41,6 +41,12 @@ on:
       - "samples/hello-brick/**"
       - "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/**"
       - "src/Ashlar.Tests.Infrastructure/Helpers/VirtualProduction/**"
+      # The RID-publish stage measures the PACKED dependency graph, so the two library csprojs that
+      # carry native payloads (and the version file behind them) are gate input even though no
+      # consumer names them: NETSDK1152 shipped because an edit here could not trigger this job.
+      - "src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj"
+      - "src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj"
+      - "Directory.Packages.props"
   pull_request:
     paths:
       - ".github/workflows/distribution-matrix-gate.yml"
@@ -71,6 +77,12 @@ on:
       - "samples/hello-brick/**"
       - "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/**"
       - "src/Ashlar.Tests.Infrastructure/Helpers/VirtualProduction/**"
+      # The RID-publish stage measures the PACKED dependency graph, so the two library csprojs that
+      # carry native payloads (and the version file behind them) are gate input even though no
+      # consumer names them: NETSDK1152 shipped because an edit here could not trigger this job.
+      - "src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj"
+      - "src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj"
+      - "Directory.Packages.props"
 
 permissions:
   contents: read

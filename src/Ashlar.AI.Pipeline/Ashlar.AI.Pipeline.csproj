@@ -30,7 +30,13 @@
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="LlamaSharp" />
-    <PackageReference Include="LLamaSharp.Backend.Cpu" />
+    <!-- PrivateAssets for the same reason as Ashlar.Infrastructure: the backend's four
+         CPU-variant native sets collide on a consumer's RID publish (NETSDK1152), and only
+         the packed dependency list is visible to a consumer restoring from a feed. The
+         LlamaSharpChatClient compiles against managed LlamaSharp alone and loads natives
+         lazily, so a host with no backend still registers the local:onnx keyed target and
+         simply never reaches it. Hosts that want it opt in with their own PackageReference. -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" PrivateAssets="all" />
     <PackageReference Include="AWSSDK.BedrockRuntime" />
     <PackageReference Include="AWSSDK.Extensions.Bedrock.MEAI" />
     <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" />
