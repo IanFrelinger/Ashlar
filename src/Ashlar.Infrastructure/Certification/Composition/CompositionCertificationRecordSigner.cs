@@ -134,8 +134,9 @@ public sealed class CompositionCertificationRecordSigner
     // publish the payload could serialize to an empty object, and bytes that back a signature
     // must never be silently empty. Written this way the byte order is the statement order
     // below and the names are the constants above. Utf8JsonWriter still does the encoding,
-    // deliberately — compact output, the default JavaScript encoder, and each target's own
-    // decimal form for a double — so the bytes are unchanged; composition-payloads.golden.json
+    // deliberately - compact output and the default JavaScript encoder - but not the decimal form
+    // of a double: WriteNumberOrNull below chooses that, so every target writes the same text at
+    // the same width, with the one tie residual that method states. composition-payloads.golden.json
     // is what says so.
     internal static string BuildPayload(CompositionCertificationRecord record)
     {
@@ -244,12 +245,14 @@ public sealed class CompositionCertificationRecordSigner
 
     // The same canonical decimal form the brick lane uses, for the same reason and with the same
     // three decisions: G17 on the invariant culture because it is the width at which a binary64
-    // always round-trips and the one form measured identical on every target this payload is
-    // produced or re-produced on; both zeros collapsed onto "0" because emitting "-0" leaves the
-    // writers agreeing and the readers not; NaN and the infinities refused as a canonical-payload
-    // fault rather than left to throw ArgumentException past the verifier's catch. The full
-    // reasoning is on CertificationRecordSigning.WriteNumberOrNull - the two emitters must not
-    // drift apart, because a composition record carries a brick-shaped escape rate.
+    // always round-trips - the width holds on every target this payload is produced or
+    // re-produced on, the rounding of an exact tie at the 17th significant digit does not, which
+    // is the one residual the brick lane documents in full; both zeros collapsed onto "0" because
+    // emitting "-0" leaves the writers agreeing and the readers not; NaN and the infinities
+    // refused as a canonical-payload fault rather than left to throw ArgumentException past the
+    // verifier's catch. The full reasoning is on CertificationRecordSigning.WriteNumberOrNull -
+    // the two emitters must not drift apart, because a composition record carries a brick-shaped
+    // escape rate.
     private static void WriteNumberOrNull(Utf8JsonWriter writer, string name, double? value)
     {
         if (value is null)

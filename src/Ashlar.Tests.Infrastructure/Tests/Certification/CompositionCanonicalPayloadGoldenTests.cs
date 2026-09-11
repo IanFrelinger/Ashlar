@@ -20,8 +20,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para>
 /// The corpus lives in <c>composition-payloads.golden.json</c> beside the brick one, in the
 /// same shape and with the same regeneration ritual, so a reader who knows one knows both.
-/// Doubles are restricted to exactly representable values there for the reason that file
-/// states.
+/// Doubles are pinned there in the one canonical decimal form every target must produce,
+/// awkward values included, for the reason that file states.
 /// </para>
 /// </summary>
 [Trait("Category", "Certification")]

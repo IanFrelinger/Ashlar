@@ -9,7 +9,8 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
-/// The one decimal form every target must produce for a double, and the three decisions behind it.
+/// The one decimal form every target must produce for a double, the three decisions behind it, and
+/// the one class it does not close.
 /// <para>
 /// The canonical payload is the message every certification signature is computed over, so the
 /// decimal form of a double in it has to be the same text on every target the package ships for
@@ -20,6 +21,12 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// corpus entry cannot state — round-trip fidelity across the whole range, the deliberate
 /// collapse of both zeros, the refusal of values JSON has no number for, and independence from
 /// the ambient culture.
+/// </para>
+/// <para>
+/// It also pins the one class the chosen form does NOT make identical everywhere. 17 digits is a
+/// WIDTH, and a width does not say how to break an exact tie at the last digit: the targets break
+/// one in opposite directions, and the tie test below carries the worked case and both known
+/// texts so that residual cannot widen unnoticed.
 /// </para>
 /// </summary>
 [Trait("Category", "Certification")]
@@ -33,6 +40,12 @@ public sealed class CanonicalDoubleRepresentationTests
     /// the range. The expected text is 17 significant digits on the invariant culture — a width
     /// at which a binary64 always survives the round trip, rather than a shortest form whose
     /// length depends on the formatter that produced it.
+    /// <para>
+    /// The last row is the exception, and has to be read with
+    /// <see cref="AnExactTieAtTheSeventeenthDigit_IsTheOneFormTheTargetsStillRoundDifferently"/>:
+    /// its expected text is what net8.0 and net10.0 produce, and the netstandard2.0 asset under
+    /// Mono produces the neighbouring digit. Every other row is the same text on all three.
+    /// </para>
     /// </summary>
     public static TheoryData<double, string> CanonicalForms => new()
     {
@@ -48,6 +61,7 @@ public sealed class CanonicalDoubleRepresentationTests
         { 0.25, "0.25" },
         { 0.0, "0" },
         { -0.0, "0" },
+        { TieAtTheSeventeenthDigit, TieFormOnDotNet },
     };
 
     [Theory]
@@ -56,8 +70,11 @@ public sealed class CanonicalDoubleRepresentationTests
     {
         var payload = CertificationRecordSigning.BuildPayload(Minimal() with { EscapeRate = value });
 
+        // The trailing separator is part of the assertion: escapeRate is always followed by
+        // totalMutants, and without the comma the expected "0" of a zero row is a substring of
+        // every other form in this table too.
         payload.Should().Contain(
-            "\"escapeRate\":" + expected,
+            "\"escapeRate\":" + expected + ",",
             "the decimal form of a double is chosen by the emitter, not by whichever formatter "
             + "the target happens to ship");
     }
@@ -76,7 +93,8 @@ public sealed class CanonicalDoubleRepresentationTests
             },
         };
 
-        CertificationRecordSigning.BuildPayload(record).Should().Contain("\"durationSeconds\":" + expected);
+        // durationSeconds closes its attempt object, so the brace plays the separator's part.
+        CertificationRecordSigning.BuildPayload(record).Should().Contain("\"durationSeconds\":" + expected + "}");
     }
 
     [Theory]
@@ -94,7 +112,60 @@ public sealed class CanonicalDoubleRepresentationTests
     {
         1.0 / 3.0, 0.007, 1e-7, 0.1, 1e23, double.Epsilon,
         double.MaxValue, double.MinValue, 0.5, 0.25, 0.0, -0.0,
+        TieAtTheSeventeenthDigit,
     };
+
+    /// <summary>
+    /// 0.5 + 2^-18: exactly representable, inside <c>escapeRate</c>'s documented 0.0-1.0 range,
+    /// and lying precisely halfway between two 17-digit decimals.
+    /// </summary>
+    private const double TieAtTheSeventeenthDigit = 0.500003814697265625;
+
+    /// <summary>What net8.0 and net10.0 write for it: the tie broken to even.</summary>
+    private const string TieFormOnDotNet = "0.50000381469726562";
+
+    /// <summary>
+    /// What the netstandard2.0 asset writes for it under Mono 6.12: the tie broken away from
+    /// zero. Measured, not derived — and the reason this suite carries a tie case at all.
+    /// </summary>
+    private const string TieFormOnMono = "0.50000381469726563";
+
+    [Fact]
+    public void AnExactTieAtTheSeventeenthDigit_IsTheOneFormTheTargetsStillRoundDifferently()
+    {
+        // A width is not a rounding rule. Asking for 17 significant digits fixes how many digits
+        // every target writes; it leaves the target's own formatter to decide which way to break
+        // a value sitting exactly between two of them, and the targets decide differently.
+        // Pinned here rather than in a golden corpus on purpose: no producer in this tree can
+        // reach such a value (escapeRate is survivors over mutants, durationSeconds a measured
+        // elapsed time), so a corpus case would only turn the netstandard2.0 probe red over a
+        // divergence nothing signs. This suite runs on net8.0 and net10.0 in CI, so a change in
+        // what THIS side does is caught; what the other side does is pinned as text below.
+        CertificationRecordSigning.BuildPayload(Minimal() with { EscapeRate = TieAtTheSeventeenthDigit })
+            .Should().Contain("\"escapeRate\":" + TieFormOnDotNet + ",");
+        CompositionCertificationRecordSigner.BuildPayload(
+                MinimalComposition() with { CompositionEscapeRate = TieAtTheSeventeenthDigit })
+            .Should().Contain("\"compositionEscapeRate\":" + TieFormOnDotNet);
+
+        // The two forms are neighbours at the last digit and nowhere else, which is what makes
+        // this a tie rather than a disagreement about the value.
+        TieFormOnMono.Should().HaveLength(TieFormOnDotNet.Length);
+        TieFormOnMono.Substring(0, TieFormOnMono.Length - 1).Should().Be(
+            TieFormOnDotNet.Substring(0, TieFormOnDotNet.Length - 1));
+        TieFormOnMono.Should().NotBe(TieFormOnDotNet);
+
+        // And both texts read back as the identical bit pattern. The residual is in the BYTES -
+        // which is the whole of the claim, because the bytes back a signature - and not in the
+        // value a reader recovers.
+        foreach (var form in new[] { TieFormOnDotNet, TieFormOnMono })
+        {
+            BitConverter.DoubleToInt64Bits(double.Parse(form, CultureInfo.InvariantCulture))
+                .Should().Be(
+                    BitConverter.DoubleToInt64Bits(TieAtTheSeventeenthDigit),
+                    "both forms name the same binary64, so a record written on either target is "
+                    + "read back as the same value even where the text differs");
+        }
+    }
 
     [Theory]
     [MemberData(nameof(CanonicalValues))]
