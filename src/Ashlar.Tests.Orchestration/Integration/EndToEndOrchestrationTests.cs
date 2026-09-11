@@ -20,11 +20,22 @@ namespace Ashlar.Tests.Orchestration.Integration;
 
 /// <summary>
 /// End-to-end tests for the complete orchestration flow: request → Architect → spawn agents → outputs.
+///
+/// AgentBus.PublishAsync does not invoke subscribers inline: it schedules each matching
+/// handler via a fire-and-forget Task.Run and returns Task.CompletedTask immediately.
+/// Handlers therefore run on a thread-pool thread at some later point, so the bus test below
+/// synchronizes on an explicit signal completed by the handler rather than sleeping.
 /// </summary>
 [Trait("Category", "Integration")]
 [Trait("Category", "ProdStyle")]
 public class EndToEndOrchestrationTests
 {
+    /// <summary>
+    /// Upper bound for waiting on a delivery that is expected to happen. A genuine bug
+    /// (handler never invoked) fails fast with a TimeoutException instead of hanging.
+    /// </summary>
+    private static readonly TimeSpan DeliveryTimeout = TimeSpan.FromSeconds(10);
+
     private readonly IServiceProvider _serviceProvider;
 
     public EndToEndOrchestrationTests()
@@ -177,11 +188,11 @@ public class EndToEndOrchestrationTests
         var busLogger = _serviceProvider.GetRequiredService<ILogger<AgentBus>>();
         var bus = new AgentBus(busLogger);
 
-        var messageReceived = false;
-        await bus.SubscribeAsync("OutputEmitted", async (msg, ct) =>
+        var messageReceived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await bus.SubscribeAsync("OutputEmitted", (msg, ct) =>
         {
-            messageReceived = true;
-            await Task.CompletedTask;
+            messageReceived.TrySetResult(true);
+            return Task.CompletedTask;
         });
 
         // Create and execute an agent
@@ -215,8 +226,10 @@ public class EndToEndOrchestrationTests
         await bus.PublishAsync(message);
 
         // Assert
-        await Task.Delay(100); // Give async handler time
-        messageReceived.Should().BeTrue();
+        // The handler is dispatched on the thread pool after PublishAsync returns, so wait
+        // for the handler's own signal instead of sleeping.
+        var received = await messageReceived.Task.WaitAsync(DeliveryTimeout);
+        received.Should().BeTrue();
     }
 }
 

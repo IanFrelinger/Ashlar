@@ -183,6 +183,7 @@ public sealed class EndpointHealthMonitorTests
             NullLogger<EndpointHealthMonitor>.Instance);
 
         await monitor.StartAsync(CancellationToken.None);
+        // Negative assertion (Updates.Should().BeEmpty()): this grace can only produce a false PASS, never a false FAIL.
         await Task.Delay(200);
         await monitor.StopAsync(CancellationToken.None);
 
@@ -218,6 +219,11 @@ public sealed class EndpointHealthMonitorTests
             logger.Object);
 
         await monitor.StartAsync(CancellationToken.None);
+        // Times.AtLeastOnce is not gated on this sleep: StopAsync joins ExecuteAsync, whose first
+        // statement awaits ProbeAllAsync (EndpointHealthMonitor.cs:62), and every exit of that
+        // iteration logs a warning -- GrpcAgentTransport.CheckEndpointHealthAsync
+        // (GrpcAgentTransport.cs:141-169) swallows every exception into IsHealthy:false. The sleep
+        // only buys extra probe iterations, it does not decide whether the warning happens.
         await Task.Delay(2500);
         await monitor.StopAsync(CancellationToken.None);
 
@@ -255,6 +261,7 @@ public sealed class EndpointHealthMonitorTests
             NullLogger<EndpointHealthMonitor>.Instance);
 
         await monitor.StartAsync(CancellationToken.None);
+        // Negative assertion (Updates.Should().BeEmpty()): this grace can only produce a false PASS, never a false FAIL.
         await Task.Delay(200);
         await monitor.StopAsync(CancellationToken.None);
 
