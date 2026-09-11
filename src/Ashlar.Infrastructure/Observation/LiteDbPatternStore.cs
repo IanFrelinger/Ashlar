@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Observation.Models;
 using Ashlar.Core.Application.Observation.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Observation;
 /// <summary>
@@ -22,11 +23,13 @@ public sealed class LiteDbPatternStore : IPatternStore
             throw new ArgumentNullException(nameof(pathOrConnectionString));
         var trimmed = pathOrConnectionString.Trim();
         _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        LiteDbDocumentMapper.EnsureMapped<PatternDoc>();
     }
 
     /// <inheritdoc/>
     public Task AddAsync(ObservedPattern pattern, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<PatternDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<PatternDoc>(CollectionName);
@@ -39,6 +42,7 @@ public sealed class LiteDbPatternStore : IPatternStore
     /// <inheritdoc/>
     public Task<IReadOnlyList<ObservedPattern>> QueryAsync(PatternStoreQueryParams query, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<PatternDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<PatternDoc>(CollectionName);

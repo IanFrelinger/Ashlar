@@ -1,5 +1,6 @@
 using LiteDB;
 using Ashlar.Core.Application.Observation.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Observation;
 
@@ -20,11 +21,13 @@ public sealed class LiteDbPatternProcessedStore : IPatternProcessedStore
             throw new ArgumentNullException(nameof(pathOrConnectionString));
         var trimmed = pathOrConnectionString.Trim();
         _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        LiteDbDocumentMapper.EnsureMapped<ProcessedDoc>();
     }
 
     /// <summary>Mark processed asynchronously.</summary>
     public Task MarkProcessedAsync(string patternId, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<ProcessedDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<ProcessedDoc>(CollectionName);
@@ -36,6 +39,7 @@ public sealed class LiteDbPatternProcessedStore : IPatternProcessedStore
     /// <summary>Is processed asynchronously.</summary>
     public Task<bool> IsProcessedAsync(string patternId, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<ProcessedDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<ProcessedDoc>(CollectionName);

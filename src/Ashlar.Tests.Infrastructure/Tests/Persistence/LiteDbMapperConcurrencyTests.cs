@@ -42,10 +42,26 @@ namespace Ashlar.Tests.Infrastructure.Tests.Persistence;
 /// files, one shared mapper — and it keeps LiteDB's per-file lock out of the way, so a failure here
 /// can only be the mapper.
 ///
-/// The racers exercise the store and do not assert on what comes back. What each store RETURNS is
-/// pinned by its own round-trip tests, deterministically and on a warm mapper; asserting it again
-/// from inside the race would only re-report one of LiteDB's remaining mapper races as an assertion
-/// failure, because that gap can write a partially serialized document rather than throwing.
+/// Two things this class used to let through, and no longer does.
+///
+/// It tolerated any exception whose stack passed through LiteDB, on the grounds that the remaining
+/// mapper races were LiteDB's to fix and unavoidable at the call site. They were unavoidable at the
+/// call site; they were not unavoidable. <c>LiteDbDocumentMapper</c> builds each document type once,
+/// single-threaded, before a racer can reach it, so there is nothing left for that hatch to excuse
+/// and every exception now fails the test.
+///
+/// And it declined to look at what reached disk, because the gap could write a partially serialized
+/// document rather than throwing. That was the larger half of the defect: measured at these
+/// dimensions, the stores threw 451 times on net8.0 while writing 6,357 documents with fields
+/// missing, and the inserts that produced them returned success. So every racer now names its
+/// collection and every raced file is reopened RAW — the non-generic <c>GetCollection</c>, never
+/// through the type's mapper, which would happily fill a missing field with a default — and checked
+/// against a warm single-threaded reference write.
+///
+/// The per-round reset also guards the warm-up's own shape. <c>LiteDbDocumentMapper</c> keys what it
+/// has built on the mapper INSTANCE rather than a one-shot flag; anyone simplifying that to a
+/// <c>bool</c> or a <c>Lazy&lt;T&gt;</c> would leave rounds two onward racing a cold mapper it
+/// believed was warm, and these tests go red rather than quietly proving nothing.
 /// </remarks>
 [Collection("LiteDbMapper")]
 [Trait("Category", "Integration")]
@@ -59,10 +75,15 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     /// <remarks>
     /// One round is not enough to pin this reliably from inside a test host. Measured in the devtest
     /// container against the pre-fix code: a console harness doing the identical race failed 18 of 20
-    /// rounds, while a single-round test passed five runs in a row. Ten rounds closes that gap without
-    /// making the suite slow — the whole class runs in well under a second.
+    /// rounds, while a single-round test passed five runs in a row.
+    ///
+    /// Twenty, not the ten this class started with, because the corruption assertion below is the one
+    /// that has to hold. Throw counts are timing-sensitive and were modest even in the harness; short
+    /// documents arrived in the thousands and at the same order of magnitude on both TFMs, so the
+    /// rounds are spent where the signal is. The class costs about ten seconds, which is why it
+    /// carries the Integration trait.
     /// </remarks>
-    private const int Rounds = 10;
+    private const int Rounds = 20;
 
     private static readonly DateTimeOffset Anchor = new(2024, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
@@ -72,26 +93,28 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     }
 
     /// <summary>
-    /// True when an exception came out of LiteDB itself rather than out of the store or this test.
+    /// The widest document this case writes when nothing is racing it.
     /// </summary>
     /// <remarks>
-    /// LiteDB 5.0.21 publishes a type's <c>EntityMapper</c> into its cache before that mapper's member
-    /// list is filled, so a thread arriving while it is half-built can fail in at least three places:
-    /// <c>NotSupportedException</c> out of <c>LinqExpressionVisitor.ResolveMember</c>;
-    /// <c>InvalidOperationException("Collection was modified")</c> out of
-    /// <c>BsonMapper.SerializeObject</c>, under <c>LiteCollection.Insert</c>; and the same exception
-    /// out of <c>EntityMapper.get_Id</c>, under <c>LiteDatabase.GetCollection&lt;T&gt;</c>. Only the
-    /// first goes through an expression, so only the first can be avoided at the call site — and that
-    /// is the one CI hit and the one asserted on by name below. The other two are inside LiteDB's own
-    /// document conversion and collection lookup, every caller reaches them, and they were already
-    /// firing underneath the <c>NotSupportedException</c> before this fix.
+    /// A reference, not a hand-counted constant: adding a field to a document type must not need this
+    /// file edited, and a constant that drifted low would silently stop detecting anything. Single
+    /// threaded, so the mapper it serializes through cannot be half-built whether or not the warm-up
+    /// is in place — which is what makes it a fair yardstick for the raced writes.
     ///
-    /// So the second assertion tolerates them by ORIGIN rather than by exception shape, which would
-    /// mean chasing each new manifestation. Anything raised outside LiteDB — the store, or an
-    /// assertion inside a racer — still fails.
+    /// The <paramref name="writer"/> is the seed where a case has one, because a read-only racer
+    /// writes nothing and its raced files hold whatever the seed put there.
     /// </remarks>
-    private static bool CameFromLiteDb(Exception ex) =>
-        ex.StackTrace?.Contains("LiteDB.", StringComparison.Ordinal) == true;
+    private int WidestDocument(string what, string collection, Action<int, string> writer)
+    {
+        var referencePath = Path.Combine(TempDir, $"{what}-reference.db");
+        writer(0, referencePath);
+
+        using var db = new LiteDatabase($"Filename={referencePath}");
+        var widest = 0;
+        foreach (var document in db.GetCollection(collection).FindAll())
+            widest = Math.Max(widest, document.Keys.Count);
+        return widest;
+    }
 
     /// <summary>
     /// Runs <paramref name="work"/> on <see cref="Threads"/> real threads released together, against a
@@ -104,12 +127,16 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     /// the document type's mapper for the rest of that racer's work, so a call path can only be raced
     /// cold if everything it needs on disk was put there outside the race.
     /// </param>
-    private void RaceOnAColdMapper(string what, Action<int, string> work, Action<int, string>? seed = null)
+    private void RaceOnAColdMapper(string what, string collection, Action<int, string> work, Action<int, string>? seed = null)
     {
         var previousMapper = BsonMapper.Global;
         try
         {
+            var widest = WidestDocument(what, collection, seed ?? work);
+            widest.Should().BeGreaterThan(0, "the reference write for {0} must produce a document to compare against", what);
+
             var errors = new ConcurrentBag<Exception>();
+            var shortDocuments = new List<string>();
             for (var round = 0; round < Rounds; round++)
             {
                 var dbPaths = new string[Threads];
@@ -150,17 +177,32 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
                 }
 
                 Task.WaitAll(racers);
+
+                // Raw, never through the type's mapper: deserializing would fill a field the writer
+                // never wrote with its default and report the document as intact.
+                foreach (var dbPath in dbPaths)
+                {
+                    if (!File.Exists(dbPath)) continue;
+
+                    using var db = new LiteDatabase($"Filename={dbPath}");
+                    foreach (var document in db.GetCollection(collection).FindAll())
+                        if (document.Keys.Count < widest)
+                            shortDocuments.Add($"{document.Keys.Count}/{widest} keys: [{string.Join(",", document.Keys)}]");
+                }
             }
 
-            errors.Should().NotContain(
-                e => e is NotSupportedException,
-                "{0} must survive concurrent first use of its document type — a LINQ EnsureIndex or " +
-                "Where here throws NotSupportedException out of LinqExpressionVisitor.ResolveMember, " +
-                "which is the failure that took CI red",
+            errors.Should().BeEmpty(
+                "{0} must survive concurrent first use of its document type. Before the warm-up this " +
+                "threw out of BsonMapper.SerializeObject under Insert, out of EntityMapper.get_Id " +
+                "under GetCollection<T>, and out of BsonMapper.DeserializeObject on the read path — " +
+                "none of which a call site can spell its way around",
                 what);
 
-            errors.Where(e => !CameFromLiteDb(e)).Should().BeEmpty(
-                "nothing outside LiteDB should have failed while racing {0}", what);
+            shortDocuments.Should().BeEmpty(
+                "every document {0} wrote while racing must carry every field the reference write " +
+                "carried. A document serialized from a half-built EntityMapper is written short and " +
+                "the insert still returns success, which is how this defect does most of its damage",
+                what);
         }
         finally
         {
@@ -172,7 +214,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     public void LiteDbTestFailureStore_survives_concurrent_first_use()
     {
         // The store that actually failed CI.
-        RaceOnAColdMapper("test-failure", (index, dbPath) =>
+        RaceOnAColdMapper("test-failure", "test_failures", (index, dbPath) =>
         {
             var store = new LiteDbTestFailureStore(dbPath);
             store.RecordAsync(new TestFailureRecord
@@ -211,6 +253,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     {
         RaceOnAColdMapper(
             "test-failure-read-only",
+            "test_failures",
             (_, dbPath) =>
             {
                 var store = new LiteDbTestFailureStore(dbPath);
@@ -231,7 +274,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     [Fact]
     public void LiteDbExecutionTracer_survives_concurrent_first_use()
     {
-        RaceOnAColdMapper("execution-tracer", (index, dbPath) =>
+        RaceOnAColdMapper("execution-tracer", "execution_traces", (index, dbPath) =>
         {
             var tracer = new LiteDbExecutionTracer(dbPath);
             tracer.TraceAsync($"op-{index}").GetAwaiter().GetResult();
@@ -243,7 +286,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     [Fact]
     public void LiteDbAdaptationLog_survives_concurrent_first_use()
     {
-        RaceOnAColdMapper("adaptation-log", (index, dbPath) =>
+        RaceOnAColdMapper("adaptation-log", "adaptation_records", (index, dbPath) =>
         {
             var log = new LiteDbAdaptationLog(dbPath);
             log.LogAsync(new AdaptationRecord
@@ -263,7 +306,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     [Fact]
     public void LiteDbAdaptationAuditLog_survives_concurrent_first_use()
     {
-        RaceOnAColdMapper("adaptation-audit", (index, dbPath) =>
+        RaceOnAColdMapper("adaptation-audit", "adaptation_audit", (index, dbPath) =>
         {
             var log = new LiteDbAdaptationAuditLog(dbPath);
             log.LogAsync(new AdaptationAuditEntry
@@ -283,7 +326,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     {
         // The store with genuine hosted-service-versus-HTTP concurrency: ObservationPipelineService
         // writes while KnowledgeQueryService reads behind GET /knowledge/query.
-        RaceOnAColdMapper("pattern-store", (index, dbPath) =>
+        RaceOnAColdMapper("pattern-store", "observed_patterns", (index, dbPath) =>
         {
             var store = new LiteDbPatternStore(dbPath);
             store.AddAsync(new ObservedPattern
@@ -308,7 +351,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     [Fact]
     public void LiteDbPatternProcessedStore_survives_concurrent_first_use()
     {
-        RaceOnAColdMapper("pattern-processed", (index, dbPath) =>
+        RaceOnAColdMapper("pattern-processed", "processed_patterns", (index, dbPath) =>
         {
             var store = new LiteDbPatternProcessedStore(dbPath);
             store.MarkProcessedAsync($"pattern-{index}").GetAwaiter().GetResult();
@@ -317,12 +360,24 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
         });
     }
 
+    /// <summary>
+    /// The pipeline store, saving a run that HAS a stage run.
+    /// </summary>
+    /// <remarks>
+    /// The stage runs are not decoration. <c>PipelineStageRunDocument</c> is a second document type
+    /// that appears in no <c>GetCollection&lt;T&gt;</c> — LiteDB only ever meets it as an element of
+    /// <c>PipelineRunDocument.StageRuns</c> — so serializing a run with an empty list never touches
+    /// it, and a warm-up that covered only the collection type would leave it cold. Measured: warming
+    /// the parent alone still wrote 146-160 of ~480 raced stage sub-documents with fields missing,
+    /// and on net10.0 without throwing once. A version of this test that saved a bare run passed
+    /// throughout.
+    /// </remarks>
     [Fact]
     public void LiteDbPipelineRunStore_survives_concurrent_first_use()
     {
         // Its own lock only serialises this instance; another store type driving the shared mapper
         // concurrently is what this reproduces.
-        RaceOnAColdMapper("pipeline-run", (index, dbPath) =>
+        RaceOnAColdMapper("pipeline-run", "pipeline_runs", (index, dbPath) =>
         {
             var store = new LiteDbPipelineRunStore(dbPath);
             store.SaveAsync(new PipelineRun
@@ -331,16 +386,144 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
                 TemplateId = "template",
                 State = PipelineRunState.Running,
                 StartedAt = Anchor,
+                StageRuns = new[]
+                {
+                    new PipelineStageRun
+                    {
+                        StageId = "stage-1",
+                        State = PipelineStageRunState.Completed,
+                        Attempt = 1,
+                        WorkerId = "worker",
+                        WorkerType = PipelineWorkerType.Agentic,
+                        Output = "output",
+                    },
+                },
             }).GetAwaiter().GetResult();
 
             store.GetAsync($"run-{index}").GetAwaiter().GetResult();
         });
     }
 
+    /// <summary>
+    /// The nested stage-run documents must be whole too, which the parent collection's key count
+    /// cannot tell you.
+    /// </summary>
+    /// <remarks>
+    /// <c>RaceOnAColdMapper</c> compares the keys of the documents in a collection, and a
+    /// <c>PipelineRunDocument</c> whose <c>StageRuns</c> array is full of half-serialized elements
+    /// has exactly the same key count as a whole one. This walks into the array instead. It is the
+    /// case that separates warming <c>PipelineStageRunDocument</c> from forgetting to.
+    /// </remarks>
+    [Fact]
+    public void LiteDbPipelineRunStore_writes_whole_stage_runs_while_racing()
+    {
+        var (totalStages, thinStages) = RaceStageRunsOnAColdMapper();
+
+        totalStages.Should().Be(
+            Rounds * Threads,
+            "every racer saves exactly one stage run, and a run that reached disk without its " +
+            "StageRuns array is itself the corruption this is looking for");
+
+        thinStages.Should().BeEmpty(
+            "PipelineStageRunDocument is reached only as an element of PipelineRunDocument, so it " +
+            "needs its own warm-up — warming the parent alone left 146-160 of ~480 stage " +
+            "sub-documents short, silently");
+    }
+
+    /// <summary>
+    /// Races the pipeline store saving runs that carry a stage run, and reports how many stage
+    /// sub-documents reached disk and how many of those were short.
+    /// </summary>
+    /// <remarks>
+    /// A helper rather than inline in the test, because xUnit1031 rejects a blocking wait inside a
+    /// test method — and an async test would not do: these racers must be real threads that overlap,
+    /// which is the whole point.
+    /// </remarks>
+    private (int TotalStages, IReadOnlyList<string> ThinStages) RaceStageRunsOnAColdMapper()
+    {
+        var previousMapper = BsonMapper.Global;
+        try
+        {
+            var thinStages = new List<string>();
+            var totalStages = 0;
+            for (var round = 0; round < Rounds; round++)
+            {
+                var dbPaths = new string[Threads];
+                for (var i = 0; i < Threads; i++)
+                    dbPaths[i] = Path.Combine(TempDir, $"pipeline-stage-{round}-{i}.db");
+
+                BsonMapper.Global = new BsonMapper();
+
+                using var start = new Barrier(Threads);
+                var racers = new Task[Threads];
+                for (var i = 0; i < Threads; i++)
+                {
+                    var index = i;
+                    var dbPath = dbPaths[index];
+                    racers[i] = Task.Factory.StartNew(
+                        () =>
+                        {
+                            start.SignalAndWait();
+                            var store = new LiteDbPipelineRunStore(dbPath);
+                            store.SaveAsync(new PipelineRun
+                            {
+                                RunId = $"run-{index}",
+                                TemplateId = "template",
+                                State = PipelineRunState.Running,
+                                StartedAt = Anchor,
+                                StageRuns = new[]
+                                {
+                                    new PipelineStageRun
+                                    {
+                                        StageId = "stage-1",
+                                        State = PipelineStageRunState.Completed,
+                                        Attempt = 1,
+                                        WorkerId = "worker",
+                                        WorkerType = PipelineWorkerType.Agentic,
+                                        Output = "output",
+                                        Error = "error",
+                                    },
+                                },
+                            }).GetAwaiter().GetResult();
+                        },
+                        TaskCreationOptions.LongRunning);
+                }
+
+                Task.WaitAll(racers);
+
+                foreach (var dbPath in dbPaths)
+                {
+                    if (!File.Exists(dbPath)) continue;
+
+                    using var db = new LiteDatabase($"Filename={dbPath}");
+                    foreach (var document in db.GetCollection("pipeline_runs").FindAll())
+                    {
+                        if (!document.ContainsKey("StageRuns")) continue;
+
+                        foreach (var stage in document["StageRuns"].AsArray)
+                        {
+                            totalStages++;
+                            var keys = stage.AsDocument.Keys;
+                            // Seven properties on PipelineStageRunDocument, all of them set above.
+                            if (keys.Count < 7)
+                                thinStages.Add($"{keys.Count}/7 keys: [{string.Join(",", keys)}]");
+                        }
+                    }
+                }
+            }
+
+            return (totalStages, thinStages);
+        }
+        finally
+        {
+            BsonMapper.Global = previousMapper;
+        }
+    }
+
     [Fact]
     public void LiteDbUserKnowledgeLogStore_survives_concurrent_first_use()
     {
-        RaceOnAColdMapper("user-knowledge", (index, dbPath) =>
+        RaceOnAColdMapper("user-knowledge", "user_knowledge_log", (index, dbPath) =>
         {
             var store = new LiteDbUserKnowledgeLogStore(dbPath);
             store.UpsertAsync(new UserKnowledgeLogEntry
@@ -359,7 +542,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
     public void LiteDbCopilotTaskStore_survives_concurrent_first_use()
     {
         // The store the pattern came from. It is already converted; this keeps it that way.
-        RaceOnAColdMapper("copilot-task", (index, dbPath) =>
+        RaceOnAColdMapper("copilot-task", "copilot_tasks", (index, dbPath) =>
         {
             var store = new LiteDbCopilotTaskStore(dbPath);
             store.StoreAsync(new CopilotTaskRecord
