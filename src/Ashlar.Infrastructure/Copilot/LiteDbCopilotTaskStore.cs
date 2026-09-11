@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Copilot.Models;
 using Ashlar.Core.Application.Copilot.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Copilot;
 
@@ -32,6 +33,7 @@ public sealed class LiteDbCopilotTaskStore : ICopilotTaskStore
         _connectionString = withFilename.Contains("Connection=", StringComparison.OrdinalIgnoreCase)
             ? withFilename
             : $"{withFilename};Connection=Shared";
+        LiteDbDocumentMapper.EnsureMapped<CopilotTaskDoc>();
     }
 
     /// <summary>
@@ -62,6 +64,7 @@ public sealed class LiteDbCopilotTaskStore : ICopilotTaskStore
     /// <inheritdoc />
     public Task<CopilotTaskRecord> StoreAsync(CopilotTaskRecord record, CancellationToken ct = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<CopilotTaskDoc>();
         ct.ThrowIfCancellationRequested();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<CopilotTaskDoc>(CollectionName);
@@ -73,6 +76,7 @@ public sealed class LiteDbCopilotTaskStore : ICopilotTaskStore
     /// <inheritdoc />
     public Task<CopilotTaskRecord?> GetByIdAsync(string taskId, CancellationToken ct = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<CopilotTaskDoc>();
         ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(taskId))
             return Task.FromResult<CopilotTaskRecord?>(null);
@@ -86,6 +90,7 @@ public sealed class LiteDbCopilotTaskStore : ICopilotTaskStore
     /// <inheritdoc />
     public Task<IReadOnlyList<CopilotTaskRecord>> QueryAsync(int maxCount = 50, DateTimeOffset? since = null, string tenantId = "default", CancellationToken ct = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<CopilotTaskDoc>();
         ct.ThrowIfCancellationRequested();
         var limit = maxCount <= 0 ? 50 : Math.Min(maxCount, 500);
         var tid = NormalizeTenantId(tenantId);

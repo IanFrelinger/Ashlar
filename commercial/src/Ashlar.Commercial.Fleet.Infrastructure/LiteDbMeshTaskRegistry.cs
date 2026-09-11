@@ -17,11 +17,13 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
     public LiteDbMeshTaskRegistry(string pathOrConnectionString)
     {
         _connectionString = LiteDbMeshDirectorConnection.ToConnectionString(pathOrConnectionString);
+        LiteDbDocumentMapper.EnsureMapped<MeshTaskDoc>();
     }
 
     /// <summary>Creates async.</summary>
     public async Task<MeshTaskState> CreateAsync(MeshTaskCreateSpec spec, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<MeshTaskDoc>();
         var id = $"{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}";
         var correlation = string.IsNullOrWhiteSpace(spec.CorrelationId) ? null : spec.CorrelationId.Trim();
         var idem = string.IsNullOrWhiteSpace(spec.IdempotencyKey) ? null : spec.IdempotencyKey.Trim();
@@ -81,6 +83,7 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
     /// <summary>Attempts to get by idempotency key async.</summary>
     public Task<MeshTaskState?> TryGetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<MeshTaskDoc>();
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(idempotencyKey))
             return Task.FromResult<MeshTaskState?>(null);
@@ -121,6 +124,7 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
     /// <summary>Gets async.</summary>
     public async Task<MeshTaskState?> GetAsync(string taskId, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<MeshTaskDoc>();
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -138,6 +142,7 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
     /// <summary>List async operation.</summary>
     public async Task<IReadOnlyList<MeshTaskState>> ListAsync(CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<MeshTaskDoc>();
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -158,6 +163,7 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
     /// <summary>Update async operation.</summary>
     public async Task<bool> UpdateAsync(MeshTaskState task, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<MeshTaskDoc>();
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {

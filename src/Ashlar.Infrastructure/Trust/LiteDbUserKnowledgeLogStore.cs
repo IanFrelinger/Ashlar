@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Trust.Models;
 using Ashlar.Core.Application.Trust.Ports;
+using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Trust;
 
@@ -29,11 +30,13 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
         _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase)
             ? trimmed
             : $"Filename={trimmed}";
+        LiteDbDocumentMapper.EnsureMapped<KnowledgeLogDoc>();
     }
 
     /// <inheritdoc />
     public Task UpsertAsync(UserKnowledgeLogEntry entry, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<KnowledgeLogDoc>();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
         EnsureIndexes(col);
@@ -60,6 +63,7 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
     /// <inheritdoc />
     public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<KnowledgeLogDoc>();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
         var doc = col.FindById(id);
@@ -75,6 +79,7 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
     /// <inheritdoc />
     public Task<UserKnowledgeLogEntry?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<KnowledgeLogDoc>();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
         // $._id, not $.Id: Id carries [BsonId], so that is the field name LiteDB actually stored and
@@ -89,6 +94,7 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
     /// <inheritdoc />
     public Task<IReadOnlyList<UserKnowledgeLogEntry>> GetAsync(string? dataType = null, int maxCount = 100, CancellationToken cancellationToken = default)
     {
+        LiteDbDocumentMapper.EnsureMapped<KnowledgeLogDoc>();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
         // BsonExpression, not LINQ, for the same reason EnsureIndexes uses the string overload:
