@@ -17,15 +17,22 @@ namespace Ashlar.Commercial.Fleet.Infrastructure;
 /// INSTANCE, so a build here and a build there are serialised against each other even though neither
 /// assembly can see the other's statics — and they must be, because LiteDB's mapper cache is one
 /// unsynchronised <c>Dictionary</c> shared by every document type in the process, so two different
-/// types building at once is a hazard on its own. Changing either copy's lock target to a private
-/// static would silently reopen that.
+/// types building at once is a hazard on its own. Moving either copy's BUILD onto a private static
+/// lock would silently reopen that — which is why the dedicated <c>Gate</c> below guards only this
+/// class's own bookkeeping and the build stays on the mapper's monitor.
 /// </remarks>
 internal static class LiteDbDocumentMapper
 {
-    /// <summary>The mapper <see cref="Warmed"/> describes. Guarded by that mapper's own monitor.</summary>
+    /// <summary>
+    /// Guards this class's own statics, and only them; see the sibling in Ashlar.Infrastructure for
+    /// why it is not the mapper's monitor.
+    /// </summary>
+    private static readonly object Gate = new();
+
+    /// <summary>The mapper <see cref="Warmed"/> describes. Guarded by <see cref="Gate"/>.</summary>
     private static BsonMapper? _gatedMapper;
 
-    /// <summary>Types already built against <see cref="_gatedMapper"/>. Guarded by that mapper's own monitor.</summary>
+    /// <summary>Types already built against <see cref="_gatedMapper"/>. Guarded by <see cref="Gate"/>.</summary>
     private static readonly HashSet<Type> Warmed = new();
 
     /// <summary>
@@ -39,18 +46,28 @@ internal static class LiteDbDocumentMapper
         // Read the static exactly once; see the sibling in Ashlar.Infrastructure.
         var mapper = BsonMapper.Global;
 
+        // Mapper monitor first, Gate second — the same order as the core copy, and the reason the
+        // two assemblies still serialise their builds against each other while neither can see the
+        // other's statics.
         lock (mapper)
         {
-            if (!ReferenceEquals(_gatedMapper, mapper))
+            lock (Gate)
             {
-                Warmed.Clear();
-                _gatedMapper = mapper;
+                if (!ReferenceEquals(_gatedMapper, mapper))
+                {
+                    Warmed.Clear();
+                    _gatedMapper = mapper;
+                }
+
+                if (!Warmed.Add(typeof(TDoc)))
+                    return;
             }
 
-            if (!Warmed.Add(typeof(TDoc)))
-                return;
-
-            mapper.ToDocument(typeof(TDoc), new TDoc());
+            // A round trip, not ToDocument alone: MeshFleetNodeDoc and MeshTaskDoc both carry
+            // Dictionary<string, string> members whose mapper is built only on the read path, in
+            // GetTypeCtor, which serializing an empty instance never reaches. Racing these two types
+            // with a serialize-only warm-up threw out of GetTypeCtor in 5 of 8 measured iterations.
+            mapper.ToObject(typeof(TDoc), mapper.ToDocument(typeof(TDoc), new TDoc()));
         }
     }
 }
