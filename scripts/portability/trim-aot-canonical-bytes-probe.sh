@@ -256,10 +256,10 @@ internal static class TrimAotCanonicalBytesProbe
         // everything, which is not the property under test either.
         failures += ExpectVerdict(ref checks, "untampered v1 record under Legacy", bound, brickSource, hmacKey, null);
 
-        var forged = Convert.FromBase64String(bound.Signature!);
-        forged[0] ^= 0x01;
+        var altered = Convert.FromBase64String(bound.Signature!);
+        altered[0] ^= 0x01;
         failures += ExpectVerdict(ref checks, "signature altered by one bit",
-            bound with { Signature = Convert.ToBase64String(forged) }, brickSource, hmacKey, "signature-invalid");
+            bound with { Signature = Convert.ToBase64String(altered) }, brickSource, hmacKey, "signature-invalid");
         failures += ExpectVerdict(ref checks, "signature over other bytes (wrong key)",
             bound, brickSource, "another-key", "signature-invalid");
         failures += ExpectVerdict(ref checks, "content hash no longer binds",
