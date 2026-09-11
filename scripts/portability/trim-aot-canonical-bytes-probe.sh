@@ -42,10 +42,15 @@
 #   scripts/portability/trim-aot-canonical-bytes-probe.sh            # every configuration
 #   scripts/portability/trim-aot-canonical-bytes-probe.sh trim-full  # one, by name
 #
-# Configuration names: trim-partial, trim-full, trim-full-reflection-on, aot.
+# Configuration names: trim-partial, trim-full, trim-full-reflection-on, aot. Those four are the
+# whole vocabulary and anything else is refused, because a selector that matches nothing used to
+# skip every configuration and still exit 0.
+#
 # TRIM_AOT_PROBE_WORKDIR pins the scratch directory; every check line is teed to
 # ${TRIM_AOT_PROBE_WORKDIR}/trim-aot-probe.log so a CI job can re-read the results rather than
 # re-derive them, and so a summary that reports nothing is not mistaken for a summary of nothing.
+# This script reads that output back as well: see check_log. The published binary's exit code is
+# ONE signal and not the one this lane passes on.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -61,6 +66,26 @@ for corpus in "${GOLDEN}" "${TRANSITIONS}"; do
 done
 
 SELECTED="${1:-}"
+
+# The configuration names, spelled once. A name matching none of them used to skip all four
+# run_configuration calls, leave FAILURES at 0, and exit 0 printing "every configuration emitted
+# the golden bytes" over a zero-byte log - so a typo or a rename in the workflow's matrix list
+# would have turned four green checks over a lane that published and executed nothing. The name
+# is checked here, and the number of configurations that actually ran is checked at the end:
+# the two catch opposite mistakes, an unknown name and a label renamed below without this list.
+KNOWN_CONFIGURATIONS=(trim-partial trim-full trim-full-reflection-on aot)
+if [[ -n "${SELECTED}" ]]; then
+  KNOWN=0
+  for known_name in "${KNOWN_CONFIGURATIONS[@]}"; do
+    if [[ "${SELECTED}" == "${known_name}" ]]; then
+      KNOWN=1
+    fi
+  done
+  if [[ "${KNOWN}" != "1" ]]; then
+    echo "trim-aot-canonical-bytes-probe: '${SELECTED}' is not a configuration name (${KNOWN_CONFIGURATIONS[*]})" >&2
+    exit 1
+  fi
+fi
 
 WORK="${TRIM_AOT_PROBE_WORKDIR:-}"
 if [[ -z "${WORK}" ]]; then
@@ -534,12 +559,64 @@ internal static class TrimAotCanonicalBytesProbe
 }
 PROG
 
+# The published binary's exit code is ONE signal; what it printed is the other, and this lane
+# trusts neither alone. A binary that returned 0 having checked nothing - an empty log - or one
+# that printed PROBE FAIL and returned 0 anyway must not turn the lane green: a lane that exists
+# because a trimmed or AOT publish can degrade silently cannot itself pass on a bare exit code.
+# So the output has to carry the final verdict, all three section verdicts, and one OK payload
+# line per case in the corpus THIS run was handed - counted from the corpus rather than from a
+# number written here, so a corpus that grows without the lane following it is a failure too.
+# scripts/portability/net9-probe.sh checks its own log for the same reason and in the same shape.
+check_log() {
+  local label="$1"
+  local runlog="$2"
+  local rc="$3"
+  local failed=0
+
+  if [[ "${rc}" != "0" ]]; then
+    echo "FAIL ${label}: the published binary exited ${rc}" >&2
+    failed=1
+  fi
+  if [[ ! -s "${runlog}" ]]; then
+    echo "FAIL ${label}: ${runlog} is empty - a run that printed nothing has checked nothing" >&2
+    return 1
+  fi
+
+  local pattern
+  for pattern in \
+    '^PROBE PASS$' \
+    '^PASS: [0-9]+ canonical payloads are byte-identical\.$' \
+    '^PASS: [0-9]+ transition entry hashes are identical\.$' \
+    '^PASS: [0-9]+ refusals answered as they do on a plain build\.$'; do
+    if ! grep -qE "${pattern}" "${runlog}"; then
+      echo "FAIL ${label}: no line matching ${pattern} in ${runlog}" >&2
+      failed=1
+    fi
+  done
+
+  local cases ok
+  cases="$(grep -c '"payloadSha256"' "${WORK}/canonical-payloads.golden.json" || true)"
+  ok="$(grep -cE '^  OK   .*  [0-9A-F]{64}  [0-9]+ bytes$' "${runlog}" || true)"
+  if [[ "${cases}" == "0" || "${ok}" != "${cases}" ]]; then
+    echo "FAIL ${label}: ${ok} golden payload line(s) in ${runlog}, but the corpus has ${cases} case(s)" >&2
+    failed=1
+  fi
+
+  if [[ "${failed}" != "0" ]]; then
+    echo "FAIL ${label}: the output does not support a pass (see ${runlog})" >&2
+    return 1
+  fi
+  echo "   log checked: ${ok}/${cases} golden payload lines, three section verdicts, PROBE PASS"
+}
+
 run_configuration() {
   local label="$1"
   local properties="$2"
   if [[ -n "${SELECTED}" && "${SELECTED}" != "${label}" ]]; then
     return 0
   fi
+
+  RAN=$((RAN + 1))
 
   local out="${WORK}/publish/${label}"
   local log="${WORK}/${label}.publish.log"
@@ -561,14 +638,23 @@ run_configuration() {
   echo "trim/AOT analysis warnings: ${warnings}" >>"${LOG}"
 
   echo "== ${label}: run the published binary =="
-  # set -o pipefail is in effect, so tee does not swallow a failing binary.
+  # Captured to a per-configuration log, then printed and appended to the cumulative one. The
+  # cumulative log is what the CI summary renders; check_log reads the per-configuration one,
+  # because the cumulative log grows across configurations and "one OK line per corpus case"
+  # would stop meaning anything after the first.
+  local runlog="${WORK}/${label}.run.log"
+  local rc=0
   "${out}/TrimAotCanonicalBytesProbe" \
     "${WORK}/canonical-payloads.golden.json" \
     "${WORK}/transition-entry-hashes.golden.json" \
-    "${label}" 2>&1 | tee -a "${LOG}"
+    "${label}" >"${runlog}" 2>&1 || rc=$?
+  cat "${runlog}"
+  cat "${runlog}" >>"${LOG}"
+  check_log "${label}" "${runlog}" "${rc}"
 }
 
 FAILURES=0
+RAN=0
 run_configuration "trim-partial" \
   "    <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>" || FAILURES=$((FAILURES + 1))
@@ -585,8 +671,12 @@ run_configuration "trim-full-reflection-on" \
 run_configuration "aot" "    <PublishAot>true</PublishAot>" || FAILURES=$((FAILURES + 1))
 
 echo ""
+if [[ "${RAN}" -eq 0 ]]; then
+  echo "trim-aot-canonical-bytes-probe: '${SELECTED}' is not a configuration name (trim-partial, trim-full, trim-full-reflection-on, aot); nothing ran, and a probe that checks nothing is not a passing probe" >&2
+  exit 1
+fi
 if [[ "${FAILURES}" -ne 0 ]]; then
   echo "trim-aot-canonical-bytes-probe: ${FAILURES} configuration(s) did not emit the golden bytes" >&2
   exit 1
 fi
-echo "trim-aot-canonical-bytes-probe: every configuration emitted the golden bytes"
+echo "trim-aot-canonical-bytes-probe: ${RAN} configuration(s) emitted the golden bytes"

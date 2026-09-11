@@ -243,6 +243,7 @@ jobs:
           name: runtime-portability-trim-aot-${{ matrix.configuration }}
           path: |
             ${{ runner.temp }}/trim-aot-probe/trim-aot-probe.log
+            ${{ runner.temp }}/trim-aot-probe/*.run.log
             ${{ runner.temp }}/trim-aot-probe/*.publish.log
           if-no-files-found: warn
           retention-days: 14
