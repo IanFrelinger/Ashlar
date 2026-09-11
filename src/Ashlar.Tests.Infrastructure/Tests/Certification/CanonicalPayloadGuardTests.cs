@@ -9,20 +9,18 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// The canonical payload must never be signed, or accepted, unless it is the shape its lane
 /// declares.
 /// <para>
-/// The payload is produced by reflection-based <c>System.Text.Json</c>. That is not a
-/// guarantee: reflection-based serialization does not survive trimming or ahead-of-time
-/// publishing, and under those publish modes the payload can come out as the empty object
-/// <c>{}</c> — no exception, no warning. Those bytes are the message every signature is
-/// computed over, so an empty or short payload does not weaken a signature, it moves the
-/// signature onto something that is not the record.
+/// Those bytes are the message every signature is computed over, so a payload that is empty or
+/// short does not weaken a signature, it moves the signature onto something that is not the
+/// record. The payload is written field by field rather than serialized from an object graph
+/// precisely so that no publish mode gets to decide its shape; what is left is a post-condition
+/// on the writer, and what it catches is a mistyped name or a swapped pair of write statements.
 /// </para>
 /// <para>
-/// The guard is exercised here directly rather than through <c>BuildPayload</c> because the
-/// publish configurations that make the serializer degrade cannot be reproduced inside a test
-/// host — the assembly under test is loaded untrimmed by definition. What the golden corpus in
-/// <see cref="CanonicalPayloadGoldenTests"/> proves alongside it is the other half: that the
-/// declared shape is the shape the serializer really emits, so the guard rejects nothing
-/// legitimate.
+/// The guard is exercised here directly rather than through <c>BuildPayload</c> because no
+/// input to the writer can produce a payload it refuses — that is the point of it. What the
+/// golden corpus in <see cref="CanonicalPayloadGoldenTests"/> proves alongside it is the other
+/// half: that the declared shape is the shape the writer really emits, so the guard rejects
+/// nothing legitimate.
 /// </para>
 /// </summary>
 [Trait("Category", "Certification")]

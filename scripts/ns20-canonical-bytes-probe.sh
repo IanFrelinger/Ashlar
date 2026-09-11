@@ -2,8 +2,8 @@
 # ns20-canonical-bytes-probe.sh — check that the netstandard2.0 asset of
 # Ashlar.Certification.Contracts produces the SAME canonical signing payload bytes as the
 # net8.0 and net10.0 assets, that its verifier reaches the SAME verdict for the same record,
-# and that the netstandard2.0 asset of Ashlar.Certification.State can be handed options it is
-# able to evaluate.
+# that the netstandard2.0 asset of Ashlar.Certification.State computes the SAME certified
+# transition entry hashes, and that it can be handed options it is able to evaluate.
 #
 # WHY THIS IS A SCRIPT AND NOT AN xunit LEG
 # -----------------------------------------
@@ -35,10 +35,18 @@
 # certificate that carries an Ed25519 signature — the escape selects options the asset can
 # evaluate, it does not widen what the asset can trust.
 #
+# The transition entry hash is probed for the same reason as the payload bytes. StateLogVerifier
+# recomputes it for every entry in an attested state log and refuses the log when it does not
+# match, so a target that computed it even slightly differently would refuse logs the other
+# targets accept. The payload behind it is internal; its hash is what an external consumer can
+# observe, and a SHA-256 of the bytes is a byte check.
+#
 # THE CONSTANTS ARE NOT DUPLICATED. This probe reads the same
 # src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json that
-# CanonicalPayloadGoldenTests and VerifierParityTests read. Two independently typed copies
-# would drift, and the cross-target equality claim would quietly evaporate with them.
+# CanonicalPayloadGoldenTests and VerifierParityTests read, and the same
+# transition-entry-hashes.golden.json that CertifiedTransitionEntryHashGoldenTests reads. Two
+# independently typed copies would drift, and the cross-target equality claim would quietly
+# evaporate with them.
 #
 # Usage:
 #   scripts/ns20-canonical-bytes-probe.sh                 # build + run (needs dotnet AND docker)
@@ -51,6 +59,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GOLDEN="${ROOT}/src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json"
+TRANSITIONS="${ROOT}/src/Ashlar.Tests.Infrastructure/Tests/Certification/transition-entry-hashes.golden.json"
 MONO_IMAGE="${NS20_PROBE_MONO_IMAGE:-mono:latest}"
 STJ_VERSION="${NS20_PROBE_STJ_VERSION:-10.0.11}"
 
@@ -72,6 +81,11 @@ mkdir -p "${WORK}"
 
 if [[ ! -f "${GOLDEN}" ]]; then
   echo "ns20-canonical-bytes-probe: golden corpus not found at ${GOLDEN}" >&2
+  exit 1
+fi
+
+if [[ ! -f "${TRANSITIONS}" ]]; then
+  echo "ns20-canonical-bytes-probe: transition corpus not found at ${TRANSITIONS}" >&2
   exit 1
 fi
 
@@ -145,12 +159,14 @@ internal static class Ns20CanonicalBytesProbe
     private static int Main(string[] args)
     {
         var path = args.Length > 0 ? args[0] : "canonical-payloads.golden.json";
+        var transitionsPath = args.Length > 1 ? args[1] : "transition-entry-hashes.golden.json";
 
         Console.WriteLine("runtime: " + RuntimeDescription());
         Console.WriteLine("contracts: " + typeof(CertificationRecordSigning).Assembly.Location);
         Console.WriteLine("state:     " + typeof(StateLogVerifier).Assembly.Location);
 
         var failures = CheckCanonicalBytes(path);
+        failures += CheckTransitionEntryHashes(transitionsPath);
         failures += CheckVerifierParity(path);
         failures += CheckStateLogOptions(path);
         failures += CheckUnknownSchemaVersion(path);
@@ -206,6 +222,56 @@ internal static class Ns20CanonicalBytesProbe
         Console.WriteLine(failures == 0
             ? "PASS: " + checkedCases + " canonical payloads are byte-identical on the netstandard2.0 asset."
             : "FAIL: " + failures + " of " + checkedCases + " canonical payloads differ on the netstandard2.0 asset.");
+        return failures;
+    }
+
+    // The entry hash StateLogVerifier recomputes for every transition in an attested state log.
+    // Its payload is canonical bytes exactly as the certification payload is, and this asset must
+    // produce the same ones or a log written on net8.0 stops verifying here.
+    private static int CheckTransitionEntryHashes(string path)
+    {
+        Console.WriteLine("== transition entry hashes: ComputeEntryHash must equal the golden corpus ==");
+        var builder = new CertifiedTransitionBuilder();
+        var failures = 0;
+        var checkedCases = 0;
+
+        using (var document = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var element in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var name = element.GetProperty("name").GetString();
+                var record = element.GetProperty("record");
+                var expected = element.GetProperty("entryHash").GetString();
+                var actual = builder.ComputeEntryHash(
+                    record.GetProperty("priorStateHash").GetString(),
+                    record.GetProperty("action").GetString(),
+                    record.GetProperty("behaviorCertContentHash").GetString(),
+                    record.GetProperty("resultingStateHash").GetString(),
+                    record.GetProperty("prevEntryHash").GetString());
+
+                checkedCases++;
+                if (actual == expected)
+                {
+                    Console.WriteLine("  OK   " + name + "  " + actual);
+                    continue;
+                }
+
+                failures++;
+                Console.WriteLine("  FAIL " + name);
+                Console.WriteLine("    expected entryHash " + expected);
+                Console.WriteLine("    actual   entryHash " + actual);
+            }
+        }
+
+        if (checkedCases == 0)
+        {
+            Console.WriteLine("FAIL: the transition corpus is empty; a probe that checks nothing is not a passing probe.");
+            return 1;
+        }
+
+        Console.WriteLine(failures == 0
+            ? "PASS: " + checkedCases + " transition entry hashes are identical on the netstandard2.0 asset."
+            : "FAIL: " + failures + " of " + checkedCases + " transition entry hashes differ on the netstandard2.0 asset.");
         return failures;
     }
 
@@ -472,6 +538,7 @@ PROG
   echo "== ns2.0 probe: publish the net472 consumer =="
   dotnet publish "${WORK}/consumer/Ns20CanonicalBytesProbe.csproj" -c Release -o "${WORK}/net472" --nologo -v minimal
   cp "${GOLDEN}" "${WORK}/canonical-payloads.golden.json"
+  cp "${TRANSITIONS}" "${WORK}/transition-entry-hashes.golden.json"
 fi
 
 if [[ "${DO_RUN}" == "1" ]]; then
@@ -485,5 +552,5 @@ if [[ "${DO_RUN}" == "1" ]]; then
     -v "${MOUNT}:/probe:ro" \
     -w /probe/net472 \
     "${MONO_IMAGE}" \
-    mono Ns20CanonicalBytesProbe.exe /probe/canonical-payloads.golden.json
+    mono Ns20CanonicalBytesProbe.exe /probe/canonical-payloads.golden.json /probe/transition-entry-hashes.golden.json
 fi

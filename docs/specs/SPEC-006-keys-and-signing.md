@@ -60,8 +60,12 @@ deliberately NOT the same bytes and must not be converged:
 
 - Operator artifacts (`src/Ashlar.Manifest/Signing/CanonicalJson.cs`) recursively ordinal-sort
   keys at every depth, use default (Pascal) casing, and omit nulls.
-- Certification records (`src/Ashlar.Certification.Contracts/CertificationRecordSigning.cs`, `BuildPayload`) serialize a positional
-  DTO in declaration order, camelCase, writing nulls.
+- Certification records (`src/Ashlar.Certification.Contracts/CertificationRecordSigning.cs`, `BuildPayload`) write the payload
+  field by field with `Utf8JsonWriter`, in a fixed order, camelCase names, writing nulls. The
+  order is the order of the write statements and the names are constants the shape guard reads
+  too, so the canonical form is a property of that file rather than of the serializer a
+  consumer resolves — which is what lets the same bytes come out of a trimmed or
+  ahead-of-time publish. `canonical-payloads.golden.json` pins them.
 
 *Corrected 2026-08-27.* This paragraph previously asserted that certification records
 already established the ordinal-sorted convention and that v1 "REUSES that machinery". That

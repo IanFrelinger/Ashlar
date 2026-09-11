@@ -45,9 +45,9 @@ public static class CertificationTrustVerifier
         // The floor says "at least this new"; it does not say "a version this verifier knows".
         // BuildPayload selects its lane on the version, and a version it has never seen selects
         // no lane, so there are no bytes to compare any signature against. Refused with its own
-        // code rather than left to surface as payload-not-canonical, because that code is
-        // documented as the serializer degrading under trimming or ahead-of-time publishing — a
-        // deployment fault — and an unknown version is a record fault; conflating them would
+        // code rather than left to surface as payload-not-canonical, because that code means the
+        // bytes this build wrote are not the shape it declares — a fault in this code — and an
+        // unknown version is a record fault; conflating them would
         // point an operator at the wrong thing. An unknown schema version is an error, not a
         // guess. Floor first, so an explicit version below the floor still reports the floor.
         if (!CertificationRecordSigning.IsKnownSchemaVersion(record.SchemaVersion))
@@ -66,9 +66,8 @@ public static class CertificationTrustVerifier
             return Untrusted("content-hash-missing", "Certification record has no content hash.");
 
         // Built BEFORE the signature is compared, and unconditionally. Both sides of a comparison
-        // recompute the payload from the same serializer, so the comparison cannot establish
-        // anything about bytes whose shape has not been established first. Establish the shape,
-        // then compare.
+        // recompute the payload the same way, so the comparison cannot establish anything about
+        // bytes whose shape has not been established first. Establish the shape, then compare.
         try
         {
             CertificationRecordSigning.BuildPayload(record);

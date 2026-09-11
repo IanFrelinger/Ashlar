@@ -1,0 +1,50 @@
+{
+  "_readme": "Golden canonical entry-hash payloads for certified state transitions (CertifiedTransitionBuilder). The entryHash is what StateLogVerifier recomputes for every entry in an attested state log, so these bytes decide whether a log written yesterday still verifies today. Pinned here and read by the in-repo golden test and by the netstandard2.0 probe (scripts/ns20-canonical-bytes-probe.sh), which checks the entryHash of every case through the public ComputeEntryHash - a SHA-256 of the bytes, and the byte check a target that cannot see the payload itself can still make. The .NET 9 probe consumes only the certification contracts package and does not reach this builder. To regenerate a case deliberately, copy the actual payload the failing test prints into this file. Regenerate ONLY when the canonical form is deliberately changed, and understand that changing it breaks every attested state log already written. Note that a Base64 field value containing '+' is escaped as a six-character sequence by the default JavaScript encoder while '/' and '=' are not - which is why real Base64 state hashes appear here.",
+  "cases": [
+    {
+      "name": "transition-genesis",
+      "why": "The first entry in a log: prevEntryHash is the empty genesis value, pinning that an empty string is written as an empty string rather than omitted or nulled. The behaviour certificate hash is real Base64 carrying a '+', which the encoder escapes.",
+      "record": {
+        "priorStateHash": "R2n0DZ0pw3gG1nJ6JW0Zt3Q9Yy3n9aVv0m2gk9m5c3E=",
+        "action": "phase:advance",
+        "behaviorCertContentHash": "3q2+7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "resultingStateHash": "Bd9m1oKQ7bYyQe3Wl5uJ0aE6Xz8cN2rT4pV7sH1dG0I=",
+        "prevEntryHash": ""
+      },
+      "payloadSha256": "CC8FCC7A6A0BAF510C16802B97DCD2D1BC8738FBC457D781974642DDC99B9909",
+      "payloadByteLength": 255,
+      "payload": "{\u0022action\u0022:\u0022phase:advance\u0022,\u0022behaviorCertContentHash\u0022:\u00223q2\\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\u0022,\u0022prevEntryHash\u0022:\u0022\u0022,\u0022priorStateHash\u0022:\u0022R2n0DZ0pw3gG1nJ6JW0Zt3Q9Yy3n9aVv0m2gk9m5c3E=\u0022,\u0022resultingStateHash\u0022:\u0022Bd9m1oKQ7bYyQe3Wl5uJ0aE6Xz8cN2rT4pV7sH1dG0I=\u0022}",
+      "entryHash": "zI/MemoLr1EMFoArl9zS0byHOPvEV9eBl0ZC3cmbmQk="
+    },
+    {
+      "name": "transition-chained",
+      "why": "A linked entry: every one of the five members carries a distinct non-empty value, and the resulting state hash carries both '/' (not escaped) and '+' (escaped).",
+      "record": {
+        "priorStateHash": "Bd9m1oKQ7bYyQe3Wl5uJ0aE6Xz8cN2rT4pV7sH1dG0I=",
+        "action": "phase:complete",
+        "behaviorCertContentHash": "3q2+7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "resultingStateHash": "Ty7uI9oP0aS2dF4gH6jK8lZ1/C3+B5nM7qW9eR1tY3U=",
+        "prevEntryHash": "Kx1pQ9aM2n7VbC4tZ0eL6oS8uW3yD5fG7hJ9kN1qR2T="
+      },
+      "payloadSha256": "202CA69134EF02044F0F8E1004D7FB1E90B2DAB515F690B6B3221ADFBA7F377C",
+      "payloadByteLength": 305,
+      "payload": "{\u0022action\u0022:\u0022phase:complete\u0022,\u0022behaviorCertContentHash\u0022:\u00223q2\\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\u0022,\u0022prevEntryHash\u0022:\u0022Kx1pQ9aM2n7VbC4tZ0eL6oS8uW3yD5fG7hJ9kN1qR2T=\u0022,\u0022priorStateHash\u0022:\u0022Bd9m1oKQ7bYyQe3Wl5uJ0aE6Xz8cN2rT4pV7sH1dG0I=\u0022,\u0022resultingStateHash\u0022:\u0022Ty7uI9oP0aS2dF4gH6jK8lZ1/C3\\u002BB5nM7qW9eR1tY3U=\u0022}",
+      "entryHash": "ICymkTTvAgRPD44QBNf7HpCy2rUV9pC2syIa37p/N3w="
+    },
+    {
+      "name": "transition-escaping",
+      "why": "Non-ASCII, a control character, a surrogate pair, a tab, and every character the default JavaScript encoder escapes - in the action, which is the one member a caller supplies freely. Pins the encoder and its uppercase hex.",
+      "record": {
+        "priorStateHash": "R2n0DZ0pw3gG1nJ6JW0Zt3Q9Yy3n9aVv0m2gk9m5c3E=",
+        "action": "phase:caf\u00E9 <script> & 'quote\u0022 + \u2014 \u0001 \uD83D\uDE00 tab\there",
+        "behaviorCertContentHash": "3q2+7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "resultingStateHash": "Bd9m1oKQ7bYyQe3Wl5uJ0aE6Xz8cN2rT4pV7sH1dG0I=",
+        "prevEntryHash": ""
+      },
+      "payloadSha256": "E67C7768C193070C452E6CFBB067C21C7CECD8902FC2D37CF0E61E9C6D1F9CF8",
+      "payloadByteLength": 345,
+      "payload": "{\u0022action\u0022:\u0022phase:caf\\u00E9 \\u003Cscript\\u003E \\u0026 \\u0027quote\\u0022 \\u002B \\u2014 \\u0001 \\uD83D\\uDE00 tab\\there\u0022,\u0022behaviorCertContentHash\u0022:\u00223q2\\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\u0022,\u0022prevEntryHash\u0022:\u0022\u0022,\u0022priorStateHash\u0022:\u0022R2n0DZ0pw3gG1nJ6JW0Zt3Q9Yy3n9aVv0m2gk9m5c3E=\u0022,\u0022resultingStateHash\u0022:\u0022Bd9m1oKQ7bYyQe3Wl5uJ0aE6Xz8cN2rT4pV7sH1dG0I=\u0022}",
+      "entryHash": "5nx3aMGTBwxFLmz7sGfCHHzs2JAvwtN88OYenG0fnPg="
+    }
+  ]
+}

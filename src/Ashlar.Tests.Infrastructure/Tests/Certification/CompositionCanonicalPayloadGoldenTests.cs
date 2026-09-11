@@ -1,35 +1,33 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Ashlar.Certification.Contracts;
+using Ashlar.Core.Application.Certification.Models;
+using Ashlar.Infrastructure.Certification.Composition;
 using FluentAssertions;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
-/// Byte-level pin on the canonical signing payload for every reachable payload version.
+/// Byte-level pin on the canonical signing payload for composition certification records.
 /// <para>
-/// These bytes are the message every HMAC and Ed25519 certification signature is computed
-/// over, so their stability is the whole basis on which a signature written yesterday still
-/// verifies today. They are written field by field rather than serialized from an object
-/// graph, so their order and their names are a property of this repository — but their
-/// encoding is still <c>Utf8JsonWriter</c>'s, and the package ships three target frameworks
-/// against three different <c>System.Text.Json</c> builds. "The bytes did not change" stays an
-/// assertion rather than something that can be reasoned about. This suite makes it one.
+/// These bytes are the message every composition admission signature is computed over, and
+/// <c>CompositionCertificationGate</c> mints one for every admitted composition. Until this
+/// suite existed the brick lane was pinned byte-for-byte and this lane was pinned by nothing:
+/// its payload could change shape, order or spelling and the only thing that would notice is a
+/// stored certificate failing to verify long after the change shipped.
 /// </para>
 /// <para>
-/// The corpus lives in <c>canonical-payloads.golden.json</c> rather than in this file because
-/// <c>scripts/ns20-canonical-bytes-probe.sh</c> (the netstandard2.0 asset under Mono) and
-/// <c>scripts/portability/net9-probe.sh</c> (the net8.0 asset on the 9.0 runtime) read the
-/// same file to check those assets against the same constants. Independently typed copies
-/// would drift, and the cross-target equality claim would quietly evaporate with them.
+/// The corpus lives in <c>composition-payloads.golden.json</c> beside the brick one, in the
+/// same shape and with the same regeneration ritual, so a reader who knows one knows both.
+/// Doubles are restricted to exactly representable values there for the reason that file
+/// states.
 /// </para>
 /// </summary>
 [Trait("Category", "Certification")]
-public sealed class CanonicalPayloadGoldenTests
+public sealed class CompositionCanonicalPayloadGoldenTests
 {
-    private const string GoldenFileName = "canonical-payloads.golden.json";
+    private const string GoldenFileName = "composition-payloads.golden.json";
 
     private static readonly IReadOnlyDictionary<string, GoldenCase> Corpus = LoadCorpus();
 
@@ -46,56 +44,67 @@ public sealed class CanonicalPayloadGoldenTests
 
     [Theory]
     [MemberData(nameof(GoldenCaseNames))]
-    public void CanonicalPayload_IsByteIdenticalToGolden(string caseName)
+    public void CompositionCanonicalPayload_IsByteIdenticalToGolden(string caseName)
     {
         var golden = Corpus[caseName];
 
-        var payload = CertificationRecordSigning.BuildPayload(golden.Record);
+        var payload = CompositionCertificationRecordSigner.BuildPayload(golden.Record);
 
         // The string comparison comes first on purpose: it is the assertion that prints a
         // readable diff. The length and digest below turn "readable" into "byte-exact", so a
         // change that a string comparison could normalise away still fails.
         payload.Should().Be(
             golden.Payload,
-            "the canonical payload for '{0}' backs every signature already written over it; "
-            + "changing these bytes invalidates them",
+            "the canonical payload for '{0}' backs every composition signature already written "
+            + "over it; changing these bytes invalidates them",
             caseName);
 
         var bytes = Encoding.UTF8.GetBytes(payload);
         bytes.Length.Should().Be(golden.PayloadByteLength, "the signed message is bytes, not characters");
         Sha256Hex(bytes).Should().Be(
             golden.PayloadSha256,
-            "SHA-256 of the UTF-8 canonical payload for '{0}'; this is the same constant "
-            + "scripts/ns20-canonical-bytes-probe.sh checks the netstandard2.0 asset against. Actual payload was: {1}",
+            "SHA-256 of the UTF-8 canonical composition payload for '{0}'. Actual payload was: {1}",
             caseName,
             payload);
     }
 
     [Fact]
-    public void GoldenCorpus_CoversBothPayloadVersions()
+    public void GoldenCorpus_CoversAPopulatedAndAMinimalRecord()
     {
         // A theory over an empty or half-empty corpus passes without asserting anything, which
         // is the same failure mode as having no golden test at all. Assert the corpus itself.
         Corpus.Should().NotBeEmpty();
-        Corpus.Values.Should().Contain(c => c.Record.SchemaVersion == null, "the v1 lane is reachable through the published package API");
-        Corpus.Values.Should().Contain(c => c.Record.SchemaVersion != null, "v2 is the shape every live minter emits");
+        Corpus.Values.Should().Contain(c => c.Record.CompositionEscapeRate != null, "a populated record is the shape the gate mints");
+        Corpus.Values.Should().Contain(c => c.Record.CompositionEscapeRate == null, "a refusal record carries nulls and must still carry every name");
         Corpus.Values.Should().OnlyContain(
             c => c.Payload.Length > 2,
             "an empty object is never a legitimate canonical payload — every declared property is emitted whatever its value");
     }
 
     [Fact]
+    public void Payload_ExcludesTheSignatureAndTheGate()
+    {
+        // Stated as its own assertion rather than left implicit in the byte comparison: the
+        // populated fixture supplies both fields as sentinels, so if either ever entered the
+        // payload the record would sign a value it does not cover today and every stored
+        // signature would stop verifying.
+        var payload = CompositionCertificationRecordSigner.BuildPayload(Corpus["composition-populated"].Record);
+
+        payload.Should().NotContain("MUST-NOT-APPEAR");
+    }
+
+    [Fact]
     public void Sign_ComputesTheHmacOverExactlyTheGoldenBytes()
     {
         // Pins the binding between the golden bytes and the signature, without introducing a
-        // second constant: the expected signature is derived from the golden payload string,
-        // so this fails if Sign ever hashes anything other than what BuildPayload returned.
-        const string key = "canonical-payload-golden-test-hmac";
-        var golden = Corpus["v2-populated"];
+        // second constant: the expected signature is derived from the golden payload string, so
+        // this fails if Sign ever hashes anything other than what BuildPayload returned.
+        const string key = "composition-canonical-payload-golden-test-hmac";
+        var golden = Corpus["composition-populated"];
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
         var expected = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(golden.Payload)));
 
-        CertificationRecordSigning.Sign(golden.Record, key).Should().Be(expected);
+        new CompositionCertificationRecordSigner(hmacKey: key).Sign(golden.Record).Should().Be(expected);
     }
 
     private static string Sha256Hex(byte[] bytes)
@@ -108,7 +117,7 @@ public sealed class CanonicalPayloadGoldenTests
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Tests", "Certification", GoldenFileName);
         if (!File.Exists(path))
-            throw new FileNotFoundException($"Golden canonical payload corpus not found at '{path}'.", path);
+            throw new FileNotFoundException($"Golden composition payload corpus not found at '{path}'.", path);
 
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -117,7 +126,7 @@ public sealed class CanonicalPayloadGoldenTests
         {
             var name = element.GetProperty("name").GetString()!;
             corpus[name] = new GoldenCase(
-                JsonSerializer.Deserialize<CertificationRecordData>(element.GetProperty("record").GetRawText(), options)!,
+                JsonSerializer.Deserialize<CompositionCertificationRecord>(element.GetProperty("record").GetRawText(), options)!,
                 element.GetProperty("payload").GetString()!,
                 element.GetProperty("payloadSha256").GetString()!,
                 element.GetProperty("payloadByteLength").GetInt32());
@@ -127,7 +136,7 @@ public sealed class CanonicalPayloadGoldenTests
     }
 
     private sealed record GoldenCase(
-        CertificationRecordData Record,
+        CompositionCertificationRecord Record,
         string Payload,
         string PayloadSha256,
         int PayloadByteLength);

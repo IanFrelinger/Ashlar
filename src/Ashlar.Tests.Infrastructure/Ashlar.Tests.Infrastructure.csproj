@@ -17,6 +17,16 @@
          it from the test output, scripts/ns20-canonical-bytes-probe.sh reads the same file from
          the repo, so the two cannot drift apart and claim an equality neither checked. -->
     <Content Include="Tests/Certification/canonical-payloads.golden.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Golden canonical signing payloads for the composition lane. Same shape and same
+         regeneration ritual as the brick corpus above; read by
+         CompositionCanonicalPayloadGoldenTests. -->
+    <Content Include="Tests/Certification/composition-payloads.golden.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Golden canonical entry-hash payloads for certified state transitions. Shared constant:
+         CertifiedTransitionEntryHashGoldenTests reads it from the test output, and
+         scripts/ns20-canonical-bytes-probe.sh reads the same file from the repo, so the two
+         cannot drift apart. The net9 probe consumes only the contracts package and does not
+         reach this builder. -->
+    <Content Include="Tests/Certification/transition-entry-hashes.golden.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../samples/physical-atom-cert/**/*" CopyToOutputDirectory="PreserveNewest" Link="physical-atom-cert/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <!-- Workaround for Castle.Core net6.0 assembly loading issue on .NET 8.0 -->
