@@ -1,5 +1,5 @@
 {
-  "_readme": "Golden canonical signing payloads. These bytes back every certification signature, so they are pinned here and read by the in-repo golden test, the netstandard2.0 parity probe (scripts/ns20-canonical-bytes-probe.sh) and the .NET 9 runtime probe (scripts/portability/net9-probe.sh) - one constant, three readers. To regenerate a case deliberately, copy the actual payload the failing test prints into this file. Regenerate ONLY when the canonical form is deliberately changed, and understand that changing it invalidates every signature already written. Doubles are deliberately restricted to exactly representable values: decimal formatting of arbitrary doubles is not yet identical across the targets this package ships for.",
+  "_readme": "Golden canonical signing payloads. These bytes back every certification signature, so they are pinned here and read by the in-repo golden test, the netstandard2.0 parity probe (scripts/ns20-canonical-bytes-probe.sh) and the .NET 9 runtime probe (scripts/portability/net9-probe.sh) - one constant, three readers. To regenerate a case deliberately, copy the actual payload the failing test prints into this file. Regenerate ONLY when the canonical form is deliberately changed, and understand that changing it invalidates every signature already written. Doubles are emitted in ONE canonical form on every target - 17 significant digits on the invariant culture, both zeros collapsed onto 0, NaN and the infinities refused outright - because the decimal form a target's own formatter produces is not the same on all of them. CertificationRecordSigning.WriteNumberOrNull carries the reasoning; the awkward-double cases below pin the form, and they carry the values the targets measurably disagreed on before it was chosen.",
   "cases": [
     {
       "name": "v1-legacy-populated",
@@ -178,6 +178,157 @@
       "payloadSha256": "2E496D625B56E5B62353A6DCDE4A2BBFFEF902CA3F2BC7CE5C8243AA97C5B6C9",
       "payloadByteLength": 565,
       "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022caf\\u00E9-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:0,\u0022totalMutants\u0022:1,\u0022survivingMutants\u0022:0,\u0022killedMutants\u0022:[\u0022m-1\u0022],\u0022survivingMutantIds\u0022:[],\u0022reason\u0022:\u0022caf\\u00E9 \\u003Cscript\\u003E \\u0026 \\u0027quote\\u0022 \\u002B \\u2014 \\u0001 \\uD83D\\uDE00 tab\\there\u0022,\u0022gate\u0022:\u0022Ashlar.Infrastructure.Certification.CertificationGate\u0022,\u0022gatesPassed\u0022:[],\u0022inputs\u0022:[],\u0022proposer\u0022:null,\u0022attempts\u0022:[],\u0022ed25519PublicKey\u0022:null}"
+    },
+    {
+      "name": "v1-legacy-awkward-double",
+      "why": "The v1 lane carries a double too, and 0.1 is the most ordinary value there is: not exactly representable, and formatted 0.10000000000000001 by the netstandard2.0 asset where net8.0 and net10.0 format it 0.1. Before one canonical form was chosen, that single value made the two legs compute different bytes for the same record. Pins the chosen form on the lane that has no attempts array.",
+      "record": {
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00\u002B00:00",
+        "brickId": "golden-legacy-doubles-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0.10000000000000001,
+        "totalMutants": 10,
+        "survivingMutants": 1,
+        "killedMutants": [
+          "m-1"
+        ],
+        "survivingMutantIds": [
+          "s-1"
+        ]
+      },
+      "payloadSha256": "D756889E4CE983779DFD7F3AB8AD4A05AC3ACABB929751C119A594BBE50209DC",
+      "payloadByteLength": 342,
+      "payload": "{\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-legacy-doubles-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:0.10000000000000001,\u0022totalMutants\u0022:10,\u0022survivingMutants\u0022:1,\u0022killedMutants\u0022:[\u0022m-1\u0022],\u0022survivingMutantIds\u0022:[\u0022s-1\u0022],\u0022reason\u0022:null}"
+    },
+    {
+      "name": "v2-awkward-doubles",
+      "why": "One value per field that can carry a double on the v2 lane, chosen from the values the targets measurably disagreed on: 1/3 as escapeRate, 0.007 and 1e-7 as durationSeconds. Each is written here in exactly the form the canonical emitter must produce on every target, so a target that falls back to its own formatter fails on this case rather than on a record some consumer mints later.",
+      "record": {
+        "schemaVersion": 2,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00\u002B00:00",
+        "brickId": "golden-doubles-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0.33333333333333331,
+        "totalMutants": 3,
+        "survivingMutants": 1,
+        "killedMutants": [
+          "m-1",
+          "m-2"
+        ],
+        "survivingMutantIds": [
+          "s-1"
+        ],
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "attempts": [
+          {
+            "index": 1,
+            "outcome": "fail",
+            "failureCategory": "mutation",
+            "durationSeconds": 0.0070000000000000001
+          },
+          {
+            "index": 2,
+            "outcome": "pass",
+            "failureCategory": null,
+            "durationSeconds": 9.9999999999999995E-08
+          }
+        ]
+      },
+      "payloadSha256": "F8AAC1BA7D35B2AB4FA4E8D75A9CEAF39EBF3FB617FE37D24E9B40AF75F1B97C",
+      "payloadByteLength": 694,
+      "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-doubles-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:0.33333333333333331,\u0022totalMutants\u0022:3,\u0022survivingMutants\u0022:1,\u0022killedMutants\u0022:[\u0022m-1\u0022,\u0022m-2\u0022],\u0022survivingMutantIds\u0022:[\u0022s-1\u0022],\u0022reason\u0022:null,\u0022gate\u0022:\u0022Ashlar.Infrastructure.Certification.CertificationGate\u0022,\u0022gatesPassed\u0022:[],\u0022inputs\u0022:[],\u0022proposer\u0022:null,\u0022attempts\u0022:[{\u0022index\u0022:1,\u0022outcome\u0022:\u0022fail\u0022,\u0022failureCategory\u0022:\u0022mutation\u0022,\u0022durationSeconds\u0022:0.0070000000000000001},{\u0022index\u0022:2,\u0022outcome\u0022:\u0022pass\u0022,\u0022failureCategory\u0022:null,\u0022durationSeconds\u0022:9.9999999999999995E-08}],\u0022ed25519PublicKey\u0022:null}"
+    },
+    {
+      "name": "v2-zero-signs",
+      "why": "Negative zero. The record carries -0 for escapeRate and for one durationSeconds and +0 for the other; all three emit 0. The two zeros are collapsed onto one canonical form deliberately: a signed zero makes the writers agree and leaves the readers disagreeing, because the netstandard2.0 asset reads -0 back as +0 and would re-emit 0 from the same record file. Collapsing means this case also passes on a target whose reader never recovers the sign, which is what makes it the stable choice; -0.0 == 0.0 in IEEE-754, so no precision is given up.",
+      "record": {
+        "schemaVersion": 2,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00\u002B00:00",
+        "brickId": "golden-doubles-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": -0,
+        "totalMutants": 3,
+        "survivingMutants": 1,
+        "killedMutants": [
+          "m-1",
+          "m-2"
+        ],
+        "survivingMutantIds": [
+          "s-1"
+        ],
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "attempts": [
+          {
+            "index": 1,
+            "outcome": "fail",
+            "failureCategory": "mutation",
+            "durationSeconds": -0
+          },
+          {
+            "index": 2,
+            "outcome": "pass",
+            "failureCategory": null,
+            "durationSeconds": 0
+          }
+        ]
+      },
+      "payloadSha256": "07F71E4FDF887306C9B1E3C9679A4225B25C877B5700B95B3757629B66E00CDE",
+      "payloadByteLength": 635,
+      "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-doubles-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:0,\u0022totalMutants\u0022:3,\u0022survivingMutants\u0022:1,\u0022killedMutants\u0022:[\u0022m-1\u0022,\u0022m-2\u0022],\u0022survivingMutantIds\u0022:[\u0022s-1\u0022],\u0022reason\u0022:null,\u0022gate\u0022:\u0022Ashlar.Infrastructure.Certification.CertificationGate\u0022,\u0022gatesPassed\u0022:[],\u0022inputs\u0022:[],\u0022proposer\u0022:null,\u0022attempts\u0022:[{\u0022index\u0022:1,\u0022outcome\u0022:\u0022fail\u0022,\u0022failureCategory\u0022:\u0022mutation\u0022,\u0022durationSeconds\u0022:0},{\u0022index\u0022:2,\u0022outcome\u0022:\u0022pass\u0022,\u0022failureCategory\u0022:null,\u0022durationSeconds\u0022:0}],\u0022ed25519PublicKey\u0022:null}"
+    },
+    {
+      "name": "v2-double-extremes",
+      "why": "The ends of the range, and the case where a shortest-round-trip form and a 17-digit form are not the same text. escapeRate is double.Epsilon, the smallest subnormal, which any fixed-width decimal format destroys outright; durationSeconds carries 1e23, whose shortest round-tripping form is 1E+23 and whose 17-digit form is 9.9999999999999992E+22, and then double.MaxValue. Round-trip fidelity is what these pin: every value here re-parses to the identical bit pattern on every target.",
+      "record": {
+        "schemaVersion": 2,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00\u002B00:00",
+        "brickId": "golden-doubles-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 4.9406564584124654E-324,
+        "totalMutants": 3,
+        "survivingMutants": 1,
+        "killedMutants": [
+          "m-1",
+          "m-2"
+        ],
+        "survivingMutantIds": [
+          "s-1"
+        ],
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "attempts": [
+          {
+            "index": 1,
+            "outcome": "fail",
+            "failureCategory": "mutation",
+            "durationSeconds": 9.9999999999999992E+22
+          },
+          {
+            "index": 2,
+            "outcome": "pass",
+            "failureCategory": null,
+            "durationSeconds": 1.7976931348623157E+308
+          }
+        ]
+      },
+      "payloadSha256": "3521A934FC7BD46414ED5C7E61DA0A9C11A782E5BEB17BE89AE66D1E0BA49981",
+      "payloadByteLength": 700,
+      "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-doubles-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:4.9406564584124654E-324,\u0022totalMutants\u0022:3,\u0022survivingMutants\u0022:1,\u0022killedMutants\u0022:[\u0022m-1\u0022,\u0022m-2\u0022],\u0022survivingMutantIds\u0022:[\u0022s-1\u0022],\u0022reason\u0022:null,\u0022gate\u0022:\u0022Ashlar.Infrastructure.Certification.CertificationGate\u0022,\u0022gatesPassed\u0022:[],\u0022inputs\u0022:[],\u0022proposer\u0022:null,\u0022attempts\u0022:[{\u0022index\u0022:1,\u0022outcome\u0022:\u0022fail\u0022,\u0022failureCategory\u0022:\u0022mutation\u0022,\u0022durationSeconds\u0022:9.9999999999999992E\u002B22},{\u0022index\u0022:2,\u0022outcome\u0022:\u0022pass\u0022,\u0022failureCategory\u0022:null,\u0022durationSeconds\u0022:1.7976931348623157E\u002B308}],\u0022ed25519PublicKey\u0022:null}"
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "_readme": "Golden canonical signing payloads for COMPOSITION certification records (CompositionCertificationRecordSigner). These bytes are the message every composition admission signature is computed over, so they are pinned here and read by the in-repo golden test. To regenerate a case deliberately, copy the actual payload the failing test prints into this file. Regenerate ONLY when the canonical form is deliberately changed, and understand that changing it invalidates every composition signature already written. Doubles are deliberately restricted to exactly representable values: decimal formatting of arbitrary doubles is not identical across every target this tree builds for.",
+  "_readme": "Golden canonical signing payloads for COMPOSITION certification records (CompositionCertificationRecordSigner). These bytes are the message every composition admission signature is computed over, so they are pinned here and read by the in-repo golden test. To regenerate a case deliberately, copy the actual payload the failing test prints into this file. Regenerate ONLY when the canonical form is deliberately changed, and understand that changing it invalidates every composition signature already written. Doubles are emitted in ONE canonical form - 17 significant digits on the invariant culture, both zeros collapsed onto 0, NaN and the infinities refused outright - the same form and the same decisions as the brick lane, because the decimal form a target's own formatter produces is not the same on all of them. See CertificationRecordSigning.WriteNumberOrNull; the awkward-double cases below pin it here.",
   "cases": [
     {
       "name": "composition-populated",
@@ -95,6 +95,53 @@
       "payloadSha256": "E4E6B8D5E706F4056FFA2175987CCA216C27778B08569CAB4F1A6920BCA3B98C",
       "payloadByteLength": 412,
       "payload": "{\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022compositionId\u0022:\u0022caf\\u00E9-composition\u0022,\u0022compositionEscapeRate\u0022:0.25,\u0022totalStructuralMutants\u0022:1,\u0022survivingStructuralMutants\u0022:0,\u0022killedStructuralMutantIds\u0022:[\u0022m-1\u0022],\u0022survivingStructuralMutantIds\u0022:[],\u0022reason\u0022:\u0022caf\\u00E9 \\u003Cscript\\u003E \\u0026 \\u0027quote\\u0022 \\u002B \\u2014 \\u0001 \\uD83D\\uDE00 tab\\there\u0022}"
+    },
+    {
+      "name": "composition-awkward-double",
+      "why": "The composition lane carries the same kind of double and the same emitter decision, so it is pinned the same way: 1/3 as compositionEscapeRate, the value whose decimal form differed between targets before one canonical form was chosen.",
+      "record": {
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00+00:00",
+        "compositionId": "golden-composition-doubles",
+        "compositionEscapeRate": 0.33333333333333331,
+        "totalStructuralMutants": 3,
+        "survivingStructuralMutants": 1,
+        "killedStructuralMutantIds": [
+          "m-1",
+          "m-2"
+        ],
+        "survivingStructuralMutantIds": [
+          "s-1"
+        ]
+      },
+      "payloadSha256": "C189FC48D25CD85DC9608D9EEDF28374F5596D0B11C7A6D85AE81AEA58671EF4",
+      "payloadByteLength": 348,
+      "payload": "{\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022compositionId\u0022:\u0022golden-composition-doubles\u0022,\u0022compositionEscapeRate\u0022:0.33333333333333331,\u0022totalStructuralMutants\u0022:3,\u0022survivingStructuralMutants\u0022:1,\u0022killedStructuralMutantIds\u0022:[\u0022m-1\u0022,\u0022m-2\u0022],\u0022survivingStructuralMutantIds\u0022:[\u0022s-1\u0022],\u0022reason\u0022:null}"
+    },
+    {
+      "name": "composition-zero-signs",
+      "why": "Negative zero on the composition lane. -0 emits 0, for the reason spelled out on the brick lane's v2-zero-signs case: a signed zero makes the writers agree and leaves the readers disagreeing.",
+      "record": {
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00+00:00",
+        "compositionId": "golden-composition-negative-zero",
+        "compositionEscapeRate": -0,
+        "totalStructuralMutants": 3,
+        "survivingStructuralMutants": 0,
+        "killedStructuralMutantIds": [
+          "m-1"
+        ],
+        "survivingStructuralMutantIds": []
+      },
+      "payloadSha256": "8689EAFAB8AC67F65C6A91595196D1F2FE78249543B061499B4CF99BBA8EB745",
+      "payloadByteLength": 325,
+      "payload": "{\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022compositionId\u0022:\u0022golden-composition-negative-zero\u0022,\u0022compositionEscapeRate\u0022:0,\u0022totalStructuralMutants\u0022:3,\u0022survivingStructuralMutants\u0022:0,\u0022killedStructuralMutantIds\u0022:[\u0022m-1\u0022],\u0022survivingStructuralMutantIds\u0022:[],\u0022reason\u0022:null}"
     }
   ]
 }

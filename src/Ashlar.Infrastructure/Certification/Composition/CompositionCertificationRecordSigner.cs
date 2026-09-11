@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -241,16 +242,35 @@ public sealed class CompositionCertificationRecordSigner
             writer.WriteNumber(name, value.Value);
     }
 
-    // WriteNumber(double) rather than a formatted string, so the target's own decimal form is
-    // reproduced rather than replaced. Choosing one form here would move signatures already
-    // written; the golden corpus restricts doubles to exactly representable values for the same
-    // reason.
+    // The same canonical decimal form the brick lane uses, for the same reason and with the same
+    // three decisions: G17 on the invariant culture because it is the width at which a binary64
+    // always round-trips and the one form measured identical on every target this payload is
+    // produced or re-produced on; both zeros collapsed onto "0" because emitting "-0" leaves the
+    // writers agreeing and the readers not; NaN and the infinities refused as a canonical-payload
+    // fault rather than left to throw ArgumentException past the verifier's catch. The full
+    // reasoning is on CertificationRecordSigning.WriteNumberOrNull - the two emitters must not
+    // drift apart, because a composition record carries a brick-shaped escape rate.
     private static void WriteNumberOrNull(Utf8JsonWriter writer, string name, double? value)
     {
         if (value is null)
+        {
             writer.WriteNull(name);
-        else
-            writer.WriteNumber(name, value.Value);
+            return;
+        }
+
+        var number = value.Value;
+        if (double.IsNaN(number) || double.IsInfinity(number))
+        {
+            throw new CanonicalPayloadException(
+                $"The canonical composition certification payload cannot be written: '{name}' is "
+                + $"{number.ToString(CultureInfo.InvariantCulture)}, and JSON has no number for NaN "
+                + "or infinity, so there are no bytes for a signature to cover.");
+        }
+
+        writer.WritePropertyName(name);
+        writer.WriteRawValue(
+            number == 0d ? "0" : number.ToString("G17", CultureInfo.InvariantCulture),
+            skipInputValidation: false);
     }
 
     private static void WriteOrdinalSorted(Utf8JsonWriter writer, string name, IReadOnlyList<string> values)

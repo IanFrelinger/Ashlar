@@ -66,6 +66,15 @@ deliberately NOT the same bytes and must not be converged:
   too, so the canonical form is a property of that file rather than of the serializer a
   consumer resolves — which is what lets the same bytes come out of a trimmed or
   ahead-of-time publish. `canonical-payloads.golden.json` pins them.
+- The **decimal form of a double** is part of that canonical form and is chosen here, not
+  delegated: 17 significant digits on the invariant culture, both zeros written as `0`, and
+  NaN and the infinities refused as `CanonicalPayloadException` because JSON has no number
+  for them. A target's own formatter is not a contract — measured, the netstandard2.0 asset
+  under Mono writes 1/3 as `0.33333333333333331` and drops the sign of `-0.0` where net8.0
+  and net10.0 write `0.3333333333333333` and `-0` — and bytes that back a signature must be
+  the same text wherever the record is signed or checked. 17 digits is the width at which a
+  binary64 always round-trips; the two zeros are collapsed because a signed zero agrees
+  between writers and disagrees between readers.
 
 *Corrected 2026-08-27.* This paragraph previously asserted that certification records
 already established the ordinal-sorted convention and that v1 "REUSES that machinery". That
