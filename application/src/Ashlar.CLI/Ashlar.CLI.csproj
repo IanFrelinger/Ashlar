@@ -40,6 +40,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="MediatR" />
+    <!-- Local GGUF inference opt-in, same reasoning as application/src/Ashlar.API: the backend
+         is PrivateAssets=all in the libraries, so every deployable host that wants the "local"
+         provider re-adds it. .docker/Dockerfile.cli publishes without -r, which keeps the four
+         CPU variants in separate runtimes/<rid>/native/<variant>/ folders. -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
 

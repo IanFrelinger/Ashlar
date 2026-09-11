@@ -31,6 +31,27 @@
 
   <ItemGroup>
     <PackageReference Include="MediatR" />
+    <!-- Local GGUF inference opt-in. Ashlar.Infrastructure marks this backend PrivateAssets=all so
+         that no consumer inherits its four colliding CPU-variant native sets, which means every
+         deployable host that wants LocalModelProvider (the "local" provider, gated on
+         ASHLAR_LOCAL_MODEL_PATH) has to re-add it. Dropping this line is a silent capability
+         loss, not a build error: "local" just reports unavailable. The API Dockerfiles publish
+         without -r, so the four variants keep their own runtimes/<rid>/native/<variant>/ folders;
+         a RID publish needs the variant prune documented in consumer-template/CONSUMING.md.
+         This reference stays PUBLIC, deliberately, and that is a trade-off rather than an
+         oversight. This project is IsPackable=true with PackageId Ashlar.API, so the packed
+         nuspec re-declares the backend and anyone who ever restored an Ashlar.API package would
+         inherit the four colliding variants and hit NETSDK1152 on their own RID publish - the
+         defect this release fixes, surviving one package over. PrivateAssets=all is not the way
+         out: measured in the devtest container, it removes the natives from THIS project's own
+         RID-less publish too (84 backend native files to 0 with nothing else changed), which is
+         exactly the capability the shipped API images are promised to keep. The leak is bounded
+         instead: no release workflow packs Ashlar.API (reusable-release-nuget.yml packs the
+         hosting graph, Client, Sdk, Authoring and the CLI tool), so no such package exists on a
+         feed, and the A2A note below already says this project is not pack-ready. If Ashlar.API
+         is ever put on a feed, the backend has to move behind a separate opt-in package or the
+         API has to stop being packable - it cannot be solved on this line. -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <!-- OTLP export (traces + metrics), active only when OTEL_EXPORTER_OTLP_ENDPOINT is set. -->
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />

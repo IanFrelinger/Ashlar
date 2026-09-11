@@ -54,7 +54,17 @@
     <PackageReference Include="Polly" />
     <PackageReference Include="OsmSharp" />
     <PackageReference Include="LlamaSharp" />
-    <PackageReference Include="LLamaSharp.Backend.Cpu" />
+    <!-- PrivateAssets: the backend ships four same-named CPU-variant native sets (avx, avx2,
+         avx512, noavx) under a single runtimes/<rid>/native tree. A RID publish flattens that
+         tree, so every consumer of this package failed `dotnet publish -r <rid>` with NETSDK1152
+         on 20 colliding files. PrivateAssets is the only knob that changes the PACKED dependency
+         list, and that list is the only thing a third party restoring from a feed can see — a
+         Condition here would be evaluated at pack time and be invisible to them. The managed
+         LlamaSharp package above is what the C# compiles against; this one contributes natives
+         only, so nothing fails to build without it. Local GGUF inference is therefore opt-in per
+         deployable host (application/src/Ashlar.API, application/src/Ashlar.CLI, and the snippet
+         in consumer-template/CONSUMING.md for third parties). -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" PrivateAssets="all" />
     <PackageReference Include="xunit">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>compile</IncludeAssets>

@@ -353,6 +353,10 @@ HOST_LOG="${WORK}/host.log"
 HOST_PID=""
 
 cleanup() {
+  if [[ -n "${PUBLISHED_PID:-}" ]] && kill -0 "${PUBLISHED_PID}" 2>/dev/null; then
+    kill "${PUBLISHED_PID}" 2>/dev/null || true
+    wait "${PUBLISHED_PID}" 2>/dev/null || true
+  fi
   if [[ -n "${HOST_PID}" ]] && kill -0 "${HOST_PID}" 2>/dev/null; then
     kill "${HOST_PID}" 2>/dev/null || true
     wait "${HOST_PID}" 2>/dev/null || true
@@ -394,5 +398,120 @@ dotnet run --project "${CLIENT_DIR}/ExternalProductClient.csproj" \
   -c Release \
   --no-build \
   -- "${HOST_URL}"
+
+# --- RID publish ------------------------------------------------------------------------------
+# A consumer that ships a container image publishes for a RID, and until the LLamaSharp backend
+# became PrivateAssets=all that publish failed NETSDK1152 on four same-named CPU-variant native
+# sets. This gate restored, built and ran the host but never published it, which is the only
+# reason that shipped. The publish settings are written INTO a second rendered copy of the
+# template rather than passed as -p: switches: a command-line property is a GLOBAL MSBuild
+# property that flows into every project in the graph, so it would measure something other than
+# what a consumer writes.
+#
+# This runs against whatever feed the rest of the script used, including a published one via
+# verify-external-product-shape-published.sh: pointed at 0.1.2 or earlier it fails, correctly, because
+# those packages really cannot be RID-published. ASHLAR_EXTERNAL_PRODUCT_VERIFY_SKIP_PUBLISH=1 opts out.
+PUBLISH_RID="${ASHLAR_EXTERNAL_PRODUCT_VERIFY_RID:-linux-x64}"
+if [[ -n "${ASHLAR_EXTERNAL_PRODUCT_VERIFY_SKIP_PUBLISH:-}" ]]; then
+  echo "==> Skipping RID publish (ASHLAR_EXTERNAL_PRODUCT_VERIFY_SKIP_PUBLISH set)"
+else
+  # Same directory depth as the host copy, so the template's ../../brick/… reference still resolves.
+  PUBLISH_SRC="${CONSUMER_ROOT}/publish-host/ExternalProductHost"
+  PUBLISH_OUT="${WORK}/publish-${PUBLISH_RID}"
+  mkdir -p "${PUBLISH_SRC}"
+  render "${TEMPLATE_DIR}/ExternalProductHost.csproj" "${PUBLISH_SRC}/ExternalProductHost.csproj"
+  render "${TEMPLATE_DIR}/Program.cs" "${PUBLISH_SRC}/Program.cs"
+  python3 - "${PUBLISH_SRC}/ExternalProductHost.csproj" "${PUBLISH_RID}" <<'PY'
+import sys
+path, rid = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8") as fh:
+    text = fh.read()
+marker = "  </PropertyGroup>"
+assert marker in text, path
+text = text.replace(
+    marker,
+    f"    <RuntimeIdentifier>{rid}</RuntimeIdentifier>\n"
+    "    <SelfContained>false</SelfContained>\n" + marker,
+    1)
+with open(path, "w", encoding="utf-8") as fh:
+    fh.write(text)
+PY
+
+  echo "==> dotnet publish -r ${PUBLISH_RID} (consumer host, settings in the csproj)"
+  dotnet publish "${PUBLISH_SRC}/ExternalProductHost.csproj" \
+    -c Release \
+    -o "${PUBLISH_OUT}" \
+    --configfile "${CFG}" \
+    -v minimal
+
+  # Exit code is not enough: a publish that silently drops native payloads also exits 0. The
+  # backend is opt-in (consumer-template/CONSUMING.md), so the correct count here is zero. Match
+  # the backend's own native file names only: managed LLamaSharp.dll IS expected here — it is what
+  # the Ashlar assemblies compile against, and it carries no natives.
+  NATIVE_NAME_FILTER=( \( -iname 'libggml*' -o -iname 'libllama*' -o -iname 'libmtmd*' \
+                          -o -iname 'ggml*.dll' -o -iname 'llama.dll' -o -iname 'mtmd.dll' \) )
+  LLAMA_NATIVES="$(find "${PUBLISH_OUT}" "${NATIVE_NAME_FILTER[@]}" -type f | wc -l | tr -d ' ')"
+  if [[ "${LLAMA_NATIVES}" != "0" ]]; then
+    echo "Expected no LLamaSharp backend payload in a default consumer publish; found ${LLAMA_NATIVES}:" >&2
+    find "${PUBLISH_OUT}" "${NATIVE_NAME_FILTER[@]}" -type f >&2
+    exit 1
+  fi
+  echo "RID publish OK: ${PUBLISH_OUT} (0 LLamaSharp backend files)"
+
+  # Publishing proves the SDK is satisfied; only running proves the output is a product. Skipped
+  # when the RID is not this machine's, where the apphost cannot execute.
+  HOST_RID="$(dotnet --info | awk -F': *' '/^ *RID: */ { print $2; exit }')"
+  if [[ "${PUBLISH_RID}" != "${HOST_RID}" ]]; then
+    echo "==> Not executing the published host: built for ${PUBLISH_RID}, this machine is ${HOST_RID}"
+  else
+    PUBLISH_PORT="$(python3 - <<'PY'
+import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()
+PY
+)"
+    PUBLISH_URL="http://127.0.0.1:${PUBLISH_PORT}"
+    echo "==> Starting the PUBLISHED host at ${PUBLISH_URL}"
+    ASPNETCORE_URLS="${PUBLISH_URL}" "${PUBLISH_OUT}/ExternalProductHost" >"${WORK}/published-host.log" 2>&1 &
+    PUBLISHED_PID=$!
+    start_ts=$(date +%s)
+    until curl -fsS "${PUBLISH_URL}/health" >/dev/null 2>&1; do
+      if ! kill -0 "${PUBLISHED_PID}" 2>/dev/null; then
+        echo "Published host exited before /health became ready." >&2
+        cat "${WORK}/published-host.log" >&2 || true
+        exit 1
+      fi
+      if (( $(date +%s) - start_ts > WAIT_SECS )); then
+        echo "Timeout waiting for ${PUBLISH_URL}/health after ${WAIT_SECS}s" >&2
+        cat "${WORK}/published-host.log" >&2 || true
+        exit 1
+      fi
+      sleep 1
+    done
+    echo "GET ${PUBLISH_URL}/health -> $(curl -fsS "${PUBLISH_URL}/health")"
+
+    EXEC_BODY=""
+    if [[ "${USE_PROBE_BRICK}" -eq 1 ]]; then
+      # The probe brick takes a different input shape; /health is the portable assertion there.
+      echo "==> Probe brick in use: skipping the published brick execution"
+    else
+      EXEC_BODY="$(curl -fsS -X POST "${PUBLISH_URL}/api/bricks/${BRICK_ID}/execute" \
+        -H 'Content-Type: application/json' \
+        -d '{"implementation":"Deterministic","input":{"intensity":21}}')"
+      echo "POST ${PUBLISH_URL}/api/bricks/${BRICK_ID}/execute -> ${EXEC_BODY}"
+    fi
+
+    kill "${PUBLISHED_PID}" 2>/dev/null || true
+    wait "${PUBLISHED_PID}" 2>/dev/null || true
+    PUBLISHED_PID=""
+
+    if [[ "${USE_PROBE_BRICK}" -eq 0 && "${EXEC_BODY}" != *'"success":true'* ]]; then
+      echo "Published host did not execute the brick successfully." >&2
+      exit 1
+    fi
+  fi
+fi
 
 echo "verify-external-product-shape: OK (${WORK})"
