@@ -9,6 +9,17 @@
 # checked-in golden corpus. Execution, not compilation: the ns2.0 asset was compiled in three
 # CI places and nothing caught anything until a probe actually ran it.
 #
+# The second lane asks the other half of the same question. A host does not have to publish the
+# way `dotnet build` does, and the canonical signing payload plus the certified transition entry
+# hash must come out byte-identical when it does not. `scripts/portability/trim-aot-canonical-bytes-probe.sh`
+# publishes a minimal certification consumer SELF-CONTAINED and TRIMMED (partial, full, and full
+# with the reflection-based serializer explicitly re-enabled) and AHEAD-OF-TIME, then RUNS each
+# published binary against the same checked-in corpora the xunit golden suites read. It also
+# requires each binary to still REFUSE - a tampered signature, a content hash that no longer
+# binds, a schema version that selects no payload lane, a repeated proposer parameter key, a
+# double JSON has no number for - because a build whose verifier had been trimmed into
+# unconditional agreement would emit the right bytes and pass a positive-only probe.
+#
 # ADVISORY. Path-filtered, so it cannot be a required status check (a required context that
 # never reports blocks the merge forever — see docs/CiGateInventory.md). It does not use
 # `continue-on-error`: a red run here is a real runtime regression and must be read as one.
@@ -31,8 +42,12 @@ on:
       - ".github/workflows/runtime-portability-gate.yml"
       - "scripts/portability/**"
       - "src/Ashlar.Certification.Contracts/**"
+      # The trim/AOT consumer references State and reads its corpus, so a change to either must
+      # fire this workflow. Without these two lines the lane looks healthy by never running.
+      - "src/Ashlar.Certification.State/**"
       - "src/Ashlar.Compat/**"
       - "src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json"
+      - "src/Ashlar.Tests.Infrastructure/Tests/Certification/transition-entry-hashes.golden.json"
       - "Directory.Build.props"
       - "Directory.Build.targets"
       - "Directory.Packages.props"
@@ -42,8 +57,12 @@ on:
       - ".github/workflows/runtime-portability-gate.yml"
       - "scripts/portability/**"
       - "src/Ashlar.Certification.Contracts/**"
+      # The trim/AOT consumer references State and reads its corpus, so a change to either must
+      # fire this workflow. Without these two lines the lane looks healthy by never running.
+      - "src/Ashlar.Certification.State/**"
       - "src/Ashlar.Compat/**"
       - "src/Ashlar.Tests.Infrastructure/Tests/Certification/canonical-payloads.golden.json"
+      - "src/Ashlar.Tests.Infrastructure/Tests/Certification/transition-entry-hashes.golden.json"
       - "Directory.Build.props"
       - "Directory.Build.targets"
       - "Directory.Packages.props"
@@ -133,5 +152,98 @@ jobs:
             ${{ runner.temp }}/net9-probe/net9-probe.log
             ${{ runner.temp }}/net9-probe/net9/Net9Probe.deps.json
             ${{ runner.temp }}/net9-probe/net9/Net9Probe.runtimeconfig.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  trim-aot-canonical-bytes:
+    name: net10.0 trimmed / AOT publish → canonical bytes (execute)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # No `needs`: the two lanes measure different things and neither gates the other. One job per
+    # configuration so a single-mode regression names itself in the check list rather than in a
+    # log, and fail-fast off so one red mode does not hide the state of the other three.
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - trim-partial
+          - trim-full
+          - trim-full-reflection-on
+          - aot
+    env:
+      TRIM_AOT_PROBE_WORKDIR: ${{ runner.temp }}/trim-aot-probe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          # 10.0.x only, and deliberately only: the consumer is published self-contained, so it
+          # carries its own runtime and resolves nothing from an installed one. PublishAot also
+          # needs a C toolchain and linker, which the ubuntu-latest image already provides.
+          dotnet-version: 10.0.x
+
+      - name: Installed runtimes
+        shell: bash
+        run: dotnet --list-runtimes
+
+      - name: Publish ${{ matrix.configuration }} self-contained and execute it
+        shell: bash
+        # The publish properties are written INTO the generated consumer csproj by the probe,
+        # never passed as `-p:`. A `-p:` switch is an MSBuild global property: it would flow into
+        # the referenced multi-targeted projects, whose netstandard2.0 leg then refuses to build
+        # (NETSDK1124 / NETSDK1207), and the configuration named here would never be reached. Do
+        # not "simplify" this line into one.
+        run: bash scripts/portability/trim-aot-canonical-bytes-probe.sh ${{ matrix.configuration }}
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="${TRIM_AOT_PROBE_WORKDIR}/trim-aot-probe.log"
+          {
+            echo "## Runtime Portability Gate — ${{ matrix.configuration }}"
+            echo ""
+            if [[ ! -f "${LOG}" ]]; then
+              echo "No probe log at \`${LOG}\` — the publish failed before the binary ran (see the job log)."
+            else
+              # The probe prints one line per check and one summary line per section; this only
+              # re-reads them, so the table cannot disagree with what was measured.
+              runtime="$(grep -m1 '^runtime:' "${LOG}" | sed 's/^runtime: *//' || true)"
+              warnings="$(grep -m1 '^trim/AOT analysis warnings:' "${LOG}" | sed 's/^.*: *//' || true)"
+              ok="$(grep -cE '^  OK   ' "${LOG}" || true)"
+              fail="$(grep -cE '^  FAIL ' "${LOG}" || true)"
+              bytes="$(grep -m1 -E '^(PASS|FAIL): .*canonical payloads' "${LOG}" || true)"
+              hashes="$(grep -m1 -E '^(PASS|FAIL): .*transition entry hashes' "${LOG}" || true)"
+              refusals="$(grep -m1 -E '^(PASS|FAIL): .*refusals' "${LOG}" || true)"
+              result="$(grep -m1 -E '^PROBE (PASS|FAIL)' "${LOG}" || true)"
+              echo "| Check | Result |"
+              echo "|-------|--------|"
+              echo "| Publish mode | \`${{ matrix.configuration }}\` |"
+              echo "| Runtime | \`${runtime:-?}\` |"
+              echo "| Trim/AOT analysis warnings | ${warnings:-?} |"
+              echo "| Canonical signing payloads | ${bytes:-no line — the binary did not finish this section} |"
+              echo "| Certified transition entry hashes | ${hashes:-no line — the binary did not finish this section} |"
+              echo "| Refusals (the binary must still say no) | ${refusals:-no line — the binary did not finish this section} |"
+              echo "| All checks | ${ok} OK / ${fail} FAIL |"
+              echo ""
+              echo "**Result:** ${result:-no PROBE line — the consumer did not finish}"
+            fi
+            echo ""
+            echo "Advisory lane (not a required status check); a red run is a real publish-mode regression — read it."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+
+      - name: Upload probe log and publish log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # v4 artifact names must be unique within a run, and four configurations run in parallel.
+          name: runtime-portability-trim-aot-${{ matrix.configuration }}
+          path: |
+            ${{ runner.temp }}/trim-aot-probe/trim-aot-probe.log
+            ${{ runner.temp }}/trim-aot-probe/*.run.log
+            ${{ runner.temp }}/trim-aot-probe/*.publish.log
           if-no-files-found: warn
           retention-days: 14

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -159,9 +160,10 @@ public static class CertificationRecordSigning
     // behind one "canonical bytes" claim.
     //
     // Utf8JsonWriter still does the encoding, deliberately: its defaults are compact output and
-    // the default JavaScript encoder, and WriteNumber(double) keeps whatever decimal form the
-    // target produces. This change is about how the bytes are ORDERED and NAMED and must not
-    // move one of them; canonical-payloads.golden.json is what says it did not.
+    // the default JavaScript encoder. The one thing it is NOT trusted with is the decimal form of
+    // a double - WriteNumberOrNull below chooses that, because the targets this package ships for
+    // do not produce the same text for the same value. canonical-payloads.golden.json is what says
+    // the bytes are what this file says they are.
     private static string WritePayload(CertificationRecordData record, int? schemaVersion)
     {
         using var buffer = new MemoryStream(PayloadBufferHint);
@@ -315,17 +317,69 @@ public static class CertificationRecordSigning
             writer.WriteNumber(name, value.Value);
     }
 
-    // WriteNumber(double) rather than a formatted string. The decimal form of an arbitrary
-    // double is not identical across the three targets this package ships for, and reproducing
-    // each target's own form is what keeps this change byte-neutral; choosing one form here
-    // would be a different change, and would move signatures already written. The golden corpus
-    // restricts doubles to exactly representable values for the same reason.
+    // The decimal form of a double is CHOSEN here rather than delegated. WriteNumber(double)
+    // reproduces whatever form the target's own formatter produces, and those forms are not the
+    // same on every target this package ships for: the netstandard2.0 asset writes 1/3 as
+    // 0.33333333333333331 where net8.0 and net10.0 write 0.3333333333333333. These bytes back
+    // every signature over the record, so one form has to hold on all of them.
+    //
+    // G17 on the invariant culture is that form, and WIDTH is what it fixes. 17 significant
+    // digits is the width at which a binary64 always survives a round trip - a width, not a
+    // heuristic - and at that width every value this tree signs or pins was measured
+    // character-for-character identical, and re-parsing to the identical bit pattern, on net8.0,
+    // net10.0 and the netstandard2.0 asset under Mono.
+    //
+    // A WIDTH IS NOT A ROUNDING RULE, AND ONE CLASS IS NOT CLOSED. Where the exact binary64 value
+    // falls precisely halfway between two 17-digit decimals, the runtimes break that tie in
+    // opposite directions: Mono 6.12 away from zero, net8.0 and net10.0 to even. The worked case
+    // is 0.500003814697265625 (0.5 + 2^-18, exactly representable, inside escapeRate's documented
+    // range) - net8.0 and net10.0 write 0.50000381469726562, the netstandard2.0 asset under Mono
+    // writes 0.50000381469726563. Both texts re-parse to the identical bit pattern on their own
+    // runtime, so nothing is lost; the BYTES differ, and these bytes back a signature. Read the
+    // paragraph above with this one: one form at one width everywhere, except that an exact tie is
+    // still rounded by the target's formatter. CanonicalDoubleRepresentationTests pins the case
+    // and both known forms so the class cannot widen unnoticed. Closing it means deriving the
+    // digits here from the bit pattern instead of asking for a format.
+    //
+    // "R" is not usable: the targets disagree on it (1/3 and double.Epsilon among others) and its
+    // meaning changed at .NET Core 3.0. A fixed format is not usable either: no fractional width
+    // spans double.Epsilon to double.MaxValue, and a form that loses precision cannot back a
+    // signature.
+    //
+    // Both zeros collapse onto "0" DELIBERATELY - do not restore the sign here. Emitting "-0"
+    // makes the three writers agree and leaves the system disagreeing, because the netstandard2.0
+    // asset reads -0 back as +0 and would re-emit "0", computing different bytes from the same
+    // record file. Collapsing gives up only the sign bit of a zero (-0.0 == 0.0) and is stable
+    // through emit, read and re-emit on every target.
+    //
+    // NaN and the infinities have no JSON number at all, so refusing them IS the canonical answer.
+    // Utf8JsonWriter already refuses them - but with an ArgumentException, which VerifySignature
+    // does not catch and therefore throws into its host. Refused here through the vehicle every
+    // other canonical refusal uses, so a verifier answers rather than throws.
     private static void WriteNumberOrNull(Utf8JsonWriter writer, string name, double? value)
     {
         if (value is null)
+        {
             writer.WriteNull(name);
-        else
-            writer.WriteNumber(name, value.Value);
+            return;
+        }
+
+        var number = value.Value;
+        if (double.IsNaN(number) || double.IsInfinity(number))
+        {
+            throw new CanonicalPayloadException(
+                $"The canonical certification payload cannot be written: '{name}' is "
+                + $"{number.ToString(CultureInfo.InvariantCulture)}, and JSON has no number for NaN "
+                + "or infinity, so there are no bytes for a signature to cover.");
+        }
+
+        writer.WritePropertyName(name);
+
+        // Validation is left ON: WriteRawValue re-reads the text as a JSON number, which is a
+        // second and independent check that what the formatter produced is a number at all.
+        writer.WriteRawValue(
+            number == 0d ? "0" : number.ToString("G17", CultureInfo.InvariantCulture),
+            skipInputValidation: false);
     }
 
     private static void WriteOrdinalSorted(Utf8JsonWriter writer, string name, IReadOnlyList<string> values)

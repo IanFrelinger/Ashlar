@@ -66,6 +66,27 @@ deliberately NOT the same bytes and must not be converged:
   too, so the canonical form is a property of that file rather than of the serializer a
   consumer resolves — which is what lets the same bytes come out of a trimmed or
   ahead-of-time publish. `canonical-payloads.golden.json` pins them.
+- The **decimal form of a double** is part of that canonical form and is chosen here, not
+  delegated: 17 significant digits on the invariant culture, both zeros written as `0`, and
+  NaN and the infinities refused as `CanonicalPayloadException` because JSON has no number
+  for them. A target's own formatter is not a contract — measured, the netstandard2.0 asset
+  under Mono writes 1/3 as `0.33333333333333331` and drops the sign of `-0.0` where net8.0
+  and net10.0 write `0.3333333333333333` and `-0` — and bytes that back a signature must be
+  the same text wherever the record is signed or checked. 17 digits is the width at which a
+  binary64 always round-trips; the two zeros are collapsed because a signed zero agrees
+  between writers and disagrees between readers.
+- **What the chosen width fixes, and what it does not.** The width is fixed on every target;
+  the rounding of an exact tie at the 17th significant digit is not, because that rounding is
+  still the target formatter's. Measured: Mono 6.12 breaks such a tie away from zero where
+  net8.0 and net10.0 break it to even, so `0.5 + 2^-18` (`0.500003814697265625`, exactly
+  representable) is written `0.50000381469726562` on the .NET targets and
+  `0.50000381469726563` on the `netstandard2.0` asset under Mono — same width, same value on
+  re-parse, different bytes and therefore a different signature. No value any producer in this
+  repository signs or any corpus pins is such a tie, and
+  `CanonicalDoubleRepresentationTests` pins the case with both known forms so the class cannot
+  widen unnoticed; a consumer computing a signature over an arbitrary double must not read
+  "chosen here, not delegated" as covering it. Closing it means deriving the digits from the
+  bit pattern in the emitter rather than asking a formatter for a width.
 
 *Corrected 2026-08-27.* This paragraph previously asserted that certification records
 already established the ordinal-sorted convention and that v1 "REUSES that machinery". That
