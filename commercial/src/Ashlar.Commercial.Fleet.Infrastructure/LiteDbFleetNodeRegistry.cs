@@ -21,16 +21,49 @@ public sealed class LiteDbFleetNodeRegistry : IFleetNodeRegistry
         LiteDbDocumentMapper.EnsureMapped<MeshFleetNodeDoc>();
     }
 
-    /// <summary>Register or update async operation.</summary>
-    public async Task RegisterOrUpdateAsync(MeshFleetNodeState node, CancellationToken cancellationToken = default)
+    /// <summary>Register or merge async operation.</summary>
+    /// <param name="peerId">Worker peer id.</param>
+    /// <param name="merge">Builds the document from the one read inside the transaction (null when new).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The state that was written.</returns>
+    /// <remarks>
+    /// The read the merge needs happens here, inside the transaction, instead of in the endpoint on
+    /// a database this store had already closed. That is the whole fix: a revoke committing between
+    /// a registering node's read and its write used to be overwritten with the <c>Admitted = true</c>
+    /// the read had seen.
+    /// </remarks>
+    public async Task<MeshFleetNodeState> RegisterOrMergeAsync(
+        string peerId,
+        Func<MeshFleetNodeState?, MeshFleetNodeState> merge,
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(peerId))
+            throw new ArgumentException("peerId is required.", nameof(peerId));
+        if (merge is null)
+            throw new ArgumentNullException(nameof(merge));
+
         LiteDbDocumentMapper.EnsureMapped<MeshFleetNodeDoc>();
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             using var db = new LiteDatabase(_connectionString);
             var col = db.GetCollection<MeshFleetNodeDoc>(LiteDbMeshDirectorConnection.FleetCollection);
-            col.Upsert(MeshFleetNodeDoc.FromState(node));
+            return LiteDbAtomic.Mutate(db, () =>
+            {
+                var current = col.FindById(peerId);
+                var next = merge(current?.ToState());
+                if (next is null)
+                    throw new InvalidOperationException("the merge returned null; it must return the document to store.");
+                if (!string.Equals(next.PeerId, peerId, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"a fleet node merge may not change PeerId ('{peerId}' -> '{next.PeerId}'). "
+                        + "The write is addressed by the id the read used.");
+                }
+
+                col.Upsert(MeshFleetNodeDoc.FromState(next));
+                return next;
+            });
         }
         finally
         {

@@ -354,7 +354,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
         RaceOnAColdMapper("pattern-processed", "processed_patterns", (index, dbPath) =>
         {
             var store = new LiteDbPatternProcessedStore(dbPath);
-            store.MarkProcessedAsync($"pattern-{index}").GetAwaiter().GetResult();
+            store.TryClaimAsync($"pattern-{index}").GetAwaiter().GetResult();
 
             store.IsProcessedAsync($"pattern-{index}").GetAwaiter().GetResult();
         });

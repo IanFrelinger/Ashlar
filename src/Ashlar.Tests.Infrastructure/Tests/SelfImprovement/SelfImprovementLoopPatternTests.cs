@@ -113,7 +113,7 @@ public sealed class SelfImprovementLoopPatternTests : TempDirTestBase
             Metadata = System.Text.Json.JsonSerializer.SerializeToElement(new { path = "src/SomeFile.cs" }),
         });
 
-        await processedStore.MarkProcessedAsync("p3");
+        (await processedStore.TryClaimAsync("p3")).Should().BeTrue();
 
         var failures = new List<TestFailureRecord>();
         var services = new ServiceCollection()

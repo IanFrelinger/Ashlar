@@ -25,7 +25,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// the shape of the failure was the same: the edits landed, nothing froze them, and the next store
 /// to arrive was written the old way. The seven edits are the smaller half of this fix.</para>
 ///
-/// <para><b>Six facts.</b> <see cref="Every_read_modify_write_is_inventoried"/> fails when a new
+/// <para><b>Eight facts.</b> <see cref="Every_read_modify_write_is_inventoried"/> fails when a new
 /// store method pairs a read with a write and is not on the list — that is the new-offender half.
 /// <see cref="No_inventory_row_has_stopped_doing_a_read_modify_write"/> fails on a stale row, because
 /// a row describing a pair that no longer exists reads as accounted-for debt and quietly turns a
@@ -51,27 +51,46 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <c>ILiteCollection</c> impossible to obtain without the scan seeing it, which is a convention and
 /// not a style preference.</para>
 ///
-/// <para><b>What this guard does NOT catch.</b> It reads text within a single member, so it only sees
-/// a pair whose halves are both inside one store method. The other shape is a caller that reads
-/// through one store method, decides, and writes through another — the database is opened and closed
-/// in between, so no transaction can span it and no text scan of the stores can see it. Those sites
-/// are real and they are still open at the time of writing:
-/// <c>CommercialFleetEndpoints.PatchMeshTaskStatusAsync</c> (reads and COMPARES
-/// <c>MeshTaskDoc.LeaseToken</c>, then writes without it as a precondition),
-/// <c>CommercialFleetEndpoints.RegisterFleetNodeAsync</c> (reads the node through
-/// <c>IFleetNodeRegistry.GetAsync</c>, derives <c>Admitted</c> from that snapshot, and then writes the
-/// WHOLE document back through <c>RegisterOrUpdateAsync</c> — so a <c>revoke</c> landing in the window
-/// is reverted; the <c>Drained</c> half of the same write was NOT a race and is fixed, see below),
-/// <c>MeshTaskPlacementService.TryPlaceAsync</c>, <c>MeshTaskExecutionService.ExtendLeaseAsync</c> and
-/// <c>MigrateForCheckpointAsync</c>, <c>MeshLeaseSweepBackgroundService</c>,
-/// <c>MeshPendingTaskRebalancerBackgroundService</c>, <c>PipelineOrchestrator</c>'s resume path, and
-/// <c>SelfImprovementLoop</c>'s <c>IsProcessed</c>/<c>MarkProcessed</c> guard. Closing those needs a
-/// compare-and-swap precondition on the port (<c>LeaseToken</c> is the natural token for the mesh
-/// ones; <c>LiteDbPatternProcessedStore</c> wants a unique index instead), which is a port change
-/// rather than a store change. Do not read this test's silence about them as a claim they are safe.
-/// None of them can get an inventory row either: <c>RegisterOrUpdateAsync</c>, for instance, is
-/// write-only inside its own method, so the scan below sees nothing to inventory. This paragraph is
-/// the only place a reviewer learns of them.</para>
+/// <para>The last two are about the CALLER side, which the six above cannot reach at all.
+/// <see cref="Every_port_that_lost_its_unconditional_write_keeps_the_shape_that_replaced_it"/>
+/// freezes the three port signatures whose removal is what closed it, and
+/// <see cref="The_port_shape_scan_still_tells_the_two_shapes_apart"/> drives that scan's own
+/// matcher, because a frozen inventory whose matcher has stopped matching is green and empty at the
+/// same time.</para>
+///
+/// <para><b>What this guard does NOT catch, and what stopped being true.</b> It reads text within a
+/// single member, so it only sees a pair whose halves are both inside one store method. The other
+/// shape is a caller that reads through one store method, decides, and writes through another — the
+/// database is opened and closed in between, so no transaction can span it and no text scan of the
+/// stores can see it. Nine such sites were listed here as open. Eight are now closed, not by
+/// guarding each caller but by removing the shape from the three ports they went through, so the
+/// compiler refuses it: <c>IMeshTaskRegistry.UpdateAsync</c> and
+/// <c>IFleetNodeRegistry.RegisterOrMergeAsync</c> take a transform the STORE applies to the document
+/// it reads inside its own write transaction, and <c>IPatternProcessedStore.TryClaimAsync</c>
+/// replaced a check-then-act with a claim a unique index decides.
+/// <see cref="Every_port_that_lost_its_unconditional_write_keeps_the_shape_that_replaced_it"/>
+/// freezes that, because nothing else would notice the old overload coming back — no automatically
+/// triggered workflow compiles <c>commercial/</c> at all.</para>
+///
+/// <para>Two sites are NOT closed and are open debt, named here because this is still the only
+/// place a reviewer learns of them. <c>PipelineOrchestrator</c>'s resume path reads a prior run at
+/// <c>TryHydrateFromPriorRunAsync</c> and then writes the whole rebuilt run seven times as the loop
+/// advances; <c>PipelineRunDocument</c> carries no version and no etag, so closing it needs a new
+/// field plus a migration for every document on disk, which is a change of its own and not a
+/// by-product of this one. Its reachability is the narrowest of the nine — the store is LiteDB-backed
+/// only under <c>ASHLAR_PIPELINE_STORE_PROVIDER=LiteDb</c> and its only production caller is the CLI
+/// — but two <c>ashlar pipeline run</c> processes on one store path is the whole hazard and it is
+/// real. Second, <c>MeshTaskPlacementService.TryPlaceAsync</c> still re-places a task in the
+/// <c>Failed</c> state; that one is a semantics question, not a lost update — it happens on a single
+/// fresh read with no concurrency at all — so a concurrency change was the wrong place to decide it.
+/// Do not read this test's silence about either as a claim they are safe.</para>
+///
+/// <para><c>MeshPendingTaskRebalancerBackgroundService</c> was on the list and should not have been:
+/// it contains no write of any kind. It passes a task id to
+/// <c>IMeshTaskPlacementService.TryScheduleAsync</c>, which re-reads and re-decides, so its stale
+/// snapshot costs at most a wasted call. It is worth naming for a different reason — it is the
+/// timer-driven concurrent caller that makes the placement, lease and sweep windows reachable with
+/// no operator involved.</para>
 ///
 /// <para><b>One of those was not a race at all, and is fixed.</b> <c>RegisterFleetNodeAsync</c> built
 /// its <c>MeshFleetNodeState</c> with <c>Drained: body.Drained</c> off a non-nullable
@@ -86,8 +105,12 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///
 /// <para>The behavioural half of THIS fix lives in
 /// <c>Tests/Persistence/LiteDbAtomicReadModifyWriteTests</c>, which races N threads over one id and
-/// counts surviving updates — assert on counts there, never on an expected exception, because this
-/// race throws nothing on any platform.</para>
+/// counts surviving updates. The caller-side half lives in
+/// <c>Tests/Persistence/LiteDbPatternProcessedStoreClaimTests</c> and, for the mesh, in
+/// <c>Ashlar.Commercial.Tests.Fleet</c>'s <c>MeshTaskWriteRaceTests</c> and
+/// <c>FleetNodeRegistrationRaceTests</c> — that project runs in NO automatically triggered lane, so
+/// those are a regression record and this file is the guard. Assert on counts there, never on an
+/// expected exception, because these races throw nothing on any platform.</para>
 ///
 /// <para>Hermetic: pure file reads, no build, no network, no SDK — the same discipline and the same
 /// directory pruning as <see cref="LiteDbSharedModeConventionTests"/>, whose shape this mirrors.</para>
@@ -165,7 +188,7 @@ public sealed class LiteDbAtomicWriteConventionTests
 
     /// <summary>
     /// Every production store method that reads a document and writes one derived from it, known on
-    /// 2026-09-11, as <c>repo-root-relative-path::MemberName</c>. Seven pairs across three files.
+    /// 2026-09-12, as <c>repo-root-relative-path::MemberName</c>. Nine pairs across five files.
     /// This list is allowed to go DOWN — a method that stops pairing a read with a write deletes its
     /// row — and it may not go up by accident: a new row is a new lost-update surface and it must be
     /// argued for in a diff a reviewer sees.
@@ -173,10 +196,18 @@ public sealed class LiteDbAtomicWriteConventionTests
     private static readonly HashSet<string> Allowed = new(StringComparer.Ordinal)
     {
         "commercial/src/Ashlar.Commercial.Fleet.Infrastructure/LiteDbFleetNodeRegistry.cs::HeartbeatAsync",
+        // Registration used to be an unconditional Upsert with no read, so it had no row here while
+        // doing a textbook lost update one layer up, in the endpoint. The merge now happens inside
+        // the store, which is what makes it a pair this inventory can see at all.
+        "commercial/src/Ashlar.Commercial.Fleet.Infrastructure/LiteDbFleetNodeRegistry.cs::RegisterOrMergeAsync",
         "commercial/src/Ashlar.Commercial.Fleet.Infrastructure/LiteDbFleetNodeRegistry.cs::SetAdmittedAsync",
         "commercial/src/Ashlar.Commercial.Fleet.Infrastructure/LiteDbFleetNodeRegistry.cs::SetDrainedAsync",
         "commercial/src/Ashlar.Commercial.Fleet.Infrastructure/LiteDbMeshTaskRegistry.cs::CreateAsync",
         "commercial/src/Ashlar.Commercial.Fleet.Infrastructure/LiteDbMeshTaskRegistry.cs::UpdateAsync",
+        // The one-shot migration from the old non-unique PatternId index to a unique one: it reads
+        // the collection, deletes the duplicate rows already on disk, and declares the index, and
+        // all three have to be one transaction or a failure leaves the collection with NO index.
+        "src/Ashlar.Infrastructure/Observation/LiteDbPatternProcessedStore.cs::EnsureIndexes",
         "src/Ashlar.Infrastructure/Trust/LiteDbUserKnowledgeLogStore.cs::DeleteAsync",
         "src/Ashlar.Infrastructure/Trust/LiteDbUserKnowledgeLogStore.cs::UpsertAsync",
     };
@@ -336,6 +367,181 @@ public sealed class LiteDbAtomicWriteConventionTests
             + "collection gets no inventory row and no transaction. Offenders: {0}",
             string.Join(", ", offenders));
     }
+
+    /// <summary>
+    /// The three ports whose unconditional whole-document write was REMOVED, and the shape that
+    /// replaced it, as <c>path -&gt; (what must be there, what must not come back)</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>Each entry is a pair on purpose. The forbidden half stops the old overload being added
+    /// back beside the new one — which is exactly how "one store fixed, the rest not" happened three
+    /// times in these stores (#586, #591, #594), one convenience overload at a time. The required
+    /// half stops the file being emptied: a forbidden-only check passes on a deleted interface.</para>
+    ///
+    /// <para>The forbidden spellings are the CALL-SITE shapes, not the declarations, because that is
+    /// what a reviewer would write. <c>UpdateAsync(MeshTaskState </c> matches the parameter list of
+    /// the removed overload and nothing in the transform form.</para>
+    /// </remarks>
+    private static readonly (string File, string[] Required, string[] Forbidden)[] PortShapes =
+    [
+        (
+            "commercial/src/Ashlar.Commercial.Fleet.Contracts/Ports/IMeshTaskRegistry.cs",
+            ["Task<MeshTaskUpdateResult> UpdateAsync(", "Func<MeshTaskState, MeshTaskState?> transform"],
+            ["UpdateAsync(MeshTaskState "]
+        ),
+        (
+            "commercial/src/Ashlar.Commercial.Fleet.Contracts/Ports/IFleetNodeRegistry.cs",
+            ["Task<MeshFleetNodeState> RegisterOrMergeAsync(", "Func<MeshFleetNodeState?, MeshFleetNodeState> merge"],
+            ["RegisterOrUpdateAsync("]
+        ),
+        (
+            "src/Ashlar.Core.Application/Observation/Ports/IPatternProcessedStore.cs",
+            ["Task<bool> TryClaimAsync("],
+            ["MarkProcessedAsync("]
+        ),
+    ];
+
+    /// <summary>
+    /// The caller-side lost update is closed by the PORT refusing to express it, so the port has to
+    /// keep refusing.
+    /// </summary>
+    /// <remarks>
+    /// <para>Nothing else in any automatically triggered workflow would notice this coming undone.
+    /// The required <c>build-core</c> compiles <c>Ashlar.LocalDevCore.slnf</c> — Ashlar.CLI,
+    /// Tests.Domain and Tests.Infrastructure — and none of them references <c>commercial/</c>;
+    /// <c>cert-gate</c> runs this assembly, which has no project reference to the fleet either; and
+    /// <c>composition-mesh-gate</c>, the lane <c>ci/test-ownership.tsv</c> names as the owner of
+    /// <c>Ashlar.Commercial.Tests.Fleet</c>, is <c>workflow_dispatch</c>-only and has never been
+    /// dispatched. Two of the three ports here are therefore guarded by this text scan and by
+    /// nothing else. The third (<c>IPatternProcessedStore</c>) is compile-guarded as well, because
+    /// Tests.Infrastructure mocks it and <c>build-core</c> compiles that.</para>
+    ///
+    /// <para>A missing file is a hard failure, not a skipped check — a scan that points at a path
+    /// which no longer exists and calls that a pass is <c>docs/HowGatesGoQuiet.md</c> section 5.</para>
+    /// </remarks>
+    [Fact]
+    public void Every_port_that_lost_its_unconditional_write_keeps_the_shape_that_replaced_it()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var problems = new List<string>();
+
+        foreach (var (relative, required, forbidden) in PortShapes)
+        {
+            var path = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(path))
+            {
+                problems.Add($"{relative}::<the file itself>");
+                continue;
+            }
+
+            problems.AddRange(PortShapeProblems(relative, File.ReadAllText(path), required, forbidden));
+        }
+
+        problems.Should().BeEmpty(
+            "these ports no longer offer a way to write a whole document a caller read through an "
+            + "EARLIER store call, on a database the store has since closed and reopened. That was "
+            + "the caller-side lost update, and it was measured at the call sites: with the "
+            + "transaction removed, 24 of 24 rounds accepted BOTH a migrate and a completion on one "
+            + "mesh task, 20 of 20 rounds ended with a revoked fleet node re-admitted, and 11 of 12 "
+            + "placement rounds handed a caller a lease token the store did not hold - with nothing "
+            + "thrown anywhere. Adding the old overload back beside the new one puts all of that "
+            + "back, and no automatically triggered lane compiles commercial/ at all. Problems: {0}",
+            string.Join(", ", problems));
+    }
+
+    /// <summary>
+    /// The classifier behind the fact above, driven directly.
+    /// </summary>
+    /// <remarks>
+    /// Both halves of that fact are satisfied by a matcher that has stopped matching: forbidden
+    /// finds nothing and required finds everything if the comparison silently succeeds. This feeds
+    /// it a source fragment that IS the offence and one that is the fix, and requires it to tell
+    /// them apart — so the inventory above cannot go quiet without this going red.
+    /// </remarks>
+    [Fact]
+    public void The_port_shape_scan_still_tells_the_two_shapes_apart()
+    {
+        foreach (var (relative, required, forbidden) in PortShapes)
+        {
+            var offending = string.Join("\n", required) + "\n" + string.Join("\n", forbidden);
+            PortShapeProblems(relative, offending, required, forbidden)
+                .Should().NotBeEmpty(
+                    "{0}: a file carrying {1} must be reported, or the forbidden half of the "
+                    + "inventory is matching nothing",
+                    relative,
+                    string.Join(" and ", forbidden));
+
+            var missing = string.Join("\n", forbidden);
+            PortShapeProblems(relative, missing, required, forbidden)
+                .Should().NotBeEmpty(
+                    "{0}: a file that has lost {1} must be reported, or the required half is "
+                    + "matching everything",
+                    relative,
+                    string.Join(" and ", required));
+
+            PortShapeProblems(relative, string.Join("\n", required), required, forbidden)
+                .Should().BeEmpty(
+                    "{0}: the positive control - a file with exactly the replacement shape and none "
+                    + "of the removed one must be accepted, or this scan refuses everything and the "
+                    + "two assertions above prove nothing",
+                    relative);
+
+            var explainedNotDeclared = string.Join("\n", required)
+                + "\n"
+                + string.Join("\n", forbidden.Select(f => $"    /// <para>{f} was removed because ...</para>"));
+            PortShapeProblems(relative, explainedNotDeclared, required, forbidden)
+                .Should().BeEmpty(
+                    "{0}: naming the removed member in a doc comment is how a port explains itself, "
+                    + "and all three of these do. A scan that cannot tell that from a declaration "
+                    + "gets deleted, or gets the explanation deleted, and either way stops guarding "
+                    + "what it was written for.",
+                    relative);
+        }
+    }
+
+    /// <summary>Everything wrong with one port file, as reportable strings.</summary>
+    /// <param name="relative">Repo-relative path, for the message.</param>
+    /// <param name="text">The file text.</param>
+    /// <param name="required">Spellings that must be present.</param>
+    /// <param name="forbidden">Spellings that must not be.</param>
+    /// <returns>One entry per problem; empty when the port is in the expected shape.</returns>
+    /// <remarks>
+    /// Comment lines are dropped before matching, and that is load-bearing in both directions.
+    /// These ports have to be able to SAY what was removed and why — the XML docs on all three name
+    /// the old member — and a scan that could not tell a declaration from an explanation would
+    /// either forbid the explanation or, once someone deleted the explanation to get it green,
+    /// forbid nothing at all.
+    /// </remarks>
+    private static IEnumerable<string> PortShapeProblems(
+        string relative,
+        string text,
+        IEnumerable<string> required,
+        IEnumerable<string> forbidden)
+    {
+        var code = WithoutComments(text);
+
+        foreach (var must in required)
+        {
+            if (!code.Contains(must, StringComparison.Ordinal))
+                yield return $"{relative}::missing `{must}`";
+        }
+
+        foreach (var mustNot in forbidden)
+        {
+            if (code.Contains(mustNot, StringComparison.Ordinal))
+                yield return $"{relative}::the removed shape is back: `{mustNot}`";
+        }
+    }
+
+    /// <summary>The source with every <c>//</c> and <c>///</c> line removed.</summary>
+    /// <param name="text">File text.</param>
+    /// <returns>Code lines only.</returns>
+    private static string WithoutComments(string text)
+        => string.Join(
+            "\n",
+            text.Replace("\r\n", "\n")
+                .Split('\n')
+                .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
 
     /// <summary>
     /// Maps <c>path::Member</c> to that member's source text, for every member that both reads and

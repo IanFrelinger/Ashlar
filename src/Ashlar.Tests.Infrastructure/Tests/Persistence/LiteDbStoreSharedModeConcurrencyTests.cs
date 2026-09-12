@@ -137,7 +137,7 @@ public sealed class LiteDbStoreSharedModeConcurrencyTests : TempDirTestBase
                 FirstSeen = DateTimeOffset.UtcNow,
                 LastSeen = DateTimeOffset.UtcNow,
             }).GetAwaiter().GetResult(),
-            _ => processed.MarkProcessedAsync(Guid.NewGuid().ToString("N")).GetAwaiter().GetResult());
+            _ => processed.TryClaimAsync(Guid.NewGuid().ToString("N")).GetAwaiter().GetResult());
 
         RawCount(path, "observed_patterns").Should().Be(WritesPerWriter, "every pattern written must be readable");
         RawCount(path, "processed_patterns").Should().Be(WritesPerWriter, "every processed marker written must be readable");

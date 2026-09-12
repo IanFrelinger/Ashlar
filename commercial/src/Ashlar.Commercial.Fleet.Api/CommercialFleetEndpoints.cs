@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -171,19 +169,8 @@ public static class CommercialFleetEndpoints
             return Results.BadRequest(new ProblemDetails { Title = "ApiBaseUrl must be an absolute http or https URL" });
         }
 
-        var existing = await registry.GetAsync(body.PeerId, cancellationToken).ConfigureAwait(false);
-        var queue = body.ReportedQueueDepth ?? existing?.ReportedQueueDepth ?? 0;
-        if (queue < 0) queue = 0;
-        var trustTier = ParseFleetTrustTier(body.TrustTier) ?? existing?.TrustTier ?? MeshFleetTrustTier.Trusted;
-        var admitted = body.Admitted ?? existing?.Admitted ?? true;
-        // Null means "leave the stored value". Registration upserts the whole document, so anything
-        // omitted from the body would otherwise be reset -- and a node re-registering on its normal
-        // reconnect cycle sends no drained field. Placement selects on Admitted && !Drained, so a
-        // reset drain puts the node straight back to work an operator was taking it out of.
-        var drained = body.Drained ?? existing?.Drained ?? false;
-
         var regOpts = registrationOptions.Value;
-        var fingerprint = existing?.RegistrationKeyFingerprint;
+        string? suppliedFingerprint = null;
         if (regOpts.RequirePeerRegistrationKey)
         {
             if (string.IsNullOrWhiteSpace(body.PeerRegistrationKey) ||
@@ -203,27 +190,47 @@ public static class CommercialFleetEndpoints
                 });
             }
 
-            fingerprint = MeshFleetRegistrationKeys.Fingerprint(body.PeerRegistrationKey);
+            suppliedFingerprint = MeshFleetRegistrationKeys.Fingerprint(body.PeerRegistrationKey);
         }
         else if (!string.IsNullOrWhiteSpace(body.PeerRegistrationKey))
         {
-            fingerprint = MeshFleetRegistrationKeys.Fingerprint(body.PeerRegistrationKey);
+            suppliedFingerprint = MeshFleetRegistrationKeys.Fingerprint(body.PeerRegistrationKey);
         }
 
-        var state = new MeshFleetNodeState(
-            PeerId: body.PeerId.Trim(),
-            ApiBaseUrl: body.ApiBaseUrl.Trim(),
-            Labels: body.Labels ?? new Dictionary<string, string>(),
-            AdvertisedBrickIds: body.AdvertisedBrickIds ?? Array.Empty<string>(),
-            Drained: drained,
-            LastHeartbeatUtc: DateTimeOffset.UtcNow,
-            RegisteredAtUtc: existing?.RegisteredAtUtc ?? DateTimeOffset.UtcNow,
-            ReportedQueueDepth: queue,
-            TrustTier: trustTier,
-            Admitted: admitted,
-            RegistrationKeyFingerprint: fingerprint);
+        var peerId = body.PeerId.Trim();
+        var apiBaseUrl = body.ApiBaseUrl.Trim();
+        var requestedTrustTier = ParseFleetTrustTier(body.TrustTier);
 
-        await registry.RegisterOrUpdateAsync(state, cancellationToken).ConfigureAwait(false);
+        // Every "null means leave the stored value" fallback below runs INSIDE the registry's write
+        // transaction. It used to run here, off a `registry.GetAsync` a few lines up, on a database
+        // the store had already closed -- so a `POST /fleet/nodes/{peerId}/revoke` that committed in
+        // the window was written straight back as `Admitted = true` from the snapshot, and placement
+        // selects on `Admitted && !Drained`. A node reconnects on a timer; an operator revokes once.
+        var state = await registry.RegisterOrMergeAsync(
+            peerId,
+            existing =>
+            {
+                var queue = body.ReportedQueueDepth ?? existing?.ReportedQueueDepth ?? 0;
+                if (queue < 0) queue = 0;
+
+                return new MeshFleetNodeState(
+                    PeerId: peerId,
+                    ApiBaseUrl: apiBaseUrl,
+                    // Unchanged semantics: an omitted labels/bricks list REPLACES, it does not
+                    // merge. That is not a race (it needs no concurrent writer at all) and is a
+                    // separate question from the one this change answers.
+                    Labels: body.Labels ?? new Dictionary<string, string>(),
+                    AdvertisedBrickIds: body.AdvertisedBrickIds ?? Array.Empty<string>(),
+                    Drained: body.Drained ?? existing?.Drained ?? false,
+                    LastHeartbeatUtc: DateTimeOffset.UtcNow,
+                    RegisteredAtUtc: existing?.RegisteredAtUtc ?? DateTimeOffset.UtcNow,
+                    ReportedQueueDepth: queue,
+                    TrustTier: requestedTrustTier ?? existing?.TrustTier ?? MeshFleetTrustTier.Trusted,
+                    Admitted: body.Admitted ?? existing?.Admitted ?? true,
+                    RegistrationKeyFingerprint: suppliedFingerprint ?? existing?.RegistrationKeyFingerprint);
+            },
+            cancellationToken).ConfigureAwait(false);
+
         return Results.Ok(ToFleetResponse(state));
     }
 
@@ -509,7 +516,7 @@ public static class CommercialFleetEndpoints
     private static async Task<IResult> PatchMeshTaskStatusAsync(
         string taskId,
         [FromBody] MeshTaskStatusPatchRequest? body,
-        [FromServices] IMeshTaskRegistry tasks,
+        [FromServices] MeshTaskExecutionService execution,
         [FromServices] IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken)
     {
@@ -518,75 +525,26 @@ public static class CommercialFleetEndpoints
         if (body is null || !Enum.IsDefined(typeof(MeshTaskStatus), body.Status))
             return Results.BadRequest(new ProblemDetails { Title = "Valid Status is required" });
 
-        var t = await tasks.GetAsync(taskId, cancellationToken).ConfigureAwait(false);
-        if (t is null)
-            return Results.NotFound();
-
-        if (body.Status is MeshTaskStatus.Running or MeshTaskStatus.Assigned &&
-            !string.IsNullOrWhiteSpace(t.LeaseToken))
-        {
-            if (string.IsNullOrWhiteSpace(body.LeaseToken) ||
-                !MeshLeaseTokensEqual(t.LeaseToken, body.LeaseToken))
-                return Results.Conflict(new ProblemDetails { Title = "lease.token_mismatch_or_missing" });
-        }
-
+        // The read, the lease comparison and the write used to live here, in that order, with the
+        // database opened and closed between each of them. They now live in one transform the store
+        // applies inside its write transaction; this method resolves the correlation id (which needs
+        // the HttpContext) and maps the outcome.
         var correlation = ResolveMeshCorrelationId(httpContextAccessor, body.CorrelationId);
-        var next = body.Status switch
-        {
-            MeshTaskStatus.Running => t with
-            {
-                Status = MeshTaskStatus.Running,
-                PlacementReason = body.Reason ?? t.PlacementReason,
-                CorrelationId = correlation ?? t.CorrelationId
-            },
-            MeshTaskStatus.Succeeded => t with
-            {
-                Status = MeshTaskStatus.Succeeded,
-                PlacementReason = body.Reason ?? t.PlacementReason,
-                CorrelationId = correlation ?? t.CorrelationId,
-                ResultSummary = body.ResultSummary ?? t.ResultSummary,
-                ResultHandle = body.ResultHandle ?? t.ResultHandle,
-                AssignedPeerId = null,
-                AssignedApiBaseUrl = null,
-                LeaseToken = null,
-                LeaseOwnerPeerId = null,
-                LeaseExpiresUtc = null
-            },
-            MeshTaskStatus.Failed => t with
-            {
-                Status = MeshTaskStatus.Failed,
-                PlacementReason = body.Reason ?? t.PlacementReason,
-                CorrelationId = correlation ?? t.CorrelationId,
-                ResultSummary = body.ResultSummary ?? t.ResultSummary,
-                ResultHandle = body.ResultHandle ?? t.ResultHandle,
-                AssignedPeerId = null,
-                AssignedApiBaseUrl = null,
-                LeaseToken = null,
-                LeaseOwnerPeerId = null,
-                LeaseExpiresUtc = null
-            },
-            MeshTaskStatus.Pending => t with
-            {
-                Status = MeshTaskStatus.Pending,
-                AssignedPeerId = null,
-                AssignedApiBaseUrl = null,
-                PlacementReason = body.Reason,
-                CorrelationId = correlation ?? t.CorrelationId,
-                LeaseToken = null,
-                LeaseOwnerPeerId = null,
-                LeaseExpiresUtc = null
-            },
-            MeshTaskStatus.Assigned => t with
-            {
-                Status = MeshTaskStatus.Assigned,
-                PlacementReason = body.Reason ?? t.PlacementReason,
-                CorrelationId = correlation ?? t.CorrelationId
-            },
-            _ => t
-        };
+        var (ok, task, error) = await execution.ApplyStatusAsync(
+            taskId,
+            body.Status,
+            body.LeaseToken,
+            body.Reason,
+            correlation,
+            body.ResultSummary,
+            body.ResultHandle,
+            cancellationToken).ConfigureAwait(false);
 
-        await tasks.UpdateAsync(next, cancellationToken).ConfigureAwait(false);
-        return Results.Ok(ToTaskResponse(next));
+        if (task is null)
+            return Results.NotFound();
+        if (!ok)
+            return Results.Conflict(new ProblemDetails { Title = error ?? "lease.token_mismatch_or_missing" });
+        return Results.Ok(ToTaskResponse(task));
     }
 
     private static string? ResolveMeshCorrelationId(IHttpContextAccessor? accessor, string? fromBody)
@@ -645,12 +603,5 @@ public static class CommercialFleetEndpoints
             t.LeaseOwnerPeerId,
             t.LeaseExpiresUtc,
             t.CheckpointHandle);
-
-    private static bool MeshLeaseTokensEqual(string expected, string provided)
-    {
-        var a = Encoding.UTF8.GetBytes(expected.Trim());
-        var b = Encoding.UTF8.GetBytes(provided.Trim());
-        return a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
-    }
 
 }

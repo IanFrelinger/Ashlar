@@ -113,15 +113,41 @@ public sealed class InMemoryMeshTaskRegistry : IMeshTaskRegistry
     }
 
     /// <summary>Update async operation.</summary>
-    public async Task<bool> UpdateAsync(MeshTaskState task, CancellationToken cancellationToken = default)
+    /// <param name="taskId">Task id.</param>
+    /// <param name="transform">Applied to the stored state under this registry's lock; null declines.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>What happened and the state the store holds.</returns>
+    public async Task<MeshTaskUpdateResult> UpdateAsync(
+        string taskId,
+        Func<MeshTaskState, MeshTaskState?> transform,
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(taskId))
+            throw new ArgumentException("taskId is required.", nameof(taskId));
+        if (transform is null)
+            throw new ArgumentNullException(nameof(transform));
+
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!_tasks.ContainsKey(task.TaskId))
-                return false;
-            _tasks[task.TaskId] = task;
-            return true;
+            if (!_tasks.TryGetValue(taskId, out var current))
+                return new MeshTaskUpdateResult(MeshTaskUpdateOutcome.NotFound, null);
+
+            var next = transform(current);
+            if (next is null)
+                return new MeshTaskUpdateResult(MeshTaskUpdateOutcome.PreconditionFailed, current);
+
+            if (!string.Equals(next.TaskId, current.TaskId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"a mesh task transform may not change TaskId ('{taskId}' -> '{next.TaskId}'). "
+                    + "The LiteDB registry addresses the write by the id the read used and would "
+                    + "otherwise leave two documents; this store refuses the same shape so the two "
+                    + "implementations cannot diverge.");
+            }
+
+            _tasks[next.TaskId] = next;
+            return new MeshTaskUpdateResult(MeshTaskUpdateOutcome.Applied, next);
         }
         finally
         {

@@ -228,14 +228,26 @@ public sealed class SelfImprovementLoop : ISelfImprovementLoop
                     if (_accessBoundary.IsObservationPaused) break;
                     ct.ThrowIfCancellationRequested();
 
-                    if (await _patternProcessedStore.IsProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false))
+                    // Claim BEFORE the work, not after it. What follows is a source edit, a
+                    // solution-wide regression run and a promotion; the old shape asked
+                    // IsProcessedAsync here and marked at each of eight exits, so two overlapping
+                    // cycles -- which BackgroundAgentRegistry.TrackedExecuteAgentAsync says in its
+                    // own remarks the scheduler may start, and which `ashlar improve` starts in a
+                    // whole second process -- both read false, both edited the same file, both ran
+                    // the suite against a tree the other was editing, and both promoted. A false
+                    // here means another cycle owns this pattern.
+                    //
+                    // The trade this makes: a pattern whose iteration throws part way through stays
+                    // claimed and is not retried. That is deliberate. Releasing it would hand the
+                    // same pattern straight back to a cycle that is already failing on it, and the
+                    // rollback helper has already restored the file.
+                    if (!await _patternProcessedStore.TryClaimAsync(pattern.PatternId, ct).ConfigureAwait(false))
                         continue;
 
                     patternsProcessed++;
                     var filePath = GetFilePathFromPattern(pattern);
                     if (string.IsNullOrWhiteSpace(filePath))
                     {
-                        await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                         continue;
                     }
 
@@ -254,14 +266,12 @@ public sealed class SelfImprovementLoop : ISelfImprovementLoop
                             Promoted = false,
                             Message = $"Immutable core violation: cannot adapt {filePath} (pattern {pattern.EventType})",
                         }, ct).ConfigureAwait(false);
-                        await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                         continue;
                     }
 
                     var brickId = ViolationToBrickMapper.GetBrickIdForFile(filePath);
                     if (brickId == null)
                     {
-                        await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                         continue;
                     }
 
@@ -269,7 +279,6 @@ public sealed class SelfImprovementLoop : ISelfImprovementLoop
                     var analysisResult = await _analyzer.AnalyzeSourceAsync(analysisDir, includeAnalyzers: false, ct).ConfigureAwait(false);
                     if (analysisResult.Passed)
                     {
-                        await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                         continue;
                     }
 
@@ -277,7 +286,6 @@ public sealed class SelfImprovementLoop : ISelfImprovementLoop
                         string.Equals(v.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
                     if (violation == null)
                     {
-                        await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                         continue;
                     }
 
@@ -288,7 +296,6 @@ public sealed class SelfImprovementLoop : ISelfImprovementLoop
                         _rollbackHelper.Clear();
                         rejected.Add($"Fix failed: {pattern.EventType} {filePath}");
                         fixesRejected++;
-                        await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                         continue;
                     }
 
@@ -300,7 +307,6 @@ public sealed class SelfImprovementLoop : ISelfImprovementLoop
                         _rollbackHelper.Clear();
                         rejected.Add($"Regression failed: {pattern.EventType} {filePath}");
                         fixesRejected++;
-                        await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                         continue;
                     }
 
@@ -352,7 +358,6 @@ public sealed class SelfImprovementLoop : ISelfImprovementLoop
                         fixesRejected++;
                     }
 
-                    await _patternProcessedStore.MarkProcessedAsync(pattern.PatternId, ct).ConfigureAwait(false);
                 }
             }
         }

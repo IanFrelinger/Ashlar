@@ -7,16 +7,71 @@ namespace Ashlar.Commercial.Fleet.Contracts.Ports;
 /// </summary>
 public interface IMeshTaskRegistry
 {
+    /// <summary>Creates a task, absorbing a repeated <see cref="MeshTaskCreateSpec.IdempotencyKey"/>.</summary>
+    /// <param name="spec">What to create.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The created task, or the one an earlier submission of the same key created.</returns>
     Task<MeshTaskState> CreateAsync(MeshTaskCreateSpec spec, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns an existing task created with the same <see cref="MeshTaskCreateSpec.IdempotencyKey"/> (Phase 3), or null.
     /// </summary>
+    /// <param name="idempotencyKey">The submission key.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The task, or null.</returns>
     Task<MeshTaskState?> TryGetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
 
+    /// <summary>Reads one task.</summary>
+    /// <param name="taskId">Task id.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The task, or null.</returns>
     Task<MeshTaskState?> GetAsync(string taskId, CancellationToken cancellationToken = default);
 
+    /// <summary>Reads every task.</summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>All tasks, highest priority first.</returns>
     Task<IReadOnlyList<MeshTaskState>> ListAsync(CancellationToken cancellationToken = default);
 
-    Task<bool> UpdateAsync(MeshTaskState task, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Reads the task, applies <paramref name="transform"/> to it and writes the result, as ONE
+    /// operation on the store.
+    /// </summary>
+    /// <param name="taskId">Task id.</param>
+    /// <param name="transform">
+    /// The change to make. It is handed the document the store just read INSIDE the write
+    /// transaction, so any precondition — the lease token, the status, the attempt count, all three —
+    /// is a predicate over that argument. Return <c>null</c> to decline, which surfaces as
+    /// <see cref="MeshTaskUpdateOutcome.PreconditionFailed"/> and writes nothing.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>What happened, and the state the store holds.</returns>
+    /// <remarks>
+    /// <para><b>Why a transform and not <c>UpdateAsync(MeshTaskState)</c>.</b> The old shape took a
+    /// whole document the caller had read through an EARLIER <c>GetAsync</c>/<c>ListAsync</c>, on a
+    /// database the store had since closed and reopened. Every field of that snapshot was written
+    /// back, so anything another writer committed in the window was silently reverted — and nothing
+    /// threw, on any platform. Measured on a standalone probe during this change's scoping pass, in
+    /// the Linux devtest container, two registry instances over one file, 8 threads x 50
+    /// read-modify-writes to one task: 400 updates attempted, 400 reported successful, <b>87
+    /// survived</b>; with the transform applied inside the store's transaction, 400 of 400. The
+    /// costs at the actual call sites were re-measured through the fleet race tests and are in the
+    /// CHANGELOG. An <c>expectedLeaseToken</c> parameter was the other candidate and is strictly
+    /// weaker: it also stops the loss (86 applied / 314 refused / 0 lost on the same probe) but
+    /// refuses 78% of operations, forces a retry loop into four of the five callers, and cannot
+    /// express the precondition the placement path actually needs, because a Pending task's lease
+    /// token is null on both sides of the race and two placements both satisfy "expect null".</para>
+    ///
+    /// <para><b>What the transform may not do.</b> It runs inside the LiteDB write transaction while
+    /// the store also holds a non-reentrant <c>SemaphoreSlim(1,1)</c>. It must be synchronous, do no
+    /// I/O, and never call back into this registry — a nested store call deadlocks on that semaphore,
+    /// and a nested transaction is refused outright by <c>LiteDbAtomic.Mutate</c>. Compute anything
+    /// that needs an <c>await</c> (the node list, an options read, a clock-and-policy decision)
+    /// BEFORE the call and close over the result.</para>
+    ///
+    /// <para>It may also be invoked more than once in principle; keep it free of side effects.</para>
+    /// </remarks>
+    Task<MeshTaskUpdateResult> UpdateAsync(
+        string taskId,
+        Func<MeshTaskState, MeshTaskState?> transform,
+        CancellationToken cancellationToken = default);
 }
