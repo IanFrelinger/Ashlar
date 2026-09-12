@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- One TFM is enough: this is a forensic probe, not a gate. The gate that has to cover every
+         consumer target framework is docs/samples/CertificationTrustConsumer. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashlar.Samples.CertificationPresetProbe</RootNamespace>
+    <AssemblyName>CertificationPresetProbe</AssemblyName>
+    <AshlarCertificationContractsVersion Condition="'$(AshlarCertificationContractsVersion)' == ''">0.0.0</AshlarCertificationContractsVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ashlar.Certification.Contracts" Version="$(AshlarCertificationContractsVersion)" />
+  </ItemGroup>
+
+</Project>
