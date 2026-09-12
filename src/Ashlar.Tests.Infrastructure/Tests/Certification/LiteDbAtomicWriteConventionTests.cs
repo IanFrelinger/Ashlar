@@ -25,38 +25,56 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// the shape of the failure was the same: the edits landed, nothing froze them, and the next store
 /// to arrive was written the old way. The seven edits are the smaller half of this fix.</para>
 ///
-/// <para><b>Eight facts.</b> <see cref="Every_read_modify_write_is_inventoried"/> fails when a new
-/// store method pairs a read with a write and is not on the list — that is the new-offender half.
+/// <para><b>Eleven facts.</b> <see cref="Every_read_modify_write_is_inventoried"/> fails when a new
+/// store method pairs a read with a write and is not on the list - that is the new-offender half.
 /// <see cref="No_inventory_row_has_stopped_doing_a_read_modify_write"/> fails on a stale row, because
 /// a row describing a pair that no longer exists reads as accounted-for debt and quietly turns a
-/// frozen inventory into a blanket approval — that is the stale-row half.
+/// frozen inventory into a blanket approval - that is the stale-row half.
 /// <see cref="Every_inventoried_read_modify_write_opens_a_transaction"/> is the one the inventory
 /// cannot express: being on the list is an admission that the pair exists, not permission to leave it
-/// unguarded, so each listed member must reach <c>LiteDbAtomic.Mutate</c>.</para>
+/// unguarded, so every read and every write in each listed member must fall INSIDE a
+/// <c>LiteDbAtomic.Mutate</c> body. That is a BOUNDARY check and not a spelling check, and the
+/// difference is the whole point - the first version of it asked only whether the member's text
+/// contained the call, which a member that reads the document, decides, and then wraps the WRITE
+/// alone satisfies while racing exactly as it did before. That split was measured, not imagined:
+/// separating <c>LiteDbMeshTaskRegistry.UpdateAsync</c>'s read from its write turned three of the
+/// four contended fleet facts red. <see cref="The_transaction_boundary_scan_still_tells_inside_from_outside"/>
+/// drives that classifier, since a region finder that answered "everything is inside" would leave
+/// the fact green and empty.</para>
 ///
-/// <para>Those three freeze the CALL SITES. The remaining three keep the scan honest about what it
-/// can see and about what the call reaches.
-/// <see cref="Every_inventoried_read_modify_write_opens_a_transaction"/> matches the TEXT
-/// <c>LiteDbAtomic.Mutate</c>, so on its own it would stay green if the helper's body were
-/// "simplified" to <c>=&gt; readModifyWrite();</c> — and the two copies of that helper
-/// (<c>src/</c> and <c>commercial/</c>) share no code, so a rebase can resolve <c>BeginTrans</c> away
-/// in one of them alone. <see cref="Both_copies_of_the_helper_still_open_a_transaction"/> therefore
-/// asserts the mechanism itself, in both files.
+/// <para>Those four freeze the CALL SITES. The next three keep the scan honest about what it can
+/// see and about what the call reaches. The boundary fact still matches TEXT, so on its own it
+/// would stay green if the helper's body were "simplified" to <c>=&gt; readModifyWrite();</c> - and
+/// the two copies of that helper (<c>src/</c> and <c>commercial/</c>) share no code, so a rebase
+/// can resolve <c>BeginTrans</c> away in one of them alone.
+/// <see cref="Both_copies_of_the_helper_still_open_a_transaction"/> therefore asserts the mechanism
+/// itself, in both files, and its list is what the three refusals are pinned by: a nested
+/// transaction on one database, a nested transaction on a SECOND database over the same file - the
+/// one <c>BeginTrans</c> cannot see, measured as both writes reported successful and one gone - and
+/// a body returning an un-walked sequence, which makes <c>Commit</c> throw and leaves the file's
+/// named mutex held past <c>Dispose</c>.
 /// <see cref="No_store_chains_a_call_straight_onto_GetCollection"/> and
 /// <see cref="Every_GetCollection_call_binds_its_collection_to_a_local"/> together close the
 /// attribution blind spot: reads and writes are attributed through the collection VARIABLE they are
 /// called on, so <c>db.GetCollection&lt;T&gt;("c").Update(doc)</c> inline, or a collection reached
-/// through a helper (<c>var col = Fleet(db);</c>), would be invisible to the first three. The only
+/// through a helper (<c>var col = Fleet(db);</c>), would be invisible to the inventory. The only
 /// admitted spelling is a local bound directly from <c>GetCollection</c>; that is what makes an
 /// <c>ILiteCollection</c> impossible to obtain without the scan seeing it, which is a convention and
 /// not a style preference.</para>
 ///
-/// <para>The last two are about the CALLER side, which the six above cannot reach at all.
+/// <para>The last four are about the CALLER side, which the others cannot reach at all.
 /// <see cref="Every_port_that_lost_its_unconditional_write_keeps_the_shape_that_replaced_it"/>
 /// freezes the three port signatures whose removal is what closed it, and
 /// <see cref="The_port_shape_scan_still_tells_the_two_shapes_apart"/> drives that scan's own
 /// matcher, because a frozen inventory whose matcher has stopped matching is green and empty at the
-/// same time.</para>
+/// same time. Those two are about the SIGNATURE, which is not the same thing as the shape: a
+/// caller can still hand the new port <c>UpdateAsync(task.TaskId, _ =&gt; task)</c>, which compiles,
+/// restores the whole measured loss, and leaves both signature facts green because the port files
+/// are untouched - the arrange shim in the fleet test project is that exact expression and is the
+/// existence proof. <see cref="No_product_call_hands_a_transforming_port_a_discarding_lambda"/>
+/// closes it by requiring the lambda to read its argument, and
+/// <see cref="The_discarding_transform_scan_still_tells_the_two_shapes_apart"/> drives that
+/// classifier.</para>
 ///
 /// <para><b>What this guard does NOT catch, and what stopped being true.</b> It reads text within a
 /// single member, so it only sees a pair whose halves are both inside one store method. The other
@@ -105,12 +123,17 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///
 /// <para>The behavioural half of THIS fix lives in
 /// <c>Tests/Persistence/LiteDbAtomicReadModifyWriteTests</c>, which races N threads over one id and
-/// counts surviving updates. The caller-side half lives in
+/// counts surviving updates, and in <c>Tests/Persistence/LiteDbAtomicRefusalTests</c>, which drives
+/// the three shapes the helper rejects at the door - each one measured silent or worse before it was
+/// a refusal. The caller-side half lives in
 /// <c>Tests/Persistence/LiteDbPatternProcessedStoreClaimTests</c> and, for the mesh, in
-/// <c>Ashlar.Commercial.Tests.Fleet</c>'s <c>MeshTaskWriteRaceTests</c> and
-/// <c>FleetNodeRegistrationRaceTests</c> — that project runs in NO automatically triggered lane, so
-/// those are a regression record and this file is the guard. Assert on counts there, never on an
-/// expected exception, because these races throw nothing on any platform.</para>
+/// <c>Ashlar.Commercial.Tests.Fleet</c>'s <c>MeshTaskWriteRaceTests</c>,
+/// <c>MeshStatusAndReclaimTests</c> and <c>FleetNodeRegistrationRaceTests</c> - that project runs in
+/// NO automatically triggered lane, so those are a regression record and this file is the guard.
+/// Assert on counts there, never on an expected exception, because these races throw nothing on any
+/// platform. Where one interleaving is the whole defect, <c>MeshStatusAndReclaimTests</c> commits
+/// the competing write with a decorator instead of a barrier: a deterministic interleaving is
+/// stronger evidence than a race, because a fix that merely narrows the window still fails it.</para>
 ///
 /// <para>Hermetic: pure file reads, no build, no network, no SDK — the same discipline and the same
 /// directory pruning as <see cref="LiteDbSharedModeConventionTests"/>, whose shape this mirrors.</para>
@@ -162,6 +185,21 @@ public sealed class LiteDbAtomicWriteConventionTests
         "throw new InvalidOperationException(NestedMessage)",
         "Func<Task<T>> readModifyWrite",
         "Func<Task> readModifyWrite",
+        // Nesting across two ILiteDatabase instances on one thread, which db.BeginTrans() cannot
+        // see: two stores over one file are two SharedEngines whose named mutex is
+        // thread-reentrant, so both BeginTrans and both Commit return true and one write is
+        // silently discarded. Measured in the Linux devtest container. The depth count is the only
+        // thing that refuses it.
+        "if (_openTransactions > 0)",
+        "throw new InvalidOperationException(NestedOnThreadMessage)",
+        // A body returning an un-walked sequence leaves a cursor open, Commit throws, and the
+        // file's named mutex is then never released -- a hung database file, measured.
+        "RefuseLazySequence(result)",
+        // A Commit that fails is not an ordinary write failure, because the mutex can stay held
+        // past Dispose. Both halves are needed: the flag is what distinguishes it from the body
+        // throwing.
+        "catch (Exception ex) when (committing)",
+        "throw new InvalidOperationException(CommitFailedMessage, ex)",
     ];
 
     /// <summary>The helper that makes a read and a write one operation.</summary>
@@ -256,25 +294,140 @@ public sealed class LiteDbAtomicWriteConventionTests
     /// The invariant the inventory cannot express. Being on the list admits the pair exists; it is
     /// not permission to leave it separable.
     /// </summary>
+    /// <remarks>
+    /// <para><b>The BOUNDARY, not the spelling.</b> The first version of this fact asked only
+    /// whether the member's text CONTAINED <c>LiteDbAtomic.Mutate</c>. That is satisfied by a
+    /// member which reads the document, derives the next one, and then opens a transaction round
+    /// the WRITE alone - the original lost update with a transaction ornament on it, and the very
+    /// shape #602's review caught one layer up. It is not hypothetical: splitting
+    /// <c>LiteDbMeshTaskRegistry.UpdateAsync</c>'s read from its write turned three of the four
+    /// contended fleet facts red in the container. So every read and every write on a collection
+    /// local must fall INSIDE the argument list of one of that member's <c>Mutate</c> calls. A
+    /// decoy - an empty <c>Mutate</c> followed by an unguarded pair - fails this where it passed
+    /// the spelling check.</para>
+    ///
+    /// <para>The classifier behind it is driven directly by
+    /// <see cref="The_transaction_boundary_scan_still_tells_inside_from_outside"/>, because a
+    /// region finder that returns one region covering the whole member would make this fact green
+    /// and empty at the same time.</para>
+    /// </remarks>
     [Fact]
     public void Every_inventoried_read_modify_write_opens_a_transaction()
     {
         var root = RepoPathResolver.FindRepoRoot();
 
-        var offenders = Pairs(root)
-            .Where(pair => !pair.Value.Contains(HelperCall, StringComparison.Ordinal))
-            .Select(pair => pair.Key)
-            .OrderBy(key => key, StringComparer.Ordinal)
-            .ToList();
+        var inventoried = Pairs(root);
+        var offenders = new List<string>();
+        foreach (var relative in Stores(root))
+        {
+            var text = File.ReadAllText(Path.Combine(root, relative));
+            var collections = CollectionVariables(text);
+            if (collections.Count == 0)
+                continue;
+
+            foreach (var (member, body) in Members(text))
+            {
+                if (!inventoried.ContainsKey($"{relative}::{member}"))
+                    continue;
+
+                offenders.AddRange(CallsOutsideTransaction(body, collections)
+                    .Select(call => $"{relative}::{member}: {call}"));
+            }
+        }
+
+        offenders.Sort(StringComparer.Ordinal);
 
         offenders.Should().BeEmpty(
-            "the read and the write have to be one operation, and {0} is the only place that is "
-            + "spelled. LiteDB's SharedEngine acquires its named mutex on BeginTrans and holds it "
-            + "until Commit, so the pair becomes atomic against another thread, another store "
-            + "instance, and the CLI running in a second process on the same state directory. "
+            "the read and the write have to be one operation, and being INSIDE a {0} body is the "
+            + "only thing that makes them one. LiteDB's SharedEngine acquires its named mutex on "
+            + "BeginTrans and holds it until Commit, so a pair inside one body is atomic against "
+            + "another thread, another store instance, and the CLI running in a second process on "
+            + "the same state directory - while a read hoisted ABOVE the call is raced exactly as "
+            + "it was before any of this, with the call left in place to look like a fix. "
             + "Offenders: {1}",
             HelperCall,
             string.Join(", ", offenders));
+    }
+
+    /// <summary>
+    /// The classifier behind the fact above, driven directly.
+    /// </summary>
+    /// <remarks>
+    /// Four things have to be true of it, and each corresponds to a way the fact above could go
+    /// quiet: it accepts a pair that IS inside the body (or the fact refuses the whole tree and the
+    /// inventory means nothing), it reports a read hoisted out of the body (the defect), it reports
+    /// an unguarded pair that merely FOLLOWS a transaction (the decoy the spelling check could not
+    /// see), and it does not end a region early on a parenthesis inside a string literal or start
+    /// one on the helper's name inside a comment (either of which would make its answers arbitrary
+    /// on the real files, which are full of both).
+    /// </remarks>
+    [Fact]
+    public void The_transaction_boundary_scan_still_tells_inside_from_outside()
+    {
+        var collections = new HashSet<string>(StringComparer.Ordinal) { "col" };
+
+        var inside = string.Join(
+            "\n",
+            "var col = db.GetCollection<Doc>(\"c\");",
+            "return LiteDbAtomic.Mutate(db, () =>",
+            "{",
+            "    var current = col.FindById(id);",
+            "    col.Update(Next(current));",
+            "    return true;",
+            "});");
+        CallsOutsideTransaction(inside, collections).Should().BeEmpty(
+            "the positive control: the shape every guarded store method in the tree has must be "
+            + "accepted, or this scan refuses everything and the inventory fact proves nothing");
+
+        var readHoisted = string.Join(
+            "\n",
+            "var col = db.GetCollection<Doc>(\"c\");",
+            "var current = col.FindById(id);",
+            "var next = Transform(current);",
+            "return LiteDbAtomic.Mutate(db, () => col.Update(next));");
+        CallsOutsideTransaction(readHoisted, collections).Should().ContainSingle(
+            "the read is outside the transaction and the write inside, which is the caller-side "
+            + "lost update inside one member - and the only thing the spelling check asked for, "
+            + "the presence of the call, is still there")
+            .Which.Should().Contain("FindById");
+
+        var decoy = string.Join(
+            "\n",
+            "var col = db.GetCollection<Doc>(\"c\");",
+            "LiteDbAtomic.Mutate(db, () => { });",
+            "var current = col.FindById(id);",
+            "col.Update(Next(current));");
+        CallsOutsideTransaction(decoy, collections).Should().HaveCount(
+            2,
+            "an empty transaction followed by an unguarded pair satisfies every text search for "
+            + "the helper's name and guards nothing");
+
+        var parenthesisInAString = string.Join(
+            "\n",
+            "var col = db.GetCollection<Doc>(\"c\");",
+            "LiteDbAtomic.Mutate(db, () =>",
+            "{",
+            "    var current = col.FindById(id);",
+            "    if (current is null) throw new InvalidOperationException($\"no doc ('{id}') here\");",
+            "    col.Update(current);",
+            "    return true;",
+            "});");
+        CallsOutsideTransaction(parenthesisInAString, collections).Should().BeEmpty(
+            "a parenthesis inside a string literal must not close the region: the real "
+            + "LiteDbMeshTaskRegistry.UpdateAsync carries exactly this message, so a scan that "
+            + "counted brackets blindly would report its write as unguarded and then be 'fixed' by "
+            + "loosening this fact");
+
+        var helperNamedInAComment = string.Join(
+            "\n",
+            "var col = db.GetCollection<Doc>(\"c\");",
+            "// LiteDbAtomic.Mutate(db, () => { }) is what this SHOULD do.",
+            "var current = col.FindById(id);",
+            "col.Update(Next(current));");
+        CallsOutsideTransaction(helperNamedInAComment, collections).Should().HaveCount(
+            2,
+            "naming the helper in a comment is not opening a transaction; a scan that let a comment "
+            + "establish a region would accept the unguarded pair beneath it");
     }
 
     /// <summary>
@@ -544,6 +697,195 @@ public sealed class LiteDbAtomicWriteConventionTests
                 .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
 
     /// <summary>
+    /// The two port methods that take a transform, and therefore the two that can be handed one
+    /// which throws the stored document away.
+    /// </summary>
+    private static readonly string[] TransformingPortCalls =
+    [
+        "UpdateAsync",
+        "RegisterOrMergeAsync",
+    ];
+
+    /// <summary>The port types whose files this scan looks in.</summary>
+    private static readonly string[] TransformingPortMarkers =
+    [
+        "IMeshTaskRegistry",
+        "IFleetNodeRegistry",
+    ];
+
+    /// <summary>
+    /// A transform must derive its result FROM the document it is handed, because the signature
+    /// alone does not stop it discarding it.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Why the signature is not enough.</b> The durability claim made for this change was
+    /// that "no unconditional overload is left, so the compiler finds any attempt to write the old
+    /// shape". That is about the old SIGNATURE, not the old SHAPE. The whole-document write of a
+    /// snapshot a caller read earlier is still trivially expressible through the new port as
+    /// <c>UpdateAsync(task.TaskId, _ =&gt; task)</c>, which compiles, restores the measured loss
+    /// (313 of 400 updates gone, all reported successful, nothing thrown), and leaves both port
+    /// signature facts green because the port FILES are untouched. The existence proof is in this
+    /// repository: <c>RegistryArrangeExtensions</c> in the fleet test project is exactly that
+    /// expression and compiles today.</para>
+    ///
+    /// <para>The rule is therefore about the lambda and not the signature: its parameter may not be
+    /// the discard <c>_</c>, and its body has to mention the parameter. A transform that reads the
+    /// stored document cannot revert a concurrent writer, whatever else it gets wrong. The arrange
+    /// shim stays legal because test directories are pruned - the shim is the right thing to write
+    /// in arrange code, where the test owns the file and "put this exact document there" is the
+    /// whole intent, and its own remarks forbid using it in a race test.</para>
+    ///
+    /// <para>Scoped to production files that NAME one of the two ports, so that an
+    /// <c>UpdateAsync</c> belonging to something else - <c>IRepository</c>,
+    /// <c>SensitivityCommand</c> - is not dragged in. Reaching one of these registries requires
+    /// naming its type, so that scope is not a way out; writing the call in a file that never
+    /// mentions the port is not a thing a caller can do.</para>
+    /// </remarks>
+    [Fact]
+    public void No_product_call_hands_a_transforming_port_a_discarding_lambda()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+
+        var problems = new List<string>();
+        foreach (var relative in Files(root, TransformingPortMarkers))
+        {
+            var text = File.ReadAllText(Path.Combine(root, relative));
+            problems.AddRange(DiscardingTransformProblems(relative, text));
+        }
+
+        problems.Sort(StringComparer.Ordinal);
+
+        problems.Should().BeEmpty(
+            "a transform that ignores the document the store just read inside its write transaction "
+            + "is the removed whole-document write with a lambda round it, and it compiles. Derive "
+            + "the result from the parameter - that is the entire mechanism this change bought, and "
+            + "no automatically triggered lane compiles commercial/ at all, so nothing else would "
+            + "notice. Problems: {0}",
+            string.Join(", ", problems));
+    }
+
+    /// <summary>
+    /// The classifier behind the fact above, driven directly.
+    /// </summary>
+    /// <remarks>
+    /// Both halves of that fact are satisfied by a matcher that has stopped matching: an offender
+    /// that is not reported and a compliant call that is not reported look the same from the
+    /// outside, namely an empty list. This feeds it the offence, the fix, and the two shapes that
+    /// are neither - a declaration of the port method, and a transform passed as something other
+    /// than a lambda written at the call site.
+    /// </remarks>
+    [Fact]
+    public void The_discarding_transform_scan_still_tells_the_two_shapes_apart()
+    {
+        DiscardingTransformProblems("x.cs", "await _tasks.UpdateAsync(task.TaskId, _ => task, ct);")
+            .Should().ContainSingle("the discard parameter is the offence itself");
+
+        DiscardingTransformProblems("x.cs", "await _nodes.RegisterOrMergeAsync(peerId, _ => state, ct);")
+            .Should().ContainSingle("and on the other port too");
+
+        DiscardingTransformProblems("x.cs", "await _tasks.UpdateAsync(id, current => snapshot, ct);")
+            .Should().ContainSingle("a NAMED parameter the body never reads discards it just as completely");
+
+        DiscardingTransformProblems(
+            "x.cs",
+            "await _tasks.UpdateAsync(id, current => current with { Status = next }, ct);")
+            .Should().BeEmpty(
+                "the positive control: a transform that derives its result from the stored document "
+                + "must be accepted, or this scan refuses every call site and the fact above is "
+                + "green only because someone deleted it");
+
+        DiscardingTransformProblems(
+            "x.cs",
+            "Task<MeshTaskUpdateResult> UpdateAsync(string taskId, "
+            + "Func<MeshTaskState, MeshTaskState?> transform, CancellationToken cancellationToken = default);")
+            .Should().BeEmpty("a DECLARATION of the port method is not a call site");
+
+        DiscardingTransformProblems(
+            "x.cs",
+            "await _tasks.UpdateAsync(id, (MeshTaskState current) => current with { Status = next }, ct);")
+            .Should().BeEmpty("a parenthesised and explicitly typed parameter is the same shape");
+
+        DiscardingTransformProblems("x.cs", "await _tasks.UpdateAsync(id, (_) => snapshot, ct);")
+            .Should().ContainSingle("and a parenthesised discard is still a discard");
+
+        DiscardingTransformProblems("x.cs", "await _tasks.UpdateAsync(id, Rewrite, ct);")
+            .Should().ContainSingle(
+                "a transform that is not a lambda at the call site cannot be read by this scan, so "
+                + "it is reported rather than waved through - that is the method-group hole closed "
+                + "in the only direction a text scan honestly can");
+    }
+
+    /// <summary>Everything wrong with the transform lambdas in one file.</summary>
+    /// <param name="relative">Repo-relative path, for the message.</param>
+    /// <param name="text">The file text.</param>
+    /// <returns>One entry per problem; empty when every call derives from the stored document.</returns>
+    private static IEnumerable<string> DiscardingTransformProblems(string relative, string text)
+    {
+        var mask = CodeMask(text);
+
+        foreach (var call in TransformingPortCalls)
+        {
+            foreach (var (start, end) in CallRegions(text, call, mask))
+            {
+                var args = text[start..end];
+
+                // A DECLARATION of the port method declares the delegate PARAMETER; a call site
+                // cannot. Matching the declaration rather than a bare mention of Func<> means a
+                // call whose lambda body happens to name a delegate type is still inspected.
+                if (Regex.IsMatch(args, @"Func<[^>]*>\s+\w+"))
+                    continue;
+
+                var arrow = args.IndexOf("=>", StringComparison.Ordinal);
+                if (arrow < 0)
+                {
+                    yield return $"{relative}::{call} is handed a transform that is not a lambda "
+                                 + "written at the call site, so nothing here can tell whether it "
+                                 + "reads the stored document";
+                    continue;
+                }
+
+                var parameter = ParameterBefore(args, arrow);
+                if (parameter is null || parameter == "_")
+                {
+                    yield return $"{relative}::{call}({parameter ?? "?"} => ...) discards the "
+                                 + "document the store read inside its write transaction";
+                    continue;
+                }
+
+                if (!Regex.IsMatch(args[(arrow + 2)..], $@"\b{Regex.Escape(parameter)}\b"))
+                {
+                    yield return $"{relative}::{call}({parameter} => ...) never reads "
+                                 + $"'{parameter}', so the stored document is discarded";
+                }
+            }
+        }
+    }
+
+    /// <summary>The lambda parameter immediately before <paramref name="arrow"/>.</summary>
+    /// <param name="args">The argument-list text.</param>
+    /// <param name="arrow">Index of the <c>=&gt;</c>.</param>
+    /// <returns>The identifier, or null when it is not a single-parameter lambda.</returns>
+    private static string? ParameterBefore(string args, int arrow)
+    {
+        var i = arrow - 1;
+        while (i >= 0 && char.IsWhiteSpace(args[i])) i--;
+
+        // Both (current) => ... and (MeshTaskState current) => ... put the identifier inside
+        // parentheses. Stepping over the closing one is what stops a perfectly ordinary
+        // parenthesised lambda being reported as a discard.
+        if (i >= 0 && args[i] == ')')
+        {
+            i--;
+            while (i >= 0 && char.IsWhiteSpace(args[i])) i--;
+        }
+
+        var stop = i;
+        while (i >= 0 && (char.IsLetterOrDigit(args[i]) || args[i] == '_')) i--;
+
+        return stop == i ? null : args[(i + 1)..(stop + 1)];
+    }
+
+    /// <summary>
     /// Maps <c>path::Member</c> to that member's source text, for every member that both reads and
     /// writes a LiteDB collection.
     /// </summary>
@@ -578,6 +920,243 @@ public sealed class LiteDbAtomicWriteConventionTests
     /// <summary>Whether <paramref name="body"/> calls <paramref name="call"/> on a LiteDB collection.</summary>
     private static bool Calls(string body, IReadOnlyCollection<string> collections, string call)
         => collections.Any(name => body.Contains($"{name}.{call}(", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Every read or write on a collection local in <paramref name="body"/> that is NOT inside one
+    /// of the member's <c>LiteDbAtomic.Mutate</c> argument lists, as its own source line.
+    /// </summary>
+    /// <param name="body">One member's source.</param>
+    /// <param name="collections">Locals, parameters and fields holding a LiteDB collection.</param>
+    /// <returns>One entry per offending call site.</returns>
+    private static IEnumerable<string> CallsOutsideTransaction(
+        string body,
+        IReadOnlyCollection<string> collections)
+    {
+        var mask = CodeMask(body);
+        var regions = CallRegions(body, HelperCall, mask);
+        var found = new List<string>();
+
+        foreach (var name in collections)
+        {
+            foreach (var call in ReadCalls.Concat(WriteCalls))
+            {
+                var needle = $"{name}.{call}(";
+                for (var at = body.IndexOf(needle, StringComparison.Ordinal);
+                     at >= 0;
+                     at = body.IndexOf(needle, at + 1, StringComparison.Ordinal))
+                {
+                    if (!mask[at])
+                        continue;
+                    if (regions.Any(r => at >= r.Start && at < r.End))
+                        continue;
+
+                    found.Add($"{needle}...) at {LineOf(body, at)}");
+                }
+            }
+        }
+
+        found.Sort(StringComparer.Ordinal);
+        return found;
+    }
+
+    /// <summary>The trimmed source line containing <paramref name="index"/>.</summary>
+    private static string LineOf(string text, int index)
+    {
+        var start = index == 0 ? 0 : text.LastIndexOf('\n', index - 1) + 1;
+        var end = text.IndexOf('\n', index);
+        if (end < 0) end = text.Length;
+        return text[start..end].Trim();
+    }
+
+    /// <summary>
+    /// The argument lists of every <paramref name="call"/> in <paramref name="text"/>, as half-open
+    /// <c>[Start, End)</c> index ranges over the same string.
+    /// </summary>
+    /// <param name="text">Source text.</param>
+    /// <param name="call">The called member, e.g. <c>LiteDbAtomic.Mutate</c>.</param>
+    /// <param name="mask">Which characters of <paramref name="text"/> are code.</param>
+    /// <returns>One range per call, in source order.</returns>
+    /// <remarks>
+    /// Bracket matching rather than a regex, because what sits between the parentheses is arbitrary
+    /// C# and routinely contains parentheses of its own - including inside string literals, which
+    /// is what <paramref name="mask"/> is for. The name has to be at a code position too: the
+    /// stores' own comments name this helper, and a region established by a comment would admit
+    /// every unguarded pair written beneath it.
+    /// </remarks>
+    private static List<(int Start, int End)> CallRegions(string text, string call, bool[] mask)
+    {
+        var regions = new List<(int Start, int End)>();
+
+        for (var at = text.IndexOf(call, StringComparison.Ordinal);
+             at >= 0;
+             at = text.IndexOf(call, at + 1, StringComparison.Ordinal))
+        {
+            if (!mask[at])
+                continue;
+
+            // A member name, not the tail of a longer one: RegisterOrUpdateAsync( ends in
+            // UpdateAsync( and is a different member.
+            if (at > 0 && (char.IsLetterOrDigit(text[at - 1]) || text[at - 1] == '_'))
+                continue;
+
+            var open = at + call.Length;
+            while (open < text.Length && char.IsWhiteSpace(text[open])) open++;
+            if (open >= text.Length || text[open] != '(' || !mask[open])
+                continue;
+
+            var close = MatchingParen(text, open, mask);
+            if (close > open)
+                regions.Add((open + 1, close));
+        }
+
+        return regions;
+    }
+
+    /// <summary>The index of the <c>)</c> closing the <c>(</c> at <paramref name="open"/>.</summary>
+    private static int MatchingParen(string text, int open, bool[] mask)
+    {
+        var depth = 0;
+
+        for (var i = open; i < text.Length; i++)
+        {
+            if (!mask[i])
+                continue;
+
+            if (text[i] == '(')
+            {
+                depth++;
+            }
+            else if (text[i] == ')')
+            {
+                depth--;
+                if (depth == 0)
+                    return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Which characters of <paramref name="text"/> are code rather than comment or literal.
+    /// </summary>
+    /// <param name="text">Source text.</param>
+    /// <returns>A mask the same length as <paramref name="text"/>.</returns>
+    private static bool[] CodeMask(string text)
+    {
+        var mask = new bool[text.Length];
+
+        var i = 0;
+        while (i < text.Length)
+        {
+            var code = SkipNonCode(text, i);
+            if (code >= text.Length)
+                break;
+
+            mask[code] = true;
+            i = code + 1;
+        }
+
+        return mask;
+    }
+
+    /// <summary>
+    /// Advances past any run of comments and string or character literals starting at
+    /// <paramref name="i"/> and returns the index of the next character that is code.
+    /// </summary>
+    /// <param name="text">Source text.</param>
+    /// <param name="i">Where to start.</param>
+    /// <returns>Index of the next code character, or the length of the text.</returns>
+    /// <remarks>
+    /// Enough C# lexing for this file's purpose and no more: line and block comments, ordinary,
+    /// verbatim and interpolated strings, and character literals. An interpolation hole containing
+    /// a quote of its own would defeat it; nothing in the stores has one, and the failure direction
+    /// would be a reported offender rather than a missed one.
+    /// </remarks>
+    private static int SkipNonCode(string text, int i)
+    {
+        while (i < text.Length)
+        {
+            var c = text[i];
+
+            if (c == '/' && i + 1 < text.Length && text[i + 1] == '/')
+            {
+                var newline = text.IndexOf('\n', i);
+                i = newline < 0 ? text.Length : newline + 1;
+                continue;
+            }
+
+            if (c == '/' && i + 1 < text.Length && text[i + 1] == '*')
+            {
+                var close = text.IndexOf("*/", i + 2, StringComparison.Ordinal);
+                i = close < 0 ? text.Length : close + 2;
+                continue;
+            }
+
+            if (c == '\'')
+            {
+                i = SkipQuoted(text, i, '\'', verbatim: false);
+                continue;
+            }
+
+            if (c == '"')
+            {
+                i = SkipQuoted(text, i, '"', verbatim: false);
+                continue;
+            }
+
+            if (c == '@' || c == '$')
+            {
+                var j = i;
+                var verbatim = false;
+                while (j < text.Length && (text[j] == '@' || text[j] == '$'))
+                {
+                    if (text[j] == '@') verbatim = true;
+                    j++;
+                }
+
+                if (j < text.Length && text[j] == '"')
+                {
+                    i = SkipQuoted(text, j, '"', verbatim);
+                    continue;
+                }
+
+                return i;
+            }
+
+            return i;
+        }
+
+        return i;
+    }
+
+    /// <summary>Advances past the literal whose opening quote is at <paramref name="start"/>.</summary>
+    private static int SkipQuoted(string text, int start, char quote, bool verbatim)
+    {
+        for (var i = start + 1; i < text.Length; i++)
+        {
+            var c = text[i];
+
+            if (!verbatim && c == '\\')
+            {
+                i++;
+                continue;
+            }
+
+            if (c != quote)
+                continue;
+
+            if (verbatim && i + 1 < text.Length && text[i + 1] == quote)
+            {
+                i++;
+                continue;
+            }
+
+            return i + 1;
+        }
+
+        return text.Length;
+    }
 
     /// <summary>
     /// Locals, parameters and fields that hold a LiteDB collection. Both spellings are in the tree
@@ -697,26 +1276,35 @@ public sealed class LiteDbAtomicWriteConventionTests
     }
 
     /// <summary>Repo-root-relative paths of production files that open a LiteDB database.</summary>
-    private static IEnumerable<string> Stores(string root)
+    private static IEnumerable<string> Stores(string root) => Files(root, LiteDbMarkers);
+
+    /// <summary>
+    /// Repo-root-relative paths of production files whose text contains any of
+    /// <paramref name="markers"/>.
+    /// </summary>
+    /// <param name="root">Repository root.</param>
+    /// <param name="markers">Substrings that make a file interesting.</param>
+    /// <returns>Sorted, pruned, repo-root-relative paths.</returns>
+    private static IEnumerable<string> Files(string root, string[] markers)
     {
         var found = new List<string>();
         foreach (var top in ProductionRoots)
         {
             var dir = Path.Combine(root, top);
             if (Directory.Exists(dir))
-                Collect(root, dir, found);
+                Collect(root, dir, found, markers);
         }
 
         found.Sort(StringComparer.Ordinal);
         return found;
     }
 
-    private static void Collect(string root, string directory, List<string> found)
+    private static void Collect(string root, string directory, List<string> found, string[] markers)
     {
         foreach (var file in Directory.EnumerateFiles(directory, "*.cs"))
         {
             var text = File.ReadAllText(file);
-            if (LiteDbMarkers.Any(marker => text.Contains(marker, StringComparison.Ordinal)))
+            if (markers.Any(marker => text.Contains(marker, StringComparison.Ordinal)))
                 found.Add(Normalize(Path.GetRelativePath(root, file)));
         }
 
@@ -725,7 +1313,7 @@ public sealed class LiteDbAtomicWriteConventionTests
             if (IsPruned(child))
                 continue;
 
-            Collect(root, child, found);
+            Collect(root, child, found, markers);
         }
     }
 

@@ -394,13 +394,7 @@ public static class CommercialFleetEndpoints
             correlation,
             body?.LeaseSeconds,
             cancellationToken).ConfigureAwait(false);
-        if (task is null)
-            return Results.NotFound();
-        if (!ok && string.Equals(error, "schedule.idempotency_conflict", StringComparison.Ordinal))
-            return Results.Conflict(ToTaskResponse(task));
-        if (!ok)
-            return Results.BadRequest(new ProblemDetails { Title = error ?? "placement.failed", Detail = error });
-        return Results.Ok(ToTaskResponse(task));
+        return ToPlacementResult(ok, task, error);
     }
 
     private static async Task<IResult> RetryMeshTaskAsync(
@@ -419,13 +413,43 @@ public static class CommercialFleetEndpoints
             correlation,
             body?.LeaseSeconds,
             cancellationToken).ConfigureAwait(false);
+        return ToPlacementResult(ok, task, error);
+    }
+
+    /// <summary>
+    /// Placement error codes that mean "the state moved, try again" rather than "your request was
+    /// malformed", and are therefore 409 rather than 400.
+    /// </summary>
+    /// <remarks>
+    /// <para><c>schedule.conflict</c> is what <c>MeshTaskPlacementService</c> returns when a
+    /// placement's precondition no longer held by the time the store applied it - two overlapping
+    /// schedules of one task, or the timer-driven
+    /// <c>MeshPendingTaskRebalancerBackgroundService</c> crossing an operator's call. Its first
+    /// revision fell through to <c>BadRequest</c>, because only the idempotency conflict was
+    /// special-cased, so a caller whose request was perfectly well formed was told not to retry.
+    /// A single list and a single mapping helper, shared by both endpoints, is what stops the two
+    /// drifting: they had identical five-line copies of this before.</para>
+    /// </remarks>
+    private static readonly string[] RetryableScheduleConflicts =
+    [
+        "schedule.idempotency_conflict",
+        "schedule.conflict",
+    ];
+
+    /// <summary>Maps a placement outcome onto a status code.</summary>
+    /// <param name="ok">Whether the placement succeeded.</param>
+    /// <param name="task">The state the store holds, or null when the task does not exist.</param>
+    /// <param name="error">The placement error code, when there is one.</param>
+    /// <returns>200 with the task, 404, 409 for a retryable conflict, or 400.</returns>
+    private static IResult ToPlacementResult(bool ok, MeshTaskState? task, string? error)
+    {
         if (task is null)
             return Results.NotFound();
-        if (!ok && string.Equals(error, "schedule.idempotency_conflict", StringComparison.Ordinal))
+        if (ok)
+            return Results.Ok(ToTaskResponse(task));
+        if (error is not null && RetryableScheduleConflicts.Contains(error, StringComparer.Ordinal))
             return Results.Conflict(ToTaskResponse(task));
-        if (!ok)
-            return Results.BadRequest(new ProblemDetails { Title = error ?? "placement.failed", Detail = error });
-        return Results.Ok(ToTaskResponse(task));
+        return Results.BadRequest(new ProblemDetails { Title = error ?? "placement.failed", Detail = error });
     }
 
     private static async Task<IResult> ExportMeshKnowledgeAsync(

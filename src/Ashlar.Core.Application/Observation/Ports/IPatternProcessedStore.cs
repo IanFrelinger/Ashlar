@@ -28,6 +28,13 @@ public interface IPatternProcessedStore
     /// implementation gets that from a unique index, so the losing insert is refused by the database
     /// rather than by a lock this process happens to hold.</para>
     ///
+    /// <para>An implementation decides "the same pattern" however its storage compares keys, and
+    /// that need not be ordinal. The LiteDB one compares through the database collation, which is
+    /// case-insensitive, so two ids differing only in case are ONE claim there; that matches what
+    /// <see cref="IsProcessedAsync"/> already answered on the same store, so it is not a narrowing,
+    /// but a caller that mints ids where case is the only difference must not rely on them being
+    /// separate claims.</para>
+    ///
     /// <para>A claim is not released. A pattern whose cycle throws part way stays claimed and is not
     /// retried, where before it was retried forever; that is the deliberate trade, and the alternative
     /// — releasing on failure — hands the same pattern back to the cycle that is already failing on it.</para>

@@ -34,7 +34,12 @@ public interface IFleetNodeRegistry
     ///
     /// <para><b>What the merge may not do.</b> Synchronous, no I/O, no call back into this registry:
     /// it runs inside the LiteDB transaction while the store holds a non-reentrant
-    /// <c>SemaphoreSlim(1,1)</c>, and <c>LiteDbAtomic.Mutate</c> refuses a nested transaction. Do the
+    /// <c>SemaphoreSlim(1,1)</c>. It must not call into ANY other LiteDB store either, including the
+    /// task registry, which is constructed with the SAME FILE PATH - two stores over one file are two
+    /// SharedEngines whose named mutex is thread-reentrant, so measured without the guard the inner
+    /// transaction was neither refused nor blocked and one of the two writes was silently discarded
+    /// with both commits reporting success. <c>LiteDbAtomic.Mutate</c> now refuses that by a
+    /// thread-static depth count as well as refusing a nested transaction on one database. Do the
     /// validating and the awaiting before the call and close over the result.</para>
     /// </remarks>
     Task<MeshFleetNodeState> RegisterOrMergeAsync(

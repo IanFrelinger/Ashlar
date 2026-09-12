@@ -249,12 +249,30 @@ public sealed class MeshTaskWriteRaceTests : IDisposable
     /// that is both. Deciding this on the FINAL state alone would miss it whenever a later write
     /// happened to restore a consistent-looking row, which is why the extender makes several passes
     /// and the fact remembers every answer it was given.</para>
+    ///
+    /// <para><b>The positive control, and the one this fact used to carry.</b> The contradiction
+    /// list is a refusal-shaped assertion: it is empty when the sweep never runs and equally empty
+    /// when every extension is refused, so it needs a control that fails in both of those states.
+    /// The first version of this fact asserted <c>reclaimed + renewed == SweepKeys</c>, which is
+    /// arithmetically always true - both counters are incremented in an if/else exactly once per
+    /// element of a list seeded with exactly <c>SweepKeys</c> entries, so it was
+    /// <c>tokens.Count == SweepKeys</c> wearing a control's message. Setting
+    /// <c>SweepEnabled = false</c> - which is the SHIPPED DEFAULT of
+    /// <c>MeshCheckpointOptions</c> - or breaking <c>ExtendLeaseAsync</c> so it refuses everything
+    /// left the whole fact green. What replaces it are two uncontended phases run before the race:
+    /// one expired lease the sweep must actually reclaim, and one live lease an extension must
+    /// actually be granted on with its token intact. Those are deterministic, which the
+    /// distribution of a real race is not - the contended phase is free to come out any way at all
+    /// as long as no task is told both things.</para>
     /// </remarks>
     [Fact]
     public void The_sweep_leaves_a_renewed_lease_alone() => RaceSweepAgainstExtend();
 
     private void RaceSweepAgainstExtend()
     {
+        SweepActuallyReclaimsAnExpiredLease();
+        AnExtensionIsActuallyGrantedOnALiveLease();
+
         var path = Path.Combine(_dir, "sweep.db");
         var seeding = new LiteDbMeshTaskRegistry(path);
         var sweeping = new LiteDbMeshTaskRegistry(path);
@@ -338,9 +356,14 @@ public sealed class MeshTaskWriteRaceTests : IDisposable
                 violations.Add($"{taskId}: every extension was refused, yet the task is {status} rather than reclaimed");
         }
 
+        // reclaimed and renewed are reported, not asserted on: which way a contended task went is
+        // the race's business. Asserting a split here would either be arithmetically vacuous - the
+        // mistake this fact used to make - or flaky.
         (reclaimed + renewed).Should().Be(
-            SweepKeys,
-            "the positive control: every seeded task must have been decided one way or the other.");
+            tokens.Count,
+            "sanity: every task read back was classified. This is NOT the positive control - it is "
+            + "tokens.Count == tokens.Count, which is what this assertion was when it claimed to be "
+            + "one. The controls are the two uncontended phases at the top of this method.");
 
         violations.Should().BeEmpty(
             "the sweep clears a lease only if the lease it saw expire is still the stored one, and "
@@ -350,6 +373,96 @@ public sealed class MeshTaskWriteRaceTests : IDisposable
             + "expiry, so the task stayed leased to a peer the director had already reclaimed it "
             + "from and the sweep would not look at it again for another interval. Observed: {0}",
             string.Join(" | ", violations));
+    }
+
+    /// <summary>
+    /// Control one: with nothing racing it, the sweep really does reclaim an expired lease.
+    /// </summary>
+    /// <remarks>
+    /// Fails when the sweep is switched off - and <c>MeshCheckpointOptions.SweepEnabled</c> is
+    /// <c>false</c> by default, so "the sweep never ran" is the state a careless options change
+    /// produces - and fails when its transform declines everything. Either of those leaves the
+    /// contended phase's contradiction list empty and its old control passing.
+    /// </remarks>
+    private void SweepActuallyReclaimsAnExpiredLease()
+    {
+        var path = Path.Combine(_dir, "sweep-control-reclaim.db");
+        var seeding = new LiteDbMeshTaskRegistry(path);
+        var sweeping = new LiteDbMeshTaskRegistry(path);
+
+        var token = Guid.NewGuid().ToString("N");
+        var taskId = SeedLeasedTask(seeding, path, "control-expired", token, expired: true);
+
+        using (var reclaimed = new ManualResetEventSlim(false))
+        using (var cts = new CancellationTokenSource())
+        {
+            var sweep = new MeshLeaseSweepBackgroundService(
+                sweeping,
+                new StaticOptionsMonitor<MeshCheckpointOptions>(new MeshCheckpointOptions
+                {
+                    SweepEnabled = true,
+                    SweepIntervalMinutes = 1,
+                }),
+                new SignallingLogger<MeshLeaseSweepBackgroundService>(
+                    message => message.Contains("reclaimed", StringComparison.Ordinal),
+                    reclaimed));
+
+            sweep.StartAsync(cts.Token).GetAwaiter().GetResult();
+
+            // The handshake is the service's own log line, not a duration: StartAsync returns at
+            // the first await inside the round, so nothing else here knows when the round ran.
+            var signalled = reclaimed.Wait(RacerBudget);
+
+            cts.Cancel();
+            sweep.StopAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            signalled.Should().BeTrue(
+                "the positive control for the sweep: an expired lease with nothing racing it must "
+                + "be reclaimed, and the sweep says so in its own log. A sweep that never runs - "
+                + "SweepEnabled is false by DEFAULT - or whose transform declines everything makes "
+                + "the contended fact below vacuously green. Waited {0} s.",
+                RacerBudget.TotalSeconds);
+        }
+
+        // The log line said it reclaimed; the document has to agree. Read raw, so a sweep that
+        // logged without writing would fail here rather than be taken at its word.
+        var stored = StoredTask(path, taskId);
+        stored["LeaseToken"].IsNull.Should().BeTrue("the lease it reported reclaiming is gone");
+        ((MeshTaskStatus)stored["Status"].AsInt32).Should().Be(
+            MeshTaskStatus.Pending,
+            "and the reclaimed task goes back on the queue rather than merely losing its token");
+    }
+
+    /// <summary>
+    /// Control two: with nothing racing it, an extension on a live lease is really granted.
+    /// </summary>
+    /// <remarks>
+    /// Fails when <c>ExtendLeaseAsync</c> refuses everything, which is the other degenerate end the
+    /// contended fact cannot see on its own: every task would be refused-and-not-extended, and no
+    /// contradiction would be recorded.
+    /// </remarks>
+    private void AnExtensionIsActuallyGrantedOnALiveLease()
+    {
+        var path = Path.Combine(_dir, "sweep-control-extend.db");
+        var seeding = new LiteDbMeshTaskRegistry(path);
+        var extending = new LiteDbMeshTaskRegistry(path);
+
+        var token = Guid.NewGuid().ToString("N");
+        var taskId = SeedLeasedTask(seeding, path, "control-live", token);
+
+        var (ok, state, error) = Execution(extending)
+            .ExtendLeaseAsync(taskId, token, 3600).GetAwaiter().GetResult();
+
+        ok.Should().BeTrue(
+            "the positive control for the extender: the holder of a live lease must be able to "
+            + "renew it. An extender that refuses everything makes the contended fact below "
+            + "vacuously green. Error was: {0}",
+            error ?? "<none>");
+        state!.LeaseToken.Should().Be(token, "and renewing keeps the same token");
+        StoredTask(path, taskId)["LeaseToken"].AsString.Should().Be(
+            token,
+            "read back without the registry, so a renewal that only happened in the returned "
+            + "record would fail here");
     }
 
     /// <summary>

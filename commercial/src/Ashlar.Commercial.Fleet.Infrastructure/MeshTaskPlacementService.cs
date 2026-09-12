@@ -146,8 +146,27 @@ public sealed class MeshTaskPlacementService : IMeshTaskPlacementService
                 if (reclaimResult.Outcome == MeshTaskUpdateOutcome.NotFound)
                     return (false, null, "task.not_found");
 
-                // Applied or refused, the store handed back what it holds. That is what the re-read
-                // on the next line used to be for, without the second window it opened.
+                // A REFUSAL here is this call losing the race, and it may not be laundered into a
+                // fresh premise. Adopting the winner's document as the new placementSnapshot made
+                // PlacementSnapshotStillStands pass by construction a few lines below, and Shape()
+                // forces Status = Pending from ANY status, so the Succeeded guard at the top of
+                // this method was never re-applied: a task that finished in this window was
+                // re-placed, reported Ok, and handed a fresh lease. Measured through a decorator
+                // that commits the completion in exactly this window: placementOk=True with the
+                // stored row left Assigned, attempt 2, and the completion's ResultSummary dangling
+                // on it. The other reachable refusal is a lease that is no longer expired because
+                // its worker renewed it -- an extension changes only LeaseExpiresUtc, which
+                // PlacementSnapshotStillStands does not compare -- and adopting that one re-placed
+                // a task with a LIVE lease. Both are the same answer: the premise is void.
+                if (reclaimResult.Outcome == MeshTaskUpdateOutcome.PreconditionFailed)
+                {
+                    _logger?.LogInformation(
+                        "mesh placement task={TaskId} lost the reclaim race; the task moved before "
+                        + "the expired lease could be cleared",
+                        taskId);
+                    return (false, reclaimResult.State, "schedule.conflict");
+                }
+
                 task = reclaimResult.State ?? task;
             }
             else if (!isRetry && task.Status == MeshTaskStatus.Assigned)

@@ -141,6 +141,151 @@ public sealed class LiteDbPatternProcessedStoreClaimTests : TempDirTestBase
     }
 
     /// <summary>
+    /// A legacy database whose duplicate rows differ only in CASE migrates, because the
+    /// de-duplication compares keys the way the index does.
+    /// </summary>
+    /// <remarks>
+    /// <para>The first version of the migration de-duplicated with <c>StringComparer.Ordinal</c>
+    /// and then declared an index that compares through the database collation - measured on this
+    /// file as LCID 127 with <c>CompareOptions.IgnoreCase</c>. Rows differing only in case
+    /// therefore survived the de-duplication, <c>EnsureIndex(unique)</c> raised duplicate-key error
+    /// 110 inside the transaction, and because the store's ready flag is only set AFTER the
+    /// transaction returns, every later claim re-ran the migration and threw again. Measured
+    /// against the real store: <c>TryClaimAsync("brand-new-pattern")</c> threw on attempts one, two
+    /// and three, and <c>SelfImprovementLoop</c> has no catch at that call site, so the improvement
+    /// cycle died rather than getting a refusal it could act on.</para>
+    ///
+    /// <para>Reachability is not theoretical: <c>PatternDetector</c> mints lower-case GUIDs, but
+    /// <c>MeshKnowledgeImportService</c> stores a peer's <c>PatternId</c> verbatim with no
+    /// normalization, and <c>SelfImprovementLoop</c> claims whatever the pattern store returns.</para>
+    /// </remarks>
+    [Fact]
+    public async Task A_legacy_store_whose_duplicates_differ_only_in_case_still_migrates()
+    {
+        var path = Path.Combine(TempDir, $"legacy-case-{Guid.NewGuid():N}.db");
+        var firstSeen = DateTimeOffset.UtcNow.AddDays(-3);
+
+        using (var db = new LiteDatabase(LiteDbConnectionString.ForSharedAccess(path)))
+        {
+            var col = db.GetCollection(CollectionName);
+            col.EnsureIndex(PatternIdField).Should().BeTrue(
+                "the seed is the shipped shape: a NON-unique index, declared by the old write path");
+
+            // One id in two casings. Under the collation these are ONE index key, which is what an
+            // Ordinal de-duplication cannot see.
+            col.Insert(Legacy("AbC123", firstSeen));
+            col.Insert(Legacy("abc123", firstSeen.AddHours(1)));
+            col.Insert(Legacy("plain", firstSeen.AddHours(2)));
+        }
+
+        RawCount(path).Should().Be(3, "the seed really did write both casings");
+
+        var store = new LiteDbPatternProcessedStore(path);
+
+        (await store.TryClaimAsync("brand-new-pattern")).Should().BeTrue(
+            "the migration must complete. With an Ordinal de-duplication this call THREW "
+            + "LiteException 110 - and so did every call after it, because the ready flag is only "
+            + "set once the migration returns.");
+
+        RawCount(path).Should().Be(
+            3,
+            "AbC123 and abc123 collapse to one row, plain survives, and brand-new-pattern is "
+            + "added: 2 + 1. A count of 4 means nothing was de-duplicated.");
+
+        (await store.TryClaimAsync("ABC123")).Should().BeFalse(
+            "and the surviving row still answers for every casing of that id");
+        StoredProcessedAt(path, "abc123").Should().BeCloseTo(
+            firstSeen,
+            TimeSpan.FromSeconds(1),
+            "the EARLIEST of the two casings survives, as for any other duplicate");
+    }
+
+    /// <summary>
+    /// A legacy row with no <c>PatternId</c> field at all is left alone.
+    /// </summary>
+    /// <remarks>
+    /// The same comparer mismatch in the opposite direction. The typed document's property
+    /// initializer maps an absent field onto <c>string.Empty</c>, so an Ordinal de-duplication over
+    /// mapped documents treated an absent field and an empty string as one key and deleted one of
+    /// the rows. Measured: <c>Compare(BsonValue.Null, "")</c> is -1, and a unique index accepts
+    /// both - so that deletion was data loss with no defect to justify it, and it left a valid
+    /// index behind, so nothing noticed.
+    /// </remarks>
+    [Fact]
+    public async Task A_legacy_row_with_no_pattern_id_field_is_not_deleted_by_the_migration()
+    {
+        var path = Path.Combine(TempDir, $"legacy-missing-{Guid.NewGuid():N}.db");
+
+        using (var db = new LiteDatabase(LiteDbConnectionString.ForSharedAccess(path)))
+        {
+            var col = db.GetCollection(CollectionName);
+            col.EnsureIndex(PatternIdField);
+
+            // Both rows are needed, and that is the point: an Ordinal de-duplication over MAPPED
+            // documents sees one key for these two, because the typed document's property
+            // initializer turns an absent field into string.Empty. Seeding only the absent one
+            // leaves nothing to collide with and the fact passes in both states - which is what
+            // the first version of this test did.
+            col.Insert(new BsonDocument
+            {
+                ["ProcessedAt"] = DateTime.UtcNow.AddDays(-2),
+            });
+            col.Insert(Legacy(string.Empty, DateTimeOffset.UtcNow.AddDays(-1)));
+            col.Insert(Legacy("real", DateTimeOffset.UtcNow.AddDays(-1)));
+        }
+
+        RawCount(path).Should().Be(3);
+
+        var store = new LiteDbPatternProcessedStore(path);
+        (await store.TryClaimAsync("after-migration")).Should().BeTrue();
+
+        RawCount(path).Should().Be(
+            4,
+            "an absent PatternId field indexes as BsonValue.Null, which the collation orders "
+            + "strictly BEFORE the empty string (measured: Compare(Null, \"\") == -1), so a unique "
+            + "index accepts both and neither is a duplicate of anything. A count of 3 means the "
+            + "migration deleted one of them - silently, and leaving a valid index behind.");
+    }
+
+    /// <summary>
+    /// Two ids differing only in case are ONE claim, and that is a property of the store rather
+    /// than a change this made.
+    /// </summary>
+    /// <remarks>
+    /// <para>The index compares through the database collation, so the second casing is refused.
+    /// Pinned here because a caller reading "the database decides the winner" would reasonably
+    /// assume the key is the id it passed, and because the alternative - making the key exact -
+    /// would mean changing the collation of a shared database file, which is a far wider change
+    /// than a concurrency fix.</para>
+    ///
+    /// <para>It is not a narrowing. The previous shape answered <c>IsProcessedAsync</c> with
+    /// <c>Query.EQ</c> over the same field and the same collation, and measured on a store built
+    /// that way, <c>IsProcessedAsync("pattern-a")</c> already returned true for a stored
+    /// <c>Pattern-A</c>. The claim is exactly as coarse as the check it replaced.</para>
+    /// </remarks>
+    [Fact]
+    public async Task Two_ids_that_differ_only_in_case_are_one_claim()
+    {
+        var path = Path.Combine(TempDir, $"case-{Guid.NewGuid():N}.db");
+        var store = new LiteDbPatternProcessedStore(path);
+
+        (await store.TryClaimAsync("Pattern-A")).Should().BeTrue();
+        (await store.TryClaimAsync("pattern-a")).Should().BeFalse(
+            "the unique index compares through the database collation (LCID 127, IgnoreCase), so "
+            + "these are one key. If this ever returns true the index has stopped being unique, or "
+            + "the collation changed - both of which matter more than the case question itself.");
+
+        (await store.IsProcessedAsync("PATTERN-A")).Should().BeTrue(
+            "and the read answers on the same key, which is what it did before the claim existed");
+
+        (await store.TryClaimAsync("pattern-b")).Should().BeTrue(
+            "the positive control: a genuinely different id must still claim, or this fact is "
+            + "satisfied by a store that refuses every second call");
+
+        RawCount(path).Should().Be(2);
+    }
+
+    /// <summary>
     /// Eight threads over eight separate database instances, all claiming one id: one winner.
     /// </summary>
     /// <remarks>

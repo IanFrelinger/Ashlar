@@ -158,12 +158,31 @@ public sealed class MeshTaskExecutionService
     /// the HTTP host - the only project that could exercise that endpoint,
     /// <c>Ashlar.Commercial.Tests.Fleet.Host</c>, is in no solution and no lane.</para>
     ///
-    /// <para><b>Two behaviour changes, both deliberate.</b> The lease comparison used to be gated on
-    /// <c>Status is Running or Assigned</c>, so for Succeeded, Failed and Pending there was NO
-    /// comparison at all - and those are exactly the three arms that null the lease fields. A worker
-    /// whose lease had been swept or re-placed could report Succeeded, clear the NEW owner's lease
-    /// and overwrite its result. The comparison now applies to every status. And the state reported
-    /// back is the one the store wrote, not the one this method composed.</para>
+    /// <para><b>One behaviour change, and one that was claimed and is NOT made.</b> The change: a
+    /// caller that OFFERS a lease token is now checked against the stored one for every status,
+    /// where the check used to be gated on <c>Status is Running or Assigned</c> - and Succeeded,
+    /// Failed and Pending are exactly the three arms that null the lease fields, so a worker whose
+    /// lease had been swept or re-placed could report Succeeded, clear the NEW owner's lease and
+    /// overwrite its result. Offering a token that is not the stored one is refused even when the
+    /// stored task is unleased, which is what stops a migrate that cleared the lease being undone
+    /// by the same stale worker (measured: without it, 24 of 24 rounds accepted both writers).</para>
+    ///
+    /// <para>The change NOT made, having been claimed in this change's first revision and in its
+    /// CHANGELOG entry: a caller that supplies NO token is treated exactly as before. That is the
+    /// OPERATOR path - <c>PATCH /api/mesh/tasks/{id}/status</c> with no <c>leaseToken</c> - and it
+    /// is the only lever an operator has to fail or requeue a task whose worker died holding a live
+    /// lease. <c>MeshCheckpointOptions.SweepEnabled</c> is <c>false</c> by default and
+    /// <c>LeaseSeconds</c> is 1800, so nothing else reclaims that lease, and there is no cancel or
+    /// abandon route; <c>/retry</c> re-places the task rather than failing it. Refusing the
+    /// no-token caller on any leased task - which an earlier revision of this method did for every
+    /// status - removed that lever, was not needed by any of the measured races (a worker always
+    /// sends its token, so the first branch is what refuses it), and was described in the commit
+    /// message as leaving the operator path unchanged. The gate below is therefore the one the
+    /// endpoint shipped with, deliberately: no token plus a live lease is refused for Running and
+    /// Assigned, and accepted for the terminal and requeue arms.</para>
+    ///
+    /// <para>And the state reported back is the one the store wrote, not the one this method
+    /// composed.</para>
     /// </remarks>
     public async Task<(bool Ok, MeshTaskState? Task, string? Error)> ApplyStatusAsync(
         string taskId,
@@ -179,22 +198,29 @@ public sealed class MeshTaskExecutionService
             taskId,
             current =>
             {
-                // A leased task only moves on the say-so of whoever holds the lease, and OFFERING a
-                // token is itself a claim of ownership -- so a token that is not the stored one is
-                // refused even when the stored task is unleased. Both halves were measured to
-                // matter. Without the first, a worker whose lease had been swept or re-placed
-                // cleared the NEW owner's lease and overwrote its result. Without the second, a
-                // migrate that cleared the lease first was then overwritten by the same stale
-                // worker reporting Succeeded, and the run counted six rounds out of twenty-four
-                // where BOTH writers were accepted.
+                // OFFERING a token is itself a claim of ownership, so a token that is not the
+                // stored one is refused whatever the status and even when the stored task is
+                // unleased. Both halves were measured to matter. Without the first, a worker whose
+                // lease had been swept or re-placed cleared the NEW owner's lease and overwrote its
+                // result. Without the second, a migrate that cleared the lease first was then
+                // overwritten by the same stale worker reporting Succeeded, and the run counted six
+                // rounds out of twenty-four where BOTH writers were accepted.
                 //
-                // An operator holds no token and supplies none; that path is unchanged.
+                // Supplying NO token is the operator path and keeps the gate the endpoint shipped
+                // with: refused for Running and Assigned on a leased task, accepted for Succeeded,
+                // Failed and Pending. An operator forcing a stuck task terminal while an
+                // unreachable peer still holds a live lease is the only lever there is -- the sweep
+                // is off by default, the lease is 1800 s, and there is no cancel route -- and no
+                // measured race needs it closed, because a worker always sends its token and is
+                // refused by the branch above. See the remarks: the wider refusal was claimed and
+                // is deliberately not made.
                 if (!string.IsNullOrWhiteSpace(leaseToken))
                 {
                     if (!HoldsLease(current, leaseToken))
                         return null;
                 }
-                else if (!string.IsNullOrWhiteSpace(current.LeaseToken))
+                else if (status is MeshTaskStatus.Running or MeshTaskStatus.Assigned
+                         && !string.IsNullOrWhiteSpace(current.LeaseToken))
                 {
                     return null;
                 }

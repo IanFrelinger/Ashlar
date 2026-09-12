@@ -62,11 +62,19 @@ public interface IMeshTaskRegistry
     /// token is null on both sides of the race and two placements both satisfy "expect null".</para>
     ///
     /// <para><b>What the transform may not do.</b> It runs inside the LiteDB write transaction while
-    /// the store also holds a non-reentrant <c>SemaphoreSlim(1,1)</c>. It must be synchronous, do no
-    /// I/O, and never call back into this registry — a nested store call deadlocks on that semaphore,
-    /// and a nested transaction is refused outright by <c>LiteDbAtomic.Mutate</c>. Compute anything
-    /// that needs an <c>await</c> (the node list, an options read, a clock-and-policy decision)
-    /// BEFORE the call and close over the result.</para>
+    /// the store also holds a non-reentrant <c>SemaphoreSlim(1,1)</c>. It must be synchronous and do
+    /// no I/O. It must not call back into THIS registry: that deadlocks on the semaphore. And it must
+    /// not call into ANY other LiteDB store - which an earlier revision of this paragraph said was
+    /// covered by the two mechanisms above, and is not. The fleet registries are constructed with the
+    /// SAME FILE PATH and <c>MeshTaskPlacementService</c> holds both, so re-checking a node inside a
+    /// task transform is the natural edit; the sibling store's semaphore is not this one's, and the
+    /// .NET named mutex LiteDB's <c>SharedEngine</c> queues on is thread-reentrant. Measured in the
+    /// Linux devtest container: the inner <c>BeginTrans</c> returned TRUE, both <c>Commit</c>s
+    /// returned TRUE, and one of the two writes was simply not on disk afterwards. That case is now
+    /// refused by a thread-static depth count in <c>LiteDbAtomic.Mutate</c>, so it throws rather than
+    /// losing a write - but the rule is the same either way: compute anything that needs an
+    /// <c>await</c>, another store, or a clock-and-policy decision BEFORE the call and close over the
+    /// result.</para>
     ///
     /// <para>It may also be invoked more than once in principle; keep it free of side effects.</para>
     /// </remarks>
