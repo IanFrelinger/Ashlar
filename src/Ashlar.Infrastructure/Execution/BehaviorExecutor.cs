@@ -518,13 +518,13 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
         }
     }
     
+    /// <summary>
+    /// Derives the semantic-cache key. Delegates to <see cref="SemanticCacheKey"/>, which
+    /// <see cref="ClusterExecutor"/> also uses; see that type for what the private copy this
+    /// replaces got wrong.
+    /// </summary>
     private static string ComputeCacheKey(string brickId, BrickInput input, ImplementationType implementation)
-    {
-        // Simple cache key - in production, use semantic hashing
-        var inputHash = System.Text.Json.JsonSerializer.Serialize(input.ToDictionary())
-            .GetHashCode();
-        return $"{brickId}:{implementation}:{inputHash}";
-    }
+        => SemanticCacheKey.For(brickId, input, implementation);
     
     /// <summary>
     /// Computes whether the behavior succeeded. When <see cref="SuccessCriteria.AllStepsComplete"/>

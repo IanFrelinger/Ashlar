@@ -52,8 +52,38 @@ public sealed class RAGTool : ITool
         if (string.IsNullOrEmpty(maxSensitivity) && s.Data.TryGetValue("maxDataSensitivity", out var levelObj) && levelObj is string levelName)
             maxSensitivity = levelName;
 
-        var results = await _ragService.SearchAsync(query, maxResults, minScore, maxSensitivity, ct).ConfigureAwait(false);
         var tick = s.Tick;
+
+        IReadOnlyList<VectorSearchResult> results;
+        try
+        {
+            results = await _ragService.SearchAsync(query, maxResults, minScore, maxSensitivity, ct).ConfigureAwait(false);
+        }
+        catch (ArgumentException ex)
+        {
+            // The stores now REFUSE a query whose embedding has zero magnitude instead of
+            // scoring it as 0.0 against everything -- see VectorMath.UnrankableQuery. This tool
+            // is the caller that had to change with them: the query text arrives in the model's
+            // own JSON arguments and is never validated (a punctuation-only query reaches here
+            // intact), minScore likewise (a model-supplied 0 overrides the safe default of 0.7),
+            // and InvokeAsync had no catch at all, so the refusal would have surfaced as an
+            // unhandled exception in the agent loop.
+            //
+            // Turning it into a failed ToolResult keeps the loop running and, more importantly,
+            // keeps the audit line honest. The old behaviour logged
+            // `RAG search: query='', results=5` -- five arbitrary documents entering the agent's
+            // context, reported in exactly the same shape as a successful retrieval. An empty
+            // result list with the reason attached is the one outcome a reader can tell apart
+            // from both a real hit and a real miss.
+            // The payload carries the refusal rather than an empty list for the same reason the
+            // store throws rather than returning one: an empty list reads to the model as "the
+            // knowledge base has nothing on this", which is a different and unearned claim.
+            var refusal = new[] { $"RAG search REFUSED: query='{query}' cannot be ranked. {ex.Message}" };
+            return new ToolResult(
+                new ActionDelta(tick, tick + 1, refusal),
+                new { Refused = true, Reason = ex.Message });
+        }
+
         var log = new[] { $"RAG search: query='{query}', results={results.Count}" };
         var delta = new ActionDelta(tick, tick + 1, log);
         var payload = results.Select(r => new { r.Id, r.Text, r.Score, r.SensitivityLevelName }).ToList();
