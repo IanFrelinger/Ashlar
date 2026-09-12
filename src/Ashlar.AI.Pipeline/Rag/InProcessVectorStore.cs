@@ -165,6 +165,36 @@ public sealed class InProcessChunkCollection : VectorStoreCollection<string, Chu
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var query = ToVector(searchValue);
+
+        // Refuse an unrankable query before scanning the collection. A zero-magnitude query has
+        // no angle to any record, so it scores 0.0 against all of them -- and the threshold test
+        // below is `score < threshold`, so at the ScoreThreshold of 0.0 that
+        // MeaiVectorDataRagAdapter forwards from the CLI's `--min-score` default, `0.0 < 0.0` is
+        // false and every record is kept. This is the store the shipped hosts actually search
+        // (AshlarKernelRegistrar phase 13b overrides IRAGService with MeaiVectorDataRagAdapter
+        // unconditionally), so it is the path where a punctuation-only query returned the first
+        // `top` chunks of the corpus into an agent's context as retrieved evidence.
+        //
+        // Zero magnitude is reachable with no malformed input: TokenHashEmbeddingGenerator splits
+        // on a fixed punctuation set and leaves the vector all-zero when no token survives, so
+        // "", "   ", "!!!" and "..." all produce one.
+        //
+        // Duplicated rather than shared with Ashlar.BackgroundAgents.RAG.VectorMath: these two
+        // assemblies have no common dependency below Ashlar.Abstractions, and #582 already
+        // declined to promote a hash primitive into the public abstractions package for the same
+        // reason. Keep the two in step by hand; both are pinned by tests.
+        if (!IsRankable(query))
+        {
+            throw new ArgumentException(
+                "The query embedding has zero magnitude, so it cannot be ranked against anything: "
+                + "cosine similarity is undefined for it and every record is equally (un)close to "
+                + "it. This is NOT the same as 'nothing matched' -- returning an empty result here "
+                + "would be indistinguishable from an empty collection. The usual cause is a query "
+                + "the embedding generator found no tokens in: an empty string, whitespace, or "
+                + "punctuation only (\"!!!\", \"...\"). Supply a query containing at least one token.",
+                nameof(searchValue));
+        }
+
         Func<ChunkRecord, bool>? filter = options?.Filter?.Compile();
         var skip = options?.Skip ?? 0;
         var threshold = options?.ScoreThreshold;
@@ -178,7 +208,15 @@ public sealed class InProcessChunkCollection : VectorStoreCollection<string, Chu
                 continue;
             }
 
-            var score = CosineSimilarity(query, record.Embedding.ToArray());
+            // Skip a record that cannot be ranked against this query rather than scoring it: a
+            // different dimension, or a zero-magnitude embedding (an empty chunk is enough).
+            // Skip, not refuse, in this direction -- one unrankable record must not take a good
+            // query down with it, which is the opposite of the choice made for the query above.
+            if (!TryCosineSimilarity(query, record.Embedding.Span, out var score))
+            {
+                continue;
+            }
+
             if (threshold is not null && score < threshold.Value)
             {
                 continue;
@@ -212,28 +250,82 @@ public sealed class InProcessChunkCollection : VectorStoreCollection<string, Chu
         };
     }
 
-    private static double CosineSimilarity(float[] a, float[] b)
+    /// <summary>
+    /// Cosine similarity, distinguishing "no score exists" from "the score is 0".
+    /// </summary>
+    /// <returns>
+    /// False when the two vectors are empty, differ in length, or either has zero magnitude;
+    /// true with a usable score otherwise, including a legitimate 0.0 for orthogonal vectors.
+    /// </returns>
+    /// <remarks>
+    /// <para>Three changes from the version this replaces, each of which was returning a number
+    /// where there was no number to return.</para>
+    /// <para><b>Length.</b> It began <c>var len = Math.Min(a.Length, b.Length)</c> and scored the
+    /// shared prefix, so a stale record of a different dimension produced a confident nonzero
+    /// score from an incomparable pair — measured, a dim-16 record answered a dim-64 query at
+    /// 0.8165. That is worse than the score-0.0 phantom hit #582 removed from the two
+    /// BackgroundAgents stores, because it outranks real results. Unequal lengths are now
+    /// unrankable.</para>
+    /// <para><b>Zero magnitude.</b> <c>return 0</c> for a zero-norm vector is not a skip: the
+    /// caller's threshold test is <c>score &lt; threshold</c>, so 0.0 survives a ScoreThreshold of
+    /// 0.0. Saying so out of band is the only way the caller can tell.</para>
+    /// <para><b>The epsilon.</b> <c>na &lt;= double.Epsilon</c> reads like a tolerance and is not
+    /// one: <c>double.Epsilon</c> is 4.9e-324, so that was an exact-zero test in an epsilon's
+    /// clothing. It is now written as one. Note the accumulator gets <c>a[i] * a[i]</c> — a float
+    /// times a float, rounded to binary32 BEFORE it is widened — so the product flushes to zero
+    /// once every component is below about 2^-75 (2.6e-23), far above the subnormal boundary.
+    /// Testing the accumulation rather than the components is what makes that case fall out here
+    /// too, and it is why an epsilon tuned to subnormals would have missed it.</para>
+    /// </remarks>
+    private static bool TryCosineSimilarity(ReadOnlySpan<float> a, ReadOnlySpan<float> b, out double similarity)
     {
-        var len = Math.Min(a.Length, b.Length);
-        if (len == 0)
+        similarity = 0;
+        if (a.Length != b.Length || a.Length == 0)
         {
-            return 0;
+            return false;
         }
 
         double dot = 0, na = 0, nb = 0;
-        for (var i = 0; i < len; i++)
+        for (var i = 0; i < a.Length; i++)
         {
             dot += a[i] * b[i];
             na += a[i] * a[i];
             nb += b[i] * b[i];
         }
 
-        if (na <= double.Epsilon || nb <= double.Epsilon)
+        // The one guard by magnitude. A second `denom == 0` check would be the same test spelled
+        // differently and was deliberately not kept: with both present, removing either left
+        // every test green. `denom` cannot underflow on its own -- the accumulator sums float32
+        // products, whose smallest nonzero value is 2^-149, and the product of the two square
+        // roots of that is 2^-149 again.
+        if (na == 0 || nb == 0)
         {
-            return 0;
+            return false;
         }
 
-        return dot / (Math.Sqrt(na) * Math.Sqrt(nb));
+        similarity = dot / (Math.Sqrt(na) * Math.Sqrt(nb));
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a vector can be ranked at all. Uses the identical accumulation to
+    /// <see cref="TryCosineSimilarity"/> so the two always agree about which vectors have no
+    /// magnitude; hoisted out of the loop so an unrankable query is refused once.
+    /// </summary>
+    private static bool IsRankable(ReadOnlySpan<float> v)
+    {
+        if (v.Length == 0)
+        {
+            return false;
+        }
+
+        double norm = 0;
+        for (var i = 0; i < v.Length; i++)
+        {
+            norm += v[i] * v[i];
+        }
+
+        return norm != 0;
     }
 
     private static ChunkRecord Clone(ChunkRecord r) => new()

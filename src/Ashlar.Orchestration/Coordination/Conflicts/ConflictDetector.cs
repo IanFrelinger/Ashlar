@@ -377,6 +377,33 @@ public sealed class ConflictDetector
     /// </summary>
     /// <param name="schema">The JSON schema element.</param>
     /// <returns>A string key representing the schema.</returns>
+    /// <remarks>
+    /// <para><b>The per-process hash below is left in place, and a stable hash is not what is
+    /// wrong here.</b></para>
+    ///
+    /// <para><c>string.GetHashCode()</c> is randomized per process (measured: five distinct
+    /// values over five launches on the same schema text). It does not matter at this site. The
+    /// return value is used at exactly one place — as the key of <c>schemaGroups</c>, a
+    /// <c>Dictionary</c> declared as a local inside <c>DetectSchemaConflicts</c>, which then
+    /// reads only <c>.Values</c> and discards the keys. The key does not outlive the method call,
+    /// let alone the process: it is never persisted, serialized, returned, or logged, and the
+    /// emitted <c>Conflict</c> carries agent ids and a description, never this key.</para>
+    ///
+    /// <para><b>What would make it a defect.</b> Putting the key into the emitted
+    /// <c>Conflict</c>, or caching <c>schemaGroups</c> across calls. Both are unlikely shapes for
+    /// this method, and either one is a visible diff.</para>
+    ///
+    /// <para><b>Two things that ARE wrong here, and matter more.</b> First, the hash path is
+    /// nearly dead: the branch above returns <c>type.GetString()</c> whenever the schema has a
+    /// <c>type</c> property, so every object schema collapses to the single key <c>"object"</c>
+    /// regardless of its properties, and <c>AreSchemasCompatible</c> is never invoked between two
+    /// object schemas. Only a schema with no <c>type</c> at all reaches the hash. Second, even
+    /// when reached the key is taken over <c>GetRawText()</c>, so two byte-different spellings of
+    /// the same schema — differing only in whitespace or property order — land in different
+    /// groups. Swapping in SHA-256 fixes neither and would leave the site looking audited while
+    /// the grouping stayed wrong. The fix, if this method is taken up, is to key on a canonical
+    /// form of the schema (normalized property order and whitespace) and only then hash it.</para>
+    /// </remarks>
     private static string GetSchemaKey(JsonElement schema)
     {
         try

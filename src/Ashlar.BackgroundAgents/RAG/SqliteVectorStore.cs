@@ -15,6 +15,13 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
     private bool _initialized;
 
     /// <summary>
+    /// 0 while live, 1 once disposed. An <see cref="Interlocked"/> flag rather than a bool under
+    /// <see cref="_initLock"/>, because the second <c>DisposeAsync</c> must decide it has nothing
+    /// to do WITHOUT touching the semaphore the first one disposed.
+    /// </summary>
+    private int _disposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SqliteVectorStore"/> class.
     /// </summary>
     /// <param name="connectionStringOrPath">SQLite connection string or file path (e.g. "Data Source=rag.db").</param>
@@ -64,6 +71,17 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
         string? maxSensitivityLevelName,
         CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+        // Refuse an unrankable query before any I/O -- before the schema check, before the
+        // connection, before the read. A zero-magnitude query has no angle to any row, so it
+        // scores 0.0 against all of them and, at the common minScore of 0.0, returns the first
+        // maxResults rows in the table as "hits". VectorMath.UnrankableQuery says why this
+        // refuses rather than returning an empty list; VectorMath.TryCosineSimilarity says why
+        // the test is on the accumulated norm and not on the components.
+        if (!VectorMath.IsRankable(embedding))
+            throw VectorMath.UnrankableQuery(nameof(embedding));
+
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
 
         IDataSensitivityLevel? maxLevel = null;
@@ -94,14 +112,27 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
 
             if (blob == null || blob.Length == 0)
                 continue;
-            // Skip rows of a different dimension rather than scoring them. CosineSimilarity returns
-            // 0 for a length mismatch, and the filter below admits anything at or above minScore —
-            // so with the common minScore of 0.0 a stale row of the wrong dimension would come back
-            // as a score-0.0 hit instead of being ignored.
-            if (blob.Length != embedding.Length * sizeof(float))
-                continue;
+
             var docEmbedding = BlobToFloatArray(blob);
-            var score = VectorMath.CosineSimilarity(embedding.AsSpan(), docEmbedding.AsSpan());
+
+            // Skip a row that cannot be ranked against this query rather than scoring it -- a
+            // different dimension, or a zero-magnitude embedding. Both used to arrive as the
+            // value 0.0 out of CosineSimilarity, and the filter below admits anything at or above
+            // minScore, so at the common minScore of 0.0 they came back as score-0.0 hits instead
+            // of being ignored. Skip, not refuse, in this direction: one unrankable row must not
+            // take a good query down with it. The QUERY above is refused instead, and
+            // VectorMath.UnrankableQuery says why the two directions differ.
+            //
+            // #582's dimension check used to sit above this as a blob-length compare, which also
+            // skipped the BlobToFloatArray allocation. It was removed when TryCosineSimilarity
+            // became the single authority on comparability -- deliberately, because with both in
+            // place SearchAsync_RowOfDifferentDimension_IsSkippedNotReturnedAtScoreZero passed
+            // with either one reverted and so had no teeth against either. Measured: with the
+            // blob compare present, reverting TryCosineSimilarity's length clause left that test
+            // green. An allocation for a stale row is the price of a guard that can be tested.
+            if (!VectorMath.TryCosineSimilarity(embedding.AsSpan(), docEmbedding.AsSpan(), out var score))
+                continue;
+
             if (score >= minScore)
                 results.Add(new VectorSearchResult(docId, text, score, sensitivityLevelName));
         }
@@ -144,22 +175,70 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
         return count;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Releases what this store owns: the pooled SQLite connection for its connection string, and
+    /// the initialization lock.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>What this used to do, and what changes for callers.</b> It took the lock, set
+    /// <c>_initialized = true</c>, and released the lock. It disposed nothing, and two things
+    /// followed.</para>
+    /// <para>First, disposal was unobservable: a store kept answering <see cref="SearchAsync"/>
+    /// after <c>await using</c> had ended. It now throws <see cref="ObjectDisposedException"/>,
+    /// which is a behaviour change for any caller that was (knowingly or not) using a disposed
+    /// store.</para>
+    /// <para>Second, <c>= true</c> was the one value that could break the instance.
+    /// <c>_initialized</c> is the memo for schema creation, so setting it on the way out claimed
+    /// <c>CREATE TABLE</c> had run when it had not. Measured: <c>new SqliteVectorStore(p)</c>,
+    /// <c>DisposeAsync()</c>, then <c>IndexAsync(...)</c> died with
+    /// <c>SqliteException: SQLite Error 1: 'no such table: rag_vectors'</c>, while the same call on
+    /// a store that had not been disposed succeeded. That path now raises
+    /// <see cref="ObjectDisposedException"/> — still an error, but one that names the actual
+    /// mistake instead of blaming the schema.</para>
+    /// <para><b>The resource is a pool entry, not a connection field.</b> This class holds no
+    /// connection; every method opens and disposes its own. What outlived the store was the
+    /// Microsoft.Data.Sqlite POOL entry for its connection string (pooling is on by default since
+    /// 6.0) and, through it, an OS handle on the .db file. Measured by walking
+    /// <c>/proc/self/fd</c> after <c>await using</c> had exited: 3 open descriptors on the database
+    /// before <c>ClearPool</c>, 0 after. On Windows that retained handle also blocks deleting or
+    /// moving the file. <c>ClearPool</c> is keyed by connection string, so this releases only this
+    /// store's pool; <c>ClearAllPools</c> would reach into every other store in the process and
+    /// does not belong in library code.</para>
+    /// </remarks>
     public async ValueTask DisposeAsync()
     {
+        // Claim the disposal before anything else. A second call returns here, without waiting
+        // on a semaphore the first call has already disposed.
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
         await _initLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            _initialized = true;
+            // Not "true". The schema memo is false because, after this call, nothing in this
+            // instance has created a table -- and a disposed store must not be able to convince
+            // itself otherwise.
+            _initialized = false;
+
+            using var pooled = new SqliteConnection(_connectionString);
+            SqliteConnection.ClearPool(pooled);
         }
         finally
         {
             _initLock.Release();
         }
+
+        // Outside the lock, and last: a caller racing a disposal can still be inside WaitAsync
+        // here and will see ObjectDisposedException from the semaphore rather than a corrupt
+        // read. The public-method guard narrows that window to an actual concurrent misuse.
+        _initLock.Dispose();
     }
+
+    private bool IsDisposed => Volatile.Read(ref _disposed) != 0;
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         if (_initialized)
             return;
         await _initLock.WaitAsync(cancellationToken).ConfigureAwait(false);

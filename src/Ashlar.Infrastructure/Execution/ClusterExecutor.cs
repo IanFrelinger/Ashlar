@@ -488,9 +488,5 @@ public class ClusterExecutor : IClusterExecutor
     /// <param name="implementation">Implementation type being used.</param>
     /// <returns>Cache key string for the execution.</returns>
     private static string ComputeCacheKey(string brickId, BrickInput input, ImplementationType implementation)
-    {
-        var inputHash = System.Text.Json.JsonSerializer.Serialize(input.ToDictionary())
-            .GetHashCode();
-        return $"{brickId}:{implementation}:{inputHash}";
-    }
+        => SemanticCacheKey.For(brickId, input, implementation);
 }

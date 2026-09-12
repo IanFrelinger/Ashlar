@@ -214,6 +214,44 @@ public sealed class SynthesisEngine
         return null;
     }
 
+    /// <summary>
+    /// Derives the synthesis cache key.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>This uses a per-process hash, deliberately left in place. Here is the argument,
+    /// and what would overturn it.</b></para>
+    ///
+    /// <para><c>string.GetHashCode()</c> is randomized per process — measured over five launches
+    /// of the same binary on the same two positions: -251093190, -938106677, 155402064,
+    /// -1452362662, 1110133770. The key reaches only <c>ICacheStrategy</c>, whose one
+    /// implementation is <c>MemoryCacheStrategy</c>: a <c>ConcurrentDictionary</c> that is never
+    /// serialized, never written to disk, never compared against a value from another process,
+    /// and discarded at shutdown. Within a process the hash is consistent, so the cache works as
+    /// intended; across a restart it is a guaranteed total miss. That costs a warm cache, not a
+    /// wrong answer, and 32-bit collisions are tolerable here because a collision returns a
+    /// resolution for a similar conflict rather than corrupting state.</para>
+    ///
+    /// <para><b>What would make it a defect.</b> Any <c>ICacheStrategy</c> backed by Redis, disk,
+    /// or SQL. That substitution is available from outside this repository — the kernel registrar
+    /// uses <c>AddSingleton</c>, not <c>TryAddSingleton</c>, so a consumer registering after
+    /// <c>AddAshlar</c> wins — and the failure would be silent, because a cache that never hits
+    /// is indistinguishable from a cold one. Note that the 24-hour TTL on the <c>SetAsync</c>
+    /// above already assumes a durability the in-memory store cannot provide, so intent and
+    /// implementation are not in agreement today.</para>
+    ///
+    /// <para><b>Why not simply fix it now.</b> Ashlar.Orchestration references only Core.Domain,
+    /// Core.Application and Abstractions, so it can reach neither
+    /// <c>Ashlar.Infrastructure.Caching.CacheKeyGenerator</c> nor
+    /// <c>Ashlar.Certification.Contracts.BrickContentHasher</c>. A stable key here means either a
+    /// new public helper in Core.Application beside <c>ICacheStrategy</c> — with
+    /// <c>CacheKeyGenerator</c> delegating to it, so a second SHA-256 implementation is not
+    /// introduced — or a third private copy. That is a layering decision worth taking
+    /// deliberately rather than as a side effect of a hashing change. The sibling consumer of the
+    /// same interface, <c>DecompositionRetriever</c>, already keys on stable content with a
+    /// 30-day TTL: the two users of <c>ICacheStrategy</c> disagree about whether its keys must be
+    /// process-independent, and settling that on the interface is the fix that would make this
+    /// one correct by construction.</para>
+    /// </remarks>
     private string GenerateCacheKey(IReadOnlyList<NegotiationPosition> positions, Conflict conflict)
     {
         var positionKeys = string.Join("|", positions.Select(p => $"{p.AgentId}:{p.PrimaryGoal}"));
