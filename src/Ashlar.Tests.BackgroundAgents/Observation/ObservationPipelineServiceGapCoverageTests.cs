@@ -25,6 +25,13 @@ public sealed class ObservationPipelineServiceGapCoverageTests
     private const int FileSystemPipelineTimeoutMs = 240_000;
 
     /// <summary>
+    /// The SourceId <see cref="FileSystemEventSource"/> stamps on every event it emits. The
+    /// composite also carries a <c>ProcessEventSource</c>, whose events reach the gate too, so a
+    /// test that counts gate verdicts has to count the ones it actually provoked.
+    /// </summary>
+    private const string FileSystemSourceId = "file-system";
+
+    /// <summary>
     /// Re-touch <paramref name="path"/> on a short cadence until <paramref name="signal"/>
     /// completes, then return.
     ///
@@ -147,13 +154,28 @@ public sealed class ObservationPipelineServiceGapCoverageTests
             var store = new Mock<IPatternStore>();
             var gate = new Mock<IObservationGate>();
 
-            // The gate's own invocation is the signal. A file-system notification crosses the
-            // kernel, a watcher dispatch thread, the source's channel, the composite's channel and
-            // two thread-pool continuations before ShouldObserve is called; no fixed sleep bounds
-            // that, and the previous 250 ms stood in front of a POSITIVE Times.AtLeastOnce.
-            var gateInvoked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            gate.Setup(g => g.ShouldObserve(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
-                .Callback(() => gateInvoked.TrySetResult())
+            // The SECOND file-system verdict is the signal, and the second one is what makes the
+            // Times.Never below an assertion rather than a statement about how quickly this test
+            // reached StopAsync.
+            //
+            // ObservationPipelineService's consume loop is strictly sequential: ask the gate,
+            // then -- only if allowed through -- `await patternDetector.ProcessAsync(evt)`. So
+            // verdict N+1 cannot be asked for until event N has finished being processed. With
+            // RepeatedEditThreshold = 1 a single unblocked file event is already a
+            // "repeated-edits" pattern, so a pipeline that ignored a `false` verdict would have
+            // reached store.AddAsync before this signal could fire. Waiting for the FIRST verdict
+            // proved only that the gate was consulted: that event was still in flight when the
+            // service was torn down, so ignoring the verdict changed nothing the test could see.
+            var fileVerdicts = 0;
+            var secondFileVerdict = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            gate.Setup(g => g.ShouldObserve(It.IsAny<string>(), FileSystemSourceId, It.IsAny<string?>()))
+                .Callback(() =>
+                {
+                    if (Interlocked.Increment(ref fileVerdicts) >= 2)
+                        secondFileVerdict.TrySetResult();
+                })
+                .Returns(false);
+            gate.Setup(g => g.ShouldObserve(It.IsAny<string>(), It.Is<string>(s => s != FileSystemSourceId), It.IsAny<string?>()))
                 .Returns(false);
 
             var options = Options.Create(new ObservationPipelineOptions
@@ -161,6 +183,11 @@ public sealed class ObservationPipelineServiceGapCoverageTests
                 RepoRoot = root,
                 StorePath = $"ashlar_test_{Guid.NewGuid():N}.db",
                 WatchPaths = new[] { "src" },
+                PatternWindowSeconds = 30,
+
+                // One edit is a pattern. At the default of 3, a pipeline that ignored the gate
+                // would still store nothing, for a reason that has nothing to do with the gate.
+                RepeatedEditThreshold = 1,
             });
 
             var service = new ObservationPipelineService(
@@ -174,7 +201,7 @@ public sealed class ObservationPipelineServiceGapCoverageTests
             // cancelled the pipeline out from under the assertion whenever the runner was loaded.
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(FileSystemPipelineTimeoutMs));
             await service.StartAsync(cts.Token);
-            await TouchUntilAsync(Path.Combine(watchDir, "blocked.cs"), gateInvoked.Task, cts.Token);
+            await TouchUntilAsync(Path.Combine(watchDir, "blocked.cs"), secondFileVerdict.Task, cts.Token);
             await service.StopAsync(CancellationToken.None);
 
             store.Verify(
@@ -231,9 +258,22 @@ public sealed class ObservationPipelineServiceGapCoverageTests
 
             await TouchUntilAsync(Path.Combine(watchDir, "repeat.cs"), addAttempted.Task, cts.Token);
 
-            // StopAsync joins ExecuteAsync and rethrows anything it faulted with. Completing is
-            // the graceful-degradation claim: the IOException was swallowed, not propagated.
+            // StopAsync joins ExecuteAsync but never OBSERVES it: BackgroundService.StopAsync
+            // awaits Task.WhenAny(ExecuteTask, Task.Delay(Timeout.Infinite, cancellationToken)),
+            // which with CancellationToken.None waits for ExecuteTask to complete and then
+            // returns, discarding whatever it completed with. "StopAsync did not throw" is
+            // therefore structurally true and says nothing at all about degradation. ExecuteTask
+            // is where the verdict actually lives -- and under a host a faulted one stops the host
+            // (BackgroundServiceExceptionBehavior.StopHost is the .NET 6+ default), which is
+            // precisely the outcome this test exists to prevent.
             await service.StopAsync(CancellationToken.None);
+
+            service.ExecuteTask.Should().NotBeNull("StartAsync must have begun ExecuteAsync");
+            service.ExecuteTask!.IsCompletedSuccessfully.Should().BeTrue(
+                "a storage IO error must be swallowed and the service left standing, but "
+                + "ExecuteAsync ended as {0}: {1}",
+                service.ExecuteTask.Status,
+                service.ExecuteTask.Exception?.GetBaseException().ToString() ?? "<no exception>");
 
             store.Verify(
                 s => s.AddAsync(It.IsAny<ObservedPattern>(), It.IsAny<CancellationToken>()),
@@ -285,8 +325,21 @@ public sealed class ObservationPipelineServiceGapCoverageTests
 
             await TouchUntilAsync(Path.Combine(watchDir, "boom.cs"), addAttempted.Task, cts.Token);
 
-            var act = async () => await service.StopAsync(CancellationToken.None);
-            await act.Should().NotThrowAsync();
+            // Not "StopAsync should not throw": that was structurally true (see the sibling test
+            // above -- StopAsync joins ExecuteTask with Task.WhenAny and never observes its
+            // result), so it held whether ExecuteAsync rethrew or swallowed. The rethrow lands on
+            // ExecuteTask, and reading .Exception here is also what keeps it from resurfacing as
+            // an unobserved task exception at finalization.
+            await service.StopAsync(CancellationToken.None);
+
+            service.ExecuteTask.Should().NotBeNull("StartAsync must have begun ExecuteAsync");
+            service.ExecuteTask!.IsFaulted.Should().BeTrue(
+                "an unexpected store failure must propagate out of ExecuteAsync rather than be "
+                + "degraded away, but ExecuteAsync ended as {0}",
+                service.ExecuteTask.Status);
+            service.ExecuteTask.Exception!.InnerExceptions.Should().ContainSingle()
+                .Which.Should().BeOfType<InvalidOperationException>()
+                .Which.Message.Should().Be("unexpected store failure");
         }
         finally
         {

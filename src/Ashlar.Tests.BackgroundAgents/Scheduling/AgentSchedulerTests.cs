@@ -33,6 +33,7 @@ public class AgentSchedulerTests
         // (Task.Yield with xUnit's sync context nulled), while the assertions read from the test
         // thread. A plain ++ and a plain read have no ordering guarantee, and CI runs arm64 macOS.
         var callCount = 0;
+        var tokenCancelledByStop = 0;
         var firstCall = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var stopRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -61,9 +62,21 @@ public class AgentSchedulerTests
             if (seen >= 2)
             {
                 scheduler.Stop("agent-1");
-                i.State = BackgroundAgentState.Stopped;
+
+                // CancellationTokenSource.Cancel is synchronous, so by the time Stop returns this
+                // is a settled fact rather than a race. Recorded here and asserted on the test
+                // thread because an assertion thrown on the executor's task would be swallowed:
+                // Stop has already removed that task from the scheduler and nobody awaits it.
+                Volatile.Write(ref tokenCancelledByStop, ct.IsCancellationRequested ? 1 : 0);
                 stopRequested.TrySetResult();
             }
+
+            // Deliberately NOT followed by `i.State = BackgroundAgentState.Stopped`.
+            // ScheduleExecutor.RunContinuousAsync loops on
+            // `!cancellationToken.IsCancellationRequested && instance.State == Running`, so that
+            // flip ended the loop all by itself -- which is why the assertions below used to hold
+            // with AgentScheduler.Stop neutered to a no-op. Cancellation is now the only way out
+            // of the loop, which is what makes them assertions about Stop.
         }
 
         await scheduler.StartAsync(instance, ExecuteOnce);
@@ -76,13 +89,17 @@ public class AgentSchedulerTests
         var atStop = Volatile.Read(ref callCount);
         atStop.Should().BeGreaterThanOrEqualTo(2, "the continuous loop must iterate, not fire once");
 
+        Volatile.Read(ref tokenCancelledByStop).Should().Be(
+            1,
+            "cancelling the token the executor loops on is the whole of Stop's contract, and it is "
+            + "observable synchronously the moment Stop returns");
+
         await Task.Delay(StoppedGrace);
 
         Volatile.Read(ref callCount).Should().Be(
             atStop,
-            "Stop must cancel the loop: the executor would otherwise have run another iteration "
-            + "one second later. This is the fact the test is named for and the only one a "
-            + "regression in AgentScheduler.Stop can break.");
+            "Stop must end the loop: with nothing else able to end it, an executor whose token was "
+            + "not cancelled would have run another iteration one second later");
     }
 
     [Fact]
