@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Both TFMs an outside consumer can bind. The package also ships netstandard2.0; that leg
+         is covered by scripts/ns20-canonical-bytes-probe.sh under Mono, not from here. -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashlar.Samples.CertificationTrustConsumer</RootNamespace>
+    <AssemblyName>CertificationTrustConsumer</AssemblyName>
+    <AshlarCertificationContractsVersion Condition="'$(AshlarCertificationContractsVersion)' == ''">0.0.0</AshlarCertificationContractsVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PackageReference, never ProjectReference. A ProjectReference here would re-answer the
+         question this sample exists to ask: it would test the source tree, which is the thing
+         that was already correct when the published package was not. -->
+    <PackageReference Include="Ashlar.Certification.Contracts" Version="$(AshlarCertificationContractsVersion)" />
+  </ItemGroup>
+
+</Project>

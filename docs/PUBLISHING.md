@@ -48,6 +48,38 @@ bash scripts/verify-stable-sdk-host-sample-packages.sh
 
 **Local manifest (optional):** after packing a folder, `PACKAGE_VERSION=1.2.3 bash scripts/render-nuget-release-manifest.sh ./artifacts/nuget-release` writes **`nuget-publish-manifest.json`** plus one **`.sha256.txt`** per `.nupkg`.
 
+### The packed artifact has to *behave*, not just restore
+
+Everything above proves the packages exist, that their bytes match the manifest, and that a sample
+restores and builds against them. None of it can tell whether the verifier inside them still refuses
+anything — and it is the verifier that consumers are trusting.
+
+```bash
+# what a consumer gets from a package packed out of this working tree
+bash scripts/verify-packed-certification-trust-behavior.sh
+
+# ...from an unpacked CI artifact folder
+ASHLAR_CONFORMANCE_FEED=/path/to/unpacked/nuget-packages ASHLAR_CONFORMANCE_VERSION=1.2.3   bash scripts/verify-packed-certification-trust-behavior.sh
+
+# ...from nuget.org, after publishing
+ASHLAR_CONFORMANCE_SOURCE=nuget.org ASHLAR_CONFORMANCE_VERSION=1.2.3   bash scripts/verify-packed-certification-trust-behavior.sh
+```
+
+`release.yml` runs the first form against the packed feed **before every push** and the last form
+against nuget.org afterwards, so you do not have to remember. Run it by hand when you are cutting a
+release from an unusual branch, or when you want to know what an *already published* version does.
+
+**If it fails, do not publish, and do not weaken the script.** It compares the package against the
+presets the source tree declares; a red run means those two have come apart, and the package is the
+half consumers get. `docs/samples/CertificationTrustConsumer/README.md` explains each assertion.
+
+**To read a version whose API surface predates today's**, the typed consumer will not compile at
+all. Use the reflection probe, which reports rather than judges:
+
+```bash
+bash scripts/probe-published-certification-presets.sh 1.2.3
+```
+
 **After packages are on nuget.org (or a private feed):** use `scripts/verify-stable-sdk-host-sample-published-feed.sh` — see **`docs/NuGetConsumerVerify.md`** and workflow **`.github/workflows/nuget-consumer-verify.yml`**.
 
 ## Publish to nuget.org (you do this)
