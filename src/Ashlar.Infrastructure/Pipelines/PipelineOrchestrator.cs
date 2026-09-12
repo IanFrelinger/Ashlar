@@ -86,7 +86,10 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             StageRuns = stageRuns.Values.ToArray()
         };
 
-        await _runStore.SaveAsync(run, cancellationToken);
+        run = await _runStore.MergeAsync(
+            runId,
+            stored => PipelineRunPersistence.Create(stored, run),
+            cancellationToken);
         _logger.LogInformation("Pipeline run {RunId} started for template {TemplateId}.", run.RunId, run.TemplateId);
 
         while (true)
@@ -94,8 +97,10 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             cancellationToken.ThrowIfCancellationRequested();
             if (stageStates.Values.All(s => s == PipelineStageRunState.Completed))
             {
-                run = FinalizeRun(run, PipelineRunState.Completed, stageRuns);
-                await _runStore.SaveAsync(run, cancellationToken);
+                run = await PersistAsync(
+                    runId,
+                    FinalizeRun(run, PipelineRunState.Completed, stageRuns),
+                    cancellationToken);
                 _logger.LogInformation("Pipeline run {RunId} completed successfully.", run.RunId);
                 return run;
             }
@@ -109,8 +114,10 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
                     stageDefinition.Constraints.Critical);
 
                 var terminalState = ResolveTerminalState(hasAnyFailure, hasCriticalFailure, _options.CompletionPolicy);
-                run = FinalizeRun(run, terminalState, stageRuns);
-                await _runStore.SaveAsync(run, cancellationToken);
+                run = await PersistAsync(
+                    runId,
+                    FinalizeRun(run, terminalState, stageRuns),
+                    cancellationToken);
                 _logger.LogInformation(
                     "Pipeline run {RunId} reached terminal state {State}.",
                     run.RunId,
@@ -121,8 +128,10 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             var readyStageIds = _scheduler.GetReadyStages(graph, stageStates);
             if (readyStageIds.Count == 0)
             {
-                run = FinalizeRun(run, PipelineRunState.Failed, stageRuns);
-                await _runStore.SaveAsync(run, cancellationToken);
+                run = await PersistAsync(
+                    runId,
+                    FinalizeRun(run, PipelineRunState.Failed, stageRuns),
+                    cancellationToken);
                 _logger.LogWarning("Pipeline run {RunId} stalled with no ready stages.", run.RunId);
                 return run;
             }
@@ -137,8 +146,10 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
                     continue;
 
                 stageStates[stageId] = PipelineStageRunState.Running;
-                run = UpdateRun(run, stageRuns, PipelineRunState.Running);
-                await _runStore.SaveAsync(run, cancellationToken);
+                run = await PersistAsync(
+                    runId,
+                    UpdateRun(run, stageRuns, PipelineRunState.Running),
+                    cancellationToken);
 
                 var execution = await ExecuteWithRetryAndFallbackAsync(
                     runId,
@@ -168,8 +179,10 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
 
                 if (stageRuns[stageId].State == PipelineStageRunState.Failed && stage.Constraints.Critical)
                 {
-                    run = FinalizeRun(run, PipelineRunState.Failed, stageRuns);
-                    await _runStore.SaveAsync(run, cancellationToken);
+                    run = await PersistAsync(
+                        runId,
+                        FinalizeRun(run, PipelineRunState.Failed, stageRuns),
+                        cancellationToken);
                     _logger.LogWarning("Critical stage {StageId} failed; run {RunId} is failing fast.", stageId, run.RunId);
                     return run;
                 }
@@ -182,47 +195,30 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
                 scaleDecision.DeterministicWorkers,
                 scaleDecision.AgenticWorkers);
 
-            run = UpdateRun(run, stageRuns, PipelineRunState.Running);
-            await _runStore.SaveAsync(run, cancellationToken);
+            run = await PersistAsync(
+                runId,
+                UpdateRun(run, stageRuns, PipelineRunState.Running),
+                cancellationToken);
         }
     }
 
-    /// <summary>
-    /// Carries a prior run's completed stages into this one.
-    /// </summary>
+    // Creation above grants this invocation the only execution of its destination ID. Every
+    // later write stays in that execution; combining rows from different invocations could hide
+    // failures or mix outputs produced for different inputs under the same stage names.
+    private Task<PipelineRun> PersistAsync(
+        string runId,
+        PipelineRun next,
+        CancellationToken cancellationToken)
+        => _runStore.MergeAsync(
+            runId,
+            stored => PipelineRunPersistence.Advance(stored, next),
+            cancellationToken);
+
+    /// <summary>Copies resumable stages from a source run into a fresh destination.</summary>
     /// <remarks>
-    /// <para><b>KNOWN OPEN LOST UPDATE — deliberately not closed here, and not closed quietly.</b>
-    /// The read below and the seven <c>_runStore.SaveAsync</c> calls in <c>RunAsync</c> are a
-    /// caller-side read-modify-write: <c>LiteDbPipelineRunStore.SaveAsync</c> is a bare
-    /// <c>col.Upsert</c> with no read of its own, so the whole document — every
-    /// <c>StageRun</c> with its output and its error — is replaced from an in-memory snapshot that
-    /// may be minutes old by the time the last save runs. Two <c>ashlar pipeline run --resume-run-id
-    /// X</c> processes on one <c>ASHLAR_PIPELINE_STORE_PATH</c> each rebuild X's stage list and the
-    /// later upsert wins, so the loser's completed stages come back Pending and are re-executed
-    /// against a real executor. <c>--run-id X --resume-run-id X</c> reads and writes the SAME
-    /// document in one process.</para>
-    ///
-    /// <para><b>Why it is still open.</b> The mesh and pattern-store sites in the same sweep were
-    /// closed by giving the port a shape that cannot express the pair —
-    /// <c>IMeshTaskRegistry.UpdateAsync</c> takes a transform the store applies inside its own
-    /// transaction, and <c>IPatternProcessedStore.TryClaimAsync</c> is a claim rather than a
-    /// check-then-act. Neither shape fits here. The orchestrator does not derive one document from
-    /// one read; it holds a run in memory across a whole execution loop and saves it seven times as
-    /// stages complete, with real executor work and <c>await</c>s in between, so there is nothing to
-    /// put inside a transform. What this needs is a monotonic <c>Version</c> (or
-    /// <c>LastWriteUtc</c>) on <c>PipelineRunDocument</c>, an <c>expectedVersion</c> on
-    /// <c>IPipelineRunStore.SaveAsync</c> checked and incremented inside the store's
-    /// <c>LiteDbAtomic.Mutate</c>, the version carried through all seven save sites, and a migration
-    /// for every document already on disk. That is a change with its own design and its own tests,
-    /// not a by-product of a port rename.</para>
-    ///
-    /// <para><b>Reachability, stated rather than assumed.</b> This is the narrowest of the sites in
-    /// the sweep: the store is LiteDB-backed only under
-    /// <c>ASHLAR_PIPELINE_STORE_PROVIDER=LiteDb</c> (the default is InMemory), and the only
-    /// production caller is the CLI, so there is no background service racing it. But a LiteDB
-    /// transaction is machine-local anyway, and two CLI processes on one store path are the whole
-    /// hazard, so "narrow" is not "closed". Tracked in the remarks on
-    /// <c>LiteDbAtomicWriteConventionTests</c>, which is the only place a reviewer would find it.</para>
+    /// The source is a snapshot and is never rewritten by resume. An explicit destination that
+    /// already exists (including the source ID itself) is refused atomically before execution.
+    /// Omitting RunId generates a fresh destination, including for interrupted source runs.
     /// </remarks>
     /// <param name="request">The execution request, carrying <c>ResumeRunId</c>.</param>
     /// <param name="graph">The execution graph.</param>

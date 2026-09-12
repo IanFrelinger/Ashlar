@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Infrastructure.Pipelines;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Pipelines;
@@ -9,7 +10,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Pipelines;
 public sealed class LiteDbPipelineRunStoreTests
 {
     [Fact]
-    public async Task SaveAsync_ThenGetAsync_PersistsRunDurably()
+    public async Task MergeAsync_ThenGetAsync_PersistsRunDurably()
     {
         var path = Path.Combine(Path.GetTempPath(), $"ashlar-pipeline-store-{Guid.NewGuid():N}.db");
         try
@@ -35,7 +36,7 @@ public sealed class LiteDbPipelineRunStoreTests
                 }
             };
 
-            await sut.SaveAsync(run);
+            await sut.PutAsync(run);
 
             var sut2 = new LiteDbPipelineRunStore(path);
             var loaded = await sut2.GetAsync("durable-run-1");

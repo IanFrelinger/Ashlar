@@ -28,13 +28,27 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         LiteDbDocumentMapper.EnsureMapped<PipelineStageRunDocument>();
     }
 
-    /// <summary>Save asynchronously.</summary>
-    public Task SaveAsync(PipelineRun run, CancellationToken cancellationToken = default)
+    /// <summary>Merge asynchronously.</summary>
+    /// <param name="runId">The run to write; the document is addressed by this id.</param>
+    /// <param name="merge">Applied to the document read inside the write transaction.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The run this store holds after the write.</returns>
+    /// <remarks>
+    /// Shared mode serializes individual engine operations, so the read and upsert must be
+    /// inside the same transaction across store instances and processes. Creation and advance
+    /// keep the existing document shape; previously persisted runs remain valid resume sources.
+    /// </remarks>
+    public Task<PipelineRun> MergeAsync(
+        string runId,
+        Func<PipelineRun?, PipelineRun> merge,
+        CancellationToken cancellationToken = default)
     {
         LiteDbDocumentMapper.EnsureMapped<PipelineRunDocument>();
         LiteDbDocumentMapper.EnsureMapped<PipelineStageRunDocument>();
         cancellationToken.ThrowIfCancellationRequested();
-        if (run == null) throw new ArgumentNullException(nameof(run));
+        if (string.IsNullOrWhiteSpace(runId))
+            throw new ArgumentException("Run id is required.", nameof(runId));
+        if (merge == null) throw new ArgumentNullException(nameof(merge));
 
         lock (_gate)
         {
@@ -47,11 +61,50 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
             // `nameof(PipelineRunDocument.RunId)` instead would NOT be the same call: it would build a
             // second index over $.RunId, a path no stored document has, with unique:false -- silently
             // dropping the uniqueness this line was asking for. _id enforces it, as it always did.
-            col.Upsert(ToDocument(run));
-        }
+            var merged = LiteDbAtomic.Mutate(db, () =>
+            {
+                var existing = col.FindById(runId);
+                var next = merge(existing == null ? null : FromDocument(existing));
+                if (next == null)
+                    throw new InvalidOperationException(NullMergeResult(runId));
 
-        return Task.CompletedTask;
+                // The merge may not move the document: the id it was read under is the id it is
+                // written back under, and a changed RunId would leave two documents where the
+                // caller expected one.
+                if (!string.Equals(next.RunId, runId, StringComparison.Ordinal))
+                    throw new InvalidOperationException(MovedRun(runId, next.RunId));
+
+                col.Upsert(ToDocument(next));
+                // LiteDB normalizes timestamps and strings when serializing. Return the actual
+                // persisted identity so the creator's next advance compares the same values.
+                return FromDocument(col.FindById(runId)
+                    ?? throw new InvalidOperationException($"Pipeline run '{runId}' was not persisted."));
+            });
+
+            return Task.FromResult(merged);
+        }
     }
+
+    /// <summary>Why a merge that returns null is refused rather than treated as "leave it alone".</summary>
+    /// <param name="runId">The run being written.</param>
+    /// <returns>The message.</returns>
+    /// <remarks>
+    /// This port has no decline outcome on purpose — the merge is the decision, and a caller that
+    /// wants the stored document left as it is returns the stored document. Reading null as a
+    /// silent no-op would make a mistyped merge look like a successful write.
+    /// </remarks>
+    private static string NullMergeResult(string runId)
+        => $"a pipeline run merge returned null for run '{runId}'. This port has no decline "
+           + "outcome: return the document the merge was handed to leave the stored run unchanged.";
+
+    /// <summary>Why a merge may not change the run id.</summary>
+    /// <param name="runId">The id the read used.</param>
+    /// <param name="returned">The id the merge returned.</param>
+    /// <returns>The message.</returns>
+    private static string MovedRun(string runId, string returned)
+        => $"a pipeline run merge may not change RunId ('{runId}' -> '{returned}'). The write is "
+           + "addressed by the id the read used; changing it would leave two documents where the "
+           + "caller expected one.";
 
     /// <summary>Get asynchronously.</summary>
     public Task<PipelineRun?> GetAsync(string runId, CancellationToken cancellationToken = default)

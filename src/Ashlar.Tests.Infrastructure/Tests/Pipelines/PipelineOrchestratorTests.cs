@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Core.Application.Pipelines.Ports;
 using Ashlar.Infrastructure.Pipelines;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Pipelines;
@@ -193,7 +194,7 @@ public sealed class PipelineOrchestratorTests
             }
         };
 
-        await runStore.SaveAsync(new PipelineRun
+        await runStore.PutAsync(new PipelineRun
         {
             RunId = "prior-run",
             TemplateId = "resume-template",

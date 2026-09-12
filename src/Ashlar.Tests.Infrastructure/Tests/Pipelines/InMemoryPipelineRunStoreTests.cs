@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Infrastructure.Pipelines;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Pipelines;
@@ -9,7 +10,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Pipelines;
 public sealed class InMemoryPipelineRunStoreTests
 {
     [Fact]
-    public async Task SaveAsync_ThenGetAsync_ReturnsSavedRun()
+    public async Task MergeAsync_ThenGetAsync_ReturnsSavedRun()
     {
         var sut = new InMemoryPipelineRunStore();
         var run = new PipelineRun
@@ -29,7 +30,7 @@ public sealed class InMemoryPipelineRunStoreTests
             }
         };
 
-        await sut.SaveAsync(run);
+        await sut.PutAsync(run);
         var stored = await sut.GetAsync("run-1");
 
         stored.Should().NotBeNull();
@@ -48,13 +49,13 @@ public sealed class InMemoryPipelineRunStoreTests
     }
 
     [Fact]
-    public async Task SaveAsync_WithCancelledToken_Throws()
+    public async Task MergeAsync_WithCancelledToken_Throws()
     {
         var sut = new InMemoryPipelineRunStore();
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        var act = async () => await sut.SaveAsync(new PipelineRun { RunId = "run-x", TemplateId = "tpl-x" }, cts.Token);
+        var act = async () => await sut.PutAsync(new PipelineRun { RunId = "run-x", TemplateId = "tpl-x" }, cts.Token);
 
         await act.Should().ThrowAsync<OperationCanceledException>();
     }

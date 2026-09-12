@@ -5,6 +5,7 @@ using Moq;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Core.Application.Pipelines.Ports;
 using Ashlar.Infrastructure.Pipelines;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Pipelines;
@@ -224,7 +225,7 @@ public sealed class PipelineOrchestratorGapCoverageTests
             Edges = new[] { new PipelineEdge("a", "b") },
         };
 
-        await runStore.SaveAsync(new PipelineRun
+        await runStore.PutAsync(new PipelineRun
         {
             RunId = "prior-options",
             TemplateId = "resume-options",
@@ -344,7 +345,7 @@ public sealed class PipelineOrchestratorGapCoverageTests
             Stages = new[] { new PipelineStageDefinition { Id = "only", Name = "Only", Mode = PipelineExecutionMode.Deterministic } },
         };
 
-        await runStore.SaveAsync(new PipelineRun
+        await runStore.PutAsync(new PipelineRun
         {
             RunId = "prior-trim",
             TemplateId = "resume-trim",

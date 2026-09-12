@@ -64,7 +64,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///
 /// <para>The last four are about the CALLER side, which the others cannot reach at all.
 /// <see cref="Every_port_that_lost_its_unconditional_write_keeps_the_shape_that_replaced_it"/>
-/// freezes the three port signatures whose removal is what closed it, and
+/// freezes the four port signatures whose removal is what closed it, and
 /// <see cref="The_port_shape_scan_still_tells_the_two_shapes_apart"/> drives that scan's own
 /// matcher, because a frozen inventory whose matcher has stopped matching is green and empty at the
 /// same time. Those two are about the SIGNATURE, which is not the same thing as the shape: a
@@ -80,28 +80,32 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// single member, so it only sees a pair whose halves are both inside one store method. The other
 /// shape is a caller that reads through one store method, decides, and writes through another — the
 /// database is opened and closed in between, so no transaction can span it and no text scan of the
-/// stores can see it. Nine such sites were listed here as open. Eight are now closed, not by
-/// guarding each caller but by removing the shape from the three ports they went through, so the
-/// compiler refuses it: <c>IMeshTaskRegistry.UpdateAsync</c> and
-/// <c>IFleetNodeRegistry.RegisterOrMergeAsync</c> take a transform the STORE applies to the document
-/// it reads inside its own write transaction, and <c>IPatternProcessedStore.TryClaimAsync</c>
-/// replaced a check-then-act with a claim a unique index decides.
+/// stores can see it. Nine such sites were listed here as open. All nine are now closed, not by
+/// guarding each caller but by removing the shape from the four ports they went through, so the
+/// compiler refuses it: <c>IMeshTaskRegistry.UpdateAsync</c>,
+/// <c>IFleetNodeRegistry.RegisterOrMergeAsync</c> and <c>IPipelineRunStore.MergeAsync</c> take a
+/// transform the STORE applies to the document it reads inside its own write transaction, and
+/// <c>IPatternProcessedStore.TryClaimAsync</c> replaced a check-then-act with a claim a unique index
+/// decides.
 /// <see cref="Every_port_that_lost_its_unconditional_write_keeps_the_shape_that_replaced_it"/>
 /// freezes that, because nothing else would notice the old overload coming back — no automatically
 /// triggered workflow compiles <c>commercial/</c> at all.</para>
 ///
-/// <para>Two sites are NOT closed and are open debt, named here because this is still the only
-/// place a reviewer learns of them. <c>PipelineOrchestrator</c>'s resume path reads a prior run at
-/// <c>TryHydrateFromPriorRunAsync</c> and then writes the whole rebuilt run seven times as the loop
-/// advances; <c>PipelineRunDocument</c> carries no version and no etag, so closing it needs a new
-/// field plus a migration for every document on disk, which is a change of its own and not a
-/// by-product of this one. Its reachability is the narrowest of the nine — the store is LiteDB-backed
-/// only under <c>ASHLAR_PIPELINE_STORE_PROVIDER=LiteDb</c> and its only production caller is the CLI
-/// — but two <c>ashlar pipeline run</c> processes on one store path is the whole hazard and it is
-/// real. Second, <c>MeshTaskPlacementService.TryPlaceAsync</c> still re-places a task in the
-/// <c>Failed</c> state; that one is a semantics question, not a lost update — it happens on a single
-/// fresh read with no concurrency at all — so a concurrency change was the wrong place to decide it.
-/// Do not read this test's silence about either as a claim they are safe.</para>
+/// <para>The pipeline caller now claims an unused destination ID in the same transaction that
+/// creates it, before stage execution. Resume reads a source into a new destination. This avoids
+/// both stale replacement and combining outputs from separate executions. Subsequent writes
+/// advance that one execution, without changing the persisted schema.</para>
+///
+/// <para>One site is NOT closed and is open debt, named here because this is still the only place a
+/// reviewer learns of it. <c>MeshTaskPlacementService.TryPlaceAsync</c> still re-places a task in
+/// the <c>Failed</c> state; that one is a semantics question, not a lost update — it happens on a
+/// single fresh read with no concurrency at all — so a concurrency change was the wrong place to
+/// decide it. Do not read this test's silence about it as a claim it is safe.</para>
+///
+/// <para>The signature and discarding-lambda facts cannot prove that destination creation is
+/// exclusive. PipelineRunPersistenceCertificationTests drives creation and advance directly;
+/// PipelineLifecycleE2ETests verifies the executor counts and complete durable result under
+/// competing calls. Removing the existing-ID check must make both halves fail.</para>
 ///
 /// <para><c>MeshPendingTaskRebalancerBackgroundService</c> was on the list and should not have been:
 /// it contains no write of any kind. It passes a task id to
@@ -226,13 +230,18 @@ public sealed class LiteDbAtomicWriteConventionTests
 
     /// <summary>
     /// Every production store method that reads a document and writes one derived from it, known on
-    /// 2026-09-12, as <c>repo-root-relative-path::MemberName</c>. Nine pairs across five files.
+    /// 2026-09-12, as <c>repo-root-relative-path::MemberName</c>. Ten pairs across six files.
     /// This list is allowed to go DOWN — a method that stops pairing a read with a write deletes its
     /// row — and it may not go up by accident: a new row is a new lost-update surface and it must be
     /// argued for in a diff a reviewer sees.
     /// </summary>
     private static readonly HashSet<string> Allowed = new(StringComparer.Ordinal)
     {
+        // The pipeline run store's write used to be a bare Upsert with no read of its own, so it had
+        // no row here while the lost update sat one layer up, in PipelineOrchestrator's execution
+        // loop. Reading the document and applying the caller's merge to it inside the store is what
+        // makes this a pair the inventory can see at all — the same trade RegisterOrMergeAsync made.
+        "src/Ashlar.Infrastructure/Pipelines/LiteDbPipelineRunStore.cs::MergeAsync",
         "commercial/src/Ashlar.Commercial.Fleet.Infrastructure/LiteDbFleetNodeRegistry.cs::HeartbeatAsync",
         // Registration used to be an unconditional Upsert with no read, so it had no row here while
         // doing a textbook lost update one layer up, in the endpoint. The merge now happens inside
@@ -522,7 +531,7 @@ public sealed class LiteDbAtomicWriteConventionTests
     }
 
     /// <summary>
-    /// The three ports whose unconditional whole-document write was REMOVED, and the shape that
+    /// The four ports whose unconditional whole-document write was REMOVED, and the shape that
     /// replaced it, as <c>path -&gt; (what must be there, what must not come back)</c>.
     /// </summary>
     /// <remarks>
@@ -552,6 +561,11 @@ public sealed class LiteDbAtomicWriteConventionTests
             ["Task<bool> TryClaimAsync("],
             ["MarkProcessedAsync("]
         ),
+        (
+            "src/Ashlar.Core.Application/Pipelines/Ports/IPipelineRunStore.cs",
+            ["Task<PipelineRun> MergeAsync(", "Func<PipelineRun?, PipelineRun> merge"],
+            ["SaveAsync(PipelineRun "]
+        ),
     ];
 
     /// <summary>
@@ -565,9 +579,10 @@ public sealed class LiteDbAtomicWriteConventionTests
     /// <c>cert-gate</c> runs this assembly, which has no project reference to the fleet either; and
     /// <c>composition-mesh-gate</c>, the lane <c>ci/test-ownership.tsv</c> names as the owner of
     /// <c>Ashlar.Commercial.Tests.Fleet</c>, is <c>workflow_dispatch</c>-only and has never been
-    /// dispatched. Two of the three ports here are therefore guarded by this text scan and by
-    /// nothing else. The third (<c>IPatternProcessedStore</c>) is compile-guarded as well, because
-    /// Tests.Infrastructure mocks it and <c>build-core</c> compiles that.</para>
+    /// dispatched. Two of the four ports here are therefore guarded by this text scan and by
+    /// nothing else. The other two (<c>IPatternProcessedStore</c> and <c>IPipelineRunStore</c>) are
+    /// compile-guarded as well, because Tests.Infrastructure mocks the first and compiles against
+    /// the second, and <c>build-core</c> compiles that project.</para>
     ///
     /// <para>A missing file is a hard failure, not a skipped check — a scan that points at a path
     /// which no longer exists and calls that a pass is <c>docs/HowGatesGoQuiet.md</c> section 5.</para>
@@ -697,13 +712,14 @@ public sealed class LiteDbAtomicWriteConventionTests
                 .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
 
     /// <summary>
-    /// The two port methods that take a transform, and therefore the two that can be handed one
+    /// The three port methods that take a transform, and therefore the three that can be handed one
     /// which throws the stored document away.
     /// </summary>
     private static readonly string[] TransformingPortCalls =
     [
         "UpdateAsync",
         "RegisterOrMergeAsync",
+        "MergeAsync",
     ];
 
     /// <summary>The port types whose files this scan looks in.</summary>
@@ -711,6 +727,7 @@ public sealed class LiteDbAtomicWriteConventionTests
     [
         "IMeshTaskRegistry",
         "IFleetNodeRegistry",
+        "IPipelineRunStore",
     ];
 
     /// <summary>
@@ -735,7 +752,7 @@ public sealed class LiteDbAtomicWriteConventionTests
     /// in arrange code, where the test owns the file and "put this exact document there" is the
     /// whole intent, and its own remarks forbid using it in a race test.</para>
     ///
-    /// <para>Scoped to production files that NAME one of the two ports, so that an
+    /// <para>Scoped to production files that NAME one of the three ports, so that an
     /// <c>UpdateAsync</c> belonging to something else - <c>IRepository</c>,
     /// <c>SensitivityCommand</c> - is not dragged in. Reaching one of these registries requires
     /// naming its type, so that scope is not a way out; writing the call in a file that never
@@ -782,6 +799,23 @@ public sealed class LiteDbAtomicWriteConventionTests
 
         DiscardingTransformProblems("x.cs", "await _nodes.RegisterOrMergeAsync(peerId, _ => state, ct);")
             .Should().ContainSingle("and on the other port too");
+
+        DiscardingTransformProblems("x.cs", "await _runStore.MergeAsync(runId, _ => run, ct);")
+            .Should().ContainSingle(
+                "and on the pipeline run store, where `_ => run` IS the removed whole-document "
+                + "write: PipelineOrchestrator held one run across its execution loop and wrote "
+                + "that snapshot seven times");
+
+        DiscardingTransformProblems(
+            "x.cs",
+            "await _runStore.MergeAsync(runId, stored => PipelineRunPersistence.Advance(stored, next), ct);")
+            .Should().BeEmpty("the shape the orchestrator actually writes must be accepted");
+
+        DiscardingTransformProblems("x.cs", "await _nodes.RegisterOrMergeAsync(peerId, current => Merge(current), ct);")
+            .Should().BeEmpty(
+                "RegisterOrMergeAsync ends in MergeAsync and is a DIFFERENT member; reporting it "
+                + "as a bare MergeAsync call site would make the pipeline row's answers arbitrary "
+                + "on the fleet files");
 
         DiscardingTransformProblems("x.cs", "await _tasks.UpdateAsync(id, current => snapshot, ct);")
             .Should().ContainSingle("a NAMED parameter the body never reads discards it just as completely");
