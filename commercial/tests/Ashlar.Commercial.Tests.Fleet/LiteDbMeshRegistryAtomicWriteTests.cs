@@ -37,6 +37,19 @@ public sealed class LiteDbMeshRegistryAtomicWriteTests : IDisposable
     private const int Rounds = 6;
     private const int OpsPerRound = 50;
 
+    /// <summary>
+    /// Bounds on the two waits below. Neither is a synchronisation primitive and nothing positive is
+    /// asserted after either elapses: they exist so that a writer throwing — a LiteDB mutex timeout on
+    /// a loaded runner, a transient IO error, a full temp disk — reports THAT exception instead of
+    /// parking the observer forever. A round is 5-8 s of wall clock here; the project's lane runs with
+    /// <c>--blame-hang-timeout 180s</c>, so both fire well inside it and the failure names itself
+    /// rather than arriving as a hang dump pointed at the wrong thread.
+    /// </summary>
+    private static readonly TimeSpan ObserverBudget = TimeSpan.FromSeconds(60);
+
+    /// <summary>See <see cref="ObserverBudget"/>.</summary>
+    private static readonly TimeSpan RacerBudget = TimeSpan.FromSeconds(90);
+
     private readonly string _dir = Path.Combine(
         Path.GetTempPath(), $"ashlar-fleet-atomic-{Guid.NewGuid():N}");
 
@@ -126,18 +139,34 @@ public sealed class LiteDbMeshRegistryAtomicWriteTests : IDisposable
             var writersDone = 0;
             var observed = new List<string>();
 
+            // The increments are in a finally, and only in a finally. The observer's exit condition is
+            // these two counters, so a writer that throws on its first iteration would otherwise leave
+            // it spinning on a file nobody is writing, Task.WaitAll would never return, and the
+            // exception that should have failed this test would never be observed at all.
             RunConcurrently(
                 () =>
                 {
-                    for (var i = 0; i < OpsPerRound; i++)
-                        draining.SetDrainedAsync(peerId, drained: true).GetAwaiter().GetResult();
-                    Interlocked.Increment(ref writersDone);
+                    try
+                    {
+                        for (var i = 0; i < OpsPerRound; i++)
+                            draining.SetDrainedAsync(peerId, drained: true).GetAwaiter().GetResult();
+                    }
+                    finally
+                    {
+                        Interlocked.Increment(ref writersDone);
+                    }
                 },
                 () =>
                 {
-                    for (var i = 0; i < OpsPerRound; i++)
-                        admitting.SetAdmittedAsync(peerId, admitted: false).GetAwaiter().GetResult();
-                    Interlocked.Increment(ref writersDone);
+                    try
+                    {
+                        for (var i = 0; i < OpsPerRound; i++)
+                            admitting.SetAdmittedAsync(peerId, admitted: false).GetAwaiter().GetResult();
+                    }
+                    finally
+                    {
+                        Interlocked.Increment(ref writersDone);
+                    }
                 },
                 () => Watch(path, peerId, () => Volatile.Read(ref writersDone) >= 2, observed));
 
@@ -163,9 +192,18 @@ public sealed class LiteDbMeshRegistryAtomicWriteTests : IDisposable
     {
         var sawDrained = false;
         var sawUnadmitted = false;
+        var deadline = DateTime.UtcNow + ObserverBudget;
 
         while (!stop())
         {
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException(
+                    $"the writers on {peerId} did not finish within {ObserverBudget.TotalSeconds:0} s. "
+                    + "They signal completion from a finally, so this means they are still running, "
+                    + "not that one of them threw.");
+            }
+
             var node = StoredNode(path, peerId);
             var drained = node["Drained"].AsBoolean;
             var admitted = node["Admitted"].AsBoolean;
@@ -200,7 +238,15 @@ public sealed class LiteDbMeshRegistryAtomicWriteTests : IDisposable
     /// xUnit1031 rejects a blocking wait written inside a test method, and an async test would not
     /// race real threads — which is why both facts above delegate their body one call down.
     /// </summary>
-    private static void WaitFor(Task[] threads) => Task.WaitAll(threads);
+    private static void WaitFor(Task[] threads)
+    {
+        if (!Task.WaitAll(threads, RacerBudget))
+        {
+            throw new TimeoutException(
+                $"a racer did not finish within {RacerBudget.TotalSeconds:0} s. A bound here rather "
+                + "than an unbounded wait so the lane reports this rather than a hang dump.");
+        }
+    }
 
     /// <summary>Counts documents without going through either registry's document type or its mapper.</summary>
     private static long RawCount(string path, string collection)
@@ -223,5 +269,6 @@ public sealed class LiteDbMeshRegistryAtomicWriteTests : IDisposable
     {
         try { Directory.Delete(_dir, recursive: true); }
         catch (IOException) { /* a temp directory that outlives the test is not a test failure */ }
+        catch (UnauthorizedAccessException) { /* likewise: a racer that outlived its budget still holds the file */ }
     }
 }
