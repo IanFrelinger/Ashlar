@@ -206,9 +206,14 @@ cat > "$template_path" <<'JSON'
 JSON
 
 dotnet run --project application/src/Ashlar.CLI -- pipeline validate --template "$template_path"
-dotnet run --project application/src/Ashlar.CLI -- pipeline run --template "$template_path" --run-id quickstart-run --format-json
+dotnet run --project application/src/Ashlar.CLI -- pipeline run --template "$template_path" --format-json
 dotnet run --project application/src/Ashlar.CLI -- pipeline diagnostics --format-json
 ```
+
+A pipeline destination ID identifies one execution and cannot be reused. Omitting `--run-id`
+generates a fresh ID. To recover a failed or interrupted run, pass `--resume-run-id <prior-id>`
+and omit `--run-id` (or supply a new one); the prior record remains unchanged. Concurrent calls
+using the same destination ID are refused before the second call executes any stages.
 
 <details>
 <summary>Native SDK path (no Docker) and other escape hatches</summary>

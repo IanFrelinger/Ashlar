@@ -8,6 +8,14 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ## [Unreleased]
 
+- **Pipeline run identity is exclusive.** A destination run ID is created atomically before any
+  executor is invoked. Reusing an existing ID now fails with guidance to use a fresh ID; resume
+  still copies an existing source into a new destination, including interrupted runs. This closes
+  the stale whole-run overwrite without merging outputs or failures from different executions.
+  Both stores use the same transforming port, and LiteDB keeps creation inside one transaction.
+  The persisted schema is unchanged. Certification assertions and lifecycle tests cover rejected
+  duplicates, successful progress, coherent output, concurrent creation and source-preserving resume.
+
 ### Added
 
 - **`FileBarrierAuditSinkTests.WriteAsync_CreatesDirectoryWhenMissing` waited for the wrong thing**, and turned master's Full Platform Readiness Gate red (run 34687917934, `Expected collection not to be empty`). It waited on `Directory.Exists(missingDir)` and then asserted about the FILES inside that directory — but the sink creates the directory and *then* writes into it, so the wait returns during the gap and the assertion reads an empty directory. Every sibling test in the file already does this correctly, through `WaitForMinimumLinesAsync`, which polls the thing it is about to assert; this one was the exception. The wait is now the same predicate as the assertion, on the file-level `IoWait` its siblings use rather than a separate 10 s, and the directory is asserted as a *consequence* of the file arriving rather than as a proxy for it. `WaitUntilAsync` also takes a description, because `condition should complete within timeout` tells a reader of a CI log nothing about which of this file's several waits gave up. Proved by pointing the new wait at a prefix nothing writes: it now fails with `timed out after 00:00:20 waiting for an audit file to appear under the directory the sink had to create` instead of an assertion failure somewhere downstream. The race itself is timing-dependent and was not reproduced locally — the evidence is the CI failure, the read of the two orderings, and the eight-test class passing 5/5 after.

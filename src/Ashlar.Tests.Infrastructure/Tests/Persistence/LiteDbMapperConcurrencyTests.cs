@@ -380,7 +380,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
         RaceOnAColdMapper("pipeline-run", "pipeline_runs", (index, dbPath) =>
         {
             var store = new LiteDbPipelineRunStore(dbPath);
-            store.SaveAsync(new PipelineRun
+            store.PutAsync(new PipelineRun
             {
                 RunId = $"run-{index}",
                 TemplateId = "template",
@@ -465,7 +465,7 @@ public sealed class LiteDbMapperConcurrencyTests : TempDirTestBase
                         {
                             start.SignalAndWait();
                             var store = new LiteDbPipelineRunStore(dbPath);
-                            store.SaveAsync(new PipelineRun
+                            store.PutAsync(new PipelineRun
                             {
                                 RunId = $"run-{index}",
                                 TemplateId = "template",
