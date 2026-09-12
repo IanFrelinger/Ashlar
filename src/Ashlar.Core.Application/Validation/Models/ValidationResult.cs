@@ -39,4 +39,10 @@ public record ValidationResult
 
     /// <summary>Per-test results when detailed output is available.</summary>
     public IReadOnlyList<TestResult>? TestResults { get; init; }
+
+    /// <summary>
+    /// Project runs whose result evidence could not be read or substantiated. These make validation
+    /// fail but do not contribute fictional tests to TestsRun, TestsPassed or TestsFailed.
+    /// </summary>
+    public IReadOnlyList<string> EvidenceErrors { get; init; } = Array.Empty<string>();
 }
