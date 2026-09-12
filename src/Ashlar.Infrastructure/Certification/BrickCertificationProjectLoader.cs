@@ -69,18 +69,32 @@ public static class BrickCertificationProjectLoader
         };
     }
 
+    /// <summary>
+    /// The brick-authoring assemblies a candidate is compiled against. The anchor TYPES are declared
+    /// once, in <see cref="CertifierReferenceSet.BrickAuthoringAnchors"/>, rather than in a private
+    /// copy here — two copies of an anchor list drift.
+    ///
+    /// <para><b>This is NOT the same list the self-extend certifier uses, and that is deliberate.</b>
+    /// A2 and A4 judge against <see cref="CertifierReferenceSet.SelfExtendAuthoringAnchors"/>, which
+    /// is this list plus the rest of the <c>Ashlar.Authoring</c> package's compile surface
+    /// (<c>Ashlar.Core.Domain</c>, <c>Ashlar.Core.Application</c> and the two
+    /// <c>Microsoft.Extensions.*.Abstractions</c>). Widening what the CHAIN compiles against is a
+    /// different risk: <see cref="GateEmittedArtifactCompiler"/>'s emitted bytes are hashed into the
+    /// certificate and pinned by golden corpora, so it can move certificate bytes and is its own
+    /// change. <c>CertifierReferenceSetTests</c> asserts the subset relation and asserts that this
+    /// method still yields exactly the same assemblies it did before, so the difference cannot drift
+    /// in either direction unnoticed.</para>
+    /// </summary>
     internal static List<string> DefaultCompilationReferences()
     {
         var refs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Add(string? path)
+        foreach (var anchor in CertifierReferenceSet.BrickAuthoringAnchors)
         {
+            var path = anchor.Assembly.Location;
             if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
                 refs.Add(path);
         }
 
-        Add(typeof(DomainBrick).Assembly.Location);
-        Add(typeof(BrickInput).Assembly.Location);
-        Add(typeof(IExecutionContext).Assembly.Location);
         return refs.ToList();
     }
 

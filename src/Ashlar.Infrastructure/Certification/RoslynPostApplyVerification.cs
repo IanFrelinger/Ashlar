@@ -8,8 +8,8 @@ namespace Ashlar.Infrastructure.Certification;
 /// <summary>
 /// Roslyn-backed <see cref="IPostApplyVerification"/>: the A4 canary. After an admitted extension's
 /// files land on disk, this recompiles them AS WRITTEN (read back from the working tree, not from the
-/// in-memory proposal) against the running application's loaded assemblies, in-process — no .NET SDK,
-/// so a deployed node runs it too.
+/// in-memory proposal) against a declared reference set, in-process — no .NET SDK, so a deployed node
+/// runs it too.
 ///
 /// <para>Why re-check what A2 already compiled: A2's <see cref="IExtensionCompileCheck"/> runs on the
 /// proposal's in-memory content BEFORE admission. This runs on the BYTES THAT ACTUALLY LANDED, after
@@ -27,9 +27,28 @@ namespace Ashlar.Infrastructure.Certification;
 /// in isolation", NOT "the node still builds and runs": a change that re-signatures a member other
 /// files depend on, or that only touches non-<c>.cs</c> files, passes here. It is shallow
 /// defense-in-depth and the seam a stronger canary (a full build, a test course, a runtime probe) plugs
-/// into — not a correctness proof. It errs conservative: because the reference set is the process's
-/// currently-loaded assemblies, a valid change referencing a not-yet-loaded dependency can be rolled
-/// back as a false positive — the safe direction (never a false pass).</para>
+/// into — not a correctness proof.</para>
+///
+/// <para><b>Unlike A2, this verdict is load-bearing with no policy knob.</b>
+/// <c>ForgeApplier.ApplyAllWithVerificationAsync</c> commits the batch on a pass and restores the
+/// snapshot and rejects every proposal on a failure, so this decides whether an admitted change
+/// stays on an unattended node. That is why the reference set may not be ambient.</para>
+///
+/// <para><b>The reference set is declared, not ambient.</b> It comes from
+/// <see cref="CertifierReferenceSet"/> — the shared framework directory's own listing plus the
+/// authoring anchor types named in code — and is the SAME cached instance A2 compiled against, so the
+/// two stages cannot disagree about what they judged. It used to be
+/// <c>AppDomain.CurrentDomain.GetAssemblies()</c>, described here as erring conservative, "the safe
+/// direction (never a false pass)". That was wrong in one direction: a warmer host is more
+/// permissive, not less, so the same bytes could be committed by a long-lived daemon and rolled back
+/// by a fresh CLI process. Both halves are now a function of the deployment instead of the process's
+/// history.</para>
+///
+/// <para>A host that cannot supply a declared reference set (single-file, trimmed, or
+/// ahead-of-time published) makes <see cref="CertifierReferenceSet.Shared"/> throw, and that throw
+/// propagates out of <see cref="VerifyAsync"/> deliberately: <c>ForgeApplier</c> records it as
+/// <c>canary errored</c> and rolls back — fail-closed AND distinguishable from "the applied files do
+/// not compile".</para>
 /// </summary>
 public sealed class RoslynPostApplyVerification : IPostApplyVerification
 {
@@ -75,50 +94,33 @@ public sealed class RoslynPostApplyVerification : IPostApplyVerification
                 trees.Add(CSharpSyntaxTree.ParseText(content, parseOptions, path: f.RelativePath, cancellationToken: cancellationToken));
             }
 
+            // Resolved BEFORE the compilation so a host that cannot declare a reference set throws
+            // out of here rather than rolling a change back against a partial one.
+            var references = CertifierReferenceSet.Shared;
+
             var compilation = CSharpCompilation.Create(
                 "ashlar-postapply-" + Guid.NewGuid().ToString("N"),
                 trees,
-                BuildReferenceSet(),
+                references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
 
             using var ms = new MemoryStream();
             var emit = compilation.Emit(ms, cancellationToken: cancellationToken);
             if (emit.Success)
             {
-                return new PostApplyVerificationResult(true, $"{csFiles.Count} applied file(s) verified clean");
+                return new PostApplyVerificationResult(
+                    true,
+                    $"{csFiles.Count} applied file(s) verified clean ({CertifierReferenceSet.Describe(references)})");
             }
 
             var errors = emit.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
             var shown = string.Join("; ", errors.Take(3).Select(e => e.GetMessage()));
             _logger?.LogWarning("Post-apply verify failed: {ErrorCount} error(s)", errors.Count);
-            return new PostApplyVerificationResult(false, $"{errors.Count} post-apply error(s): {Truncate(shown, 300)}");
+            return new PostApplyVerificationResult(
+                false,
+                $"{errors.Count} post-apply error(s): {Truncate(shown, 300)} "
+                + $"({CertifierReferenceSet.Describe(references)})");
         }, cancellationToken);
-    }
-
-    private static IReadOnlyList<MetadataReference> BuildReferenceSet()
-    {
-        var refs = new List<MetadataReference>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            try
-            {
-                if (asm.IsDynamic)
-                {
-                    continue;
-                }
-                var location = asm.Location;
-                if (!string.IsNullOrEmpty(location) && seen.Add(location))
-                {
-                    refs.Add(MetadataReference.CreateFromFile(location));
-                }
-            }
-            catch
-            {
-                // An assembly whose metadata cannot be read is simply not offered as a reference.
-            }
-        }
-        return refs;
     }
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";

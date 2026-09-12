@@ -5,9 +5,10 @@ An Ashlar node can extend itself — propose code against its own objectives, ga
 and the two commands that stop it.
 
 The short version: a node ships **sealed** and changes nothing after deploy. You raise the dial
-deliberately, one node at a time, and everything it admits passes the same gate — including a real
-build check before admission and an auto-rollback after apply. You can see what it did and stop it
-at any time.
+deliberately, one node at a time, and everything it admits passes the gates **you listed in
+`gatesRequired`** — plus an auto-rollback after apply, which is not optional. A real build check is
+available and is the one you most likely want in that list; it is not on unless you put it there. You
+can see what it did and stop it at any time.
 
 ## Two dials, not one
 
@@ -46,15 +47,30 @@ warns if the budget is `0` (armed but nothing will auto-admit).
 ## The gate every proposal faces
 
 Whatever the posture, an admitted change has passed the admission gate on **executed evidence**, not
-self-report:
+self-report. Two of the three below hold unconditionally; the first holds **only if you asked for
+it**, and that distinction is the one to get right before arming a node.
 
-- **build course.** The proposal's source is compiled in-process (Roslyn — no .NET SDK needed on the
-  node). A change that does not compile earns a failed course and is never admissible.
-- **the envelope.** Only a `brick` may be self-added (tools and capabilities *widen* the envelope and
-  are never self-addable), and only paths outside the governance/build floor may be written.
-- **budget & ceilings.** `selfExtend.budget` caps admissions per window (`0` disables auto-admit
-  entirely); cross-cycle ceilings cap unattended cycles, cycles-per-hour, and lineage depth. These are
-  the primary blast-radius controls — raise `budget.extensions` deliberately.
+- **build course — only if `gatesRequired` lists `build`.** The proposal's source is compiled
+  in-process (Roslyn — no .NET SDK needed on the node) and the result is written to the proposal's
+  signed, append-once record either way. But `AdmissionGate.Decide` walks
+  `policy.selfExtend.gatesRequired` and consults nothing else, so a `build` course that FAILED — or
+  one that errored in the verifier — does not block admission unless `build` is in that list. `ashlar
+  init` writes `gatesRequired: []`, and the loader refuses to *arm* a policy with an empty list, so
+  the choice is yours and you have to make it explicitly. **If you want "a change that does not
+  compile is never admissible", put `build` in `gatesRequired`:**
+
+  ```yaml
+  selfExtend:
+    gatesRequired: [sandbox, build]
+  ```
+
+  Check what you actually have with `ashlar policy show`, which prints the list.
+- **the envelope.** Unconditional. Only a `brick` may be self-added (tools and capabilities *widen*
+  the envelope and are never self-addable), and only paths outside the governance/build floor may be
+  written.
+- **budget & ceilings.** Unconditional. `selfExtend.budget` caps admissions per window (`0` disables
+  auto-admit entirely); cross-cycle ceilings cap unattended cycles, cycles-per-hour, and lineage
+  depth. These are the primary blast-radius controls — raise `budget.extensions` deliberately.
 
 ## The safety net (A4)
 

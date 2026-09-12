@@ -74,11 +74,27 @@ public sealed class CertifierBoundaryScanTests
     }
 
     /// <summary>
-    /// Async/iterator state machines compile to <c>Type/&lt;Method&gt;d__N::MoveNext</c>.
-    /// Inventory rows name the source method so the freeze stays human-editable.
+    /// Maps a compiler-generated method back to the source method that wrote it, so inventory rows
+    /// name something a human can find and edit. Three shapes, all of which occur in this assembly:
+    /// async/iterator state machines (<c>Type/&lt;Method&gt;d__N::MoveNext</c>), lambdas
+    /// (<c>Type/&lt;&gt;c::&lt;Method&gt;b__N_M</c>, or a display class when the lambda captures),
+    /// and local functions (<c>Type::&lt;Method&gt;g__Name|N_M</c>).
+    ///
+    /// <para>The last two were added when a scan over this same assembly reported
+    /// <c>RoslynCodeAnalysisService/&lt;&gt;c::&lt;BuildReferenceSet&gt;b__5_0</c> — a real site,
+    /// under a name no inventory would ever have been written with. A freeze whose rows cannot be
+    /// spelled by hand is a freeze nobody maintains.</para>
     /// </summary>
     internal static string NormalizeSite(string typeFullName, string methodName)
     {
+        // A lambda or local function carries its source method inside its own name.
+        if (methodName.Length > 2 && methodName[0] == '<')
+        {
+            var close = methodName.IndexOf('>', 1);
+            if (close > 1)
+                return StripClosureNesting(typeFullName) + "::" + methodName[1..close];
+        }
+
         var generated = typeFullName.IndexOf("/<", StringComparison.Ordinal);
         if (generated >= 0 && methodName == "MoveNext")
         {
@@ -89,6 +105,13 @@ public sealed class CertifierBoundaryScanTests
         }
 
         return typeFullName + "::" + methodName;
+    }
+
+    /// <summary>Drops the <c>/&lt;&gt;c</c> or <c>/&lt;&gt;c__DisplayClassN_M</c> the compiler nests a lambda in.</summary>
+    private static string StripClosureNesting(string typeFullName)
+    {
+        var nested = typeFullName.IndexOf("/<>", StringComparison.Ordinal);
+        return nested >= 0 ? typeFullName[..nested] : typeFullName;
     }
 
     private static IEnumerable<TypeDefinition> Flatten(TypeDefinition type) =>
