@@ -239,9 +239,34 @@ Every HTTP-hosting test then fails with an exception that reads exactly like a p
 Fixed in **#407**: `post-create.sh` installs the real ASP.NET Core 8 runtime and the variable is
 gone. If you build your own test image, install the 8.0 runtime and do **not** set roll-forward.
 
-> Still outstanding: `scripts/test-in-container.ps1`, `scripts/handoff/devbox.sh`,
-> `scripts/Verify-DevContainer.ps1` and `spikes/autonomy-first-flight/run-first-flight.ps1` set
-> `LatestMajor` themselves. Harmless for cert-gate, wrong for anything hosting HTTP.
+> **No longer outstanding.** This note used to say `scripts/test-in-container.ps1`,
+> `scripts/handoff/devbox.sh`, `scripts/Verify-DevContainer.ps1` and
+> `spikes/autonomy-first-flight/run-first-flight.ps1` still set `LatestMajor` themselves. None of
+> them does: the three that mention it now carry a comment explaining why they install the real 8.0
+> runtime instead, and `Verify-DevContainer.ps1` never mentioned it at all. Verified with
+> `grep -rn LatestMajor` across the four. Left here rather than deleted because the trap is real and
+> worth recognising — `LatestMajor` is harmless for cert-gate and wrong for anything hosting HTTP,
+> measured on this repo at 10 failed vs 167 passed.
+
+### Running a suite in the container
+
+Two entry points, same image and the same read-only mount:
+
+```bash
+# bash / Git Bash / Linux / macOS — also runs an arbitrary command, not only `dotnet test`
+scripts/test-in-container.sh --filter 'FullyQualifiedName~LiteDb' --framework net8.0
+scripts/test-in-container.sh --dirty -- 'dotnet build Ashlar.sln -c Debug --nologo'
+```
+
+```powershell
+pwsh scripts/test-in-container.ps1 -Filter "FullyQualifiedName~CertifiedBrickHotSwapHostTests"
+```
+
+The repository is mounted read-only and re-cloned inside, so no Linux `bin/obj` reaches the host
+tree and only committed state is tested — `--dirty` carries uncommitted work in as a patch plus a
+tarball of untracked files. **Every build in this harness prints two SourceLink warnings** about the
+inner clone's `origin` being `/src-mirror`; they are absent in CI, so grep the warning text and
+never compare a warning *count* from here against one from CI.
 
 ---
 
