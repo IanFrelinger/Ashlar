@@ -45,3 +45,50 @@ jobs:
 
       - name: Verify against nuget.org
         run: bash scripts/verify-stable-sdk-host-sample-published-feed.sh "${{ inputs.version }}"
+
+  # Behavioural, not structural. The two jobs above prove a sample RESTORES and BUILDS; neither
+  # would notice a verifier that had stopped refusing anything. This one runs a consumer and reads
+  # its transcript.
+  verify-packed-trust-local:
+    name: verify-packed-trust-local-pack
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Packed contracts are fail-closed
+        run: bash scripts/verify-packed-certification-trust-behavior.sh
+
+  verify-packed-trust-published:
+    name: verify-packed-trust-published
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      # Reports before it judges: the probe runs against any published version, including ones
+      # whose API surface predates today's, so its output is readable even when the gate below
+      # cannot compile against that version at all.
+      - name: Probe published presets
+        run: bash scripts/probe-published-certification-presets.sh "${{ inputs.version }}"
+
+      - name: Published contracts are fail-closed
+        env:
+          ASHLAR_CONFORMANCE_SOURCE: nuget.org
+          ASHLAR_CONFORMANCE_VERSION: ${{ inputs.version }}
+        run: bash scripts/verify-packed-certification-trust-behavior.sh
+

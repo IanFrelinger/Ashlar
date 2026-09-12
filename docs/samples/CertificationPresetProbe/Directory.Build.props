@@ -1,0 +1,5 @@
+<Project>
+  <!-- Deliberately empty of imports: this stops MSBuild walking up to the repo root props.
+       The whole point of this sample is to behave like an OUTSIDE consumer, so it must not
+       inherit the repo's build configuration, analyzers, or package pins. -->
+</Project>

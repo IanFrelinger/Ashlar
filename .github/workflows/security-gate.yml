@@ -31,6 +31,18 @@ on:
       - "application/src/Ashlar.CLI/Program.TrustCommands.cs"
       - "application/src/Ashlar.CLI/Program.CommandRegistration.cs"
       - "scripts/security-gate*.sh"
+      # The packed-artifact conformance job below answers a question the source tree cannot:
+      # what a consumer gets from the .nupkg. That makes its trigger surface wider than the
+      # library source — a packaging change alone can move the answer without touching src/.
+      - "docs/samples/CertificationTrustConsumer/**"
+      - "docs/samples/CertificationPresetProbe/**"
+      - "scripts/verify-packed-certification-trust-behavior.sh"
+      - "scripts/probe-published-certification-presets.sh"
+      - "scripts/pack-ashlar-hosting-graph.sh"
+      - ".github/workflows/reusable-release-nuget.yml"
+      - "Directory.Build.props"
+      - "Directory.Packages.props"
+      - "VERSION"
       - "Makefile"
       - ".github/workflows/security-gate.yml"
   workflow_dispatch:
@@ -100,3 +112,22 @@ jobs:
           path: .ashlar/security-gate/**
           if-no-files-found: ignore
           retention-days: 30
+
+  packed-certification-trust:
+    name: packed-certification-trust
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # Both runtimes, not just the SDK from global.json: the consumer is run once per target
+      # framework, and a missing 8.0 runtime would roll net8.0 forward onto 10 and quietly report
+      # on an asset no net8.0 consumer would ever load.
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Packed Ashlar.Certification.Contracts is fail-closed
+        run: bash scripts/verify-packed-certification-trust-behavior.sh

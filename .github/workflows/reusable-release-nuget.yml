@@ -93,6 +93,20 @@ jobs:
           ASHLAR_SDK_PACKAGE_FEED: ${{ runner.temp }}/nuget-release
         run: bash scripts/verify-stable-sdk-host-sample-packages.sh
 
+      # Gate, not a smoke test. Everything above this line verifies that the packages exist, that
+      # their bytes match the manifest, and that a sample restores against them — none of which can
+      # tell whether the verifier inside them still refuses anything. Those are different questions:
+      # every certification test in this repository compiles src/, and a consumer compiles the
+      # .nupkg. This step runs a consumer against the artifact that is about to be pushed, and it
+      # runs BEFORE every push below, so a fail-open package fails the release instead of reaching
+      # nuget.org.
+      - name: Packed certification contracts are fail-closed (pre-publish)
+        shell: bash
+        env:
+          ASHLAR_CONFORMANCE_FEED: ${{ runner.temp }}/nuget-release
+          ASHLAR_CONFORMANCE_VERSION: ${{ env.PACKAGE_VERSION }}
+        run: bash scripts/verify-packed-certification-trust-behavior.sh
+
       - name: Upload NuGet packages + manifest
         uses: actions/upload-artifact@v4
         with:
@@ -248,6 +262,17 @@ jobs:
         env:
           ASHLAR_NUGET_RESTORE_VERIFY_VERSION: ${{ env.PACKAGE_VERSION }}
         run: bash scripts/verify-nuget-org-restore-with-isolated-cache.sh
+
+      # The same assertions again, this time against the bytes nuget.org actually serves. The
+      # pre-publish run proves the artifact was good when it left; this one proves that is what
+      # arrived.
+      - name: Post-push — published certification contracts are fail-closed
+        if: (vars.NUGET_PUBLISH_MODE == 'oidc' || vars.NUGET_PUBLISH_MODE == 'apikey') && vars.NUGET_POST_PUSH_VERIFY != 'false'
+        shell: bash
+        env:
+          ASHLAR_CONFORMANCE_SOURCE: nuget.org
+          ASHLAR_CONFORMANCE_VERSION: ${{ env.PACKAGE_VERSION }}
+        run: bash scripts/verify-packed-certification-trust-behavior.sh
 
       - name: Post-push — nuget.org restore (Ashlar.Hosting only, isolated)
         if: (vars.NUGET_PUBLISH_MODE == 'oidc' || vars.NUGET_PUBLISH_MODE == 'apikey') && vars.NUGET_POST_PUSH_VERIFY != 'false'

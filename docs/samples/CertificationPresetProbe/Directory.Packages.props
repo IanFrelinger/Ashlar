@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- An outside consumer is not on this repo's central package management. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

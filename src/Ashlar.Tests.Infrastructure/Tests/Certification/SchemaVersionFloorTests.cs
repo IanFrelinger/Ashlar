@@ -152,6 +152,42 @@ public sealed class SchemaVersionFloorTests
         CertificationVerifyOptions.Default.PinningEnabled.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Pins each preset field by name rather than through <see cref="CertificationVerifyOptions.IsStrict"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IsStrict_ReflectsConfiguredStrictness"/> is not a substitute for this, because
+    /// <c>IsStrict</c> is an OR over five independent flags: a <c>Strict</c> preset with the schema
+    /// floor set and <c>RequireEd25519Signature</c> false still reports <c>IsStrict == true</c>, and
+    /// verification then falls back to the HMAC key -- which resolves to a constant compiled into the
+    /// shipped package when no <c>ASHLAR_CERT_DEV_HMAC_KEY</c> is set. An aggregate is not a pin:
+    /// four of these five fields can move without <c>IsStrict</c> changing at all.
+    ///
+    /// <para>This test covers the SOURCE tree only. What a consumer restores from a package is a
+    /// different artifact, checked separately by
+    /// <c>scripts/verify-packed-certification-trust-behavior.sh</c>. Neither check subsumes the
+    /// other.</para>
+    /// </remarks>
+    [Fact]
+    public void Presets_PinEveryStrictnessField()
+    {
+        var strict = CertificationVerifyOptions.Strict;
+        strict.RequireEd25519Signature.Should().BeTrue("Strict without a required signature falls back to HMAC");
+        strict.MinimumSchemaVersion.Should().BeGreaterThanOrEqualTo(CertificationRecordData.TrustLoopSchemaVersion);
+        strict.RequireGateEmittedArtifact.Should().BeTrue();
+        strict.RequireCertifierIdentity.Should().BeTrue();
+
+        var fallback = CertificationVerifyOptions.Default;
+        fallback.RequireEd25519Signature.Should().BeTrue("Default is what a caller that names no preset gets");
+        fallback.MinimumSchemaVersion.Should().BeGreaterThanOrEqualTo(CertificationRecordData.TrustLoopSchemaVersion);
+
+        var legacy = CertificationVerifyOptions.Legacy;
+        legacy.RequireEd25519Signature.Should().BeFalse();
+        legacy.MinimumSchemaVersion.Should().Be(0);
+        legacy.RequireGateEmittedArtifact.Should().BeFalse();
+        legacy.RequireCertifierIdentity.Should().BeFalse();
+    }
+
     /// <summary>A well-formed, HMAC-signed v2 record bound to <see cref="BrickSource"/>.</summary>
     private static CertificationRecordData SignedV2Record()
     {
