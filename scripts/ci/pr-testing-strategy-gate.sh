@@ -70,6 +70,41 @@ if [[ "$needs_prod_style" -eq 1 ]]; then
   fi
 fi
 
+# --- New Core.Application source must arrive with Ashlar.Tests.Application coverage ---
+# kernel-coverage measures Ashlar.Core.Application against a LINE FLOOR using only the
+# Ashlar.Tests.Application run. So a new application type whose tests were parked in the
+# infrastructure suite counts as uncovered, and the floor is reached from below by arithmetic:
+# enough new lines with no matching test delta and the gate goes red on master AFTER the merge,
+# where nothing was blocking. That has happened — 120 added lines with a full test suite sitting
+# in the wrong project, and the first red run was on master.
+#
+# Added files only. Editing an existing file rarely moves the ratio; adding one always can.
+# docs/architecture/TestingStrategyTracking-v1.md is what assigns src/Ashlar.Core.Application/**
+# to Ashlar.Tests.Application; this is that assignment with teeth.
+added_core_app=0
+for f in "${ADDED[@]}"; do
+  case "$f" in
+    src/Ashlar.Core.Application/*.cs) added_core_app=1 ;;
+  esac
+done
+
+has_app_test_delta=0
+for f in "${ALL_CHANGED[@]}"; do
+  case "$f" in
+    src/Ashlar.Tests.Application/*) has_app_test_delta=1 ;;
+  esac
+done
+
+if [[ "$added_core_app" -eq 1 ]]; then
+  if body_contains "[skip-app-coverage]" || [[ "${SKIP_APP_COVERAGE_CHECK:-}" == "1" ]]; then
+    note "New Core.Application source allowed without an Ashlar.Tests.Application delta (token or env)."
+  elif [[ "$has_app_test_delta" -eq 1 ]]; then
+    note "New Core.Application source arrives with Ashlar.Tests.Application changes."
+  else
+    fail_note "New source under src/Ashlar.Core.Application/ with no change under src/Ashlar.Tests.Application/. kernel-coverage measures that assembly using only that project's run, so tests placed elsewhere leave the new type counted as uncovered. Add them there, or add [skip-app-coverage] to the PR description with rationale."
+  fi
+fi
+
 # --- Recommend local commands ---
 note "Suggested commands for this diff:"
 needs_domain=0
