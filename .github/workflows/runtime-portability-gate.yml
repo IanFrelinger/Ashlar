@@ -20,6 +20,15 @@
 # double JSON has no number for - because a build whose verifier had been trimmed into
 # unconditional agreement would emit the right bytes and pass a positive-only probe.
 #
+# The third lane runs the asset the package ships FOR external consumers. netstandard2.0 is not
+# a runtime, so there is nothing to run tests "on"; the only honest way to show that asset agrees
+# is to execute it where it is really loaded, in a .NET Framework consumer under Mono.
+# scripts/ns20-canonical-bytes-probe.sh has existed since #585 and nothing in CI called it — while
+# netstandard2.0 is the leg that has actually diverged, twice: the verifier contradictions closed
+# by #585 and the double formatting closed by #592. A probe nothing runs is a measurement nobody
+# has taken. It re-reads its own transcript (five section PASS lines, a Mono runtime line, no FAIL
+# lines, a non-trivial per-case count) rather than trusting an exit code.
+#
 # ADVISORY. Path-filtered, so it cannot be a required status check (a required context that
 # never reports blocks the merge forever — see docs/CiGateInventory.md). It does not use
 # `continue-on-error`: a red run here is a real runtime regression and must be read as one.
@@ -41,6 +50,9 @@ on:
     paths:
       - ".github/workflows/runtime-portability-gate.yml"
       - "scripts/portability/**"
+      # The Mono lane's probe does not live under scripts/portability/; without this line the
+      # job exists and never fires, which is the same as not having it.
+      - "scripts/ns20-canonical-bytes-probe.sh"
       - "src/Ashlar.Certification.Contracts/**"
       # The trim/AOT consumer references State and reads its corpus, so a change to either must
       # fire this workflow. Without these two lines the lane looks healthy by never running.
@@ -56,6 +68,9 @@ on:
     paths:
       - ".github/workflows/runtime-portability-gate.yml"
       - "scripts/portability/**"
+      # The Mono lane's probe does not live under scripts/portability/; without this line the
+      # job exists and never fires, which is the same as not having it.
+      - "scripts/ns20-canonical-bytes-probe.sh"
       - "src/Ashlar.Certification.Contracts/**"
       # The trim/AOT consumer references State and reads its corpus, so a change to either must
       # fire this workflow. Without these two lines the lane looks healthy by never running.
@@ -245,5 +260,77 @@ jobs:
             ${{ runner.temp }}/trim-aot-probe/trim-aot-probe.log
             ${{ runner.temp }}/trim-aot-probe/*.run.log
             ${{ runner.temp }}/trim-aot-probe/*.publish.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  mono-netstandard20-consumer:
+    name: netstandard2.0 asset under Mono (execute)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NS20_PROBE_WORKDIR: ${{ runner.temp }}/ns20-probe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          # Build side only. Nothing here runs the netstandard2.0 asset — that is Mono's job, and
+          # Mono arrives as a container image rather than a runtime install.
+          dotnet-version: 10.0.x
+
+      - name: Installed runtimes
+        shell: bash
+        run: dotnet --list-runtimes
+
+      # netstandard2.0 is not a runtime, so there is nothing to "run the tests on". The only
+      # honest way to show the ns2.0 asset agrees with net8.0 is to execute it where it is really
+      # loaded: a .NET Framework consumer, under Mono. The script has existed since #585 and
+      # nothing in CI called it — and netstandard2.0 is the leg that has actually diverged, twice
+      # (the verifier contradictions closed by #585, the double formatting closed by #592). A
+      # probe nothing runs is a measurement nobody has taken.
+      - name: Build the net472 consumer and execute the ns2.0 asset under Mono
+        shell: bash
+        run: bash scripts/ns20-canonical-bytes-probe.sh
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="${NS20_PROBE_WORKDIR}/ns20-probe.log"
+          {
+            echo "## Runtime Portability Gate — netstandard2.0 under Mono"
+            echo ""
+            if [[ ! -f "${LOG}" ]]; then
+              echo "No probe log at \`${LOG}\` — the build phase failed before the consumer ran (see the job log)."
+            else
+              # The probe prints one line per check and then re-reads them itself; the summary only
+              # reports what it found.
+              runtime="$(grep -m1 '^runtime:' "${LOG}" | sed 's/^runtime: *//' || true)"
+              contracts="$(grep -m1 '^contracts:' "${LOG}" | sed 's/^contracts: *//' || true)"
+              ok="$(grep -cE '^  OK' "${LOG}" || true)"
+              bad="$(grep -cE '^  FAIL' "${LOG}" || true)"
+              sections="$(grep -cE '^PASS: ' "${LOG}" || true)"
+              echo "| Check | Result |"
+              echo "|-------|--------|"
+              echo "| Runtime | \`${runtime:-?}\` |"
+              echo "| Contracts asset loaded | \`${contracts:-not loaded}\` |"
+              echo "| Sections passed | ${sections} / 5 |"
+              echo "| Per-case checks | ${ok} OK / ${bad} FAIL |"
+              echo ""
+              echo "Sections: canonical payload bytes, certified transition entry hashes, verifier parity with net8.0, StateLogVerifier options, unknown schema versions."
+            fi
+            echo ""
+            echo "Advisory lane (not a required status check); a red run is a real netstandard2.0 regression — read it."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+
+      - name: Upload probe log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-portability-ns20-mono
+          path: ${{ runner.temp }}/ns20-probe/ns20-probe.log
           if-no-files-found: warn
           retention-days: 14

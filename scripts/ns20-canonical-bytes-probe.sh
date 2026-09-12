@@ -543,14 +543,70 @@ fi
 
 if [[ "${DO_RUN}" == "1" ]]; then
   echo "== ns2.0 probe: execute the netstandard2.0 asset under ${MONO_IMAGE} =="
+  LOG="${WORK}/ns20-probe.log"
   # Docker on Windows wants a Windows-shaped host path and no MSYS path mangling.
   MOUNT="${WORK}"
   if command -v cygpath >/dev/null 2>&1; then
     MOUNT="$(cygpath -w "${WORK}" | tr '\\' '/')"
   fi
+  set +e
   MSYS_NO_PATHCONV=1 docker run --rm \
     -v "${MOUNT}:/probe:ro" \
     -w /probe/net472 \
     "${MONO_IMAGE}" \
-    mono Ns20CanonicalBytesProbe.exe /probe/canonical-payloads.golden.json /probe/transition-entry-hashes.golden.json
+    mono Ns20CanonicalBytesProbe.exe /probe/canonical-payloads.golden.json /probe/transition-entry-hashes.golden.json \
+    2>&1 | tee "${LOG}"
+  RUN_STATUS="${PIPESTATUS[0]}"
+  set -e
+
+  # Re-read what the probe PRINTED. A lane that trusts an exit code is green for a consumer that
+  # never ran: the same reasoning as scripts/portability/net9-probe.sh, and the same mistake this
+  # repository shipped once already in the first version of the trim/AOT lane.
+  echo
+  echo "== ns2.0 probe: verifying the transcript =="
+  probe_failed=0
+
+  # "runtime: not Mono (...)" would mean the netstandard2.0 asset was loaded somewhere else, and
+  # the whole measurement would be about a different target.
+  if ! grep -q "^runtime: Mono " "${LOG}"; then
+    echo "::error::the probe did not report a Mono runtime: $(grep -m1 "^runtime:" "${LOG}" || echo "(no runtime line)")"
+    probe_failed=1
+  fi
+
+  ns20_expect() {
+    if ! grep -q "^PASS: .*$1" "${LOG}"; then
+      echo "::error::missing PASS line for: $1"
+      probe_failed=1
+    fi
+  }
+  ns20_expect "canonical payloads are byte-identical on the netstandard2.0 asset."
+  ns20_expect "transition entry hashes are identical on the netstandard2.0 asset."
+  ns20_expect "verifier verdicts on the netstandard2.0 asset agree with net8.0."
+  ns20_expect "state-log verdicts on the netstandard2.0 asset are the ones its options can deliver."
+  ns20_expect "unknown-schema-version outcomes on the netstandard2.0 asset are refusals."
+
+  if grep -qE "^(FAIL|  FAIL)" "${LOG}"; then
+    echo "::error::the probe reported at least one FAIL line"
+    grep -E "^(FAIL|  FAIL)" "${LOG}" || true
+    probe_failed=1
+  fi
+
+  # A probe that checked nothing is not a passing probe. The five sections inside the consumer
+  # already refuse an empty corpus; this catches a transcript truncated on the way out.
+  ok_lines="$(grep -cE "^  OK" "${LOG}" || true)"
+  if [[ "${ok_lines}" -lt 5 ]]; then
+    echo "::error::only ${ok_lines} per-case OK lines in the transcript; the corpus should contribute many more"
+    probe_failed=1
+  fi
+
+  if [[ "${RUN_STATUS}" -ne 0 ]]; then
+    echo "::error::the probe exited ${RUN_STATUS}"
+    probe_failed=1
+  fi
+
+  if [[ "${probe_failed}" -ne 0 ]]; then
+    echo "NS20_PROBE=FAIL"
+    exit 1
+  fi
+  echo "NS20_PROBE=OK (${ok_lines} per-case checks, 5 sections, log at ${LOG})"
 fi
