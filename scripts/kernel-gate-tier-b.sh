@@ -23,7 +23,7 @@ dotnet build "$CLI_PROJECT" -v minimal
 echo "== Tier B: pipeline lifecycle tests (net8) =="
 ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 \
   --filter "FullyQualifiedName~PipelineTemplateValidatorTests|FullyQualifiedName~PipelineLifecycleE2ETests" \
-  --blame-hang-timeout 120s --blame-hang-dump-type none \
+  --blame-hang-timeout 180s --blame-hang-dump-type none \
   --logger "console;verbosity=minimal"
 
 cat > "$TEMPLATE_PATH" <<'JSON'

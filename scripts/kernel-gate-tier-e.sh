@@ -14,7 +14,7 @@ echo "== Tier E: OpenTelemetry registration =="
 dotnet build "$INFRA" -v minimal
 dotnet test "$INFRA" -f net8.0 --no-build \
   --filter "FullyQualifiedName~OpenTelemetryTests" \
-  --blame-hang-timeout 60s --blame-hang-dump-type none
+  --blame-hang-timeout 180s --blame-hang-dump-type none
 
 echo "== Tier E: orchestration performance-scoped tests =="
 dotnet build "$ORCH" -v minimal

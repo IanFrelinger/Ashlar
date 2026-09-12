@@ -680,23 +680,29 @@ public class ValidationServiceAdapter : IValidationService
     /// it does not.
     /// </summary>
     /// <remarks>
-    /// This was 120s, while the widest per-test hang net in Ashlar.Tests.Infrastructure
-    /// (<c>TestTimeouts.HostTouching</c>) is 480s — four times larger. A test bounded at 480s
-    /// can therefore never fail as a timeout on this lane: any stall past two minutes is a host
-    /// kill instead, which discards the ~1900 results already recorded, names the in-flight test
-    /// only as one that "may, or may not be the source of the crash", and leaves no per-test
-    /// failure to diagnose. That is what
+    /// This was 120s, while tests this lane selects are bounded at up to 600s — five times
+    /// larger. A test bounded above the window can never fail as a timeout here: any stall past
+    /// two minutes is a host kill instead, which discards the ~1900 results already recorded,
+    /// names the in-flight test only as one that "may, or may not be the source of the crash",
+    /// and leaves no per-test failure to diagnose. That is what
     /// <c>FileSystemEventSourceTests.SubscribeAsync_FileCreated_EmitsEvent</c> produced twice on
     /// the macOS lane, and the 480s bound it tripped over had itself been raised to stop an
     /// earlier false red (docs/production-readiness/KernelCoverageGate-Findings.md).
     ///
-    /// 720s restores the relation docs/Testing.md already documents — blame-hang-timeout at
-    /// 1.5x the widest per-test timeout — so the per-test net fires first and the failure names
-    /// itself. The cost is that a host which is genuinely wedged, with no per-test timeout above
-    /// it, now takes twelve minutes to abort rather than two. That is the right trade: the old
-    /// window never shortened a hang, it only converted diagnosable test failures into lost runs.
+    /// 900s restores the relation docs/Testing.md already documents — blame-hang-timeout at 1.5x
+    /// the widest per-test timeout — so the per-test net fires first and the failure names
+    /// itself. It is 1.5x 600s, not 1.5x <c>TestTimeouts.HostTouching</c>: the widest deadline
+    /// this filter selects is the 600_000 ms literal on
+    /// <c>RuntimeStudioBlackBoxPlaygroundTests</c>, and the first attempt at this fix sized the
+    /// window against the <c>TestTimeouts</c> constants alone — which is exactly the blind spot
+    /// <c>LaneBlameWindowConventionTests</c> now removes by reflecting over the real
+    /// <c>[Fact(Timeout = ...)]</c> values and evaluating each lane's own filter against them.
+    ///
+    /// The cost is that a host which is genuinely wedged, with no per-test timeout above it, now
+    /// takes fifteen minutes to abort rather than two. That is the right trade: the old window
+    /// never shortened a hang, it only converted diagnosable test failures into lost runs.
     /// </remarks>
-    internal const int ValidateBlameHangTimeoutSeconds = 720;
+    internal const int ValidateBlameHangTimeoutSeconds = 900;
 
     private const int MaxRetainedOutputLines = 10_000;
 }

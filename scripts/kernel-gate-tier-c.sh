@@ -31,7 +31,7 @@ fi
 echo "== Tier C: air-gapped profile smoke (in-process) =="
 ASHLAR_ALLOW_MOCK=1 dotnet test "$INFRA" -f net8.0 --no-build \
   --filter "FullyQualifiedName~AirGapped" \
-  --blame-hang-timeout 120s --blame-hang-dump-type none
+  --blame-hang-timeout 180s --blame-hang-dump-type none
 
 if [ "${KERNEL_GATE_MESH_E2E:-0}" = "1" ] && [ -f ".env.mesh-lab" ]; then
   echo "== Tier C: mesh virtual lab E2E (compose up + verify + down) =="

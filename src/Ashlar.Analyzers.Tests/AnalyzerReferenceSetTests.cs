@@ -17,18 +17,42 @@ namespace Ashlar.Analyzers.Tests;
 /// file. These two assert the set no longer has that dependency, and they fail on the old
 /// harness under any runner that does not happen to load the facade.</para>
 ///
-/// <para>The last two are the convention half, in both directions
-/// (<c>docs/HowGatesGoQuiet.md</c> section 7): a NEW hand-rolled reference set fails, and the
-/// helper quietly reverting to the ambient scheme fails. Without the second, the first freezes a
-/// rule that no longer describes anything.</para>
+/// <para>The rest are the convention half, in both directions
+/// (<c>docs/HowGatesGoQuiet.md</c> section 7): a NEW hand-rolled reference set fails, the helper
+/// quietly reverting to the ambient scheme fails, and the scan itself is pinned to the one file it
+/// is meant to find. Without the second, the first freezes a rule that no longer describes
+/// anything; without the third, it can stop recognising what it forbids and still pass.</para>
+///
+/// <para><b>None of this runs in CI.</b> <c>ci/test-ownership.tsv</c> records
+/// <c>Ashlar.Analyzers.Tests</c> as UNOWNED — it is in <c>Ashlar.sln</c> and named by no gate — so
+/// these guards, and the seven <c>SelfRecursiveRegistrationAnalyzerTests</c> whose CS1069
+/// regression prompted them, are visible to a local run and to nothing else. The regression that
+/// motivated this file was itself invisible to every check on every pull request. Read a green
+/// pull request accordingly, and run this project before changing the test SDK pins.</para>
 /// </summary>
 public sealed class AnalyzerReferenceSetTests
 {
-    // The needles are assembled from fragments on purpose: this file sits in the directory it
-    // scans, and a literal here would match itself.
+    // The needles are assembled from fragments on purpose: this file sits in the tree it scans,
+    // and a literal here would match itself.
     private static readonly string AmbientLoadContextCall = "AppDomain.CurrentDomain." + "GetAssemblies";
-    private static readonly string ReferenceFactoryCall = "MetadataReference." + "CreateFromFile";
     private static readonly string TrustedPlatformList = "TRUSTED_PLATFORM" + "_ASSEMBLIES";
+
+    /// <summary>
+    /// Every way Roslyn will hand back a reference, not only the spelling the two removed copies
+    /// happened to use. One literal plus a top-directory scan is a convention that forbids one
+    /// spelling in one folder: a copy one directory down walked straight past it, and so did the
+    /// same hand-rolled set built through <c>AssemblyMetadata</c> rather than
+    /// <c>MetadataReference</c>. Both rebuild the defect exactly; neither was visible.
+    /// </summary>
+    private static readonly string[] ReferenceFactoryCalls =
+    [
+        "MetadataReference." + "CreateFromFile",
+        "MetadataReference." + "CreateFromStream",
+        "MetadataReference." + "CreateFromImage",
+        "AssemblyMetadata." + "CreateFromFile",
+        "AssemblyMetadata." + "CreateFromStream",
+        "AssemblyMetadata." + "CreateFromImage",
+    ];
 
     /// <summary>
     /// The positive control. Both types below live in shared-framework assemblies a test host has
@@ -92,13 +116,16 @@ public sealed class AnalyzerReferenceSetTests
             + "loaded-assembly list means the framework half was silently dropped");
     }
 
-    /// <summary>Direction one: a second hand-rolled reference set anywhere in this project fails.</summary>
+    /// <summary>
+    /// Direction one: a second hand-rolled reference set anywhere in this project fails —
+    /// <em>anywhere</em> meaning every subdirectory, and <em>hand-rolled</em> meaning any of the
+    /// Roslyn reference factories, not one blessed spelling of one of them.
+    /// </summary>
     [Fact]
     public void No_other_file_in_this_project_builds_its_own_reference_set()
     {
         var sources = ProjectSourceFiles();
 
-        // Positive control: a scan that found nothing would pass every assertion below.
         sources.Should().HaveCountGreaterThan(
             5, "the scan must actually be reading this project's sources, otherwise it is vacuous");
 
@@ -107,19 +134,54 @@ public sealed class AnalyzerReferenceSetTests
                 Path.GetFileName(file), "AnalyzerReferenceSet.cs", StringComparison.Ordinal))
             .Where(file => !string.Equals(
                 Path.GetFileName(file), "AnalyzerReferenceSetTests.cs", StringComparison.Ordinal))
-            .Where(file =>
-            {
-                var text = File.ReadAllText(file);
-                return text.Contains(AmbientLoadContextCall, StringComparison.Ordinal)
-                    || text.Contains(ReferenceFactoryCall, StringComparison.Ordinal);
-            })
-            .Select(Path.GetFileName)
+            .Where(BuildsItsOwnReferenceSet)
+            .Select(file => Path.GetRelativePath(ProjectDirectory(), file))
             .ToArray();
 
         offenders.Should().BeEmpty(
             "every analyzer sample compiles against AnalyzerReferenceSet. A private copy "
             + "reintroduces the defect one file at a time — which is how two copies of the old "
-            + "one came to exist");
+            + "one came to exist. Offending: " + string.Join(", ", offenders));
+    }
+
+    /// <summary>
+    /// The positive control for the scan above, which is otherwise a list of things it did not
+    /// find. It states, in both directions, that the reader reads and the needles match: with the
+    /// two exemptions lifted the scan finds <c>AnalyzerReferenceSet.cs</c> and nothing else, and
+    /// the recursive walk really is recursive.
+    /// </summary>
+    /// <remarks>
+    /// <c>AnalyzerReferenceSetTests.cs</c> does not appear because its needles are assembled from
+    /// fragments at run time, so the literals are never in the file. If a needle ever stops
+    /// matching the helper, this fails here rather than leaving the convention above passing
+    /// because it can no longer recognise the thing it forbids.
+    /// </remarks>
+    [Fact]
+    public void The_scan_finds_the_one_file_that_is_allowed_to_build_a_reference_set()
+    {
+        var matched = ProjectSourceFiles()
+            .Where(BuildsItsOwnReferenceSet)
+            .Select(Path.GetFileName)
+            .ToArray();
+
+        matched.Should().BeEquivalentTo(
+            ["AnalyzerReferenceSet.cs"],
+            "the needles must still match the one implementation they were written against");
+
+        var all = RawProjectFiles();
+        all.Should().Contain(
+            file => file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal),
+            "the walk must descend into subdirectories, and the generated sources MSBuild writes "
+            + "under obj/ are the subdirectory this project always has. A top-directory scan "
+            + "misses them — and missed a hand-rolled reference set one folder down");
+    }
+
+    private static bool BuildsItsOwnReferenceSet(string file)
+    {
+        var text = File.ReadAllText(file);
+        return text.Contains(AmbientLoadContextCall, StringComparison.Ordinal)
+            || ReferenceFactoryCalls.Any(call => text.Contains(call, StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -143,7 +205,7 @@ public sealed class AnalyzerReferenceSetTests
             + "at once, and would otherwise leave the convention test above passing");
     }
 
-    private static IReadOnlyList<string> ProjectSourceFiles()
+    private static string ProjectDirectory()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null
@@ -157,6 +219,27 @@ public sealed class AnalyzerReferenceSetTests
             + $"walking up from '{AppContext.BaseDirectory}', so the scan cannot run and must not "
             + "report a clean result");
 
-        return Directory.GetFiles(directory!.FullName, "*.cs", SearchOption.TopDirectoryOnly);
+        return directory!.FullName;
+    }
+
+    /// <summary>Every <c>.cs</c> under the project, build outputs included.</summary>
+    private static IReadOnlyList<string> RawProjectFiles()
+        => Directory.GetFiles(ProjectDirectory(), "*.cs", SearchOption.AllDirectories);
+
+    /// <summary>
+    /// The project's own sources: the whole tree, not one folder, minus the build directories —
+    /// MSBuild writes generated <c>.cs</c> there, and they are output rather than source.
+    /// </summary>
+    private static IReadOnlyList<string> ProjectSourceFiles()
+    {
+        var generated = new[]
+        {
+            $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
+            $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+        };
+
+        return RawProjectFiles()
+            .Where(file => !generated.Any(part => file.Contains(part, StringComparison.Ordinal)))
+            .ToArray();
     }
 }

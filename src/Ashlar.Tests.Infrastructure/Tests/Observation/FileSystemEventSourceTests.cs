@@ -39,17 +39,30 @@ public class FileSystemEventSourceTests : IDisposable
     ///
     /// <para>What actually happened, twice: run 34573927779 <b>attempt 1</b> (macOS job
     /// 103182128289, conclusion failure) and run 34374416444 attempt 1 (job 102544517994). Both
-    /// print the Blame collector's 2-minute inactivity line, then "The active test run was
-    /// aborted. Reason: Test host process crashed", then this test by name as the one in flight,
-    /// and both emit a Sequence_*.xml. So it is a HANG killed by Blame, not a crash: an unhandled
-    /// exception on a watcher callback thread kills the process instantly and cannot produce a
-    /// preceding inactivity message.</para>
+    /// logs carry the Blame collector's "The specified inactivity time of 2 minutes has elapsed",
+    /// "The active test run was aborted. Reason: Test host process crashed", this test by name as
+    /// the one in flight, and a Sequence_*.xml. So it is a HANG killed by Blame, not a crash:
+    /// Blame prints that inactivity line only when inactivity is what made it kill the host, and
+    /// an unhandled exception on a watcher callback thread produces no such line at all.</para>
     ///
-    /// <para>Both sightings are invisible to <c>gh run view</c>, which returns only the latest
-    /// attempt; run 34573927779 was re-run and attempt 2 passed in 254 ms. The CHANGELOG entry
-    /// for #601 says the report "is not reproduced and its premise does not hold" — every clause
-    /// of which is true of attempt 2 and false of attempt 1. See docs/HowGatesGoQuiet.md
-    /// section 11.</para>
+    /// <para><b>Read the presence of that line, not its position.</b> An earlier version of this
+    /// note claimed the inactivity line comes first and offered the ordering as the discriminator.
+    /// It does not, and it is not: in job 103182128289 the crash line is stamped 07:38:14.7839330Z
+    /// and the inactivity line 07:38:15.1106820Z, and job 102544517994 is the same way round.
+    /// vstest's summary and the detailed console output are separate streams in a GitHub job log,
+    /// so their relative order carries no information. What discriminates is that the inactivity
+    /// line exists.</para>
+    ///
+    /// <para>Sighting one is invisible to <c>gh run view</c>, which returns only the latest
+    /// attempt: run 34573927779 was re-run, attempt 2 passed in 254 ms, the run reports
+    /// <c>conclusion: success</c>, and the failing job shows up only under
+    /// <c>/attempts/1/jobs</c>. Sighting two was NOT hidden that way — run 34374416444 is
+    /// <c>run_attempt: 1</c>, <c>conclusion: failure</c>, and its failing macOS job is listed by
+    /// the default endpoints — so enumerating attempts, on its own, would not have found it. Why
+    /// the "last 60 gate runs" sweep behind #601's refutation missed a plainly failed run is still
+    /// unexplained. The CHANGELOG entry for #601 says the report "is not reproduced and its
+    /// premise does not hold"; every clause of that is true of 34573927779 attempt 2 and false of
+    /// attempt 1. See docs/HowGatesGoQuiet.md section 11.</para>
     ///
     /// <para>Of the three mechanisms #601 considered, two are ruled out for THIS test: the
     /// disposal race is closed in the source and was never reachable from here, and
@@ -63,11 +76,14 @@ public class FileSystemEventSourceTests : IDisposable
     ///
     /// <para><b>What changed here, and what did not.</b> The amplifier is closed: the validate
     /// lane's blame window was 120s while this test's own net is 480s, so a stall could only ever
-    /// be a host kill that discarded ~1900 green results. That window is now 720s
-    /// (<c>ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds</c>, frozen by
-    /// <c>TimeoutConventionTests</c>), so the 480s net fires first and the next occurrence is a
-    /// named failing test instead of a lost run. The hang itself is NOT proven fixed, and nothing
-    /// here should be read as claiming it is.</para>
+    /// be a host kill that discarded ~1900 green results. That window is now 900s
+    /// (<c>ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds</c>), so the 480s net fires
+    /// first and the next occurrence is a named failing test instead of a lost run. It was closed
+    /// on two lanes first and on every lane afterwards: the readiness gate that produced both
+    /// sightings ran its own 180s window over 300_000 ms literals, which the first version of the
+    /// freeze could not see, and <c>LaneBlameWindowConventionTests</c> now derives the requirement
+    /// for each lane from the deadlines its filter actually selects. The hang itself is NOT proven
+    /// fixed, and nothing here should be read as claiming it is.</para>
     ///
     /// <para><b>What would settle it,</b> and was not done because the failure is macOS-only and
     /// every measurement available here is Linux-in-container — "measured on one OS" means "not

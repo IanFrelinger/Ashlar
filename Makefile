@@ -59,44 +59,53 @@ prod-dry-run-agent-server:
 
 # Production-like integration (Category=ProdStyle): Ashlar.Tests.Infrastructure only — real DI hosts / graphs.
 # Run this before the full suite when validating framework behaviour locally or in CI-style gates.
+#
+# Every --blame-hang-timeout in this file is checked by LaneBlameWindowConventionTests, which reads
+# the real [Fact(Timeout = ...)] values out of the assembly and each lane's own --filter, and
+# requires the window to be at least 1.5x the widest deadline the lane can select. Do not shrink one
+# to make a local loop feel snappier: below that relation a stall stops being a named failing test
+# and becomes a killed host with the whole run's results discarded. This filter is byte-for-byte the
+# one `ashlar ci verify` runs, and it sat at 120s over 480s nets until that check existed.
 test-prod-style:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
 	ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --no-build \
 	  --filter "Category=ProdStyle&FullyQualifiedName!~ForgeEndpointsTests&FullyQualifiedName!~FrameworkVirtualProdDemosTests" \
-	  --blame-hang-timeout 120s --blame-hang-dump-type none
+	  --blame-hang-timeout 720s --blame-hang-dump-type none
 
 # Runs test-prod-style then the full LocalDevCore test slice (Domain + Infrastructure + CLI harness).
 # ProdStyle runs once in test-prod-style; the second pass excludes Category=ProdStyle.
 test-framework-prod-first: test-prod-style
 	dotnet test Ashlar.LocalDevCore.slnf --no-build \
 	  --filter "Category!=ProdStyle" \
-	  --blame-hang-timeout 30s --blame-hang-dump-type none
+	  --blame-hang-timeout 900s --blame-hang-dump-type none
 
 # Prime-time gate: Category=ProdStyle across Ashlar.PrimeTime.slnf (all test assemblies).
 test-prime-time:
 	dotnet build $(PRIME_TIME_SLNF) -v minimal
 	dotnet test $(PRIME_TIME_SLNF) --no-build \
 	  --filter "Category=ProdStyle" \
-	  --blame-hang-timeout 300s --blame-hang-dump-type none
+	  --blame-hang-timeout 720s --blame-hang-dump-type none
 
 # Full PrimeTime matrix after ProdStyle gate (ProdStyle excluded on this pass).
 test-prime-time-full: test-prime-time
 	dotnet test $(PRIME_TIME_SLNF) --no-build \
 	  --filter "Category!=ProdStyle" \
-	  --blame-hang-timeout 300s --blame-hang-dump-type none
+	  --blame-hang-timeout 900s --blame-hang-dump-type none
 
 # Run tests locally (blame-hang-timeout prevents indefinite freeze from hung tests)
 # --blame-hang-dump-type none avoids 6GB+ hang dumps that accumulate in TestResults/
 # ASHLAR_ALLOW_MOCK=1 matches CI so ProviderFactory / mock-provider tests pass on net10.0.
+# 900s, not the 120s this carried, because an unfiltered solution run includes
+# RuntimeStudioBlackBoxPlaygroundTests and its three [Fact(Timeout = 600_000)] — see test-prod-style.
 test:
-	ASHLAR_ALLOW_MOCK=1 dotnet test Ashlar.sln --blame-hang-timeout 120s --blame-hang-dump-type none
+	ASHLAR_ALLOW_MOCK=1 dotnet test Ashlar.sln --blame-hang-timeout 900s --blame-hang-dump-type none
 
 # Run tests on all target platforms: local + Docker (ubuntu, alpine, debian).
 # For native macOS/Windows/Linux use: make test-cross-platform (triggers CI).
 test-all-platforms:
 	@echo "=== Local (current OS) ==="
 	dotnet build Ashlar.sln -v minimal
-	dotnet test Ashlar.sln --no-build --verbosity minimal --blame-hang-timeout 30s --blame-hang-dump-type none
+	dotnet test Ashlar.sln --no-build --verbosity minimal --blame-hang-timeout 900s --blame-hang-dump-type none
 	@echo "=== Docker: Ubuntu 8.0 ==="
 	docker build -f .docker/Dockerfile.test-caching --build-arg DOTNET_VERSION=8.0 -t ashlar-test-ubuntu:8.0 .
 	mkdir -p test-results
@@ -187,10 +196,10 @@ kernel-gate:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
 	ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --no-build \
 	  --filter "FullyQualifiedName~KernelPhaseResolutionTests|FullyQualifiedName~HostingDeploymentProfileTests|FullyQualifiedName~HostingE2ESmokeTests" \
-	  --blame-hang-timeout 120s --blame-hang-dump-type none
+	  --blame-hang-timeout 180s --blame-hang-dump-type none
 	ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --no-build \
 	  --filter "FullyQualifiedName~PipelineTemplateValidatorTests|FullyQualifiedName~PipelineLifecycleE2ETests" \
-	  --blame-hang-timeout 120s --blame-hang-dump-type none
+	  --blame-hang-timeout 180s --blame-hang-dump-type none
 	$(MAKE) meai-pipeline-gate
 	@if [ "$${KERNEL_GATE_PRODSTYLE:-0}" = "1" ]; then $(MAKE) test-prod-style; fi
 	@if [ "$${KERNEL_GATE_MESH:-0}" = "1" ]; then $(MAKE) mesh-lab-verify; fi

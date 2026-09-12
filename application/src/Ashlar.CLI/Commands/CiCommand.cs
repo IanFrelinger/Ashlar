@@ -94,14 +94,17 @@ public sealed class CiCommand : Command
         // and most ProdStyle classes use TestTimeouts.HostTouching (480s). At the 120s this used
         // to pass, a stalled ProdStyle test could never fail as a timeout: the host was killed
         // first, taking every already-recorded result with it. Kept equal to
-        // ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds and frozen by
-        // TimeoutConventionTests, which fails if the two drift or if either falls below a
-        // TestTimeouts constant. The 30s on the smoke step below is fine: it selects only
-        // BaseFrameworkSmokeTests, which carry no HostTouching net.
+        // ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds, and frozen from both sides:
+        // TimeoutConventionTests fails if the two drift, and LaneBlameWindowConventionTests
+        // measures this window against the real per-test deadlines its filter selects — reading
+        // the [Fact(Timeout = ...)] values themselves rather than the TestTimeouts constants, so
+        // a timeout written as a bare literal cannot slip under it. The 30s on the smoke step
+        // below survives that check on its own evidence: BaseFrameworkSmokeTests carry no
+        // deadline anywhere near it.
         Console.WriteLine("=== CI Verify: Production-like tests (ProdStyle, FluentAssertions-safe filter) ===");
         var prodStyleExit = await RunProcessAsync(
             "dotnet",
-            $"test \"{infraTestsProject}\" -f net8.0 --no-build --blame-hang-timeout 720s --blame-hang-dump-type none --filter \"Category=ProdStyle&FullyQualifiedName!~ForgeEndpointsTests&FullyQualifiedName!~FrameworkVirtualProdDemosTests\" --verbosity minimal",
+            $"test \"{infraTestsProject}\" -f net8.0 --no-build --blame-hang-timeout 900s --blame-hang-dump-type none --filter \"Category=ProdStyle&FullyQualifiedName!~ForgeEndpointsTests&FullyQualifiedName!~FrameworkVirtualProdDemosTests\" --verbosity minimal",
             repoRoot);
         if (prodStyleExit != 0)
         {

@@ -204,9 +204,23 @@ run 34573927779 **attempt 1** (job 103182128289): the Blame collector's 2-minute
 ~1900 already-recorded results discarded. The run was re-run; attempt 2 passed in 254 ms. #601's
 refutation — and the CHANGELOG text shipped with it, which says the report "is not reproduced and
 its premise does not hold" and cites the passing job, the 254 ms, and the absence of a sequence
-file — was written entirely against attempt 2. The same blind spot hid a second sighting
-(run 34374416444 attempt 1, job 102544517994), so the sweep over "the last 60 gate runs" that
-backed the refutation could not have found either one.
+file — was written entirely against attempt 2.
+
+**Do not over-claim the remedy.** A second sighting carries the same signature
+(run 34374416444, job 102544517994, ~1912 results discarded), and it is *not* an example of this
+section: that run is `run_attempt: 1`, `conclusion: failure`, and its failing macOS job is listed
+by `gh run view` and by `/runs/<id>/jobs` like any other. Enumerating attempts finds the first
+sighting; it would not have found the second. Why the sweep over "the last 60 gate runs" behind the
+refutation missed a plainly failed run is still unexplained — two blind spots were in play and only
+one of them is described here, so a reader who adopts only the attempts remedy still has the other.
+
+**And do not read the ordering.** The natural next move is to use the log lines to tell a
+Blame-killed hang from a fast crash, with the inactivity line before the crash line as the
+discriminator. That does not hold. The two lines come from streams GitHub interleaves: in job
+103182128289 the crash line is stamped 07:38:14.7839330Z and the inactivity line 07:38:15.1106820Z
+— crash first, in a run that was unambiguously a hang — and job 102544517994 is the same way
+round. What discriminates is that Blame printed an inactivity line **at all**, together with the
+`Sequence_*.xml`; where it sits relative to the crash line means nothing.
 
 This is section 8 again — a lens that cannot see the defect refutes it — with a new way to acquire
 the lens. `docs/production-readiness/KernelCoverageGate-Findings.md` already records this
@@ -226,6 +240,50 @@ is a statement about the re-run, not about the report.
 
 ---
 
+## 12. The convention test's lens is narrower than the rule it claims to enforce
+
+Section 7 is about an inventory with only one of its two facts. This is the next one along: the
+inventory has both facts, is honestly maintained, goes red when broken — and covers a fraction of
+what its name says. It is the most comfortable failure on this page, because mutating it *does*
+make it fail. You just mutated something inside the lens.
+
+Three of these shipped together, in one change, in the same week:
+
+- **A reflection scoped to the wrong container.** `Every_per_test_timeout_fits_inside_the_broad_sweep_blame_window`
+  enumerated `typeof(TestTimeouts).GetFields(...).Where(f => f.IsLiteral)`. Real per-test deadlines
+  are not all `TestTimeouts` fields: `[Fact(Timeout = 300_000)]` and `[Fact(Timeout = 600_000)]`
+  are literals written at the call site, and the widest deadline in the suite was 600s while the
+  check believed it was 480s. Every conclusion drawn from it — including the size of the window
+  the same change chose — was off by that.
+- **A scan scoped to one directory.** `No_other_file_in_this_project_builds_its_own_reference_set`
+  used `SearchOption.TopDirectoryOnly` and two literal needles. A copy of the forbidden set one
+  folder down passed, and so did the same set built through `AssemblyMetadata` rather than
+  `MetadataReference`.
+- **An inventory of exactly the files that were edited.** `The_broad_sweep_lanes_pass_the_checked_window_to_dotnet_test`
+  listed `ValidationServiceAdapter.cs` and `CiCommand.cs` — which is where the fix had been
+  applied. `make test-prod-style` runs byte-for-byte the same filter as the `ci verify` step, at
+  the window the fix had just called a defect. Twenty-two lanes were outside the list.
+
+The shape: **the fix defined the check's scope, so the check could only ever confirm the fix.**
+
+**The rule:** a convention test states a rule about a population. Derive the population from the
+thing itself — reflect over the real attributes, walk the whole tree, parse every invocation — and
+give the derivation a positive control with a floor, so a population that collapses to nothing
+fails instead of passing. Where you genuinely cannot derive it, say what the lens excludes *in the
+test*, next to the assertion, so the next reader is not told a narrow fact in wide words.
+
+**Open, in this shape, right now.** Deriving the lane population turned up three lanes whose
+`--filter` selects **zero** tests in the project they run, so each passes having executed nothing:
+`scripts/security-gate-tier-b.sh:11` and `scripts/application-gate-tier-c.sh:11` both run
+`-f net8.0` while naming classes under `Tests/API` and `Tests/VirtualProduction`, which the csproj
+compiles out on net8.0; and `scripts/compat-gate-tier-a.sh:11` names
+`MeshTaskExecutionServiceTests`, which exists in no project — the real tests are
+`MeshTaskExecutionServiceGapCoverageTests` in `Ashlar.Commercial.Tests.Fleet`. Not fixed here:
+each needs a decision about which framework or project the step should have been running, and that
+is a separate change from the window work these were found by.
+
+---
+
 ## Before you trust a gate
 
 1. Has it ever produced a run **with jobs in it**? (Section 1.)
@@ -236,6 +294,8 @@ is a statement about the re-run, not about the report.
 5. If it is not required, is it green on `master` right now? (Section 2.)
 6. If you are refuting a report from CI history, did you enumerate **attempts**, not just
    runs? (Section 11.)
+7. Does the check's lens cover the population its name claims, or only the files you just
+   edited? **Mutate outside the fix, not inside it.** (Section 12.)
 
 ## Before you record a premise
 
