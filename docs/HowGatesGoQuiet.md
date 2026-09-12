@@ -175,8 +175,17 @@ anything.**
 push, and against nuget.org afterwards).
 
 **The rule:** *auditing the source is not auditing the product.* The same applies to an assembly you
-verified and a different build of it that you load — see the consumer-template boot guard, which
-hashes the gate-emitted DLL and then executes its own `ProjectReference` build.
+verified and a different build of it that you load — that is its own failure, with its own mechanism
+and its own required integration, and it is Section 16.
+
+This paragraph used to end by citing "the consumer-template boot guard, which hashes the gate-emitted
+DLL and then executes its own `ProjectReference` build." **There was no such guard.** The
+`ProjectReference` half was real; the hashing half was not — `consumer-template/host/Program.cs`
+hashed nothing and still hashes nothing. The sentence described a *different* repository's host as it
+stood before its fix, and attributed it to a directory that never had the guard. A reader sent to
+look found no guard at all, which is a worse discovery than the one the sentence warned about. This
+file's own Section 5 is the name for that, and its own closing advice — check a premise before you
+build on it — is what would have caught it.
 
 ---
 
@@ -319,7 +328,10 @@ is somewhere else and belongs written down. A framework-boundary API is worth on
 trust its exception contract: lazy factories, `TryParse`-shaped methods that swallow, and readers
 that defer I/O to first use are all places where the exception you catch is thrown somewhere your
 `try` no longer covers.
-## 11. The positive control cannot fail
+
+---
+
+## 14. The positive control cannot fail
 
 Section 4 says to include a positive control wherever the interesting assertions are all refusals.
 A control that is **arithmetically always true** satisfies that instruction and measures nothing,
@@ -353,7 +365,7 @@ decoration. Derive a control from the thing under test, never from the test's ow
 
 ---
 
-## 12. The gate freezes the spelling of the fix, not the thing the fix does
+## 15. The gate freezes the spelling of the fix, not the thing the fix does
 
 An inventory test can be complete, have both its facts, drive its own classifier, and still be
 checking a word rather than a property.
@@ -386,12 +398,61 @@ direction — keep the call, move the work — and watch.
 
 ---
 
+## 16. The artifact that was judged is not the artifact that runs
+
+Section 9 is about auditing the wrong *copy of the code*: the test compiles `src/`, the user
+compiles a `.nupkg`. This one is about executing the wrong *copy of the binary*, in a process where
+both copies are present and current, and it earns its own entry because neither the mechanism nor
+the fix is shared with Section 9.
+
+The mechanism is linkage plus registration, not packaging. `consumer-template/host` takes a
+`<ProjectReference>` on the brick it serves and registers it with the compile-time generic
+`AddAshlarBrick<T>()`. That puts a second, never-hashed compile of the judged type in the publish
+output and in the process, and the entry point resolves to it. Section 9's fix — take a
+`PackageReference` so you compile what they install — does nothing here; this one's fix (drop the
+reference, load the certifier's exported bytes, resolve the type the record names) does nothing
+there.
+
+The failure signature is the other half of why it is separate. Section 9's failure is a claim nobody
+checked: silence. This one is a check that **runs, passes, and prints a trusted verdict** while the
+answer came from somewhere else — receipts naming a `contentHash` that did not produce the output.
+An affirmatively false green is closer in kind to Section 14's unfailable control than to a missing
+test.
+
+A host can verify an exported DLL and still execute its own build through a project reference.
+The record then describes the exported artifact; it does not describe the assembly the host loaded.
+The template makes that boundary explicit rather than claiming an unimplemented boot check.
+
+Note what closes it and what does not. Hashing harder does not: `CertificationTrustVerifier.Verify`
+with artifact bytes proves a *file* is the judged file and cannot make that file the running program.
+Only loading the verified in-memory bytes does — a re-read of the path even reopens a
+time-of-check/time-of-use window between the hash and the load. And because the certifier's emit is
+not byte-reproducible, a host that compiles the brick itself can never match the record's hash, so
+"verify and also keep the `ProjectReference`" is not a partial fix but a worse state than no check.
+
+**Boundary and primitive coverage in this repository:** `consumer-template/host/**` states the boundary in the files a
+consumer copies rather than half-closing it, `scripts/verify-external-product-shape.sh` says in its
+own header that it proves distribution shape and nothing about trust, and
+`JudgedArtifactIsTheExecutedArtifactTests` measures the binding — verify artifact bytes, execute
+*those* bytes, assert the executing module's MVID is the judged one. Mutated to activate a recompile
+of the same verified source instead, that test goes red on the MVID; mutated to disable the
+verifier's hash comparison, its sibling legs go red. These tests use an artifact supplied by the
+in-process certifier; they do not prove package-consumer loading or registration in the template
+host. A verified host integration remains separate work.
+
+**The rule:** *a verdict binds an artifact, not a process.* Name the artifact you executed, assert
+there is no second copy of it, and make the log say which one ran. Section 13 asks whether a test's
+input reaches the guard; here the answer was yes, and the defect survived — so ask the further
+question: does the thing the guard judged reach the code path that runs?
+
+---
+
 ## Before you trust a gate
 
 1. Has it ever produced a run **with jobs in it**? (Section 1.)
 2. Did it run on the last commit that should have triggered it? (Section 3.)
 3. Does it assert on output, with a positive control? (Section 4.) Can you name a state in which
-   that control FAILS, and produce it? (Section 11.)
+   that control FAILS, and produce it? (Section 14.)
 4. Does a deliberate break make it fail? **Mutate and measure** — revert the fix, keep the test, and
    watch it go red. This repository has shipped a fix that did not fix the thing twice.
 5. If it is not required, is it green on `master` right now? (Section 2.)
@@ -401,9 +462,11 @@ direction — keep the call, move the work — and watch.
    edited? **Mutate outside the fix, not inside it.** (Section 12.)
 8. For each guard inside it: is there a test whose input reaches that guard, and does disabling
    the guard turn that test red? (Section 13.)
-5. Write down the sentence the check asserts. Does it name the fix, or the behaviour of the fix?
-   Then mutate in the direction that keeps the name and drops the behaviour. (Section 12.)
-6. If it is not required, is it green on `master` right now? (Section 2.)
+9. Write down the sentence the check asserts. Does it name the fix, or the behaviour of the fix?
+   Then mutate in the direction that keeps the name and drops the behaviour. (Section 15.)
+10. Does the thing the guard judged **reach the code path that runs**? Name the artifact you
+    executed, and assert there is no second copy of it. A guard can pass on the right input and
+    still decorate a program nothing bound. (Section 16.)
 
 ## Before you record a premise
 

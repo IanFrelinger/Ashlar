@@ -9,6 +9,22 @@
     <PackageReference Include="Ashlar.Authoring" Version="__ASHLAR_VERSION__" />
     <PackageReference Include="Ashlar.Hosting.Bundle" Version="__ASHLAR_VERSION__" />
   </ItemGroup>
+  <!--
+    THIS REFERENCE IS WHY THIS HOST CANNOT BIND A CERTIFICATE TO WHAT IT RUNS.
+
+    It makes the host compile the brick itself, so the assembly in the process is the host's own
+    build. The certifier's compile is a different one: it wraps the source, uses its own closed-world
+    options and its own declared reference set, and emits to memory - and because that emit is not
+    byte-reproducible, recompiling the identical source does not reproduce the assembly hash the
+    record carries. So no `gate-emitted-artifact` hash can ever cover the bytes this reference
+    produces, and a boot check added on top of it would verify a file while executing something else.
+
+    Keep this reference when what you want is the host SHAPE over a brick you already trust by other
+    means. Remove it - and load the certifier's exported `gate-emitted-brick.dll` from bytes, then
+    register the type the record names through the non-generic
+    `AddAdaptationBricks(params Type[])` - when you want the certificate to bind the running program.
+    ../CONSUMING.md, "Certification: what this template binds, and what it does not", has the recipe.
+  -->
   <ItemGroup>
     <ProjectReference Include="../../brick/__BRICK_PROJECT_NAME__/__BRICK_PROJECT_NAME__.csproj" />
   </ItemGroup>

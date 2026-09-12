@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
-# Verifies the external product consumption shape: authored brick + thin host + HTTP client,
+# Verifies the external product consumption SHAPE: authored brick + thin host + HTTP client,
 # restoring only from a temp local Ashlar.* feed (+ nuget.org) with no repo project references.
+#
+# WHAT THIS PROVES
+# ----------------
+# That the published package graph is consumable: the packs build, `ashlar` tool-installs from the
+# feed, `ashlar new brick` scaffolds, consumer-template/host/** renders with every __TOKEN__
+# substituted, the solution restores with no repo-relative paths, it builds Release clean, the host
+# boots and answers /health, the HTTP client round-trips a brick execution, and a RID publish
+# succeeds carrying zero backend natives and still runs.
+#
+# WHAT THIS DOES NOT PROVE — AND IT IS THE THING THE NAME INVITES A READER TO ASSUME
+# -----------------------------------------------------------------------------------
+# Nothing about trust. This script reads no certification record, checks no signature and compares
+# no hash. The brick it round-trips is written inline below and has never been through a
+# certification gate, and the host it boots performs no verification at all — see the trust-boundary
+# comment at the top of consumer-template/host/Program.cs. So a green run here says the product
+# SHIPS and SERVES. It says nothing about whether what it serves was judged, which is why the CI job
+# is named `external-product-shape` and not `external-product-trust`. Do not cite this script as
+# evidence of a certification property; cite
+# src/Ashlar.Tests.Infrastructure/Tests/Certification/JudgedArtifactIsTheExecutedArtifactTests.cs,
+# which is where judged-equals-executed is actually measured.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -331,11 +351,8 @@ dotnet build "${SLN}" \
   --no-restore \
   -v minimal
 
-if rg "Ashlar\\.Core\\.Domain\\.csproj|/workspace|src/Ashlar" "${CONSUMER_ROOT}" >/dev/null; then
-  echo "Generated consumer tree contains repo-relative Ashlar paths." >&2
-  rg "Ashlar\\.Core\\.Domain\\.csproj|/workspace|src/Ashlar" "${CONSUMER_ROOT}" >&2
-  exit 1
-fi
+# Distinguish a clean scan from failure to read the consumer tree.
+bash "${ROOT}/scripts/verify-consumer-repo-paths.sh" "${CONSUMER_ROOT}"
 
 if [[ "${HOST_PORT}" == "0" ]]; then
   HOST_PORT="$(python3 - <<'PY'

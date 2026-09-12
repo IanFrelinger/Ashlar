@@ -1,3 +1,29 @@
+// TRUST BOUNDARY OF THIS TEMPLATE - read before copying it.
+//
+// This host executes an unverified brick. It performs no certification verification of any kind:
+// no certification record is read here, no signature is checked, and no hash is compared. What it
+// demonstrates is the SHAPE of a consumer host - AddAshlarBrick<T>() before AddAshlar(), a health
+// probe, and a wire-DTO route onto Brick.ExecuteAsync. It is not a trust boundary, and the
+// certification vocabulary in ../CONSUMING.md describes what the packaged verifier CAN do, not what
+// this file DOES.
+//
+// Two separate facts, because only the first could be fixed by adding code to this file:
+//
+//  1. Nothing here calls CertificationTrustVerifier. A certification record could sit beside this
+//     binary and change nothing about whether the host serves.
+//
+//  2. ExternalProductHost.csproj takes a <ProjectReference> on the brick project, so the brick that
+//     runs is THIS HOST'S OWN COMPILE. The certifier never saw those bytes and no hash in any
+//     record covers them. Adding a boot check here while that reference stands would verify a file
+//     and then execute a different assembly - a worse state than this one, because it would print a
+//     trusted verdict over an unbound program. Measured rather than argued: the test
+//     JudgedArtifactIsTheExecutedArtifactTests.RecompilingTheVerifiedSource_DoesNotReproduceTheJudgedAssembly
+//     shows that recompiling the very source a certificate covers yields a different assembly hash.
+//
+// Binding "what was judged" to "what runs" therefore takes both halves: drop the ProjectReference,
+// and load the exported gate-emitted assembly instead. ../CONSUMING.md, under "Certification: what
+// this template binds, and what it does not", gives that recipe and names the public primitives it
+// is built from.
 using Ashlar.Authoring;
 using Ashlar.Brick.Contracts;
 using Ashlar.Core.Application.Bricks;
