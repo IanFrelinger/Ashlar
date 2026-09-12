@@ -410,11 +410,25 @@ public sealed class CertificationGate : ICertificationGate
         }
         catch (NotSupportedException ex)
         {
-            _logger?.LogWarning(
-                ex,
-                "Witness spec for {BrickId} could not be serialized for input hashing; omitting the witness input",
-                request.Witness.BrickId);
-            return request.AdditionalInputs;
+            // Was: log a warning and return request.AdditionalInputs -- i.e. mint the certificate
+            // with NO witness input at all. The witness input is the record of WHAT WAS JUDGED,
+            // and dropping it produces a structurally valid certificate that binds nothing about
+            // the specification it was judged against. Neither Default nor Strict requires a
+            // witness input (they require gate-emitted-artifact and certifier-identity), so such a
+            // record verifies cleanly downstream and no consumer can tell.
+            //
+            // The trigger is not exotic. JsonSerializer.Serialize throws NotSupportedException
+            // when reflection-based serialization is disabled, which is every trimmed and
+            // ahead-of-time publish -- so the fail-open was reachable by publish mode alone, with
+            // one warning in a log nobody reads at admission time.
+            //
+            // Refusing at mint time is the precedent this repository already set for bytes nobody
+            // can vouch for (#584: signing propagates, verification refuses without throwing).
+            throw new CanonicalOutputException(
+                $"The witness spec for brick '{request.Witness.BrickId}' could not be serialized for "
+                + "input hashing, so the certificate cannot record what it judged. Refusing to mint "
+                + "a certificate with no witness input rather than minting one that binds nothing.",
+                ex);
         }
     }
 
