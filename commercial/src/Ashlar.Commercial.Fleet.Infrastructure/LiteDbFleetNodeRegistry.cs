@@ -102,11 +102,17 @@ public sealed class LiteDbFleetNodeRegistry : IFleetNodeRegistry
         {
             using var db = new LiteDatabase(_connectionString);
             var col = db.GetCollection<MeshFleetNodeDoc>(LiteDbMeshDirectorConnection.FleetCollection);
-            var doc = col.FindById(peerId);
-            if (doc is null)
-                return false;
-            doc.Drained = drained;
-            return col.Update(doc);
+            // Whole-document write-back off a snapshot: without the transaction a heartbeat landing
+            // between the read and the write reverts Drained to what it read, and placement selects on
+            // Admitted && !Drained -- so the node keeps taking work it was being drained of.
+            return LiteDbAtomic.Mutate(db, () =>
+            {
+                var doc = col.FindById(peerId);
+                if (doc is null)
+                    return false;
+                doc.Drained = drained;
+                return col.Update(doc);
+            });
         }
         finally
         {
@@ -123,11 +129,16 @@ public sealed class LiteDbFleetNodeRegistry : IFleetNodeRegistry
         {
             using var db = new LiteDatabase(_connectionString);
             var col = db.GetCollection<MeshFleetNodeDoc>(LiteDbMeshDirectorConnection.FleetCollection);
-            var doc = col.FindById(peerId);
-            if (doc is null)
-                return false;
-            doc.Admitted = admitted;
-            return col.Update(doc);
+            // Same shape as SetDrainedAsync, and the same loss in the other direction: un-admitting a
+            // peer is precisely the operation a stale heartbeat must not be able to undo.
+            return LiteDbAtomic.Mutate(db, () =>
+            {
+                var doc = col.FindById(peerId);
+                if (doc is null)
+                    return false;
+                doc.Admitted = admitted;
+                return col.Update(doc);
+            });
         }
         finally
         {
@@ -144,15 +155,20 @@ public sealed class LiteDbFleetNodeRegistry : IFleetNodeRegistry
         {
             using var db = new LiteDatabase(_connectionString);
             var col = db.GetCollection<MeshFleetNodeDoc>(LiteDbMeshDirectorConnection.FleetCollection);
-            var doc = col.FindById(peerId);
-            if (doc is null)
-                return;
+            // The highest-frequency writer on this file -- every fleet node on a timer -- and the one
+            // whose stale snapshot silently re-admits and un-drains a peer an operator just took out.
+            LiteDbAtomic.Mutate(db, () =>
+            {
+                var doc = col.FindById(peerId);
+                if (doc is null)
+                    return;
 
-            var depth = reportedQueueDepth ?? doc.ReportedQueueDepth;
-            if (depth < 0) depth = 0;
-            doc.LastHeartbeatUtc = DateTimeOffset.UtcNow;
-            doc.ReportedQueueDepth = depth;
-            col.Update(doc);
+                var depth = reportedQueueDepth ?? doc.ReportedQueueDepth;
+                if (depth < 0) depth = 0;
+                doc.LastHeartbeatUtc = DateTimeOffset.UtcNow;
+                doc.ReportedQueueDepth = depth;
+                col.Update(doc);
+            });
         }
         finally
         {

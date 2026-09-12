@@ -77,7 +77,58 @@ public sealed class FleetHostEndpointTests : IClassFixture<WebApplicationFactory
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    /// <summary>
+    /// Registration upserts the WHOLE node document, so anything the body leaves out is reset. A node
+    /// re-registers on its normal reconnect cycle and sends no <c>drained</c> field; before
+    /// <c>MeshFleetNodeRequest.Drained</c> became nullable that put an operator's drained node
+    /// straight back into the placement pool — <c>MeshTaskPlacementService</c> selects on
+    /// <c>Admitted &amp;&amp; !Drained</c> — with no concurrency involved at all.
+    /// </summary>
+    [Fact]
+    public async Task Re_registering_a_node_does_not_clear_a_drain()
+    {
+        const string peerId = "commercial-fleet-host-drain-persistence-peer";
+        using var client = _factory.CreateClient();
+
+        await PostAsync(client, "/api/mesh/fleet/nodes", new
+        {
+            peerId,
+            apiBaseUrl = "http://127.0.0.1:8080",
+            trustTier = "Trusted",
+        });
+
+        await PostAsync(client, $"/api/mesh/fleet/nodes/{peerId}/drain", new { drained = true });
+
+        // The reconnect: same body the node sent the first time, with no opinion about draining.
+        await PostAsync(client, "/api/mesh/fleet/nodes", new
+        {
+            peerId,
+            apiBaseUrl = "http://127.0.0.1:8080",
+            trustTier = "Trusted",
+        });
+
+        var nodes = await client.GetFromJsonAsync<List<FleetNodeDto>>("/api/mesh/fleet/nodes");
+        nodes.Should().NotBeNull();
+        nodes!.Single(n => n.PeerId == peerId).Drained.Should().BeTrue(
+            "a registration body that says nothing about draining must not un-drain the node. "
+            + "Placement selects on Admitted && !Drained, so this is the node taking new work while "
+            + "an operator believes it is being emptied.");
+    }
+
+    private static async Task PostAsync(HttpClient client, string path, object body)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = JsonContent.Create(body),
+        };
+        request.Headers.Add("X-Ashlar-Api-Key", TestApiKey);
+
+        var response = await client.SendAsync(request);
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NoContent);
+    }
+
     /// <summary>Wire DTO for fleet node.</summary>
     /// <param name="PeerId">Peer id.</param>
-    private sealed record FleetNodeDto(string PeerId);
+    /// <param name="Drained">Whether the node is excluded from new placements.</param>
+    private sealed record FleetNodeDto(string PeerId, bool Drained);
 }

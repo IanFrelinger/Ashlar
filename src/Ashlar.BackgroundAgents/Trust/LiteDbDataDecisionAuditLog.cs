@@ -399,16 +399,38 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
     /// Writes the buffer to disk, removing only what actually reached it.
     /// </summary>
     /// <remarks>
-    /// The shape this replaced drained the buffer into a thread-local list BEFORE opening the
+    /// <para>The shape this replaced drained the buffer into a thread-local list BEFORE opening the
     /// database, and held no lock. So two threads could be here at once with two Direct-mode
     /// <c>LiteDatabase</c> handles on the same file, and whichever one then threw out of
     /// <c>col.Insert</c> unwound through <c>Append</c> to a caller of a void <c>Log*</c> method,
     /// taking its already-dequeued entries with it — an audit call that never expected to throw,
-    /// losing the entries it was given. Measured: 32,000 entries in, 780 on disk.
+    /// losing the entries it was given. Measured: 32,000 entries in, 780 on disk.</para>
     ///
-    /// Two changes close that. The lock means only one handle is ever open from this instance. And
-    /// <c>written</c> counts inserts that RETURNED, so a failure leaves the rest of the buffer
-    /// exactly where it was for the next flush to retry.
+    /// <para>Two changes closed that. The lock means only one handle is ever open from this instance.
+    /// And <c>written</c> counts inserts that RETURNED, so a failure leaves the rest of the buffer
+    /// exactly where it was for the next flush to retry. Both invariants are still the contract here:
+    /// nothing leaves <see cref="_buffer"/> that did not reach disk, and nothing reaches disk twice.
+    /// <c>Concurrent_appends_all_reach_disk</c> and
+    /// <c>Entries_survive_a_flush_that_could_not_open_the_database</c> pin them.</para>
+    ///
+    /// <para><b>Why the inserts sit inside a transaction.</b> Shared mode takes its named mutex and
+    /// opens an engine PER OPERATION, so a ten-entry flush paid that cost ten times. Wrapping the loop
+    /// in one transaction pays it once — <c>SharedEngine</c> acquires on <c>BeginTrans</c> and holds
+    /// until <c>Commit</c>, and the per-operation calls in between only increment its depth counter.
+    /// The loop itself is untouched, so the per-entry accounting #591 added is not traded away for the
+    /// throughput. Measured in the Linux devtest container on this class, net8.0, three runs each
+    /// alternating in one container so both see the same disk — 8 threads x 250 appends:
+    /// <b>321 -> 3,095 appends/s</b> (median of 3; before 293/321/549, after 3,020/3,095/3,214) and
+    /// per-append p95 100 ms -> 2.6 ms. 1 thread x 1,000: 268 -> 2,462/s. Zero loss in every run of
+    /// both. See <c>scripts/bench-audit-flush.sh</c>, which prints these and asserts nothing.</para>
+    ///
+    /// <para><b>Why the fallback loop is still there.</b> A transaction is all-or-nothing, so one
+    /// entry LiteDB refuses would roll back the other nine and every later flush would re-fail on the
+    /// same batch — the buffer would climb to <see cref="MaxBufferedEntries"/> and start discarding
+    /// the oldest, which is the data loss #591 existed to remove, arriving through a different door.
+    /// On a failed batch nothing was committed, so retrying one at a time is free: it commits the good
+    /// prefix, parks the entry that actually failed at <c>_buffer[0]</c>, and rethrows to the caller
+    /// exactly as the unbatched shape did.</para>
     /// </remarks>
     private void FlushBuffer()
     {
@@ -438,13 +460,49 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
             var written = 0;
             try
             {
-                for (; written < _buffer.Count; written++)
-                    col.Insert(ToDoc(_buffer[written]));
+                written = InsertBufferInOneTransaction(db, col);
+                if (written == 0)
+                {
+                    // The batch rolled back, so the buffer is exactly as it was and this loop is the
+                    // pre-batch shape, verbatim: stop at the entry that fails, keep what committed.
+                    for (; written < _buffer.Count; written++)
+                        col.Insert(ToDoc(_buffer[written]));
+                }
             }
             finally
             {
                 _buffer.RemoveRange(0, written);
             }
+        }
+    }
+
+    /// <summary>
+    /// Inserts the whole buffer under one transaction. Returns the number written, or 0 if the batch
+    /// rolled back and nothing reached disk.
+    /// </summary>
+    /// <remarks>
+    /// Zero is unambiguous here because <see cref="FlushBuffer"/> has already returned on an empty
+    /// buffer, so a successful batch always writes at least one. The blanket catch is deliberate: this
+    /// method's contract is "everything, or nothing, and say which", and any exception type at all
+    /// means the transaction did not commit. The failure is not swallowed — the caller immediately
+    /// retries entry by entry, which reproduces the same fault on the same entry and rethrows it after
+    /// committing the entries in front of it.
+    /// </remarks>
+    private int InsertBufferInOneTransaction(ILiteDatabase db, ILiteCollection<AuditDoc> col)
+    {
+        try
+        {
+            return LiteDbAtomic.Mutate(db, () =>
+            {
+                var count = 0;
+                for (; count < _buffer.Count; count++)
+                    col.Insert(ToDoc(_buffer[count]));
+                return count;
+            });
+        }
+        catch (Exception)
+        {
+            return 0;
         }
     }
 

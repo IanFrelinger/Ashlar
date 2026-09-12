@@ -63,19 +63,26 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
             var col = db.GetCollection<MeshTaskDoc>(LiteDbMeshDirectorConnection.TasksCollection);
             EnsureIndexes(col);
 
-            if (idem is not null)
+            // Check-then-insert, and the client retry that Idempotency-Key exists to absorb IS the
+            // concurrent case. The index on IdempotencyKey is not unique, so nothing at the database
+            // level would catch two racing submissions of one key -- they would both insert, both get
+            // placed and both execute. The transaction makes the probe and the insert one operation.
+            return LiteDbAtomic.Mutate(db, () =>
             {
-                // BsonExpression, not LINQ. _lock does not cover this: TryGetByIdempotencyKeyAsync is
-                // the one method on this class that does not take it, and it reads the same collection
-                // from an HTTP request thread while this runs. The key is bound rather than
-                // interpolated, so a request body cannot alter the filter.
-                var existing = col.FindOne("$.IdempotencyKey = @0", idem);
-                if (existing is not null)
-                    return existing.ToState();
-            }
+                if (idem is not null)
+                {
+                    // BsonExpression, not LINQ. _lock does not cover this: TryGetByIdempotencyKeyAsync is
+                    // the one method on this class that does not take it, and it reads the same collection
+                    // from an HTTP request thread while this runs. The key is bound rather than
+                    // interpolated, so a request body cannot alter the filter.
+                    var existing = col.FindOne("$.IdempotencyKey = @0", idem);
+                    if (existing is not null)
+                        return existing.ToState();
+                }
 
-            col.Insert(MeshTaskDoc.FromState(task));
-            return task;
+                col.Insert(MeshTaskDoc.FromState(task));
+                return task;
+            });
         }
         finally
         {
@@ -172,9 +179,20 @@ public sealed class LiteDbMeshTaskRegistry : IMeshTaskRegistry
         {
             using var db = new LiteDatabase(_connectionString);
             var col = db.GetCollection<MeshTaskDoc>(LiteDbMeshDirectorConnection.TasksCollection);
-            if (col.FindById(task.TaskId) is null)
-                return false;
-            return col.Update(MeshTaskDoc.FromState(task));
+            // The existence probe and the write are one operation, so a concurrent RemoveAsync cannot
+            // land between them and have this method resurrect the document it just deleted.
+            //
+            // What this does NOT fix: every caller passes in a MeshTaskState it read through an EARLIER
+            // GetAsync/ListAsync call, on a database this store has since closed. That outer pair is
+            // still a lost update. MeshTaskDoc.LeaseToken is the token a compare-and-swap would use and
+            // three call sites already compare it, but none uses it as a write precondition -- see the
+            // remarks on LiteDbAtomicWriteConventionTests.
+            return LiteDbAtomic.Mutate(db, () =>
+            {
+                if (col.FindById(task.TaskId) is null)
+                    return false;
+                return col.Update(MeshTaskDoc.FromState(task));
+            });
         }
         finally
         {

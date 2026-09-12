@@ -39,22 +39,31 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
         EnsureIndexes(col);
 
-        var existing = col.FindById(entry.Id);
-        var version = existing != null ? existing.Version + 1 : entry.Version;
-        var createdAt = existing?.CreatedAt ?? entry.CreatedAt;
-
-        var doc = new KnowledgeLogDoc
+        // The read decides what the write stores -- Version is derived from the document on disk --
+        // so the pair has to be one operation. Shared mode releases its named mutex between two engine
+        // calls, so without this two overlapping upserts of one id both read Version=N and both write
+        // N+1: one increment and one caller's Content are gone, and nothing is thrown. Measured in the
+        // Linux container at 4 threads x 100 updates to one id: 358 of 400 survived before, 400 after.
+        LiteDbAtomic.Mutate(db, () =>
         {
-            Id = entry.Id,
-            DataType = entry.DataType ?? string.Empty,
-            Content = entry.Content ?? string.Empty,
-            SourceObservationIds = entry.SourceObservationIds?.ToArray() ?? Array.Empty<string>(),
-            Version = version,
-            CreatedAt = createdAt,
-            UpdatedAt = DateTimeOffset.UtcNow,
-            DeletedAt = null,
-        };
-        col.Upsert(doc);
+            var existing = col.FindById(entry.Id);
+            var version = existing != null ? existing.Version + 1 : entry.Version;
+            var createdAt = existing?.CreatedAt ?? entry.CreatedAt;
+
+            var doc = new KnowledgeLogDoc
+            {
+                Id = entry.Id,
+                DataType = entry.DataType ?? string.Empty,
+                Content = entry.Content ?? string.Empty,
+                SourceObservationIds = entry.SourceObservationIds?.ToArray() ?? Array.Empty<string>(),
+                Version = version,
+                CreatedAt = createdAt,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                DeletedAt = null,
+            };
+            col.Upsert(doc);
+        });
+
         return Task.CompletedTask;
     }
 
@@ -64,13 +73,18 @@ public sealed class LiteDbUserKnowledgeLogStore : IUserKnowledgeLogStore
         LiteDbDocumentMapper.EnsureMapped<KnowledgeLogDoc>();
         using var db = new LiteDatabase(_connectionString);
         var col = db.GetCollection<KnowledgeLogDoc>(CollectionName);
-        var doc = col.FindById(id);
-        if (doc != null)
+        // Update writes the WHOLE document back, including the Content and Version this read
+        // snapshotted, so an upsert committing in between is reverted while the tombstone is set. One
+        // operation, or the delete and the upsert each undo half of the other.
+        LiteDbAtomic.Mutate(db, () =>
         {
+            var doc = col.FindById(id);
+            if (doc == null) return;
             doc.DeletedAt = DateTimeOffset.UtcNow;
             doc.UpdatedAt = DateTimeOffset.UtcNow;
             col.Update(doc);
-        }
+        });
+
         return Task.CompletedTask;
     }
 

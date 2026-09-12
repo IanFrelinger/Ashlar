@@ -176,6 +176,11 @@ public static class CommercialFleetEndpoints
         if (queue < 0) queue = 0;
         var trustTier = ParseFleetTrustTier(body.TrustTier) ?? existing?.TrustTier ?? MeshFleetTrustTier.Trusted;
         var admitted = body.Admitted ?? existing?.Admitted ?? true;
+        // Null means "leave the stored value". Registration upserts the whole document, so anything
+        // omitted from the body would otherwise be reset -- and a node re-registering on its normal
+        // reconnect cycle sends no drained field. Placement selects on Admitted && !Drained, so a
+        // reset drain puts the node straight back to work an operator was taking it out of.
+        var drained = body.Drained ?? existing?.Drained ?? false;
 
         var regOpts = registrationOptions.Value;
         var fingerprint = existing?.RegistrationKeyFingerprint;
@@ -210,7 +215,7 @@ public static class CommercialFleetEndpoints
             ApiBaseUrl: body.ApiBaseUrl.Trim(),
             Labels: body.Labels ?? new Dictionary<string, string>(),
             AdvertisedBrickIds: body.AdvertisedBrickIds ?? Array.Empty<string>(),
-            Drained: body.Drained,
+            Drained: drained,
             LastHeartbeatUtc: DateTimeOffset.UtcNow,
             RegisteredAtUtc: existing?.RegisteredAtUtc ?? DateTimeOffset.UtcNow,
             ReportedQueueDepth: queue,
