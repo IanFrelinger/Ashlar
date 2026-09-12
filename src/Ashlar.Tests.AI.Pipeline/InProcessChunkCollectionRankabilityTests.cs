@@ -62,7 +62,7 @@ public sealed class InProcessChunkCollectionRankabilityTests
         var unrankable = await Embed("!!!");
         var refuse = async () => await Search(collection, unrankable);
 
-        (await refuse.Should().ThrowAsync<ArgumentException>()).WithMessage("*zero magnitude*");
+        (await refuse.Should().ThrowAsync<ArgumentException>()).WithMessage("*magnitude is zero*");
 
         // POSITIVE CONTROL.
         var real = await Search(collection, await Embed("alpha beta gamma"));
@@ -115,5 +115,82 @@ public sealed class InProcessChunkCollectionRankabilityTests
         var hits = await Search(collection, new float[] { 1f, 0f, 0f, 0f });
 
         hits.Should().ContainSingle().Which.Score.Should().Be(0d);
+    }
+
+    private static float[] Filled(int dim, float value)
+    {
+        var v = new float[dim];
+        Array.Fill(v, value);
+        return v;
+    }
+
+    // The other end of the accumulator the zero guard watches. `na += a[i] * a[i]` rounds the
+    // PRODUCT to binary32, so it saturates to +infinity above ~1.84e19 and is NaN if any component
+    // is -- and both pass `na == 0`. Measured on net10.0/Linux/x64 with only the zero guard in
+    // place, two records in the collection, ScoreThreshold 0.0: the 1e20f query returned BOTH
+    // records at score 0 (finite dot over infinite norm is exactly 0.0), and the NaN query returned
+    // BOTH records at score NaN.
+    //
+    // Positive control in the same test, because the interesting assertion is a refusal.
+    [Theory]
+    [InlineData(1e20f)]
+    [InlineData(float.NaN)]
+    [InlineData(float.PositiveInfinity)]
+    public async Task SearchAsync_NonFiniteMagnitudeQuery_IsRefused_WhileRealQueriesStillAnswer(float component)
+    {
+        var collection = NewCollection("nonfinite-query-" + component);
+        await Upsert(collection, "a", "alpha beta gamma", await Embed("alpha beta gamma"));
+        await Upsert(collection, "b", "gamma delta epsilon", await Embed("gamma delta epsilon"));
+
+        var refuse = async () => await Search(collection, Filled(64, component));
+        (await refuse.Should().ThrowAsync<ArgumentException>()).WithMessage("*cannot be ranked*");
+
+        // POSITIVE CONTROL.
+        var real = await Search(collection, await Embed("alpha beta gamma"));
+        real.Should().NotBeEmpty();
+        real[0].Key.Should().Be("a");
+    }
+
+    // The sharpest of the three, and the one unique to this store: a record whose embedding is NaN
+    // defeats EVERY ScoreThreshold a caller can set. The skip here is written `score < threshold`,
+    // and `NaN < anything` is false, so the record survives the filter no matter how high it goes.
+    // Measured before the fix at thresholds 0.0, 0.5 AND 0.99: the NaN record came back beside the
+    // real one every time.
+    //
+    // The three thresholds are the point of the test, not decoration -- a fix that only moved the
+    // comparison around would still pass at one of them. The real record is the positive control:
+    // skip, do not refuse, in the record direction.
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(0.5)]
+    [InlineData(0.99)]
+    public async Task SearchAsync_NonFiniteRecord_IsSkippedAtEveryThreshold(double threshold)
+    {
+        var collection = NewCollection("nonfinite-record-" + threshold);
+        var unit = new float[64];
+        unit[0] = 1f;
+        await Upsert(collection, "real", "real document", unit);
+        await Upsert(collection, "nan", "malformed", Filled(64, float.NaN));
+        await Upsert(collection, "overflow", "malformed", Filled(64, 1e20f));
+
+        var hits = await Search(collection, unit, threshold);
+
+        hits.Should().ContainSingle("only the rankable record can be a hit").Which.Key.Should().Be("real");
+    }
+
+    // One step back from the overflow cliff a large query is still answered, so none of the
+    // refusals above can be satisfied by rejecting every big vector. 1e19f squares to 1e38, still
+    // inside binary32; 1e20f squares to 1e40, which is not.
+    [Fact]
+    public async Task SearchAsync_LargeButRepresentableQuery_IsStillAnswered()
+    {
+        var collection = NewCollection("large");
+        var unit = new float[64];
+        unit[0] = 1f;
+        await Upsert(collection, "real", "real document", unit);
+
+        var hits = await Search(collection, Filled(64, 1e19f));
+
+        hits.Should().ContainSingle().Which.Key.Should().Be("real");
     }
 }

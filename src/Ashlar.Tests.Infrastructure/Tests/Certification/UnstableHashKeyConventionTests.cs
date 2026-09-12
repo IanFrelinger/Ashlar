@@ -35,16 +35,27 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// site that reaches a per-process hash by some other route — <c>HashCode.Combine</c> stored to
 /// disk, say — so it is a forcing function for review, never a proof of correctness.</para>
 ///
-/// <para><b>Three facts.</b> <see cref="No_unlisted_production_file_hashes_outside_an_equality_override"/>
+/// <para><b>Four facts.</b> <see cref="No_unlisted_production_file_hashes_outside_an_equality_override"/>
 /// stops the next site arriving unnoticed. <see cref="No_inventory_row_has_stopped_hashing"/> makes
 /// the inventory shrink honestly, because a stale row reads as accounted-for debt that is in fact
 /// gone. <see cref="Classifier_sees_an_offender_and_exempts_an_equality_override"/> is the positive
-/// control the other two cannot supply: they are both satisfied by a classifier that has quietly
+/// control those two cannot supply: they are both satisfied by a classifier that has quietly
 /// stopped matching anything, so the classifier is exercised directly against a sample carrying
-/// both shapes.</para>
+/// both shapes. <see cref="Scan_covers_production_code_in_directories_whose_names_read_as_tests"/>
+/// is the control none of the other three can supply, because all three reason about the files the
+/// walk HANDED them and none can see a tree the walk never entered — which is how this gate shipped
+/// blind to 59 production files in its first version.</para>
 ///
-/// <para>Hermetic: pure file reads, no build, no network, no SDK. Same directory pruning as
-/// <see cref="LiteDbSharedModeConventionTests"/>, whose shape this mirrors.</para>
+/// <para>Hermetic: pure file reads, no build, no network, no SDK. The walk mirrors
+/// <see cref="LiteDbSharedModeConventionTests"/>, with ONE deliberate difference in the pruning,
+/// and the difference is the reason the fourth fact exists. Those sibling gates prune on
+/// <c>name.Contains("Tests", Ordinal)</c> — plural, case-sensitive — which happens to match every
+/// test project in this repository and none of the production directories named <c>Testing</c>,
+/// <c>ParallelTesting</c> or <c>TestKit</c>. This gate was first written with
+/// <c>Contains("Test", OrdinalIgnoreCase)</c>, which matches all of them, and that one dropped
+/// letter took 59 production files out of the scan. Both spellings are guesses about naming rather
+/// than statements about projects, so this walk now reads the project file instead — see
+/// <see cref="IsTestProjectRoot"/>.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class UnstableHashKeyConventionTests
@@ -210,6 +221,83 @@ public sealed class UnstableHashKeyConventionTests
     }
 
     /// <summary>
+    /// The control on the walk's REACH, which the three facts above cannot supply between them.
+    /// Each of those asks a question about the files the scan looked at; none of them can notice
+    /// that it never looked at a file in the first place, and a scan that silently skips a tree
+    /// satisfies all three forever — an empty inventory matching an empty allowlist, with a
+    /// classifier that works perfectly on the files it is handed.
+    ///
+    /// <para>That is not hypothetical here: the prune rule was "any directory whose name contains
+    /// Test", which took out six directories of production code — see
+    /// <see cref="IsTestProjectRoot"/> for the list and the measurement. This test would have been
+    /// red the day that rule was written.</para>
+    ///
+    /// <para>Both halves are load-bearing. The first half fails if a shipped directory that merely
+    /// READS like a test project drops out of the scan; the second fails if the scan starts
+    /// dragging real test projects in, which would bury the inventory in rows nobody needs. A fix
+    /// that simply stopped pruning anything would pass the first half and fail the second.</para>
+    /// </summary>
+    [Fact]
+    public void Scan_covers_production_code_in_directories_whose_names_read_as_tests()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var scanned = ScannedFiles(root);
+
+        // Sanity: the walk found something at all, so what follows is about WHICH files.
+        scanned.Should().HaveCountGreaterThan(100, "the production tree is not nearly empty");
+
+        // Shipped code that a name-based prune swallowed. Each of these compiles into a product
+        // assembly, so a per-process hash key landing here escapes into someone else's build.
+        string[] shipped =
+        [
+            "src/Ashlar.Agents.TestKit/",
+            "src/Ashlar.Infrastructure/Testing/",
+            "src/Ashlar.Infrastructure/ParallelTesting/",
+            "src/Ashlar.Core.Application/Testing/",
+            "src/Ashlar.Core.Application/ParallelTesting/",
+            "src/Ashlar.BackgroundAgents/Testing/",
+        ];
+
+        foreach (var prefix in shipped)
+        {
+            scanned.Should().Contain(
+                path => path.StartsWith(prefix, StringComparison.Ordinal),
+                "{0} is production code in a directory whose NAME reads like a test; the gate has "
+                + "to see it. If this directory was legitimately deleted or moved, update this list "
+                + "with the replacement — do not just drop the row",
+                prefix);
+        }
+
+        // And the real test projects stay out, so the inventory is not flooded with rows for keys
+        // that never leave a test run.
+        string[] testProjects =
+        [
+            "src/Ashlar.Tests.Infrastructure/",
+            "src/Ashlar.Tests.Orchestration/",
+            "src/Ashlar.Analyzers.Tests/",
+            "application/src/Ashlar.Tests.CLI/",
+        ];
+
+        foreach (var prefix in testProjects)
+        {
+            scanned.Should().NotContain(
+                path => path.StartsWith(prefix, StringComparison.Ordinal),
+                "{0} is a test project and must stay pruned", prefix);
+        }
+
+        // The classification itself, driven directly, so the two lists above cannot both be
+        // satisfied by an accident of directory layout.
+        IsTestProjectRoot(Path.Combine(root, "src", "Ashlar.Tests.Infrastructure"))
+            .Should().BeTrue("it declares <IsTestProject>true</IsTestProject>");
+        IsTestProjectRoot(Path.Combine(root, "src", "Ashlar.Tests.Orchestration"))
+            .Should().BeTrue("it never declares the marker and is recognised by Microsoft.NET.Test.Sdk instead");
+        IsTestProjectRoot(Path.Combine(root, "src", "Ashlar.Agents.TestKit"))
+            .Should().BeFalse("a shipped library of fakes is not a test project, and it says so");
+        IsTestProjectRoot(Path.Combine(root, "src", "Ashlar.Infrastructure"))
+            .Should().BeFalse("positive control: an ordinary production project is not pruned either");
+    }
+
+    /// <summary>
     /// The classifier, as a pure function over a file's lines so that
     /// <see cref="Classifier_sees_an_offender_and_exempts_an_equality_override"/> can drive it
     /// without touching the tree.
@@ -281,7 +369,20 @@ public sealed class UnstableHashKeyConventionTests
         line.TrimStart().StartsWith("///", StringComparison.Ordinal);
 
     /// <summary>Repo-root-relative paths of production files that hash outside an equality override.</summary>
-    private static IEnumerable<string> Hashers(string root)
+    private static IEnumerable<string> Hashers(string root) =>
+        ScannedFiles(root)
+            .Where(relative => HashesOutsideAnEqualityOverride(File.ReadAllLines(Path.Combine(root, relative))))
+            .ToList();
+
+    /// <summary>
+    /// Every production <c>.cs</c> file the walk reaches, repo-root-relative and sorted. Split out
+    /// of <see cref="Hashers"/> so that
+    /// <see cref="Scan_covers_production_code_in_directories_whose_names_read_as_tests"/> can assert
+    /// on the walk's REACH without going through the classifier — the two questions "is this file
+    /// looked at" and "does this file offend" fail independently, and the first one is the half
+    /// that was silently wrong.
+    /// </summary>
+    private static List<string> ScannedFiles(string root)
     {
         var found = new List<string>();
         foreach (var top in ProductionRoots)
@@ -298,10 +399,7 @@ public sealed class UnstableHashKeyConventionTests
     private static void Collect(string root, string directory, List<string> found)
     {
         foreach (var file in Directory.EnumerateFiles(directory, "*.cs"))
-        {
-            if (HashesOutsideAnEqualityOverride(File.ReadAllLines(file)))
-                found.Add(Normalize(Path.GetRelativePath(root, file)));
-        }
+            found.Add(Normalize(Path.GetRelativePath(root, file)));
 
         foreach (var child in Directory.EnumerateDirectories(directory))
         {
@@ -331,10 +429,58 @@ public sealed class UnstableHashKeyConventionTests
         }
 
         // Test projects hash freely: a test's key never leaves the test.
-        if (name.Contains("Test", StringComparison.OrdinalIgnoreCase))
+        if (IsTestProjectRoot(directory))
             return true;
 
         return Directory.Exists(Path.Combine(directory, ".git"));
+    }
+
+    /// <summary>
+    /// Whether this directory is the root of a TEST PROJECT — decided from the project file, not
+    /// from the directory's name.
+    ///
+    /// <para><b>Why not the name.</b> This rule was first written as "prune any directory whose
+    /// name contains Test", and the word in the name is not the thing that matters. Six directories
+    /// full of PRODUCTION code answer to that description and were therefore invisible to the whole
+    /// gate: <c>src/Ashlar.Infrastructure/Testing</c> (24 files, shipped inside
+    /// Ashlar.Infrastructure.dll — its csproj removes only <c>Execution/Templates/**</c> from
+    /// compilation), <c>src/Ashlar.Infrastructure/ParallelTesting</c>,
+    /// <c>src/Ashlar.Core.Application/Testing</c>, <c>src/Ashlar.Core.Application/ParallelTesting</c>,
+    /// <c>src/Ashlar.BackgroundAgents/Testing</c>, and <c>src/Ashlar.Agents.TestKit</c>, which sets
+    /// <c>&lt;IsTestProject&gt;false&lt;/IsTestProject&gt;</c> in as many words because it is a
+    /// shipped library of fakes. 59 production <c>.cs</c> files in total, in which the seventh call
+    /// site could land with all three of the original facts green. All six match
+    /// <c>Contains("Test", OrdinalIgnoreCase)</c> and none is a test project, so the blindness
+    /// follows from the rule; measured end to end for one of them, an offender file in
+    /// <c>src/Ashlar.Infrastructure/Testing</c> fails this gate now and, with the old prune restored
+    /// and nothing else changed, passes.</para>
+    ///
+    /// <para><b>Two signals, because neither alone covers the repository.</b>
+    /// <c>&lt;IsTestProject&gt;true&lt;/IsTestProject&gt;</c> is the explicit marker, but
+    /// <c>Ashlar.Tests.Orchestration</c>, <c>Ashlar.Tests.Transport</c> and
+    /// <c>Ashlar.Analyzers.Tests</c> never set it and are test projects all the same; a
+    /// <c>Microsoft.NET.Test.Sdk</c> reference is what actually makes a project produce a test
+    /// binary. Requiring BOTH would miss those three; accepting EITHER is what leaves
+    /// <c>Ashlar.Agents.TestKit</c> — which references xunit as a plain library and neither declares
+    /// the marker nor the SDK — on the production side, where it belongs.</para>
+    ///
+    /// <para>Pruning at the project ROOT prunes everything beneath it, so a test project's own
+    /// <c>Tests/</c>, <c>TestHelpers/</c> and <c>Testing/</c> folders need no separate rule.</para>
+    /// </summary>
+    internal static bool IsTestProjectRoot(string directory)
+    {
+        foreach (var csproj in Directory.EnumerateFiles(directory, "*.csproj"))
+        {
+            var text = File.ReadAllText(csproj);
+
+            if (text.Contains("<IsTestProject>true<", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("Microsoft.NET.Test.Sdk", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string Normalize(string relative) => relative.Replace('\\', '/');

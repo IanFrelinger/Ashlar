@@ -109,12 +109,155 @@ public class VectorMathTests
         // Both must decide "has magnitude" the same way, because IsRankable is hoisted out of
         // the loop that TryCosineSimilarity runs inside. If they ever disagree, a store refuses
         // queries it can score or scores queries it should refuse.
-        foreach (var v in new[] { new float[64], Filled(64, 1e-23f), Filled(64, float.Epsilon), Filled(64, 1e-20f), Unit(64) })
+        var cases = new[]
+        {
+            new float[64],
+            Filled(64, 1e-23f),
+            Filled(64, float.Epsilon),
+            Filled(64, 1e-20f),
+            Unit(64),
+            // The other end of the same accumulator, added with the finiteness clause.
+            Filled(64, 1e19f),
+            Filled(64, 1e20f),
+            Filled(64, float.MaxValue),
+            Filled(64, float.NaN),
+            Filled(64, float.PositiveInfinity),
+            Filled(64, float.NegativeInfinity),
+        };
+
+        foreach (var v in cases)
         {
             var rankable = VectorMath.IsRankable(v);
             var scored = VectorMath.TryCosineSimilarity(v, Unit(64), out _);
             scored.Should().Be(rankable, "IsRankable and TryCosineSimilarity must agree about magnitude");
         }
+    }
+
+    /// <summary>
+    /// The mirror of <see cref="TryCosineSimilarity_Float32UnderflowVector_IsNotRankable"/>, at the
+    /// top of the same accumulator instead of the bottom. <c>normA += a[i] * a[i]</c> rounds the
+    /// PRODUCT to binary32, so it saturates to +∞ once components pass √float.MaxValue (~1.84e19) —
+    /// and an infinite norm passed the <c>norm != 0</c> guard while being useless as the denominator
+    /// of a ratio.
+    ///
+    /// <para>Measured on net10.0/Linux/x64 with the zero guard in place and this clause absent:
+    /// <c>IsRankable(1e20f) = True</c>, <c>TryCosineSimilarity(1e20f, unit)</c> returned true with a
+    /// score of exactly 0.0 (a finite dot over an infinite denominator), and
+    /// <c>InMemoryVectorStore</c> answered such a query with BOTH documents at score 0 at
+    /// minScore 0.0 — the same phantom hit the zero guard exists to remove, rebuilt from the other
+    /// direction.</para>
+    /// </summary>
+    [Fact]
+    public void TryCosineSimilarity_Float32OverflowVector_IsNotRankable()
+    {
+        // Preconditions, so a future reader can see the mechanism rather than trust the constant.
+        const float T = 1e20f;
+        float.IsFinite(T).Should().BeTrue("1e20f is an ordinary binary32 value, not an infinity literal");
+        float.IsPositiveInfinity((float)(T * T)).Should().BeTrue("the float32 PRODUCT is what overflows, not the input");
+        ((double)T * T).Should().BeLessThan(double.MaxValue, "widening the operands first would not overflow");
+
+        VectorMath.IsRankable(Filled(64, T)).Should().BeFalse();
+        VectorMath.TryCosineSimilarity(Filled(64, T), Unit(64), out _).Should().BeFalse();
+        VectorMath.TryCosineSimilarity(Unit(64), Filled(64, T), out _).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Positive control for the case above, and the reason the guard cannot simply be "reject big
+    /// vectors": one step back from the cliff a large vector is rankable and scores correctly.
+    /// 1e19f squares to 1e38, still inside binary32, so the accumulation stays finite.
+    /// </summary>
+    [Fact]
+    public void TryCosineSimilarity_LargeButRepresentableVector_IsRankableAndScoresCorrectly()
+    {
+        const float T = 1e19f;
+        float.IsFinite((float)(T * T)).Should().BeTrue("1e19f squared is 1e38, inside binary32");
+
+        VectorMath.IsRankable(Filled(64, T)).Should().BeTrue();
+        VectorMath.TryCosineSimilarity(Filled(64, T), Unit(64), out var score).Should().BeTrue();
+
+        // 64 equal components against a unit vector: cos = 1 / sqrt(64) = 0.125, the same answer
+        // the 1e-20f case gives, because cosine does not care about scale.
+        score.Should().BeApproximately(0.125, 1e-6);
+    }
+
+    /// <summary>
+    /// NaN is the quietest of the three unusable magnitudes, and it fails in the opposite direction
+    /// from the other two. A NaN norm passes <c>norm != 0</c> (NaN compares unequal to everything,
+    /// including zero), so the pair was admitted with a score of NaN — and NaN then loses every
+    /// comparison a caller can write. Measured before this clause: a NaN QUERY made
+    /// <c>InMemoryVectorStore</c> and <c>SqliteVectorStore</c> return zero hits and throw nothing,
+    /// because <c>NaN &gt;= minScore</c> is false, which is precisely the
+    /// indistinguishable-from-an-empty-corpus answer the refusal exists to prevent; a NaN ROW in
+    /// <c>InProcessChunkCollection</c> was returned as a hit at every threshold, because
+    /// <c>NaN &lt; threshold</c> is false.
+    /// </summary>
+    [Fact]
+    public void TryCosineSimilarity_NaNVector_IsNotRankable()
+    {
+        double.IsNaN(double.NaN).Should().BeTrue();
+        (double.NaN != 0).Should().BeTrue("this is why `norm != 0` alone admitted a NaN magnitude");
+
+        VectorMath.IsRankable(Filled(64, float.NaN)).Should().BeFalse();
+        VectorMath.TryCosineSimilarity(Filled(64, float.NaN), Unit(64), out _).Should().BeFalse();
+        VectorMath.TryCosineSimilarity(Unit(64), Filled(64, float.NaN), out _).Should().BeFalse();
+
+        // A single bad component is enough: the accumulator is contaminated by one NaN.
+        var oneBad = Unit(64);
+        oneBad[7] = float.NaN;
+        VectorMath.IsRankable(oneBad).Should().BeFalse();
+    }
+
+    [Fact]
+    public void TryCosineSimilarity_InfiniteComponents_AreNotRankable()
+    {
+        VectorMath.IsRankable(Filled(64, float.PositiveInfinity)).Should().BeFalse();
+        VectorMath.IsRankable(Filled(64, float.NegativeInfinity)).Should().BeFalse();
+        VectorMath.TryCosineSimilarity(Filled(64, float.PositiveInfinity), Unit(64), out _).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// The contract, swept rather than argued. <c>TryCosineSimilarity</c> guards the two NORMS and
+    /// deliberately does not guard <c>dot</c> or the final quotient, on the reasoning that finite
+    /// norms force a finite dot. A guard nobody can reach is a guard no test can pin, so that
+    /// reasoning is measured here instead of being written down and trusted: every pair the method
+    /// ADMITS must carry a finite score inside [-1, 1].
+    ///
+    /// <para>The admitted-count assertion is the positive control. Without it this test is
+    /// satisfied by a method that refuses everything, which is exactly the shape a too-broad guard
+    /// would take.</para>
+    /// </summary>
+    [Fact]
+    public void TryCosineSimilarity_WhenItReturnsTrue_TheScoreIsFiniteAndInRange()
+    {
+        float[] extremes =
+        [
+            0f, 1f, -1f, 1e-23f, -1e-23f, 1e-20f, 1e19f, -1e19f, 1e20f,
+            float.MaxValue, float.MinValue, float.Epsilon,
+            float.NaN, float.PositiveInfinity, float.NegativeInfinity,
+        ];
+
+        var admitted = 0;
+        foreach (var x in extremes)
+        {
+            foreach (var y in extremes)
+            {
+                // Mixed shapes so the dot product is not simply a scaled copy of either norm, and
+                // so the extreme component never cancels itself out of the numerator.
+                var a = new[] { x, 1f, 0f, 1f };
+                var b = new[] { y, 0f, 1f, 1f };
+
+                if (!VectorMath.TryCosineSimilarity(a, b, out var score))
+                    continue;
+
+                admitted++;
+                double.IsFinite(score).Should().BeTrue(
+                    "an admitted pair must have a real score (x={0}, y={1}, score={2})", x, y, score);
+                score.Should().BeInRange(-1d, 1d,
+                    "cosine similarity is bounded (x={0}, y={1})", x, y);
+            }
+        }
+
+        admitted.Should().BeGreaterThan(0, "a method that refuses every pair would pass this vacuously");
     }
 
     /// <summary>

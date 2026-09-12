@@ -84,7 +84,7 @@ public class SqliteVectorStoreTests
         var unrankable = await gen.GenerateAsync("!!!", default);
         var refuse = async () => await store.SearchAsync(unrankable, 5, 0.0, null, default);
 
-        (await refuse.Should().ThrowAsync<ArgumentException>()).WithMessage("*zero magnitude*");
+        (await refuse.Should().ThrowAsync<ArgumentException>()).WithMessage("*magnitude is zero*");
 
         // POSITIVE CONTROL.
         var real = await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default);
@@ -207,5 +207,79 @@ public class SqliteVectorStoreTests
         (await second.GetDocumentCountAsync(default)).Should().Be(
             0,
             "the first store's pooled connection must not survive its disposal and serve the deleted database");
+    }
+
+    private static float[] Filled(int dim, float value)
+    {
+        var v = new float[dim];
+        Array.Fill(v, value);
+        return v;
+    }
+
+    // The twin of InMemoryVectorStoreTests.SearchAsync_OverflowingQuery_... and ...NaNQuery_...,
+    // here because the two stores have to agree about which queries they can rank. Measured before
+    // the finiteness clause, on net10.0/Linux/x64 against a two-row table: the 1e20f query returned
+    // BOTH rows at score 0 (a finite dot over an infinite norm is exactly 0.0, which
+    // `score >= minScore` admits at minScore 0.0), and the NaN query returned zero rows and threw
+    // nothing (`NaN >= minScore` is false, so the score filter silently ate the table) -- an answer
+    // indistinguishable from an empty corpus.
+    //
+    // This store has a second route to a non-finite embedding that the in-memory one does not:
+    // BlobToFloatArray reinterprets the stored bytes with MemoryMarshal and validates nothing, so
+    // 0xFFFFFFFF in the blob decodes to NaN.
+    [Theory]
+    [InlineData(1e20f)]
+    [InlineData(float.NaN)]
+    [InlineData(float.PositiveInfinity)]
+    public async Task SearchAsync_NonFiniteMagnitudeQuery_IsRefused_WhileRealQueriesStillAnswer(float component)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"rag_test_{Guid.NewGuid():N}.db");
+        await using var store = new SqliteVectorStore(path);
+        var gen = new TokenEmbeddingGenerator(64);
+        foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon") })
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+
+        var refuse = async () => await store.SearchAsync(Filled(64, component), 5, 0.0, null, default);
+        await refuse.Should().ThrowAsync<ArgumentException>();
+
+        // POSITIVE CONTROL: the table is populated, so neither "every row at 0" nor "no rows at
+        // all" was ever the honest answer to the query above.
+        var real = await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default);
+        real.Should().NotBeEmpty();
+        real[0].Id.Should().Be("a");
+    }
+
+    // The row direction: skipped, not refused, exactly as a zero-magnitude row is. One malformed
+    // blob must not take a good query down with it, and the surviving row is the control.
+    [Fact]
+    public async Task SearchAsync_NonFiniteRow_IsSkippedWhileTheRestOfTheQueryStillAnswers()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"rag_test_{Guid.NewGuid():N}.db");
+        await using var store = new SqliteVectorStore(path);
+        var gen = new TokenEmbeddingGenerator(64);
+        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), null, default);
+        await store.IndexAsync("nan", "malformed", Filled(64, float.NaN), null, default);
+        await store.IndexAsync("overflow", "malformed", Filled(64, 1e20f), null, default);
+
+        var results = await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default);
+
+        results.Should().ContainSingle().Which.Id.Should().Be("real");
+    }
+
+    // One step back from the overflow cliff a large query is still answered, so none of the
+    // refusals above can be satisfied by rejecting every big vector. 1e19f squares to 1e38, which
+    // is still inside binary32; 1e20f squares to 1e40, which is not.
+    [Fact]
+    public async Task SearchAsync_LargeButRepresentableQuery_IsStillAnswered()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"rag_test_{Guid.NewGuid():N}.db");
+        await using var store = new SqliteVectorStore(path);
+        var unit = new float[64];
+        unit[0] = 1f;
+        await store.IndexAsync("real", "real document", unit, null, default);
+
+        var results = await store.SearchAsync(Filled(64, 1e19f), 5, 0.0, null, default);
+
+        results.Should().ContainSingle().Which.Id.Should().Be("real");
     }
 }

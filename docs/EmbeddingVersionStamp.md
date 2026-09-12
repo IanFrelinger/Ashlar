@@ -108,14 +108,37 @@ It is also wrapped twice. `SanitizingEmbeddingGenerator` wraps `AuditingEmbeddin
 overriding `GetService`. So a `GetService`-based identity read has to traverse two decorators to
 reach the only object that knows the answer.
 
+**It already traverses them, and an earlier draft of this section got that wrong.** That draft
+proposed adding `GetService` forwarding to both decorators. There is no forwarding to add:
+`DelegatingEmbeddingGenerator<,>.GetService` in Microsoft.Extensions.AI 10.9.0 already returns
+`this` when the requested type matches and otherwise hands the call to the inner generator, and
+because neither Ashlar decorator overrides it, both inherit exactly that. Measured in the devtest
+container on net8.0, composing the chain from
+`MeaiPipelineServiceCollectionExtensions.RegisterVectorDataRag` (lines 146–156) by hand:
+`GetService(typeof(TokenHashEmbeddingGenerator))` on the outermost decorator returned the innermost
+generator through two inherited forwards, `GetService(typeof(AuditingEmbeddingGenerator))` returned
+the middle one, `GetService(typeof(string))` returned null, and reflection reports `GetService` on
+both Ashlar decorators as declared on `Microsoft.Extensions.AI.DelegatingEmbeddingGenerator<,>`. The
+premise above — *neither overriding `GetService`* — was true; the conclusion drawn from it was not.
+
+That error is worth more than the afternoon it would have cost, because section 10's mutation was
+written against the phantom work. An implementer who adds two no-op overrides and then deletes one
+to check the test has teeth gets a test that is **green in both states**, since the base class
+supplies the same behaviour either way — the exact shape `docs/HowGatesGoQuiet.md` exists to name,
+reached through a design document instead of through code.
+
 **Proposal: two mechanisms, deliberately.** A default interface member on Ashlar's own interface; a
-`GetService(typeof(EmbeddingIdentity))` lookup for the MEAI one, with `GetService` forwarding added
-to both decorators.
+`GetService(typeof(EmbeddingIdentity))` lookup for the MEAI one. The only code that second mechanism
+needs is in `TokenHashEmbeddingGenerator.GetService`, which today answers
+`serviceType.IsInstanceOfType(this) ? this : null` and so returns null for an identity type. The
+decorators deliver the question to it unchanged and need no edit at all.
 
 **The test that matters here** reads the identity through the fully composed, DI-registered
-generator — not off a bare `TokenHashEmbeddingGenerator`. Asserting on the naked instance passes
-while the shipped chain returns null, which is the whole failure mode. That test is the positive
-control for this half of the design.
+generator — not off a bare `TokenHashEmbeddingGenerator`, because the composed read is the one a
+caller performs. Be clear about what it can pin, though: it pins
+`TokenHashEmbeddingGenerator.GetService` answering the identity type, and it pins the chain being
+composed at all. It does **not** pin decorator forwarding, because no code in this repository
+performs that forwarding — MEAI does. The honest mutation is in section 10.
 
 ---
 
@@ -252,10 +275,15 @@ Stated here so the implementation cannot ship a test that passes in both states,
 repository has done twice. Per `docs/HowGatesGoQuiet.md`, an inventory-style guard needs **both**
 facts, and a test whose interesting assertion is a refusal needs a positive control beside it.
 
+A mutation is only worth writing down once someone has checked that the code it deletes exists.
+The row about the generator chain originally said "delete the `GetService` forwarding from either
+decorator", and there is no such forwarding to delete — see section 4. A proposed mutation against
+code that does not exist is a test that cannot fail, written in advance.
+
 | Proposed assertion | Mutation that must make it fail |
 | --- | --- |
 | A pre-existing four-column database opens and is readable | Delete the `ALTER TABLE`; it must fail to open |
-| Identity survives the composed generator chain | Delete the `GetService` forwarding from either decorator |
+| Identity survives the composed generator chain | Make `TokenHashEmbeddingGenerator.GetService` stop answering the identity type (it is the only object in the chain that knows it) |
 | A mismatched stamp is refused at open time | Make the comparison accept anything |
 | A null stamp is refused | Make null accept |
 | The current stamp is accepted | — this is the positive control for the four above; without it, "refuse everything" passes them all |

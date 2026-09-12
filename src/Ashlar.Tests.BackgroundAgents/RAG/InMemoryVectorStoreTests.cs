@@ -131,7 +131,7 @@ public class InMemoryVectorStoreTests
         var refuse = async () => await store.SearchAsync(unrankable, 5, 0.0, null, default);
 
         (await refuse.Should().ThrowAsync<ArgumentException>())
-            .WithMessage("*zero magnitude*")
+            .WithMessage("*magnitude is zero*")
             .And.Message.Should().Contain(
                 "NOT the same as 'nothing matched'",
                 "the caller has to be able to tell an unrankable question from an empty answer");
@@ -197,5 +197,86 @@ public class InMemoryVectorStoreTests
         var results = await store.SearchAsync(query, 5, 0.0, null, default);
 
         results.Should().ContainSingle().Which.Score.Should().Be(0d);
+    }
+
+    private static float[] Filled(int dim, float value)
+    {
+        var v = new float[dim];
+        Array.Fill(v, value);
+        return v;
+    }
+
+    // The overflow twin of SearchAsync_ZeroNormQuery_IsRefused..., at the top of the accumulator
+    // instead of the bottom. `normA += a[i] * a[i]` rounds the PRODUCT to binary32, so a query of
+    // 1e20f accumulates to +infinity; a finite dot over an infinite denominator is EXACTLY 0.0, and
+    // `score >= minScore` admits it at the common minScore of 0.0.
+    //
+    // Measured on net10.0/Linux/x64 with only the zero guard in place: this store answered such a
+    // query with BOTH indexed documents at score 0 -- the phantom hit the zero guard was written to
+    // remove, rebuilt out of the other end of the same arithmetic.
+    //
+    // The positive control is deliberately a LARGE query rather than an ordinary one: it has to be
+    // impossible to satisfy this test by rejecting every big vector, and 1e19f squares to 1e38,
+    // which is still inside binary32.
+    [Fact]
+    public async Task SearchAsync_OverflowingQuery_IsRefused_NotAnsweredWithEveryDocumentAtScoreZero()
+    {
+        var store = new InMemoryVectorStore();
+        var gen = new TokenEmbeddingGenerator(64);
+        foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon") })
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+
+        var refuse = async () => await store.SearchAsync(Filled(64, 1e20f), 5, 0.0, null, default);
+        await refuse.Should().ThrowAsync<ArgumentException>();
+
+        // POSITIVE CONTROL, in the same direction as the refusal: one step back from the cliff a
+        // large QUERY is still answered, so this cannot be satisfied by refusing every big vector.
+        var unit = new float[64];
+        unit[0] = 1f;
+        var large = new InMemoryVectorStore();
+        await large.IndexAsync("real", "real document", unit, null, default);
+        (await large.SearchAsync(Filled(64, 1e19f), 5, 0.0, null, default)).Should().ContainSingle();
+    }
+
+    // The quietest of the three, and the one that produces the exact symptom the refusal exists to
+    // prevent. A NaN norm passes `norm != 0`, so the pair was admitted with a score of NaN -- and
+    // `NaN >= minScore` is false, so the score filter then ate every row. Measured before the fix:
+    // this store returned ZERO hits and threw nothing for a NaN query over a populated corpus,
+    // which is indistinguishable from an empty corpus and unfalsifiable from the caller's side.
+    //
+    // The populated-corpus assertion beneath the refusal is the control: it shows the store had
+    // documents to return, so "0 hits" was never the honest answer.
+    [Fact]
+    public async Task SearchAsync_NaNQuery_IsRefused_NotAnsweredWithAnEmptyResult()
+    {
+        var store = new InMemoryVectorStore();
+        var gen = new TokenEmbeddingGenerator(64);
+        foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon") })
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+
+        var refuse = async () => await store.SearchAsync(Filled(64, float.NaN), 5, 0.0, null, default);
+        await refuse.Should().ThrowAsync<ArgumentException>();
+
+        // POSITIVE CONTROL: the corpus is not empty, so an empty result would have been a lie.
+        (await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default))
+            .Should().NotBeEmpty();
+    }
+
+    // The document direction for both non-finite magnitudes: skipped, not refused, exactly as a
+    // zero-magnitude row is. Measured before the fix, a 1e20f row came back at score 0 alongside
+    // the real hit. Reachable through the public IVectorStore surface and through any host-supplied
+    // IEmbeddingGenerator (the registration is TryAddSingleton, i.e. the documented override point).
+    [Fact]
+    public async Task SearchAsync_NonFiniteDocument_IsSkippedWhileTheRestOfTheQueryStillAnswers()
+    {
+        var store = new InMemoryVectorStore();
+        var gen = new TokenEmbeddingGenerator(64);
+        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), null, default);
+        await store.IndexAsync("nan", "malformed", Filled(64, float.NaN), null, default);
+        await store.IndexAsync("overflow", "malformed", Filled(64, 1e20f), null, default);
+
+        var results = await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default);
+
+        results.Should().ContainSingle().Which.Id.Should().Be("real");
     }
 }
