@@ -67,3 +67,7 @@ jobs:
       - name: Workflow files use contexts that exist where they use them
         shell: bash
         run: bash scripts/ci/verify-workflow-context-availability.sh
+
+      - name: Consumer path scan rejects forbidden paths and scan errors
+        shell: bash
+        run: bash scripts/ci/test-consumer-repo-path-guard.sh

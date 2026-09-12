@@ -54,6 +54,25 @@ internal static class Program
             return 2;
         }
 
+        // SCOPE OF THIS SAMPLE: it demonstrates RECORD VERIFICATION, not judged-equals-executed.
+        //
+        // The type below is bound at compile time from the Ashlar.Certified.DamageResolver
+        // PackageReference, so it is somebody else's compile of the brick -- NOT the artifact bytes
+        // verified above, which are hashed and then dropped. Two consequences worth being explicit
+        // about, since this file has been read as a pattern to copy:
+        //
+        //  * When `artifactPath` is omitted, the source-only overload runs and no artifact is bound
+        //    at all; `RequireGateEmittedArtifact` under Strict is then only a presence check on the
+        //    record's input list, not a hash comparison.
+        //  * Even when it is supplied, verifying the bytes does not make them the running program.
+        //
+        // To bind the certificate to what executes, a consumer loads the verified in-memory bytes
+        // (AssemblyLoadContext.Default.LoadFromStream, or CertifiedBrickActivator.Activate) and
+        // resolves the type the record NAMES, and carries no compile-time reference to the brick.
+        // That composition is measured in
+        // src/Ashlar.Tests.Infrastructure/Tests/Certification/JudgedArtifactIsTheExecutedArtifactTests.cs
+        // and written up in consumer-template/CONSUMING.md; see also docs/HowGatesGoQuiet.md
+        // section 16.
         var brick = new DamageResolverBrick();
         var output = await brick.ExecuteAsync(
             new BrickInput(new Dictionary<string, object>
