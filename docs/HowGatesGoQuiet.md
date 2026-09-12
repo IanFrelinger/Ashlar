@@ -282,6 +282,44 @@ compiles out on net8.0; and `scripts/compat-gate-tier-a.sh:11` names
 each needs a decision about which framework or project the step should have been running, and that
 is a separate change from the window work these were found by.
 
+## 13. The guard is written, it compiles, and it cannot fire
+
+Sections 4, 7 and 12 are about a check whose lens is too small. This one is about a guard whose
+lens is empty: the code is there, a reader finds it, the comment above it says what it protects
+against — and there is no input that reaches it. Nothing goes red, because nothing was ever
+measured. It is the hardest of these to see by reading, and the easiest to settle by running.
+
+Both instances below came out of one review, in one file, in the certifier:
+
+- **A `catch` for an exception the call does not throw.** `TryCreateReference` wrapped
+  `MetadataReference.CreateFromFile` in `catch (BadImageFormatException)`, documented as "skips
+  native libraries that share the managed extension on Windows". That factory is **lazy**: measured
+  on Windows it returns a reference for a native `.dll`, and for a text file renamed `.dll`, without
+  throwing anything — and `AssemblyMetadata.CreateFromFile` behaves the same. So nothing is skipped.
+  The bad entry surfaces one layer down as `CS0009: PE image doesn't contain managed metadata`,
+  once per compilation, **attributed to the source being compiled** — which in a certifier means a
+  fault in the verifier recorded as a fact about someone's change (section 5, one level deeper). The
+  eager form that does work is `new PEReader(stream).HasMetadata`, which throws on a non-PE file and
+  reports `false` for a native one. What kept the dead `catch` from mattering was an unrelated,
+  undocumented property of the input: the platform list it happened to read names no native DLLs.
+- **An emptiness check standing in for a floor.** The same type refused when the framework half
+  came back with **zero** entries, and its remarks said it "refuses rather than returning a partial
+  set". Measured: two framework paths composed to three references and proceeded; one composed to
+  two. Zero is not the interesting case — a trimmed deployment leaves a *subset* on disk, which
+  passes an emptiness check and then judges every non-trivial proposal to be a compile error. The
+  fix is a floor named as **assemblies**, checked against the composed result rather than against
+  the input count, so it also catches an entry that was present and unreadable.
+
+The shape: **a guard is a claim about an input, and an unexercised guard is an unverified claim.**
+
+**The rule:** every guard gets an input that reaches it, from a test, with the guard's own condition
+driven directly — and then **mutate the guard so it cannot fire and watch the test go red**. If you
+cannot construct an input that reaches it, either the guard is unnecessary or the real precondition
+is somewhere else and belongs written down. A framework-boundary API is worth one probe before you
+trust its exception contract: lazy factories, `TryParse`-shaped methods that swallow, and readers
+that defer I/O to first use are all places where the exception you catch is thrown somewhere your
+`try` no longer covers.
+
 ---
 
 ## Before you trust a gate
@@ -296,6 +334,8 @@ is a separate change from the window work these were found by.
    runs? (Section 11.)
 7. Does the check's lens cover the population its name claims, or only the files you just
    edited? **Mutate outside the fix, not inside it.** (Section 12.)
+8. For each guard inside it: is there a test whose input reaches that guard, and does disabling
+   the guard turn that test red? (Section 13.)
 
 ## Before you record a premise
 

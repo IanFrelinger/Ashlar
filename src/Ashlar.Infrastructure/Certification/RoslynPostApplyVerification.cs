@@ -35,9 +35,9 @@ namespace Ashlar.Infrastructure.Certification;
 /// stays on an unattended node. That is why the reference set may not be ambient.</para>
 ///
 /// <para><b>The reference set is declared, not ambient.</b> It comes from
-/// <see cref="CertifierReferenceSet"/> — the shared framework this host was launched with plus the
-/// named brick-authoring anchors — and is the SAME cached instance A2 compiled against, so the two
-/// stages cannot disagree about what they judged. It used to be
+/// <see cref="CertifierReferenceSet"/> — the shared framework directory's own listing plus the
+/// authoring anchor types named in code — and is the SAME cached instance A2 compiled against, so the
+/// two stages cannot disagree about what they judged. It used to be
 /// <c>AppDomain.CurrentDomain.GetAssemblies()</c>, described here as erring conservative, "the safe
 /// direction (never a false pass)". That was wrong in one direction: a warmer host is more
 /// permissive, not less, so the same bytes could be committed by a long-lived daemon and rolled back

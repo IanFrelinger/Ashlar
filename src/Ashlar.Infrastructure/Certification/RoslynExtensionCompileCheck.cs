@@ -11,9 +11,9 @@ namespace Ashlar.Infrastructure.Certification;
 /// of a self-reported one.
 ///
 /// <para><b>The reference set is declared, not ambient.</b> It comes from
-/// <see cref="CertifierReferenceSet"/> — the shared framework this host was launched with, plus the
-/// named brick-authoring anchors — and is therefore a function of the deployment rather than of what
-/// the process happened to load first. It used to be <c>AppDomain.CurrentDomain.GetAssemblies()</c>,
+/// <see cref="CertifierReferenceSet"/> — the shared framework directory's own listing, plus the
+/// authoring anchor types named in code — and is therefore a function of the deployment rather than
+/// of what the process happened to load first. It used to be <c>AppDomain.CurrentDomain.GetAssemblies()</c>,
 /// and the doc here used to call that "a conservative, fail-closed outcome, never a false
 /// admission". Only half of that was true and the half that was false was the important one: a host
 /// that had loaded a type for its own reasons compiled a proposal naming it, so identical bytes

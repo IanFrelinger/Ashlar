@@ -56,7 +56,7 @@ public sealed class CertifierReferenceSetConventionTests
     private static readonly IReadOnlyDictionary<string, string> Inventory =
         new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Ashlar.Infrastructure.Certification.CertifierReferenceSet::TryCreateReference"] =
+            ["Ashlar.Infrastructure.Certification.CertifierReferenceSet::TryCreateManagedReference"] =
                 "the one declared reference set the self-extend certifier compiles against",
             ["Ashlar.Infrastructure.Certification.GateEmittedArtifactCompiler::Compile"] =
                 "the certification chain's own compile; its emitted bytes are hashed into the "
