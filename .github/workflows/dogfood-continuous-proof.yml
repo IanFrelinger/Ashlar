@@ -16,6 +16,11 @@ on:
       - 'scripts/dogfood-continuous-proof.sh'
   workflow_dispatch:
 
+# Read-only on purpose: this workflow publishes a ledger row for a human to land, it does not
+# write to the repository. See the "Publish ledger row" step for why a push cannot work here.
+permissions:
+  contents: read
+
 concurrency:
   group: dogfood-continuous-proof-${{ github.ref }}
   cancel-in-progress: false
@@ -28,9 +33,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          # Need write permission to commit ledger updates
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -45,15 +47,21 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Check if CertificationVerifyOptions.Strict requires Ed25519 signatures
-          # PR #523 merged on master; this verifies the requirement is present.
+          # Precondition for the sweep below: does Strict still require an Ed25519 signature?
+          #
+          # The path was src/Ashlar.Infrastructure/Certification/CertificationVerifyOptions.cs,
+          # which has never existed — the type lives in Ashlar.Certification.Contracts. So this
+          # step always took the not-found branch, the sweep below was always SKIPPED, and the
+          # workflow recorded a GAP row saying Strict was not ready while master had required the
+          # signature for weeks. It proved nothing, in the direction of understating the product.
+          STRICT_FILE="src/Ashlar.Certification.Contracts/CertificationVerifyOptions.cs"
           
-          STRICT_FILE="src/Ashlar.Infrastructure/Certification/CertificationVerifyOptions.cs"
-          
+          # A missing file is a FAULT IN THIS CHECK, not a fact about Strict. Recording it as a GAP
+          # row would write a false statement about the product into a ledger that gates a
+          # marketing claim, which is how the wrong path stayed invisible. Fail instead.
           if [[ ! -f "${STRICT_FILE}" ]]; then
-            echo "strict_ready=false" >> "$GITHUB_OUTPUT"
-            echo "gap_reason=CertificationVerifyOptions.cs not found" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::${STRICT_FILE} not found — this check cannot answer its question. Fix the path; do not record a GAP row."
+            exit 1
           fi
           
           # Check if Strict property sets RequireEd25519Signature=true
@@ -85,7 +93,15 @@ jobs:
             echo "sweep_gap=" >> "$GITHUB_OUTPUT"
           else
             echo "sweep_outcome=FAIL" >> "$GITHUB_OUTPUT"
-            echo "sweep_gap=Sweep exited with code ${SWEEP_EXIT}" >> "$GITHUB_OUTPUT"
+            # "exited with code 1" and "the sweep is still a stub" are different rows, and this
+            # ledger gates a marketing claim. run_canary_sweep returns 1 unconditionally today and
+            # says so in its log; carry that through instead of a number nobody can act on.
+            LATEST_LOG="$(ls -t test-results/dogfood-sweep-*.log 2>/dev/null | head -1 || true)"
+            if [[ -n "${LATEST_LOG}" ]] && grep -q "STUB:" "${LATEST_LOG}"; then
+              echo "sweep_gap=Canary sweep is still a stub in scripts/dogfood-continuous-proof.sh (run_canary_sweep returns 1 unconditionally); no autonomy loop ran." >> "$GITHUB_OUTPUT"
+            else
+              echo "sweep_gap=Sweep exited with code ${SWEEP_EXIT}" >> "$GITHUB_OUTPUT"
+            fi
           fi
           
           exit 0  # Don't fail the workflow; we'll append the result regardless
@@ -126,33 +142,58 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Commit ledger update
+      # Was "Commit ledger update", which ran `git push origin HEAD:master`. It cannot work and
+      # never has: `master` carries branch protection with five required contexts, strict mode and
+      # enforce_admins, and `github-actions[bot]` has no bypass — the first run this workflow was
+      # ever able to start got `remote: Permission to IanFrelinger/Ashlar.git denied to
+      # github-actions[bot]` / 403, and granting `contents: write` would only move the refusal to
+      # branch protection. So the row is PUBLISHED rather than pushed, and a human lands it.
+      #
+      # This is not a downgrade of anything that was working. The file has never been a valid
+      # workflow (see the commit message shape below this step's ancestor in git history), so no
+      # run of it has ever reached this point. Every row in docs/dogfood-ledger.md to date arrived
+      # through a pull request.
+      - name: Publish ledger row
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           if git diff --quiet docs/dogfood-ledger.md; then
-            echo "No ledger changes to commit"
+            echo "No ledger changes this run."
+            {
+              echo "## Dogfood ledger"
+              echo ""
+              echo "No ledger row this run."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          
-          git add docs/dogfood-ledger.md
-          # Repeated -m, never one -m spanning lines. The continuation lines used to start at
-          # column 0, which ENDS the `run: |` block scalar — so this file has never been a valid
-          # workflow and every run of it was created with zero jobs. git joins -m values with a
-          # blank line between them, so the message keeps its paragraphs.
-          git commit \
-            -m "chore: dogfood ledger update from CI run ${{ github.run_id }}" \
-            -m "Automated ledger append from scheduled dogfood-continuous-proof workflow." \
-            -m "Date: $(date -u +%Y-%m-%d)" \
-            -m "Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            -m "Canary: rgb-hex-parse"
-          
-          git push origin HEAD:master
+
+          mkdir -p "${RUNNER_TEMP}/ledger"
+          git diff -- docs/dogfood-ledger.md > "${RUNNER_TEMP}/ledger/dogfood-ledger.patch"
+          cp docs/dogfood-ledger.md "${RUNNER_TEMP}/ledger/dogfood-ledger.md"
+
+          {
+            echo "## Dogfood ledger — one row to land"
+            echo ""
+            echo "\`master\` is a protected branch, so this run cannot commit the row itself."
+            echo "Apply the patch from the \`dogfood-ledger-${{ github.run_id }}\` artifact and open a pull request:"
+            echo ""
+            echo '```'
+            git diff -- docs/dogfood-ledger.md | sed -n '1,40p'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload ledger row
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dogfood-ledger-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/ledger/dogfood-ledger.patch
+            ${{ runner.temp }}/ledger/dogfood-ledger.md
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Workflow summary
         if: always()
