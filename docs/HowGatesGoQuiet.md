@@ -191,6 +191,41 @@ click away, can see what they would be turning off.
 
 ---
 
+## 11. The failure is in attempt 1, and every default view shows attempt 2
+
+A re-run does not replace a run. It adds an attempt — and `gh run view --log`, `gh run view --json
+jobs` and `/runs/<id>/jobs` all return only the LATEST one. A red job that someone re-ran is
+therefore invisible to every sweep written the obvious way, and the run itself reports
+`conclusion: success`.
+
+`FileSystemEventSourceTests.SubscribeAsync_FileCreated_EmitsEvent` killed the macOS test host in
+run 34573927779 **attempt 1** (job 103182128289): the Blame collector's 2-minute inactivity line,
+`Test host process crashed`, the test named as the one in flight, a `Sequence_*.xml` emitted, and
+~1900 already-recorded results discarded. The run was re-run; attempt 2 passed in 254 ms. #601's
+refutation — and the CHANGELOG text shipped with it, which says the report "is not reproduced and
+its premise does not hold" and cites the passing job, the 254 ms, and the absence of a sequence
+file — was written entirely against attempt 2. The same blind spot hid a second sighting
+(run 34374416444 attempt 1, job 102544517994), so the sweep over "the last 60 gate runs" that
+backed the refutation could not have found either one.
+
+This is section 8 again — a lens that cannot see the defect refutes it — with a new way to acquire
+the lens. `docs/production-readiness/KernelCoverageGate-Findings.md` already records this
+repository losing an attempt-1 failure the same way.
+
+**How to check by hand:**
+
+```bash
+gh api repos/<owner>/<repo>/actions/runs/<id> --jq .run_attempt
+gh api repos/<owner>/<repo>/actions/runs/<id>/attempts/1/jobs \
+  --jq '.jobs[] | {name, conclusion}'
+```
+
+**The rule:** a sweep of CI history enumerates attempts. A run whose `run_attempt` is greater than
+1 has a history the default endpoints will not show you, and a refutation built on what they show
+is a statement about the re-run, not about the report.
+
+---
+
 ## Before you trust a gate
 
 1. Has it ever produced a run **with jobs in it**? (Section 1.)
@@ -199,6 +234,8 @@ click away, can see what they would be turning off.
 4. Does a deliberate break make it fail? **Mutate and measure** — revert the fix, keep the test, and
    watch it go red. This repository has shipped a fix that did not fix the thing twice.
 5. If it is not required, is it green on `master` right now? (Section 2.)
+6. If you are refuting a report from CI history, did you enumerate **attempts**, not just
+   runs? (Section 11.)
 
 ## Before you record a premise
 

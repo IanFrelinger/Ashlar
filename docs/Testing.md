@@ -19,6 +19,14 @@ Ashlar uses multiple mechanisms to prevent tests from hanging indefinitely and k
 | e2e | 90s | — | Category=E2E |
 | trust | 60s | — | Trust tests (Infrastructure + BackgroundAgents) |
 | full | 120s | — | All Ashlar.Tests.Infrastructure tests |
+| `ashlar ci verify` / `ashlar validate` | 720s | up to 480s (`TestTimeouts.HostTouching`) | `ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds`. Sweeps every discovered test project, so its window must clear the widest per-test net in any of them |
+
+**The window must be wider than the deadline inside it.** A per-test timeout only fires if the
+harness lets the test live long enough to reach it; below that, every stall is a host kill that
+discards the whole run's results and names no failing test. The validate sweep ran a 120s window
+over suites whose widest per-test net is 480s, and twice on the macOS lane that turned a stall in
+one test into ~1900 discarded results. `TimeoutConventionTests` now fails when any `TestTimeouts`
+constant reaches the validate lane's window, from either side.
 
 ### Where Timeouts Are Applied
 

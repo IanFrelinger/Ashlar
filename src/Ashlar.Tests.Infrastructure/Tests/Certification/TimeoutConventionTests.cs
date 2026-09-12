@@ -1,4 +1,9 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
+using Ashlar.Core.Application.Paths;
+using Ashlar.Infrastructure.Validation.Adapters;
+using Ashlar.Tests.Infrastructure.Helpers;
+using FluentAssertions;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
@@ -90,5 +95,87 @@ public sealed class TimeoutConventionTests
 
         Assert.True(violations.Count == 0,
             "Host-touching tests must have explicit Timeout:\n" + string.Join("\n", violations));
+    }
+
+    /// <summary>
+    /// A per-test timeout only ever fires if it is INSIDE the harness window above it. Two lanes
+    /// sweep Ashlar.Tests.Infrastructure broadly and both ran a 120s blame window over suites
+    /// whose widest per-test net is <c>TestTimeouts.HostTouching</c> at 480s — four times larger.
+    /// Those tests therefore could not fail as timeouts there at all: a stall past two minutes
+    /// killed the test host, discarded the ~1900 results already recorded, and named the
+    /// in-flight test only as one that "may, or may not be the source of the crash". Twice on the
+    /// macOS lane, on <c>FileSystemEventSourceTests.SubscribeAsync_FileCreated_EmitsEvent</c>.
+    ///
+    /// <para>The invariant is what makes a hang diagnosable, and it breaks from either side — by
+    /// widening a TestTimeouts constant or by narrowing a lane's window — so it is frozen here
+    /// rather than left to whoever edits one of them next.</para>
+    /// </summary>
+    [Fact]
+    public void Every_per_test_timeout_fits_inside_the_broad_sweep_blame_window()
+    {
+        var windowMs = ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds * 1000;
+
+        var constants = typeof(TestTimeouts)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(f => f.IsLiteral && f.FieldType == typeof(int))
+            .Select(f => new { f.Name, Value = (int)f.GetRawConstantValue()! })
+            .ToArray();
+
+        // Positive control: reflection that found nothing would satisfy the assertion below.
+        constants.Should().HaveCountGreaterThan(
+            5,
+            "TestTimeouts is the inventory this compares against; an empty one is a fault in the "
+            + "check, not a clean result");
+
+        var offenders = constants.Where(c => c.Value >= windowMs).ToArray();
+
+        offenders.Should().BeEmpty(
+            $"a per-test timeout at or above the {windowMs} ms blame window can never fire — the "
+            + "host is killed first, and a killed host reports no failing test. Either lower the "
+            + "constant or widen ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds (and "
+            + "the matching window in CiCommand). Offending: "
+            + string.Join(", ", offenders.Select(c => $"{c.Name}={c.Value}ms")));
+    }
+
+    /// <summary>
+    /// The other half: the constant above is the invariant only if it is what the lanes actually
+    /// pass to <c>dotnet test</c>. A hard-coded window alongside it would leave the test above
+    /// green while a lane ran on a number nobody checked.
+    ///
+    /// <para>A frozen inventory with both facts, per <c>docs/HowGatesGoQuiet.md</c> section 7: a
+    /// NEW <c>dotnet test</c> invocation in either file fails until its window is accounted for,
+    /// and a deleted one fails too, so the list cannot rot into a description of what used to be
+    /// true. The one narrow window admitted here is the 30s smoke step, which selects only
+    /// BaseFrameworkSmokeTests — no HostTouching net is inside it.</para>
+    /// </summary>
+    [Fact]
+    public void The_broad_sweep_lanes_pass_the_checked_window_to_dotnet_test()
+    {
+        var window = $"{ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds}s";
+
+        var expected = new (string RelativePath, string[] Windows)[]
+        {
+            ("src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs",
+                ["{ValidateBlameHangTimeoutSeconds}s"]),
+            ("application/src/Ashlar.CLI/Commands/CiCommand.cs", [window, "30s"]),
+        };
+
+        foreach (var (relativePath, windows) in expected)
+        {
+            var path = Path.Combine(RepoPathResolver.FindRepoRoot(), relativePath);
+            File.Exists(path).Should().BeTrue(
+                $"{relativePath} is an input to this convention; a missing input is a hard "
+                + "failure of the check, never a clean result");
+
+            var found = Regex
+                .Matches(File.ReadAllText(path), "--blame-hang-timeout ([^ \"]+)")
+                .Select(m => m.Groups[1].Value)
+                .ToArray();
+
+            found.Should().Equal(
+                windows,
+                $"{relativePath} must spell every broad-sweep window as the constant this "
+                + "convention checks");
+        }
     }
 }

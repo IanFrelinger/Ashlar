@@ -609,7 +609,8 @@ public class ValidationServiceAdapter : IValidationService
         var args =
             $"test \"{csprojPath}\" {frameworkArg}--no-build " +
             "--filter \"Category!=DockerOptional&Category!=Stress\" " +
-            "--logger trx --blame-hang-timeout 120s --blame-hang-dump-type none " +
+            "--logger trx " +
+            $"--blame-hang-timeout {ValidateBlameHangTimeoutSeconds}s --blame-hang-dump-type none " +
             $"--verbosity {verbosity}";
         var workDir = Path.GetDirectoryName(csprojPath) ?? Directory.GetCurrentDirectory();
         var psi = new ProcessStartInfo("dotnet", args)
@@ -672,6 +673,30 @@ public class ValidationServiceAdapter : IValidationService
             }
         }
     }
+
+    /// <summary>
+    /// Blame's inactivity window for the <c>validate</c> sweep, in seconds. It must stay ABOVE
+    /// every per-test timeout in the suites this runs; <c>TimeoutConventionTests</c> fails when
+    /// it does not.
+    /// </summary>
+    /// <remarks>
+    /// This was 120s, while the widest per-test hang net in Ashlar.Tests.Infrastructure
+    /// (<c>TestTimeouts.HostTouching</c>) is 480s — four times larger. A test bounded at 480s
+    /// can therefore never fail as a timeout on this lane: any stall past two minutes is a host
+    /// kill instead, which discards the ~1900 results already recorded, names the in-flight test
+    /// only as one that "may, or may not be the source of the crash", and leaves no per-test
+    /// failure to diagnose. That is what
+    /// <c>FileSystemEventSourceTests.SubscribeAsync_FileCreated_EmitsEvent</c> produced twice on
+    /// the macOS lane, and the 480s bound it tripped over had itself been raised to stop an
+    /// earlier false red (docs/production-readiness/KernelCoverageGate-Findings.md).
+    ///
+    /// 720s restores the relation docs/Testing.md already documents — blame-hang-timeout at
+    /// 1.5x the widest per-test timeout — so the per-test net fires first and the failure names
+    /// itself. The cost is that a host which is genuinely wedged, with no per-test timeout above
+    /// it, now takes twelve minutes to abort rather than two. That is the right trade: the old
+    /// window never shortened a hang, it only converted diagnosable test failures into lost runs.
+    /// </remarks>
+    internal const int ValidateBlameHangTimeoutSeconds = 720;
 
     private const int MaxRetainedOutputLines = 10_000;
 }
