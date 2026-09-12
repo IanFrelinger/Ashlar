@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Reflection;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -246,18 +245,11 @@ public sealed class BrickInterfaceDriftAnalyzerTests
         return (await withAnalyzers.GetAnalyzerDiagnosticsAsync()).ToArray();
     }
 
+    /// <summary>
+    /// The contracts assembly the samples compile against. See <see cref="AnalyzerReferenceSet"/>
+    /// for why the set is built from declared inputs rather than from the test host's
+    /// loaded-assembly list.
+    /// </summary>
     private static IReadOnlyList<MetadataReference> ReferenceSet()
-    {
-        // Anchor the contracts assembly so it is definitely loaded before we
-        // enumerate the load context.
-        var anchor = typeof(Ashlar.Core.Domain.Bricks.Brick).Assembly;
-
-        return AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
-            .Append(anchor)
-            .Select(a => a.Location)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(location => (MetadataReference)MetadataReference.CreateFromFile(location))
-            .ToArray();
-    }
+        => AnalyzerReferenceSet.For(typeof(Ashlar.Core.Domain.Bricks.Brick));
 }

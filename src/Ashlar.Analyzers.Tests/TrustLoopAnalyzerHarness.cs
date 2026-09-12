@@ -72,20 +72,12 @@ internal static class TrustLoopAnalyzerHarness
         return (await withAnalyzers.GetAnalyzerDiagnosticsAsync()).ToArray();
     }
 
+    /// <summary>
+    /// The contract assembly plus any test-specific anchors (e.g. the DI assemblies for
+    /// registration samples). See <see cref="AnalyzerReferenceSet"/> for why the set is built
+    /// from declared inputs rather than from the test host's loaded-assembly list.
+    /// </summary>
     private static IReadOnlyList<MetadataReference> ReferenceSet(Type[] anchors)
-    {
-        // Anchor the contract assembly (plus any test-specific anchors, e.g. the DI assemblies
-        // for registration samples) so they are loaded before the load context is enumerated.
-        var anchorAssemblies = anchors
-            .Select(t => t.Assembly)
-            .Append(typeof(Ashlar.Core.Domain.Bricks.Brick).Assembly);
-
-        return AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
-            .Concat(anchorAssemblies)
-            .Select(a => a.Location)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(location => (MetadataReference)MetadataReference.CreateFromFile(location))
-            .ToArray();
-    }
+        => AnalyzerReferenceSet.For(
+            anchors.Append(typeof(Ashlar.Core.Domain.Bricks.Brick)).ToArray());
 }
