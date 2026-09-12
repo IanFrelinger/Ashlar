@@ -4,6 +4,9 @@ This file describes what CI **actually does** on this repository: which workflow
 
 Snapshot: **58 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), verified 2026-09-04. Includes `products-gate.yml` (added with the product-split scaffolds) and `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
 
+> **Companion:** `docs/HowGatesGoQuiet.md` — the ways a check in this repository has stopped
+> answering while still looking like it was. Read it before adding a gate, and before believing one.
+
 ## Required checks (branch protection) — what is enforced today
 
 `master` branch protection requires **five** status-check contexts:
