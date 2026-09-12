@@ -85,6 +85,8 @@ public class ValidationServiceAdapter : IValidationService
             });
 
             var allTestResults = new List<TestResult>();
+            var evidenceErrors = new List<string>();
+            var emptyProjects = new List<string>();
             int totalTestsRun = 0;
             int totalTestsPassed = 0;
             int totalTestsFailed = 0;
@@ -157,10 +159,12 @@ public class ValidationServiceAdapter : IValidationService
                     var sequenceFile = FindArtifactWrittenSince(projectDir, "Sequence_*.xml", runStartedUtc);
 
                     var executed = new List<TestResult>();
+                    var recordedResults = 0;
                     if (trxFile is not null)
                     {
                         // Parse TRX file for detailed results
                         var parsedResults = await _testResultParser.ParseAsync(trxFile, cancellationToken);
+                        recordedResults = parsedResults.Count;
 
                         // Skipped tests were not run: they are neither passes nor failures and
                         // stay out of the per-test list (consumers list `!Passed` as failures).
@@ -203,18 +207,21 @@ public class ValidationServiceAdapter : IValidationService
                         totalTestsFailed++;
                         totalTestsRun++;
                     }
-                    else if (trxFile is null)
+                    else
                     {
-                        // Clean exit without a TRX (nothing matched the filter): the exit code
-                        // is the verdict, as before.
-                        allTestResults.Add(new TestResult
+                        switch (ClassifyCompletedRun(trxFile, recordedResults, run.Output))
                         {
-                            Name = testProject.Name,
-                            Passed = true,
-                            Message = "Tests passed"
-                        });
-                        totalTestsPassed++;
-                        totalTestsRun++;
+                            case CompletedRunEvidence.NoTestsSelected:
+                                emptyProjects.Add(testProject.Name);
+                                _logger.LogInformation("{Project}: no tests selected (0 run)", testProject.Name);
+                                break;
+                            case CompletedRunEvidence.InvalidEvidence:
+                                var error = $"{testProject.Name}: test results are missing, unreadable or inconsistent; "
+                                    + "the run cannot be reported as passing.";
+                                evidenceErrors.Add(error);
+                                _logger.LogWarning("{Error}", error);
+                                break;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -235,7 +242,7 @@ public class ValidationServiceAdapter : IValidationService
             }
 
             // Pass if no tests failed (even if no tests were run)
-            var passed = totalTestsFailed == 0;
+            var passed = totalTestsFailed == 0 && evidenceErrors.Count == 0;
 
             progress?.Report(new ProgressReport
             {
@@ -246,17 +253,21 @@ public class ValidationServiceAdapter : IValidationService
             });
 
             var skippedSuffix = totalTestsSkipped > 0 ? $", {totalTestsSkipped} skipped" : string.Empty;
+            var evidenceSuffix = evidenceErrors.Count > 0 ? "; " + string.Join("; ", evidenceErrors) : string.Empty;
+            var emptySuffix = emptyProjects.Count > 0 ? "; no tests selected: " + string.Join(", ", emptyProjects) : string.Empty;
             return new ValidationResult
             {
                 Passed = passed,
-                Message = passed
+                Message = (passed
                     ? $"Validation passed ({totalTestsPassed}/{totalTestsRun} tests{skippedSuffix})"
-                    : $"Validation failed ({totalTestsFailed}/{totalTestsRun} tests failed{skippedSuffix})",
+                    : $"Validation failed ({totalTestsFailed}/{totalTestsRun} tests failed{skippedSuffix})")
+                    + evidenceSuffix + emptySuffix,
                 TestsRun = totalTestsRun,
                 TestsPassed = totalTestsPassed,
                 TestsFailed = totalTestsFailed,
                 TestsSkipped = totalTestsSkipped,
-                TestResults = allTestResults
+                TestResults = allTestResults,
+                EvidenceErrors = evidenceErrors
             };
         }
         catch (Exception ex)
@@ -292,7 +303,8 @@ public class ValidationServiceAdapter : IValidationService
         if (!looksLikeTests)
             return false;
 
-        if (name.Equals("copy-assemblies.csproj", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("copy-assemblies.csproj", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("Ashlar.Agents.TestKit.csproj", StringComparison.OrdinalIgnoreCase))
             return false;
 
         if (PlaceholderToken.IsMatch(name))
@@ -319,6 +331,70 @@ public class ValidationServiceAdapter : IValidationService
         }
 
         return true;
+    }
+
+    internal enum CompletedRunEvidence
+    {
+        ResultsRecorded,
+        NoTestsSelected,
+        InvalidEvidence,
+    }
+
+    // A parser can return no rows after a read/parse failure. Empty results alone therefore do
+    // not establish an empty selection. Validate the TRX envelope and row count as independent
+    // evidence, and never turn a project-level evidence failure into a fictional executed test.
+    internal static CompletedRunEvidence ClassifyCompletedRun(FileInfo? trx, int recordedResults, string output)
+    {
+        if (trx == null)
+        {
+            return recordedResults == 0 && SplitLines(output).Any(line => NoTestsMatchedLinePrefixes.Any(
+                prefix => line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                ? CompletedRunEvidence.NoTestsSelected : CompletedRunEvidence.InvalidEvidence;
+        }
+
+        try
+        {
+            var document = System.Xml.Linq.XDocument.Load(trx.FullName);
+            System.Xml.Linq.XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
+            if (document.Root?.Name != ns + "TestRun")
+                return CompletedRunEvidence.InvalidEvidence;
+            var rows = document.Root.Element(ns + "Results")?.Descendants(ns + "UnitTestResult").ToList()
+                ?? new List<System.Xml.Linq.XElement>();
+            if (rows.Count != recordedResults)
+                return CompletedRunEvidence.InvalidEvidence;
+
+            var summary = document.Root.Element(ns + "ResultSummary");
+            var outcome = (string?)summary?.Attribute("outcome");
+            var counters = summary?.Element(ns + "Counters");
+            bool CounterEquals(string name, int expected) =>
+                int.TryParse((string?)counters?.Attribute(name), out var count) && count == expected;
+            bool MatchesSummary(IReadOnlyList<System.Xml.Linq.XElement> countedRows)
+            {
+                var outcomes = countedRows.Select(row => (string?)row.Attribute("outcome")).ToList();
+                var knownOutcomes = outcomes.All(value => value is "Passed" or "Completed" or "Failed" or "NotExecuted" or "Inconclusive");
+                var failures = outcomes.Count(value => value == "Failed");
+                var executed = outcomes.Count(value => value is "Passed" or "Completed" or "Failed");
+                var validOutcome = failures > 0
+                    ? outcome == "Failed"
+                    : outcome is "Completed" or "Passed" || outcome == "NotExecuted" && executed == 0;
+                return knownOutcomes && validOutcome && CounterEquals("total", countedRows.Count)
+                    && CounterEquals("executed", executed) && CounterEquals("failed", failures)
+                    && CounterEquals("error", 0) && CounterEquals("aborted", 0);
+            }
+
+            // VSTest 17.12 counts data-driven parents and their children. VSTest 18.9 excludes
+            // DataDrivenTest containers from counters, while retaining them in the TRX tree.
+            // The parser still returns every row; reconcile both documented counter layouts.
+            var withoutContainers = rows.Where(row => (string?)row.Attribute("resultType") != "DataDrivenTest"
+                || !row.Descendants(ns + "UnitTestResult").Any()).ToList();
+            if (!MatchesSummary(rows) && !MatchesSummary(withoutContainers))
+                return CompletedRunEvidence.InvalidEvidence;
+            return rows.Count == 0 ? CompletedRunEvidence.NoTestsSelected : CompletedRunEvidence.ResultsRecorded;
+        }
+        catch (Exception ex) when (ex is System.Xml.XmlException or IOException or UnauthorizedAccessException)
+        {
+            return CompletedRunEvidence.InvalidEvidence;
+        }
     }
 
     private static readonly System.Text.RegularExpressions.Regex PlaceholderToken =

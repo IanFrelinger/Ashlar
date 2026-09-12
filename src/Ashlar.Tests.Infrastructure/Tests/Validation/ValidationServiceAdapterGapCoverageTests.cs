@@ -184,6 +184,7 @@ public class ValidationServiceAdapterGapCoverageTests
     [InlineData("tests/adversarial-corpus/fixtures/b2-pinvoke-exit/project/Brick.csproj", false)]
     [InlineData("src/Ashlar.Runtime/Ashlar.Runtime.csproj", false)]
     [InlineData("tools/copy-assemblies.csproj", false)]
+    [InlineData("src/Ashlar.Agents.TestKit/Ashlar.Agents.TestKit.csproj", false)]
     [InlineData("samples/templates/brick/__BrickName__Brick.Tests/__BrickName__Brick.Tests.csproj", false)]
     [InlineData("samples/other/__Token__Tests/__Token__Tests.csproj", false)]
     [InlineData(".claude/worktrees/x/src/Ashlar.Tests.Domain/Ashlar.Tests.Domain.csproj", false)]
@@ -263,7 +264,7 @@ public class ValidationServiceAdapterGapCoverageTests
     }
 
     [Fact]
-    public async Task ValidateAsync_uses_exit_code_when_trx_parser_returns_empty()
+    public async Task ValidateAsync_rejects_a_parser_that_drops_recorded_rows()
     {
         var parser = new Mock<ITestResultParser>();
         parser.Setup(p => p.ParseAsync(It.IsAny<FileInfo>(), It.IsAny<CancellationToken>()))
@@ -278,9 +279,11 @@ public class ValidationServiceAdapterGapCoverageTests
             Directory.SetCurrentDirectory(temp);
             var result = await adapter.ValidateAsync(null, progress: null, CancellationToken.None);
 
-            result.Passed.Should().BeTrue();
+            result.Passed.Should().BeFalse("the result file contains rows the parser did not return");
             result.TestsRun.Should().Be(0);
             result.TestsPassed.Should().Be(0);
+            result.TestsFailed.Should().Be(0);
+            result.EvidenceErrors.Should().ContainSingle().Which.Should().Contain("PassTests.csproj");
             parser.Verify(p => p.ParseAsync(It.IsAny<FileInfo>(), It.IsAny<CancellationToken>()), Times.Once);
         }
         finally
@@ -410,6 +413,75 @@ public class ValidationServiceAdapterGapCoverageTests
             }
             """);
         return temp;
+    }
+
+    [Theory(Timeout = TestTimeouts.E2E)]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Missing_or_corrupt_results_fail_without_inventing_a_test(bool corrupt)
+    {
+        var original = Directory.GetCurrentDirectory();
+        var temp = Path.Combine(Path.GetTempPath(), "ashlar-validation-evidence-" + Guid.NewGuid());
+        Directory.CreateDirectory(temp);
+        var target = corrupt ? """
+            <Target Name="WriteCorruptResult" AfterTargets="VSTest">
+              <MakeDir Directories="$(MSBuildProjectDirectory)/TestResults" />
+              <WriteLinesToFile File="$(MSBuildProjectDirectory)/TestResults/bad.trx" Lines="&lt;broken" Overwrite="true" />
+            </Target>
+            """ : "";
+        File.WriteAllText(Path.Combine(temp, "EvidenceTests.csproj"), $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+              {{target}}
+            </Project>
+            """);
+        try
+        {
+            Directory.SetCurrentDirectory(temp);
+            var adapter = new ValidationServiceAdapter(NullLogger<ValidationServiceAdapter>.Instance,
+                new TrxTestResultParser(NullLogger<TrxTestResultParser>.Instance));
+            var result = await adapter.ValidateAsync(null);
+            result.Passed.Should().BeFalse();
+            result.EvidenceErrors.Should().ContainSingle().Which.Should().Contain("EvidenceTests.csproj");
+            result.TestsRun.Should().Be(0);
+            result.TestsPassed.Should().Be(0);
+            result.TestsFailed.Should().Be(0);
+            result.TestResults.Should().BeEmpty("an evidence failure is not an executed test");
+            if (corrupt) Directory.GetFiles(temp, "*.trx", SearchOption.AllDirectories).Should().ContainSingle();
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task An_empty_selection_passes_with_zero_observed_tests()
+    {
+        var original = Directory.GetCurrentDirectory();
+        var temp = CreatePassingTestProjectDir();
+        var source = Path.Combine(temp, "tests", "PassTests.cs");
+        File.WriteAllText(source, File.ReadAllText(source).Replace("[Fact]", "[Fact, Trait(\"Category\", \"Stress\")]", StringComparison.Ordinal));
+        try
+        {
+            Directory.SetCurrentDirectory(temp);
+            var adapter = new ValidationServiceAdapter(NullLogger<ValidationServiceAdapter>.Instance,
+                new TrxTestResultParser(NullLogger<TrxTestResultParser>.Instance));
+            var result = await adapter.ValidateAsync(null);
+            result.Passed.Should().BeTrue();
+            result.EvidenceErrors.Should().BeEmpty();
+            result.TestsRun.Should().Be(0);
+            result.TestsPassed.Should().Be(0);
+            result.TestsFailed.Should().Be(0);
+            result.TestsSkipped.Should().Be(0);
+            result.Message.Should().Contain("no tests selected");
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(temp, recursive: true);
+        }
     }
 
     private static ValidationServiceAdapter CreateAdapter()

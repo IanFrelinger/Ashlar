@@ -154,11 +154,11 @@ public class ConsoleRenderer : IConsoleRenderer
         {
             if (result.Passed)
             {
-                Console.Out.WriteLine($"Validation passed ({result.TestsPassed}/{result.TestsRun} tests)");
+                Console.Out.WriteLine(result.Message);
             }
             else
             {
-                Console.Error.WriteLine($"Validation failed ({result.TestsFailed}/{result.TestsRun} tests failed)");
+                Console.Error.WriteLine(result.Message);
                 if (result.TestResults != null)
                 {
                     foreach (var test in result.TestResults.Where(t => !t.Passed))
