@@ -2,7 +2,7 @@ using FluentAssertions;
 using Ashlar.Core.Application.Persistence;
 using Xunit;
 
-namespace Ashlar.Tests.Infrastructure.Tests.Persistence;
+namespace Ashlar.Tests.Application.Persistence;
 
 /// <summary>
 /// The one place a LiteDB connection mode is chosen.
@@ -13,6 +13,14 @@ namespace Ashlar.Tests.Infrastructure.Tests.Persistence;
 /// caller stated is never overruled. That last one is the deliberate hole — a deployment binding
 /// <c>;Connection=Direct</c> from configuration gets Direct — and it is pinned here so the exemption
 /// stays a decision rather than drifting into an accident.
+/// </remarks>
+/// <remarks>
+/// Lives in <c>Ashlar.Tests.Application</c> because <c>LiteDbConnectionString</c> lives in
+/// <c>Ashlar.Core.Application</c>, and <c>docs/architecture/TestingStrategyTracking-v1.md</c>
+/// assigns that source tree to this project. That is not bookkeeping: <c>kernel-coverage</c>
+/// measures <c>Ashlar.Core.Application</c> against a line floor using only this project's run, so a
+/// test of an application type parked in the infrastructure suite leaves the type it covers
+/// counted as uncovered.
 /// </remarks>
 public sealed class LiteDbConnectionStringTests
 {
@@ -81,6 +89,25 @@ public sealed class LiteDbConnectionStringTests
     public void A_path_that_merely_spells_the_option_still_gets_shared_mode(string path, string expected)
     {
         LiteDbConnectionString.ForSharedAccess(path).Should().Be(expected);
+    }
+
+    /// <summary>
+    /// Options other than <c>Connection</c> do not count as stating a mode, and neither does an
+    /// option with no <c>=</c> at all.
+    /// </summary>
+    /// <remarks>
+    /// These are the two paths through the option scan that nothing else reaches: a key that parses
+    /// but is not <c>Connection</c>, and a segment the scan has to skip rather than index into. A
+    /// helper that answered "a mode is already stated" for either would leave the store on LiteDB's
+    /// Direct default, which is the single outcome this class exists to prevent.
+    /// </remarks>
+    [Theory]
+    [InlineData("Filename=/tmp/custom.db;Password=hunter2", "Filename=/tmp/custom.db;Password=hunter2;Connection=Shared")]
+    [InlineData("Filename=/tmp/custom.db;ReadOnly", "Filename=/tmp/custom.db;ReadOnly;Connection=Shared")]
+    [InlineData("Filename=/tmp/custom.db;ReadOnly;Connection=Direct", "Filename=/tmp/custom.db;ReadOnly;Connection=Direct")]
+    public void Other_options_do_not_state_a_connection_mode(string connectionString, string expected)
+    {
+        LiteDbConnectionString.ForSharedAccess(connectionString).Should().Be(expected);
     }
 
     /// <summary>The store's own parameter name is what a caller sees, not this method's.</summary>
