@@ -1,6 +1,7 @@
 using LiteDB;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Core.Application.Pipelines.Ports;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Pipelines;
@@ -11,7 +12,7 @@ namespace Ashlar.Infrastructure.Pipelines;
 public sealed class LiteDbPipelineRunStore : IPipelineRunStore
 {
     private const string CollectionName = "pipeline_runs";
-    private readonly string _databasePath;
+    private readonly string _connectionString;
     private readonly object _gate = new();
 
     /// <summary>Initializes a new lite db pipeline run store.</summary>
@@ -19,7 +20,10 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
     {
         if (string.IsNullOrWhiteSpace(databasePath))
             throw new ArgumentException("Database path is required.", nameof(databasePath));
-        _databasePath = databasePath;
+        // This store handed the bare path straight to LiteDB, so it never carried a Connection=
+        // option at all and took the Direct default. lock (_gate) keeps its own writes serial;
+        // the named mutex is what covers a second instance and a second process.
+        _connectionString = LiteDbConnectionString.ForSharedAccess(databasePath, nameof(databasePath));
         LiteDbDocumentMapper.EnsureMapped<PipelineRunDocument>();
         LiteDbDocumentMapper.EnsureMapped<PipelineStageRunDocument>();
     }
@@ -34,7 +38,7 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
 
         lock (_gate)
         {
-            using var db = new LiteDatabase(_databasePath);
+            using var db = new LiteDatabase(_connectionString);
             var col = db.GetCollection<PipelineRunDocument>(CollectionName);
             // No EnsureIndex here, and deliberately not the by-name form the other stores moved to.
             // RunId carries [BsonId], so LiteDB resolved `x => x.RunId` to $._id and the call landed
@@ -61,7 +65,7 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         PipelineRun? run = null;
         lock (_gate)
         {
-            using var db = new LiteDatabase(_databasePath);
+            using var db = new LiteDatabase(_connectionString);
             var col = db.GetCollection<PipelineRunDocument>(CollectionName);
             var doc = col.FindById(runId);
             if (doc != null)

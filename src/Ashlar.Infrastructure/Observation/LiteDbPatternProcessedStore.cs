@@ -1,5 +1,6 @@
 using LiteDB;
 using Ashlar.Core.Application.Observation.Ports;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Infrastructure.Persistence;
 
 namespace Ashlar.Infrastructure.Observation;
@@ -19,8 +20,7 @@ public sealed class LiteDbPatternProcessedStore : IPatternProcessedStore
     {
         if (string.IsNullOrWhiteSpace(pathOrConnectionString))
             throw new ArgumentNullException(nameof(pathOrConnectionString));
-        var trimmed = pathOrConnectionString.Trim();
-        _connectionString = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
+        _connectionString = LiteDbConnectionString.ForSharedAccess(pathOrConnectionString, nameof(pathOrConnectionString));
         LiteDbDocumentMapper.EnsureMapped<ProcessedDoc>();
     }
 

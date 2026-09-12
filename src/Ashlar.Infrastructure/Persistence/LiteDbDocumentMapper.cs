@@ -71,7 +71,7 @@ public static class LiteDbDocumentMapper
     /// constructor. The constructor alone is not enough: a caller holding a store across a
     /// <c>BsonMapper.Global</c> swap would first-touch a cold mapper on its next call. After the
     /// first build the call is one uncontended lock and a hash lookup, which is nothing beside the
-    /// <c>new LiteDatabase(...)</c> that follows it. Call it BEFORE taking the store's own lock, so
+    /// <c>LiteDatabase</c> open that follows it. Call it BEFORE taking the store's own lock, so
     /// this monitor is never nested inside one.
     ///
     /// A ROUND TRIP rather than <c>GetEntityMapper</c>: the latter is nonpublic in 5.0.21, while

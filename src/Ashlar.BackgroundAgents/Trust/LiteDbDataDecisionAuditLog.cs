@@ -1,6 +1,7 @@
 using System.Text.Json;
 using LiteDB;
 using Ashlar.Core.Application.Trust.Models;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Core.Application.Trust.Ports;
 using Ashlar.Infrastructure.Persistence;
 
@@ -69,18 +70,12 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
     {
         if (string.IsNullOrWhiteSpace(pathOrConnectionString))
             throw new ArgumentNullException(nameof(pathOrConnectionString));
-        var trimmed = pathOrConnectionString.Trim();
-        var withFilename = trimmed.StartsWith("Filename=", StringComparison.OrdinalIgnoreCase) ? trimmed : $"Filename={trimmed}";
-
-        // Shared, not LiteDB's default Direct, for the reason LiteDbCopilotTaskStore already adopted
-        // it: Direct takes an EXCLUSIVE file lock for the lifetime of a LiteDatabase and every method
-        // here opens one per call. _flushGate serialises this INSTANCE; the named mutex Shared mode
-        // uses also covers a second instance and a second process (the CLI reads this file to export).
-        // Measured on this class at 32,000 appends: Direct lost 30,939 of them, Shared lost none.
-        // An explicit Connection= supplied by the caller is left alone.
-        _connectionString = withFilename.Contains("Connection=", StringComparison.OrdinalIgnoreCase)
-            ? withFilename
-            : $"{withFilename};Connection=Shared";
+        // Shared mode, composed centrally. _flushGate serialises this INSTANCE; the named mutex
+        // Shared mode uses also covers a second instance and a second process (the CLI reads this
+        // file to export). Measured on this class at 32,000 appends: Direct lost 30,939 of them,
+        // Shared lost none. This store is also the one place Shared costs anything measurable —
+        // see the remarks on FlushBuffer.
+        _connectionString = LiteDbConnectionString.ForSharedAccess(pathOrConnectionString, nameof(pathOrConnectionString));
 
         // This store is the one built EAGERLY rather than in a factory lambda
         // (ServiceCollectionExtensions.AddTrustServices), and the singleton it produces stands behind

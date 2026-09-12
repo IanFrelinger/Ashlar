@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Ashlar.Core.Application.Observation.Ports;
+using Ashlar.Core.Application.Persistence;
 using Ashlar.Hosting;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Tests.Infrastructure.Helpers;
@@ -124,8 +125,11 @@ public sealed class KernelDiCompositionProdStyleTests : IDisposable
         using var sp = BuildProvider(AshlarDeploymentProfile.Full, trust: false, adaptive: false,
             o => o.PatternStorePath = "pinning-patterns.db");
 
+        // Composed through the helper rather than spelled out: this test is about WHICH
+        // registration owns the path, not about the connection mode, and hard-coding the mode
+        // here would make it fail for the wrong reason the next time that changes.
         ConnectionString(sp.GetRequiredService<IPatternStore>()).Should().NotBe(
-            "Filename=pinning-patterns.db",
+            LiteDbConnectionString.ForSharedAccess("pinning-patterns.db"),
             "the observation pipeline owns the path when active, and it roots it at the repo");
     }
 
@@ -140,7 +144,7 @@ public sealed class KernelDiCompositionProdStyleTests : IDisposable
             o => o.PatternStorePath = "pinning-patterns.db");
 
         ConnectionString(sp.GetRequiredService<IPatternStore>()).Should().Be(
-            "Filename=pinning-patterns.db",
+            LiteDbConnectionString.ForSharedAccess("pinning-patterns.db"),
             "with the pipeline off, adaptation registers the store and uses the path verbatim");
     }
 
