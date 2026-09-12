@@ -24,11 +24,17 @@ namespace Ashlar.Tests.Orchestration.Routing;
 /// <summary>Tests for endpoint health monitor.</summary>
 public sealed class EndpointHealthMonitorTests
 {
+    /// <summary>
+    /// Upper bound for waiting on a probe that is expected to happen. A hang net, not a budget: a
+    /// genuine bug (the warning is never logged) fails fast with a TimeoutException instead of
+    /// hanging into the blame timeout.
+    /// </summary>
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(30);
+
     [Fact]
     public async Task ExecuteAsync_HealthyProbe_UpdatesRegistryTrue()
     {
         await using var fixture = await GrpcServerFixture.StartAsync(health: true);
-        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
 
         var registry = new TestEndpointRegistry([
             new EndpointDescriptor(
@@ -59,7 +65,6 @@ public sealed class EndpointHealthMonitorTests
     [Fact]
     public async Task ExecuteAsync_UnhealthyProbe_UpdatesRegistryFalse_AndLogsWarning()
     {
-        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var endpoint = "http://127.0.0.1:6551";
         var registry = new TestEndpointRegistry([
             new EndpointDescriptor(
@@ -99,7 +104,6 @@ public sealed class EndpointHealthMonitorTests
     [Fact]
     public async Task ExecuteAsync_UnhealthyProbe_DoesNotLogBeforeThreshold()
     {
-        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var endpoint = "http://127.0.0.1:6552";
         var registry = new TestEndpointRegistry([
             new EndpointDescriptor(
@@ -143,7 +147,6 @@ public sealed class EndpointHealthMonitorTests
     [Fact]
     public async Task ExecuteAsync_CancellationRequested_StopsPromptly()
     {
-        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var registry = new TestEndpointRegistry([]);
         using var transport = CreateGrpcTransport();
         var monitor = new EndpointHealthMonitor(
@@ -163,7 +166,6 @@ public sealed class EndpointHealthMonitorTests
     [Fact]
     public async Task ExecuteAsync_SkipsEndpointsWithBlankUri()
     {
-        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var registry = new TestEndpointRegistry([
             new EndpointDescriptor(
                 Endpoint: "   ",
@@ -193,7 +195,6 @@ public sealed class EndpointHealthMonitorTests
     [Fact]
     public async Task ExecuteAsync_WhenUpdateHealthThrows_LogsWarningAfterThreshold()
     {
-        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         await using var fixture = await GrpcServerFixture.StartAsync(health: true);
         var registry = new ThrowingUpdateEndpointRegistry([
             new EndpointDescriptor(
@@ -208,6 +209,23 @@ public sealed class EndpointHealthMonitorTests
 
         using var transport = CreateGrpcTransport();
         var logger = new Mock<ILogger<EndpointHealthMonitor>>();
+
+        // The warning itself is the signal. The 2.5 second sleep this replaces was defended in a
+        // comment claiming it was not load-bearing because StopAsync joins ExecuteAsync, whose
+        // first statement awaits ProbeAllAsync -- but StopAsync CANCELS before it joins, and
+        // ProbeAllAsync returns without logging when the token trips mid-probe
+        // (EndpointHealthMonitor.cs, `catch (OperationCanceledException) when (...) return;`). The
+        // sleep was the only thing keeping the first probe ahead of the cancellation.
+        var warned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        logger
+            .Setup(x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Callback(() => warned.TrySetResult());
+
         var monitor = new EndpointHealthMonitor(
             registry,
             transport,
@@ -219,12 +237,7 @@ public sealed class EndpointHealthMonitorTests
             logger.Object);
 
         await monitor.StartAsync(CancellationToken.None);
-        // Times.AtLeastOnce is not gated on this sleep: StopAsync joins ExecuteAsync, whose first
-        // statement awaits ProbeAllAsync (EndpointHealthMonitor.cs:62), and every exit of that
-        // iteration logs a warning -- GrpcAgentTransport.CheckEndpointHealthAsync
-        // (GrpcAgentTransport.cs:141-169) swallows every exception into IsHealthy:false. The sleep
-        // only buys extra probe iterations, it does not decide whether the warning happens.
-        await Task.Delay(2500);
+        await warned.Task.WaitAsync(ProbeTimeout);
         await monitor.StopAsync(CancellationToken.None);
 
         logger.Verify(
@@ -240,7 +253,6 @@ public sealed class EndpointHealthMonitorTests
     [Fact]
     public async Task ExecuteAsync_WithoutGrpcTransport_StaysIdle_AndDoesNotTouchRegistry()
     {
-        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var registry = new TestEndpointRegistry([
             new EndpointDescriptor(
                 Endpoint: "http://127.0.0.1:6553",
@@ -314,12 +326,27 @@ public sealed class EndpointHealthMonitorTests
         }
     }
 
+    /// <summary>
+    /// Builds the transport these tests probe with, without touching process-global state.
+    ///
+    /// <para>Seven tests in this class used to wrap themselves in a scope that set
+    /// <c>DOTNET_ENVIRONMENT=Development</c>, the only reason being that
+    /// <c>GrpcTransportOptions.Validate</c> refuses <c>AllowInsecure</c> outside development. That
+    /// variable is per-PROCESS; this assembly has no <c>xunit.runner.json</c> and no collection
+    /// definitions, so xUnit runs its test classes in parallel and every one of them saw
+    /// Development for as long as a scope was open. Restoring the value on dispose does nothing
+    /// about a concurrent reader, and one of those scopes was held across a 2.5 second wait. That
+    /// is the shape behind the gRPC transport flakes fixed in #581, whose
+    /// <c>GrpcTransportEnvironmentCollection</c> still carries the note. Because
+    /// <c>DefaultGrpcChannelFactory</c> already had an internal constructor taking the flag
+    /// directly, the fix is to stop mutating the global rather than to serialize around it.</para>
+    /// </summary>
     private static GrpcAgentTransport CreateGrpcTransport()
     {
         var factory = new DefaultGrpcChannelFactory(
-            Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
-            NullLogger<DefaultGrpcChannelFactory>.Instance);
-        /// <summary>Grpc agent transport.</summary>
+            new GrpcTransportOptions { AllowInsecure = true },
+            NullLogger<DefaultGrpcChannelFactory>.Instance,
+            isDevelopment: true);
         return new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
     }
 
@@ -444,22 +471,4 @@ public sealed class EndpointHealthMonitorTests
                 DiagnosticMessage: _healthy ? "ok" : "down"));
     }
 
-    /// <summary>Environment variable scope.</summary>
-    private sealed class EnvironmentVariableScope : IDisposable
-    {
-        private readonly string _key;
-        private readonly string? _prior;
-
-        public EnvironmentVariableScope(string key, string? value)
-        {
-            _key = key;
-            _prior = Environment.GetEnvironmentVariable(key);
-            Environment.SetEnvironmentVariable(key, value);
-        }
-
-        public void Dispose()
-        {
-            Environment.SetEnvironmentVariable(_key, _prior);
-        }
-    }
 }

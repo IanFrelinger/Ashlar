@@ -22,4 +22,10 @@
   <ItemGroup>
     <Protobuf Include="Protos\agent_transport.proto" GrpcServices="Both" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- So routing tests can pass isDevelopment to DefaultGrpcChannelFactory directly, instead of
+         forcing the whole test PROCESS into Development through DOTNET_ENVIRONMENT. -->
+    <InternalsVisibleTo Include="Ashlar.Tests.Orchestration" />
+  </ItemGroup>
 </Project>

@@ -634,7 +634,7 @@ public sealed class ImproveCommand : Command
             patternStore,
             loggerFactory.CreateLogger<PatternDetector>());
 
-        var fileSource = new FileSystemEventSource(
+        using var fileSource = new FileSystemEventSource(
             watchPaths,
             repoRoot,
             new[] { "*" },
@@ -644,7 +644,9 @@ public sealed class ImproveCommand : Command
             repoRoot,
             TimeSpan.FromSeconds(2),
             loggerFactory.CreateLogger<ProcessEventSource>());
-        var compositeSource = new CompositeEventSource(new IObservableEventSource[] { fileSource, processSource });
+        var compositeSource = new CompositeEventSource(
+            new IObservableEventSource[] { fileSource, processSource },
+            loggerFactory.CreateLogger<CompositeEventSource>());
 
         using var observeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         observeCts.CancelAfter(duration);

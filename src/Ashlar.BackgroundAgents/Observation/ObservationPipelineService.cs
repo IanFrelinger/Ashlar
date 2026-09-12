@@ -61,7 +61,11 @@ public sealed class ObservationPipelineService : BackgroundService
             _patternStore,
             _loggerFactory.CreateLogger<PatternDetector>());
 
-        var fileSource = new FileSystemEventSource(
+        // Disposing the file source is only safe because CompositeEventSource joins its children
+        // before SubscribeAsync returns: the watchers are already torn down by the time this
+        // using runs, and a callback that slipped through is a dropped TryWrite rather than an
+        // exception on a thread with no handler above it.
+        using var fileSource = new FileSystemEventSource(
             watchPaths,
             projectPath,
             _options.FileFilters,
@@ -71,7 +75,9 @@ public sealed class ObservationPipelineService : BackgroundService
             projectPath,
             TimeSpan.FromSeconds(2),
             _loggerFactory.CreateLogger<ProcessEventSource>());
-        var compositeSource = new CompositeEventSource(new IObservableEventSource[] { fileSource, processSource });
+        var compositeSource = new CompositeEventSource(
+            new IObservableEventSource[] { fileSource, processSource },
+            _loggerFactory.CreateLogger<CompositeEventSource>());
 
         _logger.LogInformation("Observation pipeline started. Watching {Count} path(s) under {Root}", watchPaths.Count, repoRoot);
 

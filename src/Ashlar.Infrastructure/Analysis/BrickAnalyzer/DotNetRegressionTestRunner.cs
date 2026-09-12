@@ -84,7 +84,17 @@ public sealed class DotNetRegressionTestRunner : IRegressionTestRunner
         }
     }
 
-    private static (int Passed, int Failed) ParseDotnetTestOutput(string output)
+    /// <summary>
+    /// Extracts the pass/fail counts from a <c>dotnet test</c> transcript.
+    /// </summary>
+    /// <remarks>
+    /// Internal rather than private so it can be unit tested against captured transcripts. The
+    /// alternative — driving the whole runner at a real solution — spawns a vstest host per test
+    /// assembly per target framework, and every assertion such a test can make is already
+    /// satisfied by the catch-all in <see cref="RunAsync"/>, which returns 0/0 for a
+    /// <c>dotnet</c> that is missing, a tree that is not built, or a filter matching nothing.
+    /// </remarks>
+    internal static (int Passed, int Failed) ParseDotnetTestOutput(string output)
     {
         var passedMatch = Regex.Match(output, @"Passed!\s*-\s*Failed:\s*\d+,\s*Passed:\s*(\d+)");
         var failedMatch = Regex.Match(output, @"Failed!\s*-\s*Failed:\s*(\d+)");

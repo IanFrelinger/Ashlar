@@ -124,7 +124,7 @@ public sealed class ObserveCommand : Command
             patternStore,
             loggerFactory.CreateLogger<PatternDetector>());
 
-        var fileSource = new FileSystemEventSource(
+        using var fileSource = new FileSystemEventSource(
             watchPaths,
             repoRoot,
             new[] { "*" },
@@ -134,7 +134,9 @@ public sealed class ObserveCommand : Command
             repoRoot,
             TimeSpan.FromSeconds(2),
             loggerFactory.CreateLogger<ProcessEventSource>());
-        var compositeSource = new CompositeEventSource(new IObservableEventSource[] { fileSource, processSource });
+        var compositeSource = new CompositeEventSource(
+            new IObservableEventSource[] { fileSource, processSource },
+            loggerFactory.CreateLogger<CompositeEventSource>());
 
         using var cts = new CancellationTokenSource();
         if (maxDuration != TimeSpan.MaxValue)
