@@ -12,13 +12,38 @@ public sealed class InMemoryFleetNodeRegistry : IFleetNodeRegistry
     private readonly ConcurrentDictionary<string, MeshFleetNodeState> _nodes = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    /// <summary>Register or update async operation.</summary>
-    public async Task RegisterOrUpdateAsync(MeshFleetNodeState node, CancellationToken cancellationToken = default)
+    /// <summary>Register or merge async operation.</summary>
+    /// <param name="peerId">Worker peer id.</param>
+    /// <param name="merge">Builds the document from the stored one (null when new), under this registry's lock.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The state that was written.</returns>
+    public async Task<MeshFleetNodeState> RegisterOrMergeAsync(
+        string peerId,
+        Func<MeshFleetNodeState?, MeshFleetNodeState> merge,
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(peerId))
+            throw new ArgumentException("peerId is required.", nameof(peerId));
+        if (merge is null)
+            throw new ArgumentNullException(nameof(merge));
+
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            _nodes[node.PeerId] = node;
+            _nodes.TryGetValue(peerId, out var current);
+            var next = merge(current);
+            if (next is null)
+                throw new InvalidOperationException("the merge returned null; it must return the document to store.");
+            if (!string.Equals(next.PeerId, peerId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"a fleet node merge may not change PeerId ('{peerId}' -> '{next.PeerId}'). "
+                    + "The LiteDB registry addresses the write by the id the read used; this store "
+                    + "refuses the same shape so the two implementations cannot diverge.");
+            }
+
+            _nodes[next.PeerId] = next;
+            return next;
         }
         finally
         {

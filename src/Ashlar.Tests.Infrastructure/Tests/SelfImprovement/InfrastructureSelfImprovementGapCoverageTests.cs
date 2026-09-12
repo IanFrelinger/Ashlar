@@ -230,8 +230,7 @@ public class InfrastructureSelfImprovementGapCoverageTests
             .ReturnsAsync(Array.Empty<ObservedPattern>());
 
         var processed = new Mock<IPatternProcessedStore>();
-        processed.Setup(s => s.IsProcessedAsync("pat-1", It.IsAny<CancellationToken>())).ReturnsAsync(false);
-        processed.Setup(s => s.MarkProcessedAsync("pat-1", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        processed.Setup(s => s.TryClaimAsync("pat-1", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var loop = BuildLoop(
             failures: [],
@@ -246,7 +245,10 @@ public class InfrastructureSelfImprovementGapCoverageTests
 
         var report = await loop.GetLastRunReportAsync();
         report!.PatternsProcessed.Should().Be(1);
-        processed.Verify(s => s.MarkProcessedAsync("pat-1", It.IsAny<CancellationToken>()), Times.Once);
+        // The claim is taken once, up front, instead of marked at whichever of eight exits the
+        // iteration happened to take.
+        processed.Verify(s => s.TryClaimAsync("pat-1", It.IsAny<CancellationToken>()), Times.Once);
+        processed.Verify(s => s.IsProcessedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     /// <summary>Sample failure.</summary>

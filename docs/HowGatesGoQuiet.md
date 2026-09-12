@@ -319,6 +319,70 @@ is somewhere else and belongs written down. A framework-boundary API is worth on
 trust its exception contract: lazy factories, `TryParse`-shaped methods that swallow, and readers
 that defer I/O to first use are all places where the exception you catch is thrown somewhere your
 `try` no longer covers.
+## 11. The positive control cannot fail
+
+Section 4 says to include a positive control wherever the interesting assertions are all refusals.
+A control that is **arithmetically always true** satisfies that instruction and measures nothing,
+and it is harder to spot than a missing control because the failure message reads exactly like a
+real one.
+
+`MeshTaskWriteRaceTests.The_sweep_leaves_a_renewed_lease_alone` raced the lease sweep against a
+worker renewing the leases it was walking, asserted that no task was told BOTH "renewed" and
+"invalid token", and carried:
+
+```csharp
+(reclaimed + renewed).Should().Be(
+    SweepKeys,
+    "the positive control: every seeded task must have been decided one way or the other.");
+```
+
+`reclaimed` and `renewed` are incremented in an `if`/`else` exactly once per element of a list
+seeded with exactly `SweepKeys` entries, so that assertion is `tokens.Count == SweepKeys`. It
+cannot fail. Both degenerate ends of the race then produced an empty contradiction list and a
+green test: `SweepEnabled = false` — **the shipped default** — and an `ExtendLeaseAsync` that
+refuses everything.
+
+**Closed by** two deterministic uncontended phases that run before the race: one expired lease the
+sweep must actually reclaim, and one live lease an extension must actually be granted on with its
+token intact. Both were shown red under exactly those two mutations. The vacuous assertion is kept,
+relabelled as the sanity check it is, so nobody re-promotes it.
+
+**The habit this needs:** a control is only a control if you can name the state that makes it fail
+and then produce that state. If the answer is "nothing could make this assertion fail", it is
+decoration. Derive a control from the thing under test, never from the test's own arrangement.
+
+---
+
+## 12. The gate freezes the spelling of the fix, not the thing the fix does
+
+An inventory test can be complete, have both its facts, drive its own classifier, and still be
+checking a word rather than a property.
+
+#602 wrapped every store-level read-modify-write in `LiteDbAtomic.Mutate`, and
+`Every_inventoried_read_modify_write_opens_a_transaction` asked whether each inventoried member's
+text **contained** `LiteDbAtomic.Mutate`. Hoisting the read and the transform ABOVE the call and
+leaving only the write inside it satisfies that question exactly, and restores the lost update.
+Measured in the container with that mutation applied to `LiteDbMeshTaskRegistry.UpdateAsync`: the
+spelling-only version was **11 of 11 green**, and three of the four contended fleet facts went red —
+so the window is real, and the guard could not see it.
+
+The same PR did it again one layer up. #604's ports removed
+`IMeshTaskRegistry.UpdateAsync(MeshTaskState)` and its sibling, and the durability claim was "no
+unconditional overload is left, so the compiler finds any attempt to write the old shape". That is
+the old **signature**, not the old shape: `UpdateAsync(task.TaskId, _ => task)` writes a
+caller-held snapshot through the new port, compiles, and restores the measured loss of 313 updates
+in 400. The repository's own test arrange shim is that exact expression.
+
+**Closed by** checking the property instead of the word. Every read and every write on a collection
+local must fall inside the *argument list* of one of the member's `Mutate` calls — bracket-matched,
+with string literals and comments excluded, and the region finder driven by its own fact on five
+fragments including a decoy empty transaction and the helper's name inside a comment. And every
+transform handed to those ports must name its parameter and read it.
+
+**The habit this needs:** after writing a convention test, write down the sentence it actually
+asserts. If that sentence contains the name of the fix rather than the behaviour of the fix, a
+refactor that keeps the name and drops the behaviour is green. Then mutate in exactly that
+direction — keep the call, move the work — and watch.
 
 ---
 
@@ -326,7 +390,8 @@ that defer I/O to first use are all places where the exception you catch is thro
 
 1. Has it ever produced a run **with jobs in it**? (Section 1.)
 2. Did it run on the last commit that should have triggered it? (Section 3.)
-3. Does it assert on output, with a positive control? (Section 4.)
+3. Does it assert on output, with a positive control? (Section 4.) Can you name a state in which
+   that control FAILS, and produce it? (Section 11.)
 4. Does a deliberate break make it fail? **Mutate and measure** — revert the fix, keep the test, and
    watch it go red. This repository has shipped a fix that did not fix the thing twice.
 5. If it is not required, is it green on `master` right now? (Section 2.)
@@ -336,6 +401,9 @@ that defer I/O to first use are all places where the exception you catch is thro
    edited? **Mutate outside the fix, not inside it.** (Section 12.)
 8. For each guard inside it: is there a test whose input reaches that guard, and does disabling
    the guard turn that test red? (Section 13.)
+5. Write down the sentence the check asserts. Does it name the fix, or the behaviour of the fix?
+   Then mutate in the direction that keeps the name and drops the behaviour. (Section 12.)
+6. If it is not required, is it green on `master` right now? (Section 2.)
 
 ## Before you record a premise
 
