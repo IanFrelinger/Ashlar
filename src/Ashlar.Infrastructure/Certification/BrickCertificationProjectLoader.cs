@@ -69,18 +69,23 @@ public static class BrickCertificationProjectLoader
         };
     }
 
+    /// <summary>
+    /// The brick-authoring assemblies a candidate is compiled against. The anchor TYPES are declared
+    /// once, in <see cref="CertifierReferenceSet.BrickAuthoringAnchors"/>, and shared with the
+    /// self-extend compile check and post-apply canary — two copies of an anchor list drift, and the
+    /// three stages must judge against the same authoring surface or their verdicts are not
+    /// comparable. The paths below are the same three assemblies in the same order as before.
+    /// </summary>
     internal static List<string> DefaultCompilationReferences()
     {
         var refs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Add(string? path)
+        foreach (var anchor in CertifierReferenceSet.BrickAuthoringAnchors)
         {
+            var path = anchor.Assembly.Location;
             if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
                 refs.Add(path);
         }
 
-        Add(typeof(DomainBrick).Assembly.Location);
-        Add(typeof(BrickInput).Assembly.Location);
-        Add(typeof(IExecutionContext).Assembly.Location);
         return refs.ToList();
     }
 
