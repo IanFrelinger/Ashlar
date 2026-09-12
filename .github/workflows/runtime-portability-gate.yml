@@ -99,11 +99,18 @@ jobs:
     name: net9.0 runtime ← lib/net8.0 asset (execute)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      NET9_PROBE_WORKDIR: ${{ runner.temp }}/net9-probe
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      # RUNNER_TEMP is only reachable from inside a step. A job-level `env:` that reads
+      # `${{ runner.temp }}` is not a warning: GitHub refuses the whole workflow file, the run
+      # is created with ZERO jobs, and no check is posted to the pull request — which is how
+      # every lane in this file sat inert from the day it was written. See
+      # scripts/ci/verify-workflow-context-availability.sh, which now refuses the shape.
+      - name: Probe workdir
+        shell: bash
+        run: echo "NET9_PROBE_WORKDIR=${RUNNER_TEMP}/net9-probe" >> "$GITHUB_ENV"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -185,11 +192,18 @@ jobs:
           - trim-full
           - trim-full-reflection-on
           - aot
-    env:
-      TRIM_AOT_PROBE_WORKDIR: ${{ runner.temp }}/trim-aot-probe
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      # RUNNER_TEMP is only reachable from inside a step. A job-level `env:` that reads
+      # `${{ runner.temp }}` is not a warning: GitHub refuses the whole workflow file, the run
+      # is created with ZERO jobs, and no check is posted to the pull request — which is how
+      # every lane in this file sat inert from the day it was written. See
+      # scripts/ci/verify-workflow-context-availability.sh, which now refuses the shape.
+      - name: Probe workdir
+        shell: bash
+        run: echo "TRIM_AOT_PROBE_WORKDIR=${RUNNER_TEMP}/trim-aot-probe" >> "$GITHUB_ENV"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -267,11 +281,18 @@ jobs:
     name: netstandard2.0 asset under Mono (execute)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      NS20_PROBE_WORKDIR: ${{ runner.temp }}/ns20-probe
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      # RUNNER_TEMP is only reachable from inside a step. A job-level `env:` that reads
+      # `${{ runner.temp }}` is not a warning: GitHub refuses the whole workflow file, the run
+      # is created with ZERO jobs, and no check is posted to the pull request — which is how
+      # every lane in this file sat inert from the day it was written. See
+      # scripts/ci/verify-workflow-context-availability.sh, which now refuses the shape.
+      - name: Probe workdir
+        shell: bash
+        run: echo "NS20_PROBE_WORKDIR=${RUNNER_TEMP}/ns20-probe" >> "$GITHUB_ENV"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
