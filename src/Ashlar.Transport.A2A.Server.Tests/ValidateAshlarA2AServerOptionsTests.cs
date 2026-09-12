@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Ashlar.Transport.A2A.Server.Tests;
 
+[Collection(DeploymentProfileEnvironmentCollection.Name)]
 public sealed class ValidateAshlarA2AServerOptionsTests
 {
     private static readonly ValidateAshlarA2AServerOptions Validator = new();
