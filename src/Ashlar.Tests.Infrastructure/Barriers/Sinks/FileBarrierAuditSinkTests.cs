@@ -205,7 +205,20 @@ public sealed class FileBarrierAuditSinkTests
         Directory.Exists(missingDir).Should().BeFalse();
         await sink.WriteAsync(CreateEvent(9));
 
-        await WaitUntilAsync(() => Directory.Exists(missingDir), TimeSpan.FromSeconds(10));
+        // Wait for the FILE, not for the directory. The sink creates the directory and then
+        // writes into it, so `Directory.Exists` becomes true strictly before the first audit file
+        // does — waiting on it returns during the gap and the assertion below then reads an empty
+        // directory. That is what failed on master (Full Platform Readiness Gate run 34687917934:
+        // "Expected collection not to be empty"), and it is why every sibling test in this file
+        // waits through WaitForMinimumLinesAsync, which polls the thing it is about to assert.
+        // The directory is still asserted, but as a consequence of the file arriving rather than
+        // as a proxy for it.
+        await WaitUntilAsync(
+            () => GetAuditFiles(missingDir, "audit-barriers").Length > 0,
+            IoWait,
+            "an audit file to appear under the directory the sink had to create");
+
+        Directory.Exists(missingDir).Should().BeTrue();
         GetAuditFiles(missingDir, "audit-barriers").Should().NotBeEmpty();
     }
 
@@ -330,7 +343,20 @@ public sealed class FileBarrierAuditSinkTests
         return lines;
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
+    /// <summary>
+    /// Polls until <paramref name="condition"/> holds, then fails naming what it was waiting for.
+    /// </summary>
+    /// <param name="condition">
+    /// Must be the SAME predicate the caller is about to assert. A weaker one — waiting for a
+    /// directory and asserting about its contents — returns during the gap between them and turns
+    /// a timing problem into a confusing assertion failure somewhere else.
+    /// </param>
+    /// <param name="timeout">How long to poll before failing.</param>
+    /// <param name="description">
+    /// What is being waited for, in the message. "condition should complete within timeout" tells
+    /// a reader of a CI log nothing about which of this file's several waits gave up.
+    /// </param>
+    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout, string? description = null)
     {
         var sw = Stopwatch.StartNew();
         while (sw.Elapsed < timeout)
@@ -343,6 +369,9 @@ public sealed class FileBarrierAuditSinkTests
             await Task.Delay(25);
         }
 
-        condition().Should().BeTrue("condition should complete within timeout {0}", timeout);
+        condition().Should().BeTrue(
+            "timed out after {0} waiting for {1}",
+            timeout,
+            description ?? "the condition");
     }
 }
