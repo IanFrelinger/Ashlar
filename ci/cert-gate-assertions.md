@@ -2,6 +2,9 @@
 
 **Read this before you switch off a required check.**
 
+> See also `docs/HowGatesGoQuiet.md`: the failure modes in which a check stops measuring
+> anything without going red. A mute is only the loudest of them.
+
 `cert-gate` is **one of five required status checks on `master`** (the others are `build-core`, `shell-lint`, `lychee (README + docs)`, and `Readiness summary`; see `CONTRIBUTING.md` and `docs/GitHubBranchProtection.md`). It runs on every pull request with **no path filter**, and it selects tests by substring from `scripts/cert-gate-config.sh:6`:
 
 ```
