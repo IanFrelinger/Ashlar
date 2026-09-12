@@ -22,7 +22,7 @@ echo "== Ship Tier A: host DI smoke =="
 dotnet build "$INFRA_TESTS" -f net8.0 -v minimal
 ASHLAR_ALLOW_MOCK=1 dotnet test "$INFRA_TESTS" -f net8.0 --no-build \
   --filter "FullyQualifiedName~HostingE2ESmokeTests.AddAshlar_RegistersObservationPipeline_ByDefault|FullyQualifiedName~PipelineServiceCollectionExtensionsTests.AddAshlar_RegistersPipelineCompositionLayerByDefault" \
-  --blame-hang-timeout 120s --blame-hang-dump-type none
+  --blame-hang-timeout 180s --blame-hang-dump-type none
 
 TMP="$(mktemp -d)"
 export TMP

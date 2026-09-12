@@ -16,7 +16,7 @@ dotnet test "$INFRA" -f net8.0 --no-build \
 echo "== Compat Tier C: hosting profile resolution =="
 dotnet test "$INFRA" -f net8.0 --no-build \
   --filter "FullyQualifiedName~KernelPhaseResolutionTests" \
-  --blame-hang-timeout 120s --blame-hang-dump-type none
+  --blame-hang-timeout 180s --blame-hang-dump-type none
 
 echo "== Compat Tier C: doctor smoke =="
 dotnet build "$CLI" -v minimal >/dev/null

@@ -87,7 +87,7 @@ jobs:
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 180s \
+            --blame-hang-timeout 450s \
             --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=smoke-${{ matrix.os }}.trx" \
@@ -106,7 +106,7 @@ jobs:
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 600s \
+            --blame-hang-timeout 900s \
             --filter "Category=Playground" \
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=playground-infra-${{ matrix.os }}.trx" \
@@ -125,7 +125,7 @@ jobs:
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 120s \
+            --blame-hang-timeout 180s \
             --filter "FullyQualifiedName~Dogfood" \
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=dogfood-${{ matrix.os }}.trx" \
@@ -137,7 +137,7 @@ jobs:
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 60s \
+            --blame-hang-timeout 720s \
             --filter "Category=Integration" \
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=integration-${{ matrix.os }}.trx" \
@@ -161,7 +161,7 @@ jobs:
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 180s \
+            --blame-hang-timeout 900s \
             --filter "Category=E2E" \
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=e2e-${{ matrix.os }}.trx" \
@@ -185,7 +185,7 @@ jobs:
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 60s \
+            --blame-hang-timeout 180s \
             --filter "FullyQualifiedName~Trust" \
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=trust-infra-${{ matrix.os }}.trx" \
@@ -204,7 +204,7 @@ jobs:
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 120s \
+            --blame-hang-timeout 900s \
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=full-${{ matrix.os }}.trx" \
             --results-directory test-results

@@ -89,10 +89,22 @@ public sealed class CiCommand : Command
         }
 
         // Step 2: Production-like integration (real DI graphs / hosts; fail fast before lighter smoke)
+        //
+        // The blame window has to clear the WIDEST per-test timeout in what this filter selects,
+        // and most ProdStyle classes use TestTimeouts.HostTouching (480s). At the 120s this used
+        // to pass, a stalled ProdStyle test could never fail as a timeout: the host was killed
+        // first, taking every already-recorded result with it. Kept equal to
+        // ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds, and frozen from both sides:
+        // TimeoutConventionTests fails if the two drift, and LaneBlameWindowConventionTests
+        // measures this window against the real per-test deadlines its filter selects — reading
+        // the [Fact(Timeout = ...)] values themselves rather than the TestTimeouts constants, so
+        // a timeout written as a bare literal cannot slip under it. The 30s on the smoke step
+        // below survives that check on its own evidence: BaseFrameworkSmokeTests carry no
+        // deadline anywhere near it.
         Console.WriteLine("=== CI Verify: Production-like tests (ProdStyle, FluentAssertions-safe filter) ===");
         var prodStyleExit = await RunProcessAsync(
             "dotnet",
-            $"test \"{infraTestsProject}\" -f net8.0 --no-build --blame-hang-timeout 120s --blame-hang-dump-type none --filter \"Category=ProdStyle&FullyQualifiedName!~ForgeEndpointsTests&FullyQualifiedName!~FrameworkVirtualProdDemosTests\" --verbosity minimal",
+            $"test \"{infraTestsProject}\" -f net8.0 --no-build --blame-hang-timeout 900s --blame-hang-dump-type none --filter \"Category=ProdStyle&FullyQualifiedName!~ForgeEndpointsTests&FullyQualifiedName!~FrameworkVirtualProdDemosTests\" --verbosity minimal",
             repoRoot);
         if (prodStyleExit != 0)
         {

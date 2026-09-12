@@ -332,7 +332,7 @@ jobs:
           dotnet build src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj -v minimal
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             --no-build \
-            --blame-hang-timeout 180s \
+            --blame-hang-timeout 450s \
             --blame-hang-dump-type none \
             --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
             --logger "console;verbosity=minimal" \
@@ -434,7 +434,7 @@ jobs:
               dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
                 -f net10.0 \
                 --no-build \
-                --blame-hang-timeout 180s \
+                --blame-hang-timeout 450s \
                 --blame-hang-dump-type none \
                 --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
                 --logger "console;verbosity=minimal" \

@@ -10,20 +10,43 @@ Ashlar uses multiple mechanisms to prevent tests from hanging indefinitely and k
 
 | Scope | blame-hang-timeout | Per-test timeout | Notes |
 |-------|--------------------|------------------|-------|
-| prime-time | 300s | varies | **`Ashlar.PrimeTime.slnf`** — ProdStyle then full (`make test-prime-time` / `make test-prime-time-full`) |
-| prod-style | 120s | varies | **Category=ProdStyle** — Infrastructure-only (`make test-prod-style`) |
-| smoke | 30s | — | BaseFrameworkSmokeTests; local `make test` |
+| prime-time | 720s ProdStyle / 900s full | up to 600s | **`Ashlar.PrimeTime.slnf`** — ProdStyle then full (`make test-prime-time` / `make test-prime-time-full`) |
+| prod-style | 720s | up to 480s (`TestTimeouts.HostTouching`) | **Category=ProdStyle** — Infrastructure-only (`make test-prod-style`) |
+| smoke | 30s | — | BaseFrameworkSmokeTests; `ashlar ci verify` smoke step, `scripts/validate-safe.sh` |
 | integration | 60s | 15s (Integration tests) | Category=Integration |
 | persistence | 60s | — | InMemoryPersistenceTests |
 | adaptation | 90s | — | Category=Adaptation (LiteDB, Roslyn, MSBuild) |
 | e2e | 90s | — | Category=E2E |
 | trust | 60s | — | Trust tests (Infrastructure + BackgroundAgents) |
-| full | 120s | — | All Ashlar.Tests.Infrastructure tests |
+| full | 900s | up to 600s | `make test` — whole `Ashlar.sln`, so the 600_000 ms literal on `RuntimeStudioBlackBoxPlaygroundTests` is inside it |
+| `ashlar ci verify` / `ashlar validate` | 900s | up to 600s | `ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds`. Sweeps every discovered test project, so its window must clear the widest per-test net in any of them |
+
+**The window must be wider than the deadline inside it.** A per-test timeout only fires if the
+harness lets the test live long enough to reach it; below that, every stall is a host kill that
+discards the whole run's results and names no failing test. The validate sweep ran a 120s window
+over tests bounded at up to 600s, and twice on the macOS lane that turned a stall in one test into
+~1900 discarded results.
+
+`LaneBlameWindowConventionTests` enforces this for **every** lane rather than for a list of them.
+It lives in the `Certification` namespace, so cert-gate runs it. It reads the per-test deadlines by
+reflecting over the real `[Fact(Timeout = ...)]` values in `Ashlar.Tests.Infrastructure` — not the
+`TestTimeouts` constants, because a deadline written as a bare literal is not a constant and was
+invisible to the first version of this check — and it reads the windows by parsing every
+`dotnet test` invocation in the `Makefile`, `scripts/`, `.github/workflows/` and the CLI lanes that
+build their arguments as C# strings, then evaluating each lane's own `--filter` against that
+reflected set. The required relation is **window ≥ 1.5 × the widest deadline the lane selects**.
+Its one blind spot is stated in the test: reflection reaches only the framework the suite is
+running under, so a lane pinned to the other TFM is left to the run that happens there, and
+cert-gate runs net8.0.
+
+`TimeoutConventionTests` keeps the narrower complementary facts: E2E and ProdStyle tests must carry
+an explicit timeout at all, no `TestTimeouts` constant may reach the validate window, and both
+broad-sweep lanes must spell that window as the checked constant.
 
 ### Where Timeouts Are Applied
 
-- **Makefile `make test`**: `--blame-hang-timeout 30s --blame-hang-dump-type none` (avoids 6GB+ hang dumps)
-- **Makefile `test-all-platforms`**: Local 30s; Docker runs 60s
+- **Makefile `make test`**: `--blame-hang-timeout 900s --blame-hang-dump-type none` (the `none` avoids 6GB+ hang dumps; the 900s is what the whole solution's widest per-test deadline requires)
+- **Makefile `test-all-platforms`**: Local 900s; Docker runs 60s over `BaseFrameworkSmokeTests` only
 - **CI (cross-platform-tests.yml)**: Per-scope as above
 - **TestCommandRunner**: 10 min global timeout for `ashlar test local`
 - **TestRunnerAdapter**: 480s per-test hang net for TestBase-based tests (sized to survive coverlet-instrumented CI runs; see `docs/production-readiness/KernelCoverageGate-Findings.md`)

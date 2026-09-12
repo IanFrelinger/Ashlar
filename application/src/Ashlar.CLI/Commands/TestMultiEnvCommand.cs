@@ -234,7 +234,7 @@ public class TestMultiEnvCommand
 
             var logFile = Path.Combine(logBaseDir, $"{env}-adaptation.log");
             var projectPath = "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj";
-            var testArgs = $"test \"{projectPath}\" --filter \"{filter}\" --blame-hang-timeout 90s --blame-hang-dump-type none --logger \"console;verbosity=minimal\" --logger \"trx;LogFileName={env}-adaptation.trx\" --results-directory /workspace/test-results";
+            var testArgs = $"test \"{projectPath}\" --filter \"{filter}\" --blame-hang-timeout 900s --blame-hang-dump-type none --logger \"console;verbosity=minimal\" --logger \"trx;LogFileName={env}-adaptation.trx\" --results-directory /workspace/test-results";
             var volMount = ephemeral ? "" : (isWindows ? $" -v \"{resultsDir}\":C:\\workspace\\test-results" : $" -v \"{resultsDir}\":/workspace/test-results");
             var networkOpt = noNetwork ? " --network none" : "";
             string runCmd;
