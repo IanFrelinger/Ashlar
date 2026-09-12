@@ -20,6 +20,7 @@ namespace Ashlar.Transport.A2A.Server.Tests;
 /// in-process <see cref="IAgentTransport"/>. One test covers both adapter directions plus the
 /// scheme convention end to end; the others pin discovery and fail-closed behavior.
 /// </summary>
+[Collection(DeploymentProfileEnvironmentCollection.Name)]
 public sealed class A2AServerRoundTripTests
 {
     private sealed class FakeCatalog : IAshlarA2AAgentCatalog

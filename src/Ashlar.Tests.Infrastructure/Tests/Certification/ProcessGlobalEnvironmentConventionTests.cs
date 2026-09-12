@@ -96,7 +96,6 @@ public sealed class ProcessGlobalEnvironmentConventionTests
         "src/Ashlar.Tests.Infrastructure/Tests/Pipelines/PipelineServiceCollectionExtensionsTests.cs",
         "src/Ashlar.Tests.Infrastructure/Tests/Policies/BuildTestBudgetGapCoverageTests.cs",
         "src/Ashlar.Tests.Infrastructure/Tests/SDK/InfrastructureSdkGapCoverageTests.cs",
-        "src/Ashlar.Transport.A2A.Server.Tests/ValidateAshlarA2AServerOptionsTests.cs",
         "src/Ashlar.Transport.A2A.Tests/ValidateA2ATransportOptionsTests.cs",
     };
 
