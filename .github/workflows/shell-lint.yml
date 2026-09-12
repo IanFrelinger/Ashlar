@@ -1,9 +1,17 @@
-# Cheap static lint for repository shell scripts: `bash -n` (parse errors) plus
+# Cheap static lint for repository shell scripts AND for the workflow files themselves:
+# `bash -n` (parse errors) plus
 # `shellcheck -S error` (semantic errors only, no style noise). Runs in seconds on
 # every PR that touches scripts/ so parse-level breakage never has to wait for a
 # weekly or manual gate to surface. Note: neither tool catches a call to an
 # undefined function (e.g. a misspelled helper name) - that class only fails at
 # runtime, so keep the mesh-lab / ops gates as the executable check.
+#
+# The third step is here for the same reason the first two are: it catches a parse-level fault
+# that would otherwise wait for a weekly or manual gate to surface. A workflow file GitHub
+# cannot validate does not fail loudly - the run is created with ZERO jobs and posts no check to
+# the pull request, so `gh pr checks` lists nothing and the PR looks clean. Two workflows in this
+# repository sat in that state from the day they were written. This check is unfiltered and
+# required, which is the only position from which that is visible.
 name: Shell lint
 
 on:
@@ -48,3 +56,14 @@ jobs:
           # -S error keeps this quiet: only parse/semantic errors fail the lane,
           # style and warning findings do not.
           find scripts -type f -name '*.sh' -print0 | sort -z | xargs -0 shellcheck -S error
+
+      # PyYAML deliberately NOT optional. A check that skips itself when a dependency is missing is
+      # the same "healthy by never running" failure it exists to catch; the script exits non-zero
+      # rather than degrading, so this step makes sure it never has to.
+      - name: Ensure PyYAML
+        shell: bash
+        run: python3 -c "import yaml" || python3 -m pip install --quiet --break-system-packages pyyaml
+
+      - name: Workflow files use contexts that exist where they use them
+        shell: bash
+        run: bash scripts/ci/verify-workflow-context-availability.sh

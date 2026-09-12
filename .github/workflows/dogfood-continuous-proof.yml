@@ -141,13 +141,16 @@ jobs:
           fi
           
           git add docs/dogfood-ledger.md
-          git commit -m "chore: dogfood ledger update from CI run ${{ github.run_id }}
-
-Automated ledger append from scheduled dogfood-continuous-proof workflow.
-
-Date: $(date -u +%Y-%m-%d)
-Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-Canary: rgb-hex-parse"
+          # Repeated -m, never one -m spanning lines. The continuation lines used to start at
+          # column 0, which ENDS the `run: |` block scalar — so this file has never been a valid
+          # workflow and every run of it was created with zero jobs. git joins -m values with a
+          # blank line between them, so the message keeps its paragraphs.
+          git commit \
+            -m "chore: dogfood ledger update from CI run ${{ github.run_id }}" \
+            -m "Automated ledger append from scheduled dogfood-continuous-proof workflow." \
+            -m "Date: $(date -u +%Y-%m-%d)" \
+            -m "Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -m "Canary: rgb-hex-parse"
           
           git push origin HEAD:master
 
