@@ -26,16 +26,47 @@ public sealed class AnalyzerReferenceInputTests : IDisposable
     [Fact]
     public void A_declared_anchor_outside_the_output_directory_is_used_by_the_sample()
     {
-        var path = Path.Combine(_directory, "DeclaredAnchor.dll");
-        var dependency = CSharpCompilation.Create("DeclaredAnchor",
-            [CSharpSyntaxTree.ParseText("public static class DeclaredAnchor { public const int Value = 42; }")],
-            AnalyzerReferenceSet.Compose([], [], FrameworkPaths()),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        dependency.Emit(path).Success.Should().BeTrue();
-
+        var path = EmitDeclaredAnchor();
         var references = AnalyzerReferenceSet.Compose([path], [], FrameworkPaths());
         AssertCompiles(references,
             "public static class Probe { public static int Answer() => DeclaredAnchor.Value; }");
+    }
+
+    [Fact]
+    public void A_corrupt_metadata_header_is_refused_for_an_explicit_anchor()
+    {
+        var valid = EmitDeclaredAnchor();
+        AssertCompiles(AnalyzerReferenceSet.Compose([valid], [], FrameworkPaths()),
+            "public static class Probe { public static int Answer() => DeclaredAnchor.Value; }");
+        var corrupt = CorruptMetadataHeader(valid, "CorruptAnchor.dll");
+
+        Action compose = () => AnalyzerReferenceSet.Compose([corrupt], [], FrameworkPaths());
+        compose.Should().Throw<InvalidOperationException>().Which.Message
+            .Should().Contain(corrupt).And.Contain("managed metadata");
+    }
+
+    [Fact]
+    public void A_corrupt_metadata_header_cannot_satisfy_a_required_framework_name()
+    {
+        var valid = FrameworkPaths().Single(path => Path.GetFileName(path) == "System.Runtime.dll");
+        var corrupt = CorruptMetadataHeader(valid, "System.Runtime.dll");
+        var framework = FrameworkPaths().Select(path => path == valid ? corrupt : path).ToArray();
+
+        Action compose = () => AnalyzerReferenceSet.Compose([], [], framework);
+        compose.Should().Throw<InvalidOperationException>()
+            .WithMessage("*missing framework assemblies*System.Runtime.dll*");
+    }
+
+    [Fact]
+    public void A_corrupt_app_local_header_does_not_hide_the_readable_framework_copy()
+    {
+        var valid = FrameworkPaths().Single(path => Path.GetFileName(path) == "System.Runtime.dll");
+        var corrupt = CorruptMetadataHeader(valid, "System.Runtime.dll");
+        var references = AnalyzerReferenceSet.Compose([], [corrupt], FrameworkPaths());
+
+        references.OfType<PortableExecutableReference>().Where(reference => Path.GetFileName(reference.FilePath) == "System.Runtime.dll")
+            .Should().ContainSingle().Which.FilePath.Should().Be(valid);
+        AssertCompiles(references);
     }
 
     [Theory]
@@ -144,6 +175,42 @@ public sealed class AnalyzerReferenceInputTests : IDisposable
 
     private static string[] FrameworkPaths() => AnalyzerReferenceSet.RequiredFrameworkAssemblies
         .Select(name => Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, name)).ToArray();
+
+    private string EmitDeclaredAnchor()
+    {
+        var path = Path.Combine(_directory, "DeclaredAnchor.dll");
+        var dependency = CSharpCompilation.Create("DeclaredAnchor",
+            [CSharpSyntaxTree.ParseText("public static class DeclaredAnchor { public const int Value = 42; }")],
+            AnalyzerReferenceSet.Compose([], [], FrameworkPaths()),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var emitted = dependency.Emit(path);
+        emitted.Success.Should().BeTrue(string.Join(" | ", emitted.Diagnostics));
+        return path;
+    }
+
+    private string CorruptMetadataHeader(string validPath, string name)
+    {
+        var original = File.ReadAllBytes(validPath);
+        using var valid = new PEReader(new MemoryStream(original));
+        valid.HasMetadata.Should().BeTrue();
+        valid.GetMetadataReader().IsAssembly.Should().BeTrue();
+        var offset = valid.PEHeaders.MetadataStartOffset;
+        original.AsSpan(offset, 4).ToArray().Should().Equal(new byte[] { 0x42, 0x53, 0x4a, 0x42 });
+
+        var damaged = (byte[])original.Clone();
+        Array.Clear(damaged, offset, 4);
+        original.Zip(damaged).Count(pair => pair.First != pair.Second).Should().Be(4);
+        var path = Path.Combine(_directory, name);
+        File.WriteAllBytes(path, damaged);
+
+        using var corrupt = new PEReader(File.OpenRead(path));
+        corrupt.HasMetadata.Should().BeTrue();
+        corrupt.PEHeaders.MetadataStartOffset.Should().Be(offset);
+        corrupt.PEHeaders.CorHeader!.MetadataDirectory.Should().Be(valid.PEHeaders.CorHeader!.MetadataDirectory);
+        Action read = () => corrupt.GetMetadataReader();
+        read.Should().Throw<BadImageFormatException>();
+        return path;
+    }
 
     private static void AssertCompiles(IEnumerable<MetadataReference> references,
         string source = "using System; using System.Numerics; public static class Probe { public static object Resolve(IServiceProvider p, Type t) => p.GetService(t); public static int Answer() => (int)(new BigInteger(21) * 2); }")

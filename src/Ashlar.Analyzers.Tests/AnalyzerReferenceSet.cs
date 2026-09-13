@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
 namespace Ashlar.Analyzers.Tests;
@@ -137,11 +138,13 @@ internal static class AnalyzerReferenceSet
             return null;
         try
         {
-            // The Roslyn factory is lazy; its return value does not prove that metadata exists.
+            // The Roslyn factory is lazy. HasMetadata proves a directory exists, not that its
+            // header is readable; force that read inside this caught and disposed boundary.
             using var stream = File.OpenRead(path);
             using var pe = new PEReader(stream);
             if (!pe.HasMetadata)
                 return null;
+            _ = pe.GetMetadataReader();
             return MetadataReference.CreateFromFile(path);
         }
         catch (BadImageFormatException)

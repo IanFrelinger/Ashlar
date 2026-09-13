@@ -29,9 +29,11 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
   all three entry points, disabled RAG, and real default-service indexing and retrieval.
 
 - **Analyzer samples require usable references.** The shared analyzer test helper refuses unavailable
-  explicit anchors and incomplete framework sets, reads PE headers before accepting discovered DLLs,
+  explicit anchors and incomplete framework sets, reads PE and metadata headers before accepting discovered DLLs,
   and lets a valid framework file replace an unusable app-local candidate. Required certification
-  tests exercise the actual helper source, including native PE refusal and compiled sample output.
+  tests exercise the actual helper source, including native PE refusal, corrupt managed-header
+  refusal and fallback, and compiled sample output. A present metadata directory alone does not
+  establish that its header can be read.
 
 - **Pipeline run identity is exclusive.** A destination run ID is created atomically before any
   executor is invoked. Reusing an existing ID now fails with guidance to use a fresh ID; resume
