@@ -71,3 +71,7 @@ jobs:
       - name: Consumer path scan rejects forbidden paths and scan errors
         shell: bash
         run: bash scripts/ci/test-consumer-repo-path-guard.sh
+
+      - name: Commercial receipt checker accepts real-shaped evidence and rejects bad files
+        shell: bash
+        run: python3 scripts/ci/test-commercial-receipts.py

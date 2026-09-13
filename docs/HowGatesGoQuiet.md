@@ -482,3 +482,11 @@ filters that do not exclude it — so the Stress-tagged classes do run. What is 
 narrower: **no lane runs them as a distinguishable lane**, so a Stress failure is not attributable
 and nothing reports on stress as a category. That is still worth fixing. It is not what the note
 said.
+
+
+The inverse mistake is declaring an exposure from a YAML search alone. The queue claimed no
+automatic workflow compiled `commercial/`, but native readiness's `ci verify` called `validate`,
+which discovered and built three commercial test roots and their production dependencies. Actual
+Linux, macOS and Windows logs at master a0a3861 recorded successful suite execution. Follow CLI
+and script calls as well as solution membership before recording an absence; then retain the
+execution receipts. [Commercial CI coverage](CommercialCiCoverage.md) states the measured scope.

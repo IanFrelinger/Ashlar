@@ -1,0 +1,17 @@
+[
+  {
+    "project": "commercial/tests/Ashlar.Commercial.Tests.Fleet/Ashlar.Commercial.Tests.Fleet.csproj",
+    "framework": "net8.0",
+    "assembly": "Ashlar.Commercial.Tests.Fleet"
+  },
+  {
+    "project": "commercial/tests/Ashlar.Commercial.Tests.Fleet.Host/Ashlar.Commercial.Tests.Fleet.Host.csproj",
+    "framework": "net10.0",
+    "assembly": "Ashlar.Commercial.Tests.Fleet.Host"
+  },
+  {
+    "project": "commercial/tests/Ashlar.Commercial.Tests.MeshDirector/Ashlar.Commercial.Tests.MeshDirector.csproj",
+    "framework": "net8.0",
+    "assembly": "Ashlar.Commercial.Tests.MeshDirector"
+  }
+]

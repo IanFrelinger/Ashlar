@@ -58,6 +58,9 @@ on:
       # listed, so the gate never ran and the fix could not be gate-proven before merge.
       - "application/src/Ashlar.Tests.CLI/**"
       - "commercial/**"
+      - "ci/commercial-test-suites.json"
+      - "scripts/ci/verify-commercial-receipts.py"
+      - "scripts/ci/test-commercial-receipts.py"
       - "src/Ashlar.Tests.Orchestration/**"
       - "src/Ashlar.Tests.Kernel/**"
       - "scripts/pack-ashlar-hosting-graph.sh"
@@ -148,6 +151,9 @@ jobs:
             # Added after PR #561 (CLI + Fleet test fixes) — see the matching comment in on.push.paths.
             "application/src/Ashlar.Tests.CLI/**"
             "commercial/**"
+            "ci/commercial-test-suites.json"
+            "scripts/ci/verify-commercial-receipts.py"
+            "scripts/ci/test-commercial-receipts.py"
             "src/Ashlar.Tests.Orchestration/**"
             "src/Ashlar.Tests.Kernel/**"
             "scripts/pack-ashlar-hosting-graph.sh"
@@ -321,6 +327,17 @@ jobs:
         run: |
           dotnet run --project application/src/Ashlar.CLI --no-build -- ci verify
 
+      # ci verify already builds/tests all three commercial projects through validate.
+      # Inspect that sweep's receipts; do not run a duplicate commercial suite here.
+      - name: Set up Python for commercial receipt verification
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Verify commercial validation receipts
+        shell: bash
+        run: python scripts/ci/verify-commercial-receipts.py --root . --output "${{ runner.temp }}/commercial-receipts"
+
       # ── Stage 3: Dry-run ────────────────────────────────────────────
       - name: "Dry-run — doctor remediation"
         shell: bash
@@ -370,6 +387,8 @@ jobs:
             ${{ runner.temp }}/doctor-dryrun.json
             ${{ runner.temp }}/bootstrap-dryrun.json
             ${{ runner.temp }}/test-results/
+            ${{ runner.temp }}/commercial-receipts/
+            commercial/tests/**/TestResults/**/*.trx
           retention-days: 14
 
   # ─────────────────────────────────────────────────────────────────────

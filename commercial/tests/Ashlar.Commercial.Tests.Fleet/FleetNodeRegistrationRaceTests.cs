@@ -33,8 +33,8 @@ namespace Ashlar.Commercial.Tests.Fleet;
 /// stored answer is <c>false</c> in every round.</para>
 ///
 /// <para>Counted, never asserted as an exception: neither writer throws on any platform, and both
-/// report success. Measured on Linux only (devtest container, net8.0); no automatically triggered
-/// lane runs this project.</para>
+/// report success. The original mutation measurement was Linux-only. Native readiness now has
+/// observed net8.0 execution on Linux, macOS and Windows; see <c>docs/CommercialCiCoverage.md</c>.</para>
 /// </remarks>
 [Collection(nameof(LiteDbFleetCollection))]
 public sealed class FleetNodeRegistrationRaceTests : IDisposable
@@ -160,8 +160,8 @@ public sealed class FleetNodeRegistrationRaceTests : IDisposable
     /// <remarks>
     /// Reproduced here rather than called through the endpoint because
     /// <c>Ashlar.Commercial.Tests.Fleet</c> does not reference <c>Ashlar.Commercial.Fleet.Api</c>,
-    /// and the project that does — <c>Ashlar.Commercial.Tests.Fleet.Host</c> — is in no solution and
-    /// no CI lane (<c>ci/test-ownership.tsv</c> tracks it as UNOWNED). What is under test is that
+    /// and the project that does — <c>Ashlar.Commercial.Tests.Fleet.Host</c> — runs separately in
+    /// native readiness through validation. What is under test here is that
     /// the registry applies this closure to the row it is about to overwrite.
     /// </remarks>
     private static void ReRegister(IFleetNodeRegistry registry, string peerId, int queueDepth, Action onRead)

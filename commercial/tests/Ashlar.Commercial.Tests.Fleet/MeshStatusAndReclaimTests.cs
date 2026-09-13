@@ -31,9 +31,9 @@ namespace Ashlar.Commercial.Tests.Fleet;
 /// terminal - while the commit message, the CHANGELOG and the method's own comment all said the
 /// operator path was unchanged. These facts are what makes that statement checkable.</para>
 ///
-/// <para>Measured on Linux only (devtest container, net8.0), like everything else in this project,
-/// and this project runs in no automatically triggered lane - <c>composition-mesh-gate</c> owns it
-/// and is <c>workflow_dispatch</c>-only.</para>
+/// <para>The original mutation measurement was Linux-only (devtest container, net8.0).
+/// Native readiness executes the project on Linux, macOS and Windows through validation;
+/// the manual composition gate is supplemental. See <c>docs/CommercialCiCoverage.md</c>.</para>
 /// </remarks>
 [Collection(nameof(LiteDbFleetCollection))]
 public sealed class MeshStatusAndReclaimTests : IDisposable
