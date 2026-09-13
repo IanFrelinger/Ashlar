@@ -83,14 +83,21 @@ public sealed class PeerToPeerRoutingSmokeTests
     public async Task PeerExecutor_FailsOverWhenPeerTimesOut()
     {
         var requestedHosts = new List<string>();
+        var slowPeerCanceled = false;
         using var httpClient = new HttpClient(new StubHttpMessageHandler(async (request, cancellationToken) =>
         {
             requestedHosts.Add(request.RequestUri?.Host ?? string.Empty);
             if (string.Equals(request.RequestUri?.Host, "peer-slow", StringComparison.OrdinalIgnoreCase))
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
-                /// <summary>Http response message.</summary>
-                return new HttpResponseMessage(HttpStatusCode.OK);
+                try
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    slowPeerCanceled = true;
+                    throw;
+                }
             }
 
             var json = CreateSuccessResponseJson([1, 2, 3], "/tmp/peer-fast-output.bin", "peer-fast ok");
@@ -98,7 +105,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
-        }));
+        })) { Timeout = Timeout.InfiniteTimeSpan };
 
         var snapshot = new StaticPeerSnapshot(
         [
@@ -122,7 +129,7 @@ public sealed class PeerToPeerRoutingSmokeTests
         var config = Options.Create(new RunPodBrickConfig
         {
             QueueDepthThreshold = 10,
-            PeerRequestTimeout = TimeSpan.FromMilliseconds(40),
+            PeerRequestTimeout = TimeSpan.FromSeconds(5),
             PeerRoutingBrickId = "generation.capability-routing"
         });
         var sut = new AshlarPeerBrickExecutor(
@@ -131,15 +138,28 @@ public sealed class PeerToPeerRoutingSmokeTests
             snapshot,
             config);
 
-        var result = await sut.ExecuteAsync(
-            new RunPodJobPayload { ModelId = "model-timeout", Prompt = "timeout test" },
-            new JobRequirements { ModelId = "model-timeout", MinimumVramBytes = 1, ComputeClass = GpuComputeClass.Low },
-            TestExecutionContext());
+        using var cleanup = new CancellationTokenSource();
+        try
+        {
+            var execution = sut.ExecuteAsync(
+                new RunPodJobPayload { ModelId = "model-timeout", Prompt = "timeout test" },
+                new JobRequirements { ModelId = "model-timeout", MinimumVramBytes = 1, ComputeClass = GpuComputeClass.Low },
+                TestExecutionContext(), cleanup.Token);
+            // The executor's timer must cancel the slow peer; this outer bound only fails the test.
+            var result = await execution.WaitAsync(TimeSpan.FromSeconds(30));
 
-        result.IsSuccess.Should().BeTrue($"{result.Error?.Code}:{result.Error?.Message}:{result.Error?.Detail}");
-        result.Value.Should().NotBeNull();
-        result.Value!.Payload.Should().Equal([1, 2, 3]);
-        requestedHosts.Should().ContainInOrder("peer-slow", "peer-fast");
+            slowPeerCanceled.Should().BeTrue("the first peer must observe the executor's timeout cancellation");
+            result.IsSuccess.Should().BeTrue($"{result.Error?.Code}:{result.Error?.Message}:{result.Error?.Detail}");
+            result.Value.Should().NotBeNull();
+            result.Value!.Payload.Should().Equal([1, 2, 3]);
+            result.Value.OutputPath.Should().Be("/tmp/peer-fast-output.bin");
+            result.Value.Summary.Should().Be("peer-fast ok");
+            requestedHosts.Should().Equal("peer-slow", "peer-fast");
+        }
+        finally
+        {
+            cleanup.Cancel();
+        }
     }
 
     [Fact]

@@ -26,8 +26,8 @@ namespace Ashlar.Commercial.Tests.Fleet;
 /// puts both registries on the same <c>dbPath</c>.</para>
 ///
 /// <para><b>Asserted on counts and on a final field value, never on an exception.</b> Neither race
-/// throws on any platform. Measured on Linux (devtest container); no CI lane runs this project on
-/// Windows or macOS, so nothing here is a claim about those.</para>
+/// throws on any platform. The original mutation measurement was Linux-only; current native
+/// readiness also executes these tests on Windows and macOS. See <c>docs/CommercialCiCoverage.md</c>.</para>
 /// </remarks>
 [Collection(nameof(LiteDbFleetCollection))]
 public sealed class LiteDbMeshRegistryAtomicWriteTests : IDisposable

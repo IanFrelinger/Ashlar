@@ -30,8 +30,8 @@ namespace Ashlar.Commercial.Tests.Fleet.Host;
 /// registry is registered in the test's own <c>ConfigureServices</c>, which runs after the host's
 /// <c>TryAddSingleton</c> and therefore wins.</para>
 ///
-/// <para>This project is in no solution and no automatically triggered lane, which
-/// <c>ci/test-ownership.tsv</c> tracks: read it as a regression record rather than as a guard.</para>
+/// <para>This project is outside the solutions, but native readiness builds and runs it on
+/// net10.0 through <c>ci verify</c>'s validation sweep. See <c>docs/CommercialCiCoverage.md</c>.</para>
 /// </remarks>
 public sealed class FleetHostScheduleConflictTests
     : IClassFixture<WebApplicationFactory<FleetHostProgram>>

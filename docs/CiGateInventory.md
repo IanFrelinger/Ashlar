@@ -23,6 +23,11 @@ Verified 2026-09-09 with `gh api repos/IanFrelinger/Ashlar/branches/master/prote
 
 **`Readiness summary` became the fifth required context on 2026-09-09.** It could not be required before #571 because `full-platform-readiness-gate.yml` was path-filtered: a required context that never reports leaves a PR at "Expected — Waiting for status" forever, and `enforce_admins: true` means nobody can bypass it. #571 removed the `paths:` filter and moved the decision inside the workflow: a first `changes` job diffs the PR against its merge-base and only runs the heavy platform lanes when a core path changed; otherwise the lanes are skipped and `Readiness summary` passes in about a minute. It therefore reports on every PR, and it was added to branch protection after the first green `master` run confirmed that behaviour.
 
+Native readiness's `ci verify` also calls root `validate`, which discovers, builds and runs
+the three commercial suites: Fleet and MeshDirector on net8.0, Fleet.Host on net10.0. Its
+post-sweep receipt check and uploads are described in [Commercial CI coverage](CommercialCiCoverage.md).
+This indirect route reaches projects outside the solution and workflow path literals.
+
 ### Checks that are safe to require (always report on PRs)
 
 These workflows have **no path filter** on `pull_request:` and will **always** post a check status, so they are safe to add as required contexts without blocking PRs that don't touch their relevant files:
