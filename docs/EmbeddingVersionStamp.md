@@ -263,7 +263,7 @@ been exercised by CI on their own change. That is a two-line fix with a measurab
 and it belongs here rather than in a separate ticket, because otherwise this design writes down a
 test strategy for a file CI does not watch.
 
-**If a merge-blocking assertion is wanted,** note that `cert-gate` is the one required check that
+**If a merge-blocking assertion is wanted,** note that `cert-gate` is the required check that carries this repository's merge-blocking conventions and that
 runs on every pull request with no path filter — and per `scripts/cert-gate-config.sh` its filter
 selects by namespace. An assertion outside that namespace is not merge-blocking, and moving or
 renaming the namespace disarms it silently.
