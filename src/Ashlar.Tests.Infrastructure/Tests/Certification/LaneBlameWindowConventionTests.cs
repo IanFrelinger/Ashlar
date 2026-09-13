@@ -512,9 +512,70 @@ public sealed class LaneBlameWindowConventionTests
     // Normalization
     // ---------------------------------------------------------------------------------------
 
-    private static readonly Regex ShellContinuation = new(@"\G\\\n[ \t]*", RegexOptions.Compiled);
+    // The \r? makes this pattern correct on its own rather than only in context. The scan's single
+    // production caller already strips CRLF — LanesThatRunThisSuite reads each file as
+    // File.ReadAllText(...).Replace("\r\n", "\n") and hands Normalize the result — so the bare \n
+    // spelling was never blind, on any platform.
+    //
+    // Nothing here is cited by line number, deliberately. This file is edited often — this change
+    // moves the ShellContinuation use site below — so a line citation written into it tends to be
+    // invalidated by the very commit that writes it. Members are named instead.
+    //
+    // This is a robustness change to the helper, not a
+    // bug fix to the scan: it removes a silent dependency on one caller continuing to normalise,
+    // which is the kind of coupling that only announces itself when a second caller is added.
+    // Pinned by Normalize_joins_shell_continuations_on_either_line_ending, which calls Normalize
+    // directly and therefore is that second caller.
+    private static readonly Regex ShellContinuation = new(@"\G\\\r?\n[ \t]*", RegexOptions.Compiled);
     private static readonly Regex CSharpConcatenation = new("\\G\"[ \t\r\n]*\\+[ \t\r\n]*[$@]{0,2}\"", RegexOptions.Compiled);
     private static readonly Regex CSharpTestArguments = new("\\G[$@]{0,2}\"test \\\\\"", RegexOptions.Compiled);
+
+    /// <summary>
+    /// <see cref="Normalize"/> joins a continued command on either line ending, without depending on
+    /// its caller to have stripped CRLF first.
+    ///
+    /// <para><b>What this is, stated plainly so it is not over-quoted.</b> It is NOT a regression
+    /// test for a bug that shipped. The scan's one production caller, <c>LanesThatRunThisSuite</c>,
+    /// already normalises — it reads each file as
+    /// <c>File.ReadAllText(...).Replace("\r\n", "\n")</c> before calling
+    /// <see cref="Normalize"/> — so the previous LF-only pattern was never blind on any platform,
+    /// and no lane was ever skipped because of it.</para>
+    ///
+    /// <para>The "one caller" claim is about <see cref="Normalize"/> specifically, which has exactly
+    /// one production call site. It is NOT a claim that this class reads every file through it:
+    /// <c>RunsThisSuite</c> reads <c>.sln</c> and <c>.slnf</c> without normalising, and is CRLF-safe
+    /// for a different reason — a single-token <c>Contains</c>, with no anchored pattern a <c>\r</c>
+    /// could sit inside.</para>
+    ///
+    /// <para><b>Why it is still worth a fact.</b> "Correct only because the single caller normalises"
+    /// is an invariant nothing states and nothing checks; the next caller inherits the coupling
+    /// silently. This test IS that second caller — it hands <see cref="Normalize"/> CRLF text
+    /// directly — so the helper's independence is now executable rather than assumed. The LF case is
+    /// asserted beside it so a later edit cannot fix one ending by breaking the other.</para>
+    /// </summary>
+    [Fact]
+    public void Normalize_joins_shell_continuations_on_either_line_ending()
+    {
+        const string command = "dotnet test Some.csproj";
+        const string tail = "--blame-hang-timeout 90s";
+
+        foreach (var (ending, label) in new[] { ("\n", "LF"), ("\r\n", "CRLF") })
+        {
+            var joined = Normalize($"{command} \\{ending}            {tail}", isCSharp: false, out _);
+
+            // One logical line is the whole claim: the scan matches a command and then reads its
+            // arguments forward, so a surviving line break is what hides the window. Exact spacing
+            // is not the point, and asserting it would only pin the join's own formatting.
+            joined.Should().NotContain(
+                "\n",
+                "a {0} continuation must collapse to ONE logical command inside Normalize itself, "
+                + "without help from a caller. A surviving line break would hide anything on the "
+                + "second line from the forward scan, and a lane whose window is not seen is skipped "
+                + "rather than checked",
+                label);
+            joined.Should().Contain(command).And.Contain(tail);
+        }
+    }
 
     /// <summary>
     /// Rewrites a file so one logical <c>dotnet test</c> command is one line of text, and returns
