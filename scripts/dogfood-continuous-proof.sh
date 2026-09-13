@@ -34,7 +34,8 @@ run_canary_sweep() {
   #
   # PR #523 (Strict+Ed25519) is now on master. Remaining blockers:
   # - Real autonomy loop wiring (not just spike infrastructure)
-  # - lim-9 status (may still be open)
+  # - lim-9 composition key path (closed in part 2026-09-13: explicit hmacKey is honoured;
+  #   the injected brick signer is still discarded and no production registration supplies a key)
   #
   # For now, we document the intended flow and mark the workflow as GAP until
   # the autonomy loop host wiring is complete.
@@ -50,7 +51,7 @@ run_canary_sweep() {
   echo "Remaining dependencies:" | tee -a "${log_file}"
   echo "  - Autonomy loop host (FirstFlight or CLI command)" | tee -a "${log_file}"
   echo "  - Docker available for sandbox sessions" | tee -a "${log_file}"
-  echo "  - lim-9 status verification (may be open)" | tee -a "${log_file}"
+  echo "  - lim-9 composition key path (closed in part: no operator path to a real key)" | tee -a "${log_file}"
   echo "" | tee -a "${log_file}"
   
   # TODO: Replace this stub with real sweep logic:

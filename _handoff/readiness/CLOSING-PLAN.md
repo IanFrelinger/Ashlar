@@ -123,7 +123,7 @@ none, so CI is the first compiler) · **[agent / human / CI]** who performs it.
 
 **Goal.** Spend two days on the things that cost nothing, need no compiler, and either defuse a scheduled outage or tell you the whole plan is built on an artifact that does not work. Nothing here changes runtime behaviour; every item strictly reduces risk.
 
-1. **[S]** · *agent* — Re-date the seven UNOWNED rows in ci/test-ownership.tsv from 2026-10-27 to 2027-03-31, in a commit of its own, with the reason written into the note column. VERIFIED: the rows are Commercial.Tests.Fleet.Host, Commercial.Tests.GameDirector, Commercial.Tests.MeshDirector, Ashlar.Analyzers.Tests, Ashlar.Ingress.AwsSns.Tests, Ashlar.Ingress.DynamoDb.Tests, Ashlar.Tests.Contracts. TestOwnershipConventionTests.cs:82 reads `DateTime.UtcNow.Date` and rides cert-gate, the ONLY required status check — so on 2026-10-27 every PR in the repo blocks with no code change and no warning. The file's own header rule ('do not extend a date in the change that trips it') is honoured because nothing is tripping yet. Ten minutes today; a dead end in two months.
+1. **[S]** · *agent* — Re-date the seven UNOWNED rows in ci/test-ownership.tsv from 2026-10-27 to 2027-03-31, in a commit of its own, with the reason written into the note column. VERIFIED: the rows are Commercial.Tests.Fleet.Host, Commercial.Tests.GameDirector, Commercial.Tests.MeshDirector, Ashlar.Analyzers.Tests, Ashlar.Ingress.AwsSns.Tests, Ashlar.Ingress.DynamoDb.Tests, Ashlar.Tests.Contracts. TestOwnershipConventionTests.cs:82 reads `DateTime.UtcNow.Date` and rides cert-gate, one of five required status checks — so on 2026-10-27 every PR in the repo blocks with no code change and no warning. The file's own header rule ('do not extend a date in the change that trips it') is honoured because nothing is tripping yet. Ten minutes today; a dead end in two months.
 
 2. **[S]** · *human* — On the MacBook, in this order. First `echo $DOCKER_DEFAULT_PLATFORM`: the repo's own docs tell Apple Silicon users to set it to `linux/amd64`, and if it is set the Mac silently runs the **amd64** image under emulation — no error, 3–5× slower, NSec in a configuration nobody has tested, and the arm64 question goes unanswered while looking answered. Unset it. Then `uname -m` (expect `arm64`), then `docker run --rm ghcr.io/ianfrelinger/nexo-cli:latest --help` and `... keys init` — with the variable unset, Docker selects `linux/arm64` natively and no `--platform` flag is needed. This is the first execution of the arm64 artifact **on real hardware**, and it proves NSec.Cryptography 25.4.0's per-RID native libsodium loads from a framework-dependent publish on linux-arm64 — the repo documents native-toolchain trouble on this platform (docs/prod-dry-run.md:11, docs/MeshVirtualLab.md:44). Note the container runs as uid 1654 and a fresh volume's root comes back `root:root`, so seed an app-owned subdirectory first; `HARDWARE-BRINGUP.md` §2 has the exact commands.
 
@@ -134,6 +134,16 @@ none, so CI is the first compiler) · **[agent / human / CI]** who performs it.
 5. **[S]** · *agent* — Write ci/cert-gate-assertions.md: one line per merge-blocking convention test cert-gate carries and why it exists, updated as each lands. When you come back after three weeks to a red required check with a branch-protection toggle one click away, this is the only artifact that tells you what you would be switching off. Given eight already-muted workflows in this repo, it is the highest-leverage paragraph in the plan.
 
 **Exit criterion (an observable event, not a status).** `awk -F'\t' '$2=="UNOWNED"' ci/test-ownership.tsv` shows no row expiring within 180 days; a master build has published a `sha-<12>` tag whose manifest list contains linux/arm64; and on the MacBook, with `DOCKER_DEFAULT_PLATFORM` unset, `docker run --rm ghcr.io/ianfrelinger/nexo-cli@sha256:<that digest> keys init` prints a fingerprint instead of a native-load failure. (Under QEMU on the Windows box this already passes — see the STATUS note above — but the criterion is real arm64 hardware.)
+
+> **Read this before scoring the awk criterion above (added 2026-09-13).** That command now returns a
+> single row - the `__BrickName__` scaffolding template, expiring 2027-06-30. **This is not evidence of
+> readiness progress.** Rows 47-49 left `UNOWNED` because their notes were found to be false, not
+> because coverage was added: native readiness's `validate` sweep had been running all three for weeks
+> (runs 34687917934 and 34737292726). No CI behaviour changed. Note also that
+> `TestOwnershipConventionTests` never reads the `expires` column of a non-`UNOWNED` row, so flipping a
+> row removes its dated pressure entirely and replaces it with nothing machine-enforced. The live debt
+> those three rows now carry is routing: none appears in either readiness path list, so a PR touching
+> only them still runs none of their tests.
 
 ---
 

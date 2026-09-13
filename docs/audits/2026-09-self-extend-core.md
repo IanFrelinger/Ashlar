@@ -3,6 +3,16 @@
 **Audit Date:** 2026-09-05  
 **Scope:** Core runtime readiness for autonomous self-extension with validation  
 **Auditor:** Cloud Agent (Cursor)  
+
+> **Dated correction, 2026-09-13 — read before acting on any limitation 9 item below.** This is a
+> 2026-09-05 snapshot and its body is left as the record of what was known then. Limitation 9 has since
+> closed **in part**: `CompositionCertificationRecordSigner` now honours an explicitly supplied
+> `hmacKey` and computes its honesty flag from it, so descriptions below of the signer "discarding a
+> supplied key" or "key injection bypass" no longer describe the code. **The consequence this report
+> relies on still holds:** the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the parameter, so compositions have no operator path to a real key.
+> By the M1.1 exit criterion stated here — a host passing a real key via `brickSigner` minting
+> compositions under that key — M1.1 is **not met**. See `docs/certification-evidence.md` limitation 9.
+
 **Branch:** `cursor/core-runtime-self-extend-audit-95c7`
 
 ---

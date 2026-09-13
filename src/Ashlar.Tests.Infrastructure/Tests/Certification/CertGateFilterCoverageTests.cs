@@ -9,7 +9,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <summary>
 /// A convention test outside the cert-gate filter is advisory, whatever its author intended.
 ///
-/// <para><b>Why this exists.</b> <c>cert-gate</c> is the only required status check on master, and
+/// <para><b>Why this exists.</b> <c>cert-gate</c> is one of five required status checks on master, and
 /// it does not run this assembly — it runs a SUBSTRING SELECTION of it
 /// (<c>scripts/cert-gate-config.sh</c>). A merge-blocking convention placed one namespace to the
 /// side is therefore not merge-blocking at all, and nothing says so: the test still runs somewhere,
