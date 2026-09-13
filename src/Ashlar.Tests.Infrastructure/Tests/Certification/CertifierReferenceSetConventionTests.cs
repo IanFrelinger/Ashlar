@@ -66,7 +66,7 @@ public sealed class CertifierReferenceSetConventionTests
             ["Ashlar.Infrastructure.Testing.CodeAnalysis.RoslynCodeAnalysisService::BuildReferenceSet"] =
                 "caller-supplied reference paths for the analyzer fence gate; deterministic, a "
                 + "function of what the caller passed rather than of load order",
-            ["Ashlar.Infrastructure.Testing.CodeAnalysis.RoslynCodeAnalysisService::GetDefaultReferences"] =
+            ["Ashlar.Infrastructure.Testing.CodeAnalysis.RoslynCodeAnalysisService::ComposeDefaultReferences"] =
                 "the fence gate's default set; derived from the runtime directory and the platform "
                 + "list, never from loaded assemblies. AnalyzerFenceGate hard-fails when the Brick "
                 + "anchor is not resolvable from it.",
