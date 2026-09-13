@@ -123,7 +123,7 @@ public class ValidationServiceAdapterGapCoverageTests
             Directory.SetCurrentDirectory(temp);
             var reports = new List<ProgressReport>();
             var result = await adapter.ValidateAsync(
-                "FullyQualifiedName~Ok",
+                null,
                 new SyncProgress<ProgressReport>(r => reports.Add(r)),
                 CancellationToken.None);
 
@@ -476,6 +476,74 @@ public class ValidationServiceAdapterGapCoverageTests
             result.TestsFailed.Should().Be(0);
             result.TestsSkipped.Should().Be(0);
             result.Message.Should().Contain("no tests selected");
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task Caller_filter_selects_observed_results_and_preserves_default_exclusions()
+    {
+        var original = Directory.GetCurrentDirectory();
+        var temp = CreatePassingTestProjectDir();
+        File.WriteAllText(Path.Combine(temp, "tests", "PassTests.cs"), """
+            using Xunit;
+            public class FilterTests
+            {
+                [Fact, Trait("Category", "First"), Trait("Label", "(literal)")] public void First() { }
+                [Fact, Trait("Category", "Second")] public void Second() { }
+                [Fact] public void Unselected() => Assert.True(false, "caller filter was ignored");
+                [Fact, Trait("Category", "First"), Trait("Category", "Stress")]
+                public void Stress() => Assert.True(false, "Stress must stay excluded");
+                [Fact, Trait("Category", "Second"), Trait("Category", "DockerOptional")]
+                public void Docker() => Assert.True(false, "DockerOptional must stay excluded");
+            }
+            """);
+        try
+        {
+            Directory.SetCurrentDirectory(temp);
+            var adapter = new ValidationServiceAdapter(NullLogger<ValidationServiceAdapter>.Instance,
+                new TrxTestResultParser(NullLogger<TrxTestResultParser>.Instance));
+
+            var invalid = await adapter.ValidateAsync("Category=First)|Category=Stress|(Category=Second");
+            invalid.Passed.Should().BeFalse();
+            invalid.Message.Should().Contain("balanced, unescaped parentheses");
+            invalid.TestsRun.Should().Be(0, "malformed filters are refused before building or running a project");
+            invalid.TestsFailed.Should().Be(0);
+
+            var broad = await adapter.ValidateAsync(null);
+            broad.EvidenceErrors.Should().BeEmpty();
+            broad.Passed.Should().BeFalse("the positive control executes the unselected failing test");
+            broad.TestsRun.Should().Be(3);
+            broad.TestsFailed.Should().Be(1);
+            broad.TestResults.Should().NotBeNull();
+            broad.TestResults!.Select(test => test.Name).Should().BeEquivalentTo(
+                "FilterTests.First", "FilterTests.Second", "FilterTests.Unselected");
+
+            var narrowed = await adapter.ValidateAsync("Category=First|Category=Second");
+            narrowed.EvidenceErrors.Should().BeEmpty();
+            narrowed.Passed.Should().BeTrue(narrowed.Message);
+            narrowed.TestsRun.Should().Be(2);
+            narrowed.TestsPassed.Should().Be(2);
+            narrowed.TestsFailed.Should().Be(0);
+            narrowed.TestResults.Should().NotBeNull();
+            narrowed.TestResults!.Select(test => test.Name).Should().BeEquivalentTo(
+                "FilterTests.First", "FilterTests.Second");
+
+            var escaped = await adapter.ValidateAsync(@"Label=\(literal\)");
+            escaped.Passed.Should().BeTrue(escaped.Message);
+            escaped.TestsRun.Should().Be(1);
+            escaped.TestResults.Should().ContainSingle().Which.Name.Should().Be("FilterTests.First");
+
+            var empty = await adapter.ValidateAsync("FullyQualifiedName~NoSuchTest");
+            empty.EvidenceErrors.Should().BeEmpty();
+            empty.Passed.Should().BeTrue(empty.Message);
+            empty.TestsRun.Should().Be(0);
+            empty.TestResults.Should().BeEmpty();
+            empty.Message.Should().Contain("no tests selected");
         }
         finally
         {

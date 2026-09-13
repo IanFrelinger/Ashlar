@@ -8,6 +8,11 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ## [Unreleased]
 
+- **Validation honors caller filters.** The caller's expression now narrows the default sweep,
+  preserving the Stress and DockerOptional exclusions even when it contains OR conditions.
+  Malformed grouping is refused before any project build. Build/test paths, framework values and
+  filters are passed as individual process arguments.
+
 - **Background-agent RAG configuration refuses unsupported stores.** Enabled RAG accepts only
   `in-memory` (ignoring case and surrounding whitespace). Missing providers and names such as
   `sqlite`, `postgres` and `qdrant` fail during loading, spec building and direct registration,

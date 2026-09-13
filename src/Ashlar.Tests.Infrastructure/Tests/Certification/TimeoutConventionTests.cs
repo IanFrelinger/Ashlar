@@ -142,8 +142,9 @@ public sealed class TimeoutConventionTests
     /// pass to <c>dotnet test</c>. A hard-coded window alongside it would leave the test above
     /// green while a lane ran on a number nobody checked.
     ///
-    /// <para>A frozen inventory with both facts, per <c>docs/HowGatesGoQuiet.md</c> section 7: a
-    /// NEW <c>dotnet test</c> invocation in either file fails until its window is accounted for,
+    /// <para>Validate's window is read from its actual argv builder. The remaining command-string
+    /// inventory has both facts, per <c>docs/HowGatesGoQuiet.md</c> section 7: a
+    /// NEW window in the CLI file fails until it is accounted for,
     /// and a deleted one fails too, so the list cannot rot into a description of what used to be
     /// true. The one narrow window admitted here is the 30s smoke step, which selects only
     /// BaseFrameworkSmokeTests — no HostTouching net is inside it.</para>
@@ -153,10 +154,14 @@ public sealed class TimeoutConventionTests
     {
         var window = $"{ValidationServiceAdapter.ValidateBlameHangTimeoutSeconds}s";
 
+        var validate = ValidationServiceAdapter.CreateDotnetTestStartInfo("Tests.csproj", null, null, false);
+        var indexes = validate.ArgumentList.Select((value, index) => (value, index))
+            .Where(item => item.value == "--blame-hang-timeout").Select(item => item.index).ToArray();
+        indexes.Should().ContainSingle("validate must pass the checked window exactly once");
+        validate.ArgumentList[indexes.Single() + 1].Should().Be(window);
+
         var expected = new (string RelativePath, string[] Windows)[]
         {
-            ("src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs",
-                ["{ValidateBlameHangTimeoutSeconds}s"]),
             ("application/src/Ashlar.CLI/Commands/CiCommand.cs", [window, "30s"]),
         };
 
