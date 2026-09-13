@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.Certification.Models;
 using Ashlar.Certification.Contracts;
@@ -125,6 +127,42 @@ public sealed class CertificationRecordSigner
         // record signed with an attacker's own keypair is self-consistent and passes.
         return !strictness.PinningEnabled
             || strictness.TrustedEd25519PublicKeys!.Contains(data.Ed25519PublicKey!, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Computes this signer's Base64 HMAC-SHA256 over an ALREADY-CANONICAL payload, for the
+    /// composition lane.
+    ///
+    /// <para><b>Internal, and capability-shaped on purpose.</b> The composition signer needs this
+    /// signer's key; the only safe way to give it one is never to give it the key. Nothing here
+    /// returns, logs or retains key material — the byte array is a local and dies with the call —
+    /// so there is no accessor for a failure message, a debugger view or a destructuring logger to
+    /// print. That matters concretely: this assembly's internals are visible to
+    /// <c>Ashlar.Tests.Infrastructure</c> (<c>Ashlar.Infrastructure.csproj</c>), whose
+    /// certification suite alone is dozens of files. Do not add a key accessor "for symmetry".</para>
+    ///
+    /// <para>The key is resolved PER CALL, by the same ladder <see cref="Sign"/> uses: explicit
+    /// key, then <c>ASHLAR_CERT_DEV_HMAC_KEY</c>, then the committed constant. That is the brick
+    /// lane's own late-binding behaviour, so the two lanes cannot end up under different keys. The
+    /// ladder is spelled here rather than called because the contracts helper that owns it is
+    /// private to a packed, multi-target NuGet assembly, and widening a method that RETURNS the key
+    /// onto that surface is the one change this design exists to avoid.</para>
+    ///
+    /// <para><c>CompositionSignerKeyPathConventionTests</c> freezes this member to one declaration
+    /// and one call site. That freeze is a tripwire, not a proof.</para>
+    /// </summary>
+    /// <param name="canonicalPayload">
+    /// The exact text to be MACed, already canonicalised by the caller. This type does not know
+    /// the composition payload's shape and must not learn it.
+    /// </param>
+    internal string ComputeCanonicalHmac(string canonicalPayload)
+    {
+        var key = string.IsNullOrWhiteSpace(_hmacKey)
+            ? Environment.GetEnvironmentVariable(CertificationRecordSigning.HmacKeyEnvVar) ?? DefaultDevKey
+            : _hmacKey!;
+
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
+        return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(canonicalPayload)));
     }
 
     /// <summary>

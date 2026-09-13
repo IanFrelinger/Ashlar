@@ -68,7 +68,17 @@ public static class CertificationServiceCollectionExtensions
         }
 
         services.AddSingleton<ICertificationGate, CertificationGate>();
-        services.AddSingleton<CompositionCertificationRecordSigner>();
+        // TryAdd for the same reason as the brick signer at the top of this method — a host that
+        // supplied its own composition signer (the only way to key the composition lane
+        // independently of the brick lane) must not have it replaced by a container-activated one.
+        // The factory is explicit rather than left to constructor injection so the brick signer's
+        // newly load-bearing role is visible AT the registration site, and so a future fourth
+        // constructor parameter cannot silently change which constructor the container selects.
+        // This registration is what closes limitation 9 in a shipped host: the operator's key
+        // reaches composition records because the brick signer arrives here.
+        services.TryAddSingleton(sp => new CompositionCertificationRecordSigner(
+            sp.GetRequiredService<CertificationRecordSigner>(),
+            sp.GetService<ILogger<CompositionCertificationRecordSigner>>()));
         services.AddSingleton<ICompositionCertificationRecordStore, InMemoryCompositionCertificationRecordStore>();
         services.AddSingleton<ICompositionCertificationGate, CompositionCertificationGate>();
         return services;

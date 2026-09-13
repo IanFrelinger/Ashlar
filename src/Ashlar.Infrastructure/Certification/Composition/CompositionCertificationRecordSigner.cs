@@ -9,17 +9,36 @@ using Ashlar.Core.Application.Certification.Models;
 namespace Ashlar.Infrastructure.Certification.Composition;
 
 /// <summary>
-/// HMAC signer for composition certification records. Resolves its key from an explicit
-/// parameter, then <c>ASHLAR_CERT_DEV_HMAC_KEY</c>, then the committed dev key. Warns when
-/// the dev key is in effect. This fixes limitation 9 from certification-evidence.md by
-/// honoring explicit keys.
+/// HMAC signer for composition certification records.
+///
+/// <para><b>Key ladder, most specific first:</b> an explicit <c>hmacKey</c>; else the injected
+/// <see cref="CertificationRecordSigner"/>, which becomes this lane's KEY HOLDER — this class then
+/// computes no MAC of its own and stores no key material, so whatever key the brick lane is under,
+/// the composition lane is under the same one; else <c>ASHLAR_CERT_DEV_HMAC_KEY</c>; else the
+/// committed dev key. Warns when the dev key is in effect.</para>
+///
+/// <para>The injected signer is the rung that closes limitation 9: it is the one the shipped DI
+/// registration fills, so a host that does the single thing SPEC-006 S-4 tells it to do — supply a
+/// <see cref="CertificationRecordSigner"/> holding a real key — mints composition records under that
+/// key, with no host code change. Do not reinstate a discard here; deleting the delegation compiles
+/// silently and re-opens the defect.</para>
 /// </summary>
 public sealed class CompositionCertificationRecordSigner
 {
-    private readonly byte[] _keyBytes;
+    // Exactly one of these is non-null, decided in the constructor. _keyHolder means "this signer
+    // holds no key; ask the brick signer", which is the whole of the limitation 9 fix and the reason
+    // this type is no longer a second resident copy of the operator key. _keyBytes is the standalone
+    // path. CompositionSignerKeyPathConventionTests pins _keyBytes null when delegating.
+    private readonly CertificationRecordSigner? _keyHolder;
+    private readonly byte[]? _keyBytes;
 
     /// <summary>Initializes a new composition certification record signer.</summary>
-    /// <param name="brickSigner">Unused; kept for API compatibility.</param>
+    /// <param name="brickSigner">
+    /// The brick lane's signer. When supplied without an explicit <paramref name="hmacKey"/> it
+    /// becomes this lane's key holder: signing is delegated to it, so the operator's key reaches
+    /// composition records without any key material crossing this boundary. This parameter is
+    /// LOAD-BEARING; it was formerly discarded (limitation 9).
+    /// </param>
     /// <param name="logger">Optional logger; receives the dev-key warning when the committed key is in effect.</param>
     /// <param name="hmacKey">
     /// Optional explicit HMAC key. When provided, composition records are signed with this key
@@ -31,24 +50,30 @@ public sealed class CompositionCertificationRecordSigner
         ILogger<CompositionCertificationRecordSigner>? logger = null,
         string? hmacKey = null)
     {
-        // LIMITATION 9, RESIDUAL — this discard is a true positive, not dead code. A key held by the
-        // injected brickSigner cannot be threaded here because CertificationRecordSigner exposes no
-        // key accessor (its _hmacKey is private; only UsesDevKey is public). Nor does any production
-        // wiring supply the hmacKey parameter below: Sdk/Extensions/CertificationServiceCollectionExtensions.cs
-        // registers this type with AddSingleton<CompositionCertificationRecordSigner>() at the
-        // parameter's null default. So an operator's only lever for composition records remains
-        // ASHLAR_CERT_DEV_HMAC_KEY. Closing this needs a key accessor or a keyed registration, which is
-        // a public API change — do not "clean up" this line; deleting it removes the only in-source
-        // marker and compiles silently. See docs/certification-evidence.md (limitation 9).
-        _ = brickSigner;
-        
-        var key = string.IsNullOrWhiteSpace(hmacKey)
-            ? Environment.GetEnvironmentVariable(CertificationRecordSigning.HmacKeyEnvVar)
-              ?? CertificationRecordSigner.DefaultDevKey
-            : hmacKey;
-        
-        _keyBytes = Encoding.UTF8.GetBytes(key);
-        UsesDevKey = CertificationRecordSigning.UsesDevKey(hmacKey);
+        if (brickSigner is not null && string.IsNullOrWhiteSpace(hmacKey))
+        {
+            // Limitation 9, operative half. No key is copied out of the brick signer; the MAC is
+            // computed by it. UsesDevKey is the brick lane's answer because it IS the brick lane's
+            // key — the two flags are now the same fact rather than two coincidences.
+            _keyHolder = brickSigner;
+            UsesDevKey = brickSigner.UsesDevKey;
+        }
+        else
+        {
+            // An explicit key is the most specific statement available and outranks an injected
+            // signer; with neither, the pre-existing ladder, unchanged in effect. The flag is now
+            // computed from the SAME resolved string as the bytes — the previous code derived them
+            // from two independent reads of the environment, which could disagree if the variable
+            // changed between them.
+            var key = string.IsNullOrWhiteSpace(hmacKey)
+                ? Environment.GetEnvironmentVariable(CertificationRecordSigning.HmacKeyEnvVar)
+                  ?? CertificationRecordSigner.DefaultDevKey
+                : hmacKey!;
+
+            _keyBytes = Encoding.UTF8.GetBytes(key);
+            UsesDevKey = CertificationRecordSigning.UsesDevKey(key);
+        }
+
         if (UsesDevKey)
             CertificationRecordSigner.WarnDevKey(logger, nameof(CompositionCertificationRecordSigner));
     }
@@ -64,7 +89,10 @@ public sealed class CompositionCertificationRecordSigner
     public string Sign(CompositionCertificationRecord record)
     {
         var payload = BuildPayload(record);
-        using var hmac = new HMACSHA256(_keyBytes);
+        if (_keyHolder is not null)
+            return _keyHolder.ComputeCanonicalHmac(payload);
+
+        using var hmac = new HMACSHA256(_keyBytes!);
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         return Convert.ToBase64String(hash);
     }

@@ -199,7 +199,7 @@ Map release bars to **commercial funnel stages**: Aware → Eval → Embed → D
 - Provide feedback on autonomous proposal workflow
 
 **Must be true:**
-- ⚠️ P0 trust holes closed (PRs #513 + #523 merged 2026-09-06 — limitations 7-8 closed; limitation 9 open in part - compositions have no operator path to a real key; corrected 2026-09-13)
+- ⚠️ P0 trust holes closed (PRs #513 + #523 merged 2026-09-06 — limitations 7-8 closed 2026-09-06; limitation 9 closed 2026-09-13)
 - ✅ Cert-loop integration complete (PR #512 merged 2026-09-06)
 - ✅ CI redundancy in place (PR #511 merged; branch protection requires all five checks)
 - ✅ Known limitations documented honestly
@@ -239,7 +239,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 **Go criteria (ALL must be true):**
 
-- [ ] **P0 trust holes closed:** PR #513 fail-closed defaults merged (✅ 2026-09-06); limitations 7-8 closed by PR #523 (✅ 2026-09-06); **limitation 9 (composition signer key discard) still open** — roadmap M1 requires close before commercial claims (`docs/audits/2026-09-completion-roadmap.md`)
+- [x] **P0 trust holes closed:** PR #513 fail-closed defaults merged (✅ 2026-09-06); limitations 7-8 closed by PR #523 (✅ 2026-09-06); **limitation 9 closed ✅ 2026-09-13** — a host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration — roadmap M1 requires close before commercial claims (`docs/audits/2026-09-completion-roadmap.md`)
 - [x] **CI redundancy live:** PR #511 merged (✅ 2026-09-06) + branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (✅ verified 2026-09-09)
 - [x] **Cert-loop integration:** PR #512 merged + verified (✅ 2026-09-06)
 - [x] **Cert-loop honesty complete:** PRs #505 (✅ merged), #506 (✅ merged), #514 (✅ merged 2026-09-06) + docs audited
@@ -254,7 +254,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 **No-go criteria (ANY one blocks public release):**
 
-- [x] **ACTIVE BLOCKER:** Limitation 9 (no operator path to a real key for compositions) not closed — **open in part** [corrected 2026-09-13: the signer no longer discards a supplied key; it honours an explicit `hmacKey`. The blocker stands on the residual — no operator path to a real key for compositions: the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the `hmacKey` parameter] (limitations 7-8 closed by PR #523, 2026-09-06)
+- [x] ~~**ACTIVE BLOCKER:** Limitation 9~~ — **CLOSED 2026-09-13.** A host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration; one detection residual remains — the gate does not compare the two lanes' signers, so two deliberately-different signers are not warned about; unreachable through the shipped DI path. This criterion no longer blocks [corrected 2026-09-13: the signer no longer discards a supplied key; it honours an explicit `hmacKey`. The blocker stands on the residual — no operator path to a real key for compositions: the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the `hmacKey` parameter] (limitations 7-8 closed by PR #523, 2026-09-06)
 - [ ] Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — ✅ resolved (all five checks required; verified 2026-09-09)
 - [ ] Landing page contains false Cloud GA or autonomous production claims
 - [ ] TesterQuickstart fails on clean machine
@@ -424,7 +424,7 @@ the release rather than shipping a mislabelled package — which is the good fai
 **Rationale:**
 - Runtime P0 PRs merged — ✅ (#513 fail-closed defaults, #512 cert-loop, #511 workflows, #514 landing) all landed 2026-09-06
 - Limitations 7-8 — ✅ closed by PR #523 (2026-09-06; `Default`/`Strict` require Ed25519 signature + schema floor 2; ledger entry in `docs/dogfood-ledger.md`)
-- Limitation 9 — ⚠️ **OPEN IN PART** (corrected 2026-09-13: an explicitly supplied `hmacKey` is now honoured; the residual is no operator path to a real key for compositions: the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the `hmacKey` parameter; roadmap M1 blocker for commercial claims)
+- Limitation 9 — ✅ **CLOSED 2026-09-13** (the composition signer now takes the injected `CertificationRecordSigner` as its key holder and delegates the MAC to it, and the shipped DI registration supplies that signer, so a host-configured key keys both lanes; no key material crosses the boundary. One detection residual remains — the gate does not compare the two lanes' signers — which is unreachable through the shipped DI path. No longer a roadmap M1 blocker for commercial claims.)
 - CI redundancy workflows on master — ✅ (PR #511 merged)
 - Branch protection — ✅ requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (verified 2026-09-09)
 - Known limitations documented honestly ✅
@@ -486,7 +486,7 @@ the release rather than shipping a mislabelled package — which is the good fai
 | **P3 ledger delays Forge GA** | Revenue from Forge pushed to 2027 | Focus on runtime embeds (proven value); Forge design-partner private generates feedback |
 | **Design partners churn before paid** | Revenue target missed | Tight feedback loop, fast bug fixes, clear support boundaries |
 | **Competitor (e.g. Copilot) moves faster on trust/audit** | Differentiation weakens | Double down on fail-closed admission + cert-gate teeth (our moat); emphasize local-first |
-| **Limitation 9 open in part → composition trust chain weak** | Composition records are minted under the committed dev key because no production registration supplies one, and a key held by the brick signer cannot reach them (corrected 2026-09-13) | Roadmap M1 fix (composition signer honours supplied key) before commercial claims; disclose in design-partner agreement |
+| ~~**Limitation 9 → composition trust chain weak**~~ — **CLOSED 2026-09-13** | Was: composition records minted under the committed dev key because no production registration supplied one. The shipped registration now injects the brick signer as the composition lane's key holder. | Roadmap M1 fix (composition signer honours supplied key) before commercial claims; disclose in design-partner agreement |
 | **Contact channel (Discussions) not enabled** | Funnel breaks at Aware → Eval | CEO action (5.5) before public announcement |
 
 ---
