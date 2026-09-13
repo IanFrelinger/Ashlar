@@ -85,6 +85,22 @@ public sealed class CompositionCertificationRecordSigner
     /// </summary>
     public bool UsesDevKey { get; }
 
+    /// <summary>
+    /// True when this signer derives its key from <paramref name="brickSigner"/>, so both lanes are
+    /// under one key and stay under it — delegation inherits the brick lane's late binding, not just
+    /// its current value.
+    ///
+    /// <para><b>Reference identity, deliberately. This compares NO key material and must never be
+    /// described as a key comparison.</b> It is exact for the shipped DI path, where one
+    /// <see cref="CertificationRecordSigner"/> singleton is injected into both lanes. It is a FALSE
+    /// POSITIVE for a host that deliberately built two signers holding the same explicit key — that
+    /// host is correctly configured and its only consumer warns anyway, which is why that consumer
+    /// warns and never refuses. Answering it exactly would mean comparing keys, and
+    /// not doing that is the whole design of this class.</para>
+    /// </summary>
+    internal bool SharesKeyHolderWith(CertificationRecordSigner brickSigner)
+        => ReferenceEquals(_keyHolder, brickSigner);
+
     /// <summary>Sign.</summary>
     public string Sign(CompositionCertificationRecord record)
     {

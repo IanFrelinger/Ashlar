@@ -11,9 +11,9 @@
 Ashlar ships as an **embeddable local-first .NET runtime** with cert-gate + trust log. Commercial model: Community free → design partner → Builder/Team/Enterprise tiers; Cloud PAYG later. Dual revenue streams: flagship product on Ashlar runtime + engine licensing (Fortnite+Unreal model). North star: successful embeds, not autonomous self-extension hype before the dogfood ledger exists.
 
 **Current state:**
-- **Runtime (Ashlar):** P0 trust PRs merged (limitations 7-8 closed by PR #523; limitation 9 open); CI redundancy live (five required checks on `master`: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`); cert-loop honesty shipped in docs/landing
+- **Runtime (Ashlar):** P0 trust PRs merged (limitations 7-8 closed by PR #523; limitation 9 closed 2026-09-13); CI redundancy live (five required checks on `master`: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`); cert-loop honesty shipped in docs/landing
 - **Product (Forge):** Scaffold exists; no public Cursor-safe claims without ledger (P3 hold)
-- **Recommendation:** Design-partner private only until limitation 9 closes + external validation; autonomy marketing stays HOLD per `docs/dogfood-ledger.md` / `docs/dogfood-scorecard.md`
+- **Recommendation:** Design-partner private until external validation lands (limitation 9 closed 2026-09-13, operative half and lane-agreement detection); autonomy marketing stays HOLD per `docs/dogfood-ledger.md` / `docs/dogfood-scorecard.md`
 
 **This document provides:**
 1. [Runtime release bar (Ashlar)](#1-runtime-release-bar-ashlar) — must-close issues before tagging release candidates
@@ -32,7 +32,7 @@ These are **blockers** for any public release candidate tag. Every item referenc
 
 | Item | Issue | Status | Release impact |
 |------|-------|--------|----------------|
-| **P0 trust signature holes (limitations 7-9)** | [#513](https://github.com/IanFrelinger/Ashlar/pull/513), [#523](https://github.com/IanFrelinger/Ashlar/pull/523) | ⚠️ **PARTIAL** (#513 merged 2026-09-06T02:23:51Z; #523 merged 2026-09-06T05:58:54Z) | Fail-closed defaults landed (#513); **limitations 7-8 CLOSED by PR #523 (2026-09-06)** — `CertificationVerifyOptions.Default`/`Strict` now set `RequireEd25519Signature = true` + `MinimumSchemaVersion = 2`; **limitation 9 OPEN** (`CompositionCertificationRecordSigner` discards an explicitly supplied key) — see `docs/certification-evidence.md` limitations 7-9 and `docs/dogfood-ledger.md` |
+| **P0 trust signature holes (limitations 7-9)** | [#513](https://github.com/IanFrelinger/Ashlar/pull/513), [#523](https://github.com/IanFrelinger/Ashlar/pull/523) | ✅ **CLOSED** (#513 merged 2026-09-06T02:23:51Z; #523 merged 2026-09-06T05:58:54Z; limitation 9 closed 2026-09-13) | Fail-closed defaults landed (#513); **limitations 7-8 CLOSED by PR #523 (2026-09-06)** — `CertificationVerifyOptions.Default`/`Strict` now set `RequireEd25519Signature = true` + `MinimumSchemaVersion = 2`; **limitation 9 CLOSED 2026-09-13** (the composition signer takes the injected `CertificationRecordSigner` as its key holder and delegates the MAC to it; the gate additionally warns when the two lanes were built independently) — see `docs/certification-evidence.md` limitations 7-9 and `docs/dogfood-ledger.md` |
 | **Cert-loop honesty in landing/docs** | [#514](https://github.com/IanFrelinger/Ashlar/pull/514), [#505](https://github.com/IanFrelinger/Ashlar/pull/505), [#506](https://github.com/IanFrelinger/Ashlar/pull/506) | ✅ **COMPLETE** (all merged: #505, #506, #514 merged 2026-09-06T01:31:06Z) | Marketing landing honest; cert-loop defect fixes shipped |
 | **Cert-loop integration live path** | [#512](https://github.com/IanFrelinger/Ashlar/pull/512) | ✅ **COMPLETE** (merged 2026-09-06T01:40:20Z) | Certified loop integration + canary verification enforced, live on master |
 
@@ -208,7 +208,7 @@ Map release bars to **commercial funnel stages**: Aware → Eval → Embed → D
 
 **Funnel success:** Design partner deploys → sees value → willing to pay
 
-**Current readiness:** ⚠️ **NEAR for runtime** (P0 PRs merged, branch protection live; limitation 9 remaining); ⚠️ **HOLD for Forge** (pending dated ledger passes)
+**Current readiness:** ⚠️ **NEAR for runtime** (P0 PRs merged, branch protection live; limitation 9 closed 2026-09-13); ⚠️ **HOLD for Forge** (pending dated ledger passes)
 
 ### 3.5 Paid (Builder/Team/Enterprise tiers)
 
@@ -254,19 +254,19 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 **No-go criteria (ANY one blocks public release):**
 
-- [x] ~~**ACTIVE BLOCKER:** Limitation 9~~ — **CLOSED 2026-09-13.** A host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration; one detection residual remains — the gate does not compare the two lanes' signers, so two deliberately-different signers are not warned about; unreachable through the shipped DI path. This criterion no longer blocks [corrected 2026-09-13: the signer no longer discards a supplied key; it honours an explicit `hmacKey`. The blocker stands on the residual — no operator path to a real key for compositions: the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the `hmacKey` parameter] (limitations 7-8 closed by PR #523, 2026-09-06)
+- [x] ~~**ACTIVE BLOCKER:** Limitation 9~~ — **CLOSED 2026-09-13.** A host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration; the lane-agreement detection residual closed the same day — the gate now compares its two signers at construction and warns (never refuses) when they were built independently. This criterion no longer blocks. (limitations 7-8 closed by PR #523, 2026-09-06)
 - [ ] Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — ✅ resolved (all five checks required; verified 2026-09-09)
 - [ ] Landing page contains false Cloud GA or autonomous production claims
 - [ ] TesterQuickstart fails on clean machine
 - [ ] Security defaults allow unauthenticated network exposure without explicit opt-in
 
-**Current recommendation:** ⚠️ **NO-GO for public v0.x** — Limitation 9 close + external validation + remaining CEO actions (Pages, social preview, Discussions) required
+**Current recommendation:** ⚠️ **NO-GO for public v0.x** — external validation + remaining CEO actions (Pages, social preview, Discussions) required
 
 ### 4.2 Design-partner private release
 
 **Go criteria (LESS restrictive than public):**
 
-- [x] **P0 trust holes closed:** PRs #513 + #523 merged (✅ 2026-09-06; limitations 7-8 closed; limitation 9 residual disclosed in design-partner agreement)
+- [x] **P0 trust holes closed:** PRs #513 + #523 merged (✅ 2026-09-06; limitations 7-8 closed; limitation 9 closed 2026-09-13)
 - [x] **Cert-loop integration:** PR #512 merged (✅ 2026-09-06)
 - [ ] **CI primary gate working:** `cert-gate` reliable (redundancy nice-to-have, not blocker)
 - [ ] **Known limitations documented:** Limitations 1-9 in `certification-evidence.md`
@@ -279,9 +279,9 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 - [ ] Cert-gate consistently failing on master
 - [ ] No design-partner agreement (no legal protection for experimental features)
-- [ ] Limitation 9 (composition signer key discard) not disclosed in design-partner agreement
+- [x] ~~Limitation 9 (composition signer key discard) not disclosed in design-partner agreement~~ — **moot 2026-09-13: limitation 9 is CLOSED**, so there is no residual to disclose. The disclosure that remains is the committed dev key itself (see the HMAC row below), which is a different limitation.
 
-**Current recommendation:** ✅ **GO design-partner private** (runtime pilots) — P0 PRs merged; disclose limitation 9 residual in agreement. Autonomy / design-partner **marketing claims** remain **HOLD** per `docs/dogfood-ledger.md` and `docs/dogfood-scorecard.md` until scorecard thresholds hold ~7 consecutive days and dated Strict+Ed25519 E2E passes appear in the ledger.
+**Current recommendation:** ✅ **GO design-partner private** (runtime pilots) — P0 PRs merged; limitation 9 closed 2026-09-13. Autonomy / design-partner **marketing claims** remain **HOLD** per `docs/dogfood-ledger.md` and `docs/dogfood-scorecard.md` until scorecard thresholds hold ~7 consecutive days and dated Strict+Ed25519 E2E passes appear in the ledger.
 
 ---
 
@@ -419,12 +419,12 @@ the release rather than shipping a mislabelled package — which is the good fai
 
 ## 6. Release decision summary
 
-### Recommendation: Design-partner private ready; public v0.x needs limitation 9 close + external validation + remaining CEO actions
+### Recommendation: Design-partner private ready; public v0.x needs external validation + remaining CEO actions
 
 **Rationale:**
 - Runtime P0 PRs merged — ✅ (#513 fail-closed defaults, #512 cert-loop, #511 workflows, #514 landing) all landed 2026-09-06
 - Limitations 7-8 — ✅ closed by PR #523 (2026-09-06; `Default`/`Strict` require Ed25519 signature + schema floor 2; ledger entry in `docs/dogfood-ledger.md`)
-- Limitation 9 — ✅ **CLOSED 2026-09-13** (the composition signer now takes the injected `CertificationRecordSigner` as its key holder and delegates the MAC to it, and the shipped DI registration supplies that signer, so a host-configured key keys both lanes; no key material crosses the boundary. One detection residual remains — the gate does not compare the two lanes' signers — which is unreachable through the shipped DI path. No longer a roadmap M1 blocker for commercial claims.)
+- Limitation 9 — ✅ **CLOSED 2026-09-13** (the composition signer now takes the injected `CertificationRecordSigner` as its key holder and delegates the MAC to it, and the shipped DI registration supplies that signer, so a host-configured key keys both lanes; no key material crosses the boundary. The lane-agreement detection residual closed the same day: the gate compares its two signers at construction and warns, never refuses. No longer a roadmap M1 blocker for commercial claims.)
 - CI redundancy workflows on master — ✅ (PR #511 merged)
 - Branch protection — ✅ requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (verified 2026-09-09)
 - Known limitations documented honestly ✅
@@ -432,11 +432,10 @@ the release rather than shipping a mislabelled package — which is the good fai
 
 **Path forward:**
 
-1. **NOW:** Go design-partner private (runtime P0 PRs merged; disclose limitation 9 residual in agreement; Forge hold-mode with disclosure; no autonomy marketing claims)
+1. **NOW:** Go design-partner private (runtime P0 PRs merged; limitation 9 closed 2026-09-13; Forge hold-mode with disclosure; no autonomy marketing claims)
 2. **NEXT:** CEO actions (Pages, social preview, Discussions)
-3. **PARALLEL:** Limitation 9 residual (composition signer already honours a supplied `hmacKey` as of 2026-09-13; what remains is a key accessor or keyed registration so a host key reaches compositions — roadmap M1)
-4. **THEN:** External validation (docs tested by non-contributor)
-5. **FINALLY:** Public v0.x release (limitation 9 closed + validation complete + CEO actions done)
+3. **THEN:** External validation (docs tested by non-contributor)
+4. **FINALLY:** Public v0.x release (limitation 9 closed 2026-09-13 + validation complete + CEO actions done)
 
 ### What to tell prospects TODAY
 
@@ -447,11 +446,10 @@ the release rather than shipping a mislabelled package — which is the good fai
 - "P0 trust PRs merged (2026-09-06): fail-closed defaults, Strict+Ed25519 required (#523), cert-loop integration, CI workflows, landing honesty"
 - "NuGet packages published, HTTP API works, CLI tested"
 - "Fail-closed admission: uncertified code rejected"
-- "Known residual: limitation 9 (compositions have no operator path to a real signing key; fix pending) — disclosed in design-partner agreement; limitations 7-8 closed by PR #523"
-  <!-- Corrected 2026-09-13: this line previously read "composition signer ignores an explicitly supplied key". It does not; it honours one. The residual is that the injected brick signer is still discarded, CertificationRecordSigner exposes no key accessor, and no production registration supplies the parameter, so compositions have no operator path to a real key. Do not reissue the earlier wording externally. -->
+- "Limitations 7-9 closed (7-8 by PR #523 2026-09-06; 9 on 2026-09-13). Remaining disclosure is the committed development HMAC key: a host that sets no key signs with a constant published in the repository."
+  <!-- Corrected twice on 2026-09-13. This line first read "composition signer ignores an explicitly supplied key", then "compositions have no operator path to a real key". BOTH are superseded: limitation 9 closed the same day, the composition signer takes the injected CertificationRecordSigner as its key holder, and the shipped DI registration supplies it. Do not reissue either earlier wording externally. -->
 
 ⚠️ **Not yet for public v0.x:**
-- "Limitation 9 fix pending (composition key reachability: a host key does not reach composition records)"
 - "External validation needed before public announcement"
 
 ⚠️ **Not yet for autonomous self-extension:**
@@ -486,7 +484,7 @@ the release rather than shipping a mislabelled package — which is the good fai
 | **P3 ledger delays Forge GA** | Revenue from Forge pushed to 2027 | Focus on runtime embeds (proven value); Forge design-partner private generates feedback |
 | **Design partners churn before paid** | Revenue target missed | Tight feedback loop, fast bug fixes, clear support boundaries |
 | **Competitor (e.g. Copilot) moves faster on trust/audit** | Differentiation weakens | Double down on fail-closed admission + cert-gate teeth (our moat); emphasize local-first |
-| ~~**Limitation 9 → composition trust chain weak**~~ — **CLOSED 2026-09-13** | Was: composition records minted under the committed dev key because no production registration supplied one. The shipped registration now injects the brick signer as the composition lane's key holder. | Roadmap M1 fix (composition signer honours supplied key) before commercial claims; disclose in design-partner agreement |
+| ~~**Limitation 9 → composition trust chain weak**~~ — **CLOSED 2026-09-13** | Was: composition records minted under the committed dev key because no production registration supplied one. The shipped registration now injects the brick signer as the composition lane's key holder. | Closed 2026-09-13 by the keyed DI registration; nothing remains to disclose for this row. The committed development HMAC key is disclosed separately, under limitation 1. |
 | **Contact channel (Discussions) not enabled** | Funnel breaks at Aware → Eval | CEO action (5.5) before public announcement |
 
 ---
@@ -519,7 +517,7 @@ the release rather than shipping a mislabelled package — which is the good fai
 
 ### 8.4 Known limitations (open issues)
 
-- `docs/certification-evidence.md` § "Known v0 limitations" (lines 644-844; limitations 1-9 — 7-8 closed 2026-09-06, 9 open, others residual)
+- `docs/certification-evidence.md` § "Known v0 limitations" (limitations 1-9 — 7-8 closed 2026-09-06, 9 closed 2026-09-13, others residual; no line range, because that section is edited by row insertion)
 - `docs/SELF-EXTEND-AUDIT.md` § "Cert-loop integration" (convergence gap: certified loop vs legacy extender)
 
 ### 8.5 Marketing / landing
@@ -534,9 +532,9 @@ the release rather than shipping a mislabelled package — which is the good fai
 ## Document maintenance
 
 **Owner:** CEO / founder  
-**Last updated:** 2026-09-09 (P0 PRs #511/#512/#513/#514 merged 2026-09-06; limitations 7-8 closed by PR #523; branch protection verified live; limitation 9 open; design-partner go, autonomy marketing HOLD)  
-**Next review:** After limitation 9 fix merges, before public v0.x announcement  
-**Update triggers:** Limitation 9 closed, dogfood ledger shows dated Strict E2E passes, design partner converts to paid, CEO actions completed
+**Last updated:** 2026-09-13 (P0 PRs #511/#512/#513/#514 merged 2026-09-06; limitations 7-8 closed by PR #523; branch protection verified live; limitation 9 closed 2026-09-13; design-partner go, autonomy marketing HOLD)  
+**Next review:** Before public v0.x announcement  
+**Update triggers:** Dogfood ledger shows dated Strict E2E passes, design partner converts to paid, CEO actions completed
 
 **How to update:**
 1. Close relevant GitHub issue → mark ✅ in section 1 or 2

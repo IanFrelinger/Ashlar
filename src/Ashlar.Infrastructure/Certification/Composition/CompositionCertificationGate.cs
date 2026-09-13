@@ -29,6 +29,42 @@ public sealed class CompositionCertificationGate : ICompositionCertificationGate
         _brickRegistry = brickRegistry ?? throw new ArgumentNullException(nameof(brickRegistry));
         _compositionSigner = compositionSigner ?? throw new ArgumentNullException(nameof(compositionSigner));
         _logger = logger;
+
+        // Limitation 9's last residual. This gate holds both signers and, until now, never asked
+        // whether they agree — so a host could check constituent atom signatures with one key and mint
+        // the composition admission under another, and nothing said so. A composition certificate is
+        // supposed to attest the chain its constituents were signed into; under split keys it does not.
+        //
+        // This WARNS and never refuses, on purpose. The check is reference identity, not a key
+        // comparison, so it FALSE-POSITIVES on a host that deliberately built two signers holding the
+        // same explicit key: that host is correctly configured and is warned anyway. Refusing on a
+        // heuristic would convert a silent security weakness into a startup failure, which is a
+        // separate availability decision and not one a key-threading fix gets to make.
+        //
+        // The dev-key exemption below carries a matching FALSE NEGATIVE, stated here precisely
+        // because "provably the same key" overstated it. Both flags are computed at construction.
+        // The brick lane is late-binding — CertificationRecordSigning.ResolveKey re-reads
+        // ASHLAR_CERT_DEV_HMAC_KEY on every call — while a composition signer built WITHOUT a brick
+        // signer freezes its key bytes in its constructor. So if the variable is set after both are
+        // built, the lanes diverge and this check stays silent, because both answered "dev key" at
+        // the moment it was asked. Delegation does not have this problem: a composition signer that
+        // derives from the brick signer inherits its late binding too.
+        //
+        // Two signers both on the committed dev key are exempt anyway: they agree at construction,
+        // and warning there would fire on every host that configured nothing — and a warning that
+        // fires on correct configurations stops being read.
+        if (!_compositionSigner.SharesKeyHolderWith(_brickSigner)
+            && !(_compositionSigner.UsesDevKey && _brickSigner.UsesDevKey))
+        {
+            _logger?.LogWarning(
+                "The composition lane and the brick lane may not be signing under the same key. This gate "
+                + "verifies constituent brick records with one signer and mints the composition record with "
+                + "another, and they were built independently, so a composition certificate may not attest "
+                + "the chain it appears to. Supply one {Signer} and let the composition signer derive from "
+                + "it, which is what AddCertificationInfrastructure does. If the two deliberately hold the "
+                + "same key, this warning is expected and can be ignored.",
+                nameof(CertificationRecordSigner));
+        }
     }
 
     /// <summary>Certify asynchronously.</summary>

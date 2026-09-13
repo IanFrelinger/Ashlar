@@ -8,10 +8,12 @@
 > 2026-09-05 snapshot and its body is left as the record of what was known then. Limitation 9 has since
 > closed **in part**: `CompositionCertificationRecordSigner` now honours an explicitly supplied
 > `hmacKey` and computes its honesty flag from it, so descriptions below of the signer "discarding a
-> supplied key" or "key injection bypass" no longer describe the code. **The consequence this report
-> relies on still holds:** the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the parameter, so compositions have no operator path to a real key.
+> supplied key" or "key injection bypass" no longer describe the code. **Updated 2026-09-13: limitation 9
+> is now CLOSED outright.** The injected brick signer IS the composition lane's key holder and the shipped
+> DI registration supplies it, so the consequence this report relied on — that compositions have no
+> operator path to a real key — no longer holds either.
 > By the M1.1 exit criterion stated here — a host passing a real key via `brickSigner` minting
-> compositions under that key — M1.1 is **not met**. See `docs/certification-evidence.md` limitation 9.
+> compositions under that key — M1.1 **is now met**. See `docs/certification-evidence.md` limitation 9.
 
 ---
 

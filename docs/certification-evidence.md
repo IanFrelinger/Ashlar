@@ -642,7 +642,7 @@ redundant guard is exactly what a careful proposer writes.
 
 ## Known v0 limitations
 
-1. **Dev HMAC signer, not PKI.** `CertificationRecordSigner` uses a development HMAC key, not a public-key infrastructure. This becomes more load-bearing in the composition phase because trust chains from constituent atom signatures — a forged or weak constituent record undermines the whole composition admission path. Unless `ASHLAR_CERT_DEV_HMAC_KEY` is set, the key is the COMMITTED constant `CertificationRecordSigning.DefaultDevKey`, so every record verifiable here is forgeable by anyone with the source; both signers now warn at construction while that is the case (`UsesDevKey`), and `ASHLAR_CERT_ED25519_KEY` adds a real signature on top. **Ed25519 is now required on Default/Strict verification paths** (limitations 7–8 CLOSED as of 2026-09-06), but it is still not a complete operator trust root on its own: without `TrustedEd25519PublicKeys` pinning, a self-consistent attacker-signed record can verify; HMAC remains forgeable under the committed dev key (this row); and compositions still have no operator path to a real key (limitation 9, closed in part 2026-09-13 — the signer now honours an explicit `hmacKey`, but it still discards the injected brick signer, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the parameter).
+1. **Dev HMAC signer, not PKI.** `CertificationRecordSigner` uses a development HMAC key, not a public-key infrastructure. This becomes more load-bearing in the composition phase because trust chains from constituent atom signatures — a forged or weak constituent record undermines the whole composition admission path. Unless `ASHLAR_CERT_DEV_HMAC_KEY` is set, the key is the COMMITTED constant `CertificationRecordSigning.DefaultDevKey`, so every record verifiable here is forgeable by anyone with the source; both signers now warn at construction while that is the case (`UsesDevKey`), and `ASHLAR_CERT_ED25519_KEY` adds a real signature on top. **Ed25519 is now required on Default/Strict verification paths** (limitations 7–8 CLOSED as of 2026-09-06), but it is still not a complete operator trust root on its own: without `TrustedEd25519PublicKeys` pinning, a self-consistent attacker-signed record can verify; HMAC remains forgeable under the committed dev key (this row); and compositions ARE keyed by the operator as of 2026-09-13 (limitation 9 CLOSED — the composition signer takes the injected brick signer as its key holder and the shipped DI registration supplies it, so a host key reaches both lanes; see the CLOSING NOTE below). What remains in this row is the committed dev key itself, not composition reachability.
 
 2. **Composition seam check is TYPE-level only.** The seam validator checks producer/consumer type compatibility (e.g. `string` vs `int`) but not semantic mismatches where types align (e.g. file path vs URL, both `string`). Graph-mutation teeth only partially compensate for this gap.
 
@@ -898,11 +898,14 @@ redundant guard is exactly what a careful proposer writes.
    brick lane under an operator key beside a composition lane under the committed constant is
    detectable today and is not detected.
 
-   *Re-anchored 2026-09-13: the line citations in the original row above no longer resolve. The
-   discard is now at `CompositionCertificationRecordSigner.cs:43` (below the LIMITATION 9 residual
-   comment block at `:34-42`), the key ladder at `:45-48`, the key material at `:50`, the flag at
-   `:51`, and the class XML doc at `:11-16`. The original citations (`:20,:26,:27-28,:30`
-   and `:10-13`) are left in place as the record of what was read on 2026-08-27.*
+   *Superseded 2026-09-13. **The code this row describes no longer exists** — there is no discard to
+   point at; see the CLOSING NOTE below. Two earlier sets of line citations are left in place
+   unrepaired, deliberately: the originals (`:20,:26,:27-28,:30` and `:10-13`) recording what was read
+   on 2026-08-27, and a re-anchoring written later the same day which located "the discard" at `:43`
+   and a "LIMITATION 9 residual comment block" at `:34-42`. That re-anchoring went stale within hours
+   of being written, because the commit that closed the limitation deleted what it pointed at. Both
+   are kept as what they are — a record of two readings — rather than repaired into a third set that
+   would rot the same way. **Do not cite this row for the current shape of the code.***
 
    ### Limitation 9 — CLOSING NOTE, 2026-09-13
 
@@ -922,15 +925,54 @@ redundant guard is exactly what a careful proposer writes.
    **Residual (b) closed as well.** The flag and the bytes are now derived from one resolved string, so
    they can no longer disagree if `ASHLAR_CERT_DEV_HMAC_KEY` changes between two reads.
 
-   **What is NOT closed.** One residual remains: the lane-agreement check.
-   `CompositionCertificationGate` holds both signers and still does not compare them, so a host that
-   deliberately constructs two signers under different keys is not told. That is a detection gap, not a
-   key-threading gap, and it cannot arise through the shipped DI path, which injects one signer into both
-   lanes. Deliberately left for a separate change rather than bundled here.
+   **The lane-agreement residual is now closed too (2026-09-13).** `CompositionCertificationGate` asks at
+   construction whether its composition signer derives from its brick signer, and warns when they were
+   built independently and are not both on the committed dev key. It **warns and never refuses**: the
+   check is reference identity, not a key comparison, so it **false-positives** on a host that
+   deliberately built two signers holding the same explicit key — that host is correctly configured and
+   is warned anyway — and refusing on a heuristic would convert a silent weakness into a startup
+   failure, a separate availability decision. Two signers both on the committed constant are exempt
+   because warning there would be noise on every unconfigured host. Pinned by FIVE facts in
+   `CompositionSignerKeyThreadingTests`: the warn case, the two silent cases, the container-resolved
+   shipped-DI case, and the known false positive. (This read "three" until two more were added the
+   same day.)
 
-   **Evidence.** `CompositionSignerKeyThreadingTests` (seven facts) asserts the signature against an
-   independently computed HMAC with a negative control against the committed constant — a key-path fact,
-   not a flag fact, which is the distinction the earlier partial fix failed.
+   **The exemption's false negative, stated rather than implied.** An earlier version of this row said
+   two dev-key signers are "provably under one key". That overstates it. Both flags are computed at
+   construction, but the brick lane is late-binding — `CertificationRecordSigning.ResolveKey` re-reads
+   `ASHLAR_CERT_DEV_HMAC_KEY` on every call — while a composition signer built *without* a brick signer
+   freezes its key bytes in its constructor. Set the variable after both are built and the lanes
+   diverge with no warning, because both answered "dev key" when asked. Delegation is not exposed to
+   this: it inherits the brick lane's late binding. This is narrow, but it is the exempted case, so it
+   is the one worth naming.
+
+   **Evidence.** Six of the seven key-path facts in `CompositionSignerKeyThreadingTests` compute the
+   expected signature here with `HMACSHA256` over the composition signer's own canonical payload,
+   independently of the class under test (the seventh, `BrickSignersKey_ClearsTheDevKeyFlag_AndStaysQuiet`,
+   asserts the honesty flag and the absence of a warning rather than a signature) — a key-path fact, not a flag fact, which is the distinction
+   the earlier partial fix failed. The seven partition as **3 / 3 / 1**: three compute a signature AND carry an explicit negative
+   control (the primary fact against the committed constant, the two precedence facts against the key
+   they must *not* have used); three compute a signature alone; one computes no signature at all.
+   (Three earlier versions of this row got this wrong in three different ways: all seven control
+   against the committed constant, then each of the seven controls against something, then "the
+   remaining four assert the signature alone" — which double-counted the flag fact. Counted, not
+   estimated.)
    `CompositionSignerKeyPathConventionTests` pins that the composition signer holds no key bytes while
    delegating, and freezes the MAC oracle to one declaration and one call site. Both run in cert-gate, a
-   required check. Disabling the delegation fails four of the nine, measured.
+   required check. Disabling the delegation fails **six of the fourteen**, re-measured 2026-09-13 after
+   the two new facts were added:
+
+   - `BrickSignersKey_SignsTheCompositionRecord_NotTheCommittedConstant`
+   - `BrickSignersKey_ClearsTheDevKeyFlag_AndStaysQuiet`
+   - `WhitespaceExplicitKey_FallsThroughToTheInjectedBrickSigner_NotToTheEnvironment`
+   - `TheGate_IsSilentWhenTheCompositionSignerDerivesFromTheBrickSigner` — goes loud because an
+     unassigned key holder can share with nothing
+   - `TheShippedDiPath_ComposesAGateThatStaysSilent` — the container-resolved gate starts warning,
+     which is what a host would actually see if the registration stopped threading the signer
+   - `TheCompositionSigner_HoldsNoKeyWhenItDelegates` (the convention class)
+
+   **Read the denominator carefully.** It counts both classes together — twelve facts in
+   `CompositionSignerKeyThreadingTests` and two in `CompositionSignerKeyPathConventionTests`. Earlier
+   revisions of this row said "four of nine", then "five of the twelve", then "five of the thirteen";
+   each was correct for the population it was measured over, and the number moves whenever a fact is
+   added to either class. **Quote it with the denominator or not at all.**
