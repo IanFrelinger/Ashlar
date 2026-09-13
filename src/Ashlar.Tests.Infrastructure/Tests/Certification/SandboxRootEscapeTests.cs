@@ -18,7 +18,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///
 /// <para>These live under Tests/Certification deliberately. The cert gate filter matches
 /// <c>FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Certification</c>, so a
-/// regression here fails the one required status check. The pre-existing
+/// regression here fails a required status check. The pre-existing
 /// AdversarialScopeEscapeTests sit in Tests.Adaptation, which the filter does NOT match
 /// (it matches <c>Tests.Adaptation.GenerationSafety</c> specifically), so putting them
 /// there would have left them ungated.</para>

@@ -24,7 +24,13 @@ Verified 2026-09-09 with `gh api repos/IanFrelinger/Ashlar/branches/master/prote
 **`Readiness summary` became the fifth required context on 2026-09-09.** It could not be required before #571 because `full-platform-readiness-gate.yml` was path-filtered: a required context that never reports leaves a PR at "Expected — Waiting for status" forever, and `enforce_admins: true` means nobody can bypass it. #571 removed the `paths:` filter and moved the decision inside the workflow: a first `changes` job diffs the PR against its merge-base and only runs the heavy platform lanes when a core path changed; otherwise the lanes are skipped and `Readiness summary` passes in about a minute. It therefore reports on every PR, and it was added to branch protection after the first green `master` run confirmed that behaviour.
 
 Native readiness's `ci verify` also calls root `validate`, which discovers, builds and runs
-the three commercial suites: Fleet and MeshDirector on net8.0, Fleet.Host on net10.0. Its
+**every test project it finds by recursive sweep — 22 of them on master `e3ec23c9`, not only the
+commercial ones** (corrected 2026-09-13; run 34737292726 logs `Found 22 test project(s)` and
+`Tests: 5245/5245`). `ci/test-ownership.tsv` carries 23 registered test projects; the sweep reaches 22 of them, the difference being the `__BrickName__` scaffolding template, which `ValidationServiceAdapter` excludes by design (`templates` directory and `__Placeholder__` token). The discovered count is not pinned by anything and has drifted with the tree (26 on 2026-08-31, 23 on 2026-09-12, 22 on 2026-09-13), so it is an observation per run, not a floor. Among them are three projects the ownership registry recorded as UNOWNED until
+that correction: `Ashlar.Analyzers.Tests`, `Ashlar.Ingress.AwsSns.Tests` and
+`Ashlar.Ingress.DynamoDb.Tests`. The sweep emits no per-project counts, and a project that selects
+zero tests still passes, so this is a lane and not a receipt. The three commercial suites — Fleet and
+MeshDirector on net8.0, Fleet.Host on net10.0 — are the only ones with a receipt check. Its
 post-sweep receipt check and uploads are described in [Commercial CI coverage](CommercialCiCoverage.md).
 This indirect route reaches projects outside the solution and workflow path literals.
 

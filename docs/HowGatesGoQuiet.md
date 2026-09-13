@@ -490,3 +490,20 @@ which discovered and built three commercial test roots and their production depe
 Linux, macOS and Windows logs at master a0a3861 recorded successful suite execution. Follow CLI
 and script calls as well as solution membership before recording an absence; then retain the
 execution receipts. [Commercial CI coverage](CommercialCiCoverage.md) states the measured scope.
+
+It happened a second time, the same way. `ci/test-ownership.tsv` recorded
+`Ashlar.Analyzers.Tests`, `Ashlar.Ingress.AwsSns.Tests` and `Ashlar.Ingress.DynamoDb.Tests` as
+UNOWNED — "in Ashlar.sln only; no gate runs it" — and row 47 went further, asserting as a *measured
+consequence* that seven analyzer tests and the guards added for them "were never visible to any PR
+or master check". The same `validate` sweep had been running all three for weeks. Readiness run
+34687917934, the run for the very pull request that added those guards, executed them; so does
+34737292726 on current master. Corrected 2026-09-13.
+
+Two lessons the first instance did not record. **A false absence propagates into code, not just
+prose:** `CertifierReferenceSetTests` cited row 47's "no gate runs it" as the stated reason for a
+placement decision, so correcting the registry meant correcting a merged design rationale.
+**A pessimistic record is not the safe direction.** Both instances understated coverage, and the
+repository treated understatement as conservative. It is not: it invited work to close a gap that
+did not exist, and it sat in the file whose purpose is truthful recording. The real gap here was
+narrower and went unnamed — those projects appear in neither readiness path list, so a PR touching
+only them still runs none of their tests.

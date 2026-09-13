@@ -1354,7 +1354,7 @@ public sealed class LiteDbAtomicWriteConventionTests
     /// <summary>
     /// Build output, agent scratch space, test projects, and the root of any nested checkout — the
     /// same rule and the same reason as <see cref="LiteDbSharedModeConventionTests"/>: a second copy
-    /// of every store in a worktree would turn the only required check on master red on a developer's
+    /// of every store in a worktree would turn a required check on master red on a developer's
     /// machine while CI stayed green.
     /// </summary>
     private static bool IsPruned(string directory)

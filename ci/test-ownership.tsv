@@ -9,8 +9,8 @@
 #
 #   TestOwnershipConventionTests asserts that every csproj containing Microsoft.NET.Test.Sdk
 #   has exactly one row here. That test lives in the Ashlar.Tests.Infrastructure.Tests.
-#   Certification namespace, which is what cert-gate selects — the ONE required status check
-#   on master. So a new test project that is not registered here cannot merge.
+#   Certification namespace, which is what cert-gate selects - one of five required status
+#   checks on master. So a new test project that is not registered here cannot merge.
 #
 # COLUMNS  project <TAB> runner <TAB> expires <TAB> note
 #   project  repo-relative path to the .csproj
@@ -23,7 +23,7 @@
 #
 # ON PICKING AN EXPIRY DATE — read this before you set one.
 #   TestOwnershipConventionTests.NoUnownedRow_IsPastItsExpiry compares against DateTime.UtcNow,
-#   and it runs inside cert-gate, the ONLY required status check on master. An expiry that
+#   and it runs inside cert-gate, one of five required status checks on master. An expiry that
 #   passes therefore blocks EVERY pull request in the repository, with no code change and no
 #   warning, on a date chosen months earlier. That is a scheduled outage, not a ratchet.
 #
@@ -44,15 +44,15 @@ commercial/tests/Ashlar.Commercial.Tests.Fleet/Ashlar.Commercial.Tests.Fleet.csp
 commercial/tests/Ashlar.Commercial.Tests.MeshDirector/Ashlar.Commercial.Tests.MeshDirector.csproj	full-platform-readiness-gate	-	native ci verify -> validate (net8.0 Debug); receipts and graph checked; see docs/CommercialCiCoverage.md
 samples/hello-brick/HelloBrick.Tests/HelloBrick.Tests.csproj	full-platform-readiness-gate	-	sample; reached by ashlar validate, not by any solution
 samples/templates/brick/__BrickName__Brick.Tests/__BrickName__Brick.Tests.csproj	UNOWNED	2027-06-30	scaffolding template with placeholder identifiers, not a real suite; deliberately the longest expiry and staggered clear of the 2027-03-31 group
-src/Ashlar.Analyzers.Tests/Ashlar.Analyzers.Tests.csproj	UNOWNED	2027-03-31	in Ashlar.sln only; no gate runs it. CONSEQUENCE, measured: the Test.Sdk 18.9.0 CS1069 regression that reddened all seven SelfRecursiveRegistrationAnalyzerTests was never visible to any PR or master check, and neither are the AnalyzerReferenceSet guards added for it. [re-dated 2026-08-28: original 60-day expiry was a scheduled outage, see header]
-src/Ashlar.Ingress.AwsSns.Tests/Ashlar.Ingress.AwsSns.Tests.csproj	UNOWNED	2027-03-31	in Ashlar.sln only; no gate runs it [re-dated 2026-08-28: original 60-day expiry was a scheduled outage, see header]
-src/Ashlar.Ingress.DynamoDb.Tests/Ashlar.Ingress.DynamoDb.Tests.csproj	UNOWNED	2027-03-31	in Ashlar.sln only; no gate runs it [re-dated 2026-08-28: original 60-day expiry was a scheduled outage, see header]
+src/Ashlar.Analyzers.Tests/Ashlar.Analyzers.Tests.csproj	full-platform-readiness-gate	-	native ci verify -> validate (net8.0 Debug) discovers and runs it. The prior note claimed these tests were never visible to any PR or master check; both halves are refuted by separate runs. MASTER: run 34737292726 (push, green) and run 34687917934 (push, the #605 commit that added the AnalyzerReferenceSet guards; that run is RED overall for an unrelated FileBarrierAuditSinkTests failure, and its sweep job is green and lists all seven SelfRecursiveRegistrationAnalyzerTests). PULL REQUEST: run 34686265374 (pull_request, green, 4943/4943, same seven tests). NOT run by its own changes: src/Ashlar.Analyzers.Tests/** is in neither readiness path list, so an analyzer-only PR skips the heavy lanes. The sweep prints no per-project count and a zero-selection project still passes (ValidationServiceAdapter.cs:248): a lane, not a receipt. [corrected 2026-09-13]
+src/Ashlar.Ingress.AwsSns.Tests/Ashlar.Ingress.AwsSns.Tests.csproj	full-platform-readiness-gate	-	native ci verify -> validate (net8.0 Debug) discovers and runs it; observed in readiness run 34737292726. NOT run by its own changes: src/Ashlar.Ingress.AwsSns.Tests/** is in neither readiness path list, so an ingress-only PR skips the heavy lanes. The sweep prints no per-project count and a zero-selection project still passes (ValidationServiceAdapter.cs:248): a lane, not a receipt. [corrected 2026-09-13: previously UNOWNED with "no gate runs it"]
+src/Ashlar.Ingress.DynamoDb.Tests/Ashlar.Ingress.DynamoDb.Tests.csproj	full-platform-readiness-gate	-	native ci verify -> validate (net8.0 Debug) discovers and runs it; observed in readiness run 34737292726. NOT run by its own changes: src/Ashlar.Ingress.DynamoDb.Tests/** is in neither readiness path list, so an ingress-only PR skips the heavy lanes. The sweep prints no per-project count and a zero-selection project still passes (ValidationServiceAdapter.cs:248): a lane, not a receipt. [corrected 2026-09-13: previously UNOWNED with "no gate runs it"]
 src/Ashlar.Mcp.Client.Tests/Ashlar.Mcp.Client.Tests.csproj	mcp-a2a-gate	-	MCP client
 src/Ashlar.Mcp.Server.Tests/Ashlar.Mcp.Server.Tests.csproj	mcp-a2a-gate	-	MCP server
 src/Ashlar.Tests.AI.Pipeline/Ashlar.Tests.AI.Pipeline.csproj	kernel-gate;full-platform-readiness-gate	-	Kernel Tier A -> make meai-pipeline-gate (net8.0 Release); native readiness -> ci verify -> validate (net8.0)
 src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj	kernel-coverage-gate	-	application layer
-src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj	perf-gate-tier-a	-	background agents
-src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj	products-gate	-	products-gate runs DistributedContractTests only; remaining contract suites still have no dedicated gate
+src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj	perf-gate-tier-a;full-platform-readiness-gate	-	background agents. perf-gate-tier-a selects only FullyQualifiedName~Ashlar.Tests.BackgroundAgents.Performance (scripts/perf-gate-tier-a.sh:23-24); the rest of the project, including the Autonomy suites, runs unfiltered in readiness native ci verify -> validate, observed in run 34737292726. src/Ashlar.Tests.BackgroundAgents/** IS in both readiness path lists, so changes here do route to the heavy lanes. [corrected 2026-09-13: the row named only perf-gate-tier-a, which runs one namespace of it]
+src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj	products-gate;full-platform-readiness-gate	-	products-gate runs DistributedContractTests only; the other seven contract suites run unfiltered in readiness native ci verify -> validate on master, observed in run 34737292726. NOT run by their own changes: src/Ashlar.Tests.Contracts/** is in neither readiness path list, and products-gate triggers only on src/Ashlar.Tests.Contracts/DistributedContractTests.cs, so a PR editing another contract suite runs none of them. [corrected 2026-09-13: the note said they had no gate; readiness runs them on master]
 src/Ashlar.Tests.Domain/Ashlar.Tests.Domain.csproj	kernel-coverage-gate	-	domain, 100% line coverage target
 src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj	cert-gate	-	carries the required check
 src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj	kernel-gate	-	kernel

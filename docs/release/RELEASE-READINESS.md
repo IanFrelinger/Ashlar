@@ -199,7 +199,7 @@ Map release bars to **commercial funnel stages**: Aware → Eval → Embed → D
 - Provide feedback on autonomous proposal workflow
 
 **Must be true:**
-- ⚠️ P0 trust holes closed (PRs #513 + #523 merged 2026-09-06 — limitations 7-8 closed; limitation 9 still open)
+- ⚠️ P0 trust holes closed (PRs #513 + #523 merged 2026-09-06 — limitations 7-8 closed; limitation 9 open in part - compositions have no operator path to a real key; corrected 2026-09-13)
 - ✅ Cert-loop integration complete (PR #512 merged 2026-09-06)
 - ✅ CI redundancy in place (PR #511 merged; branch protection requires all five checks)
 - ✅ Known limitations documented honestly
@@ -254,7 +254,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 **No-go criteria (ANY one blocks public release):**
 
-- [x] **ACTIVE BLOCKER:** Limitation 9 (composition signer discards supplied key) not closed — **currently open** (limitations 7-8 closed by PR #523, 2026-09-06)
+- [x] **ACTIVE BLOCKER:** Limitation 9 (no operator path to a real key for compositions) not closed — **open in part** [corrected 2026-09-13: the signer no longer discards a supplied key; it honours an explicit `hmacKey`. The blocker stands on the residual — no operator path to a real key for compositions: the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the `hmacKey` parameter] (limitations 7-8 closed by PR #523, 2026-09-06)
 - [ ] Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — ✅ resolved (all five checks required; verified 2026-09-09)
 - [ ] Landing page contains false Cloud GA or autonomous production claims
 - [ ] TesterQuickstart fails on clean machine
@@ -393,7 +393,7 @@ These actions require **repository administrator** or **organization owner** per
 **Rationale:**
 - Runtime P0 PRs merged — ✅ (#513 fail-closed defaults, #512 cert-loop, #511 workflows, #514 landing) all landed 2026-09-06
 - Limitations 7-8 — ✅ closed by PR #523 (2026-09-06; `Default`/`Strict` require Ed25519 signature + schema floor 2; ledger entry in `docs/dogfood-ledger.md`)
-- Limitation 9 — ⚠️ **OPEN** (`CompositionCertificationRecordSigner` discards an explicitly supplied key; roadmap M1 blocker for commercial claims)
+- Limitation 9 — ⚠️ **OPEN IN PART** (corrected 2026-09-13: an explicitly supplied `hmacKey` is now honoured; the residual is no operator path to a real key for compositions: the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the `hmacKey` parameter; roadmap M1 blocker for commercial claims)
 - CI redundancy workflows on master — ✅ (PR #511 merged)
 - Branch protection — ✅ requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (verified 2026-09-09)
 - Known limitations documented honestly ✅
@@ -403,7 +403,7 @@ These actions require **repository administrator** or **organization owner** per
 
 1. **NOW:** Go design-partner private (runtime P0 PRs merged; disclose limitation 9 residual in agreement; Forge hold-mode with disclosure; no autonomy marketing claims)
 2. **NEXT:** CEO actions (Pages, social preview, Discussions)
-3. **PARALLEL:** Limitation 9 fix (composition signer honours supplied key — roadmap M1)
+3. **PARALLEL:** Limitation 9 residual (composition signer already honours a supplied `hmacKey` as of 2026-09-13; what remains is a key accessor or keyed registration so a host key reaches compositions — roadmap M1)
 4. **THEN:** External validation (docs tested by non-contributor)
 5. **FINALLY:** Public v0.x release (limitation 9 closed + validation complete + CEO actions done)
 
@@ -416,10 +416,11 @@ These actions require **repository administrator** or **organization owner** per
 - "P0 trust PRs merged (2026-09-06): fail-closed defaults, Strict+Ed25519 required (#523), cert-loop integration, CI workflows, landing honesty"
 - "NuGet packages published, HTTP API works, CLI tested"
 - "Fail-closed admission: uncertified code rejected"
-- "Known residual: limitation 9 (composition signer ignores an explicitly supplied key; fix pending) — disclosed in design-partner agreement; limitations 7-8 closed by PR #523"
+- "Known residual: limitation 9 (compositions have no operator path to a real signing key; fix pending) — disclosed in design-partner agreement; limitations 7-8 closed by PR #523"
+  <!-- Corrected 2026-09-13: this line previously read "composition signer ignores an explicitly supplied key". It does not; it honours one. The residual is that the injected brick signer is still discarded, CertificationRecordSigner exposes no key accessor, and no production registration supplies the parameter, so compositions have no operator path to a real key. Do not reissue the earlier wording externally. -->
 
 ⚠️ **Not yet for public v0.x:**
-- "Limitation 9 fix pending (composition signer key handling)"
+- "Limitation 9 fix pending (composition key reachability: a host key does not reach composition records)"
 - "External validation needed before public announcement"
 
 ⚠️ **Not yet for autonomous self-extension:**
@@ -454,7 +455,7 @@ These actions require **repository administrator** or **organization owner** per
 | **P3 ledger delays Forge GA** | Revenue from Forge pushed to 2027 | Focus on runtime embeds (proven value); Forge design-partner private generates feedback |
 | **Design partners churn before paid** | Revenue target missed | Tight feedback loop, fast bug fixes, clear support boundaries |
 | **Competitor (e.g. Copilot) moves faster on trust/audit** | Differentiation weakens | Double down on fail-closed admission + cert-gate teeth (our moat); emphasize local-first |
-| **Limitation 9 open → composition trust chain weak** | Composition records minted under the committed dev key even when the operator supplies a real key | Roadmap M1 fix (composition signer honours supplied key) before commercial claims; disclose in design-partner agreement |
+| **Limitation 9 open in part → composition trust chain weak** | Composition records are minted under the committed dev key because no production registration supplies one, and a key held by the brick signer cannot reach them (corrected 2026-09-13) | Roadmap M1 fix (composition signer honours supplied key) before commercial claims; disclose in design-partner agreement |
 | **Contact channel (Discussions) not enabled** | Funnel breaks at Aware → Eval | CEO action (5.5) before public announcement |
 
 ---

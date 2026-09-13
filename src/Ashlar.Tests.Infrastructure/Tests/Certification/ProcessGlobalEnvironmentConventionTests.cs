@@ -38,7 +38,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///
 /// <para>Hermetic: pure file reads, no build, no network, no SDK, and the same structural pruning
 /// as <see cref="TestOwnershipConventionTests"/>, because a nested git worktree holds a second
-/// copy of every file here and counting those turned the only required check on master red on
+/// copy of every file here and counting those turned a required check on master red on
 /// developers' machines while CI stayed green.</para>
 /// </summary>
 [Trait("Category", "Certification")]

@@ -214,7 +214,7 @@ public sealed class LiteDbSharedModeConventionTests
     /// Build output, agent scratch space, test projects, and the root of any nested checkout. The
     /// nested-checkout rule is structural — <c>git worktree add</c> writes a .git FILE and a nested
     /// clone has a .git DIRECTORY — because a second copy of every store in a worktree would turn
-    /// the only required check on master red on a developer's machine while CI stayed green. Only
+    /// a required check on master red on a developer's machine while CI stayed green. Only
     /// ever called on directories below the repo root.
     /// </summary>
     private static bool IsPruned(string directory)

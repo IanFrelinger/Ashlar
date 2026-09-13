@@ -73,7 +73,7 @@ Autonomy and design-partner marketing claims (e.g., "Ashlar autonomously propose
 - ✅ PR #523 (Strict+Ed25519) merged to master (merge commit 966e6bf4)
 - ❌ No dated Strict passes in ledger yet (canary sweep script still stub; awaits real autonomy loop wiring)
 - ❌ No real hygiene PR via Ashlar loop yet
-- ⚠️  lim-9 status TBD (may still be open)
+- ⚠️  lim-9 open in part (corrected 2026-09-13): explicit `hmacKey` is honoured; no operator path to a real key for compositions: the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the `hmacKey` parameter
 
 **Action:** Keep marketing HOLD. Monitor ledger for dated Strict passes once real autonomy loop wiring completes. Revisit unlock criteria after 7+ consecutive green days with real E2E passes.
 

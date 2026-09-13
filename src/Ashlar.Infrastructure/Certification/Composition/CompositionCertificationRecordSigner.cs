@@ -31,7 +31,16 @@ public sealed class CompositionCertificationRecordSigner
         ILogger<CompositionCertificationRecordSigner>? logger = null,
         string? hmacKey = null)
     {
-        _ = brickSigner; // Kept for API compatibility but not used for key resolution
+        // LIMITATION 9, RESIDUAL — this discard is a true positive, not dead code. A key held by the
+        // injected brickSigner cannot be threaded here because CertificationRecordSigner exposes no
+        // key accessor (its _hmacKey is private; only UsesDevKey is public). Nor does any production
+        // wiring supply the hmacKey parameter below: Sdk/Extensions/CertificationServiceCollectionExtensions.cs
+        // registers this type with AddSingleton<CompositionCertificationRecordSigner>() at the
+        // parameter's null default. So an operator's only lever for composition records remains
+        // ASHLAR_CERT_DEV_HMAC_KEY. Closing this needs a key accessor or a keyed registration, which is
+        // a public API change — do not "clean up" this line; deleting it removes the only in-source
+        // marker and compiles silently. See docs/certification-evidence.md (limitation 9).
+        _ = brickSigner;
         
         var key = string.IsNullOrWhiteSpace(hmacKey)
             ? Environment.GetEnvironmentVariable(CertificationRecordSigning.HmacKeyEnvVar)

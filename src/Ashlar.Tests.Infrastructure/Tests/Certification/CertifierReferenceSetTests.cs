@@ -33,10 +33,20 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// produce it. Those hold on any platform by construction.</para>
 ///
 /// <para>In <c>...Tests.Certification</c> so it rides cert-gate (<c>ci/test-ownership.tsv</c>
-/// line 57), and listed in <c>ci/cert-gate-assertions.md</c> per that file's Rule 2. The #605
-/// precedent this copies its design from lives in <c>Ashlar.Analyzers.Tests</c>, which
-/// <c>ci/test-ownership.tsv</c> line 47 records as UNOWNED — no gate runs it. The design transfers;
-/// the placement must not.</para>
+/// line 57), and listed in <c>ci/cert-gate-assertions.md</c> per that file's Rule 2. Placement
+/// follows that file's Rule 1 — a convention that must block a merge lives in this namespace or it
+/// is advisory — and is overdetermined here anyway: this class uses
+/// <c>Ashlar.Core.Application.Certification.Ports</c> and <c>Ashlar.Infrastructure.Certification</c>,
+/// which <c>Ashlar.Analyzers.Tests</c> does not reference, so it could not live beside the #605
+/// precedent whose design it copies. The remaining asymmetry is routing, not execution: cert-gate is
+/// required and unfiltered, whereas readiness runs <c>Ashlar.Analyzers.Tests</c> through its native
+/// <c>ci verify -> validate</c> sweep but lists no analyzer glob in either path list, so an
+/// analyzer-only PR skips the heavy lanes. The design transfers; the placement must not.</para>
+///
+/// <para>Corrected 2026-09-13. This paragraph previously read "<c>ci/test-ownership.tsv</c> line 47
+/// records as UNOWNED — no gate runs it". That premise was false: readiness runs 34737292726 and
+/// 34687917934 both executed <c>Ashlar.Analyzers.Tests</c>. The placement conclusion was
+/// independently correct and is unchanged; only its stated reason is.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class CertifierReferenceSetTests : IDisposable

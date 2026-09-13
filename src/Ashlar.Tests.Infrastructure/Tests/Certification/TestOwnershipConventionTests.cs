@@ -15,8 +15,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// ever run them. Nothing in the repository could answer "which tests does no gate run?", so
 /// nothing noticed.</para>
 ///
-/// <para><b>Why this class is in this namespace.</b> <c>cert-gate</c> is the only required
-/// status check on master (CONTRIBUTING.md), it runs on every pull request with no path filter,
+/// <para><b>Why this class is in this namespace.</b> <c>cert-gate</c> is one of five required
+/// status checks on master (CONTRIBUTING.md; the others are build-core, shell-lint, lychee and
+/// Readiness summary), and alone among them it runs on every pull request with no path filter,
 /// and it selects tests by the substring
 /// <c>FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Certification</c>
 /// (scripts/cert-gate-config.sh). Placing the registry assertion here makes it merge-blocking
@@ -58,7 +59,7 @@ public sealed class TestOwnershipConventionTests
     /// <summary>
     /// A nested checkout carries a full copy of every test project, and those copies belong to
     /// another tree. Reporting them made a single <c>git worktree</c> inside the repository turn
-    /// the only required check on master red on the developer's machine, while CI — which has no
+    /// a required check red on the developer's machine, while CI — which has no
     /// worktrees — stayed green. Pruning is by structure (a <c>.git</c> entry), so a vendored
     /// clone this repository never names is caught too.
     /// </summary>
@@ -206,7 +207,7 @@ public sealed class TestOwnershipConventionTests
     /// output and nested checkouts. A nested checkout holds a second copy of every test project
     /// in the repository, and those copies are not this repository's projects: the registry
     /// stores repo-root-relative paths, so a copy can never match a row. Counting them turned
-    /// the only required check on master red on any working tree containing a worktree, while
+    /// a required check red on any working tree containing a worktree, while
     /// CI — which has none — stayed green.</para>
     /// </summary>
     private static List<string> DiscoverTestProjects(string root)

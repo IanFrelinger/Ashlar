@@ -4,6 +4,15 @@
 **Status:** CEO Briefing — Audit Report  
 **Objective:** Runtime capable of autonomous self-extensions and validation with built-in agents, maintaining PRODUCT/CORE separation
 
+> **Dated correction, 2026-09-13 — read before acting on any limitation 9 item below.** This is a
+> 2026-09-05 snapshot and its body is left as the record of what was known then. Limitation 9 has since
+> closed **in part**: `CompositionCertificationRecordSigner` now honours an explicitly supplied
+> `hmacKey` and computes its honesty flag from it, so descriptions below of the signer "discarding a
+> supplied key" or "key injection bypass" no longer describe the code. **The consequence this report
+> relies on still holds:** the injected brick signer is still discarded, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the parameter, so compositions have no operator path to a real key.
+> By the M1.1 exit criterion stated here — a host passing a real key via `brickSigner` minting
+> compositions under that key — M1.1 is **not met**. See `docs/certification-evidence.md` limitation 9.
+
 ---
 
 ## Executive Summary
@@ -24,7 +33,7 @@ Ashlar has **proven the technical foundation** for autonomous self-extension: ce
 
 Six milestones (M0–M6) progress from honesty baseline to commercial claims. Each milestone has clear **exit criteria**, **dependencies**, and **ownership**. Conservative estimate: **M0–M3 can close in the current development cycle**; M4–M6 require product-team coordination and sustained dogfood operation.
 
-**Key Risk:** Certification composition signer vulnerability (limitation 9) is **publicly documented**; composition records ignore explicitly supplied keys. Limitations 7–8 (signature stripping, schema downgrade) were closed by PR #523. M1 MUST close limitation 9 before any commercial claim.
+**Key Risk:** Certification composition signer vulnerability (limitation 9) is **publicly documented**; composition records are minted under the committed dev key because no production registration supplies one (corrected 2026-09-13: the signer itself now honours explicitly supplied keys. Limitations 7–8 (signature stripping, schema downgrade) were closed by PR #523. M1 MUST close limitation 9 before any commercial claim.
 
 ---
 

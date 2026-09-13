@@ -642,7 +642,7 @@ redundant guard is exactly what a careful proposer writes.
 
 ## Known v0 limitations
 
-1. **Dev HMAC signer, not PKI.** `CertificationRecordSigner` uses a development HMAC key, not a public-key infrastructure. This becomes more load-bearing in the composition phase because trust chains from constituent atom signatures — a forged or weak constituent record undermines the whole composition admission path. Unless `ASHLAR_CERT_DEV_HMAC_KEY` is set, the key is the COMMITTED constant `CertificationRecordSigning.DefaultDevKey`, so every record verifiable here is forgeable by anyone with the source; both signers now warn at construction while that is the case (`UsesDevKey`), and `ASHLAR_CERT_ED25519_KEY` adds a real signature on top. **Ed25519 is now required on Default/Strict verification paths** (limitations 7–8 CLOSED as of 2026-09-06), but it is still not a complete operator trust root on its own: without `TrustedEd25519PublicKeys` pinning, a self-consistent attacker-signed record can verify; HMAC remains forgeable under the committed dev key (this row); and the composition signer still discards an explicitly supplied key (limitation 9).
+1. **Dev HMAC signer, not PKI.** `CertificationRecordSigner` uses a development HMAC key, not a public-key infrastructure. This becomes more load-bearing in the composition phase because trust chains from constituent atom signatures — a forged or weak constituent record undermines the whole composition admission path. Unless `ASHLAR_CERT_DEV_HMAC_KEY` is set, the key is the COMMITTED constant `CertificationRecordSigning.DefaultDevKey`, so every record verifiable here is forgeable by anyone with the source; both signers now warn at construction while that is the case (`UsesDevKey`), and `ASHLAR_CERT_ED25519_KEY` adds a real signature on top. **Ed25519 is now required on Default/Strict verification paths** (limitations 7–8 CLOSED as of 2026-09-06), but it is still not a complete operator trust root on its own: without `TrustedEd25519PublicKeys` pinning, a self-consistent attacker-signed record can verify; HMAC remains forgeable under the committed dev key (this row); and compositions still have no operator path to a real key (limitation 9, closed in part 2026-09-13 — the signer now honours an explicit `hmacKey`, but it still discards the injected brick signer, `CertificationRecordSigner` exposes no key accessor, and no production registration supplies the parameter).
 
 2. **Composition seam check is TYPE-level only.** The seam validator checks producer/consumer type compatibility (e.g. `string` vs `int`) but not semantic mismatches where types align (e.g. file path vs URL, both `string`). Graph-mutation teeth only partially compensate for this gap.
 
@@ -860,3 +860,42 @@ redundant guard is exactly what a careful proposer writes.
    *Established 2026-08-27 by reading the cited sources. No .NET SDK was available in the
    authoring environment, so nothing in this row was executed — it is a code-reading result,
    not a CI result.*
+
+   *Update, 2026-09-13: **CLOSED IN PART. The operative consequence still stands.***
+
+   **Closed.** The constructor now takes an explicit `hmacKey` and honours it ahead of the
+   environment and the committed constant, and it computes the honesty flag as
+   `CertificationRecordSigning.UsesDevKey(hmacKey)` — **with** the argument, so the clause above
+   ("with no argument, so the flag can never report an explicitly supplied key") no longer holds.
+   The class XML doc no longer claims it resolves its key exactly as `CertificationRecordSigner`
+   does. The key path — not merely the flag — is pinned by
+   `CompositionCanonicalPayloadGoldenTests`, which computes the expected HMAC independently under
+   an explicit key and compares it to a signer constructed with that key.
+   (`CertificationForgeAttackTests.CompositionSigner_HonorsExplicitKey` asserts only `UsesDevKey`
+   and would still pass if the key path regressed; cite the golden test, not that one.)
+
+   **Still open, and this is the half that matters operationally.** `_ = brickSigner;` remains. A
+   key held by the injected brick signer cannot be threaded through, because
+   `CertificationRecordSigner` exposes no key accessor — its `_hmacKey` is private and only
+   `UsesDevKey` is public. And no production wiring supplies the new parameter:
+   `Sdk/Extensions/CertificationServiceCollectionExtensions.cs` registers the type with
+   `AddSingleton<CompositionCertificationRecordSigner>()` at the parameter's `null` default — a
+   plain `AddSingleton`, not the `TryAddSingleton` the brick lane uses so a host-supplied signer is
+   not displaced. **So the recorded consequence survives unchanged for every supported path: a host
+   that passes a real key to the brick lane still mints composition records under the committed
+   public constant, and an operator's only lever for compositions is `ASHLAR_CERT_DEV_HMAC_KEY`.**
+   SPEC-006 S-4 is therefore still unmet, and this row is not a close.
+
+   Three narrower residuals, unchanged: a whitespace-only explicit key falls through to the
+   environment/dev path (deliberate, and pinned); the environment is read twice on two independent
+   paths (once for the key, once via `ResolveKey` for the flag), so the two can disagree if the
+   variable changes between them, where the brick lane resolves once; and
+   `CompositionCertificationGate` holds both signers and never compares their `UsesDevKey`, so a
+   brick lane under an operator key beside a composition lane under the committed constant is
+   detectable today and is not detected.
+
+   *Re-anchored 2026-09-13: the line citations in the original row above no longer resolve. The
+   discard is now at `CompositionCertificationRecordSigner.cs:43` (below the LIMITATION 9 residual
+   comment block at `:34-42`), the key ladder at `:45-48`, the key material at `:50`, the flag at
+   `:51`, and the class XML doc at `:11-16`. The original citations (`:20,:26,:27-28,:30`
+   and `:10-13`) are left in place as the record of what was read on 2026-08-27.*

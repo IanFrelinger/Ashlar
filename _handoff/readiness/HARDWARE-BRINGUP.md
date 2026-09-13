@@ -307,7 +307,7 @@ result meaningless.
 > **cert-gate and nested worktrees.** Before #406, `TestOwnershipConventionTests` walked every
 > `*.csproj` under the repo and skipped only `bin/` and `obj/`, so any `git worktree` inside the
 > tree — including the ones this repo's own tooling creates under `.claude/worktrees/` — turned
-> the only required check on master red locally while CI stayed green. Fixed in **#406**.
+> a required check on master red locally while CI stayed green. Fixed in **#406**.
 
 ### L3 — Does the product loop work end to end?
 

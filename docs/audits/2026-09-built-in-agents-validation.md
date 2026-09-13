@@ -4,6 +4,13 @@
 **Scope:** Background agents, orchestration, dogfood gates, observe/adapt/improve loops, MCP/A2A surfaces, CLI doctor/report/disarm commands, and current validation approaches  
 **Status:** Audit only — no feature implementation  
 
+
+> **Dated correction, 2026-09-13.** This is a 2026-09-05 snapshot; its body is the record of what was
+> known then and is left unchanged. One finding has since changed: master now requires **five** status
+> checks (`cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`), not
+> `cert-gate` alone - `Readiness summary` became the fifth on 2026-09-09 (`docs/CiGateInventory.md:22-24`).
+> The concentration risk this audit names is therefore smaller than recorded, though cert-gate remains the
+> only required check that runs unfiltered on every pull request.
 ---
 
 ## Executive Summary
