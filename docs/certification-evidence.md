@@ -861,7 +861,11 @@ redundant guard is exactly what a careful proposer writes.
    authoring environment, so nothing in this row was executed — it is a code-reading result,
    not a CI result.*
 
-   *Update, 2026-09-13: **CLOSED IN PART. The operative consequence still stands.***
+   *Update, 2026-09-13 (second): **CLOSED.** The operative consequence below no longer stands — see the
+   closing note at the end of this row. The partial-close text is kept as written because it was true
+   between the two updates of the same day.*
+
+   *Update, 2026-09-13 (first): **CLOSED IN PART. The operative consequence still stands.***
 
    **Closed.** The constructor now takes an explicit `hmacKey` and honours it ahead of the
    environment and the committed constant, and it computes the honesty flag as
@@ -899,3 +903,34 @@ redundant guard is exactly what a careful proposer writes.
    comment block at `:34-42`), the key ladder at `:45-48`, the key material at `:50`, the flag at
    `:51`, and the class XML doc at `:11-16`. The original citations (`:20,:26,:27-28,:30`
    and `:10-13`) are left in place as the record of what was read on 2026-08-27.*
+
+   ### Limitation 9 — CLOSING NOTE, 2026-09-13
+
+   **CLOSED for the operative consequence.** `CompositionCertificationRecordSigner` now takes the
+   injected `CertificationRecordSigner` as its KEY HOLDER whenever no explicit `hmacKey` is given, and
+   delegates the MAC to it. The shipped registration in
+   `Sdk/Extensions/CertificationServiceCollectionExtensions.cs` supplies that signer, so a host that does
+   the one thing SPEC-006 S-4 asks — construct a `CertificationRecordSigner` with a real key — now mints
+   composition records under that key with no host code change. **SPEC-006 S-4 is met for this lane.**
+
+   **No key material crosses the boundary.** The composition signer holds no key when it delegates; the
+   brick signer computes the MAC through an internal method taking an already-canonical payload and
+   returning a Base64 digest. Neither type exposes an accessor that returns a key, so there is nothing
+   for an assertion message, a debugger view or a destructuring logger to print. A key accessor was the
+   rejected alternative: both shapes closed the defect, only one added a way to leak.
+
+   **Residual (b) closed as well.** The flag and the bytes are now derived from one resolved string, so
+   they can no longer disagree if `ASHLAR_CERT_DEV_HMAC_KEY` changes between two reads.
+
+   **What is NOT closed.** One residual remains: the lane-agreement check.
+   `CompositionCertificationGate` holds both signers and still does not compare them, so a host that
+   deliberately constructs two signers under different keys is not told. That is a detection gap, not a
+   key-threading gap, and it cannot arise through the shipped DI path, which injects one signer into both
+   lanes. Deliberately left for a separate change rather than bundled here.
+
+   **Evidence.** `CompositionSignerKeyThreadingTests` (seven facts) asserts the signature against an
+   independently computed HMAC with a negative control against the committed constant — a key-path fact,
+   not a flag fact, which is the distinction the earlier partial fix failed.
+   `CompositionSignerKeyPathConventionTests` pins that the composition signer holds no key bytes while
+   delegating, and freezes the MAC oracle to one declaration and one call site. Both run in cert-gate, a
+   required check. Disabling the delegation fails four of the nine, measured.
