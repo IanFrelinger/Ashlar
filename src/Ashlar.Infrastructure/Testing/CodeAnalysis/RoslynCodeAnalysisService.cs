@@ -5,6 +5,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using Ashlar.Infrastructure.Certification;
 
@@ -272,7 +274,7 @@ public class RoslynCodeAnalysisService : ICodeAnalysisService
     }
 
     /// <summary>
-    /// Default references plus any existing custom reference paths — shared with the analyzer
+    /// Default references plus explicitly supplied custom reference paths — shared with the analyzer
     /// fence gate so gate and compiler resolve against the identical reference set.
     /// </summary>
     internal static List<MetadataReference> BuildReferenceSet(IEnumerable<string>? references)
@@ -280,15 +282,34 @@ public class RoslynCodeAnalysisService : ICodeAnalysisService
         var allReferences = GetDefaultReferences();
         if (references != null)
         {
-            allReferences.AddRange(references
-                .Where(File.Exists)
-                .Select(r => (MetadataReference)MetadataReference.CreateFromFile(r)));
+            foreach (var path in references)
+            {
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                    throw new InvalidOperationException(
+                        $"Compilation reference set refused: caller-supplied path '{path ?? "<null>"}' is not a file on disk.");
+                if (!CarriesManagedMetadata(path))
+                    throw new InvalidOperationException(
+                        $"Compilation reference set refused: caller-supplied path '{path}' has no readable managed metadata.");
+
+                allReferences.Add(MetadataReference.CreateFromFile(path));
+            }
         }
 
         return allReferences;
     }
 
     private static List<MetadataReference> GetDefaultReferences()
+        => ComposeDefaultReferences(
+            new[] { typeof(object).Assembly.Location, typeof(Console).Assembly.Location,
+                typeof(System.Linq.Enumerable).Assembly.Location }.Concat(GetPathsFromRuntimeDirectory()),
+            GetPathsFromTrustedPlatformAssemblies());
+
+    // These are the assemblies the default set promises to provide, not a count of arbitrary files.
+    internal static readonly string[] RequiredDefaultReferenceAssemblies =
+        ["System.Private.CoreLib.dll", "System.Runtime.dll", "System.Console.dll", "System.Linq.dll"];
+
+    internal static List<MetadataReference> ComposeDefaultReferences(
+        IEnumerable<string> primary, IEnumerable<string> fallback)
     {
         var references = new List<MetadataReference>();
         var addedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -297,32 +318,52 @@ public class RoslynCodeAnalysisService : ICodeAnalysisService
         {
             if (string.IsNullOrEmpty(path) || !File.Exists(path) || !addedPaths.Add(path))
                 return;
-            try
-            {
+            if (CarriesManagedMetadata(path))
                 references.Add(MetadataReference.CreateFromFile(path));
-            }
-            catch { /* skip */ }
         }
 
-        foreach (var assembly in new[] { typeof(object).Assembly, typeof(Console).Assembly, typeof(System.Linq.Enumerable).Assembly })
-        {
-            TryAdd(assembly.Location);
-        }
-
-        foreach (var path in GetPathsFromRuntimeDirectory())
+        foreach (var path in primary)
         {
             TryAdd(path);
         }
 
-        if (references.Count == 0)
+        string[] Missing() => RequiredDefaultReferenceAssemblies.Except(
+            references.OfType<PortableExecutableReference>().Select(r => Path.GetFileName(r.FilePath) ?? string.Empty),
+            StringComparer.OrdinalIgnoreCase).ToArray();
+
+        if (Missing().Length != 0)
         {
-            foreach (var path in GetPathsFromTrustedPlatformAssemblies())
+            foreach (var path in fallback)
             {
                 TryAdd(path);
             }
         }
 
+        var missing = Missing();
+        if (missing.Length != 0)
+            throw new InvalidOperationException(
+                "Compilation reference set refused: the default set is missing " + string.Join(", ", missing)
+                + ". Use a framework-dependent host with its reference assemblies available on disk.");
+
         return references;
+    }
+
+    private static bool CarriesManagedMetadata(string path)
+    {
+        // Roslyn's file reference factory is lazy. HasMetadata finds the CLR directory but does
+        // not parse its header; read that too before an input fault becomes a candidate diagnostic.
+        try
+        {
+            using var stream = File.OpenRead(path);
+            using var pe = new PEReader(stream);
+            if (!pe.HasMetadata)
+                return false;
+            _ = pe.GetMetadataReader();
+            return true;
+        }
+        catch (BadImageFormatException) { return false; }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
     }
 
     private static IEnumerable<string> GetPathsFromRuntimeDirectory()
@@ -355,7 +396,7 @@ public class RoslynCodeAnalysisService : ICodeAnalysisService
         var tpa = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
         if (string.IsNullOrEmpty(tpa)) yield break;
 
-        var needed = new[] { "System.Runtime", "System.Console", "System.Linq" };
+        var needed = new[] { "System.Private.CoreLib", "System.Runtime", "System.Console", "System.Linq" };
         foreach (var path in tpa.Split(new[] { ';', Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries))
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) continue;

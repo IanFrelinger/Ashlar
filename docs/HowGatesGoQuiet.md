@@ -308,8 +308,12 @@ Both instances below came out of one review, in one file, in the certifier:
   The bad entry surfaces one layer down as `CS0009: PE image doesn't contain managed metadata`,
   once per compilation, **attributed to the source being compiled** — which in a certifier means a
   fault in the verifier recorded as a fact about someone's change (section 5, one level deeper). The
-  eager form that does work is `new PEReader(stream).HasMetadata`, which throws on a non-PE file and
-  reports `false` for a native one. What kept the dead `catch` from mattering was an unrelated,
+  eager directory check is `new PEReader(stream).HasMetadata`, which throws on a non-PE file and
+  reports `false` for a native one. It does **not** read the metadata header: changing only a valid
+  managed PE's four-byte metadata signature leaves `HasMetadata` true, while `GetMetadataReader()`
+  throws. The compiler reference boundary now performs that header read inside its exception
+  boundary; its controls cover the corrupt signature as well as the native and non-PE cases.
+  What kept the dead `catch` from mattering was an unrelated,
   undocumented property of the input: the platform list it happened to read names no native DLLs.
 - **An emptiness check standing in for a floor.** The same type refused when the framework half
   came back with **zero** entries, and its remarks said it "refuses rather than returning a partial
