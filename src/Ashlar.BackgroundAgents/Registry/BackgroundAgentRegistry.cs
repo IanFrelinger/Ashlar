@@ -202,6 +202,9 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
         if (config == null)
             throw new ArgumentNullException(nameof(config));
 
+        // Direct registration must enforce the same provider contract as file-loaded agents.
+        config.RAG?.ValidateProvider(config.Id);
+
         AgentPolicyNarrowingValidator.ValidateOrThrow(
             config,
             origin,

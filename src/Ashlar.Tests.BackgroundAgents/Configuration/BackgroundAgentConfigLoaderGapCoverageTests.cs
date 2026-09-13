@@ -197,7 +197,7 @@ public class BackgroundAgentConfigLoaderGapCoverageTests
         values["BackgroundAgents:Agents:0:Schedule:Type"] = "Interval";
         values["BackgroundAgents:Agents:0:Schedule:Interval"] = "00:05:00";
         values["BackgroundAgents:Agents:0:RAG:Enabled"] = "true";
-        values["BackgroundAgents:Agents:0:RAG:VectorStoreProvider"] = "sqlite";
+        values["BackgroundAgents:Agents:0:RAG:VectorStoreProvider"] = "in-memory";
         values["BackgroundAgents:Agents:0:WebSearch:Enabled"] = "true";
         values["BackgroundAgents:Agents:0:WebSearch:SearchProvider"] = "bing";
 

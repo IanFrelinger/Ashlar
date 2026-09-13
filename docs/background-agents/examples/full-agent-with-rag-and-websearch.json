@@ -22,8 +22,7 @@
         "AllowedDataSensitivityLevels": ["Public", "Internal"],
         "RAG": {
           "Enabled": true,
-          "VectorStoreProvider": "sqlite",
-          "VectorStorePath": "./data/kb.db",
+          "VectorStoreProvider": "in-memory",
           "MaxRetrievalResults": 5,
           "SimilarityThreshold": 0.7,
           "KnowledgeSources": ["./docs", "./specs"],

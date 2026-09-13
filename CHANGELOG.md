@@ -8,6 +8,13 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ## [Unreleased]
 
+- **Background-agent RAG configuration refuses unsupported stores.** Enabled RAG accepts only
+  `in-memory` (ignoring case and surrounding whitespace). Missing providers and names such as
+  `sqlite`, `postgres` and `qdrant` fail during loading, spec building and direct registration,
+  before an existing registration can be replaced. Built-in storage remains host-wide and
+  ephemeral; the example no longer promises a SQLite database. Certification controls cover
+  all three entry points, disabled RAG, and real default-service indexing and retrieval.
+
 - **Pipeline run identity is exclusive.** A destination run ID is created atomically before any
   executor is invoked. Reusing an existing ID now fails with guidance to use a fresh ID; resume
   still copies an existing source into a new destination, including interrupted runs. This closes

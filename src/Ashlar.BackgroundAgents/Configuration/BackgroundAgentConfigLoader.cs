@@ -76,11 +76,7 @@ public class BackgroundAgentConfigLoader
         ValidateSchedule(config.Schedule);
 
         // Validate RAG config if present
-        if (config.RAG?.Enabled == true)
-        {
-            if (string.IsNullOrWhiteSpace(config.RAG.VectorStoreProvider))
-                throw new InvalidOperationException($"Agent {config.Id} RAG enabled but no provider specified");
-        }
+        config.RAG?.ValidateProvider(config.Id);
 
         // Validate web search config if present
         if (config.WebSearch?.Enabled == true)
