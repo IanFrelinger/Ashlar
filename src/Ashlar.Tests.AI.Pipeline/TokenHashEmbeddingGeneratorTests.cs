@@ -20,6 +20,7 @@ namespace Ashlar.Tests.AI.Pipeline;
 /// </remarks>
 public sealed class TokenHashEmbeddingGeneratorTests
 {
+    // Temporary comment for observing automatic AI-only CI routing.
     private const int Dimensions = 64;
 
     private static async Task<float[]> EmbedAsync(IEmbeddingGenerator<string, Embedding<float>> gen, string text)
