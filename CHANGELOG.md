@@ -48,6 +48,12 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
   internally consistent project/TFM receipts. No duplicate suite or fixed test-count floor is added.
   The receipt check establishes observed execution, not full test-selection completeness.
 
+- **Cancellation smoke checks observe the operation they exercise.** Framework cancellation is
+  explicit and checked against the pending task's token and canceled state. Peer failover waits
+  for the executor's real timeout cancellation before checking the healthy peer's exact output;
+  the fallback has a seconds-scale request budget and a separate outer bound fails a missing timer.
+  These replace the competing timers and 40 ms fallback deadline exposed by native macOS CI.
+
 - **Pipeline run identity is exclusive.** A destination run ID is created atomically before any
   executor is invoked. Reusing an existing ID now fails with guidance to use a fresh ID; resume
   still copies an existing source into a new destination, including interrupted runs. This closes

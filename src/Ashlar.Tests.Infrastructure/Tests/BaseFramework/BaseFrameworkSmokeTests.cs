@@ -152,20 +152,19 @@ public class BaseFrameworkSmokeTests : IDisposable
     }
 
     [Fact]
-    public void CancellationToken_ShouldBeSupported()
+    public async Task CancellationToken_ShouldBeSupported()
     {
-        // Arrange
         using var cts = new CancellationTokenSource();
-        cts.CancelAfter(100);
+        var operation = Task.Delay(Timeout.InfiniteTimeSpan, cts.Token);
+        operation.IsCompleted.Should().BeFalse();
 
-        // Act
-        var task = Task.Run(async () =>
-        {
-            await Task.Delay(1000, cts.Token);
-        }, cts.Token);
+        // Cancel an existing operation directly; two competing timers do not establish order.
+        cts.Cancel();
 
-        // Assert
-        task.Invoking(t => t.Wait()).Should().Throw<AggregateException>("Task should be cancelled");
+        Func<Task> observeCancellation = () => operation.WaitAsync(TimeSpan.FromSeconds(5));
+        var canceled = await observeCancellation.Should().ThrowAsync<OperationCanceledException>();
+        canceled.Which.CancellationToken.Should().Be(cts.Token);
+        operation.IsCanceled.Should().BeTrue();
     }
 
     public void Dispose()
