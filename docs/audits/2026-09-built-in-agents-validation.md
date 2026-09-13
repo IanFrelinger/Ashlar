@@ -9,8 +9,11 @@
 > known then and is left unchanged. One finding has since changed: master now requires **five** status
 > checks (`cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`), not
 > `cert-gate` alone - `Readiness summary` became the fifth on 2026-09-09 (`docs/CiGateInventory.md:22-24`).
-> The concentration risk this audit names is therefore smaller than recorded, though cert-gate remains the
-> only required check that runs unfiltered on every pull request.
+> The concentration risk this audit names is therefore smaller than recorded. Corrected 2026-09-13: this
+> banner also claimed cert-gate was "the only required check that runs unfiltered on every pull request".
+> It is not — `build-gate`, `shell-lint`, `docs-link-check` and `full-platform-readiness-gate` all declare
+> `pull_request` with no `paths` key. What cert-gate alone carries is this repository's merge-blocking
+> CONVENTIONS, which is the concentration the audit was reaching for.
 ---
 
 ## Executive Summary

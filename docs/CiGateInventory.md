@@ -2,7 +2,7 @@
 
 This file describes what CI **actually does** on this repository: which workflow files exist, what triggers each one, and which checks branch protection **really** requires. Workflow YAML controls when checks run; GitHub branch protection (a repository setting, not YAML) controls which check names must be green before merge. Where the two disagree, this file follows the settings and says so.
 
-Snapshot: **58 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), verified 2026-09-04. Includes `products-gate.yml` (added with the product-split scaffolds) and `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
+Snapshot: **61 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), recounted 2026-09-13 (this line read 58, verified 2026-09-04, while the trigger map below said 58 too; both were stale). Includes `products-gate.yml` (added with the product-split scaffolds) and `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
 
 > **Companion:** `docs/HowGatesGoQuiet.md` — the ways a check in this repository has stopped
 > answering while still looking like it was. Read it before adding a gate, and before believing one.
@@ -45,7 +45,7 @@ These workflows have **no path filter** on `pull_request:` and will **always** p
 | `shell-lint` | `shell-lint.yml` | `shell-lint` | **Currently required** — parse errors + shellcheck -S error; ~5s |
 | `lychee (README + docs)` | `docs-link-check.yml` | `lychee (README + docs)` | **Currently required** — external link validation; ~30s |
 | `verify` | `layer-boundary.yml` | `verify` | Kernel-first layer boundary (paths: "**"); deliberate exemptions exist |
-| `uat` and `uat cross-platform` | `uat-gate.yml` | `uat`, `uat cross-platform` | Always runs (no paths); UAT smoke tests |
+| `uat (tiers 0-2, 4-10)` and `uat cross-platform (tiers 8, 9)` | `uat-gate.yml` | `uat (tiers 0-2, 4-10)`, `uat cross-platform (tiers 8, 9)` | Always runs (no paths); UAT smoke tests. The tier suffixes are part of the check context - branch protection will not match `uat` alone |
 | `Readiness summary` | `full-platform-readiness-gate.yml` | `readiness-summary` | **Currently required** — always reports (in-job path filter via the `changes` job, #571; heavy lanes skipped when no core path changed, ~1 min) |
 
 **Action for CEO/admins:** none pending. All five — `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)` and `Readiness summary` — are required (verified via `gh api repos/IanFrelinger/Ashlar/branches/master/protection`, 2026-09-09). The snippet below reproduces the live setting; if you ever change it, note that the PATCH **replaces the whole array**, so every context that must stay required has to be listed.
@@ -89,17 +89,17 @@ gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-
 
 ## Trigger map
 
-Counts by trigger class (58 files):
+Counts by trigger class (61 files, counted 2026-09-13):
 
 | Class | Count | Meaning |
 | --- | --- | --- |
-| Runs on `pull_request` | 17 | 6 unfiltered (`cert-gate`, `shell-lint`, `docs-link-check`, `layer-boundary`, `uat-gate`, `full-platform-readiness-gate` — path filter inside the workflow), 10 path-filtered (including `products-gate` and `runtime-portability-gate`), 1 label-driven (`release-staging-on-label`) |
-| Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 19 | Post-merge / scheduled signal; never blocks a PR |
-| `workflow_dispatch` only | 17 | Manual lanes (mesh labs, multi-env Docker suites, ship/ops/perf, release plumbing) |
+| Runs on `pull_request` | 20 | 7 run on every PR (`build-gate`, `cert-gate`, `docs-link-check`, `full-platform-readiness-gate` — path filter inside the workflow, `layer-boundary` — `paths: "**"`, `shell-lint`, `uat-gate`), 12 path-filtered (including `products-gate` and `runtime-portability-gate`), 1 label-driven (`release-staging-on-label`). *Corrected 2026-09-13: this row read 17 with a six-name unfiltered set that omitted `build-gate`; recounted from the workflow files.* |
+| Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 18 | Post-merge / scheduled signal; never blocks a PR |
+| `workflow_dispatch` only | 18 | Manual lanes (mesh labs, multi-env Docker suites, ship/ops/perf, release plumbing) |
 | Tag / release event | 2 | `release.yml` (`v*.*.*` tags), `devlog-ghost-release.yml` (`release: published`) |
 | Reusable (`workflow_call`) | 3 | `reusable-*` |
 
-Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of each month), `mesh-lab-tls-gate` (Tue 07:00). (`mesh-lab-stress-gate` lost its schedule 2026-08-16 and is dispatch-only.)
+Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of each month), and `dogfood-continuous-proof` (06:00 weekdays). (`mesh-lab-stress-gate` lost its schedule 2026-08-16 and `mesh-lab-tls-gate` lost its Tue 07:00 on 2026-09-13, both after consecutive red scheduled runs; all three mesh lanes are dispatch-only. Corrected 2026-09-13: this sentence previously said six and listed six names, but seven workflows carried a `schedule` at the time — it named `mesh-lab-tls-gate` and omitted `dogfood-continuous-proof`, so BOTH the count and the set were wrong. Six is correct only because this same change removes the `mesh-lab-tls-gate` cron. An earlier version of this note claimed the count had been right; it had not.)
 
 ### PR-triggered workflows
 
@@ -110,7 +110,7 @@ Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `f
 | `docs-link-check.yml` | Docs Link Check / `lychee (README + docs)` | **every PR** (no paths) — **required** | push, dispatch — always reports; ~30s lychee run |
 | `layer-boundary.yml` | layer-boundary / `verify` | every PR (`paths: "**"`, types opened/synchronize/reopened/edited) | — |
 | `full-platform-readiness-gate.yml` | Full Platform Readiness Gate / `changes`, platform lanes, `Readiness summary` | **every PR** (no paths; types opened/synchronize/reopened/ready_for_review) — `changes` job runs the heavy lanes only when a core path is in the diff (Dockerfiles, setup/install scripts, spine sources, CLI + CLI tests, `commercial/**`, Orchestration/Kernel test projects, StableSdkHostSample); otherwise `Readiness summary` passes in ~1 min — **required** (`Readiness summary`). Production images (`docker-all-images`) never build on PRs. | push `master`/`main`/`cursor/**` (same path list), **weekly schedule**, dispatch |
-| `uat-gate.yml` | UAT / `uat`, `uat cross-platform` | **every PR** (no paths — deliberate, see file header) | push `master`, dispatch |
+| `uat-gate.yml` | UAT / `uat (tiers 0-2, 4-10)`, `uat cross-platform (tiers 8, 9)` | **every PR** (no paths — deliberate, see file header) | push `master`, dispatch |
 | `application-gate.yml` | Application Gate / `application-gate` | paths: `application/**`, VirtualProduction tests, `scripts/application-gate*.sh`, `scripts/prod-dry-run.sh`, `Makefile`, … | dispatch |
 | `dependency-boundary.yml` | dependency-boundary / `verify` | paths: `**/*.csproj`, `commercial/**`, `application/**`, `src/**`, `LICENSING.md`, boundary scripts | push, dispatch |
 | `distribution-matrix-gate.yml` | Distribution Matrix Gate / 7 jobs | paths: same broad list as push (Dockerfiles, pack/verify scripts, Ashlar.API/CLI, Client/Sdk/Hosting.Bundle/Authoring/Brick.Contracts, samples, VirtualProduction tests) | push (broad paths), weekly schedule, dispatch |
@@ -120,8 +120,11 @@ Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `f
 | `testing-strategy-gate.yml` | Testing strategy gate / `testing-strategy` | paths: `src/**`, `application/**`, `scripts/**`, `.github/**`, `Makefile`, `docs/architecture/TestingStrategy*.md` | — |
 | `release-staging-on-label.yml` | Release staging on label / `dispatch-staging-release` | `types: [labeled]` only | — |
 | `products-gate.yml` | products-gate / `product scaffolds` | paths: `products/**`, distributed contracts, deployment-profile sources, `ci/test-ownership.tsv` | push `master`/`main`/`cursor/**`, dispatch — **advisory**; runs `products/Ashlar.Products.sln` plus `DistributedContractTests`. Does **not** run the dependency-boundary script (that is `dependency-boundary.yml`). |
-| `portability-gate.yml` | Portability Gate | paths: `application/src/Ashlar.CLI/**`, `src/Ashlar.Manifest/**`, `scripts/e2e-loop.sh` | dispatch |
-| `runtime-portability-gate.yml` | Runtime Portability Gate / `net9-runtime-consumer`, `trim-aot-canonical-bytes` (× 4 publish modes), `mono-netstandard20-consumer` | paths: `scripts/portability/**`, `scripts/ns20-canonical-bytes-probe.sh`, `src/Ashlar.Certification.Contracts/**`, `src/Ashlar.Certification.State/**`, `src/Ashlar.Compat/**`, the canonical-payload and transition-entry-hash golden corpora, `Directory.Build.props`/`.targets`, `Directory.Packages.props`, `global.json` | push `master`/`main`/`cursor/**`, **weekly schedule** (Mon 11:00 UTC), dispatch — **advisory**, both lanes. `net9-runtime-consumer` is the only 9.0.x runtime pin in CI: `scripts/portability/net9-probe.sh` packs `Ashlar.Certification.Contracts` on SDK 10 and **executes** a net9.0 consumer of the nupkg on the 9.0 runtime, where NuGet binds it to the `lib/net8.0` asset — golden canonical bytes, HMAC + Ed25519 mint/verify, Default/Strict/pinned verdicts and every tamper code. `trim-aot-canonical-bytes` is a four-job matrix (`trim-partial`, `trim-full`, `trim-full-reflection-on`, `aot`, `fail-fast: false`) running `scripts/portability/trim-aot-canonical-bytes-probe.sh`: each publishes a minimal certification consumer self-contained `linux-x64` on net10.0 and **executes** it against the same two corpora, checking the canonical payload bytes and the certified transition entry hashes, counting trim/AOT analysis warnings, and requiring the published binary to still refuse a tampered signature, a broken content binding, an unknown schema version, a repeated proposer parameter key and a non-finite double. Path-filtered, so neither can be required; neither uses `continue-on-error`, so a red run is a real regression. `mono-netstandard20-consumer` runs `scripts/ns20-canonical-bytes-probe.sh`: it builds the shipped netstandard2.0 assets of `Ashlar.Certification.Contracts` and `Ashlar.Certification.State`, publishes a net472 consumer against them, and **executes** that consumer under `mono:latest`, checking the same two golden corpora plus verifier parity with net8.0, the `StateLogVerifier` options overload, and unknown schema versions. That script existed from #585 and nothing in CI called it, while netstandard2.0 is the leg that has actually diverged twice (#585, #592). It re-reads its own transcript rather than trusting an exit code. Not the same thing as `portability-gate.yml` (CLI loop on three OSes). |
+| `portability-gate.yml` | Portability Gate | paths: `application/src/Ashlar.CLI/**`, `src/Ashlar.Manifest/**`, `scripts/e2e-loop.sh` | push `master`/`application/**` (same paths). **No `workflow_dispatch`** — it cannot be run from the Actions tab |
+| `runtime-portability-gate.yml` | Runtime Portability Gate / `net9-runtime-consumer`, `trim-aot-canonical-bytes` (× 4 publish modes), `mono-netstandard20-consumer` | paths: `scripts/portability/**`, `scripts/ns20-canonical-bytes-probe.sh`, `src/Ashlar.Certification.Contracts/**`, `src/Ashlar.Certification.State/**`, `src/Ashlar.Compat/**`, the canonical-payload and transition-entry-hash golden corpora, `Directory.Build.props`/`.targets`, `Directory.Packages.props`, `global.json` | push `master`/`main`/`cursor/**`, **weekly schedule** (Mon 11:00 UTC), dispatch — **advisory**, all three lanes. `net9-runtime-consumer` is the only 9.0.x runtime pin in CI: `scripts/portability/net9-probe.sh` packs `Ashlar.Certification.Contracts` on SDK 10 and **executes** a net9.0 consumer of the nupkg on the 9.0 runtime, where NuGet binds it to the `lib/net8.0` asset — golden canonical bytes, HMAC + Ed25519 mint/verify, Default/Strict/pinned verdicts and every tamper code. `trim-aot-canonical-bytes` is a four-job matrix (`trim-partial`, `trim-full`, `trim-full-reflection-on`, `aot`, `fail-fast: false`) running `scripts/portability/trim-aot-canonical-bytes-probe.sh`: each publishes a minimal certification consumer self-contained `linux-x64` on net10.0 and **executes** it against the same two corpora, checking the canonical payload bytes and the certified transition entry hashes, counting trim/AOT analysis warnings, and requiring the published binary to still refuse a tampered signature, a broken content binding, an unknown schema version, a repeated proposer parameter key and a non-finite double. Path-filtered, so none can be required; none uses `continue-on-error`, so a red run is a real regression. `mono-netstandard20-consumer` runs `scripts/ns20-canonical-bytes-probe.sh`: it builds the shipped netstandard2.0 assets of `Ashlar.Certification.Contracts` and `Ashlar.Certification.State`, publishes a net472 consumer against them, and **executes** that consumer under `mono:latest`, checking the same two golden corpora plus verifier parity with net8.0, the `StateLogVerifier` options overload, and unknown schema versions. That script existed from #585 and nothing in CI called it, while netstandard2.0 is the leg that has actually diverged twice (#585, #592). It re-reads its own transcript rather than trusting an exit code. Not the same thing as `portability-gate.yml` (CLI loop on three OSes). |
+| `build-gate.yml` | Build gate / `build-core` | **every PR** (no paths) — **required** | push `master`/`main`, dispatch |
+| `orchestration-build-gate.yml` | Orchestration build gate / `build-orchestration-tests` | paths: `src/Ashlar.Orchestration/**`, `src/Ashlar.Tests.Orchestration/**`, `src/Ashlar.Tests.Infrastructure/**`, `src/Ashlar.Hosting/AshlarKernelRegistrar*.cs`, the workflow file | push `master`/`main`, dispatch |
+| `mcp-a2a-gate.yml` | MCP + A2A protocol gate | paths: `src/Ashlar.Mcp.*`, `src/Ashlar.Transport.A2A*`, `Ashlar.API` | push (also `application/**` branches), dispatch |
 
 **AI Pipeline ownership:** automatic Kernel Tier A invokes `make kernel-gate`, then
 `make meai-pipeline-gate`, which tests `Ashlar.Tests.AI.Pipeline` on net8.0 Release. Native readiness
@@ -150,7 +153,7 @@ All of these also accept `workflow_dispatch`. Branch filters are `master`, `main
 | `environment-setup-gate-v1.yml` | Environment Setup Gate v1 | `master`/`main`; `scripts/setup/**`, CLI |
 | `friend-mesh-prefab-gate.yml` | Friend mesh prefab gate | friend-mesh compose, `.docker/Dockerfile.api`, `Ashlar.API` |
 | `grpc-transport-gate.yml` | gRPC transport gate | `src/Ashlar.Transport.Grpc/**`, `src/Ashlar.Tests.Transport/**` |
-| `mcp-a2a-gate.yml` | MCP + A2A protocol gate | also `application/**` branches; `src/Ashlar.Mcp.*`, `src/Ashlar.Transport.A2A*`, `Ashlar.API` |
+| `dogfood-continuous-proof.yml` | Dogfood continuous proof | `master`; **weekday schedule** (06:00 UTC); read-only ledger probe |
 | `onboarding-docs-guard.yml` | Onboarding Docs Guard | README, `docs/**/*.md`, `scripts/*.sh`, `scripts/*.ps1`, `Makefile`, `**/*.csproj` (ProjectTiers guard) |
 | `onboarding-quickstart-gate.yml` | onboarding-quickstart-gate | README, GettingStarted, setup/install scripts, CLI; **weekly schedule** |
 | `optimize-agent-cluster-gate.yml` | Optimize Agent Cluster Gate | `apps/runtime-studio/**`, `scripts/sandbox/**`, CLI |
@@ -162,7 +165,7 @@ All of these also accept `workflow_dispatch`. Branch filters are `master`, `main
 
 ### Manual-only workflows (`workflow_dispatch`)
 
-`composition-mesh-gate`, `cross-platform-tests`, `installer-bruteforce-gate`, `mesh-lab-gate`, `nuget-consumer-verify`, `ops-gate`, `perf-certification`, `prod-dry-run-pr`, `release-nuget`, `runtime-release-promotion`, `setup-smoke-suite`, `ship-gate`, `test-air-gapped-no-network`, `test-trust-multi-env`, `waterproofing-gate`, `workflow-regression-gate` (16).
+`composition-mesh-gate`, `cross-platform-tests`, `installer-bruteforce-gate`, `mesh-lab-gate`, `mesh-lab-stress-gate`, `mesh-lab-tls-gate`, `nuget-consumer-verify`, `ops-gate`, `perf-certification`, `prod-dry-run-pr`, `release-nuget`, `runtime-release-promotion`, `setup-smoke-suite`, `ship-gate`, `test-air-gapped-no-network`, `test-trust-multi-env`, `waterproofing-gate`, `workflow-regression-gate` (18 — the two mesh lanes joined this class when their schedules were removed, 2026-08-16 and 2026-09-13).
 
 Despite their names, **`cross-platform-tests`** and **`prod-dry-run-pr`** do not run on PRs; run them with `gh workflow run "<name>" --ref <branch>`.
 
@@ -171,7 +174,7 @@ Despite their names, **`cross-platform-tests`** and **`prod-dry-run-pr`** do not
 | Workflow file | Trigger |
 | --- | --- |
 | `mesh-lab-stress-gate.yml` | dispatch only (schedule removed 2026-08-16) |
-| `mesh-lab-tls-gate.yml` | `schedule` Tue 07:00 UTC + dispatch |
+| `mesh-lab-tls-gate.yml` | `workflow_dispatch` only — Tue 07:00 schedule removed 2026-09-13 after four consecutive red scheduled runs; all three mesh lanes are now manual-only |
 | `release.yml` | push tags `v*.*.*` + dispatch |
 | `devlog-ghost-release.yml` | `release: published` + dispatch |
 | `reusable-container-publish.yml`, `reusable-release-nuget.yml`, `reusable-verify-nuget-consumer.yml` | `workflow_call` |
@@ -203,19 +206,20 @@ Every workflow file was classified from `gh run list --workflow <file> --limit 1
 | `runtime-studio-forge-smoke.yml` | dead: dispatch-only, last run 2026-06-14, referenced nowhere |
 | `mesh-lab-remote-gate.yml` | dead: never dispatched, needs five repository secrets and a tailnet runner; `scripts/mesh-lab-verify-remote.sh` is the supported path |
 
-**Marked `# DORMANT:` (7)** — top-of-file comment with the reason and date; `workflow_dispatch` stays live:
+**Marked `# DORMANT:` (8)** — top-of-file comment with the reason and date; `workflow_dispatch` stays live:
 
 | File | Why |
 | --- | --- |
 | `cross-platform-tests.yml` | push trigger commented out 2026-08-11 (15/15 red on a product assertion, issue #252); only Windows/macOS matrix in the repo |
 | `mesh-lab-gate.yml` | push trigger commented out 2026-08-11 (15/15 red in the compose environment); mesh-lab entry point |
 | `mesh-lab-stress-gate.yml` | **weekly schedule removed** after eight consecutive red runs (2026-06-22 .. 2026-08-10) |
+| `mesh-lab-tls-gate.yml` | **weekly schedule removed** 2026-09-13 after four consecutive red scheduled runs (2026-08-18 .. 2026-09-08); last green 2026-08-11 |
 | `runtime-release-promotion.yml` | 11 of last 14 red, last run 2026-05-11; kept because `scripts/rc-gate-tier-d.sh` lists it as an optional RC signal |
 | `test-air-gapped-no-network.yml` | never green (11/11 red since 2026-03-08; last failure is MSB1011 from the `ashlar test multi-env` step); cited by hardening plans, so kept as an unproven claim |
 | `test-trust-multi-env.yml` | dead by the 60-day rule (last dispatch 2026-05-23, mostly green); cited by `KernelHardeningPlan-v1.md` C1 |
 | `workflow-regression-gate.yml` | dead by the 60-day rule (last dispatch 2026-06-14, green); only end-to-end run of `ashlar workflow baseline|report|gate` |
 
-**Kept as-is although rarely run** (all have a live path/manual trigger and a Makefile/script/runbook that names them): `compat-gate`, `dr-gate` (path-triggered on their scripts, one green run each), `composition-mesh-gate`, `waterproofing-gate`, `perf-certification`, `installer-bruteforce-gate` (dispatched by `scripts/rc-gate-tier-d.sh`), `nuget-consumer-verify` (post-publish check, `docs/NuGetConsumerVerify.md`), `setup-smoke-suite` (`docs/CiFirstHardwareSecond.md`), `devlog-ghost-release`, `mesh-lab-tls-gate` (weekly, latest run green).
+**Kept as-is although rarely run** (all have a live path/manual trigger and a Makefile/script/runbook that names them): `compat-gate`, `dr-gate` (path-triggered on their scripts, one green run each), `composition-mesh-gate`, `waterproofing-gate`, `perf-certification`, `installer-bruteforce-gate` (dispatched by `scripts/rc-gate-tier-d.sh`), `nuget-consumer-verify` (post-publish check, `docs/NuGetConsumerVerify.md`), `setup-smoke-suite` (`docs/CiFirstHardwareSecond.md`), `devlog-ghost-release`. (`mesh-lab-tls-gate` was in this list as "weekly, latest run green" until 2026-09-13; it is now dispatch-only and appears in the DORMANT table above — four consecutive red scheduled runs, last green 2026-08-11.)
 
 **Not folded:** the CLI image is built by `container-image-gate` (local + multi-arch cache-only), `distribution-matrix-gate` (build + `--help` smoke), `full-platform-readiness-gate` and `reusable-container-publish` (push to GHCR). Each build differs in platform, output and smoke, and three of the four are on the protected list, so a shared reusable job is deferred to its own PR.
 

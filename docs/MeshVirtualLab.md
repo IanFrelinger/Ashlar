@@ -179,11 +179,18 @@ Pre-production gaps that Docker bridge alone cannot cover are automated in **Pha
 
 | Check | Local | CI |
 |-------|-------|-----|
-| HTTPS director (Caddy → peer-a) | `make mesh-lab-e2e-tls` | `mesh-lab-tls-gate.yml` (weekly) |
+| HTTPS director (Caddy → peer-a) | `make mesh-lab-e2e-tls` | `mesh-lab-tls-gate.yml` (**dormant — manual dispatch only since 2026-09-13**) |
 | gRPC transport (Kestrel round-trip) | `dotnet test … --filter Category=ProdStyle` | `grpc-transport-gate.yml` |
 | Two-host / tailnet | `scripts/mesh-lab-verify-remote.sh` + env | none — the `mesh-lab-remote-gate.yml` wrapper was deleted 2026-08-16 (never dispatched); run the script from a host on the tailnet |
 
 ## CI
+
+> **All three mesh lanes are now manual-only.** `mesh-lab-tls-gate.yml` lost its weekly Tuesday
+> schedule on 2026-09-13 after four consecutive red scheduled runs (2026-08-18, -25, 09-01, 09-08;
+> ten of the last fourteen red, last green 2026-08-11). It was the one lane the 2026-08 demotion
+> policy was never applied to, and it had been failing quietly ever since. `workflow_dispatch`
+> stays live on all three. **The failing logs have not been read** — the shared-compose-environment
+> story is inherited from the siblings and is a hypothesis, not a diagnosis.
 
 **`.github/workflows/mesh-lab-gate.yml`** (dormant — manual dispatch only since 2026-08-11) writes lab secrets, brings up peers **and** the **`workers`** profile, then runs **`mesh-lab-verify.sh`** and **`mesh-lab-verify-deep.sh`**.
 

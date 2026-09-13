@@ -76,7 +76,7 @@ There is **no distributed consensus** in the MVP director—last writer wins on 
 - **peer-b** `docker compose stop` while task is Running
 - **peer-a** restart with persisted lease (LiteDB)
 
-**Automated TLS:** `make mesh-lab-e2e-tls` or weekly **`mesh-lab-tls-gate.yml`**. **gRPC:** **`grpc-transport-gate.yml`** / `make test-prime-time`.
+**Automated TLS:** `make mesh-lab-e2e-tls`, or **`mesh-lab-tls-gate.yml`** on manual dispatch — its weekly schedule was removed 2026-09-13 after four consecutive red runs. **gRPC:** **`grpc-transport-gate.yml`** / `make test-prime-time`.
 
 **Tailscale / two physical hosts:** [`mesh-lab-verify-remote.sh`](../../scripts/mesh-lab-verify-remote.sh) run from a tailnet host (the `mesh-lab-remote-gate.yml` Actions wrapper was deleted 2026-08-16; it had never been dispatched). See [`MeshPhase12RemoteNetworkingAutomation.md`](../MeshPhase12RemoteNetworkingAutomation.md).
 
