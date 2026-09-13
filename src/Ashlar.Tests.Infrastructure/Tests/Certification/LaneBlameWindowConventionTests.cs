@@ -23,8 +23,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///
 /// <para>So both sides are now read from the things themselves: the deadlines by reflection over
 /// every <c>[Fact]</c>/<c>[Theory]</c> in this assembly, whatever spelling the number came in;
-/// the windows by parsing every <c>dotnet test</c> invocation in the repository and evaluating its
-/// <c>--filter</c> against that reflected set. A new lane is covered the day it is written, and a
+/// the windows by parsing <c>dotnet test</c> command strings in the repository, plus observing
+/// validate's argument-list builder directly, and evaluating each <c>--filter</c> against that
+/// reflected set. A new command-string lane is covered the day it is written, and a
 /// timeout raised anywhere is measured against every lane that can select it.</para>
 ///
 /// <para>Nothing here is allowed to pass by finding nothing: the scan, the reflected inventory and
@@ -146,8 +147,8 @@ public sealed class LaneBlameWindowConventionTests
                 "CiCommand.cs",
                 "ValidationServiceAdapter.cs",
             },
-            "each of these was an offender when this check was written, and the last two only "
-            + "because it learned to read a dotnet test command built as a C# string. Losing one "
+            "each of these was an offender when this check was written. CLI argument strings "
+            + "are parsed, and validate's ArgumentList is observed directly. Losing one "
             + "from the scan is how the inventory rots back into a two-file list");
     }
 
@@ -250,7 +251,29 @@ public sealed class LaneBlameWindowConventionTests
     private static IReadOnlyList<LaneInvocation> LanesThatRunThisSuite()
     {
         var root = RepoPathResolver.FindRepoRoot();
-        var lanes = new List<LaneInvocation>();
+        // Validate now builds argv, not a command string. Measure the actual builder with the
+        // broadest permitted selection: caller filters can only narrow its default exclusions.
+        // This is the explicit ArgumentList-backed lane; the textual scan below still covers
+        // command strings only, and must be extended for other argv-backed test launchers.
+        var targetProject = Path.Combine(root, "src", "Ashlar.Tests.Infrastructure", "Ashlar.Tests.Infrastructure.csproj");
+        var validate = ValidationServiceAdapter.CreateDotnetTestStartInfo(targetProject, RunningFramework, null, false);
+        validate.FileName.Should().Be("dotnet");
+        validate.ArgumentList[0].Should().Be("test");
+        string Option(string name)
+        {
+            var indexes = validate.ArgumentList.Select((value, index) => (value, index))
+                .Where(item => item.value == name).Select(item => item.index).ToArray();
+            indexes.Should().ContainSingle($"validate must supply exactly one {name}");
+            return validate.ArgumentList[indexes.Single() + 1];
+        }
+        var validationWindow = Option("--blame-hang-timeout");
+        validationWindow.Should().EndWith("s");
+        int.TryParse(validationWindow[..^1], out var validationSeconds).Should().BeTrue();
+        var lanes = new List<LaneInvocation>
+        {
+            new("src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs", 1,
+                validate.ArgumentList[1], validationSeconds * 1000, Option("--filter"), Option("--framework"))
+        };
 
         foreach (var file in FilesToScan(root))
         {

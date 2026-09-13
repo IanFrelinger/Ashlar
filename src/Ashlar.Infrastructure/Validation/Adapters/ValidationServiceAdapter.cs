@@ -52,6 +52,8 @@ public class ValidationServiceAdapter : IValidationService
 
         try
         {
+            ValidateFilterGrouping(filter);
+
             // Find test projects in current directory
             var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
             var testProjects = currentDir.GetFiles("*.csproj", SearchOption.AllDirectories)
@@ -149,6 +151,7 @@ public class ValidationServiceAdapter : IValidationService
                     var run = await RunDotnetTestForValidateAsync(
                         csprojPath,
                         framework,
+                        filter,
                         streamOutput: progress != null,
                         cancellationToken).ConfigureAwait(false);
 
@@ -437,16 +440,7 @@ public class ValidationServiceAdapter : IValidationService
 
     private static async Task<int> RunDotnetBuildProjectAsync(string csprojPath, CancellationToken ct)
     {
-        var args = $"build \"{csprojPath}\" --verbosity quiet";
-        var psi = new ProcessStartInfo("dotnet", args)
-        {
-            WorkingDirectory = Path.GetDirectoryName(csprojPath) ?? Directory.GetCurrentDirectory(),
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        var p = Process.Start(psi);
+        var p = Process.Start(CreateDotnetBuildStartInfo(csprojPath));
         if (p is null)
             return -1;
 
@@ -678,26 +672,9 @@ public class ValidationServiceAdapter : IValidationService
     /// and the Blame collector said, not only on the exit code.
     /// </summary>
     private static async Task<DotnetTestRun> RunDotnetTestForValidateAsync(
-        string csprojPath, string? framework, bool streamOutput, CancellationToken ct)
+        string csprojPath, string? framework, string? filter, bool streamOutput, CancellationToken ct)
     {
-        var verbosity = streamOutput ? "normal" : "minimal";
-        var frameworkArg = framework is null ? string.Empty : $"--framework {framework} ";
-        var args =
-            $"test \"{csprojPath}\" {frameworkArg}--no-build " +
-            "--filter \"Category!=DockerOptional&Category!=Stress\" " +
-            "--logger trx " +
-            $"--blame-hang-timeout {ValidateBlameHangTimeoutSeconds}s --blame-hang-dump-type none " +
-            $"--verbosity {verbosity}";
-        var workDir = Path.GetDirectoryName(csprojPath) ?? Directory.GetCurrentDirectory();
-        var psi = new ProcessStartInfo("dotnet", args)
-        {
-            WorkingDirectory = workDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        var p = Process.Start(psi);
+        var p = Process.Start(CreateDotnetTestStartInfo(csprojPath, framework, filter, streamOutput));
         if (p is null)
             return new DotnetTestRun(-1, string.Empty);
 
@@ -749,6 +726,71 @@ public class ValidationServiceAdapter : IValidationService
             }
         }
     }
+
+    internal static ProcessStartInfo CreateDotnetBuildStartInfo(string csprojPath)
+    {
+        var startInfo = CreateDotnetStartInfo(csprojPath);
+        foreach (var argument in new[] { "build", csprojPath, "--verbosity", "quiet" })
+            startInfo.ArgumentList.Add(argument);
+        return startInfo;
+    }
+
+    // Caller filters narrow the normal sweep; they cannot opt excluded categories back in.
+    // Each value is one argv element, including paths and filters containing spaces or quotes.
+    internal static ProcessStartInfo CreateDotnetTestStartInfo(
+        string csprojPath, string? framework, string? filter, bool streamOutput)
+    {
+        ValidateFilterGrouping(filter);
+        const string exclusions = "Category!=DockerOptional&Category!=Stress";
+        var effectiveFilter = string.IsNullOrWhiteSpace(filter) ? exclusions : $"({exclusions})&({filter})";
+        var startInfo = CreateDotnetStartInfo(csprojPath);
+        startInfo.ArgumentList.Add("test");
+        startInfo.ArgumentList.Add(csprojPath);
+        if (framework is not null)
+        {
+            startInfo.ArgumentList.Add("--framework");
+            startInfo.ArgumentList.Add(framework);
+        }
+        foreach (var argument in new[]
+        {
+            "--no-build", "--filter", effectiveFilter, "--logger", "trx",
+            "--blame-hang-timeout", $"{ValidateBlameHangTimeoutSeconds}s",
+            "--blame-hang-dump-type", "none", "--verbosity", streamOutput ? "normal" : "minimal"
+        })
+            startInfo.ArgumentList.Add(argument);
+        return startInfo;
+    }
+
+    private static void ValidateFilterGrouping(string? filter)
+    {
+        // VSTest uses backslash escapes for literal parentheses and backslashes. Check the
+        // caller's grouping before adding our own: an unmatched ')' could otherwise escape
+        // the AND and turn an excluded category back on through an outer OR.
+        var depth = 0;
+        var escaped = false;
+        foreach (var character in filter ?? string.Empty)
+        {
+            if (escaped)
+            {
+                escaped = false;
+                continue;
+            }
+            if (character == '\\') escaped = true;
+            else if (character == '(') depth++;
+            else if (character == ')' && --depth < 0)
+                throw new ArgumentException("The test filter must have balanced, unescaped parentheses.", nameof(filter));
+        }
+        if (depth != 0 || escaped)
+            throw new ArgumentException("The test filter must have balanced, unescaped parentheses and complete escapes.", nameof(filter));
+    }
+
+    private static ProcessStartInfo CreateDotnetStartInfo(string csprojPath) => new("dotnet")
+    {
+        WorkingDirectory = Path.GetDirectoryName(csprojPath) ?? Directory.GetCurrentDirectory(),
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false
+    };
 
     /// <summary>
     /// Blame's inactivity window for the <c>validate</c> sweep, in seconds. It must stay ABOVE
