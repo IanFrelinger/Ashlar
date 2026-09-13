@@ -6,7 +6,9 @@ on:
   pull_request:
     paths:
       - "src/Ashlar.Hosting/**"
-      - "src/Ashlar.Abstractions/AshlarDeploymentProfileEnvironment.cs"
+      - "src/Ashlar.Abstractions/**"
+      - "src/Ashlar.AI.Pipeline/**"
+      - "src/Ashlar.Tests.AI.Pipeline/**"
       - "src/Ashlar.Contracts/Distributed/**"
       - "src/Ashlar.Infrastructure/**"
       - "src/Ashlar.Orchestration/**"
@@ -18,12 +20,30 @@ on:
       - "docs/production-readiness/**"
       - "scripts/kernel-gate*.sh"
       - "Makefile"
+      - "Ashlar.Runtime.sln"
+      - "global.json"
+      - "Directory.Build.props"
+      - "src/Directory.Build.props"
+      - "VERSION"
+      - "Directory.Build.targets"
+      - "Directory.Packages.props"
       - ".github/workflows/kernel-gate.yml"
   push:
     branches: [master, main]
     paths:
       - "src/Ashlar.Hosting/**"
+      - "src/Ashlar.Abstractions/**"
+      - "src/Ashlar.AI.Pipeline/**"
+      - "src/Ashlar.Tests.AI.Pipeline/**"
       - "src/Ashlar.Tests.Infrastructure/Tests/Hosting/**"
+      - "Makefile"
+      - "Ashlar.Runtime.sln"
+      - "global.json"
+      - "Directory.Build.props"
+      - "src/Directory.Build.props"
+      - "VERSION"
+      - "Directory.Build.targets"
+      - "Directory.Packages.props"
       - ".github/workflows/kernel-gate.yml"
   workflow_dispatch:
     inputs:
