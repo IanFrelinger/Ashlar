@@ -12,6 +12,9 @@
   
   <!-- xUnit: limit parallelism to reduce memory usage (Cursor, CI) -->
   <ItemGroup>
+    <!-- Compile the analyzer harness's actual reference helper into the required certification
+         test assembly, so its behavior is measured without a test-project dependency. -->
+    <Compile Include="../Ashlar.Analyzers.Tests/AnalyzerReferenceSet.cs" Link="Certification/AnalyzerReferenceSet.cs" />
     <Content Include="Certification/Dogfood/RecordedCompositionProposals/**/*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Golden canonical signing payloads. Shared constant: CanonicalPayloadGoldenTests reads
          it from the test output, scripts/ns20-canonical-bytes-probe.sh reads the same file from
