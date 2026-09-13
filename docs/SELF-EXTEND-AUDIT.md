@@ -102,9 +102,17 @@ Within-cycle ReAct and build/test budgets exist. Across cycles, `ExtensionCeilin
 
 Invariants **A, B, C and D** are now enforced on the live path. Unattended multi-cycle self-extension is bounded: an Active extender runs at most `MaxUnattendedCycles` cycles before a human must re-arm it, at most `MaxCyclesPerHour` in any hour, and only within `MaxLineageDepth` of a human-authored root.
 
-## Cert-loop integration (in progress, 2026-09-05)
+## Cert-loop integration (landed 2026-09-06; one phase remains)
 
-**Status:** The convergence work has begun on branch `cursor/integrate-cert-loop-extender-ea44`.
+**Status:** Landed. [PR #512](https://github.com/IanFrelinger/Ashlar/pull/512) "P1: Integrate certified
+loop into live extender path" merged 2026-09-06T01:40Z; the working branch
+`cursor/integrate-cert-loop-extender-ea44` is deleted. The one item still open is the watch window,
+below, which is `docs/cert-loop-integration-plan.md` Phase 3 and is why
+`LiveExtenderCertLoopIntegrationTests.cs:161` carries `[Fact(Skip = "Watch window integration not yet
+implemented")]`. That skip is the honest marker for it; do not remove it before the phase lands.
+
+*Updated 2026-09-13: this section read "in progress" and pointed at a branch for a week after the PR
+merged. The per-item status below was already correct and is unchanged.*
 
 What was open: the legacy extender path and the certified autonomy loop were two self-extension paths, and the long-term intent is one.
 
