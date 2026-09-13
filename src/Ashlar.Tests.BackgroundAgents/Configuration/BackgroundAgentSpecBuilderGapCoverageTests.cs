@@ -69,7 +69,7 @@ public class BackgroundAgentSpecBuilderGapCoverageTests
         var builder = new BackgroundAgentSpecBuilder(new DataSensitivityRegistry());
         var config = BaseConfig("monitor");
         config.ParentId = "parent-agent";
-        config.RAG = new RAGConfig { Enabled = true, VectorStoreProvider = "sqlite" };
+        config.RAG = new RAGConfig { Enabled = true, VectorStoreProvider = "in-memory" };
         config.WebSearch = new WebSearchConfig { Enabled = true, SearchProvider = "bing" };
 
         var spec = builder.BuildSpec(config);

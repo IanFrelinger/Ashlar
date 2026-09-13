@@ -204,20 +204,21 @@ new code and reopening it — that exercises the `IF NOT EXISTS` path and passes
 The honest answer to "what happens to rows already written" is: there are none, and that is not
 reassuring.
 
-`SqliteVectorStore` is constructed at exactly three sites, all of them in its own test file.
+`SqliteVectorStore` is constructed only in its own tests.
 `AddBackgroundAgentsRAG` hardwires `InMemoryVectorStore`. And `RAGConfig.VectorStoreProvider` is
-validated non-empty by the config loader — it fails with "RAG enabled but no provider specified" —
-and then **never read to select a store**. An agent configuration declaring `"sqlite"` is accepted,
-validated, and silently served an in-memory store. A shipped example does exactly that.
+**not read to select a store**. Agent configuration now accepts only `"in-memory"` when RAG is
+enabled, and refuses missing or unsupported providers during loading, spec building and direct
+registration. Previously `"sqlite"` passed the loader and was silently served an in-memory store;
+the shipped example now asks for `"in-memory"` and no longer advertises a database path.
 
 So: the `ALTER TABLE` path in section 6 exists for third parties and for the future, and must be
 tested against a hand-written database because no shipped composition can produce one.
 
 This is also the sharpest thing in this document, and it is worth separating from the stamp: the
-provider-is-ignored defect is why #582's "buys nothing today" argument holds, and **fixing it is
-what would make the stamp observable end to end.** Whoever picks this up should consider doing that
-first — the stamp is hard to justify while the only store that could hold a stale row cannot be
-selected.
+missing persistent-provider composition is why #582's "buys nothing today" argument holds, and
+**implementing it is what would make the stamp observable end to end.** Whoever picks this up should
+consider doing that first — the refusal prevents false persistence expectations, but the stamp is
+hard to justify while the only store that could hold a stale row cannot be selected.
 
 ---
 

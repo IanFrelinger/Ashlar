@@ -39,6 +39,9 @@ public class BackgroundAgentSpecBuilder
         if (config == null)
             throw new ArgumentNullException(nameof(config));
 
+        // Programmatic callers can bypass the configuration loader.
+        config.RAG?.ValidateProvider(config.Id);
+
         // Get sensitivity level to include in parameters
         var sensitivityLevel = _sensitivityRegistry.GetByName(config.MaxDataSensitivity);
         if (sensitivityLevel == null)
