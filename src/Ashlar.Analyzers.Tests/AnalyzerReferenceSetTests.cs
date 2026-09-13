@@ -23,12 +23,10 @@ namespace Ashlar.Analyzers.Tests;
 /// is meant to find. Without the second, the first freezes a rule that no longer describes
 /// anything; without the third, it can stop recognising what it forbids and still pass.</para>
 ///
-/// <para><b>None of this runs in CI.</b> <c>ci/test-ownership.tsv</c> records
-/// <c>Ashlar.Analyzers.Tests</c> as UNOWNED — it is in <c>Ashlar.sln</c> and named by no gate — so
-/// these guards, and the seven <c>SelfRecursiveRegistrationAnalyzerTests</c> whose CS1069
-/// regression prompted them, are visible to a local run and to nothing else. The regression that
-/// motivated this file was itself invisible to every check on every pull request. Read a green
-/// pull request accordingly, and run this project before changing the test SDK pins.</para>
+/// <para>The full project runs indirectly through readiness's <c>ci verify</c> validation discovery.
+/// The reference helper is also source-linked into the certification test assembly, where
+/// <c>AnalyzerReferenceInputTests</c> drives its refusal and successful-compilation controls under
+/// the required, unfiltered cert gate. Run this project before changing the test SDK pins.</para>
 /// </summary>
 public sealed class AnalyzerReferenceSetTests
 {

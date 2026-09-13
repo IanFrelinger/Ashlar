@@ -1,4 +1,6 @@
 using Microsoft.CodeAnalysis;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 
 namespace Ashlar.Analyzers.Tests;
 
@@ -52,46 +54,54 @@ internal static class AnalyzerReferenceSet
     public static IReadOnlyList<MetadataReference> For(params Type[] anchors)
     {
         ArgumentNullException.ThrowIfNull(anchors);
-
-        // Keyed by file name so an app-local copy and a shared-framework copy of the same
-        // assembly cannot both enter the set (Roslyn reports CS1703 for equivalent identities).
-        var byFileName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var anchor in anchors)
-            Add(byFileName, anchor.Assembly.Location, replace: true);
-
-        foreach (var path in OutputDirectoryAssemblies())
-            Add(byFileName, path, replace: false);
-
-        var framework = SharedFrameworkAssemblies();
-        if (framework.Count == 0)
-        {
-            throw new InvalidOperationException(
-                $"No shared-framework assemblies found: AppContext.GetData(\"{TrustedPlatformAssembliesKey}\") "
-                + $"listed nothing under '{SharedFrameworkDirectory()}'. Without them the samples cannot "
-                + "compile and every analyzer assertion below would be vacuous, so this fails rather "
-                + "than running on a partial reference set.");
-        }
-
-        foreach (var path in framework)
-            Add(byFileName, path, replace: false);
-
-        return byFileName.Values
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .Select(TryCreateReference)
-            .Where(reference => reference is not null)
-            .Select(reference => reference!)
-            .ToArray();
+        return Compose(anchors.Select(anchor => string.IsNullOrEmpty(anchor.Assembly.Location)
+                ? throw new InvalidOperationException($"Analyzer reference set refused: anchor type '{anchor}' has no assembly location.")
+                : anchor.Assembly.Location),
+            OutputDirectoryAssemblies(), SharedFrameworkAssemblies());
     }
 
-    private static void Add(IDictionary<string, string> byFileName, string path, bool replace)
-    {
-        if (string.IsNullOrEmpty(path))
-            return;
+    internal static readonly string[] RequiredFrameworkAssemblies =
+    [
+        "System.Private.CoreLib.dll", "System.Runtime.dll", "System.Collections.dll",
+        "System.Linq.dll", "System.ComponentModel.dll", "System.Runtime.Numerics.dll",
+    ];
 
-        var key = Path.GetFileName(path);
-        if (replace || !byFileName.ContainsKey(key))
-            byFileName[key] = path;
+    internal static IReadOnlyList<MetadataReference> Compose(
+        IEnumerable<string> anchors, IEnumerable<string> outputFiles, IEnumerable<string> frameworkFiles)
+    {
+        // Keyed by file name so an app-local copy and a shared-framework copy of the same
+        // assembly cannot both enter the set (Roslyn reports CS1703 for equivalent identities).
+        // Validate before reserving a name: an unusable app-local file must not hide a valid
+        // shared-framework copy. Explicit anchors are required even when no sample uses them.
+        var byFileName = new Dictionary<string, MetadataReference>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var path in anchors)
+        {
+            var reference = TryCreateReference(path);
+            if (reference is null)
+                throw new InvalidOperationException(
+                    $"Analyzer reference set refused: anchor '{path}' is missing or has no readable managed metadata.");
+            byFileName[Path.GetFileName(path)] = reference;
+        }
+
+        foreach (var path in outputFiles.Concat(frameworkFiles))
+        {
+            if (string.IsNullOrWhiteSpace(path) || byFileName.ContainsKey(Path.GetFileName(path)))
+                continue;
+            var reference = TryCreateReference(path);
+            if (reference is not null)
+                byFileName.Add(Path.GetFileName(path), reference);
+        }
+
+        var missing = RequiredFrameworkAssemblies.Except(byFileName.Keys, StringComparer.OrdinalIgnoreCase).ToArray();
+        if (missing.Length != 0)
+            throw new InvalidOperationException(
+                "Analyzer reference set refused: missing framework assemblies " + string.Join(", ", missing)
+                + ". Analyzer samples require a framework-dependent host with readable assemblies on disk.");
+
+        return byFileName.Values
+            .OrderBy(reference => reference.Display, StringComparer.Ordinal)
+            .ToArray();
     }
 
     /// <summary>This project's deploy closure, as MSBuild laid it out on disk.</summary>
@@ -119,18 +129,30 @@ internal static class AnalyzerReferenceSet
 
     /// <summary>
     /// Skips native libraries that share the managed extension on Windows. A file that is not a
-    /// managed assembly has no metadata to reference; every other failure propagates.
+    /// managed assembly has no metadata to reference. Declared anchors are refused by the caller;
+    /// unusable discovered files are skipped and the composed framework floor is checked afterward.
     /// </summary>
     private static MetadataReference? TryCreateReference(string path)
     {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
         try
         {
+            // The Roslyn factory is lazy. HasMetadata proves a directory exists, not that its
+            // header is readable; force that read inside this caught and disposed boundary.
+            using var stream = File.OpenRead(path);
+            using var pe = new PEReader(stream);
+            if (!pe.HasMetadata)
+                return null;
+            _ = pe.GetMetadataReader();
             return MetadataReference.CreateFromFile(path);
         }
         catch (BadImageFormatException)
         {
             return null;
         }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
     }
 
     /// <summary>Assembly names in the set, for diagnostics and for the tests that pin its shape.</summary>
