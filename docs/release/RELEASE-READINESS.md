@@ -347,13 +347,44 @@ These actions require **repository administrator** or **organization owner** per
 
 **Review required variables:**
 
-| Variable | Current value | Recommended for v0.x |
-|----------|---------------|----------------------|
-| `NUGET_PUBLISH_MODE` | `push` | Keep `push` (publishes to nuget.org on tag) |
-| `RELEASE_CREATE_GITHUB_RELEASE` | `true` | Keep `true` (auto-creates GitHub Release with changelog) |
-| `NUGET_API_KEY` (secret) | Set | **Verify not expired** before tagging release |
+> **Corrected 2026-09-13. All three rows below were wrong, in the direction that silently breaks a
+> release.** Values re-read from `gh api repos/IanFrelinger/Ashlar/actions/variables` and `.../secrets`.
+> The previous table said `NUGET_PUBLISH_MODE` was `push` and recommended keeping it. `push` is neither
+> `oidc` nor `apikey`, so `reusable-release-nuget.yml:226-229` takes the **artifact-only** branch: the
+> release workflow goes green, emits a `::notice::`, and **publishes nothing to nuget.org**. It also said
+> the `NUGET_API_KEY` secret was "Set"; that secret does not exist. In `oidc` mode the api key is minted
+> at run time by the `nuget_login` step (`:185`) from the `NUGET_USER` secret, so `NUGET_USER` plus the
+> NuGet trusted-publishing configuration is what must be valid, not a stored key.
 
-**Action:** Review `Settings → Secrets and variables → Actions` → confirm `NUGET_API_KEY` valid.
+| Variable / secret | Actual value (verified 2026-09-13) | Recommended for v0.x |
+|----------|---------------|----------------------|
+| `NUGET_PUBLISH_MODE` (variable) | `oidc` | **Keep `oidc`.** Only `oidc` or `apikey` publish; anything else is artifact-only (`reusable-release-nuget.yml:226`). |
+| `NUGET_RELEASE_SBOM` (variable) | `true` | Keep `true`. |
+| `NUGET_RELEASE_GRYPE` (variable) | `true` | Keep `true`. |
+| `RELEASE_CREATE_GITHUB_RELEASE` (variable) | **unset** | Leave unset. `release.yml:198` tests `!= 'false'`, so unset already means "create the release". |
+| `NUGET_USER` (secret) | Set | Required by the `oidc` path (`reusable-release-nuget.yml:185`). |
+| `NUGET_API_KEY` (secret) | **does not exist** | Not needed under `oidc`; only the `apikey` path (`:209`) reads it. |
+
+**Action:** confirm `NUGET_PUBLISH_MODE` is still `oidc` and that NuGet trusted publishing for `NUGET_USER`
+is current. Do **not** "restore" a `NUGET_API_KEY` secret to satisfy the old row — it is not on the `oidc`
+path, and adding a long-lived key would be a step backwards from trusted publishing.
+
+### 5.4b Bump `VERSION` before tagging — it is 104 commits stale (recorded 2026-09-13)
+
+`VERSION` reads `0.1.2`, and `0.1.2` is already published on nuget.org. Master is **104 commits ahead of
+tag `v0.1.2`** (`gh api repos/IanFrelinger/Ashlar/compare/v0.1.2...master`), and seven of those commits
+touch `src/Ashlar.Certification.Contracts/` — the assembly that produces signed bytes. So the version
+string in this tree no longer identifies its content, and the packages built from it today would be
+labelled with a version whose published counterpart behaves differently.
+
+**What protects you and what does not.** `release.yml:60-66` asserts the tag name matches root `VERSION`
+**at tag time only**, and only when `github.ref_type == 'tag'` — a `workflow_dispatch` from a branch skips
+it. `scripts/release-preflight-local.sh` is the only thing that inspects both, and nothing invokes it
+automatically: it is reachable from `Makefile`, the release issue template and the PR template, i.e. from
+human checklists. **No gate warns that `VERSION` is stale before you cut.**
+
+**Action before any release:** bump `VERSION`, land it, then tag. If you tag first, the guard above stops
+the release rather than shipping a mislabelled package — which is the good failure, but it fails late.
 
 ### 5.5 Contact channel (customer funnel)
 

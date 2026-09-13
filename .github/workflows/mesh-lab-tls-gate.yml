@@ -1,5 +1,18 @@
 name: Mesh lab TLS gate
 
+# STATUS (recorded 2026-09-13): this weekly lane is RED and has not been triaged. Scheduled runs:
+# four consecutive failures 2026-08-18, -25, 09-01, 09-08; ten of the last fourteen red; last green
+# 2026-08-11. Its two siblings were both treated under this repository's own policy and this one was
+# not: mesh-lab-gate.yml went manual-only 2026-08-11 after fifteen red automatic runs, and
+# mesh-lab-stress-gate.yml had its weekly schedule removed 2026-08-16 after eight consecutive reds.
+# Its last green run is the same week mesh-lab-gate went dormant, which is suggestive of the shared
+# compose environment but is NOT verified here - the failing logs have not been read.
+#
+# The schedule is deliberately LEFT LIVE. Demoting a third mesh lane is a judgement about whether the
+# mesh lab is still worth proving weekly, and that call belongs to the owner, not to the commit that
+# noticed the streak. Either triage the failures or demote it the way the siblings were demoted; do
+# not leave it silently red - that is docs/HowGatesGoQuiet.md section 1.
+
 on:
   schedule:
     - cron: "0 7 * * 2"
