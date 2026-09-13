@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using Ashlar.Infrastructure.Certification;
@@ -349,13 +350,16 @@ public class RoslynCodeAnalysisService : ICodeAnalysisService
 
     private static bool CarriesManagedMetadata(string path)
     {
-        // Roslyn's file reference factory is lazy: native PE images and non-PE files both need
-        // an eager read here, before their absence becomes a diagnostic against the candidate.
+        // Roslyn's file reference factory is lazy. HasMetadata finds the CLR directory but does
+        // not parse its header; read that too before an input fault becomes a candidate diagnostic.
         try
         {
             using var stream = File.OpenRead(path);
             using var pe = new PEReader(stream);
-            return pe.HasMetadata;
+            if (!pe.HasMetadata)
+                return false;
+            _ = pe.GetMetadataReader();
+            return true;
         }
         catch (BadImageFormatException) { return false; }
         catch (IOException) { return false; }

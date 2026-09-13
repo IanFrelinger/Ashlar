@@ -11,8 +11,10 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 - **Compiler references refuse unavailable inputs.** Caller-supplied missing, blank, directory or
   non-managed paths fail with the offending path before emitting a candidate. Default references
   skip unusable discovered files, repair partial sets from the platform list and refuse a missing
-  named framework assembly. Certification controls cover real native PE images, non-PE files,
-  partial defaults and successful compilation using a declared dependency.
+  named framework assembly. The eager check reads the metadata header: a CLR directory alone
+  does not establish readability. Certification controls cover real native PE images, non-PE
+  files, managed images with damaged metadata signatures, partial defaults, valid fallback and
+  successful compilation using a declared dependency.
 
 - **Validation honors caller filters.** The caller's expression now narrows the default sweep,
   preserving the Stress and DockerOptional exclusions even when it contains OR conditions.

@@ -125,6 +125,68 @@ public sealed class CompilerReferenceInputTests : IDisposable
         build.Should().Throw<InvalidOperationException>().WithMessage("*missing*System.Console.dll*");
     }
 
+    [Fact]
+    public void An_explicit_PE_with_a_corrupt_metadata_header_is_refused_by_name()
+    {
+        var path = Path.Combine(_directory, "corrupt-metadata.dll");
+        WriteCorruptMetadataPe(path);
+        Action build = () => RoslynCodeAnalysisService.BuildReferenceSet([path]);
+        build.Should().Throw<InvalidOperationException>().Which.Message
+            .Should().Contain(path).And.Contain("caller-supplied").And.Contain("managed metadata");
+    }
+
+    [Fact]
+    public async Task An_unused_corrupt_metadata_reference_refuses_before_emitting()
+    {
+        var path = Path.Combine(_directory, "corrupt-metadata.dll");
+        WriteCorruptMetadataPe(path);
+        var output = Path.Combine(_directory, "candidate.dll");
+        var result = await _compiler.CompileAsync("public class Candidate {}", "Candidate", output, [path]);
+
+        result.Success.Should().BeFalse();
+        result.Errors.Should().ContainSingle().Which.Should().Contain(path).And.Contain("caller-supplied");
+        File.Exists(output).Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_discovered_corrupt_metadata_header_does_not_poison_valid_defaults()
+    {
+        var path = Path.Combine(_directory, "corrupt-metadata.dll");
+        WriteCorruptMetadataPe(path);
+        var references = RoslynCodeAnalysisService.ComposeDefaultReferences(DefaultPaths().Append(path), []);
+        references.OfType<PortableExecutableReference>().Should().NotContain(r => r.FilePath == path);
+        AssertCompiles(references);
+    }
+
+    [Theory]
+    [InlineData("System.Private.CoreLib.dll")]
+    [InlineData("System.Runtime.dll")]
+    [InlineData("System.Console.dll")]
+    [InlineData("System.Linq.dll")]
+    public void A_corrupt_metadata_header_does_not_satisfy_a_required_name(string name)
+    {
+        var path = Path.Combine(_directory, name);
+        WriteCorruptMetadataPe(path);
+        Action build = () => RoslynCodeAnalysisService.ComposeDefaultReferences(
+            DefaultPaths().Where(p => Path.GetFileName(p) != name).Append(path), []);
+        build.Should().Throw<InvalidOperationException>().WithMessage("*missing*" + name + "*");
+    }
+
+    [Theory]
+    [InlineData("System.Private.CoreLib.dll")]
+    [InlineData("System.Runtime.dll")]
+    [InlineData("System.Console.dll")]
+    [InlineData("System.Linq.dll")]
+    public void A_valid_fallback_replaces_a_primary_with_a_corrupt_metadata_header(string name)
+    {
+        var path = Path.Combine(_directory, name);
+        WriteCorruptMetadataPe(path);
+        var references = RoslynCodeAnalysisService.ComposeDefaultReferences(
+            DefaultPaths().Where(p => Path.GetFileName(p) != name).Append(path), DefaultPaths());
+        references.OfType<PortableExecutableReference>().Should().NotContain(r => r.FilePath == path);
+        AssertCompiles(references);
+    }
+
     private string InvalidReference(bool nativePe)
     {
         var path = Path.Combine(_directory, nativePe ? "native.dll" : "text.dll");
@@ -159,6 +221,35 @@ public sealed class CompilerReferenceInputTests : IDisposable
         pe.PEHeaders.PEHeader.Should().NotBeNull();
         pe.PEHeaders.SectionHeaders.Should().ContainSingle(s => s.Name == ".text");
         pe.HasMetadata.Should().BeFalse();
+    }
+
+    private static void WriteCorruptMetadataPe(string path)
+    {
+        // Emit a valid managed PE independently of the helper being tested. Damage only BSJB:
+        // PE/CLR directories remain intact, so HasMetadata cannot detect this input fault.
+        var compilation = CSharpCompilation.Create("MetadataHeaderFixture",
+            [CSharpSyntaxTree.ParseText("public class Dependency {}")],
+            DefaultPaths().Select(p => MetadataReference.CreateFromFile(p)),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        using var image = new MemoryStream();
+        var emitted = compilation.Emit(image);
+        emitted.Success.Should().BeTrue(string.Join(" | ", emitted.Diagnostics));
+        var original = image.ToArray();
+        var damaged = (byte[])original.Clone();
+        using (var valid = new PEReader(new MemoryStream(original)))
+        {
+            valid.HasMetadata.Should().BeTrue();
+            valid.GetMetadataReader().IsAssembly.Should().BeTrue();
+            var offset = valid.PEHeaders.MetadataStartOffset;
+            original.Skip(offset).Take(4).Should().Equal(0x42, 0x53, 0x4a, 0x42);
+            Array.Clear(damaged, offset, 4);
+        }
+        original.Zip(damaged).Count(pair => pair.First != pair.Second).Should().Be(4);
+        File.WriteAllBytes(path, damaged);
+        using var corrupt = new PEReader(File.OpenRead(path));
+        corrupt.HasMetadata.Should().BeTrue();
+        Action read = () => corrupt.GetMetadataReader();
+        read.Should().Throw<BadImageFormatException>();
     }
 
     private sealed class NativePeBuilder() : PEBuilder(
