@@ -35,6 +35,13 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
   refusal and fallback, and compiled sample output. A present metadata directory alone does not
   establish that its header can be read.
 
+- **AI Pipeline changes reach the existing automatic test routes.** Kernel Gate and full platform
+  readiness now include both the AI production and test trees in their PR/push routing, including
+  nested files and shared build inputs. Kernel Tier A already runs the net8.0 Release AI suite;
+  native readiness already runs it through `ci verify` and `validate`. The required certification
+  convention checks the path semantics, readiness list parity and the direct Make invocation.
+  `build-core` already compiles the AI library transitively and is unchanged.
+
 - **Pipeline run identity is exclusive.** A destination run ID is created atomically before any
   executor is invoked. Reusing an existing ID now fails with guidance to use a fresh ID; resume
   still copies an existing source into a new destination, including interrupted runs. This closes
