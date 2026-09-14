@@ -8,6 +8,15 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ## [Unreleased]
 
+- **`VERSION` is `0.2.0`.** The minor moved rather than the patch because signed bytes changed: #592
+  gave every `double` one canonical decimal form across all three target frameworks (the
+  netstandard2.0 asset under Mono had been writing different digits from net8.0/net10.0), and the
+  canonical payload is what every certification signature is computed over. Both golden corpora
+  changed with it. #621 compounds it: a host supplying a brick signer now mints composition records
+  under its own key rather than the committed dev key. A record minted under `0.1.2` and the same
+  record minted now are not byte-identical, so `0.1.3` would have mislabelled a compatibility break
+  as a safe patch for anyone holding stored signed records.
+
 - **Limitation 9 is CLOSED.** *(This entry was written earlier the same day as "closed in part"; the operative half closed later on 2026-09-13. The composition signer now takes the injected brick signer as its key holder and delegates the MAC to it, and the shipped DI registration supplies that signer, so a host that configures a real key mints composition records under it with no host code change. No key material crosses the boundary: neither type exposes a key accessor. Pinned by `CompositionSignerKeyThreadingTests` and `CompositionSignerKeyPathConventionTests` in cert-gate; the last detection residual closed the same day: the gate now compares its two signers at construction and warns when they were built independently — reference identity only, never a refusal, and exempt when both are on the committed dev key.)* The original entry follows.
 
 - ~~**Limitation 9 is closed in part, and the record now says which part.**~~ **SUPERSEDED by the entry above, the same day.** Kept because it is the provenance of the partial close, not because it is current. It read: `CompositionCertificationRecordSigner` honours an explicit `hmacKey` ahead of the environment and the committed dev constant, and computes its honesty flag from the supplied key rather than from no argument — pinned by `CompositionCanonicalPayloadGoldenTests`, which derives the expected HMAC independently under an explicit key. This shipped with no changelog entry, so the closure had no release-facing provenance until then. It then said *"the operative half is still open"* — **that is no longer true**: the injected brick signer is now the composition lane's key holder and the shipped DI registration supplies it, so a host passing a real key to the brick lane mints composition records under it. That unblocks SPEC-006 S-4's migration path for the composition lane; **S-4 itself is not met** — it requires the committed dev-HMAC default to be removed, and it is still the fallback when no key is configured. Read this bullet as history.
