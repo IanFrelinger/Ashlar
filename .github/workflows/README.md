@@ -3,26 +3,38 @@
 Workflows in this directory are **manual-first** to reduce duplicate CI load, surprise
 minute costs, and branch-noise on `cursor/**` and other integration branches. The full,
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
-the summary of the 57 files is:
+the summary of the 61 files (counted 2026-09-13) is:
 
-- **19 run on `pull_request`** — only `cert-gate`, `layer-boundary`, `uat-gate`, `build-gate`,
-  `shell-lint`, `docs-link-check` and `full-platform-readiness-gate` on every PR; the rest are
-  path-filtered (kernel/application/security/coverage/testing-strategy/other path-scoped gates)
-  plus the label-driven `release-staging-on-label`. `full-platform-readiness-gate` filters
+- **20 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
+  `full-platform-readiness-gate`, `layer-boundary`, `shell-lint`, `uat-gate`; `layer-boundary`
+  carries `paths: "**"`, which matches everything); twelve path-filtered
+  (kernel/application/security/coverage/testing-strategy/other path-scoped gates); and one
+  label-driven, `release-staging-on-label`. `full-platform-readiness-gate` filters
   paths *inside* the workflow (a `changes` job) so its `Readiness summary` check always reports:
   heavy platform lanes run only when a core path changed, otherwise the summary passes in ~1 min.
-- **19 run on `push` only** (path-filtered, `master`/`main`/`cursor/**`), all with
-  `workflow_dispatch` as well — post-merge signals such as `mcp-a2a-gate`, `grpc-transport-gate`,
+- **18 run on `push` and/or `schedule` only** (path-filtered, `master`/`main`/`cursor/**`), all with
+  `workflow_dispatch` as well — post-merge signals such as `compose-gate`, `grpc-transport-gate`,
   `onboarding-docs-guard`, `container-image-publish`.
-- **17 are `workflow_dispatch` only**, including `cross-platform-tests` and `prod-dry-run-pr`
-  despite their names: run them from the Actions tab or with
-  `gh workflow run "<Workflow name>" --ref <branch>`.
+- **18 are `workflow_dispatch` only** (`mesh-lab-tls-gate` joined them 2026-09-13), including
+  `cross-platform-tests` and `prod-dry-run-pr` despite their names: run them from the
+  Actions tab or with `gh workflow run "<Workflow name>" --ref <branch>`.
 - **Tag-driven releases** stay automatic where required (`release.yml` on `v*.*.*` tags,
-  `devlog-ghost-release.yml` on published releases).
+  `devlog-ghost-release.yml` on published releases) — **2 files**.
+- **3 are reusable (`workflow_call`)** and carry no trigger of their own: `reusable-container-publish`,
+  `reusable-release-nuget`, `reusable-verify-nuget-consumer`.
 - **Schedules** still exist on six workflows: `distribution-matrix-gate` (Mon 10:00 UTC),
   `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00),
   `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of the month) and
-  `mesh-lab-tls-gate` (Tue 07:00). Everything else is push- or dispatch-driven.
+  `dogfood-continuous-proof` (06:00 weekdays). Everything else is push- or dispatch-driven.
+  `mesh-lab-tls-gate` lost its Tue 07:00 schedule on 2026-09-13 after four consecutive red
+  scheduled runs, joining its two mesh siblings as manual-only.
+
+The first five classes are disjoint and account for every file: **20 + 18 + 18 + 2 + 3 = 61**.
+The schedule bullet is a cross-cut, not a sixth class: three of those six (`distribution-matrix-gate`,
+`full-platform-readiness-gate`, `runtime-portability-gate`) also run on `pull_request` and are counted
+in the first class; the other three (`onboarding-quickstart-gate`, `rc-gate`,
+`dogfood-continuous-proof`) are in the `push`/`schedule` class. Re-derive rather than trust — every
+number on this page has been wrong at least once.
 
 When you change a workflow file, open a PR and run the relevant workflow(s) manually
 before merge if your branch protection expects a green check from that workflow.

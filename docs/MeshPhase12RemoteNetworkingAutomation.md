@@ -6,8 +6,8 @@ This doc maps the **three remaining “go to sea” checks** to automation tiers
 
 | Gap | Automate in CI? | What we ship |
 |-----|-----------------|--------------|
-| **TLS** | Yes (weekly + local) | Caddy + [`mesh-lab-tls-certs.sh`](../scripts/mesh-lab-tls-certs.sh) + [`mesh-lab-verify-tls.sh`](../scripts/mesh-lab-verify-tls.sh) |
-| **gRPC transport** | Yes (every PR via PrimeTime) | [`Ashlar.Tests.Transport`](../src/Ashlar.Tests.Transport) `Category=ProdStyle` + optional dedicated workflow |
+| **TLS** | Local, plus CI on dispatch (weekly schedule removed 2026-09-13) | Caddy + [`mesh-lab-tls-certs.sh`](../scripts/mesh-lab-tls-certs.sh) + [`mesh-lab-verify-tls.sh`](../scripts/mesh-lab-verify-tls.sh) |
+| **gRPC transport** | No PR lane - push to `master`/`main`/`cursor/**` + dispatch (`grpc-transport-gate.yml`); PrimeTime `test-prime-time` is pre-release | [`Ashlar.Tests.Transport`](../src/Ashlar.Tests.Transport) `Category=ProdStyle` + `grpc-transport-gate.yml` |
 | **Two-host / Tailscale** | Partial | [`mesh-lab-verify-remote.sh`](../scripts/mesh-lab-verify-remote.sh) + self-hosted runner recipe |
 
 ---
@@ -28,7 +28,7 @@ make mesh-lab-e2e-tls
 - `GET/POST /api/mesh/*` over HTTPS (register, schedule → Assigned)
 - Mutating mesh without API key → **401/403**
 
-**CI:** [`.github/workflows/mesh-lab-tls-gate.yml`](../.github/workflows/mesh-lab-tls-gate.yml) — weekly + `workflow_dispatch`.
+**CI:** [`.github/workflows/mesh-lab-tls-gate.yml`](../.github/workflows/mesh-lab-tls-gate.yml) — `workflow_dispatch` only; the Tue 07:00 UTC schedule was removed 2026-09-13 after four consecutive red scheduled runs.
 
 **Production parity:** Replace self-signed certs with real DNS + ACME ([`friend-mesh.Caddyfile.example`](config/friend-mesh.Caddyfile.example)); same curl paths, trust store from Let’s Encrypt.
 
@@ -93,11 +93,11 @@ Reuse [`scripts/bootstrap-cloud-mesh-lab.sh`](../scripts/bootstrap-cloud-mesh-la
 
 | Workflow | When | Covers |
 |----------|------|--------|
-| `mesh-lab-gate.yml` | PR | Bridge HTTP + negatives + persistence + Phase 13 data plane |
+| `mesh-lab-gate.yml` | Manual (`workflow_dispatch`; automatic triggers removed 2026-08-11) | Bridge HTTP + negatives + persistence + Phase 13 data plane |
 | `mesh-lab-stress-gate.yml` | Manual (`workflow_dispatch`; weekly schedule removed 2026-08-16) | Stress + post-stress |
-| `mesh-lab-tls-gate.yml` | Weekly | HTTPS director |
-| `grpc-transport-gate.yml` | PR | gRPC Kestrel round-trip |
-| `friend-mesh-prefab-gate.yml` | PR | Single-hub auth smoke |
+| `mesh-lab-tls-gate.yml` | Dispatch only since 2026-09-13 | HTTPS director |
+| `grpc-transport-gate.yml` | Push to `master`/`main`/`cursor/**` + dispatch | gRPC Kestrel round-trip |
+| `friend-mesh-prefab-gate.yml` | Push to `master`/`main`/`cursor/**` + dispatch | Single-hub auth smoke |
 | PrimeTime `test-prime-time` | Pre-release | Transport + full ProdStyle |
 
 ---
