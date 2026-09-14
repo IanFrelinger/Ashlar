@@ -93,14 +93,20 @@ jobs:
             echo "sweep_gap=" >> "$GITHUB_OUTPUT"
           else
             echo "sweep_outcome=FAIL" >> "$GITHUB_OUTPUT"
-            # "exited with code 1" and "the sweep is still a stub" are different rows, and this
-            # ledger gates a marketing claim. run_canary_sweep returns 1 unconditionally today and
-            # says so in its log; carry that through instead of a number nobody can act on.
+            # "exited with code 1" and a named unmet precondition are different rows, and this
+            # ledger gates a marketing claim. run_canary_sweep names each failed precondition in
+            # its log; carry that through instead of a number nobody can act on.
             LATEST_LOG="$(ls -t test-results/dogfood-sweep-*.log 2>/dev/null | head -1 || true)"
-            if [[ -n "${LATEST_LOG}" ]] && grep -q "STUB:" "${LATEST_LOG}"; then
-              echo "sweep_gap=Canary sweep is still a stub in scripts/dogfood-continuous-proof.sh (run_canary_sweep returns 1 unconditionally); no autonomy loop ran." >> "$GITHUB_OUTPUT"
+            PRECONDITIONS=""
+            if [[ -n "${LATEST_LOG}" ]]; then
+              PRECONDITIONS="$(grep 'PRECONDITION FAILED:' "${LATEST_LOG}" | sed 's/PRECONDITION FAILED: //' | paste -sd'; ' - || true)"
+            fi
+            if [[ -n "${PRECONDITIONS}" ]]; then
+              echo "sweep_gap=Sweep refused to run: ${PRECONDITIONS}" >> "$GITHUB_OUTPUT"
+            elif [[ -n "${LATEST_LOG}" ]] && grep -q 'attempted no objective' "${LATEST_LOG}"; then
+              echo "sweep_gap=The loop ran but attempted no objective - no pending objective was eligible (missing witness or proposal)." >> "$GITHUB_OUTPUT"
             else
-              echo "sweep_gap=Sweep exited with code ${SWEEP_EXIT}" >> "$GITHUB_OUTPUT"
+              echo "sweep_gap=Sweep exited with code ${SWEEP_EXIT}; see the attached log." >> "$GITHUB_OUTPUT"
             fi
           fi
           
