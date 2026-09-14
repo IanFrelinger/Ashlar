@@ -19,7 +19,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// the receiver's next <c>dotnet build</c> — outside the loader, the gate and the registry
 /// entirely. This suite is table-driven so a new spelling or a new floor entry is one row.</para>
 ///
-/// <para>In <c>...Tests.Certification</c> so it rides cert-gate, the only required check
+/// <para>In <c>...Tests.Certification</c> so it rides cert-gate, the required check
 /// (ci/cert-gate-assertions.md). Hermetic: a temp dir, no build, no network.</para>
 /// </summary>
 [Trait("Category", "Certification")]

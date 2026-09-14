@@ -34,8 +34,8 @@
 #
 #   The pressure this file applies should come from the weekly review, not from a cliff.
 #
-# The runner column is documentation until a lane-deriving suite gate exists; the assertion
-# that bites today is completeness. Do not treat a runner name here as proof a gate runs it.
+# The runner column is CHECKED SYNTAX (TestOwnershipRunnerConventionTests, cert-gate): every runner is
+# UNOWNED or a real gate name, expires is "-" when gated. Still NOT proof a gate runs the project.
 #
 project	runner	expires	note
 application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj	security-gate-tier-c	-	CLI surface; also in Ashlar.PrimeTime.slnf
