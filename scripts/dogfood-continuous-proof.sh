@@ -13,65 +13,100 @@ CAMPAIGN_DIR="${ROOT}/.ashlar/campaign"
 LEDGER="${ROOT}/docs/dogfood-ledger.md"
 
 # Run a single autonomy loop sweep on the canary objective.
-# This is a simplified version of the autonomy-first-flight spike,
-# adapted for CI and non-interactive execution.
+#
+# This drives the SAME host the first-flight spike drives — FirstFlight --sweep — against the
+# real objective store. It is not a simulation of the loop; it is the loop, with admission held.
+#
+# The four knobs the loop reads are ENVIRONMENT VARIABLES, not CLI flags. An earlier draft of
+# this function carried a commented-out invocation passing --max-objectives, --campaign-dir and
+# --strict; none of those are parsed, and passing them would have been silently ignored.
+#
+#   ASHLAR_OBJECTIVES_ROOT    where the store lives            (required)
+#   ASHLAR_SWEEP_MAX_OBJECTIVES  objectives attempted per sweep (we want exactly 1)
+#   ASHLAR_CAMPAIGN_DIR       where per-run artefacts land
+#   ASHLAR_SWEEP_PROPOSER     "ollama" for a live model; unset uses the RECORDED proposal
+#                             committed beside the objective, so this needs no model and no
+#                             network. Setting it is how the live-model lane turns on.
+#
+# Sandbox sessions are on (build AND execute inside an attested container), so this needs a
+# working container engine and will pull an SDK image on a cold runner.
 run_canary_sweep() {
   local timestamp
   timestamp="$(date -u +%Y%m%d-%H%M%S)"
   local log_file="${RESULTS_DIR}/dogfood-sweep-${timestamp}.log"
-  
-  mkdir -p "${RESULTS_DIR}"
-  mkdir -p "${CAMPAIGN_DIR}/${timestamp}"
-  
+  local run_campaign_dir="${CAMPAIGN_DIR}/${timestamp}"
+  local objectives_root="${ROOT}/.ashlar/runtime-studio/objectives"
+  local samples="${ROOT}/samples/autonomy-objectives"
+
+  mkdir -p "${RESULTS_DIR}" "${run_campaign_dir}"
+
   echo "== Dogfood continuous proof: canary sweep ==" | tee "${log_file}"
   echo "Timestamp: ${timestamp}" | tee -a "${log_file}"
   echo "Canary: ${CANARY_OBJECTIVE}" | tee -a "${log_file}"
   echo "" | tee -a "${log_file}"
-  
-  # NOTE: This is a stub implementation. The real implementation depends on:
-  # 1. Autonomy loop host wiring (requires FirstFlight project or equivalent)
-  # 2. Container engine availability for sandbox sessions
-  #
-  # PR #523 (Strict+Ed25519) is now on master. Remaining blockers:
-  # - Real autonomy loop wiring (not just spike infrastructure)
-  # - lim-9 composition key path: CLOSED 2026-09-13 (the injected brick signer is the composition
-  #   lane's key holder and the shipped DI registration supplies it)
-  #
-  # For now, we document the intended flow and mark the workflow as GAP until
-  # the autonomy loop host wiring is complete.
-  
-  echo "⚠️  STUB: Real autonomy loop sweep not yet implemented" | tee -a "${log_file}"
+
+  # --- preconditions, each reported by name so a GAP row can say which one failed -------------
+  local objective="${samples}/${CANARY_OBJECTIVE}.md"
+  local witness="${samples}/${CANARY_OBJECTIVE}.witness.json"
+  local proposal="${samples}/${CANARY_OBJECTIVE}.proposal.json"
+
+  local missing=0
+  for f in "${objective}" "${witness}"; do
+    if [[ ! -f "${f}" ]]; then
+      echo "PRECONDITION FAILED: missing ${f}" | tee -a "${log_file}"
+      missing=1
+    fi
+  done
+  if [[ "${SWEEP_PROPOSER:-}" != "ollama" && ! -f "${proposal}" ]]; then
+    echo "PRECONDITION FAILED: no recorded proposal at ${proposal}, and SWEEP_PROPOSER is not ollama" | tee -a "${log_file}"
+    missing=1
+  fi
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "PRECONDITION FAILED: no container engine on PATH; sandbox sessions cannot start" | tee -a "${log_file}"
+    missing=1
+  fi
+  if [[ "${missing}" -ne 0 ]]; then
+    echo "SWEEP: refusing to run with unmet preconditions (above)" | tee -a "${log_file}"
+    return 1
+  fi
+
+  # --- stage the canary into the store --------------------------------------------------------
+  # A sweep CLAIMS a pending objective and moves it to in-progress, so the store is rebuilt from
+  # the committed samples every run. That keeps the run reproducible and stops a half-finished
+  # earlier sweep from deciding this one's verdict.
+  rm -rf "${objectives_root}"
+  mkdir -p "${objectives_root}/pending"
+  cp "${objective}" "${witness}" "${objectives_root}/pending/"
+  [[ -f "${proposal}" ]] && cp "${proposal}" "${objectives_root}/pending/"
+
+  echo "Staged ${CANARY_OBJECTIVE} into ${objectives_root}/pending" | tee -a "${log_file}"
   echo "" | tee -a "${log_file}"
-  echo "Intended flow:" | tee -a "${log_file}"
-  echo "  1. Seed ${CANARY_OBJECTIVE}.md and ${CANARY_OBJECTIVE}.witness.json" | tee -a "${log_file}"
-  echo "  2. Run autonomy loop with Strict verification" | tee -a "${log_file}"
-  echo "  3. Capture proposal → certify → admit outcome" | tee -a "${log_file}"
-  echo "  4. Return 0 for CertifiedButHeld/CertifiedAndAdmitted, 1 for ExplainedFailure" | tee -a "${log_file}"
+
+  # --- run the loop ---------------------------------------------------------------------------
+  local sweep_exit=0
+  ASHLAR_OBJECTIVES_ROOT="${objectives_root}" \
+  ASHLAR_SWEEP_MAX_OBJECTIVES=1 \
+  ASHLAR_CAMPAIGN_DIR="${run_campaign_dir}" \
+  ${SWEEP_PROPOSER:+ASHLAR_SWEEP_PROPOSER="${SWEEP_PROPOSER}"} \
+    dotnet run --project spikes/autonomy-first-flight/FirstFlight/FirstFlight.csproj \
+      -c Release -- --sweep 2>&1 | tee -a "${log_file}" || true
+  sweep_exit="${PIPESTATUS[0]}"
+
   echo "" | tee -a "${log_file}"
-  echo "Remaining dependencies:" | tee -a "${log_file}"
-  echo "  - Autonomy loop host (FirstFlight or CLI command)" | tee -a "${log_file}"
-  echo "  - Docker available for sandbox sessions" | tee -a "${log_file}"
-  echo "  - lim-9 composition key path (closed 2026-09-13)" | tee -a "${log_file}"
-  echo "" | tee -a "${log_file}"
-  
-  # TODO: Replace this stub with real sweep logic:
-  #
-  # mkdir -p .ashlar/runtime-studio/objectives/pending
-  # cp "samples/autonomy-objectives/${CANARY_OBJECTIVE}.md" \
-  #    "samples/autonomy-objectives/${CANARY_OBJECTIVE}.witness.json" \
-  #    .ashlar/runtime-studio/objectives/pending/
-  #
-  # dotnet run --project spikes/autonomy-first-flight/FirstFlight/FirstFlight.csproj -- \
-  #   --sweep \
-  #   --max-objectives 1 \
-  #   --campaign-dir "${CAMPAIGN_DIR}/${timestamp}" \
-  #   --strict | tee -a "${log_file}"
-  #
-  # SWEEP_EXIT="${PIPESTATUS[0]}"
-  # return "${SWEEP_EXIT}"
-  
-  echo "Stub implementation - marking as GAP" | tee -a "${log_file}"
-  return 1  # Fail until real implementation lands
+  echo "SWEEP exit code: ${sweep_exit}" | tee -a "${log_file}"
+
+  # --- what the exit code means ---------------------------------------------------------------
+  # SweepMode returns 0 when it ATTEMPTED at least one objective, and 1 when it attempted none
+  # (empty store, or no objective was eligible because a witness or proposal was missing).
+  # It does NOT encode the certification verdict: a held-but-certified iteration and an explained
+  # failure both exit 0. The verdict is in the log the harness writes above, and the ledger row
+  # records the sweep's completion, not its admission outcome. Do not read a PASS row as "the
+  # candidate was admitted" - HoldAdmission is on, so nothing is ever admitted here.
+  if [[ "${sweep_exit}" -ne 0 ]]; then
+    echo "SWEEP: the loop attempted no objective - see the log above for which precondition the harness rejected" | tee -a "${log_file}"
+  fi
+
+  return "${sweep_exit}"
 }
 
 # Append a row to docs/dogfood-ledger.md
