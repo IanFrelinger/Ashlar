@@ -4,6 +4,21 @@
 **Branch:** `cursor/self-extend-enforce-6118` (off `cursor/self-extend-audit-6118`); D on `feat/sx-invariant-d-extension-ceiling`  
 **Scope:** Background-agent self-extend path only (not CLI `ashlar self-extend`, not orchestration `LifecycleManager`).
 
+> **Dated note, 2026-09-14 — locate members by name, not by the line numbers below.** This audit's
+> control-flow trace cites 28 `file.cs:line` anchors, captured when it was written. Five of them now
+> land on a bare brace or a blank line, and a citation that lands on real code is not necessarily
+> landing on the code it described — `BackgroundAgentRegistry.cs:203` is now an
+> `ArgumentNullException` throw. They are annotated rather than re-pinned, which is this
+> repository's policy for dated documents: a second set of line numbers rots the same way, and
+> re-pinning has already failed twice elsewhere in this tree. The member and type names are stable
+> and are what you should search for.
+>
+> One substantive scope note on **A4**: post-apply verification exists and is tested, but it is not
+> unconditional. `SelfExtendAdmissionBridge` takes `IPostApplyVerification` as an optional
+> parameter defaulting to `null` and rolls back only `when verification is not null`.
+> `AddCertificationInfrastructure` supplies one, so the supported wiring has the canary; a host
+> constructing the bridge by hand and passing nothing gets no canary and no rollback.
+
 ## Purpose
 
 Trace the **executing** control flow for background extender agents and record whether four safety invariants are enforced. All four are now enforced on the live path (D closed by SX-ENFORCE-D, 2026-08-16).
