@@ -37,5 +37,11 @@ See [RC hardening plan v1](RCHardeningPlan-v1.md) and [Release candidate checkli
 ## Sign-off
 
 - [x] `security-gate-full` green (2026-05-19)
-- [x] Tier D reports in `.ashlar/security-gate/` (no High/Critical in scanned surfaces)
+- [x] Tier D reports in `.ashlar/security-gate/` (no High/Critical in scanned surfaces) — **the
+      reports themselves are not reviewable from this repository.** `.ashlar/` is in `.gitignore`
+      and nothing under it is tracked, so the "no High/Critical" half of this line rests on a
+      2026-05-19 local run that left no artefact anyone can now open. `security-gate-tier-d.sh`
+      writes `vulnerable-packages.txt` and `deprecated-packages.txt` under that directory; re-run
+      it and read them rather than taking this line's word for it. Re-signing this without a
+      re-run would be signing for a scan nobody has seen.
 - [x] Air-gapped tier verified (in-process safety + profile tests)

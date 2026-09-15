@@ -2,6 +2,9 @@
 
 **Revision 3. THE RENAME IS APPLIED AND GREEN** — commit `a0609ebe`.
 
+Measured at the rename and left as the record of it. **None of these three lines is a current
+expectation** — see the note under "To re-verify at any time" below before running any of them.
+
 ```
 verify-rename.sh                 PASS   content, paths, .sln refs, ProjectRefs all clean
 dotnet build Ashlar.Kernel.sln   0 Warning(s), 0 Error(s)
@@ -273,15 +276,30 @@ output, and ~9× faster for everything else. See §3.
 
 ### ~~Step 1 — the rename~~ DONE — commit `a0609ebe`
 
-Kept for reference. To re-verify at any time:
+Kept for reference. **Two of the three expectations below have since stopped holding**, so run
+them knowing what a red result means:
 
 ```bash
 bash scripts/handoff/devbox.sh '
-  bash scripts/handoff/verify-rename.sh          # PASS
+  bash scripts/handoff/verify-rename.sh          # NO LONGER PASSES - see below
   dotnet build Ashlar.Kernel.sln                 # 0 Warning(s), 0 Error(s)
-  bash scripts/run-cert-gate.sh                  # 169/169
+  bash scripts/run-cert-gate.sh                  # NOT 169 - the gate derives its own count
 '
 ```
+
+`verify-rename.sh` fails on a tree that is correct. Its content check greps every tracked path
+outside `_handoff/`, `scripts/handoff/` and `docs/handoff/` for `Nexo`/`NEXO`/`nexo`, and the
+identifiers §6.0 says to KEEP are exactly that: the repository URL `github.com/IanFrelinger/Nexo`
+and the published image names `ghcr.io/ianfrelinger/nexo-cli` and `nexo-api`. Dozens of tracked
+files legitimately carry one or the other, and the `.claude/` readiness-agent files that became
+tracked after the rename add more. The verifier has no allowlist for them, so a passing result is
+no longer reachable. Treat it as a diff tool: read what it lists and decide, rather than looking
+for PASS.
+
+`run-cert-gate.sh` will not print 169. `cert_gate_expected_count` in `scripts/cert-gate-config.sh`
+derives the expected total from `dotnet test --list-tests` at run time, deliberately - that file's
+header records an earlier static enumeration that "summed to 99 while the gate actually ran 178".
+Do not pin a number here either. Let the gate tell you what it expects.
 
 The rename is idempotent and the script now refuses to run against a tree that
 already has `Ashlar`-named directories, so re-running `--apply` is a no-op that
@@ -479,11 +497,20 @@ From the audit. Cheap during this work, genuinely worth doing.
 
 ## 8. Checklist
 
-- [x] Tests can run — via `scripts/handoff/devbox.sh`, **169/169 green in ~2 min**
+- [x] Tests can run — via `scripts/handoff/devbox.sh`, which is what gets past this host's
+      Application Control block on freshly-built test assemblies. It ran green at the handoff;
+      do not pin a cert-gate total here, because `cert_gate_expected_count` derives one at run time
 - [x] Baseline: kernel build green (0/0); cert gate green in container
-- [x] Rename applied; `verify-rename.sh` prints **PASS**
-- [x] `dotnet build Ashlar.Kernel.sln` green (0/0); cert gate still **169/169**
-- [x] Rename committed alone — `a0609ebe`, 4,205 files, no tooling or local state in it
+- [x] Rename applied — the tree is `Ashlar.*` throughout. `verify-rename.sh` printed PASS at the
+      time and no longer can: it flags the external identifiers §6.0 says to keep. See the note
+      under "To re-verify at any time" 
+- [x] `dotnet build Ashlar.Kernel.sln` green (0/0) at the rename; the cert gate was green in the
+      same run. Re-measure the total rather than comparing against the number recorded then
+- [x] Rename committed alone — `a0609ebe`, **4,205 files**, no tooling or local state in it.
+      Re-measured 2026-09-14 and exact. The commit is not reachable from `master` (it lived on its
+      pull request's branch and was squashed), so `git show` fails until you fetch the PR ref:
+      `git fetch origin refs/pull/362/head`. It is +25,155 / -25,155 — symmetric, as a pure rename
+      should be — and touches no path under `scripts/handoff/` and no `settings.local.json`
 - [x] Local setup swept. On *this* machine most of the warned-about state did not exist:
       no `NEXO_*` env vars (user or machine), no shell profiles referencing it, no
       `.env` files, no `.nexo/` state dir, no dotnet user-secrets. Two things did and
@@ -498,7 +525,13 @@ From the audit. Cheap during this work, genuinely worth doing.
       gitfile hardcodes the absolute path `C:/Users/icfre/Downloads/Nexo-Framework/.git/worktrees/...`,
       so renaming the folder breaks that link. Fix the worktree first if you want it.
 - [x] `IDomainAgentProvider` / `IDomainPatternProvider` / tool registry landed
-- [x] `extract-game-layer.sh` reports **0 blockers** — all tiers separated
+- [x] Game layer separated — `extract-game-layer.sh` reported 0 blockers at the time. The script
+      was deleted from `master` in `e4138982`, "slim: remove everything that is not natively
+      Ashlar's responsibility (#446)", and survives on the `origin/archive/verticals-2026-08-31`
+      branch, so it can still be read but no longer re-run here
 - [x] Extraction applied; `AddPlaytestServices` deleted; kernel **and** HostRunners build
-- [x] Extraction committed alone — 48 renames, 0 deletions, 0 content changes
+- [x] Extraction committed alone — `302a5e02`: 48 renames and no deletions, but **not** content-
+      free, as this line read until 2026-09-14. GitHub reports 48 renamed, 2 added, 1 modified,
+      +186 / -0: it also added `_handoff/game-layer/README.md` and `GameToolSource.cs` (never
+      compiled, as the last item below says) and modified `src/Ashlar.Tests.Kernel/ToolsDevTests.cs`
 - [ ] `_handoff/game-layer/` given a real name and moved to its own repo — **the only step left**. See its README: it has no .csproj, its namespaces still say `Ashlar.Orchestration.*`, and `GameToolSource.cs` has never been compiled.

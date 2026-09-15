@@ -33,8 +33,8 @@ These are **blockers** for any public release candidate tag. Every item referenc
 | Item | Issue | Status | Release impact |
 |------|-------|--------|----------------|
 | **P0 trust signature holes (limitations 7-9)** | [#513](https://github.com/IanFrelinger/Ashlar/pull/513), [#523](https://github.com/IanFrelinger/Ashlar/pull/523) | ✅ **CLOSED** (#513 merged 2026-09-06T02:23:51Z; #523 merged 2026-09-06T05:58:54Z; limitation 9 closed 2026-09-13) | Fail-closed defaults landed (#513); **limitations 7-8 CLOSED by PR #523 (2026-09-06)** — `CertificationVerifyOptions.Default`/`Strict` now set `RequireEd25519Signature = true` + `MinimumSchemaVersion = 2`; **limitation 9 CLOSED 2026-09-13** (the composition signer takes the injected `CertificationRecordSigner` as its key holder and delegates the MAC to it; the gate additionally warns when the two lanes were built independently) — see `docs/certification-evidence.md` limitations 7-9 and `docs/dogfood-ledger.md` |
-| **Cert-loop honesty in landing/docs** | [#514](https://github.com/IanFrelinger/Ashlar/pull/514), [#505](https://github.com/IanFrelinger/Ashlar/pull/505), [#506](https://github.com/IanFrelinger/Ashlar/pull/506) | ✅ **COMPLETE** (all merged: #505, #506, #514 merged 2026-09-06T01:31:06Z) | Marketing landing honest; cert-loop defect fixes shipped |
-| **Cert-loop integration live path** | [#512](https://github.com/IanFrelinger/Ashlar/pull/512) | ✅ **COMPLETE** (merged 2026-09-06T01:40:20Z) | Certified loop integration + canary verification enforced, live on master |
+| **Cert-loop honesty in landing/docs** | [#514](https://github.com/IanFrelinger/Ashlar/pull/514), [#505](https://github.com/IanFrelinger/Ashlar/pull/505), [#506](https://github.com/IanFrelinger/Ashlar/pull/506) | ✅ **COMPLETE** (all merged by 2026-09-06T01:31:06Z) | Landing-page work, not cert-loop work: #505 added the landing page and brand assets, #506 reverted `ashlar-cli` image names to `nexo-cli` across the docs, #514 fixed `site/` defects. Its one certification-related edit deletes an `options.CertificationRequired = true;` line from a landing-page code sample, for a setting the SDK does not have — honesty about the page, not a defect fix in the loop |
+| **Cert-loop integration live path** | [#512](https://github.com/IanFrelinger/Ashlar/pull/512) | ⚠️ **DOCS + TESTS ONLY** (merged 2026-09-06T01:40:20Z) | PR #512 changed three files — `docs/SELF-EXTEND-AUDIT.md`, `docs/cert-loop-integration-plan.md` and `LiveExtenderCertLoopIntegrationTests.cs`. No runtime file. The A2/A4 gates it credits already sat in `SelfExtendAdmissionBridge`, and the plan it added still lists the watch-window phase as TODO |
 
 **Residual trust limitations (documented, not blockers for v0.x):**
 - Dev HMAC signer (not PKI) — documented in `docs/certification-evidence.md` limitation 1; operator can supply real key via `ASHLAR_CERT_ED25519_KEY`
@@ -200,7 +200,7 @@ Map release bars to **commercial funnel stages**: Aware → Eval → Embed → D
 
 **Must be true:**
 - ⚠️ P0 trust holes closed (PRs #513 + #523 merged 2026-09-06 — limitations 7-8 closed 2026-09-06; limitation 9 closed 2026-09-13)
-- ✅ Cert-loop integration complete (PR #512 merged 2026-09-06)
+- ⚠️ Cert-loop integration: PR #512 merged 2026-09-06, but shipped docs and tests only — no runtime change
 - ✅ CI redundancy in place (PR #511 merged; branch protection requires all five checks)
 - ✅ Known limitations documented honestly
 - ✅ Design partner agreement includes "experimental" disclosure for Forge features
@@ -241,8 +241,14 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 - [x] **P0 trust holes closed:** PR #513 fail-closed defaults merged (✅ 2026-09-06); limitations 7-8 closed by PR #523 (✅ 2026-09-06); **limitation 9 closed ✅ 2026-09-13** — a host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration — roadmap M1 requires close before commercial claims (`docs/audits/2026-09-completion-roadmap.md`)
 - [x] **CI redundancy live:** PR #511 merged (✅ 2026-09-06) + branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary` (✅ verified 2026-09-09)
-- [x] **Cert-loop integration:** PR #512 merged + verified (✅ 2026-09-06)
-- [x] **Cert-loop honesty complete:** PRs #505 (✅ merged), #506 (✅ merged), #514 (✅ merged 2026-09-06) + docs audited
+- [ ] **Cert-loop integration:** PR #512 merged (✅ 2026-09-06) — but unticked 2026-09-14, because
+      the diff does not contain an integration. PR #512 changed three files — `docs/SELF-EXTEND-AUDIT.md`, `docs/cert-loop-integration-plan.md` and `LiveExtenderCertLoopIntegrationTests.cs`. No runtime file. The A2/A4 gates it credits already sat in `SelfExtendAdmissionBridge`, and the plan it added still lists the watch-window phase as TODO
+- [ ] **Cert-loop honesty:** PRs #505, #506 and #514 all merged (✅ 2026-09-06), but what they
+      changed is the marketing landing page and brand assets (#505, #514) and a revert of
+      `ashlar-cli` image names to `nexo-cli` across the docs (#506). The one certification-related
+      edit among them removes a fabricated `options.CertificationRequired` from a landing-page code
+      sample. That is worth having and is not the same as auditing the cert-loop claims, which is
+      what this criterion asks for
 - [ ] **Known limitations documented:** `certification-evidence.md` + `SELF-EXTEND-AUDIT.md` current
 - [ ] **User-facing docs accurate:** TesterQuickstart + IntegratorGuide tested by external reader
 - [x] **Security defaults safe:** README + SECURITY.md warn about HTTP-only / no auth default (verified 2026-09-14)
@@ -254,7 +260,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 
 **No-go criteria (ANY one blocks public release):**
 
-- [x] ~~**ACTIVE BLOCKER:** Limitation 9~~ — **CLOSED 2026-09-13.** A host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration; the lane-agreement detection residual closed the same day — the gate now compares its two signers at construction and warns (never refuses) when they were built independently. This criterion no longer blocks. (limitations 7-8 closed by PR #523, 2026-09-06)
+- [x] ~~**ACTIVE BLOCKER:** Limitation 9~~ — **CLOSED 2026-09-13** by PR #621 (merged 2026-09-13T21:41Z): a host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration. The lane-agreement detection is a separate change that landed the following day in PR #623 (merged 2026-09-14T22:27Z) — the gate compares its two signers at construction and warns (never refuses) when they were built independently. This criterion no longer blocks. (limitations 7-8 closed by PR #523, 2026-09-06)
 - [x] ~~Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required)~~ — ✅ resolved (all five checks required; re-verified 2026-09-14 against the branch protection API)
 - [ ] Landing page contains false Cloud GA or autonomous production claims
 - [ ] TesterQuickstart fails on clean machine
@@ -267,7 +273,8 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 **Go criteria (LESS restrictive than public):**
 
 - [x] **P0 trust holes closed:** PRs #513 + #523 merged (✅ 2026-09-06; limitations 7-8 closed; limitation 9 closed 2026-09-13)
-- [x] **Cert-loop integration:** PR #512 merged (✅ 2026-09-06)
+- [ ] **Cert-loop integration:** PR #512 merged (✅ 2026-09-06) — docs and
+      `LiveExtenderCertLoopIntegrationTests.cs` only, no runtime change; see §4.1
 - [ ] **CI primary gate working:** `cert-gate` reliable (redundancy nice-to-have, not blocker)
 - [ ] **Known limitations documented:** Limitations 1-9 in `certification-evidence.md`
 - [ ] **Design-partner agreement signed:** Includes "experimental" disclosure for Forge features
