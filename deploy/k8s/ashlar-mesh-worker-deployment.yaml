@@ -30,6 +30,14 @@ spec:
           # Ashlar.API image (.docker/Dockerfile.api). Local build shown; the published image is
           # ghcr.io/ianfrelinger/nexo-api:<tag> — pin a semver or sha-<12-char-commit> tag
           # (docs/DEPLOYMENT.md, "Golden path A"), never :latest.
+          #
+          # AMD64 ONLY. The published nexo-api carries no arm64 manifest: the "GHCR nexo-api" job in
+          # reusable-container-publish.yml passes --platform linux/amd64 to both of its build steps,
+          # and the skip_multi_arch input it sits beside governs nexo-cli alone. Scheduling this pod
+          # onto an arm64 node - Graviton, Ampere, an Apple-silicon kind cluster - fails the pull with
+          # "no matching manifest for linux/arm64", which surfaces as ErrImagePull and never names
+          # architecture. Uncomment the nodeSelector at the foot of this spec on a mixed-architecture
+          # cluster, or build .docker/Dockerfile.api yourself for that arch.
           image: ashlar-api:local
           # image: ghcr.io/ianfrelinger/nexo-api:sha-<commit>
           imagePullPolicy: IfNotPresent
@@ -78,3 +86,8 @@ spec:
             limits:
               cpu: "1"
               memory: 1Gi
+      # Uncomment on a cluster with any arm64 nodes. Without it the scheduler will happily place this
+      # pod on one and you get ErrImagePull, because nexo-api is published amd64-only (see the note
+      # beside `image:` above). Harmless on an all-amd64 cluster.
+      # nodeSelector:
+      #   kubernetes.io/arch: amd64
