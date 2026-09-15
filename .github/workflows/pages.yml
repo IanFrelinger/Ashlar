@@ -1,0 +1,81 @@
+# Publish site/ to GitHub Pages.
+#
+# WHY A WORKFLOW RATHER THAN "DEPLOY FROM BRANCH". Branch deployment can only serve the repository
+# root or /docs — the API rejects anything else with "Invalid property /source/path: `/site` is not
+# a possible value. Must be one of the following: /, /docs." Neither is usable here: the root would
+# publish the whole repository and put README.md at the front door, and docs/ has no index document
+# at all, so https://ianfrelinger.github.io/Ashlar/ would still 404 while only deep links resolved.
+# It also holds 177 internal engineering documents, which is not the project's website.
+#
+# So the source is Actions, and this uploads site/ ALONE. Nothing outside site/ is published.
+name: Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# Scoped to what deploy-pages needs and nothing more: read the tree, write a Pages deployment, and
+# mint the OIDC token it authenticates the deployment with.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One live deployment at a time. cancel-in-progress stays FALSE deliberately: cancelling a
+# half-finished deployment is how a site ends up serving a partial upload.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: build · upload · deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The page is served from a project subpath (/Ashlar/), not a domain root, so every asset
+      # reference in site/ must be relative. Absolute ones resolve against ianfrelinger.github.io
+      # and 404 with no error anywhere — the page renders, the logo is simply missing. Cheap to
+      # assert, and invisible if it ever regresses.
+      - name: Assets must be referenced relatively
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -REoh '(src|href)="/[^/"][^"]*"' site/ ; then
+            echo "::error::site/ references an absolute path. Served under /Ashlar/ these 404 silently. Make them relative."
+            exit 1
+          fi
+          echo "All local references are relative."
+
+      # A missing index.html is the one failure that looks exactly like the 404 this workflow
+      # exists to fix, so fail here where the message can say why.
+      - name: site/index.html must exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f site/index.html || {
+            echo "::error::site/index.html is missing; the published site would 404 at its root."
+            exit 1
+          }
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site/
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
