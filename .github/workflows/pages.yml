@@ -36,9 +36,14 @@ jobs:
     name: build · upload · deploy
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # No `url:` here, though GitHub's own Pages starter workflow has one. This repository's
+    # scripts/ci/verify-workflow-context-availability.sh rejects a `steps.` reference anywhere above
+    # a job's `steps:`, exempting only `jobs.<id>.outputs`. `environment.url` is evaluated after the
+    # steps run for exactly the same reason that exemption exists, so the guard is refusing a
+    # construct GitHub supports. The link it would add to the Actions UI is cosmetic and
+    # deploy-pages does not need it, so this is dropped rather than the guard widened.
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
