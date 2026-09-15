@@ -376,6 +376,17 @@
             color: var(--sage);
             font-weight: 800;
         }
+
+        /* Not shipped yet. The page already marks Cloud "Coming soon"; feature rows need the
+           same vocabulary so an unbuilt capability cannot read as an included one. */
+        .roadmap {
+            color: var(--gold);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
         
         /* CTA Section */
         .cta-section {
@@ -704,12 +715,26 @@ services.AddAshlarClient(
                     </div>
                     
                     <div class="pricing-row">
-                        <div class="pricing-cell">SSO & audit export</div>
+                        <div class="pricing-cell">Audit export</div>
                         <div class="pricing-cell">—</div>
                         <div class="pricing-cell">—</div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
+                    </div>
+
+                    <!-- SSO is NOT built. No SAML, OIDC or OpenID implementation exists in any
+                         shipped assembly; the deployment's auth options are a static API key, a
+                         static bearer token, or basic auth. docs/product-fleet/cloud-reference-deployment.md
+                         says the same thing ("replace with SSO (Phase 3.1) before GA"). Marked the
+                         way Cloud is marked until an IdP integration ships. -->
+                    <div class="pricing-row">
+                        <div class="pricing-cell">SSO / SAML</div>
+                        <div class="pricing-cell">—</div>
+                        <div class="pricing-cell">—</div>
+                        <div class="pricing-cell"><span class="roadmap">Roadmap</span></div>
+                        <div class="pricing-cell"><span class="roadmap">Roadmap</span></div>
+                        <div class="pricing-cell"><span class="roadmap">Roadmap</span></div>
                     </div>
                     
                     <div class="pricing-row">
