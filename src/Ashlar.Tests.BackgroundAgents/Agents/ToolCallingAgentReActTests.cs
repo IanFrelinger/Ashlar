@@ -117,8 +117,8 @@ public sealed class ToolCallingAgentReActTests
     [Fact]
     public async Task Deadline_terminates_cycle_with_deadline_reason()
     {
-        // Model deliberately stalls each call past the per-cycle deadline.
-        var model = new StallingModel(TimeSpan.FromSeconds(2));
+        // The model never answers, so the deadline is the only thing that can end this cycle.
+        var model = new StallingModel();
         var (tools, policies) = BuildHarness(allowAll: true, out _);
 
         var agent = new ToolCallingAgent(
@@ -136,7 +136,8 @@ public sealed class ToolCallingAgentReActTests
     [Fact]
     public async Task External_cancellation_propagates_as_OperationCanceledException()
     {
-        var model = new StallingModel(TimeSpan.FromSeconds(5));
+        // Never answers, so the caller's token is the only thing that can end this cycle.
+        var model = new StallingModel();
         var (tools, policies) = BuildHarness(allowAll: true, out _);
 
         var agent = new ToolCallingAgent("planner", model, NullLogger<ToolCallingAgent>.Instance);
@@ -433,14 +434,27 @@ public sealed class ToolCallingAgentReActTests
         public sealed record Turn(string Text);
     }
 
+    /// <summary>
+    /// A model that never answers. It completes only by cancellation, and its two callers both
+    /// exist to prove that something else — a deadline, an external token — ends the cycle.
+    ///
+    /// It used to stall for a fixed span instead, and that made both of those tests a race. The
+    /// deadline is armed with <see cref="CancellationTokenSource.CancelAfter(TimeSpan)"/>, whose
+    /// timer callback can be delayed arbitrarily under load; on a contended Windows agent it
+    /// slipped past a two-second stall, the model returned normally, and the loop recorded
+    /// <c>"empty"</c> for a cycle the test asserts is <c>"deadline"</c>. Widening the stall would
+    /// only lengthen the odds — an infinite one removes the competing completion outright, so the
+    /// cancellation path is the only way out and the assertion can no longer pass or fail on
+    /// timer scheduling.
+    ///
+    /// The returned payload is unreachable and kept only to satisfy the signature.
+    /// </summary>
     private sealed class StallingModel : IModel
     {
-        private readonly TimeSpan _delay;
-        public StallingModel(TimeSpan delay) { _delay = delay; }
         public async Task<ModelOutput> CompleteAsync(ModelInput input, CancellationToken ct)
         {
-            await Task.Delay(_delay, ct).ConfigureAwait(false);
-            return new ModelOutput("{\"tool_calls\":[],\"rationale\":\"never\"}");
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+            return new ModelOutput("{\"tool_calls\":[],\"rationale\":\"unreachable\"}");
         }
     }
 }
