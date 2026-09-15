@@ -8,6 +8,32 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ## [Unreleased]
 
+- **A removed gate-record signature is corruption (SPEC-006 S-6).** `GateStore` now decides
+  whether a record with no signature is a *stripped* one from the store's other verifying records
+  and a signed activation marker at `.ashlar/gate-signing.json` — never from the record itself —
+  and refuses it with the same fail-closed path as a forged one. Before this, anyone who could
+  write `.ashlar/gates/` could strip a real admission's signature, or hand-write an unsigned
+  `Admitted` record, and it counted toward the self-extension budget. A signature must now also be
+  from a key this machine's key material vouches for (`operator.pub`, `trusted/*.pub`), so
+  re-signing under a forger's key is caught too. `ashlar keys init` activates signing in the
+  project it is run in; `ashlar gates sign-activate` does it for a project set up later;
+  `ashlar gates` prints the store's posture above the listing. A store that has never been signed
+  behaves exactly as before.
+  **Read this before upgrading a node that ever ran keyless and later gained a key:** its store
+  is *half-signed* — records decided after the first signed write, without a key, are now refused
+  as stripped by every keyed reader, so `gates`, `AdmittedInWindowAsync` and the background-agent
+  report fail closed on it, and a keyless process (a container, a CI runner, another service
+  account) can no longer write into it at all: `ProposeAsync` throws naming `ashlar keys init`.
+  That is the store doing its job, not an outage. The remedy for the writer is a key
+  (`ashlar keys init`, or `ASHLAR_KEY_DIR` pointing at the operator's key directory); the remedy
+  for a half-signed history is to **archive** the offending records out of `gates/` — and know
+  that every archived admission raises the remaining self-extension budget by one, because the
+  budget counts what is present. Deleting records is the budget forgery this change exists to
+  stop; do not reach for it as a fix. Pinned by `GateSignatureExpectationTests` and
+  `GateRecordReadFunnelConventionTests` in cert-gate. Recorded residual: stripping *every*
+  signature and deleting the marker is undetectable to a keyless reader, and deleting an
+  admitted record still raises the budget until SPEC-003's chained ledger exists.
+
 - **`VERSION` is `0.2.0`.** The minor moved rather than the patch because signed bytes changed: #592
   gave every `double` one canonical decimal form across all three target frameworks (the
   netstandard2.0 asset under Mono had been writing different digits from net8.0/net10.0), and the

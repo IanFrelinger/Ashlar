@@ -101,6 +101,7 @@ New signed bytes get a context tag instead.
 | **Ledger course record** (SPEC-003 — not yet written) | canonical record + `prevSig` chain link | in the record; genesis = deploy course |
 | **Verify verdict** | digest of (manifest bytes, policy bytes, course results) | printed: `✓ VERIFIED · ed25519:9f3c…` |
 | **Certification record** (brick admission) | canonical `BuildPayload` minus both sig fields | `signature` (HMAC) + `ed25519Signature` / `ed25519PublicKey` |
+| **Gate signing activation** (`GateSigningActivation`) | canonical marker minus the sig fields | `Sig`, `Signer` on `{stateRoot}/gate-signing.json` — a sibling of `gates/`, never inside it |
 
 The certification-record row was missing until 2026-08-27, which is how S-4 came to govern
 an artifact class this table did not list.
@@ -135,6 +136,37 @@ Rules:
   reader drops the unknown field, the signature no longer verifies, and the fail-closed
   listing refuses to summarize) — upgrade every reader of a store before its writers start
   claiming.
+- **S-6** *(2026-09-15)* **A removed gate-record signature is corruption.** S-1 covers a
+  `sig` that fails verification. From a record's own bytes a `sig` that was removed and one
+  that never existed are the same bytes, so whether a missing signature is corruption MUST be
+  decided by the store, never by the record — the record is the attacker's input.
+  `GateStore` resolves a `GateSignatureExpectation` per read from two anchors, neither of
+  which is the record being judged: **(a)** any record in the store whose signature verifies
+  — intrinsic proof the store is signed — and **(b)** the signed activation marker at
+  `{stateRoot}/gate-signing.json` (`GateSigningActivation`), written once by the first signed
+  write (or by `ashlar keys init` in a project, or `ashlar gates sign-activate`) and never
+  overwritten, honoured only when the reader's key material — `operator.pub` ∪
+  `trusted/*.pub`, `OperatorKey.TrustedPublicKeysBase64`, never the records — vouches for its
+  signer, or, for a keyless reader, a verifying record carries the same key. A record with no
+  `sig` decided at or after the grace floor (the *minimum* over the anchors that fired, so a
+  forward-dated marker cannot grandfather what an earlier signed record already dates) MUST be
+  refused through the S-1 fail-closed path. A signature that verifies MUST additionally be
+  from a key the reader's material vouches for whenever it holds any: a forger who cannot
+  strip can re-sign. A marker that is unsigned or does not verify is itself corruption and
+  MUST throw, never be honoured — honouring it would let anyone with write access brick a
+  keyless store by planting a far-past instant. A keyless writer MUST refuse to write an
+  unsigned verdict into a store that is signed, naming `ashlar keys init` as the remedy and
+  saying that deleting records from `gates/` is not one. The marker lives beside `gates/`,
+  never inside it, because `ListAsync` globs `gates/*.json` and a marker there would brick
+  every listing including the budget count. Conformance: `GateSignatureExpectationTests`
+  (eleven facts, cert-gate), `GateRecordReadFunnelConventionTests` (one reader, the stripped
+  arm present, every keyless production construction listed), and the deliberate contract
+  reversal `SignedGateStoreTests.A_keyless_store_refuses_to_decide_a_record_in_a_signed_store`.
+  *Residual, recorded rather than papered over:* an actor who strips EVERY signature and
+  deletes the marker is undetectable to a keyless reader (a keyed reader still catches it
+  through the marker its key wrote); and deleting an admitted record outright still raises the
+  remaining self-extension budget — `AdmittedInWindowAsync` counts what is present, and only
+  SPEC-003's chained append-only ledger closes that.
 
 ## 5. What v1 explicitly does not claim
 
@@ -198,9 +230,21 @@ gap tracked rather than deniable. Currently unmet:
   **The default floor is 0**, so nothing refuses yet — S-2 keeps the default permissive, and
   raising the floor is a separate, deliberate step once records have migrated. The MUST is
   therefore *satisfiable*, not yet *enforced*.
-- **S-1, applied to a *missing* signature, and to a downgraded schema.** S-1 covers a `sig`
-  that fails verification. It does not cover one that was simply removed, and every
-  verification path enforces Ed25519 only `when present` — a condition the record's own
-  bytes control. Worse, the *payload lane itself* is chosen by an attacker-supplied field
-  (`if (record.SchemaVersion is null)`), and the legacy lane covers no Ed25519 fields at
-  all. See limitations 7 and 8 in `docs/certification-evidence.md`.
+- **S-1, applied to a downgraded certification-record schema.** S-1 covers a `sig` that
+  fails verification. For *certification records* the *payload lane itself* is chosen by an
+  attacker-supplied field (`if (record.SchemaVersion is null)`), and the legacy lane covers no
+  Ed25519 fields at all. See limitations 7 and 8 in `docs/certification-evidence.md`. This
+  bullet used to carry a second half — a `sig` that was simply *removed*, which every
+  verification path tolerated because it enforced Ed25519 only `when present`, a condition
+  the record's own bytes control. For **gate records** that half is now rule S-6 in §4 and
+  is enforced; the certification-record half stays here, unmet.
+
+- **S-2, reaffirmed against S-6.** Two degrade paths stay permissive by design, and the
+  conformance tests pin both: a store that has never been signed — no verifying record, no
+  marker — behaves exactly as before for every reader, keyed or not
+  (`Running_keys_init_on_an_unsigned_store_does_not_refuse_it`); and a keyless reader of a
+  store with no verifying record honours no marker, so nothing it can read is refused for
+  lacking a signature
+  (`A_planted_unsigned_marker_is_corruption_and_a_planted_foreign_marker_is_ignored`).
+  Signing is presence-activated, never half-on — and, once activated, never silently
+  half-off.
