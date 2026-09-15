@@ -88,15 +88,28 @@ jobs:
           
           echo "sweep_exit_code=${SWEEP_EXIT}" >> "$GITHUB_OUTPUT"
           
+          LATEST_LOG="$(ls -t test-results/dogfood-sweep-*.log 2>/dev/null | head -1 || true)"
+
           if [[ ${SWEEP_EXIT} -eq 0 ]]; then
             echo "sweep_outcome=PASS" >> "$GITHUB_OUTPUT"
             echo "sweep_gap=" >> "$GITHUB_OUTPUT"
+          elif [[ ${SWEEP_EXIT} -eq 2 ]]; then
+            # Exit 2 is "an objective was attempted and the iteration errored before reaching any
+            # verdict". Reporting that as PASS is the specific failure this branch exists to stop:
+            # run 34889059104 did exactly that, because the sandbox image was absent and the loop
+            # counts a throwing iteration as attempted. An infrastructure fault is a GAP.
+            echo "sweep_outcome=GAP" >> "$GITHUB_OUTPUT"
+            WHY=""
+            if [[ -n "${LATEST_LOG}" ]]; then
+              WHY="$(grep -o 'SWEEP: the iteration did not reach a verdict: .*' "${LATEST_LOG}" \
+                | head -1 | sed 's/^SWEEP: the iteration did not reach a verdict: //' || true)"
+            fi
+            echo "sweep_gap=The loop attempted the objective but the iteration never reached a verdict: ${WHY:-see the attached log}" >> "$GITHUB_OUTPUT"
           else
             echo "sweep_outcome=FAIL" >> "$GITHUB_OUTPUT"
             # "exited with code 1" and a named unmet precondition are different rows, and this
             # ledger gates a marketing claim. run_canary_sweep names each failed precondition in
             # its log; carry that through instead of a number nobody can act on.
-            LATEST_LOG="$(ls -t test-results/dogfood-sweep-*.log 2>/dev/null | head -1 || true)"
             PRECONDITIONS=""
             if [[ -n "${LATEST_LOG}" ]]; then
               PRECONDITIONS="$(grep 'PRECONDITION FAILED:' "${LATEST_LOG}" | sed 's/PRECONDITION FAILED: //' | paste -sd'; ' - || true)"

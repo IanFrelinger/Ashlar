@@ -258,6 +258,13 @@ public sealed class AutonomyLoopService : BackgroundService
                 // Explained refusal for THIS objective, then carry on with the rest — but charged,
                 // so a systemic fault cannot turn one budgeted sweep into N calls.
                 failed++;
+                // THIS TEMPLATE IS PARSED. SweepAsync returns the ATTEMPTED count and discards
+                // `failed`, so a sweep whose only objective died here still reports "attempted 1"
+                // and exits 0. scripts/dogfood-continuous-proof.sh greps the rendered text for
+                // "; continuing the sweep" to tell an infrastructure fault apart from a result,
+                // because the exit code cannot. Change the wording and the dogfood ledger starts
+                // recording failed sweeps as passes again - it already did once, in run
+                // 34889059104. Surface a failure count from SweepAsync before relaxing this.
                 _logger.LogWarning(
                     ex, "Objective {Id} failed ({Path}); continuing the sweep", objective.Id, path);
             }
