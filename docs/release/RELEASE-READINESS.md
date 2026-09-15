@@ -350,7 +350,7 @@ These actions require **repository administrator** or **organization owner** per
 > **Corrected 2026-09-13. All three rows below were wrong, in the direction that silently breaks a
 > release.** Values re-read from `gh api repos/IanFrelinger/Ashlar/actions/variables` and `.../secrets`.
 > The previous table said `NUGET_PUBLISH_MODE` was `push` and recommended keeping it. `push` is neither
-> `oidc` nor `apikey`, so `reusable-release-nuget.yml:226-229` takes the **artifact-only** branch: the
+> `oidc` nor `apikey`, so `reusable-release-nuget.yml` takes the **artifact-only** branch: the
 > release workflow goes green, emits a `::notice::`, and **publishes nothing to nuget.org**. It also said
 > the `NUGET_API_KEY` secret was "Set"; that secret does not exist. In `oidc` mode the api key is minted
 > at run time by the `nuget_login` step (`:185`) from the `NUGET_USER` secret, so `NUGET_USER` plus the
@@ -358,11 +358,28 @@ These actions require **repository administrator** or **organization owner** per
 
 | Variable / secret | Actual value (verified 2026-09-13) | Recommended for v0.x |
 |----------|---------------|----------------------|
-| `NUGET_PUBLISH_MODE` (variable) | `oidc` | **Keep `oidc`.** Only `oidc` or `apikey` publish; anything else is artifact-only (`reusable-release-nuget.yml:226`). |
+| `NUGET_PUBLISH_MODE` (variable) | `oidc` | **Keep `oidc`.** Only `oidc` or `apikey` publish; anything else is artifact-only (the artifact-only branch's `if:` in `reusable-release-nuget.yml`). |
 | `NUGET_RELEASE_SBOM` (variable) | `true` | Keep `true`. |
 | `NUGET_RELEASE_GRYPE` (variable) | `true` | Keep `true`. |
-| `RELEASE_CREATE_GITHUB_RELEASE` (variable) | **unset** | Leave unset. `release.yml:198` tests `!= 'false'`, so unset already means "create the release". |
-| `NUGET_USER` (secret) | Set | Required by the `oidc` path (`reusable-release-nuget.yml:185`). |
+| `RELEASE_CREATE_GITHUB_RELEASE` (variable) | **unset** | Leave unset. the release-creation step tests `!= 'false'`, so unset already means "create the release". |
+| `NUGET_USER` (secret) | Set | Required by the `oidc` path (the `nuget_login` step in `reusable-release-nuget.yml`). |
+
+**The nine below were missing from this table** until 2026-09-14, so it documented six of the fifteen
+variables and secrets the release workflows actually read. All nine are unset today; the column says
+what unset means, because for most of them unset is the intended state and the default is the
+behaviour you get.
+
+| Variable / secret | Actual value (verified 2026-09-14) | What unset means |
+|----------|---------------|----------------------|
+| `NUGET_POST_PUSH_VERIFY` (variable) | unset | Post-push verification RUNS. The condition is `!= 'false'`, so only the literal `false` disables it. |
+| `NUGET_POST_PUSH_ATTEMPTS` (variable) | unset | Defaults to `40` polls. nuget.org indexing lags publication; a short budget reports "not visible" for a package that published fine. |
+| `NUGET_POST_PUSH_SLEEP_SEC` (variable) | unset | Defaults to `15` seconds between polls. With the default attempts that is a ~10 minute budget. |
+| `NUGET_POST_PUSH_VERIFY_PACKAGE_IDS` (variable) | unset | Verify every packed id rather than a named subset. |
+| `RELEASE_CROSS_VERIFY` (variable) | unset | Cross-verification RUNS. Disabled only by the literal `false`. |
+| `NUGET_STAGING_FEED_URL` (variable) | unset | No staging feed; the staging path is inert. Set it with `NUGET_STAGING_API_KEY` to rehearse a publish against a feed that is not nuget.org. |
+| `NUGET_STAGING_API_KEY` (secret) | unset | As above — the staging push has no credential and does not run. |
+| `RELEASE_NOTIFICATION_WEBHOOK_URL` (secret) | unset | No release notification is sent; the step logs "No RELEASE_NOTIFICATION_WEBHOOK_URL secret; skip notify." and continues. |
+| `GITHUB_TOKEN` (secret) | provided by Actions | Never set by hand. Listed so its absence from the configurable rows is not read as an omission. |
 | `NUGET_API_KEY` (secret) | **does not exist** | Not needed under `oidc`; only the `apikey` path (`:209`) reads it. |
 
 **Action:** confirm `NUGET_PUBLISH_MODE` is still `oidc` and that NuGet trusted publishing for `NUGET_USER`
