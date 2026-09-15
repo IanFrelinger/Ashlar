@@ -26,7 +26,7 @@ public sealed class DocsUpdateTool : ITool
     {
         var args = System.Text.Json.JsonSerializer.Deserialize<Args>(call.Arguments)!;
 
-        if (!ToolSandbox.TryResolvePath(s, "CHANGELOG.md", out var path, out var reason))
+        if (!ToolSandbox.TryResolveWritePath(s, "CHANGELOG.md", out var path, out var reason))
         {
             var rejected = new RepoDelta { TickFrom = s.Tick, TickTo = s.Tick + 1 };
             rejected.AddLog($"docs:update {reason}");

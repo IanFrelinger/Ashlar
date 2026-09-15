@@ -210,6 +210,25 @@ public sealed class MediatedWritePathTests : IDisposable
         MediatedWritePath.Refuse(_root, "docs/x.md", new[] { "src", "docs" }).Should().BeNull();       // 2nd entry admits
     }
 
+    /// <summary>
+    /// The authoring floor is the mediated floor with one predicate swapped: a project file
+    /// passes, and every other leg — the ledger, the ADS colon, the escape — refuses with the
+    /// same vocabulary, because there is one private core rather than a second copy.
+    /// </summary>
+    [Fact]
+    public void RefuseAuthoringWrite_AdmitsAProjectFile_AndRefusesEverythingElseTheMediatedFloorDoes()
+    {
+        MediatedWritePath.RefuseAuthoringWrite(_root, "src/Foo/Foo.csproj").Should().BeNull();
+        MediatedWritePath.Refuse(_root, "src/Foo/Foo.csproj").Should().Contain("governance");
+
+        MediatedWritePath.RefuseAuthoringWrite(_root, "src/Feature/x.cs").Should().BeNull();
+        MediatedWritePath.RefuseAuthoringWrite(_root, ".ashlar/gates/g1.json").Should().Contain("governance");
+        MediatedWritePath.RefuseAuthoringWrite(_root, "src/build/Directory.Build.props").Should().Contain("governance");
+        MediatedWritePath.RefuseAuthoringWrite(_root, "src/x.cs:evil").Should().Contain("':'");
+        MediatedWritePath.RefuseAuthoringWrite(_root, "../outside.txt").Should().Contain("escapes");
+        MediatedWritePath.RefuseAuthoringWrite(_root, "src/./x.cs").Should().Contain("not a safe");
+    }
+
     [Fact]
     public void Refuse_RejectsAWriteThroughALeafSymlink()
     {
