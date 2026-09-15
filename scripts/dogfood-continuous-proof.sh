@@ -29,7 +29,15 @@ LEDGER="${ROOT}/docs/dogfood-ledger.md"
 #                             network. Setting it is how the live-model lane turns on.
 #
 # Sandbox sessions are on (build AND execute inside an attested container), so this needs a
-# working container engine and will pull an SDK image on a cold runner.
+# working container engine AND the SDK image already present locally. It does NOT pull on demand:
+# the sandbox runner shells out to `docker run`, which fails with "No such image" rather than
+# fetching. Run 34889059104 died exactly there. The image is pulled as a named precondition below.
+#
+# EXIT CONTRACT (the workflow branches on this, and a wrong branch writes a false ledger row):
+#   0  the loop attempted an objective AND the iteration reached a verdict
+#   1  refused on an unmet precondition, or attempted no objective at all
+#   2  attempted an objective, but the iteration errored before reaching any verdict - an
+#      infrastructure fault, not a result. This is NOT a PASS.
 run_canary_sweep() {
   local timestamp
   timestamp="$(date -u +%Y%m%d-%H%M%S)"
@@ -64,6 +72,28 @@ run_canary_sweep() {
   if ! command -v docker >/dev/null 2>&1; then
     echo "PRECONDITION FAILED: no container engine on PATH; sandbox sessions cannot start" | tee -a "${log_file}"
     missing=1
+  else
+    # The sandbox image is hard-coded in FirstFlight's --sweep branch and has no environment
+    # override, so it is READ FROM THERE rather than copied here. A duplicate would rot silently:
+    # someone bumps the SDK in Program.cs, this script keeps pulling the old tag, and every sweep
+    # dies at `docker run` again. If that call is ever reshaped so this no longer matches, that is
+    # itself a named precondition failure rather than a wrong guess.
+    local program_cs="${ROOT}/spikes/autonomy-first-flight/FirstFlight/Program.cs"
+    local sandbox_image
+    sandbox_image="$(grep -oE 'SweepMode\.RunAsync\([^,]+, *"[^"]+"' "${program_cs}" 2>/dev/null \
+      | grep -oE '"[^"]+"$' | tr -d '"' | head -1)"
+    if [[ -z "${sandbox_image}" ]]; then
+      echo "PRECONDITION FAILED: could not read the sandbox image from the SweepMode.RunAsync call in ${program_cs}" | tee -a "${log_file}"
+      missing=1
+    elif ! docker image inspect "${sandbox_image}" >/dev/null 2>&1; then
+      echo "Sandbox image ${sandbox_image} not present locally; pulling." | tee -a "${log_file}"
+      if ! docker pull "${sandbox_image}" 2>&1 | tee -a "${log_file}"; then
+        echo "PRECONDITION FAILED: could not pull sandbox image ${sandbox_image}; sandbox sessions cannot start" | tee -a "${log_file}"
+        missing=1
+      fi
+    else
+      echo "Sandbox image ${sandbox_image} present." | tee -a "${log_file}"
+    fi
   fi
   if [[ "${missing}" -ne 0 ]]; then
     echo "SWEEP: refusing to run with unmet preconditions (above)" | tee -a "${log_file}"
@@ -99,14 +129,57 @@ run_canary_sweep() {
   # SweepMode returns 0 when it ATTEMPTED at least one objective, and 1 when it attempted none
   # (empty store, or no objective was eligible because a witness or proposal was missing).
   # It does NOT encode the certification verdict: a held-but-certified iteration and an explained
-  # failure both exit 0. The verdict is in the log the harness writes above, and the ledger row
-  # records the sweep's completion, not its admission outcome. Do not read a PASS row as "the
-  # candidate was admitted" - HoldAdmission is on, so nothing is ever admitted here.
-  if [[ "${sweep_exit}" -ne 0 ]]; then
-    echo "SWEEP: the loop attempted no objective - see the log above for which precondition the harness rejected" | tee -a "${log_file}"
-  fi
+  # failure both exit 0. Do not read a PASS row as "the candidate was admitted" - HoldAdmission is
+  # on, so nothing is ever admitted here.
+  #
+  # AND IT DOES NOT ENCODE WHETHER THE ITERATION RAN. AutonomyLoopService catches a throwing
+  # iteration, counts it, logs it and keeps sweeping, so a sweep whose only objective died at
+  # sandbox startup still reports "attempted 1" and exits 0. SweepAsync returns the attempted
+  # count and discards the failure count, so the exit code physically cannot carry this - the log
+  # is the only channel. That gap is not academic: it is what made run 34889059104 write PASS for
+  # a sweep in which nothing ran. An infrastructure fault must not enter this ledger as a result.
+  local verdict=0
+  classify_sweep_log "${sweep_exit}" "${log_file}" || verdict=$?
 
-  return "${sweep_exit}"
+  case "${verdict}" in
+    1)
+      echo "SWEEP: the loop attempted no objective - see the log above for which precondition the harness rejected" | tee -a "${log_file}"
+      ;;
+    2)
+      echo "SWEEP: the iteration did not reach a verdict: $(sweep_failure_reason "${log_file}")" | tee -a "${log_file}"
+      echo "SWEEP: this is an infrastructure fault, not a result - refusing to report it as a pass" | tee -a "${log_file}"
+      ;;
+  esac
+
+  return "${verdict}"
+}
+
+# Decide what a finished sweep actually PROVED, from its exit code and its log.
+#
+# Split out of run_canary_sweep deliberately: the surrounding function needs dotnet, a container
+# engine and an SDK image, so for as long as this logic lived inside it the branch that matters
+# most here could not be tested at all. It is driven directly by
+# tests/scripts/dogfood-sweep-verdict.test.sh, including against the log run 34889059104 wrote.
+#
+#   0  attempted an objective AND the iteration reached a verdict
+#   1  refused, or attempted no objective
+#   2  attempted one, but the iteration errored before reaching any verdict
+#
+# The marker for 2 is AutonomyLoopService's "Objective {Id} failed ({Path}); continuing the sweep"
+# warning. That template carries a comment saying it is parsed here.
+classify_sweep_log() {
+  local sweep_exit="$1" log_file="$2"
+  [[ "${sweep_exit}" -ne 0 ]] && return 1
+  grep -q '; continuing the sweep' "${log_file}" 2>/dev/null && return 2
+  return 0
+}
+
+# The exception text from the first failed iteration, trimmed of its stack frames and capped so a
+# ledger cell stays readable. Empty when the log records no failed iteration.
+sweep_failure_reason() {
+  local log_file="$1"
+  grep -o 'continuing the sweep .*' "${log_file}" 2>/dev/null | head -1 \
+    | sed 's/^continuing the sweep //; s/[[:space:]]\{2,\}at [A-Za-z].*$//' | cut -c1-400
 }
 
 # Append a row to docs/dogfood-ledger.md
@@ -173,7 +246,16 @@ append_ledger() {
   echo "Appended row to ledger: ${date} | ${demo} | ${pass_fail}"
 }
 
-# Main dispatch
+# Main dispatch.
+#
+# Guarded so the file can be SOURCED for its functions without running anything. The verdict logic
+# below is the part of this script a ledger row depends on, and it is tested directly by
+# tests/scripts/dogfood-sweep-verdict.test.sh; without this guard, sourcing fell through to the
+# usage branch and its `exit 1` killed the sourcing shell, so the test silently ran nothing at all.
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+  return 0
+fi
+
 case "${1:-}" in
   run-canary-sweep)
     run_canary_sweep

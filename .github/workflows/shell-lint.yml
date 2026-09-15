@@ -53,6 +53,18 @@ jobs:
           # runs monthly.
           bash tests/scripts/release-guards.test.sh
 
+      - name: dogfood sweep verdict tests
+        shell: bash
+        run: |
+          # These decide whether a dogfood sweep that FAILED is allowed to be recorded as a pass.
+          # On 2026-09-14 it was: the sandbox image was absent, the objective died at `docker run`,
+          # and because AutonomyLoopService counts a throwing iteration as attempted, the sweep
+          # exited 0 and the workflow wrote PASS to the ledger that gates the autonomy claim
+          # (run 34889059104). The row reached no further than the runner only because the
+          # workflow cannot push to a protected branch. Pure bash - no dotnet, no container - so
+          # this belongs in a required check and not in the scheduled lane it guards.
+          bash tests/scripts/dogfood-sweep-verdict.test.sh
+
       - name: shellcheck -S error over scripts/**/*.sh
         shell: bash
         run: |
