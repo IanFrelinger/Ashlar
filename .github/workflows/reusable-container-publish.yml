@@ -7,6 +7,11 @@
 #   X.Y.Z     v* tags only; a manifest retag of the smoke-tested sha-<12> digest, never a rebuild,
 #             so it resolves to exactly the bytes that passed smoke (nexo-cli's sha tag is built
 #             multi-arch on v* tags so the semver tag covers the same platforms as :latest)
+#
+# ARCHITECTURES DIFFER BETWEEN THE TWO IMAGES. nexo-cli is built for linux/amd64 + linux/arm64 on
+# master and v* tags; nexo-api is built linux/amd64 only, on every path. skip_multi_arch below names
+# nexo-cli for that reason - it does not reach publish-api, which hard-codes its --platform. A
+# consumer pulling nexo-api onto an arm64 node gets "no matching manifest for linux/arm64".
 
 on:
   workflow_call:
@@ -142,6 +147,8 @@ jobs:
           docker buildx imagetools create --tag "${SEMVER_TAG}" "${SHA_TAG}"
           docker buildx imagetools inspect "${SEMVER_TAG}"
 
+  # amd64 only: both build steps below pass --platform linux/amd64 and nothing here reads
+  # skip_multi_arch. See the architecture note in this file's header before changing either.
   publish-api:
     name: GHCR nexo-api
     runs-on: ubuntu-latest
