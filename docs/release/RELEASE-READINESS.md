@@ -254,7 +254,16 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 - [x] **Security defaults safe:** README + SECURITY.md warn about HTTP-only / no auth default (verified 2026-09-14)
 - [x] **NuGet packages published:** 0.1.2 is live on nuget.org (verified 2026-09-14). The v0.1.2 release run (33867752688) failed *after* publishing: its log records "Your package was pushed." for every package, then `pack-and-publish` failed in the post-push nuget.org visibility poll — "not visible on nuget.org for version 0.1.2 after 12 attempts", the last four still 404 on the flat-container index. The poll budget (12 x 15s) was shorter than nuget.org's indexing lag for the largest packages. `verify-nuget-org-packages-visible.sh` now defaults to 40 attempts and raises any shorter budget unless `ASHLAR_NUGET_VERIFY_ALLOW_SHORT=1`. Knock-on: that failure skipped the run's `Draft GitHub Release` job, which is why the v0.1.2 release carried no assets until they were uploaded on 2026-09-14
 - [x] **GHCR images published:** `nexo-cli:0.1.2` is live, multi-arch (amd64 + arm64), and pinned by digest in `deploy/node.yml` (verified 2026-09-14). `nexo-api` is amd64-only: the `GHCR nexo-api` job in `reusable-container-publish.yml` passes `--platform linux/amd64` to both build steps and the `skip_multi_arch` input governs `nexo-cli` alone. No rationale for the asymmetry is recorded anywhere, so treat it as unreviewed rather than decided; `deploy/k8s/ashlar-mesh-worker-deployment.yaml` now warns pullers. Rename to `ashlar-cli` still pending; see README note
-- [ ] **Marketing landing honest:** No Cloud GA claims, no autonomous production claims, Forge roadmap-only
+- [x] **Marketing landing honest:** verified 2026-09-15, claim by claim against the code rather than
+      assumed. Cloud is marked "Coming soon"; no autonomous-production or Forge-GA claim appears.
+      Every technical claim on the page resolves: the two API routes, the trust log's `SourceId`,
+      `AddAshlarClient` and `InvokeAsync`, `DoctorCommand`, the `Ashlar.Client` package, Ollama as
+      the default route, Apache 2.0, the five required checks it names, and TesterQuickstart's
+      "fifteen minutes, no Docker, no API keys". **One claim was false and is fixed in the same
+      pass:** the pricing table sold SSO with a tick on all three paid tiers, and no SAML, OIDC or
+      OpenID implementation exists in `src`, `application`, `commercial` or `products` — split into
+      an earned "Audit export" row and an "SSO / SAML" row marked Roadmap. The terminal-preview SVG
+      carried a version string that has never existed; corrected to match the repository.
 - [ ] **GitHub social preview current:** `ashlar-og-flat-1200x630.png` uploaded (CEO action)
 - [ ] **Contact channel live:** GitHub Discussions enabled OR `hello@ashlar.dev` with monitoring
 
