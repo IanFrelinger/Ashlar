@@ -23,7 +23,14 @@ public sealed record GateRecord
 
     /// <summary>Base64 Ed25519 signature over the canonical record with the two signature
     /// fields null (SPEC-006 §4). Null when the record was written without keys — and a
-    /// renderer MUST NOT print a fingerprint for a null sig (rule S-3).</summary>
+    /// renderer MUST NOT print a fingerprint for a null sig (rule S-3).
+    ///
+    /// <para>A null sig is NOT, by itself, "honestly unsigned". From the record's own bytes a
+    /// removed signature and a record that never had one are indistinguishable, so a reader that
+    /// has resolved a <see cref="GateSignatureExpectation"/> for the store — from its other
+    /// verifying records and the activation marker, never from this record — treats a null sig
+    /// on a record decided after signing was activated as corruption (rule S-6). The store
+    /// decides; the record cannot testify about itself.</para></summary>
     public string? Sig { get; init; }
 
     /// <summary>Base64 raw public key of the signer; null when unsigned.</summary>
@@ -40,7 +47,13 @@ public sealed record GateRecord
 /// needed, and this store is the convention that answers it. Second, TRANSITION AUTHORITY
 /// (SPEC-004): <see cref="DecideAsync"/> moves a proposal out of Held and nothing else —
 /// admitted and rejected records are immutable history, so there is no way to re-decide a
-/// refusal or quietly edit an admission, including for the vendor.</para>
+/// refusal or quietly edit an admission, including for the vendor. Third, SIGNATURE
+/// EXPECTATION (SPEC-006 S-6): once this store is known to be signed — by its own verifying
+/// records, or by the activation marker at <c>{root}/gate-signing.json</c> when the reader's
+/// key material vouches for it — a record with NO signature decided after activation is
+/// corruption, exactly as a record with a bad one is. A removed signature is the cheapest
+/// forgery there is, and it is the one S-1 alone cannot see. See
+/// <see cref="GateSignatureExpectation"/> and <see cref="GateSigningActivation"/>.</para>
 /// </summary>
 public sealed partial class GateStore
 {
@@ -50,21 +63,82 @@ public sealed partial class GateStore
         Converters = { new JsonStringEnumConverter() },
     };
 
+    private readonly string _stateRoot;
     private readonly string _dir;
     private readonly Signing.SigningIdentity? _signer;
+    private readonly IReadOnlyList<string> _trustedSigners;
+
+    /// <summary>
+    /// The signature posture the most recent <see cref="GetAsync"/> or <see cref="ListAsync"/>
+    /// resolved and judged its records against; null before any read. Renderers use it to say
+    /// whether signatures are expected here and to warn when keys are present but the store has
+    /// never been signed — without ever printing a fingerprint the store did not verify (S-3).
+    /// </summary>
+    public GateSignatureExpectation? SignatureTrust { get; private set; }
 
     /// <summary>Creates a store rooted at <paramref name="stateRoot"/>/gates. When a
     /// <paramref name="signer"/> is supplied, every record written is signed (SPEC-006);
-    /// without one, records are written unsigned — presence-activated, never half-on.</summary>
+    /// without one, records are written unsigned — presence-activated, never half-on — unless
+    /// the store is already known to be signed, in which case an unsigned write is refused
+    /// (see <see cref="WriteAsync"/>). Reads pin signers to the operator's key material
+    /// (<see cref="Signing.OperatorKey.TrustedPublicKeysBase64"/>) whether or not a signer is
+    /// supplied: a read needs public keys, not the private identity.</summary>
     public GateStore(string stateRoot, Signing.SigningIdentity? signer = null)
     {
         if (string.IsNullOrWhiteSpace(stateRoot))
         {
             throw new ArgumentException("A state root is required.", nameof(stateRoot));
         }
+        _stateRoot = stateRoot;
         _dir = Path.Combine(stateRoot, "gates");
         _signer = signer;
+        _trustedSigners = LoadTrustedSigners(signer);
         Directory.CreateDirectory(_dir);
+    }
+
+    /// <summary>
+    /// The signer-pinning set: <c>operator.pub</c> and every <c>trusted/*.pub</c> from the key
+    /// directory, plus the explicit <paramref name="signer"/> when one was supplied — it is key
+    /// material the caller loaded, and a store must be able to read what it signs. NEVER derived
+    /// from the records being judged. An unreadable or inaccessible key directory NARROWS the set
+    /// rather than throwing from a constructor, so a locked-down home directory cannot break
+    /// composition; a key file that is present but corrupt still throws, because that is
+    /// corruption, not absence.
+    /// </summary>
+    private static IReadOnlyList<string> LoadTrustedSigners(Signing.SigningIdentity? signer)
+    {
+        var keys = new List<string>();
+        try
+        {
+            keys.AddRange(Signing.OperatorKey.TrustedPublicKeysBase64());
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
+        {
+            // Narrow, do not throw: with no readable key material this reader verifies intrinsically.
+        }
+        if (signer is not null && !keys.Contains(signer.PublicKeyBase64, StringComparer.Ordinal))
+        {
+            keys.Add(signer.PublicKeyBase64);
+        }
+        return keys;
+    }
+
+    /// <summary>
+    /// Activates signing for this store at <paramref name="now"/> — the explicit path behind
+    /// <c>ashlar keys init</c> and <c>ashlar gates sign-activate</c>. Requires a signer. A no-op
+    /// returning the existing marker when one is already on disk, so repeated activation and key
+    /// rotation never move the instant; taken under the store lock like every other write.
+    /// </summary>
+    public async Task<GateSigningActivation> ActivateSigningAsync(DateTimeOffset now, CancellationToken ct = default)
+    {
+        if (_signer is null)
+        {
+            throw new InvalidOperationException(
+                "Activating gate signing requires an operator key and none is loaded. Run `ashlar keys init` "
+                + "(or point ASHLAR_KEY_DIR at the operator's key directory) and try again.");
+        }
+        using var _ = await AcquireLockAsync(ct).ConfigureAwait(false);
+        return GateSigningActivation.Activate(_stateRoot, _signer, now);
     }
 
     /// <summary>
@@ -228,7 +302,11 @@ public sealed partial class GateStore
     }
 
     /// <summary>Fetches one record, or null when absent. A file that exists but cannot be
-    /// read as a record is an error, never a null.</summary>
+    /// read as a record is an error, never a null. The signature expectation for a single read
+    /// is resolved from the activation marker and key material alone — a keyed reader gets the
+    /// marker's full strength; a keyless one, which cannot vouch for a marker, verifies the
+    /// record intrinsically and leaves stripped-signature detection to <see cref="ListAsync"/>,
+    /// where the store's other records can anchor it.</summary>
     public async Task<GateRecord?> GetAsync(string proposalId, CancellationToken ct = default)
     {
         var path = PathFor(proposalId);
@@ -236,16 +314,31 @@ public sealed partial class GateStore
         {
             return null;
         }
-        return await ReadRecordAsync(path, ct).ConfigureAwait(false);
+        var expectation = ResolveExpectation(Array.Empty<GateRecord>());
+        SignatureTrust = expectation;
+        return await ReadRecordAsync(path, expectation, ct).ConfigureAwait(false);
     }
 
-    /// <summary>Lists records, newest first, optionally filtered by state.</summary>
+    /// <summary>
+    /// Lists records, newest first, optionally filtered by state. Two passes over one parsed
+    /// set: pass one judges only the PRESENT signatures (verify, then pin) and collects the
+    /// verifying records as anchors; pass two resolves the expectation from those anchors and
+    /// the marker, and applies the stripped-signature leg. A store this class cannot fully read
+    /// is a store it refuses to summarize — including for the budget count.
+    /// </summary>
     public async Task<IReadOnlyList<GateRecord>> ListAsync(ProposalState? state = null, CancellationToken ct = default)
     {
-        var records = new List<GateRecord>();
-        foreach (var file in Directory.EnumerateFiles(_dir, "*.json"))
+        var parsed = await ParseAllAsync(ct).ConfigureAwait(false);
+        var expectation = ResolveExpectation(parsed);
+        SignatureTrust = expectation;
+
+        var records = new List<GateRecord>(parsed.Count);
+        foreach (var (path, record) in parsed)
         {
-            var record = await ReadRecordAsync(file, ct).ConfigureAwait(false);
+            if (expectation.Refuse(record, Path.GetFileName(path)) is { } refusal)
+            {
+                throw new InvalidOperationException(refusal);
+            }
             if (state is null || record.State == state)
             {
                 records.Add(record);
@@ -255,13 +348,125 @@ public sealed partial class GateStore
     }
 
     /// <summary>
-    /// Reads one record file, FAIL-CLOSED. This used to skip records that deserialized to
+    /// Pass one of a listing: parse every record and judge only the signatures that are
+    /// PRESENT (verify, then pin to key material). No anchor is needed to judge a present
+    /// signature, and a record that fails here is refused before it can anchor anything.
+    /// Every signed record that survives is an anchor: intrinsic proof this store is signed.
+    /// </summary>
+    private GateSignatureExpectation ResolveExpectation(IReadOnlyList<(string Path, GateRecord Record)> parsed)
+    {
+        var unanchored = GateSignatureExpectation.None(_trustedSigners, "judging present signatures only");
+        var anchors = new List<GateRecord>();
+        foreach (var (path, record) in parsed)
+        {
+            if (record.Sig is null)
+            {
+                continue;
+            }
+            if (unanchored.Refuse(record, Path.GetFileName(path)) is { } refusal)
+            {
+                throw new InvalidOperationException(refusal);
+            }
+            anchors.Add(record);
+        }
+        return ResolveExpectation(anchors);
+    }
+
+    /// <summary>
+    /// Resolves the signature posture from two anchors, neither of which is the record being
+    /// judged. (a) The DERIVED anchor: any verifying signed record proves the store is signed.
+    /// (b) The MARKER: honoured when it verifies AND this reader can vouch for its signer —
+    /// through key material when there is any, or, for a keyless reader, through a verifying
+    /// record under the same key. A keyed reader therefore catches TOTAL stripping (the marker
+    /// alone creates expectation) and ignores a marker planted under a foreign key; a keyless
+    /// reader cannot be bricked by a plant, yet still catches partial stripping. The grace
+    /// floor is the MIN of whichever anchors fired: a forward-dated marker cannot grandfather a
+    /// record an earlier signed record already dates, and lowering the floor only ever makes
+    /// reads stricter, so caller clock skew cannot become store corruption. The pinning set is
+    /// key material only — deriving it from the records would accept whatever key an attacker
+    /// re-signed them all with.
+    /// </summary>
+    private GateSignatureExpectation ResolveExpectation(IReadOnlyList<GateRecord> anchors)
+    {
+        var marker = GateSigningActivation.TryRead(_stateRoot);   // throws on a corrupt or unsigned marker
+        var basis = new List<string>(3);
+        DateTimeOffset? grace = null;
+        var expected = false;
+
+        if (anchors.Count > 0)
+        {
+            expected = true;
+            grace = anchors.Min(r => r.DecidedAt);
+            basis.Add($"{anchors.Count} verifying signed record(s), earliest decided {grace:u}");
+        }
+
+        if (marker is not null)
+        {
+            var honoured = _trustedSigners.Count > 0
+                ? _trustedSigners.Contains(marker.Signer!, StringComparer.Ordinal)
+                : anchors.Any(r => string.Equals(r.Signer, marker.Signer, StringComparison.Ordinal));
+            if (honoured)
+            {
+                expected = true;
+                if (grace is null || marker.ActivatedAt < grace.Value)
+                {
+                    grace = marker.ActivatedAt;
+                }
+                basis.Add($"signing activated {marker.ActivatedAt:u}"
+                    + (_trustedSigners.Count > 0 ? " under a key this machine vouches for" : ", corroborated by a record under the same key"));
+            }
+            else
+            {
+                basis.Add(_trustedSigners.Count > 0
+                    ? "activation marker ignored: signed by a key this machine does not vouch for"
+                    : "activation marker ignored: no operator key here and no verifying record corroborates its signer");
+            }
+        }
+
+        if (!expected)
+        {
+            basis.Add(_trustedSigners.Count > 0
+                ? "operator key present but this store has never been signed"
+                : "no operator key and no signed record — unsigned, as SPEC-006 S-2 allows");
+        }
+
+        return new GateSignatureExpectation(expected, grace, _trustedSigners, string.Join("; ", basis));
+    }
+
+    private async Task<List<(string Path, GateRecord Record)>> ParseAllAsync(CancellationToken ct)
+    {
+        var parsed = new List<(string, GateRecord)>();
+        foreach (var file in Directory.EnumerateFiles(_dir, "*.json"))
+        {
+            parsed.Add((file, await ParseRecordAsync(file, ct).ConfigureAwait(false)));
+        }
+        return parsed;
+    }
+
+    /// <summary>
+    /// Reads one record file and judges it against the resolved expectation, FAIL-CLOSED. The
+    /// only way a record leaves this store: <see cref="GetAsync"/> and <see cref="ListAsync"/>
+    /// both come through here, and no production code outside this file deserializes a
+    /// <see cref="GateRecord"/> (pinned by the read-funnel convention test).
+    /// </summary>
+    private static async Task<GateRecord> ReadRecordAsync(string path, GateSignatureExpectation expectation, CancellationToken ct)
+    {
+        var record = await ParseRecordAsync(path, ct).ConfigureAwait(false);
+        if (expectation.Refuse(record, Path.GetFileName(path)) is { } refusal)
+        {
+            throw new InvalidOperationException(refusal);
+        }
+        return record;
+    }
+
+    /// <summary>
+    /// Parses one record file, FAIL-CLOSED. This used to skip records that deserialized to
     /// null and let JsonException escape raw — and a corrupt HELD record silently vanishing
     /// from the queue is an invisible pending decision, the worst possible failure shape
     /// for an admission store. A store this class cannot fully read is a store it refuses
     /// to summarize.
     /// </summary>
-    private static async Task<GateRecord> ReadRecordAsync(string path, CancellationToken ct)
+    private static async Task<GateRecord> ParseRecordAsync(string path, CancellationToken ct)
     {
         try
         {
@@ -272,20 +477,6 @@ public sealed partial class GateStore
                 throw new InvalidOperationException(
                     $"Corrupt gate record: {Path.GetFileName(path)} contains no record. "
                     + "Refusing to operate on a store that cannot be fully read — inspect or remove the file.");
-            }
-            // SPEC-006 rule S-1: a record carrying a signature that does not verify is
-            // corrupt — same loud fail-closed path as truncation, because a forged verdict
-            // is worse than a missing one.
-            if (record.Sig is not null)
-            {
-                var unsigned = record with { Sig = null, Signer = null };
-                if (record.Signer is null
-                    || !Signing.OperatorKey.Verify(record.Signer, Signing.CanonicalJson.Bytes(unsigned), record.Sig))
-                {
-                    throw new InvalidOperationException(
-                        $"Corrupt gate record: {Path.GetFileName(path)} carries a signature that does not verify. "
-                        + "Refusing to operate — a forged verdict is worse than a missing one.");
-                }
             }
             return record;
         }
@@ -361,13 +552,45 @@ public sealed partial class GateStore
         // rule is absolute: never persist a signature we did not just compute over exactly
         // these bytes. No key ⇒ no signature (S-2), never a half-signed inheritance.
         var unsigned = record with { Sig = null, Signer = null };
-        record = _signer is null
-            ? unsigned
-            : unsigned with
+        if (_signer is null)
+        {
+            // FAIL CLOSED on a keyless write into a signed store. Without this the invariant is
+            // not total: a keyless DecideAsync would rewrite a signed record unsigned — a silent
+            // self-downgrade performed by LEGITIMATE code — and under the S-6 read rule the store
+            // would then refuse itself on the next read. Availability is traded for security here
+            // deliberately: a store this class cannot sign must not authorize new extensions.
+            // The write guard is stricter than the read rule on purpose — a VERIFYING marker
+            // refuses a keyless write even when no record corroborates it, because a keyless
+            // writer cannot vouch for the marker and must not gamble that a keyed reader will not
+            // honour it. The caller already holds the store lock.
+            var expectation = ResolveExpectation(await ParseAllAsync(ct).ConfigureAwait(false));
+            var marker = GateSigningActivation.TryRead(_stateRoot);
+            if (expectation.Expected || marker is not null)
+            {
+                var why = expectation.Expected ? expectation.Basis : $"signing activated {marker!.ActivatedAt:u}";
+                throw new InvalidOperationException(
+                    $"This gate store is signed ({why}), but no operator key is loaded here, so the verdict for "
+                    + $"'{record.Proposal.Id}' would be written UNSIGNED — and the next read would refuse it as a "
+                    + "stripped signature. Refusing to write it. The remedy is `ashlar keys init` (or ASHLAR_KEY_DIR "
+                    + "pointing at the operator's key directory) so this machine can sign. Deleting or editing records "
+                    + "under gates/ is NOT the remedy: removing records is exactly the budget forgery this refusal "
+                    + "exists to stop, and each removed admission raises the remaining self-extension budget.");
+            }
+            record = unsigned;
+        }
+        else
+        {
+            // Activate BEFORE the temp-write, a no-op once the marker exists: ActivatedAt anchors
+            // to the FIRST signed record's DecidedAt, so everything already on disk is
+            // grandfathered — the non-bricking adoption path. A corrupt marker throws here, so a
+            // keyed writer never signs into a store whose posture it cannot read.
+            GateSigningActivation.Activate(_stateRoot, _signer, record.DecidedAt);
+            record = unsigned with
             {
                 Sig = _signer.Sign(Signing.CanonicalJson.Bytes(unsigned)),
                 Signer = _signer.PublicKeyBase64,
             };
+        }
 
         // Write-then-move so a crash mid-write never leaves a truncated record.
         var tmp = path + ".tmp";
