@@ -397,7 +397,7 @@ checklists. It is not the only reader, though — `release-staging-on-label.yml`
 canonical version from root `VERSION` and runs automatically when a PR is labelled, and
 `scripts/resolve-canonical-package-version.sh`, `scripts/verify-docs-published-version.sh` and
 `tests/uat/tier9.sh` read it too. What none of them do is compare `VERSION` to the latest tag.
-**No gate warns that `VERSION` is stale before you cut.**
+**Closed 2026-09-14.** `scripts/check-version-staleness.sh` compares `VERSION` to the newest `v*` tag and to nuget.org, and runs from `release-preflight-local.sh` (the last human checkpoint before a tag) and from `rc-gate`. It is advisory and always exits 0 — how far past a tag is "too far" is a judgement call, and a check that reddens a lane on a judgement call is how lanes get muted here. It needs a FULL clone: a shallow checkout makes `git describe` find no tag, so the rc-gate checkout sets `fetch-depth: 0`.
 
 **Action before any release:** bump `VERSION`, land it, then tag. If you tag first, the guard above stops
 the release rather than shipping a mislabelled package — which is the good failure, but it fails late.

@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' files < <(find scripts -type f -name '*.sh' -print0 | sort -z)
+          mapfile -d '' files < <(find scripts tests -type f -name '*.sh' -print0 | sort -z)
           echo "Syntax-checking ${#files[@]} shell scripts under scripts/"
           rc=0
           for f in "${files[@]}"; do
@@ -42,6 +42,16 @@ jobs:
             fi
           done
           exit "$rc"
+
+      - name: release guard tests
+        shell: bash
+        run: |
+          # These exercise scripts/lib/release-staging-guards.sh, which stands between a
+          # mislabelled package and nuget.org and was previously only exercised by a real
+          # release - three times in this repository's lifetime. Pure bash: no network, no
+          # dotnet, no container, so it belongs in a required check rather than a lane that
+          # runs monthly.
+          bash tests/scripts/release-guards.test.sh
 
       - name: shellcheck -S error over scripts/**/*.sh
         shell: bash

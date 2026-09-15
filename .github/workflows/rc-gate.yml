@@ -37,6 +37,16 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
+        with:
+          # check-version-staleness.sh compares VERSION to the newest v* tag. A shallow
+          # checkout truncates the history, git describe then finds no tag, and the check
+          # silently measures nothing. Full depth plus tags or it is decorative.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: VERSION staleness (advisory)
+        shell: bash
+        run: bash scripts/check-version-staleness.sh
 
       - uses: actions/setup-dotnet@v6
         with:
