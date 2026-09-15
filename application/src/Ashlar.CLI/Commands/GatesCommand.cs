@@ -73,6 +73,20 @@ public sealed class GatesCommand : Command
         });
         AddCommand(proposeCmd);
 
+        // Explicit activation of signed gate records for THIS project (SPEC-006 S-6). `keys init`
+        // does this in the project it is run in; this verb covers a project set up after the key
+        // existed. Idempotent: an existing marker is never rewritten, so the activation instant
+        // cannot be moved — not by re-running this, and not by rotating the key.
+        var activateCmd = new Command(
+            "sign-activate",
+            "Activate signed gate records here: from now on an unsigned verdict in this store is refused as a stripped signature.");
+        activateCmd.SetHandler(async (InvocationContext ctx) =>
+        {
+            ctx.ExitCode = await SignActivateAsync(
+                ctx.ParseResult.GetValueForOption(pathOpt) ?? new DirectoryInfo(Environment.CurrentDirectory));
+        });
+        AddCommand(activateCmd);
+
         this.SetHandler(async (InvocationContext ctx) =>
         {
             ctx.ExitCode = await ExecuteAsync(
@@ -88,25 +102,31 @@ public sealed class GatesCommand : Command
     private static string StateRoot(DirectoryInfo directory) => Path.Combine(directory.FullName, ".ashlar");
 
     /// <summary>
-    /// Opens the store for a WRITE (admit / refuse / propose) with the operator's local signing
-    /// identity, when one exists. Presence-activated (SPEC-006): a key means the verdict this
-    /// command records is signed; no key means unsigned, exactly as before — zero-setup keeps
-    /// working. The identity is the machine-global operator key (<c>ASHLAR_KEY_DIR</c> /
-    /// <c>~/.ashlar/keys</c>), not a per-project one. <see cref="OperatorKey.TryLoad(string?)"/>
-    /// throws on a corrupt key rather than sign with a mismatched or unreadable identity; callers
-    /// run this inside their try so refusal reaches the user as a clean message, not a stack trace.
+    /// Opens the store for a WRITE (admit / refuse / propose / sign-activate) with the operator's
+    /// local signing identity, when one exists. Presence-activated (SPEC-006): a key means the
+    /// verdict this command records is signed; no key means unsigned, exactly as before — zero-setup
+    /// keeps working — UNLESS the store is already signed, in which case the kernel refuses the
+    /// unsigned write by name (rule S-6) rather than downgrade the store. The identity is the
+    /// machine-global operator key (<c>ASHLAR_KEY_DIR</c> / <c>~/.ashlar/keys</c>), not a per-project
+    /// one. <see cref="OperatorKey.TryLoad(string?)"/> throws on a corrupt key rather than sign with a
+    /// mismatched or unreadable identity; callers run this inside their try so refusal reaches the
+    /// user as a clean message, not a stack trace. Spelled <c>new GateStore(</c> so the read-funnel
+    /// convention test can see it.
     /// </summary>
     private static GateStore OpenSigningStore(DirectoryInfo directory) =>
-        new(StateRoot(directory), OperatorKey.TryLoad());
+        new GateStore(StateRoot(directory), OperatorKey.TryLoad());
 
     /// <summary>
-    /// Opens the store for a READ (list / show). Reads verify each record against its OWN embedded
-    /// public key, so they need no operator identity — and must not require one: a mangled or
-    /// missing operator key must never block an operator from seeing the queue. Only writes, which
-    /// have to sign, load the key and so fail closed when it is corrupt.
+    /// Opens the store for a READ (list / show). A read needs PUBLIC key material, not the private
+    /// identity: the store loads the signer-pinning set (<c>operator.pub</c>, <c>trusted/*.pub</c>)
+    /// and the activation marker itself, so this reader resolves the full signature expectation and
+    /// refuses a stripped or re-signed record exactly as it would with the identity loaded. What it
+    /// deliberately does not load is <c>operator.key</c>: a mangled private seed must never block an
+    /// operator from seeing the queue (the e2e loop pins <c>read-survives-a-corrupt-operator-key</c>).
+    /// Only writes, which have to sign, load the seed and so fail closed when it is corrupt.
     /// </summary>
     private static GateStore OpenReadStore(DirectoryInfo directory) =>
-        new(StateRoot(directory));
+        new GateStore(StateRoot(directory));
 
     private static async Task<int> ExecuteAsync(
         DirectoryInfo directory, string? show, string? admit, string? refuse, string? reason, string actor)
@@ -321,9 +341,83 @@ public sealed class GatesCommand : Command
         return record.State == ProposalState.Rejected ? 65 : 0;
     }
 
+    private static async Task<int> SignActivateAsync(DirectoryInfo directory)
+    {
+        if (!File.Exists(Path.Combine(directory.FullName, "ashlar.yaml")))
+        {
+            Console.Error.WriteLine($"not an ashlar project: no ashlar.yaml in {directory.FullName}");
+            return 1;
+        }
+
+        try
+        {
+            var signer = OperatorKey.TryLoad();
+            if (signer is null)
+            {
+                Console.Error.WriteLine("activating signed gate records requires an operator key — the activation marker is itself signed.");
+                Console.Error.WriteLine("create one with:  ashlar keys init");
+                return 1;
+            }
+
+            var already = GateSigningActivation.TryRead(StateRoot(directory)) is not null;
+            var marker = await new GateStore(StateRoot(directory), signer).ActivateSigningAsync(DateTimeOffset.UtcNow);
+            if (already)
+            {
+                Console.WriteLine($"  {Dim($"signing already active here since {marker.ActivatedAt:u} — the instant never moves")}");
+                return 0;
+            }
+
+            // The marker's signature was verified on the way back, so its fingerprint may be printed (S-3).
+            Console.WriteLine($"  {Gold("✓ signing activated")}  {Dim($"{marker.ActivatedAt:u} · {OperatorKey.Fingerprint(Convert.FromBase64String(marker.Signer!))}")}");
+            Console.WriteLine($"  {Dim("records decided before this instant stay readable unsigned; an unsigned verdict after it is refused as stripped.")}");
+            return 0;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            // A corrupt operator key, a corrupt marker already on disk, or an unwritable .ashlar.
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// One line on the store's signature posture, above any listing: whether signatures are
+    /// EXPECTED here and on what basis, and a warning when this machine holds a key but the
+    /// store has never been signed — the one configuration where rule S-6 is inert and the
+    /// operator would not otherwise know. Names anchors, never keys (S-3).
+    /// </summary>
+    private static void RenderTrust(GateSignatureExpectation? trust)
+    {
+        if (trust is null)
+        {
+            return;
+        }
+        if (trust.Expected)
+        {
+            Console.WriteLine($"  {Dim($"signing: expected — {trust.Basis}")}");
+        }
+        else if (trust.TrustedSigners.Count > 0)
+        {
+            Console.WriteLine($"  {Clay("! signing: not yet expected")}  {Dim("an operator key is present but this store has never been signed, so unsigned records here carry no promise. activate with: ashlar gates sign-activate")}");
+        }
+        else
+        {
+            Console.WriteLine($"  {Dim($"signing: not expected — {trust.Basis}")}");
+        }
+    }
+
+    /// <summary>The record's signature, for a listing. A signed record that reached a renderer
+    /// was verified by the store (it refuses otherwise), so its fingerprint may be printed; an
+    /// unsigned record gets the word and nothing more (S-3).</summary>
+    private static string Signature(GateRecord r) =>
+        r.Sig is null || r.Signer is null
+            ? "unsigned"
+            : $"signed {OperatorKey.Fingerprint(Convert.FromBase64String(r.Signer))}";
+
     private static async Task<int> ListAsync(GateStore store)
     {
         var held = await store.ListAsync(ProposalState.Held);
+        RenderTrust(store.SignatureTrust);
         if (held.Count == 0)
         {
             Console.WriteLine($"  {Dim("nothing held — the wall is quiet")}");
@@ -334,7 +428,7 @@ public sealed class GatesCommand : Command
         foreach (var r in held)
         {
             Console.WriteLine($"  {Clay("!")} {r.Proposal.Id,-12} {r.Proposal.Summary}");
-            Console.WriteLine($"    {Dim($"by {r.Proposal.ProposedBy} · {r.Proposal.ProposedAt:HH:mm 'UTC'} · {r.Reason}")}");
+            Console.WriteLine($"    {Dim($"by {r.Proposal.ProposedBy} · {r.Proposal.ProposedAt:HH:mm 'UTC'} · {Signature(r)} · {r.Reason}")}");
         }
         Console.WriteLine();
         Console.WriteLine($"  {Dim("inspect:")} ashlar gates --show <id>   {Dim("seat:")} ashlar gates --admit <id>");
@@ -350,8 +444,10 @@ public sealed class GatesCommand : Command
             return 1;
         }
 
+        RenderTrust(store.SignatureTrust);
         Console.WriteLine();
         Console.WriteLine($"  {r.Proposal.Summary}");
+        Console.WriteLine($"  {Dim(Signature(r))}");
         Console.WriteLine($"  {Dim($"{r.Proposal.Id} · kind {r.Proposal.Kind} · by {r.Proposal.ProposedBy} · {r.Proposal.ProposedAt:u}")}");
         Console.WriteLine();
         foreach (var c in r.Proposal.Courses)
