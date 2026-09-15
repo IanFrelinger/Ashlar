@@ -133,23 +133,28 @@ public sealed class SignedGateStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task A_keyless_store_deciding_a_signed_record_rewrites_it_unsigned_not_bricked()
+    public async Task A_keyless_store_refuses_to_decide_a_record_in_a_signed_store()
     {
-        // The regression the adversarial review caught. A record signed while keys were present,
-        // then decided (Held -> Admitted) by a store with NO key, must be rewritten UNSIGNED —
-        // not left carrying the old signature over the new content, which the next fail-closed
-        // read would reject as a forged verdict, taking the whole store enumeration down with it.
+        // A DELIBERATE CONTRACT REVERSAL. This test used to assert that a keyless DecideAsync
+        // rewrote a signed Held record UNSIGNED so the store was not bricked by a stale signature.
+        // That rewrite is exactly the silent self-downgrade rule S-6 forbids: once a store is known
+        // to be signed, an unsigned record decided after activation is indistinguishable from one
+        // whose signature was stripped, so the keyless write is refused BEFORE anything lands —
+        // by name, pointing at the remedy — and the record stays Held and signed. The concern the
+        // old test carried (a bricked enumeration) is kept: ListAsync must still read cleanly.
         var signer = OperatorKey.Generate(_keyDir);
         await new GateStore(_root, signer).RecordAsync(Proposal("ext-decide"), Held("holding for review"), Now);
 
         var keyless = new GateStore(_root);   // key removed, or a peer that never had it
-        await keyless.DecideAsync("ext-decide", admit: true, "alice", "looks good", Now.AddMinutes(1));
+        var act = async () => await keyless.DecideAsync("ext-decide", admit: true, "alice", "looks good", Now.AddMinutes(1));
+
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ashlar keys init*", "the refusal must name the remedy")
+            .WithMessage("*NOT the remedy*", "and must say out loud that deleting records is not it");
 
         var read = await keyless.GetAsync("ext-decide");
-        read!.State.Should().Be(ProposalState.Admitted);
-        read.Actor.Should().Be("alice");
-        read.Sig.Should().BeNull("a keyless writer signs nothing and must strip the inherited signature");
-        read.Signer.Should().BeNull();
+        read!.State.Should().Be(ProposalState.Held, "nothing was written");
+        read.Sig.Should().NotBeNullOrEmpty("the signed record is untouched");
 
         // The bricking failure would have taken ListAsync down too; prove the store still enumerates.
         (await keyless.ListAsync()).Should().ContainSingle();

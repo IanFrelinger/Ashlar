@@ -111,6 +111,65 @@ public static class OperatorKey
     public static string Fingerprint(byte[] rawPublicKey) =>
         "ed25519:" + Convert.ToHexString(SHA256.HashData(rawPublicKey))[..16].ToLowerInvariant();
 
+    /// <summary>
+    /// Every public key this operator's key material vouches for: <c>operator.pub</c> plus each
+    /// <c>trusted/*.pub</c> that <see cref="Generate"/> retained on rotation — trimmed,
+    /// deduplicated, and EMPTY when the directory holds none (the S-2 degrade, never a throw).
+    /// This is the signer-pinning set a gate store judges its own records against, so it is
+    /// derived from key material only, never from the records being judged: a pinning set read
+    /// off the records would accept whatever key an attacker re-signed them all with.
+    ///
+    /// <para>A file that is PRESENT but is not a readable Ed25519 public key is corruption, not
+    /// absence — the same <see cref="InvalidOperationException"/> <see cref="TryLoad"/> raises, for
+    /// the same reason: quietly narrowing the trust set the moment a key file is mangled would turn
+    /// a corrupt directory into a silently weaker reader. <c>peers/</c> is deliberately NOT read:
+    /// that keychain is the package-import admission allowlist, and the comment above it forbids
+    /// wiring it onto a different trust decision.</para>
+    /// </summary>
+    public static IReadOnlyList<string> TrustedPublicKeysBase64(string? keyDir = null)
+    {
+        var dir = keyDir ?? ResolveKeyDir();
+        var keys = new List<string>();
+
+        var pubPath = Path.Combine(dir, "operator.pub");
+        if (File.Exists(pubPath))
+        {
+            keys.Add(ReadPublicKeyFile(dir, pubPath));
+        }
+
+        var trustedDir = Path.Combine(dir, "trusted");
+        if (Directory.Exists(trustedDir))
+        {
+            // Filter on the exact extension: a three-character search pattern also matches longer
+            // extensions on Windows ("*.pub" finds "x.pubx"), and a stray file must not be read as key material.
+            foreach (var file in Directory.GetFiles(trustedDir, "*.pub")
+                         .Where(f => string.Equals(Path.GetExtension(f), ".pub", StringComparison.Ordinal))
+                         .OrderBy(f => f, StringComparer.Ordinal))
+            {
+                keys.Add(ReadPublicKeyFile(dir, file));
+            }
+        }
+
+        return keys.Distinct(StringComparer.Ordinal).ToList();
+    }
+
+    private static string ReadPublicKeyFile(string dir, string path)
+    {
+        var text = File.ReadAllText(path).Trim();
+        try
+        {
+            PublicKey.Import(Alg, Convert.FromBase64String(text), KeyBlobFormat.RawPublicKey);
+            return text;
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentException)
+        {
+            throw new InvalidOperationException(
+                $"Corrupt operator key in {dir}: {Path.GetFileName(path)} is not a readable Ed25519 public key ({ex.Message}). "
+                + "Re-run key generation with rotation to write a fresh pair; records signed by earlier keys keep "
+                + "verifying via the public keys retained under trusted/.");
+        }
+    }
+
     // ─────────────────────────── the peers trust keychain (Phase 3) ───────────────────────────
     // The set of signer fingerprints this operator trusts to admit imported packages, kept as
     // marker files under <keyDir>/peers/. Deliberately SEPARATE from trusted/ (the rotation
