@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Signing;
 
 namespace Ashlar.CLI.Commands;
@@ -38,33 +39,61 @@ public sealed class KeysCommand : Command
             description: "Replace an existing key. The old PUBLIC key is retained under trusted/ so records it "
                        + "already signed keep verifying.");
         var keyDirOpt = KeyDirOption();
-        var cmd = new Command("init", "Generate the operator signing keypair.") { rotateOpt, keyDirOpt };
-        cmd.SetHandler((InvocationContext ctx) =>
+        var pathOpt = new Option<DirectoryInfo>(
+            name: "--path",
+            description: "Project directory (defaults to current). When it holds a .ashlar root, signed gate records are activated there.",
+            getDefaultValue: () => new DirectoryInfo(Environment.CurrentDirectory));
+        var cmd = new Command("init", "Generate the operator signing keypair.") { rotateOpt, keyDirOpt, pathOpt };
+        cmd.SetHandler(async (InvocationContext ctx) =>
         {
-            ctx.ExitCode = Init(
+            ctx.ExitCode = await InitAsync(
                 ctx.ParseResult.GetValueForOption(rotateOpt),
-                ctx.ParseResult.GetValueForOption(keyDirOpt));
+                ctx.ParseResult.GetValueForOption(keyDirOpt),
+                ctx.ParseResult.GetValueForOption(pathOpt) ?? new DirectoryInfo(Environment.CurrentDirectory));
         });
         return cmd;
     }
 
-    private static int Init(bool rotate, string? keyDir)
+    private static async Task<int> InitAsync(bool rotate, string? keyDir, DirectoryInfo project)
     {
         var dir = string.IsNullOrWhiteSpace(keyDir) ? OperatorKey.ResolveKeyDir() : Path.GetFullPath(keyDir);
+        SigningIdentity id;
         try
         {
-            var id = OperatorKey.Generate(dir, rotate);
-            Console.WriteLine($"  {Gold(rotate ? "✓ operator key rotated" : "✓ operator key ready")}");
-            Console.WriteLine($"  {Dim($"fingerprint {id.Fingerprint}")}");
-            Console.WriteLine($"  {Dim($"stored in {dir}")}");
-            Console.WriteLine();
-            Console.WriteLine($"  {Dim("gate decisions on this machine are now signed. keep the private key here — never commit it.")}");
-            return 0;
+            id = OperatorKey.Generate(dir, rotate);
         }
         catch (InvalidOperationException ex)
         {
             // The key already exists and --rotate was not given: the kernel's refusal, verbatim.
             Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+        Console.WriteLine($"  {Gold(rotate ? "✓ operator key rotated" : "✓ operator key ready")}");
+        Console.WriteLine($"  {Dim($"fingerprint {id.Fingerprint}")}");
+        Console.WriteLine($"  {Dim($"stored in {dir}")}");
+        Console.WriteLine();
+        Console.WriteLine($"  {Dim("gate decisions on this machine are now signed. keep the private key here — never commit it.")}");
+
+        // SPEC-006 S-6: activate signed gate records in the project this was run in, so the instant
+        // the key came into existence is the instant after which an unsigned verdict there is a
+        // stripped signature. Everything already recorded is grandfathered. NEVER on --rotate: the
+        // marker is written once, and a rotation must not be able to re-open the grace window.
+        var stateRoot = Path.Combine(project.FullName, ".ashlar");
+        if (rotate || !Directory.Exists(stateRoot))
+        {
+            return 0;
+        }
+        try
+        {
+            var marker = await new GateStore(stateRoot, id).ActivateSigningAsync(DateTimeOffset.UtcNow);
+            Console.WriteLine($"  {Dim($"gate records under {stateRoot} are signed from {marker.ActivatedAt:u}; earlier unsigned records stay readable.")}");
+            return 0;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            // The key is ready; the activation is not. Say so rather than look like both landed.
+            Console.Error.WriteLine($"  the key is ready but signing could not be activated for {project.FullName}: {ex.Message}");
+            Console.Error.WriteLine("  activate it later with:  ashlar gates sign-activate");
             return 1;
         }
     }
