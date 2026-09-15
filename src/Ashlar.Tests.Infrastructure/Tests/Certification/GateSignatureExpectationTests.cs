@@ -215,7 +215,11 @@ public sealed class GateSignatureExpectationTests : IDisposable
         await writer.RecordAsync(Proposal("ext-1"), Held(), T0);
         await writer.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
 
+        // The attacker strips one signature AND deletes the marker, so the only anchor left is
+        // the DERIVED one: ext-1 still verifies, and a verifying record is intrinsic proof the
+        // store is signed. (Stripping EVERY signature as well is the recorded keyless residual.)
         Strip("ext-2");
+        File.Delete(MarkerFile);
 
         var keyless = Store();
         var list = async () => await keyless.ListAsync();
