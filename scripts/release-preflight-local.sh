@@ -27,6 +27,11 @@ if [[ "${ASHLAR_RELEASE_PREFLIGHT_TRIGGER_GATE:-}" == "1" ]]; then
   fi
 fi
 
+# Staleness is advisory and never blocks: whether a tree is "too far" past its tag is a
+# judgement call. It runs here because this is the last human checkpoint before a tag, and
+# release.yml's tag-vs-VERSION guard only fires AFTER the tag exists.
+bash "$(dirname "${BASH_SOURCE[0]}")/check-version-staleness.sh" || true
+
 echo ""
 echo "Preflight OK for version ${VER}."
 echo "Next (pick one):"

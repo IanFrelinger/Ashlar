@@ -245,9 +245,9 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 - [x] **Cert-loop honesty complete:** PRs #505 (✅ merged), #506 (✅ merged), #514 (✅ merged 2026-09-06) + docs audited
 - [ ] **Known limitations documented:** `certification-evidence.md` + `SELF-EXTEND-AUDIT.md` current
 - [ ] **User-facing docs accurate:** TesterQuickstart + IntegratorGuide tested by external reader
-- [ ] **Security defaults safe:** README + SECURITY.md warn about HTTP-only / no auth default
-- [ ] **NuGet packages published:** v0.1.2 or later on nuget.org
-- [ ] **GHCR images published:** `nexo-cli:0.1.2` or later multi-arch digest pinned (rename to `ashlar-cli` pending; see README note)
+- [x] **Security defaults safe:** README + SECURITY.md warn about HTTP-only / no auth default (verified 2026-09-14)
+- [x] **NuGet packages published:** 0.1.2 is live on nuget.org (verified 2026-09-14). The v0.1.2 release run's failure was the pack-and-publish timeout, not a publish failure
+- [x] **GHCR images published:** `nexo-cli:0.1.2` is live, multi-arch (amd64 + arm64), and pinned by digest in `deploy/node.yml` (verified 2026-09-14). `nexo-api` is amd64-only by design. Rename to `ashlar-cli` still pending; see README note
 - [ ] **Marketing landing honest:** No Cloud GA claims, no autonomous production claims, Forge roadmap-only
 - [ ] **GitHub social preview current:** `ashlar-og-flat-1200x630.png` uploaded (CEO action)
 - [ ] **Contact channel live:** GitHub Discussions enabled OR `hello@ashlar.dev` with monitoring
@@ -255,7 +255,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 **No-go criteria (ANY one blocks public release):**
 
 - [x] ~~**ACTIVE BLOCKER:** Limitation 9~~ — **CLOSED 2026-09-13.** A host-supplied `CertificationRecordSigner` now keys the composition lane through the shipped DI registration; the lane-agreement detection residual closed the same day — the gate now compares its two signers at construction and warns (never refuses) when they were built independently. This criterion no longer blocks. (limitations 7-8 closed by PR #523, 2026-09-06)
-- [ ] Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required) — ✅ resolved (all five checks required; verified 2026-09-09)
+- [x] ~~Branch protection not updated (`build-core`, `shell-lint`, `lychee` not required)~~ — ✅ resolved (all five checks required; re-verified 2026-09-14 against the branch protection API)
 - [ ] Landing page contains false Cloud GA or autonomous production claims
 - [ ] TesterQuickstart fails on clean machine
 - [ ] Security defaults allow unauthenticated network exposure without explicit opt-in
@@ -273,7 +273,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 - [ ] **Design-partner agreement signed:** Includes "experimental" disclosure for Forge features
 - [ ] **Support channel established:** Direct contact or private Slack/Discord
 - [ ] **NuGet packages available:** Staging feed OR nuget.org
-- [ ] **GHCR images available:** Even if `latest` only (digest pin nice-to-have)
+- [x] **GHCR images available:** `nexo-cli` and `nexo-api` are public with `latest` and semver tags; the digest pin is in place (verified 2026-09-14)
 
 **No-go criteria:**
 
@@ -350,7 +350,7 @@ These actions require **repository administrator** or **organization owner** per
 > **Corrected 2026-09-13. All three rows below were wrong, in the direction that silently breaks a
 > release.** Values re-read from `gh api repos/IanFrelinger/Ashlar/actions/variables` and `.../secrets`.
 > The previous table said `NUGET_PUBLISH_MODE` was `push` and recommended keeping it. `push` is neither
-> `oidc` nor `apikey`, so `reusable-release-nuget.yml:226-229` takes the **artifact-only** branch: the
+> `oidc` nor `apikey`, so `reusable-release-nuget.yml` takes the **artifact-only** branch: the
 > release workflow goes green, emits a `::notice::`, and **publishes nothing to nuget.org**. It also said
 > the `NUGET_API_KEY` secret was "Set"; that secret does not exist. In `oidc` mode the api key is minted
 > at run time by the `nuget_login` step (`:185`) from the `NUGET_USER` secret, so `NUGET_USER` plus the
@@ -358,30 +358,63 @@ These actions require **repository administrator** or **organization owner** per
 
 | Variable / secret | Actual value (verified 2026-09-13) | Recommended for v0.x |
 |----------|---------------|----------------------|
-| `NUGET_PUBLISH_MODE` (variable) | `oidc` | **Keep `oidc`.** Only `oidc` or `apikey` publish; anything else is artifact-only (`reusable-release-nuget.yml:226`). |
+| `NUGET_PUBLISH_MODE` (variable) | `oidc` | **Keep `oidc`.** Only `oidc` or `apikey` publish; anything else is artifact-only (the artifact-only branch's `if:` in `reusable-release-nuget.yml`). |
 | `NUGET_RELEASE_SBOM` (variable) | `true` | Keep `true`. |
 | `NUGET_RELEASE_GRYPE` (variable) | `true` | Keep `true`. |
-| `RELEASE_CREATE_GITHUB_RELEASE` (variable) | **unset** | Leave unset. `release.yml:198` tests `!= 'false'`, so unset already means "create the release". |
-| `NUGET_USER` (secret) | Set | Required by the `oidc` path (`reusable-release-nuget.yml:185`). |
+| `RELEASE_CREATE_GITHUB_RELEASE` (variable) | **unset** | Leave unset. the release-creation step tests `!= 'false'`, so unset already means "create the release". |
+| `NUGET_USER` (secret) | Set | Required by the `oidc` path (the `nuget_login` step in `reusable-release-nuget.yml`). |
+
+**The nine below were missing from this table** until 2026-09-14, so it documented six of the fifteen
+variables and secrets the release workflows actually read. All nine are unset today; the column says
+what unset means, because for most of them unset is the intended state and the default is the
+behaviour you get.
+
+| Variable / secret | Actual value (verified 2026-09-14) | What unset means |
+|----------|---------------|----------------------|
+| `NUGET_POST_PUSH_VERIFY` (variable) | unset | Post-push verification RUNS. The condition is `!= 'false'`, so only the literal `false` disables it. |
+| `NUGET_POST_PUSH_ATTEMPTS` (variable) | unset | Defaults to `40` polls. nuget.org indexing lags publication; a short budget reports "not visible" for a package that published fine. |
+| `NUGET_POST_PUSH_SLEEP_SEC` (variable) | unset | Defaults to `15` seconds between polls. With the default attempts that is a ~10 minute budget. |
+| `NUGET_POST_PUSH_VERIFY_PACKAGE_IDS` (variable) | unset | Verify every packed id rather than a named subset. |
+| `RELEASE_CROSS_VERIFY` (variable) | unset | Cross-verification RUNS. Disabled only by the literal `false`. |
+| `NUGET_STAGING_FEED_URL` (variable) | unset | No staging feed; the staging path is inert. Set it with `NUGET_STAGING_API_KEY` to rehearse a publish against a feed that is not nuget.org. |
+| `NUGET_STAGING_API_KEY` (secret) | unset | As above — the staging push has no credential and does not run. |
+| `RELEASE_NOTIFICATION_WEBHOOK_URL` (secret) | unset | No release notification is sent; the step logs "No RELEASE_NOTIFICATION_WEBHOOK_URL secret; skip notify." and continues. |
+| `GITHUB_TOKEN` (secret) | provided by Actions | Never set by hand. Listed so its absence from the configurable rows is not read as an omission. |
 | `NUGET_API_KEY` (secret) | **does not exist** | Not needed under `oidc`; only the `apikey` path (`:209`) reads it. |
 
 **Action:** confirm `NUGET_PUBLISH_MODE` is still `oidc` and that NuGet trusted publishing for `NUGET_USER`
 is current. Do **not** "restore" a `NUGET_API_KEY` secret to satisfy the old row — it is not on the `oidc`
 path, and adding a long-lived key would be a step backwards from trusted publishing.
 
-### 5.4b Bump `VERSION` before tagging — it is 104 commits stale (recorded 2026-09-13)
+### 5.4b `VERSION` is `0.2.0`, bumped 2026-09-14 — why the minor moved
 
-`VERSION` reads `0.1.2`, and `0.1.2` is already published on nuget.org. Master is **104 commits ahead of
-tag `v0.1.2`** (`gh api repos/IanFrelinger/Ashlar/compare/v0.1.2...master`), and seven of those commits
-touch `src/Ashlar.Certification.Contracts/` — the assembly that produces signed bytes. So the version
-string in this tree no longer identifies its content, and the packages built from it today would be
-labelled with a version whose published counterpart behaves differently.
+`VERSION` read `0.1.2` while `0.1.2` was already published on nuget.org, so the version string no
+longer identified its content. It is now `0.2.0`, landed ahead of the tag as the flow below requires.
+
+**The minor moved rather than the patch, because signed bytes changed.** PR #592 gave every `double`
+one canonical decimal form across all three target frameworks: the netstandard2.0 asset under Mono
+had been writing different digits from net8.0/net10.0 for the same value, and the canonical payload
+is the message every certification signature is computed over. Both golden corpora changed with it.
+A record minted under `0.1.2` on that asset and the same record minted now are not byte-identical.
+PR #621 compounds it: a host that supplied a brick signer previously got composition records under
+the committed dev key and now gets them under its own. `0.1.3` would have told a consumer holding
+stored signed records that this was a safe patch.
+
+*(The counts this section used to carry — 104 commits past the tag, seven touching* 
+*`src/Ashlar.Certification.Contracts/` — were accurate when recorded on 2026-09-13; it is 112 and 7 as of* 
+*2026-09-14. No count is stated in the body now, because it changes on every merge. Re-derive with* 
+*`git rev-list --count v0.1.2..master`, and do it in a FULL clone: a shallow checkout truncates the* 
+*history, `git describe` then finds no tag at all, and the count comes out far too low.)*
 
 **What protects you and what does not.** `release.yml:60-66` asserts the tag name matches root `VERSION`
 **at tag time only**, and only when `github.ref_type == 'tag'` — a `workflow_dispatch` from a branch skips
-it. `scripts/release-preflight-local.sh` is the only thing that inspects both, and nothing invokes it
-automatically: it is reachable from `Makefile`, the release issue template and the PR template, i.e. from
-human checklists. **No gate warns that `VERSION` is stale before you cut.**
+it. `scripts/release-preflight-local.sh` inspects both, and nothing invokes it automatically: it is
+reachable from `Makefile`, the release issue template and the PR template, i.e. from human
+checklists. It is not the only reader, though — `release-staging-on-label.yml` resolves the
+canonical version from root `VERSION` and runs automatically when a PR is labelled, and
+`scripts/resolve-canonical-package-version.sh`, `scripts/verify-docs-published-version.sh` and
+`tests/uat/tier9.sh` read it too. What none of them do is compare `VERSION` to the latest tag.
+**Closed 2026-09-14.** `scripts/check-version-staleness.sh` compares `VERSION` to the newest `v*` tag and to nuget.org, and runs from `release-preflight-local.sh` (the last human checkpoint before a tag) and from `rc-gate`. It is advisory and always exits 0 — how far past a tag is "too far" is a judgement call, and a check that reddens a lane on a judgement call is how lanes get muted here. It needs a FULL clone: a shallow checkout makes `git describe` find no tag, so the rc-gate checkout sets `fetch-depth: 0`.
 
 **Action before any release:** bump `VERSION`, land it, then tag. If you tag first, the guard above stops
 the release rather than shipping a mislabelled package — which is the good failure, but it fails late.
