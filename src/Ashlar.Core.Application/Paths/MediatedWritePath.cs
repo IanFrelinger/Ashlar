@@ -30,6 +30,23 @@ public static class MediatedWritePath
     /// apart from reparse-point probes of already-existing paths (a filesystem read, never a write).
     /// </summary>
     public static string? Refuse(string repoRoot, string target, IReadOnlyList<string>? writableAllowlist = null)
+        => RefuseCore(repoRoot, target, writableAllowlist, authoringEdge: false);
+
+    /// <summary>
+    /// The same floor for an AUTHORING write — one a self-extend cycle makes directly through
+    /// <c>repo.fs.write</c> and its siblings — judged against <see cref="IsAuthoringGovernancePath"/>
+    /// instead of <see cref="IsGovernancePath"/>, so a project or solution file passes. Every other
+    /// leg (safe shape, containment, the reparse-point probes) is the mediated floor's, byte for
+    /// byte: one private core, so a fourth copy of the containment and symlink legs cannot drift.
+    ///
+    /// <para>No allowlist parameter. WHERE an authoring write may land is the policy engine's
+    /// decision (<c>PathAllowlist</c>) and is configurable; this is the floor beneath it that is
+    /// not.</para>
+    /// </summary>
+    public static string? RefuseAuthoringWrite(string repoRoot, string target)
+        => RefuseCore(repoRoot, target, writableAllowlist: null, authoringEdge: true);
+
+    private static string? RefuseCore(string repoRoot, string target, IReadOnlyList<string>? writableAllowlist, bool authoringEdge)
     {
         // Order matters: each spelling should be refused for the truest reason. Escapes are named
         // as escapes and governance targets as governance, before the catch-all safe-path check —
@@ -63,11 +80,16 @@ public static class MediatedWritePath
         // reduces to the path the write will actually hit. fullPath is known to be under
         // rootWithSep, so the substring is the clean relative form (ns2.0 has no GetRelativePath).
         var normalizedRel = fullPath.Substring(rootWithSep.Length).Replace('\\', '/');
-        if (IsGovernancePath(normalizedRel))
+        if (authoringEdge ? IsAuthoringGovernancePath(normalizedRel) : IsGovernancePath(normalizedRel))
         {
-            return $"'{target}' (resolves to '{normalizedRel}') is a governance path — the project "
-                + "contract, the operator policy, .ashlar/ state, or a build file the receiver's next "
-                + "build would execute.";
+            return authoringEdge
+                ? $"'{target}' (resolves to '{normalizedRel}') is a governance path — the project "
+                    + "contract, the operator policy, .ashlar/ state, or a build or tooling file the next "
+                    + "build would honour. A cycle cannot author it, directly or through "
+                    + "forge.propose_change; a change here is an operator's to make."
+                : $"'{target}' (resolves to '{normalizedRel}') is a governance path — the project "
+                    + "contract, the operator policy, .ashlar/ state, or a build file the receiver's next "
+                    + "build would execute.";
         }
 
         // Remaining unsafe spellings that neither escaped nor hit governance: an in-root '.'/'..',

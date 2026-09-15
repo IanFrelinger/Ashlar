@@ -512,12 +512,18 @@ public sealed class SelfExtendRunnerAdapter : ISelfExtendRunner
         return Path.Combine(repoRoot, ".ashlar", "runtime-studio", $"{safe}-notes.md");
     }
 
-    private static IReadOnlyList<string> ExtractWritePaths(IReadOnlyList<string> log)
+    /// <summary>
+    /// The write paths a cycle claims: what the signed admission record lists as its diff and
+    /// what the scratchpad records. Internal so the tool edge can pin that a REFUSED write is not
+    /// harvested — a refusal used to share the <c>write:</c> prefix, which made every refused
+    /// governance write a signed claim that it landed.
+    /// </summary>
+    internal static IReadOnlyList<string> ExtractWritePaths(IReadOnlyList<string> log)
     {
         // Both repo.fs.write and repo.fs.search_replace tools log entries shaped like
         // "write:relative/path bytes=NNN" / "s&r:relative/path …". Pull the first
         // whitespace-bounded token after the prefix so the scratchpad records what
-        // actually changed on disk.
+        // actually changed on disk. A refused write logs "write-refused:" and is not matched.
         var result = new List<string>();
         foreach (var line in log)
         {
