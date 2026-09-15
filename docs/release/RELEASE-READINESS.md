@@ -275,11 +275,11 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
 - [x] **P0 trust holes closed:** PRs #513 + #523 merged (✅ 2026-09-06; limitations 7-8 closed; limitation 9 closed 2026-09-13)
 - [ ] **Cert-loop integration:** PR #512 merged (✅ 2026-09-06) — docs and
       `LiveExtenderCertLoopIntegrationTests.cs` only, no runtime change; see §4.1
-- [ ] **CI primary gate working:** `cert-gate` reliable (redundancy nice-to-have, not blocker)
-- [ ] **Known limitations documented:** Limitations 1-9 in `certification-evidence.md`
+- [x] **CI primary gate working:** `cert-gate` reliable — 100 consecutive successes on `master`, zero failures, over 2026-09-06 to 2026-09-15 (`gh run list --workflow=cert-gate.yml --branch master --limit 100`). It is one of the five required contexts, so every merge in that window passed it. Re-measure with that command rather than trusting this sentence
+- [x] **Known limitations documented:** all nine are under "Known v0 limitations" in `docs/certification-evidence.md`, and 5, 7, 8 and 9 carry their closure in the heading rather than only in the body — 7 and 8 closed by PR #523, 9 by PR #621
 - [ ] **Design-partner agreement signed:** Includes "experimental" disclosure for Forge features
 - [ ] **Support channel established:** Direct contact or private Slack/Discord
-- [ ] **NuGet packages available:** Staging feed OR nuget.org
+- [x] **NuGet packages available:** on nuget.org — the flat-container index for `ashlar.certification.contracts` lists 0.1.1 and 0.1.2 (verified 2026-09-15)
 - [x] **GHCR images available:** `nexo-cli` and `nexo-api` are public with `latest` and semver tags; the digest pin is in place (verified 2026-09-14)
 
 **No-go criteria:**

@@ -695,7 +695,10 @@ redundant guard is exactly what a careful proposer writes.
 
 6. **Kernel options bind from environment variables only in the shipped hosts.** `AddAshlar` builds its own `IConfiguration` from `AddEnvironmentVariables()` (`src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs`), so `Ashlar:Meai`, `Ashlar:NodeCapabilityRuntime`, `Ashlar:WorkloadScaling` and the other kernel sections read `Ashlar__X__Y` variables and never `appsettings.json` in Ashlar.API / Ashlar.CLI (`Ashlar:Autonomy` is host-composed and reads whatever configuration the composing host passes). Documented in `docs/Configuration.md`; the fix is architectural, not a docs fix.
 
-7. **Signature downgrade: the Ed25519 check is conditional on a field the record controls.**
+7. **CLOSED 2026-09-06 (PR #523). Signature downgrade: the Ed25519 check was conditional on a
+   field the record controls.** Read the rest of this row as the record of what was found, not as
+   a live hole — `CertificationVerifyOptions.Default` and `.Strict` both set
+   `RequireEd25519Signature = true`. The update note inside the row has the detail.
    Every verification path enforces the Ed25519 signature *only when the record carries one*.
    `CertificationRecordSigner.Verify` reduces to
    `string.IsNullOrWhiteSpace(data.Ed25519Signature) || CertificationRecordEd25519.VerifySignature(data)`,
@@ -766,7 +769,9 @@ redundant guard is exactly what a careful proposer writes.
    authoring environment, so nothing in this row was executed — it is a code-reading result,
    not a CI result.*
 
-8. **Schema downgrade: the payload lane is chosen by an attacker-supplied field, and the
+8. **CLOSED 2026-09-06 (PR #523).** Read the rest of this row as the record of what was found,
+   not as a live hole — `CertificationVerifyOptions.Default` and `.Strict` both pin
+   `MinimumSchemaVersion`. **Schema downgrade: the payload lane was chosen by an attacker-supplied field, and the
    legacy lane signs far less.** This **compounds limitation 7 rather than replacing it.**
    `CertificationRecordSigning.BuildPayload` opens with
    `if (record.SchemaVersion is null) return BuildLegacyPayload(record);`
@@ -836,8 +841,15 @@ redundant guard is exactly what a careful proposer writes.
    leaves it `true`. `FileCertificationRecordStore`'s own remarks already say the flags on a
    persisted record are a claim and not evidence; the same is true of this one.
 
-9. **`CompositionCertificationRecordSigner` discards the signer it is given and reads the
-   environment instead.** Its constructor takes a `CertificationRecordSigner? brickSigner`,
+9. **CLOSED 2026-09-13 (PR #621). `CompositionCertificationRecordSigner` USED TO discard the
+   signer it is given and read the environment instead.** Everything below describes code that no
+   longer exists: `_ = brickSigner;` is gone, and the constructor now takes the brick signer as its
+   key holder. It is kept verbatim as the record of what was found, and because the reasoning about
+   why the rejected alternative was worse is still worth reading. The CLOSING NOTE at the end of the
+   row is the current statement. **Do not quote the text below as a present-tense limitation, and do
+   not trust its line citations** — the commit that closed this deleted what they pointed at.
+
+   *As found:* Its constructor takes a `CertificationRecordSigner? brickSigner`,
    documents it as "Unused; kept so existing composition wiring compiles unchanged", and
    drops it with `_ = brickSigner;`. It then resolves its own key from
    `ASHLAR_CERT_DEV_HMAC_KEY` or the committed constant, and computes its honesty flag as
@@ -925,7 +937,8 @@ redundant guard is exactly what a careful proposer writes.
    **Residual (b) closed as well.** The flag and the bytes are now derived from one resolved string, so
    they can no longer disagree if `ASHLAR_CERT_DEV_HMAC_KEY` changes between two reads.
 
-   **The lane-agreement residual is now closed too (2026-09-13).** `CompositionCertificationGate` asks at
+   **The lane-agreement residual is now closed too** — authored 2026-09-13, merged 2026-09-14 in
+   PR #623, which is a day later than this row read until 2026-09-14. `CompositionCertificationGate` asks at
    construction whether its composition signer derives from its brick signer, and warns when they were
    built independently and are not both on the committed dev key. It **warns and never refuses**: the
    check is reference identity, not a key comparison, so it **false-positives** on a host that
