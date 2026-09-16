@@ -110,8 +110,21 @@ of a release that has not been published.
   cancel). `Thread` / `ThreadPool` / `Timer` / `PeriodicTimer` / `Task.Run` /
   `Task.Factory.StartNew` / `async void` / `CancellationTokenSource.CancelAfter`
   are refused.
-- Direct `repo.fs.write` is outside the mediated write floor (`PathAllowlist`
-  includes `.ashlar/` and `application/`; `ToolSandbox` is lexical-only).
+- Direct `repo.fs.write` now has a floor of its own, but a narrower one than the
+  mediated floor and with unmediated prefixes beside it. `ToolSandbox.TryResolveWritePath`
+  applies `MediatedWritePath.RefuseAuthoringWrite` for all five write tools
+  (`repo.fs.write`, `repo.fs.search_replace`, `repo.fs.ensure_file`, `docs.update`,
+  `repo.git.commit`), `GovernanceFloorPolicy` turns the same refusal into a counted
+  denial, `ToolSandbox` is no longer lexical-only for writes, and `.ashlar/` is out of
+  `PathAllowlist`'s defaults and cannot be put back through `ASHLAR_PATH_ALLOWLIST_EXTRA`.
+  What remains: `application/` and `docs/` are still unmediated direct-write prefixes in
+  the default Passive mode (`ForgeMediatedWritesPolicy.MediatedPrefixes` is exactly
+  `src/`, `tests/`); project and solution files are writable at the authoring edge by
+  design, so a `.csproj` can carry a `<Target>` (`.props`/`.targets` stay refused
+  everywhere); a global analyzer config already `<Import>`ed under an arbitrary name is
+  content-flagged (`is_global=true`) and cannot be leaf-matched; and a Windows junction
+  used as an in-repo ancestor directory is now refused, because the floor's reparse-point
+  probes run at the tool edge.
 - `AddAshlarAutonomySessionReaper` is opt-in and not registered by default
   hosts. `--allow-mock` still defaults true on self-extend/runtime CLI.
 - Record JSON + DLL export is two writes, not one atomic pair.

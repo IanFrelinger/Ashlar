@@ -299,7 +299,9 @@ public static class SelfExtendAdmissionBridge
     /// <summary>
     /// Maps cycle facts onto a proposal. Public and pure-over-the-store so tests pin the
     /// mapping. The courses claim ONLY what the cycle evidences: the sandbox course from the
-    /// policy engine's own denial count. When a store is supplied, each referenced row is
+    /// policy engine's own denial count, failed by any denial and by a mixed cycle (parked rows
+    /// AND direct writes), with a detail that says exactly what was parked, written and denied.
+    /// The diff names both the parked rows and the direct writes. When a store is supplied, each referenced row is
     /// resolved exactly once and yields BOTH its diff line and its content claim (path,
     /// sha256(NewContent)) — the claims are signed with the record, so packaging can later
     /// prove the rows it re-reads are the bytes this gate decided over. A referenced row
@@ -332,20 +334,32 @@ public static class SelfExtendAdmissionBridge
             }
         }
 
-        // Mediated: the sandbox claim is STRUCTURAL — every write is a parked proposal and
-        // nothing touched disk, so confinement holds by construction regardless of denial
-        // count (mediation denials are steering, not violations). Unmediated: the claim
-        // rests on the policy engine's denial count, as before.
-        var confined = mediated || toolCallsDenied == 0;
-        var sandboxDetail = mediated
-            ? $"writes mediated: {forgeProposalIds.Count} proposal(s) parked, nothing touched disk"
-            : confined
-                ? $"{toolCallsExecuted} tool call(s), 0 denied"
-                : $"{toolCallsDenied} tool call(s) DENIED by the policy engine";
+        // The sandbox course claims what the cycle evidenced, and nothing more.
+        //
+        // The denial count is NOT a confinement signal in a mediated cycle, because mediation
+        // works by denying: ForgeMediatedWritesPolicy refuses the direct write and redirects the
+        // planner to forge.propose_change, so a healthy mediated cycle carries at least one
+        // denial by construction — and AgentCycleResult carries only the count, not which policy
+        // spoke. An earlier shape of this change counted them anyway and failed every mediated
+        // cycle's sandbox course; M1EnforcementTests caught it. What IS the signal under
+        // mediation is whether anything reached disk, because keeping the cycle off the disk is
+        // what mediation is for. A MIXED cycle — parked rows AND direct writes — is therefore not
+        // confined.
+        //
+        // In an unmediated cycle there is no redirect, so a denial is a refusal and one is
+        // enough. Either way the count goes into the detail, so a reviewer sees it.
+        var confined = mediated ? writePaths.Count == 0 : toolCallsDenied == 0;
 
-        var diffLines = rows is not null
-            ? rows.Select(p => $"~ {p.TargetPath}  ({Truncate(p.Summary, 60)})")
-            : writePaths.Select(p => "~ " + p);
+        // One honest sentence in every branch. "nothing touched disk" is a claim about
+        // writePaths, so it is said only when writePaths is empty.
+        var sandboxDetail =
+            $"{forgeProposalIds.Count} proposal(s) parked, {writePaths.Count} direct write(s), {toolCallsDenied} denied"
+            + (writePaths.Count == 0 ? " — nothing touched disk" : string.Empty);
+
+        // The diff names BOTH the parked rows and the direct writes. A record that listed only
+        // the parked rows of a mixed cycle would sign away the writes that actually landed.
+        var diffLines = (rows?.Select(p => $"~ {p.TargetPath}  ({Truncate(p.Summary, 60)})") ?? Enumerable.Empty<string>())
+            .Concat(writePaths.Select(p => "~ " + p));
 
         return new ExtensionProposal
         {
@@ -353,7 +367,7 @@ public static class SelfExtendAdmissionBridge
             Id = "ext-" + Guid.NewGuid().ToString("N")[..12],
             Kind = "brick",
             Summary = string.IsNullOrWhiteSpace(objective)
-                ? $"self-extend cycle by {agentName}: {(mediated ? forgeProposalIds.Count : writePaths.Count)} change(s)"
+                ? $"self-extend cycle by {agentName}: {forgeProposalIds.Count + writePaths.Count} change(s)"
                 : Truncate(objective!, 120),
             ProposedBy = agentName,
             ProposedAt = DateTimeOffset.UtcNow,

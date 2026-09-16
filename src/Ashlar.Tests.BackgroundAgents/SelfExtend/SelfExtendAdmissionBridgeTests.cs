@@ -173,8 +173,60 @@ public sealed class SelfExtendAdmissionBridgeTests : IDisposable
 
         proposal.Id.Should().MatchRegex("^ext-[0-9a-f]{12}$");
         proposal.Kind.Should().Be("brick");
-        proposal.Courses.Should().ContainSingle().Which.Name.Should().Be("sandbox");
+        var sandbox = proposal.Courses.Should().ContainSingle().Which;
+        sandbox.Name.Should().Be("sandbox");
+        sandbox.Passed.Should().BeTrue();
+        sandbox.Detail.Should().Be("0 proposal(s) parked, 2 direct write(s), 0 denied",
+            "the detail says what was parked, written and denied, and does not claim nothing touched disk when something did");
         proposal.Diff.Should().Contain("~ a.cs").And.Contain("~ b.cs");
+    }
+
+    /// <summary>
+    /// A cycle with parked rows AND direct writes on disk. The previous shape
+    /// (<c>confined = mediated || denied == 0</c>) passed the sandbox course on the strength of
+    /// the parked rows alone and claimed "nothing touched disk" while listing only those rows in
+    /// the diff — signing away the writes that actually landed. Now: the course fails, the detail
+    /// never says nothing touched disk, and the diff names both.
+    /// </summary>
+    [Fact]
+    public void A_mixed_cycle_claims_both_the_parked_rows_and_the_direct_writes()
+    {
+        var forge = AshlarProjectMediation.ProjectStore(_repo);
+        var forgeId = ParkForgeWrite("// parked");
+
+        var proposal = SelfExtendAdmissionBridge.BuildProposal(
+            "night-agent", "objective", ["docs/landed.md"], 3, 0, [forgeId], forge);
+
+        var sandbox = proposal.Courses.Should().ContainSingle().Which;
+        sandbox.Name.Should().Be("sandbox");
+        sandbox.Passed.Should().BeFalse("a direct write landed on disk in a cycle that was supposed to be mediated");
+        sandbox.Detail.Should().Be("1 proposal(s) parked, 1 direct write(s), 0 denied");
+        sandbox.Detail.Should().NotContain("nothing touched disk");
+        proposal.Diff.Should().Contain("~ src/Coprod.cs").And.Contain("~ docs/landed.md",
+            "the record must name both what was parked and what landed");
+        proposal.Summary.Should().Be("objective");
+    }
+
+    /// <summary>
+    /// Mediation works by denying: the policy refuses the direct write and redirects the planner
+    /// to forge.propose_change, so a mediated cycle that did exactly what it should carries one
+    /// denial. The bridge sees only the count, so it cannot treat that denial as a refusal — an
+    /// earlier shape of this change did, and every mediated cycle failed its sandbox course.
+    /// Under mediation the course turns on whether anything reached disk, and the denial is
+    /// still written into the detail so it is never hidden.
+    /// </summary>
+    [Fact]
+    public void A_mediated_cycle_with_a_denial_and_nothing_on_disk_is_confined_and_the_denial_is_recorded()
+    {
+        var forge = AshlarProjectMediation.ProjectStore(_repo);
+        var forgeId = ParkForgeWrite("// parked");
+
+        var proposal = SelfExtendAdmissionBridge.BuildProposal(
+            "night-agent", "objective", [], 3, 1, [forgeId], forge);
+
+        var sandbox = proposal.Courses.Should().ContainSingle().Which;
+        sandbox.Passed.Should().BeTrue("the redirect that parked the row is itself counted as a denial");
+        sandbox.Detail.Should().Be("1 proposal(s) parked, 0 direct write(s), 1 denied — nothing touched disk");
     }
 
     // ─────────────────────────── auto-share (co-production) ───────────────────────────
@@ -227,6 +279,9 @@ public sealed class SelfExtendAdmissionBridgeTests : IDisposable
 
         var mediated = SelfExtendAdmissionBridge.BuildProposal(
             "night-agent", "objective", [], 1, 0, [forgeId], forge);
+        mediated.Courses.Should().ContainSingle().Which.Detail.Should().Be(
+            "1 proposal(s) parked, 0 direct write(s), 0 denied — nothing touched disk",
+            "nothing touched disk is said only when the write list is empty");
         var claim = mediated.Files.Should().ContainSingle().Which;
         claim.Path.Should().Be("src/Coprod.cs");
         claim.Matches("// exact admitted bytes").Should().BeTrue();

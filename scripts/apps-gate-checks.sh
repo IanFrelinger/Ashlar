@@ -33,7 +33,7 @@ case "${1:?usage: apps-gate-checks.sh interface|bootstrap|scaffold|daemon|combos
     echo "$OUT" | grep -q "Bootstrap Runtime Studio" || fail bootstrap "no bootstrap banner"
     echo "$OUT" | grep -q "Optimize.*SKIPPED" || fail bootstrap "optimize not skipped"
     echo "$OUT" | grep -q "Daemon.*SKIPPED" || fail bootstrap "daemon not auto-skipped"
-    for d in .ashlar/agents/workspaces/runtime-studio .ashlar/tools/cache/tmp .ashlar/tools/cache/nuget .ashlar/tools/cache/npm; do
+    for d in agent-sandbox/agents/workspaces/runtime-studio agent-sandbox/tools/cache/tmp agent-sandbox/tools/cache/nuget agent-sandbox/tools/cache/npm; do
       test -d "$d" || fail bootstrap "missing sandbox dir $d"
     done
     echo "bootstrap: OK"

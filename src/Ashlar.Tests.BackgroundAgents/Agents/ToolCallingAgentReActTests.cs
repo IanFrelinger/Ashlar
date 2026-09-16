@@ -41,6 +41,30 @@ public sealed class ToolCallingAgentReActTests
         model.SeenMessages[1].Should().Contain(m => m.role == "user" && m.content.StartsWith("tool noop:", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// The operating rules are part of the write contract, and they outrank the last observation.
+    /// A prompt that advertises <c>.ashlar/</c> as writable makes the governance floor cost ReAct
+    /// iterations the loop cannot win — the planner is fed a DENIED observation and the rules steer
+    /// it straight back — and one that omits <c>application/</c> hides a prefix that is open.
+    /// </summary>
+    [Fact]
+    public async Task The_system_prompt_states_the_true_allowlist_and_the_governance_exclusions()
+    {
+        var model = ScriptedModel.Of(ResponseEmpty("nothing to do"));
+        var (tools, policies) = BuildHarness(allowAll: true, out _);
+        var agent = new ToolCallingAgent("planner", model, NullLogger<ToolCallingAgent>.Instance);
+
+        await agent.RunCycleAsync(WorldSnapshot.ForRepo("/repo", "/repo/out"), tools, policies, onRejected: null, memory: null, CancellationToken.None);
+
+        var system = model.SeenMessages[0].Should().Contain(m => m.role == "system").Which.content;
+        system.Should().Contain("live under one of: src/, tests/, docs/, application/.");
+        system.Should().NotContain("docs/, .ashlar/", "the prompt must not advertise the ledger as writable");
+        system.Should().Contain("Never write governance")
+            .And.Contain(".ashlar/")
+            .And.Contain("*.props")
+            .And.Contain("Project and solution files (*.csproj, *.sln) are fine to write");
+    }
+
     [Fact]
     public async Task Empty_first_iteration_terminates_immediately()
     {
