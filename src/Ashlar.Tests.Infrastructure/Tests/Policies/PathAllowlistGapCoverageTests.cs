@@ -37,14 +37,20 @@ public sealed class PathAllowlistGapCoverageTests
         reason.Should().Be("OK");
     }
 
+    /// <summary>
+    /// <c>.ashlar/</c> is the admission ledger and runtime state; it left the defaults when a
+    /// self-extend cycle wrote its own gate record through it. This is the CONFIGURABLE half of that
+    /// closure. The non-configurable half is the floor in <c>ToolSandbox.TryResolveWritePath</c>,
+    /// which refuses the same path whatever this allowlist says (<c>ToolEdgeGovernanceFloorTests</c>).
+    /// </summary>
     [Fact]
-    public void Approve_allows_ashlar_metadata_directory()
+    public void Approve_refuses_the_ashlar_metadata_directory()
     {
         var policy = new PathAllowlist();
         var call = CreateToolCall("repo.fs.write", ".ashlar/state.json");
 
-        policy.Approve(call, EmptySnapshot, out var reason).Should().BeTrue();
-        reason.Should().Be("OK");
+        policy.Approve(call, EmptySnapshot, out var reason).Should().BeFalse();
+        reason.Should().Contain("Path not allowed");
     }
 
     [Fact]

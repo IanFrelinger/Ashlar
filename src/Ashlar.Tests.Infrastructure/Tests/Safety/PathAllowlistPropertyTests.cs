@@ -71,8 +71,12 @@ public sealed class PathAllowlistPropertyTests
             ["SandboxRoot"] = sandboxRoot
         });
 
-        // Suffix must not contain ".." (path traversal) which would cause rejection
-        Gen.OneOf(Gen.Const("src/"), Gen.Const("tests/"), Gen.Const("docs/"), Gen.Const(".ashlar/"))
+        // Suffix must not contain ".." (path traversal) which would cause rejection.
+        // These are the four DEFAULT prefixes. .ashlar/ is not one any more — it is the admission
+        // ledger — and this property holds for an arbitrary suffix precisely because the governance
+        // floor is NOT inside PathAllowlist: folded in, it would be false for every generated suffix
+        // containing ':' or ending in .props.
+        Gen.OneOf(Gen.Const("src/"), Gen.Const("tests/"), Gen.Const("docs/"), Gen.Const("application/"))
             .SelectMany(prefix => Gen.String[1, 50]
                 .Where(s => !s.Contains("..", StringComparison.Ordinal))
                 .Select(suffix => prefix + suffix))

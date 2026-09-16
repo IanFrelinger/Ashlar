@@ -6,5 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
+    <!-- MediatedWritePath: the governance predicate PathAllowlist uses to drop extra prefixes. -->
+    <ProjectReference Include="..\Ashlar.Core.Application\Ashlar.Core.Application.csproj" />
   </ItemGroup>
 </Project>

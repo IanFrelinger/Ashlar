@@ -45,7 +45,6 @@ public class PathAllowlistTests
     [InlineData("tests/Bar.cs")]
     [InlineData("docs/readme.md")]
     [InlineData("application/foo")]
-    [InlineData(".ashlar/state.json")]
     public void Default_allowlist_permits_known_prefixes(string path)
     {
         var p = new PathAllowlist();
