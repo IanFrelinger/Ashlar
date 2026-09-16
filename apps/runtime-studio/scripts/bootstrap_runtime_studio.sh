@@ -5,10 +5,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 bash "${ROOT}/scripts/sandbox/init-agent-sandbox.sh" --project-root "${ROOT}" --profile runtime-studio
 
-mkdir -p "${ROOT}/.ashlar/tools/cache/tmp"
-mkdir -p "${ROOT}/.ashlar/tools/cache/nuget"
-mkdir -p "${ROOT}/.ashlar/tools/cache/npm"
-mkdir -p "${ROOT}/.ashlar/agents/workspaces/runtime-studio"
+# The sandbox is a sibling of .ashlar/ (see scripts/sandbox/init-agent-sandbox.sh); .ashlar/ is
+# governance state and the write floor refuses it.
+mkdir -p "${ROOT}/agent-sandbox/tools/cache/tmp"
+mkdir -p "${ROOT}/agent-sandbox/tools/cache/nuget"
+mkdir -p "${ROOT}/agent-sandbox/tools/cache/npm"
+mkdir -p "${ROOT}/agent-sandbox/agents/workspaces/runtime-studio"
 
 echo
 echo "Runtime Studio bootstrap complete."

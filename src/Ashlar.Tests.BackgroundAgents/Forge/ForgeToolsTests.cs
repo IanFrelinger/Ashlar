@@ -56,6 +56,34 @@ public class ForgeToolsTests : IDisposable
         stored.BaseSha256.Should().NotBeNullOrWhiteSpace();
     }
 
+    /// <summary>
+    /// The governance floor at the forge door, with the predicate the apply choke point uses:
+    /// <c>ForgeApplier.StageWrites</c> calls <c>MediatedWritePath.Refuse</c>, whose governance leg
+    /// is <c>IsGovernancePath</c> (project files included), so a proposal against any of these
+    /// could never apply. Parking it would let the cycle sign a record claiming an unfulfillable
+    /// parked row.
+    /// </summary>
+    [Theory]
+    [InlineData(".ashlar/gates/forged.json")]
+    [InlineData("src/build/Directory.Build.props")]
+    [InlineData("src/.editorconfig")]
+    [InlineData("src/Foo/Foo.csproj")]
+    public async Task Propose_change_refuses_a_governance_target_at_the_door(string targetPath)
+    {
+        var snap = new WorldSnapshot(0, new Dictionary<string, object?> { ["RepoRoot"] = _repoRoot });
+        var tool = new ForgeProposeChangeTool(_store);
+        var args = JsonSerializer.SerializeToElement(new { target_path = targetPath, new_content = "x", summary = "s" });
+
+        var result = await tool.InvokeAsync(new ToolCall(tool.Id, args), snap, default);
+
+        var json = JsonSerializer.Serialize(result.Payload);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("ok").GetBoolean().Should().BeFalse(targetPath);
+        doc.RootElement.GetProperty("error").GetString().Should().Contain("governance path");
+        result.Delta.Log.Should().ContainSingle().Which.Should().Contain("REJECTED");
+        _store.List().Should().BeEmpty("nothing is parked that the apply choke point would refuse");
+    }
+
     [Fact]
     public async Task Propose_change_returns_error_for_missing_arguments()
     {

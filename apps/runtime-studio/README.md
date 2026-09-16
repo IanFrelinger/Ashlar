@@ -5,7 +5,7 @@
 This sits outside kernel internals and uses:
 
 - `Ashlar.CLI background-agent daemon --config ...`
-- project-scoped sandboxing under `.ashlar/`
+- project-scoped sandboxing under `agent-sandbox/` (a sibling of `.ashlar/`, which is governance state and is refused at the write edge)
 - local-first model routing via Ollama
 
 <a id="how-runtime-studio-fits-with-ashlar-api"></a>

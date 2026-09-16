@@ -12,9 +12,15 @@ namespace Ashlar.Policies.Dev;
 /// (Active, Ambient) the policy is a no-op so the existing direct-write path
 /// continues to work unchanged.
 ///
-/// <para>Non-source paths (<c>docs/</c>, <c>.ashlar/</c>, scratchpads, etc.) are
-/// always allowed to bypass the proposal pipeline because they are
-/// human-curated / runtime-only and don't ship to users.</para>
+/// <para>Paths outside <c>src/</c> and <c>tests/</c> are not mediated by this policy — they
+/// pass through it — which is NOT the same as being safe to write directly. This doc used to
+/// say non-source paths bypass the pipeline "because they are human-curated / runtime-only";
+/// <c>.ashlar/gates/*.json</c> is the counter-example: it is the admission ledger, neither
+/// human-curated nor inert, and a cycle wrote its own record into it. Whether an unmediated
+/// path may be written AT ALL is decided elsewhere: WHERE by <see cref="PathAllowlist"/>, and
+/// WHAT by the governance floor in <c>ToolSandbox.TryResolveWritePath</c>, which refuses the
+/// ledger and every build or tooling file whatever this policy says. <c>docs/</c> and
+/// <c>application/</c> remain unmediated direct-write prefixes by design.</para>
 ///
 /// <para>This policy is intentionally orthogonal to <see cref="PathAllowlist"/>:
 /// PathAllowlist decides "can the agent write here at all?", this policy decides
