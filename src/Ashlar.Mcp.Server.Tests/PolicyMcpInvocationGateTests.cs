@@ -42,6 +42,39 @@ public sealed class PolicyMcpInvocationGateTests
         gate.Authorize(new ToolCall("repo.fs.read", Json.Object()), Snapshot).Allowed.Should().BeTrue();
     }
 
+    /// <summary>
+    /// No host registers an <see cref="IPolicy"/> in DI, so this gate's set is empty in every
+    /// shipped composition. The tools' governance floor bounds WHAT a write may touch; nothing then
+    /// bounds WHERE it lands, so the mutating ids fail closed until a write policy is registered.
+    /// The read ids keep the permissive behaviour — the shipped host exposes them.
+    /// </summary>
+    [Fact]
+    public void An_empty_policy_set_refuses_a_write_but_still_allows_a_read()
+    {
+        var gate = Create();
+
+        foreach (var id in new[] { "repo.fs.write", "repo.fs.search_replace", "repo.fs.ensure_file", "docs.update", "repo.git.commit" })
+        {
+            var decision = gate.Authorize(new ToolCall(id, Json.Object()), Snapshot);
+            decision.Allowed.Should().BeFalse("'{0}' mutates the repository and nothing bounds where", id);
+            decision.Reason.Should().Contain("no IPolicy is registered");
+        }
+
+        foreach (var id in new[] { "repo.fs.read", "repo.fs.list", "dotnet.build" })
+        {
+            gate.Authorize(new ToolCall(id, Json.Object()), Snapshot).Allowed.Should().BeTrue("'{0}' does not mutate the repository", id);
+        }
+    }
+
+    [Fact]
+    public void A_registered_write_policy_lifts_the_fail_closed_default()
+    {
+        var gate = Create(new StubPolicy(true));
+
+        gate.Authorize(new ToolCall("repo.fs.write", Json.Object()), Snapshot).Allowed.Should().BeTrue(
+            "once a host registers a policy, that policy — not the empty-set guard — decides");
+    }
+
     [Fact]
     public void Any_denying_policy_denies_with_its_reason()
     {

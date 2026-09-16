@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Ashlar.Core.Application.Paths;
 using Xunit;
@@ -103,6 +104,72 @@ public sealed class WriteToolResolverConventionTests
             "these files no longer mutate the filesystem, so their inventory rows are ghosts. "
             + "Delete the rows with the writers. Stale: {0}",
             string.Join(", ", stale));
+    }
+
+    /// <summary>
+    /// The policy-chain twin of the floor calls the pure predicates and nothing that touches the
+    /// filesystem. Migrating the containment and reparse probes into the policy would deny every
+    /// empty-snapshot fixture (the universal fixture across the policy test classes) and go flaky
+    /// under the fifty-wide concurrency test; and a probe that throws there ends the whole cycle,
+    /// because <c>PolicyEngine.Approve</c> has no try/catch.
+    /// </summary>
+    [Fact]
+    public void The_governance_policy_does_no_filesystem_work()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var policy = Path.Combine(root, "src", "Ashlar.BackgroundAgents.HostRunners", "GovernanceFloorPolicy.cs");
+        File.Exists(policy).Should().BeTrue("the policy-chain twin of the floor must exist at {0}", policy);
+
+        var text = File.ReadAllText(policy);
+        text.Should().NotContain("Refuse(", "the policy must judge by the pure predicates, not the probing floor");
+        text.Should().NotContain("RefuseAuthoringWrite(", "the policy must judge by the pure predicates, not the probing floor");
+
+        var code = CodeLines(File.ReadAllLines(policy));
+        code.Should().NotContain("File.", "no filesystem probes in the policy chain");
+        code.Should().NotContain("Directory.", "no filesystem probes in the policy chain");
+        code.Should().Contain("IsAuthoringGovernancePath(", "the authoring predicate is the one the tool edge applies");
+        code.Should().Contain("IsSafeRelativePath(", "a '.' or '..' segment must never reach the predicate un-normalized");
+    }
+
+    /// <summary>
+    /// The two id-keyed twins of the floor — <c>GovernanceFloorPolicy</c> in the policy chain and
+    /// <c>PolicyMcpInvocationGate</c> at the MCP edge — judge by tool id, not by argument shape,
+    /// because the read-intent tools carry a string <c>path</c> too. An id list is only as good as
+    /// its coupling to the inventory, so every inventory tool's <c>Id</c> must appear, as a string
+    /// literal, in both. The tool edge is the floor whatever these lists say; this keeps the counted
+    /// denial and the fail-closed MCP default from silently missing a write tool.
+    /// </summary>
+    [Fact]
+    public void Every_write_tool_id_is_named_by_the_policy_twin_and_the_mcp_gate()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var ids = MutatingTools
+            .OrderBy(t => t, StringComparer.Ordinal)
+            .Select(rel => (File: rel, Id: ToolId(Path.Combine(root, rel))))
+            .ToList();
+        ids.Should().OnlyContain(t => !string.IsNullOrWhiteSpace(t.Id),
+            "every inventory tool declares its id as `Id => \"...\"`, which is what the twins are matched against");
+
+        var twins = new[]
+        {
+            "src/Ashlar.BackgroundAgents.HostRunners/GovernanceFloorPolicy.cs",
+            "src/Ashlar.Mcp.Server/IMcpInvocationGate.cs",
+        };
+        foreach (var twin in twins)
+        {
+            var code = CodeLines(File.ReadAllLines(Path.Combine(root, twin)));
+            var missing = ids.Where(t => !code.Contains($"\"{t.Id}\"", StringComparison.Ordinal)).Select(t => t.Id).ToList();
+            missing.Should().BeEmpty(
+                "{0} judges by tool id and must name every write tool in the inventory. Missing: {1}",
+                twin, string.Join(", ", missing));
+        }
+    }
+
+    /// <summary>The <c>Id => "..."</c> literal a tool declares, or empty when it declares none.</summary>
+    private static string ToolId(string file)
+    {
+        var match = Regex.Match(File.ReadAllText(file), @"\bId\s*=>\s*""([^""]+)""");
+        return match.Success ? match.Groups[1].Value : string.Empty;
     }
 
     /// <summary>

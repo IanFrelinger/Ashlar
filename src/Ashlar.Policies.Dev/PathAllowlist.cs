@@ -1,18 +1,34 @@
 using System.IO;
 using System.Text.Json;
 using Ashlar.Abstractions;
+using Ashlar.Core.Application.Paths;
 
 namespace Ashlar.Policies.Dev;
 
 /// <summary>
-/// Development policy that restricts file operations to allowlisted paths.
-/// 
-/// Only allows file writes and search/replace operations in:
-/// - src/ directory
-/// - tests/ directory
-/// 
-/// Prevents modifications to other parts of the codebase.
-/// Implements IPolicy for use with PolicyEngine.
+/// Development policy that bounds WHERE a cycle may write: a relative-prefix allowlist over
+/// <c>repo.fs.write</c> and <c>repo.fs.search_replace</c>.
+///
+/// <para>Defaults: <c>src/</c>, <c>tests/</c>, <c>docs/</c>, <c>application/</c>. Widened by the
+/// constructor's extra prefixes and by <c>ASHLAR_PATH_ALLOWLIST_EXTRA</c> — but never onto a
+/// governance prefix. After merging, any prefix for which
+/// <see cref="MediatedWritePath.IsAuthoringGovernancePath"/> is true is dropped and reported on
+/// <see cref="RejectedExtras"/>, so the documented hardening variable is structurally unable to reach
+/// <c>.ashlar/</c>, <c>scripts/</c> or a build import. <c>.ashlar/</c> was on the defaults until a
+/// self-extend cycle wrote its own admission record through it; removing it alone closed nothing,
+/// because the sandbox guide prescribed putting <c>.ashlar/</c> sub-prefixes back through the
+/// variable.</para>
+///
+/// <para>This is the CONFIGURABLE half. The non-configurable half — WHAT may be written — is the
+/// floor in <c>ToolSandbox.TryResolveWritePath</c> (<c>MediatedWritePath.RefuseAuthoringWrite</c>),
+/// which every write tool applies whatever policy list a host composes, and
+/// <c>GovernanceFloorPolicy</c>, which turns that refusal into a counted denial. Deliberately not
+/// folded in here: this policy is sampled at hundreds of arbitrary suffixes by the property tests and
+/// hammered fifty-wide by the concurrency tests, and the floor's reparse-point probes do
+/// filesystem I/O.</para>
+///
+/// <para>Absolute paths are admitted only inside <c>SandboxRoot</c> (snapshot) or
+/// <c>ASHLAR_SANDBOX_ROOT</c>. Implements IPolicy for use with PolicyEngine.</para>
 /// </summary>
 public sealed class PathAllowlist : IPolicy
 {
@@ -22,7 +38,6 @@ public sealed class PathAllowlist : IPolicy
         "tests/",
         "docs/",
         "application/",
-        ".ashlar/"
     };
 
     private readonly string[] _allowedPrefixes;
@@ -41,10 +56,43 @@ public sealed class PathAllowlist : IPolicy
                 merged.Add(entry);
         }
 
-        _allowedPrefixes = Normalize(merged);
+        var (allowed, rejected) = PartitionGovernance(Normalize(merged));
+        _allowedPrefixes = allowed;
+        RejectedExtras = rejected;
     }
 
-    private PathAllowlist(string[] normalizedExactPrefixes) => _allowedPrefixes = normalizedExactPrefixes;
+    private PathAllowlist(string[] normalizedExactPrefixes)
+    {
+        _allowedPrefixes = normalizedExactPrefixes;
+        RejectedExtras = Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// The prefixes handed to the constructor or to <c>ASHLAR_PATH_ALLOWLIST_EXTRA</c> that were
+    /// dropped because they are authoring-governance paths, in normalized form. Exposed so a host
+    /// can log what its configuration asked for and did not get; a silently narrowed allowlist
+    /// would look like a misconfigured one.
+    /// </summary>
+    public IReadOnlyList<string> RejectedExtras { get; }
+
+    /// <summary>
+    /// Splits normalized prefixes into the allowed set and the governance set. A prefix is judged
+    /// as the directory it names (<c>.ashlar/</c> → <c>.ashlar</c>), which is what the floor sees
+    /// as the first segment of any write beneath it.
+    /// </summary>
+    private static (string[] Allowed, string[] Rejected) PartitionGovernance(string[] normalized)
+    {
+        var allowed = new List<string>(normalized.Length);
+        var rejected = new List<string>();
+        foreach (var prefix in normalized)
+        {
+            if (MediatedWritePath.IsAuthoringGovernancePath(prefix.TrimEnd('/')))
+                rejected.Add(prefix);
+            else
+                allowed.Add(prefix);
+        }
+        return (allowed.ToArray(), rejected.ToArray());
+    }
 
     /// <summary>
     /// An allowlist of EXACTLY the given prefixes — no built-in defaults and no
