@@ -33,11 +33,17 @@ public static class AutonomyDigest
 
         sb.AppendLine("## The loop did");
         sb.AppendLine();
+        // A closed allowlist: an outcome not listed here is a silent terminal state, which
+        // is worse than any misleading sentence — the refused, exhausted and corrupt-
+        // retention rollback outcomes are exactly the ones an operator must not miss.
         var did = events
             .Where(e => e.Outcome is BrickSwapProvenanceOutcomes.SwapCommitted
                 or BrickSwapProvenanceOutcomes.RollbackCommitted
                 or BrickSwapProvenanceOutcomes.WatchBreachQuarantined
-                or BrickSwapProvenanceOutcomes.SwapRefused)
+                or BrickSwapProvenanceOutcomes.SwapRefused
+                or BrickSwapProvenanceOutcomes.RollbackRefused
+                or BrickSwapProvenanceOutcomes.RollbackExhausted
+                or BrickSwapProvenanceOutcomes.RetentionInvariantViolated)
             .OrderBy(e => e.Timestamp)
             .ToList();
         if (did.Count == 0)

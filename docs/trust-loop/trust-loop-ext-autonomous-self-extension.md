@@ -143,6 +143,19 @@ the gates were sufficient. The runtime is the last gate.
   conformance (bag reads/writes vs. interface), error-rate and
   latency deltas vs. the generation baseline, and resource ceilings.
   Threshold breach MUST trigger automatic rollback.
+  A rollback is not an absorption. The pacing and authority controls
+  — lineage demotion (R5.5), the cadence floor and in-flight watch
+  window (R6.1), the global pause (R6.2) and the recursion ceiling
+  (R4.2) — bound how the runtime takes on CHANGE and MUST NOT gate a
+  containment rollback; revocation (R5.3) and verify-at-load do. The
+  restored generation keeps the pre-breach baseline as its comparand,
+  and neither refreshes the cadence clock nor is itself retained.
+  When no earlier retained generation with unrevoked certificate
+  hashes remains, or the restore does not land, the breach MUST
+  terminate in a paused loop with `rollback-exhausted` provenance and
+  the breaching generation still serving — loudly, never in a silent
+  retry. The real time-to-rollback bound is the retiring generation's
+  drain timeout, not zero.
 - R5.3 A rolled-back artifact is *quarantined*: its certificate is
   marked revoked in the record store, the swap host MUST refuse the
   hash permanently, and the failure MUST be triaged into a probe,
@@ -155,6 +168,9 @@ the gates were sufficient. The runtime is the last gate.
 - R5.5 Repeated rollback on one objective lineage (default: 2) MUST
   demote the lineage to Tier 1 — autonomy is lost on evidence, even
   though it is never gained on it (I-2 is asymmetric by design).
+  One rollback is one piece of evidence per lineage, recorded after
+  the rollback lands; the demotion bounds what the lineage may absorb
+  next and never gates the rollback whose evidence produced it (R5.2).
 
 ## 6. Cadence, Budgets, and the Pause
 
@@ -163,12 +179,16 @@ the gates were sufficient. The runtime is the last gate.
   floor (minimum interval between autonomous swaps) so the runtime
   is never absorbing changes faster than the watch window can
   clear them. In-flight watch windows MUST block the next autonomous
-  swap of the same lineage.
+  swap of the same lineage. Neither the floor nor an in-flight window
+  gates a containment rollback, and a rollback does not restart the
+  floor (R5.2).
 - R6.2 A global pause MUST exist, honoring the platform's pause
   semantics: pause halts objective intake and swaps immediately;
   in-flight proposal sessions run to a clean terminal state and
   hold. Pause MUST NOT corrupt state or lose artifacts. Resume
-  requires no reconstruction.
+  requires no reconstruction. Pause halts absorption, not
+  containment: a breach rollback lands while paused and its
+  provenance says so (R5.2).
 - R6.3 Pause, rollback, quarantine, and tier demotion MUST function
   fully offline (air-gap invariant: no autonomy control depends on
   egress).

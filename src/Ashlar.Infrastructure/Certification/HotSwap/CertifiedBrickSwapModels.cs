@@ -69,6 +69,30 @@ public sealed record AutonomousAdmission
 }
 
 /// <summary>
+/// Why a generation is being installed: because the loop (or a human) is absorbing a
+/// change, or because the host is putting back a generation it already committed and
+/// retained. The pacing and authority controls (pause, cadence floor, in-flight watch
+/// window, lineage demotion, recursion ceiling) bound the <em>absorption</em> of change;
+/// a containment rollback replays content the host itself retained, so those controls
+/// never gate it — revocation and verify-at-load still do.
+/// </summary>
+/// <remarks>
+/// Deliberately <c>internal</c>, accepted only by the host's private swap overload, and
+/// never a member of <see cref="CertifiedBrickLoadRequest"/> or
+/// <see cref="AutonomousAdmission"/>: intent is a property of the call path, not of
+/// caller-supplied data. On the request it would be an unsigned, uncertified lane
+/// selector exempting five gates at once. <c>RollbackIntentConventionTests</c> pins this.
+/// </remarks>
+internal enum SwapIntent
+{
+    /// <summary>A new generation is being absorbed; every autonomy gate applies.</summary>
+    Forward,
+
+    /// <summary>A retained generation is being put back after containment; only verification and revocation apply.</summary>
+    Rollback
+}
+
+/// <summary>
 /// Post-swap watch thresholds (autonomy spec R5.2): declared-contract conformance,
 /// error-rate delta and latency factor versus the previous generation's baseline. Breach
 /// triggers automatic quarantine + rollback. Null thresholds on the host = no watch
@@ -229,4 +253,13 @@ public static class BrickSwapProvenanceOutcomes
 
     /// <summary>The watch window breached its thresholds; the generation was quarantined (R5.2/R5.3).</summary>
     public const string WatchBreachQuarantined = "watch-breach-quarantined";
+
+    /// <summary>A rollback was refused at verify-at-load or materialization; the generation it was meant to displace is still serving.</summary>
+    public const string RollbackRefused = "rollback-refused";
+
+    /// <summary>A watch breach found no unrevoked earlier generation to restore, or the restore did not land; the loop is paused and the breaching generation is still serving.</summary>
+    public const string RollbackExhausted = "rollback-exhausted";
+
+    /// <summary>A retained generation failed a check that cannot legitimately fail on a replay (the tier gate); retention is corrupt.</summary>
+    public const string RetentionInvariantViolated = "retention-invariant-violated";
 }
