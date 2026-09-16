@@ -130,6 +130,20 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
         _revocations = revocations;
         _retentionWindow = Math.Max(0, retentionWindow);
         _watchThresholds = watchThresholds;
+
+        // A watch without a revocation list cannot contain what it detects: the quarantine would
+        // revoke nothing, SelectRollbackTarget would re-select the same origin, and the host would
+        // replay the regressed content on every breach with no terminal state - a silent retry
+        // loop, the opposite of what R5.2 promises. Every real composition supplies both. Refuse
+        // the half-configured host here, at construction, rather than at its first breach.
+        if (watchThresholds is not null && revocations is null)
+        {
+            throw new ArgumentException(
+                "A watch window requires a certificate revocation list: a breach whose hashes cannot "
+                + "be revoked cannot be contained and would be replayed. Supply revocations alongside "
+                + "watchThresholds.",
+                nameof(revocations));
+        }
         _lineageAuthority = lineageAuthority;
         _pauseControl = pauseControl;
         _cadenceFloor = cadenceFloor;
@@ -547,6 +561,21 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
             {
                 if (!string.IsNullOrWhiteSpace(request.Record.ContentHash))
                     _revocations.Revoke(request.Record.ContentHash!, reason);
+            }
+        }
+
+        // A quarantined generation does not keep its retention slot. Revocation is permanent, so
+        // it can never be a rollback target again; all it could do by staying is evict the
+        // unrevoked generation beneath it. At the default window of 2 that is exactly what
+        // happened: breach -> rollback (a restore is not retained, by design) -> the loop's next
+        // absorption -> RetainCommitted evicts by age, the breacher is still there, the known-good
+        // origin is gone, and the second breach reports rollback-exhausted with the faulting
+        // generation serving. Two independent verifiers reached that failure the same way.
+        if (subject is not null)
+        {
+            lock (_retained)
+            {
+                _retained.Remove(subject);
             }
         }
 

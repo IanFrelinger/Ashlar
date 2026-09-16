@@ -559,6 +559,65 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
 
     // --- what is NOT exempted -----------------------------------------------------------
 
+    /// <summary>
+    /// Two independent verifiers reached this failure the same way. At the default retention
+    /// window of 2: breach -> rollback (a restore is not retained, by design) -> the loop's next
+    /// absorption -> RetainCommitted evicts by age, so the revoked breacher keeps its slot and the
+    /// known-good origin is evicted. The second breach then finds no unrevoked target, reports
+    /// rollback-exhausted, and the faulting generation keeps serving: containment was lost one
+    /// absorption after the first breach, at the window every production composition uses.
+    /// A quarantined generation now gives up its slot the moment it is revoked.
+    /// </summary>
+    [Fact]
+    public async Task A_second_breach_at_the_default_retention_window_is_still_contained()
+    {
+        var revocations = new InMemoryCertificateRevocationList();
+        var pause = new LoopPauseControl();
+        var sink = new RecordingSink();
+        using var host = CreateHost(sink, revocations, watch: DefaultWatch, pause: pause); // retentionWindow: 2
+
+        var v1 = AutonomousRequest(Healthy("v1"), "lineage-a");
+        (await host.SwapAsync(new[] { v1 })).Swapped.Should().BeTrue();
+        await Warm(host, 3);
+        (await host.SwapAsync(new[] { AutonomousRequest(Faulting(), "lineage-a") })).Swapped.Should().BeTrue();
+        await Breach(host, 2);
+        host.CurrentGenerationId.Should().Be(3, "the first breach rolled back to v1");
+        await Warm(host, 3);
+
+        // The loop's next absorption, on another lineage so no in-flight window applies. A Working
+        // brick with its own marker, not Faulting(): the same faulting source would carry the same
+        // content hash, which the first breach revoked, and verify-at-load would refuse it.
+        (await host.SwapAsync(new[] { AutonomousRequest(Working("g4"), "lineage-b") })).Swapped.Should().BeTrue();
+        await Breach(host, 2, mode: "fail");
+
+        var events = sink.Snapshot();
+        events.Count(e => e.Outcome == BrickSwapProvenanceOutcomes.RollbackCommitted)
+            .Should().Be(2, "both breaches must be contained");
+        events.Should().NotContain(e => e.Outcome == BrickSwapProvenanceOutcomes.RollbackExhausted);
+        pause.IsPaused.Should().BeFalse();
+        revocations.IsRevoked(v1.Record.ContentHash!).Should().BeFalse("v1 is the known-good origin");
+        (await Execute(host)).Get<string>("marker").Should().Be("v1", "the restored generation serves");
+    }
+
+    /// <summary>
+    /// A watch without a revocation list cannot contain what it detects: the quarantine revokes
+    /// nothing, SelectRollbackTarget re-selects the same origin, and the host replays the regressed
+    /// content on every breach with no terminal state. Every real composition supplies both; the
+    /// half-configured host is refused at construction rather than at its first breach.
+    /// </summary>
+    [Fact]
+    public void A_watch_without_a_revocation_list_is_refused_at_construction()
+    {
+        var act = () => new CertifiedBrickHotSwapHost(
+            new RecordingSink(), logger: null, hmacKey: HmacKey, drainTimeout: TimeSpan.FromSeconds(10),
+            revocations: null, retentionWindow: 2, watchThresholds: DefaultWatch,
+            lineageAuthority: new InMemoryLineageAuthority());
+
+        act.Should().Throw<ArgumentException>()
+            .WithParameterName("revocations")
+            .WithMessage("*revocation list*");
+    }
+
     [Fact]
     public async Task A_revoked_retained_generation_is_still_refused_via_rollback()
     {
