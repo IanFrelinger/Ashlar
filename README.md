@@ -13,6 +13,11 @@
 
 **Website:** [Marketing landing page](site/) — open-core product site with commercial pricing and integration guides.
 
+## Support
+
+- **Discord:** https://discord.gg/rAyh2jtb8 — community + design-partner support  
+- **GitHub Discussions:** https://github.com/IanFrelinger/Ashlar/discussions — commercial / product Q&A  
+
 Ashlar is a self-hosted .NET runtime for AI workflows you can audit and embed in your products. Build trustworthy AI applications on infrastructure you control.
 
 **Three things you get, each with a command behind it:**
