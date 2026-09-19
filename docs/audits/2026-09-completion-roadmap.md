@@ -35,6 +35,8 @@ Ashlar has **proven the technical foundation** for autonomous self-extension: ce
 
 Six milestones (M0–M6) progress from honesty baseline to commercial claims. Each milestone has clear **exit criteria**, **dependencies**, and **ownership**. Conservative estimate: **M0–M3 can close in the current development cycle**; M4–M6 require product-team coordination and sustained dogfood operation.
 
+**Post-M6 roadmap:** M7 (Learning Harness) is the long-term feature for autonomous experience-driven improvement. Design sketched in `docs/LearningHarness.md`; implementation deferred until M1–M6 complete and dogfood scorecard unlocked.
+
 **Key Risk:** Certification composition signer vulnerability (limitation 9) is **publicly documented**; composition records are minted under the committed dev key because no production registration supplies one (corrected 2026-09-13: the signer itself now honours explicitly supplied keys. Limitations 7–8 (signature stripping, schema downgrade) were closed by PR #523. M1 MUST close limitation 9 before any commercial claim.
 
 ---
@@ -636,6 +638,206 @@ ledger/
 - ✅ "Tier-based admission control with human gates for kernel changes"
 - ✅ "Public audit trail every release"
 - ✅ "Certifies artifacts from any AI generator (Cursor, Forge, custom)"
+
+---
+
+## M7: Learning Harness (Long-term)
+
+**Goal:** Unify experience recording, reflection, evaluation, and promotion under a single `ILearningHarness` subsystem that enables agents to improve from experience without gaining uncontrolled authority.
+
+**Status:** Design sketch — roadmap feature, not yet implemented
+
+### Concept
+
+The **Learning Harness** is Ashlar's long-term answer to "How do agents learn from experience?" It establishes a four-loop architecture:
+
+1. **Experience Record:** Every task execution → structured experience entry (success/failure, context, cost, duration)
+2. **Reflect:** Analyze experience windows → detect patterns → propose adaptations (strategies, routing rules, new tools)
+3. **Evaluate:** Run candidates through Ashlar gates (certification, replay, tier classification, blast radius)
+4. **Promote:** Admit under policy restrictions (canary rollout, watch window, auto-rollback)
+
+**Core principle:** Agents can learn freely (form hypotheses, propose adaptations). They cannot trust their own learning freely (promotion requires gates).
+
+### Learning Ladder
+
+Adaptations are ranked by blast radius and required promotion bar:
+
+| Rung | Type | Risk | Promotion Bar |
+|------|------|------|---------------|
+| 1–2 | Episodic/semantic memory | Lowest | Automatic |
+| 3–4 | Strategy/routing rules | Low | Replay gate + Tier 0 cert |
+| 5–6 | Prompt policy/workflow | Medium | Replay + Tier 1 (human admit) |
+| 7–8 | New tool/brick | High | Full cert + Tier 1 + canary |
+| 9 | Trust-kernel change | Highest | Tier 2 (human objective) |
+
+**Autonomy ceiling:** Rungs 1–4 can be autonomous. Rungs 5–8 require human admission. Rung 9 requires human-authored objective. Authority is never autonomously learnable.
+
+### M7 Work Streams
+
+#### M7.1: Core Port Design
+
+**Deliverable:** `ILearningHarness` interface in `Ashlar.Core.Contracts`
+
+**Methods:**
+- `RecordExperienceAsync(AgentExperience)` — log task execution
+- `RecallAsync(TaskContext)` — retrieve learned context for planning
+- `ReflectAsync(ReflectionWindow)` — analyze experiences → propose candidates
+- `EvaluateAsync(LearningCandidate)` — run through gates
+- `PromoteAsync(LearningCandidate)` — install under canary/watch
+
+**Acceptance:**
+- Port interface defined
+- `AgentExperience` and `LearnedRule` schemas documented
+- Design doc published: `docs/LearningHarness.md`
+
+**Effort:** Design phase (no code yet; M7 is post-M6)
+
+#### M7.2: Experience Store
+
+**Deliverable:** `IExperienceStore` adapter (subtype of existing task ledger)
+
+**Schema:** Every task → `AgentExperience` record with:
+- ExperienceId, TaskId, AgentId, Objective, ContextHash
+- ToolsAvailable, ToolsUsed, Plan, Output
+- Success, ValidatorResults, UserFeedback
+- Duration, TokenCost, ToolCost
+- PolicyVersion, EnvironmentVersion, Timestamp
+
+**Acceptance:**
+- SQLite adapter implemented
+- Store can record and query experiences by: agent, time range, success/failure, context hash
+- Failures are first-class (failure patterns drive learning)
+
+**Effort:** 5–7 days (schema + adapter + tests)
+
+#### M7.3: Reflector Port + Pattern Detector
+
+**Deliverable:** `IReflector` port + one concrete implementation
+
+**Function:** Analyze experience windows → detect patterns → generate `LearningCandidate` proposals
+
+**Example patterns:**
+- "Tasks with context hash prefix X fail 80% of the time" → propose new strategy
+- "Tool Y unused in 500 consecutive successes" → propose removal from available set
+- "Tasks matching profile Z have 2x token cost vs. baseline" → propose prompt policy change
+
+**Acceptance:**
+- `IReflector` interface defined
+- One pattern detector implemented (e.g., failure-rate-by-context)
+- Detector runs in CI (no external dependencies)
+
+**Effort:** 8–10 days (port + first detector + tests)
+
+#### M7.4: Replay Gate
+
+**Deliverable:** Replay validation for strategy and routing candidates
+
+**Process:**
+1. Select N prior successful tasks matching candidate scope
+2. Re-run with proposed adaptation (mocked tool calls, no network)
+3. Compare: success rate, cost, duration vs. baseline
+4. Verdict: admit if `success_rate >= baseline` AND `cost_increase <= threshold`
+
+**Acceptance:**
+- Replay gate runs in CI
+- Strategy candidate: one green (admitted), one red (rejected)
+- Test corpus selection configurable (time range, agent, context filter)
+
+**Effort:** 10–12 days (corpus selection + replay orchestration + gate integration)
+
+#### M7.5: Promotion Orchestrator
+
+**Deliverable:** `PromoteAsync` implementation with canary/watch/rollback
+
+**Flow:**
+1. Check tier (Tier 0 auto, Tier 1 hold for human, Tier 2 reject)
+2. Run certification gate (witness, mutation, determinism)
+3. Begin canary: install for 10% of matching tasks
+4. Watch window: 50 invocations or 7 days
+5. On breach: auto-rollback + quarantine
+6. On success: promote to general availability
+
+**Acceptance:**
+- Canary rollout proven in CI (time-accelerated, not wall-clock)
+- Watch window breach triggers rollback
+- Promotion record includes evidence chain (experiences → evaluation → gate verdicts)
+
+**Effort:** 12–15 days (orchestration + watch + rollback + tests)
+
+#### M7.6: Ladder Enforcement
+
+**Deliverable:** Mapping from candidate type → required tier + gates
+
+**Table:**
+- Episodic/semantic → automatic
+- Strategy/routing → Replay + Tier 0 cert
+- Prompt/workflow → Replay + Tier 1
+- Tool/brick → Full cert + Tier 1 + canary
+- Kernel → Tier 2 (reject autonomous)
+
+**Acceptance:**
+- Ladder enforcer rejects out-of-tier proposals
+- CI test: kernel-touch candidate → Tier 2 rejection (no autonomous admit)
+- CI test: strategy candidate → Replay + Tier 0 path
+
+**Effort:** 3–5 days (tier mapper + tests)
+
+### M7 Exit Criteria
+
+- [ ] **M7.1** `ILearningHarness` port defined; `docs/LearningHarness.md` published
+- [ ] **M7.2** `IExperienceStore` implemented (SQLite minimum)
+- [ ] **M7.3** `IReflector` port + one pattern detector
+- [ ] **M7.4** Replay gate proven in CI (strategy candidates)
+- [ ] **M7.5** Promotion orchestrator with canary/watch/rollback
+- [ ] **M7.6** Learning ladder enforced (tier mapping)
+- [ ] **M7.7** Linked from `docs/DocsIndex.md` (under Trust loop or Additional Material)
+- [ ] **M7.8** Unify existing pieces: Observe/Adapt/Improve, ITestFailureStore, self-improver, self-context, self-extension under `Ashlar.Learning` namespace
+
+**Owner:** Framework team (runtime + autonomy)  
+**Dependencies:**
+- M1 complete (disarm/cert honesty — canary/rollback must be proven before learning relies on it)
+- Dogfood continuous proof operational (autonomy HOLD until scorecard unlocked)
+- **Autonomy marketing HOLD:** No "autonomous learning in production" claims until M1–M6 closed AND dogfood scorecard met
+
+**Completion Target:** Post-M6 (long-term roadmap)
+
+**Commercial Positioning (HOLD):**
+
+> "A runtime where AI agents improve from experience without gaining uncontrolled authority."
+
+This claim is **blocked** until:
+1. M1–M6 complete
+2. Dogfood scorecard unlocked (last-7-days green ≥ 90%, consecutive-days-hold ≥ 7)
+3. Dated Strict production runs in public ledger
+4. Adversarial validation pack green (16/16 tests, per M2)
+
+### Fleet Learning (Federated)
+
+The Learning Harness supports **distributed learning without universal trust:**
+
+1. Node A learns a rule and packages it as signed `.ashpkg` with evidence chain
+2. Node A publishes to fleet catalog (per `docs/Federation.md`)
+3. Node B discovers package via peer sync / LAN multicast
+4. Node B re-verifies under local policy (signature, evidence, compatibility)
+5. If accepted: Node B installs under canary (even if Node A flew it successfully)
+
+**Key:** Signing proves provenance; local gates enforce safety. Each node decides independently whether to trust a peer's learned rule.
+
+### Architectural Notes
+
+**Ports in core, adapters at edges:**
+- `ILearningHarness`, `IExperienceStore`, `IReflector` are ports (interfaces in `Ashlar.Core.Contracts`)
+- SQLite/Postgres adapters, Ollama/OpenAI reflection backends are infrastructure
+- Forge UI, dashboards, approval workflows are product concerns (not kernel)
+
+**DIP (Dependency Inversion Principle):**
+- Core never references edge infrastructure
+- Learning Harness lives in `src/Ashlar.Learning.*` (framework tier)
+- Products consume `ILearningHarness` via DI
+
+**No Forge UI in kernel:**
+- Dashboard, visualizations, approval UIs belong in `products/Ashlar.Forge.*` or commercial satellites
+- Kernel provides ports only
 
 ---
 
