@@ -8,6 +8,27 @@ One page. If a claim isn't here, don't invent it.
 
 ---
 
+## Website / sales working copy (CEO handoff · fold into #639)
+
+**Headline:** Turn AI-generated know-how into verified, reusable behavior.
+
+**Explain:** Embeddable control layer that checks AI-assisted behaviors before they run, packages admitted behavior for reuse, and records what actually happened.
+
+**Supporting (ok to list):**
+- Verify before run  
+- Reuse with evidence  
+- Models interchangeable (behavior lives in the contract)  
+- Know what ran (receipts)  
+- Re-check at destination  
+- Compose from admitted pieces  
+
+**Careful (honesty):**
+- "Deterministic" only when the gate proves it for that behavior  
+- "Certified" = artifact + gate (not a diploma vibe for friends — prefer *checked before it runs*)  
+- Cross-model = **behavioral equivalence** (same required behavior), not identical outputs  
+
+**CTA:** Design Partner ~$4k / 90 days — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
+
 ## ALWAYS (say freely)
 
 - **Governs behavior, not intelligence** — verified, constrained behaviors you can audit and reuse  
@@ -41,7 +62,9 @@ Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety ch
 
 | Claim | Why |
 |-------|-----|
-| Self-learning / smarter-by-itself / broad self-mod / universal JIT | HOLD |
+| Self-learning / smarter-by-itself / broad self-mod / universal JIT / general self-improve | HOLD |
+| Fully autonomous computers | HOLD |
+| Every prompt identical on every model | HOLD — behavioral equivalence only |
 | Autonomy / unattended self-extend **GA** | HOLD until Dogfood unlock |
 | Learning Harness as **shipped product** customers buy today | Docs/principle until unlock |
 | Prompt packs as GA without evidence | Vision under gate |

@@ -101,6 +101,19 @@ Particular product/org UX, billing, K8s, IDE? → product ring.
 
 ---
 
+
+## Website / sales headline (working copy)
+
+**Headline:** Turn AI-generated know-how into verified, reusable behavior.
+
+**Explain:** Embeddable control layer that checks AI-assisted behaviors before they run, packages admitted behavior for reuse, and records what actually happened.
+
+**Supporting:** verify before run · reuse with evidence · models interchangeable (behavior in contract) · know what ran (receipts) · re-check at destination · compose from admitted pieces.
+
+**Careful:** deterministic only when the gate proves it · certified = artifact + gate · cross-model = behavioral equivalence (not identical outputs).
+
+**CTA:** Design Partner ~$4k/90d — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
+
 ## One-liner (locked)
 
 > Ashlar turns AI-generated know-how into verified, reusable behavior you can audit, move between systems, and run under constraints.
