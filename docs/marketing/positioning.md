@@ -122,6 +122,8 @@ For blog posts, social media, sales materials, and partner communications:
 4. Clarify **Cloud = waitlist only** (not GA)
 5. Hold **autonomy claims** until dogfood scorecard + Strict E2E + hygiene PR
 
+See `docs/marketing/claims-cheat-sheet.md` for the product-locked claims reference.
+
 ---
 
 Last updated: 2026-09-08
