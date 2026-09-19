@@ -74,11 +74,11 @@ Autonomy and design-partner marketing claims (e.g., "Ashlar autonomously propose
 - ✅ PR #627 (real autonomy sweep) merged 2026-09-14; replaced stub with working `FirstFlight --sweep` invocation
 - ✅ PR #630 (SDK image precondition + exit honesty) merged 2026-09-15; prevents infrastructure faults from reporting as PASS
 - ⚠️ First real sweep run ([34889059104](https://github.com/IanFrelinger/Ashlar/actions/runs/34889059104), 2026-09-14) correctly recorded as **GAP** in ledger: missing SDK image meant no iteration ran; #630 prevents recurrence
-- ✅ Scheduled runs since 2026-09-15 producing honest PASS rows (CertifiedButHeld outcomes with recorded proposals)
-- ❌ No real hygiene PR via Ashlar loop yet (canary still uses recorded proposals; live proposer lane not enabled)
+- ⚠️ Scheduled sweeps succeeding + publishing artifacts (e.g. [35333099875](https://github.com/IanFrelinger/Ashlar/actions/runs/35333099875) CertifiedButHeld) but **0 canary PASS rows on master** — N=10 empty until artifact rows are PR'd into docs/dogfood-ledger.md
+- ❌ No real hygiene PR via Ashlar loop yet (canary uses recorded proposals = fixture floor ≠ hygiene-via-Ashlar; live proposer lane not enabled)
 - ✅ lim-9 CLOSED 2026-09-13: the composition signer takes the injected `CertificationRecordSigner` as its key holder and the shipped DI registration supplies it, so an operator key reaches composition records with no host code change and no key accessor on either type; the lane-agreement detection residual closed the same day
 
-**Action:** Keep marketing HOLD. Continuous proof path now operational and honest. Monitor ledger for N=10 window accumulation. Revisit unlock criteria after 7+ consecutive green days with real E2E passes appear in ledger.
+**Action:** Keep marketing HOLD. Continuous proof path operational and honest (workflow publishes artifacts; contents:read cannot push). Land pending artifact rows into docs/dogfood-ledger.md before counting toward N=10 window. Revisit unlock criteria once 7+ consecutive green days with real E2E passes appear in ledger on master.
 
 ## Self-Apply Bar
 
