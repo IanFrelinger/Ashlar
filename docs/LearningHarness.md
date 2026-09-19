@@ -90,7 +90,7 @@ The **learning ladder** orders adaptations by blast radius and required promotio
 | **8** | New brick/code | High | Full cert + Tier 1 + canary + adversarial tests | Code generation + admission |
 | **9** | Trust-kernel change | Highest | Tier 2 (human objective required) | Changes gates themselves |
 
-**Autonomy ceiling:** Rungs 1–4 can be autonomous (Tier 0). Rungs 5–8 require human admission (Tier 1). Rung 9 requires human-authored objective (Tier 2). Authority is never autonomously learnable.
+**Autonomy ceiling:** Rungs 1–4 are **designed to allow** Tier 0 autonomy **when M7 ships and dogfood unlock criteria are met** (see `docs/dogfood-scorecard.md`). Rungs 5–8 require human admission (Tier 1). Rung 9 requires human-authored objective (Tier 2). Authority is never autonomously learnable.
 
 ---
 
@@ -311,10 +311,12 @@ The Learning Harness supports **federated learning** without requiring universal
 
 **Unlock criteria (from `docs/dogfood-scorecard.md`):**
 
-- Last-7-days green rate ≥ 90% (Strict mode, Ed25519 signing)
-- Consecutive-days-hold counter ≥ 7
-- Mean-time-to-admit ≤ threshold (TBD)
-- Dated Strict production evidence in `docs/dogfood-ledger.md`
+- Last-N=10 ≥80% pass rate (Strict mode, Ed25519 signing)
+- Mean time-to-admit ≤15 minutes (single-objective canary)
+- Strict rejection rate ≤70% (≥30% of proposals certified)
+- ≥7 consecutive days with all thresholds met
+- **At least 7 landed dated Strict PASS rows on master** in `docs/dogfood-ledger.md` (not CI artifacts alone)
+- Real hygiene-via-Ashlar PR proof (production-quality Ashlar PR via full autonomy loop)
 
 **Until unlock:** Learning Harness is roadmap/design only. Do not claim "autonomous learning in production" until the thresholds are met and continuous dogfood proof is operational.
 
