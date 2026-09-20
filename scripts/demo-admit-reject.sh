@@ -2,14 +2,14 @@
 # Admission Gate Demo — shows artifact REJECT → ADMIT with visible proof
 #
 # This demo proves the certification gate's admission logic:
-#   1. A weak witness (incomplete expectations) → REJECTED
-#   2. A strong witness (complete expectations) → ADMITTED
+#   1. A weak witness (incomplete expectations) → REJECTED (unsigned record)
+#   2. A strong witness (complete expectations) → ADMITTED (signed record)
 #
-# Both attempts produce signed records with correlated IDs that prove the gate ran.
+# Admitted artifacts produce signed records; rejected artifacts produce unsigned records.
 #
 # What this demonstrates:
 #   - Artifact admission gates exist and enforce mutation + witness requirements
-#   - Records are signed and contain verifiable proof (content hash, gate passes, signatures)
+#   - Admitted records are signed with verifiable proof (content hash, gate passes, signatures)
 #   - Admission is NOT autonomy — see CLOSING-PLAN.md for the pre-execution positioning
 #
 # What this does NOT demonstrate:
@@ -271,9 +271,9 @@ echo "WHAT THIS PROVES"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo
 echo "✓ Certification gate exists and enforces mutation testing"
-echo "✓ Weak artifacts are REJECTED with signed proof"
-echo "✓ Strong artifacts are ADMITTED with verifiable records"
-echo "✓ Content hashes + signatures provide audit trail"
+echo "✓ Weak artifacts are REJECTED (unsigned records)"
+echo "✓ Strong artifacts are ADMITTED (signed records with verifiable proof)"
+echo "✓ Content hashes provide audit trail for both outcomes"
 echo
 echo "HONEST DISCLAIMER:"
 echo "- This proves artifact admission gates work"

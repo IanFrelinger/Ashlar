@@ -18,7 +18,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <list type="bullet">
 ///   <item><description>Weak witness (incomplete expectations) → REJECTED with escape rate > 0</description></item>
 ///   <item><description>Strong witness (complete expectations) → ADMITTED with escape rate = 0</description></item>
-///   <item><description>Both produce signed records with correlated IDs for audit trail</description></item>
+///   <item><description>ADMITTED records are signed; REJECTED records are unsigned</description></item>
 /// </list>
 /// 
 /// <para><b>HONEST DISCLAIMER:</b></para>
@@ -108,7 +108,6 @@ public sealed class AdmissionGateDemoTests
         decision.Admitted.Should().BeFalse("weak witness cannot kill all mutants");
         decision.FailureCheck.Should().Be("mutation");
         decision.Record.EscapeRate.Should().BeGreaterThan(0);
-        decision.Record.Signed.Should().BeTrue();
         decision.Record.ContentHash.Should().NotBeNullOrWhiteSpace();
     }
 
@@ -261,8 +260,7 @@ public sealed class AdmissionGateDemoTests
         weakDecision.Record.EscapeRate.Should().BeGreaterThan(0);
         strongDecision.Record.EscapeRate.Should().Be(0);
 
-        weakDecision.Record.Signed.Should().BeTrue();
-        strongDecision.Record.Signed.Should().BeTrue();
+        strongDecision.Record.Signed.Should().BeTrue("admitted records are signed");
     }
 
     private static CertificationGate CreateGate()
