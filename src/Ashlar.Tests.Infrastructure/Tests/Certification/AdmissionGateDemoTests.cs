@@ -90,13 +90,13 @@ public sealed class AdmissionGateDemoTests
 
         _output.WriteLine("RESULT: ✗ REJECTED");
         _output.WriteLine($"  Brick ID:        {decision.Record.BrickId}");
-        _output.WriteLine($"  Content Hash:    {decision.Record.ContentHash[..16]}...");
+        _output.WriteLine($"  Content Hash:    {decision.Record.ContentHash![..16]}...");
         _output.WriteLine($"  Escape Rate:     {decision.Record.EscapeRate} (threshold: 0)");
         _output.WriteLine($"  Total Mutants:   {decision.Record.TotalMutants}");
         _output.WriteLine($"  Killed Mutants:  {decision.Record.KilledMutants.Count}");
         _output.WriteLine($"  Survivors:       {decision.Record.SurvivingMutants}");
         _output.WriteLine($"  Record Signed:   {decision.Record.Signed}");
-        _output.WriteLine($"  Signature:       {decision.Record.Signature?[..16]}...");
+        _output.WriteLine($"  Signature:       {decision.Record.Signature![..16]}...");
         _output.WriteLine("");
         _output.WriteLine("WHY IT FAILED:");
         _output.WriteLine("  Weak witness cannot detect mutations to 'firstErrorMessage'");
@@ -152,13 +152,13 @@ public sealed class AdmissionGateDemoTests
 
         _output.WriteLine("RESULT: ✓ ADMITTED");
         _output.WriteLine($"  Brick ID:        {decision.Record.BrickId}");
-        _output.WriteLine($"  Content Hash:    {decision.Record.ContentHash[..16]}...");
+        _output.WriteLine($"  Content Hash:    {decision.Record.ContentHash![..16]}...");
         _output.WriteLine($"  Escape Rate:     {decision.Record.EscapeRate}");
         _output.WriteLine($"  Total Mutants:   {decision.Record.TotalMutants}");
         _output.WriteLine($"  Killed Mutants:  {decision.Record.KilledMutants.Count}");
         _output.WriteLine($"  Gates Passed:    {decision.Record.GatesPassed.Count}");
         _output.WriteLine($"  Record Signed:   {decision.Record.Signed}");
-        _output.WriteLine($"  Signature:       {decision.Record.Signature?[..16]}...");
+        _output.WriteLine($"  Signature:       {decision.Record.Signature![..16]}...");
         _output.WriteLine("");
         _output.WriteLine("WHY IT PASSED:");
         _output.WriteLine("  Strong witness checks BOTH outputs ('errorCount' and");
@@ -229,8 +229,8 @@ public sealed class AdmissionGateDemoTests
         _output.WriteLine($"  Brick ID (strong):  {strongDecision.Record.BrickId}");
         _output.WriteLine($"  → SAME ARTIFACT ID");
         _output.WriteLine("");
-        _output.WriteLine($"  Content Hash (weak):    {weakDecision.Record.ContentHash[..16]}...");
-        _output.WriteLine($"  Content Hash (strong):  {strongDecision.Record.ContentHash[..16]}...");
+        _output.WriteLine($"  Content Hash (weak):    {weakDecision.Record.ContentHash![..16]}...");
+        _output.WriteLine($"  Content Hash (strong):  {strongDecision.Record.ContentHash![..16]}...");
         _output.WriteLine($"  → SAME SOURCE CODE");
         _output.WriteLine("");
         _output.WriteLine("DIFFERENT OUTCOMES FROM WITNESS STRENGTH:");
