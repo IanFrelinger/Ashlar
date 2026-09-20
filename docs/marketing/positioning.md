@@ -122,8 +122,10 @@ For blog posts, social media, sales materials, and partner communications:
 4. Clarify **Cloud = waitlist only** (not GA)
 5. Hold **autonomy claims** until dogfood scorecard + Strict E2E + hygiene PR
 
-See `docs/marketing/claims-cheat-sheet.md` for the product-locked claims reference.
+See `docs/marketing/claims-cheat-sheet.md` for the product-locked claims reference, `docs/marketing/product-boundary.md` for CEO lock on product definition (Ashlar governs behavior, not intelligence), and `docs/marketing/friend-warm-script.md` for warm intro language.
+
+**One-liner lock:** Ashlar turns AI-generated know-how into verified, reusable behavior you can audit, move between systems, and run under constraints.
 
 ---
 
-Last updated: 2026-09-08
+Last updated: 2026-09-19
