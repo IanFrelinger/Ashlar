@@ -20,6 +20,17 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// The third fact freezes which production constructions of the store pass no signer, so a new
 /// keyless writer cannot appear without saying so in a diff.</para>
 ///
+/// <para><b>And the funnel's environment.</b> The store's pinning set is not a parameter: the
+/// constructor resolves <c>ASHLAR_KEY_DIR</c> / <c>~/.ashlar/keys</c> through
+/// <c>OperatorKey.TrustedPublicKeysBase64</c>, so which keys a reader vouches for is process-global
+/// state. <see cref="Gate_store_kernel_facts_pin_the_key_directory"/> keeps the suite honest about
+/// that: a kernel fact that constructs a store on a developer machine which has run
+/// <c>ashlar keys init</c> otherwise runs against that machine's <c>operator.pub</c> while CI stays
+/// green. Injecting the key directory is the real fix and is deferred, because
+/// <see cref="KeylessConstructionSites"/> identifies a keyless construction by counting constructor
+/// arguments — a second argument would blind this gate silently, so the injection MUST replace it
+/// before it lands.</para>
+///
 /// <para><b>These are tripwires, not proofs.</b> Text scans: an alias, a <c>using static</c>, or a
 /// <c>JsonNode</c> walk that rebuilds a record by hand would defeat them. Framing a scan as a proof
 /// is how a gate goes quiet (<c>docs/HowGatesGoQuiet.md</c>).</para>
@@ -56,6 +67,18 @@ public sealed partial class GateRecordReadFunnelConventionTests
     private const string FunnelCall = ".Refuse(";
 
     private const string Construction = "new GateStore(";
+
+    /// <summary>The kernel test project: unit facts over the store itself, one per class.</summary>
+    private const string KernelTestProject = "src/Ashlar.Tests.Kernel";
+
+    /// <summary>The variable <c>OperatorKey.ResolveKeyDir</c> reads, and the store through it.</summary>
+    private const string KeyDirVariable = "ASHLAR_KEY_DIR";
+
+    /// <summary>Spelled with the quotes so a mention of the collection in prose does not satisfy it.</summary>
+    private const string SerializingCollection = "[Collection(\"EnvironmentSensitive\")]";
+
+    /// <summary>Only a file that declares facts is scheduled into a collection of its own.</summary>
+    private static readonly string[] FactMarkers = ["[Fact", "[Theory"];
 
     /// <summary>
     /// Production files known on 2026-09-15 to construct a <c>GateStore</c> WITHOUT a signer,
@@ -149,6 +172,56 @@ public sealed partial class GateRecordReadFunnelConventionTests
             "these files no longer construct a GateStore without a signer, so their rows overstate "
             + "the remaining keyless surface. Delete the rows with the fix. Stale: {0}",
             string.Join(", ", stale));
+    }
+
+    /// <summary>
+    /// A kernel fact that constructs a <c>GateStore</c> is reading the machine's key directory,
+    /// whatever its name says. Three facts here — the two keyless readers in
+    /// <c>SignedGateStoreTests</c> and the bundle consumer in <c>ExtensionPackagingTests</c> — once
+    /// failed on any developer box that had run <c>ashlar keys init</c> and passed in CI, which is
+    /// the worst shape a suite can have: green where nobody is watching, red where someone is.
+    /// </summary>
+    [Fact]
+    public void Gate_store_kernel_facts_pin_the_key_directory()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var kernel = Path.Combine(root, KernelTestProject);
+        Directory.Exists(kernel).Should().BeTrue(
+            "this scan is vacuous if the project moved; point {0} at the new path", nameof(KernelTestProject));
+
+        var constructors = new List<string>();
+        var unpinned = new List<string>();
+        foreach (var file in Sources(kernel))
+        {
+            var text = File.ReadAllText(file);
+            if (!text.Contains(Construction, StringComparison.Ordinal)
+                || !FactMarkers.Any(m => text.Contains(m, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            var path = Normalize(Path.GetRelativePath(root, file));
+            constructors.Add(path);
+            if (!text.Contains(SerializingCollection, StringComparison.Ordinal)
+                || !text.Contains(KeyDirVariable, StringComparison.Ordinal))
+            {
+                unpinned.Add(path);
+            }
+        }
+
+        constructors.Should().NotBeEmpty(
+            "the scan found no kernel fact constructing a GateStore at all, which means the marker "
+            + "'{0}' no longer matches how the store is built", Construction);
+
+        unpinned.OrderBy(p => p, StringComparer.Ordinal).Should().BeEmpty(
+            "GateStore's constructor resolves its signer-pinning set from {0} (or ~/.ashlar/keys), so "
+            + "a fact that constructs one runs against whatever key material the machine happens to "
+            + "hold. Join {1} and point {0} at a FRESH EMPTY directory in the fixture — not at the "
+            + "key directory the fact generates into, which would make a reader the fact calls "
+            + "keyless silently keyed. Unpinned: {2}",
+            KeyDirVariable,
+            SerializingCollection,
+            string.Join(", ", unpinned));
     }
 
     // ─────────────────────────── the scan ───────────────────────────

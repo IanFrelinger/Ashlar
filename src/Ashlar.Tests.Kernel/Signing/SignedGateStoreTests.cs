@@ -14,21 +14,40 @@ namespace Ashlar.Tests.Kernel.Signing;
 /// corrupt, and a corrupt verdict is refused loudly rather than trusted quietly</strong>. The
 /// companion rule <strong>S-2</strong> is that a store with no key writes exactly today's
 /// honest unsigned record.
+///
+/// <para><b>Hermetic against the machine's key directory.</b> <see cref="GateStore"/>'s constructor
+/// pins its signer set from <see cref="OperatorKey.TrustedPublicKeysBase64"/>, which resolves
+/// <c>ASHLAR_KEY_DIR</c> / <c>~/.ashlar/keys</c> — so on a developer box that has run
+/// <c>ashlar keys init</c>, the readers these facts call KEYLESS would hold that machine's
+/// <c>operator.pub</c> and refuse records signed by the test's own key. The variable is pointed at
+/// a fresh EMPTY directory for the lifetime of the class, never at <see cref="_keyDir"/>: pointing
+/// it there would turn the keyless facts green while making their reader keyed, which is the
+/// opposite of what their names promise. The keyed facts are unaffected, because the store appends
+/// the signer it was constructed with to the pinning set.</para>
 /// </summary>
+[Collection("EnvironmentSensitive")]
 public sealed class SignedGateStoreTests : IDisposable
 {
+    private const string KeyDirVariable = "ASHLAR_KEY_DIR";
+
     private readonly string _root;
     private readonly string _keyDir;
+    private readonly string? _previousKeyDir;
 
     public SignedGateStoreTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "signed-gate-" + Guid.NewGuid().ToString("N"));
         _keyDir = Path.Combine(_root, "keys");
         Directory.CreateDirectory(_root);
+        _previousKeyDir = Environment.GetEnvironmentVariable(KeyDirVariable);
+        var ambient = Path.Combine(_root, "no-ambient-keys");
+        Directory.CreateDirectory(ambient);
+        Environment.SetEnvironmentVariable(KeyDirVariable, ambient);
     }
 
     public void Dispose()
     {
+        Environment.SetEnvironmentVariable(KeyDirVariable, _previousKeyDir);
         if (Directory.Exists(_root))
         {
             Directory.Delete(_root, recursive: true);

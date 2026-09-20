@@ -11,18 +11,28 @@ namespace Ashlar.Tests.Kernel;
 /// invariant: hostile input produces a REJECTION WITH A REASON — never a hang, an
 /// exponential blowup, an unhandled exception, or (worst of all) a silently skipped record.
 /// </summary>
+[Collection("EnvironmentSensitive")]
 public sealed class AdmissionFuzzTests : IDisposable
 {
+    /// <summary>A GateStore pins its signers from this variable; see
+    /// <see cref="EnvironmentSensitiveCollection"/> for why every store-constructing fact pins it
+    /// to an EMPTY directory of its own.</summary>
+    private const string KeyDirVariable = "ASHLAR_KEY_DIR";
+
     private readonly string _dir;
+    private readonly string? _previousKeyDir;
 
     public AdmissionFuzzTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "fuzz-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+        _previousKeyDir = Environment.GetEnvironmentVariable(KeyDirVariable);
+        Environment.SetEnvironmentVariable(KeyDirVariable, Directory.CreateDirectory(Path.Combine(_dir, "no-ambient-keys")).FullName);
     }
 
     public void Dispose()
     {
+        Environment.SetEnvironmentVariable(KeyDirVariable, _previousKeyDir);
         if (Directory.Exists(_dir))
         {
             Directory.Delete(_dir, recursive: true);

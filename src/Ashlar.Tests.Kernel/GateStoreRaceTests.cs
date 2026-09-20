@@ -16,18 +16,28 @@ namespace Ashlar.Tests.Kernel;
 /// other), and two self-extending proposals could both read a budget of 0-used and both
 /// admit. On an admission boundary those are security bugs, not concurrency niceties.</para>
 /// </summary>
+[Collection("EnvironmentSensitive")]
 public sealed class GateStoreRaceTests : IDisposable
 {
+    /// <summary>A GateStore pins its signers from this variable; see
+    /// <see cref="EnvironmentSensitiveCollection"/> for why every store-constructing fact pins it
+    /// to an EMPTY directory of its own.</summary>
+    private const string KeyDirVariable = "ASHLAR_KEY_DIR";
+
     private readonly string _dir;
+    private readonly string? _previousKeyDir;
 
     public GateStoreRaceTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "gate-races-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+        _previousKeyDir = Environment.GetEnvironmentVariable(KeyDirVariable);
+        Environment.SetEnvironmentVariable(KeyDirVariable, Directory.CreateDirectory(Path.Combine(_dir, "no-ambient-keys")).FullName);
     }
 
     public void Dispose()
     {
+        Environment.SetEnvironmentVariable(KeyDirVariable, _previousKeyDir);
         if (Directory.Exists(_dir))
         {
             Directory.Delete(_dir, recursive: true);
