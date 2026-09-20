@@ -25,16 +25,28 @@ namespace Ashlar.Manifest.Admission;
 /// Empty for a keyless reader, which verifies intrinsically only — bundle consumers and fresh
 /// checkouts must keep reading.</param>
 /// <param name="Basis">Which anchors fired, in words, for renderers and refusal messages.</param>
+/// <param name="MarkerActivatedAt">The instant on the activation marker when one is on disk —
+/// whether or not this reader honours it — and null when there is no marker at all. It is NOT a
+/// grace floor and MUST NOT be compared against a record: it exists so the keyless write guard can
+/// refuse on the marker's mere presence and name the instant, without reading the marker a second
+/// time and disagreeing with the read that judged the records.</param>
 public sealed record GateSignatureExpectation(
     bool Expected,
     DateTimeOffset? GraceBefore,
     IReadOnlyList<string> TrustedSigners,
-    string Basis)
+    string Basis,
+    DateTimeOffset? MarkerActivatedAt)
 {
+    /// <summary>Whether an activation marker exists on disk at all, honoured or ignored. The
+    /// keyless write guard is deliberately stricter than the read rule and turns on this rather
+    /// than on <see cref="Expected"/>: a keyless writer cannot vouch for a marker and must not
+    /// gamble that a keyed reader will not honour it.</summary>
+    public bool MarkerPresent => MarkerActivatedAt is not null;
+
     /// <summary>No anchor: a present signature is verified and pinned, a missing one is
     /// tolerated — today's behaviour exactly (rule S-2).</summary>
     public static GateSignatureExpectation None(IReadOnlyList<string> trustedSigners, string basis) =>
-        new(false, null, trustedSigners, basis);
+        new(false, null, trustedSigners, basis, null);
 
     /// <summary>
     /// The reason <paramref name="record"/> must be refused as corrupt, or null when it passes.

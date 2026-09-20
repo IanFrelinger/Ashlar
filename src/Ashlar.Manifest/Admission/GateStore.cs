@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -69,8 +70,9 @@ public sealed partial class GateStore
     private readonly IReadOnlyList<string> _trustedSigners;
 
     /// <summary>
-    /// The signature posture the most recent <see cref="GetAsync"/> or <see cref="ListAsync"/>
-    /// resolved and judged its records against; null before any read. Renderers use it to say
+    /// The signature posture the most recent pass through <see cref="ReadStoreAsync"/> — any read,
+    /// and the keyless write guard — resolved and judged its records against; null before the
+    /// first of those. One posture per store operation, resolved in one place. Renderers use it to say
     /// whether signatures are expected here and to warn when keys are present but the store has
     /// never been signed — without ever printing a fingerprint the store did not verify (S-3).
     /// </summary>
@@ -302,75 +304,115 @@ public sealed partial class GateStore
     }
 
     /// <summary>Fetches one record, or null when absent. A file that exists but cannot be
-    /// read as a record is an error, never a null. The signature expectation for a single read
-    /// is resolved from the activation marker and key material alone — a keyed reader gets the
-    /// marker's full strength; a keyless one, which cannot vouch for a marker, verifies the
-    /// record intrinsically and leaves stripped-signature detection to <see cref="ListAsync"/>,
-    /// where the store's other records can anchor it.</summary>
+    /// read as a record is an error, never a null.
+    ///
+    /// <para>This resolves the store's posture through <see cref="ReadStoreAsync"/>, exactly as
+    /// <see cref="ListAsync"/> does, so <b>a single-record read is no longer a single-file read</b>:
+    /// one corrupt, stripped, re-signed, renamed or duplicated record anywhere under
+    /// <c>gates/</c> refuses this read too. That is deliberate and it is the contract. The two
+    /// funnels cannot agree on weaker terms, and while they disagreed this path resolved from the
+    /// marker alone — so with the marker deleted it returned a stripped, state-flipped record that
+    /// <see cref="ListAsync"/> beside it refused, and since <see cref="DecideAsync"/> reads through
+    /// here, `gates --admit` signed tampered content under the operator's key.</para></summary>
     public async Task<GateRecord?> GetAsync(string proposalId, CancellationToken ct = default)
     {
         var path = PathFor(proposalId);
         if (!File.Exists(path))
         {
+            // An unknown id in a healthy store still reads as absent rather than as an error.
             return null;
         }
-        var expectation = ResolveExpectation(Array.Empty<GateRecord>());
-        SignatureTrust = expectation;
-        return await ReadRecordAsync(path, expectation, ct).ConfigureAwait(false);
+
+        var wanted = Path.GetFileName(path);
+        var (records, _) = await ReadStoreAsync(ct).ConfigureAwait(false);
+        foreach (var entry in records)
+        {
+            if (string.Equals(Path.GetFileName(entry.Path), wanted, StringComparison.Ordinal))
+            {
+                return entry.Record;
+            }
+        }
+        // The file was there a moment ago and is not now: another process removed it under us.
+        return null;
     }
 
     /// <summary>
-    /// Lists records, newest first, optionally filtered by state. Two passes over one parsed
-    /// set: pass one judges only the PRESENT signatures (verify, then pin) and collects the
-    /// verifying records as anchors; pass two resolves the expectation from those anchors and
-    /// the marker, and applies the stripped-signature leg. A store this class cannot fully read
-    /// is a store it refuses to summarize — including for the budget count.
+    /// Lists records, newest first, optionally filtered by state. A filter and an ordering over
+    /// <see cref="ReadStoreAsync"/> — a store this class cannot fully read is a store it refuses
+    /// to summarize, including for the budget count.
     /// </summary>
     public async Task<IReadOnlyList<GateRecord>> ListAsync(ProposalState? state = null, CancellationToken ct = default)
     {
-        var parsed = await ParseAllAsync(ct).ConfigureAwait(false);
-        var expectation = ResolveExpectation(parsed);
-        SignatureTrust = expectation;
-
-        var records = new List<GateRecord>(parsed.Count);
-        foreach (var (path, record) in parsed)
-        {
-            if (expectation.Refuse(record, Path.GetFileName(path)) is { } refusal)
-            {
-                throw new InvalidOperationException(refusal);
-            }
-            if (state is null || record.State == state)
-            {
-                records.Add(record);
-            }
-        }
-        return records.OrderByDescending(r => r.Proposal.ProposedAt).ToList();
+        var (records, _) = await ReadStoreAsync(ct).ConfigureAwait(false);
+        return records
+            .Where(e => state is null || e.Record.State == state)
+            .Select(e => e.Record)
+            .OrderByDescending(r => r.Proposal.ProposedAt)
+            .ToList();
     }
 
     /// <summary>
-    /// Pass one of a listing: parse every record and judge only the signatures that are
-    /// PRESENT (verify, then pin to key material). No anchor is needed to judge a present
-    /// signature, and a record that fails here is refused before it can anchor anything.
-    /// Every signed record that survives is an anchor: intrinsic proof this store is signed.
+    /// THE resolution point, and the only way a record leaves this store. Every read — and the
+    /// keyless write guard — comes through here, and no production code outside this file
+    /// deserializes a <see cref="GateRecord"/> (pinned by the read-funnel convention test).
+    ///
+    /// <para>Three steps over ONE parsed set, which is why this cannot be split: parse and hash;
+    /// then judge only the signatures that are PRESENT (verify, then pin to key material) and
+    /// collect the survivors as anchors — no anchor is needed to judge a present signature, and a
+    /// record that fails here is refused before it can anchor anything; then resolve the posture
+    /// from those anchors and the marker, and apply it to EVERY record. Resolving twice is how the
+    /// funnels came to disagree, so the posture is set here and nowhere else.</para>
+    ///
+    /// <para>The hash is the canonical sha256 of the record, computed where the bytes are already
+    /// in hand: it is what a grandfather inventory pins an unsigned record by.</para>
     /// </summary>
-    private GateSignatureExpectation ResolveExpectation(IReadOnlyList<(string Path, GateRecord Record)> parsed)
+    private async Task<(IReadOnlyList<(string Path, GateRecord Record, string Sha256)> Records, GateSignatureExpectation Expectation)>
+        ReadStoreAsync(CancellationToken ct)
     {
-        var unanchored = GateSignatureExpectation.None(_trustedSigners, "judging present signatures only");
-        var anchors = new List<GateRecord>();
+        var parsed = await ParseAllAsync(ct).ConfigureAwait(false);
+        var entries = new List<(string Path, GateRecord Record, string Sha256)>(parsed.Count);
         foreach (var (path, record) in parsed)
         {
-            if (record.Sig is null)
+            entries.Add((path, record, CanonicalSha256(record)));
+        }
+
+        var unanchored = GateSignatureExpectation.None(_trustedSigners, "judging present signatures only");
+        var anchors = new List<GateRecord>();
+        foreach (var entry in entries)
+        {
+            if (entry.Record.Sig is null)
             {
                 continue;
             }
-            if (unanchored.Refuse(record, Path.GetFileName(path)) is { } refusal)
+            if (unanchored.Refuse(entry.Record, Path.GetFileName(entry.Path)) is { } refusal)
             {
                 throw new InvalidOperationException(refusal);
             }
-            anchors.Add(record);
+            anchors.Add(entry.Record);
         }
-        return ResolveExpectation(anchors);
+
+        var expectation = ResolveExpectation(anchors);
+        SignatureTrust = expectation;
+
+        foreach (var entry in entries)
+        {
+            if (expectation.Refuse(entry.Record, Path.GetFileName(entry.Path)) is { } refusal)
+            {
+                throw new InvalidOperationException(refusal);
+            }
+        }
+
+        return (entries, expectation);
     }
+
+    /// <summary>
+    /// The sha256 of the record's CANONICAL bytes, lowercase hex — derived from the deserialized
+    /// record, never from the file as it sits on disk. A trailing newline, a reformat or a
+    /// <c>text=auto</c> CRLF normalisation must not move it, and neither must a future nullable
+    /// member (<c>CanonicalJson</c> omits nulls, the same mechanism S-5 already depends on).
+    /// </summary>
+    private static string CanonicalSha256(GateRecord record) =>
+        Convert.ToHexString(SHA256.HashData(Signing.CanonicalJson.Bytes(record))).ToLowerInvariant();
 
     /// <summary>
     /// Resolves the signature posture from two anchors, neither of which is the record being
@@ -430,7 +472,7 @@ public sealed partial class GateStore
                 : "no operator key and no signed record — unsigned, as SPEC-006 S-2 allows");
         }
 
-        return new GateSignatureExpectation(expected, grace, _trustedSigners, string.Join("; ", basis));
+        return new GateSignatureExpectation(expected, grace, _trustedSigners, string.Join("; ", basis), marker?.ActivatedAt);
     }
 
     private async Task<List<(string Path, GateRecord Record)>> ParseAllAsync(CancellationToken ct)
@@ -441,22 +483,6 @@ public sealed partial class GateStore
             parsed.Add((file, await ParseRecordAsync(file, ct).ConfigureAwait(false)));
         }
         return parsed;
-    }
-
-    /// <summary>
-    /// Reads one record file and judges it against the resolved expectation, FAIL-CLOSED. The
-    /// only way a record leaves this store: <see cref="GetAsync"/> and <see cref="ListAsync"/>
-    /// both come through here, and no production code outside this file deserializes a
-    /// <see cref="GateRecord"/> (pinned by the read-funnel convention test).
-    /// </summary>
-    private static async Task<GateRecord> ReadRecordAsync(string path, GateSignatureExpectation expectation, CancellationToken ct)
-    {
-        var record = await ParseRecordAsync(path, ct).ConfigureAwait(false);
-        if (expectation.Refuse(record, Path.GetFileName(path)) is { } refusal)
-        {
-            throw new InvalidOperationException(refusal);
-        }
-        return record;
     }
 
     /// <summary>
@@ -490,13 +516,15 @@ public sealed partial class GateStore
 
     /// <summary>
     /// How many extensions were admitted inside the budget window ending now. Drives the
-    /// self-extending budget check.
+    /// self-extending budget check. Consumes <see cref="ReadStoreAsync"/> directly rather than
+    /// <see cref="ListAsync"/>, so the count uses the very expectation instance that judged these
+    /// records instead of re-reading the public <see cref="SignatureTrust"/> after an await.
     /// </summary>
     public async Task<int> AdmittedInWindowAsync(TimeSpan window, DateTimeOffset now, CancellationToken ct = default)
     {
-        var records = await ListAsync(ProposalState.Admitted, ct).ConfigureAwait(false);
+        var (records, _) = await ReadStoreAsync(ct).ConfigureAwait(false);
         var cutoff = now - window;
-        return records.Count(r => r.DecidedAt >= cutoff);
+        return records.Count(e => e.Record.State == ProposalState.Admitted && e.Record.DecidedAt >= cutoff);
     }
 
     private string PathFor(string proposalId)
@@ -563,11 +591,10 @@ public sealed partial class GateStore
             // refuses a keyless write even when no record corroborates it, because a keyless
             // writer cannot vouch for the marker and must not gamble that a keyed reader will not
             // honour it. The caller already holds the store lock.
-            var expectation = ResolveExpectation(await ParseAllAsync(ct).ConfigureAwait(false));
-            var marker = GateSigningActivation.TryRead(_stateRoot);
-            if (expectation.Expected || marker is not null)
+            var (_, expectation) = await ReadStoreAsync(ct).ConfigureAwait(false);
+            if (expectation.Expected || expectation.MarkerPresent)
             {
-                var why = expectation.Expected ? expectation.Basis : $"signing activated {marker!.ActivatedAt:u}";
+                var why = expectation.Expected ? expectation.Basis : $"signing activated {expectation.MarkerActivatedAt!.Value:u}";
                 throw new InvalidOperationException(
                     $"This gate store is signed ({why}), but no operator key is loaded here, so the verdict for "
                     + $"'{record.Proposal.Id}' would be written UNSIGNED — and the next read would refuse it as a "

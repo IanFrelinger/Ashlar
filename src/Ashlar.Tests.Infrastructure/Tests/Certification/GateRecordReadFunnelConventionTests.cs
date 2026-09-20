@@ -175,6 +175,39 @@ public sealed partial class GateRecordReadFunnelConventionTests
     }
 
     /// <summary>
+    /// One posture per store operation, resolved in ONE place.
+    ///
+    /// <para><b>Why the counts are exact.</b> A "resolves at least once" assertion is vacuous —
+    /// the shape this fact exists to refuse resolved THREE times (<c>GetAsync</c> from the marker
+    /// alone, <c>ListAsync</c> from the marker and the records, the keyless write guard again from
+    /// scratch), and the funnels disagreed: with <c>gate-signing.json</c> deleted, <c>GetAsync</c>
+    /// returned a stripped, state-flipped record that <c>ListAsync</c> beside it refused, and
+    /// <c>DecideAsync</c> reads through <c>GetAsync</c>. So: the empty-anchor resolution is gone
+    /// outright; <c>ParseAllAsync</c> is spoken exactly twice — its declaration and the single call
+    /// inside <c>ReadStoreAsync</c>; the marker is read exactly once per operation; and
+    /// <c>ReadStoreAsync</c> serves at least four call sites.</para>
+    /// </summary>
+    [Fact]
+    public void One_resolution_point_serves_every_read()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var store = StripCommentLines(File.ReadAllText(Path.Combine(root, StorePath)));
+
+        Occurrences(store, "Array.Empty<GateRecord>()").Should().Be(0,
+            "resolving an expectation from NO anchors is a second, weaker posture for a single-record "
+            + "read; it is what let a keyed GetAsync return a record ListAsync refused");
+        Occurrences(store, "ParseAllAsync(").Should().Be(2,
+            "the declaration and the one call inside ReadStoreAsync. A third occurrence is a second "
+            + "parse of the same directory, and two parses are two postures");
+        Occurrences(store, "ReadStoreAsync(").Should().BeGreaterThanOrEqualTo(4,
+            "GetAsync, ListAsync, AdmittedInWindowAsync and the keyless write guard all resolve "
+            + "through it; a reader that does not is a reader with its own posture");
+        Occurrences(store, "GateSigningActivation.TryRead(").Should().Be(1,
+            "the marker is read where the posture is resolved and nowhere else — a second read is a "
+            + "second answer, and the marker is a file the attacker can delete between the two");
+    }
+
+    /// <summary>
     /// A kernel fact that constructs a <c>GateStore</c> is reading the machine's key directory,
     /// whatever its name says. Three facts here — the two keyless readers in
     /// <c>SignedGateStoreTests</c> and the bundle consumer in <c>ExtensionPackagingTests</c> — once
@@ -319,6 +352,19 @@ public sealed partial class GateRecordReadFunnelConventionTests
                 yield return (Normalize(Path.GetRelativePath(root, file)), StripCommentLines(File.ReadAllText(file)));
             }
         }
+    }
+
+    /// <summary>Non-overlapping occurrences of <paramref name="needle"/>, ordinally.</summary>
+    private static int Occurrences(string haystack, string needle)
+    {
+        var count = 0;
+        var i = haystack.IndexOf(needle, StringComparison.Ordinal);
+        while (i >= 0)
+        {
+            count++;
+            i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal);
+        }
+        return count;
     }
 
     private static string StripCommentLines(string text)

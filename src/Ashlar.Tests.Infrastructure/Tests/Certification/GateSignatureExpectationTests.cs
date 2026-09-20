@@ -411,6 +411,82 @@ public sealed class GateSignatureExpectationTests : IDisposable
             .Which.State.Should().Be(ProposalState.Held, "the refused decision changed nothing");
     }
 
+    // ─────────────────────── one posture serves every read ───────────────────────
+
+    [Fact]
+    public async Task Get_and_list_agree_on_the_posture_of_the_same_store()
+    {
+        // The two funnels used to resolve separately: GetAsync from the activation marker alone,
+        // ListAsync from the marker AND the store's other verifying records. Delete the marker —
+        // a file in the directory the attacker already writes — and GetAsync had no anchor left,
+        // so it handed back a record ListAsync beside it refused. One store, one posture.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var store = Store(signer);
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await store.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+
+        File.Delete(MarkerFile);
+        Strip("ext-2");
+
+        var reader = Store(OperatorKey.TryLoad());
+        var list = async () => await reader.ListAsync();
+        var get = async () => await reader.GetAsync("ext-2");
+
+        var fromList = (await list.Should().ThrowAsync<InvalidOperationException>()).Which.Message;
+        var fromGet = (await get.Should().ThrowAsync<InvalidOperationException>()).Which.Message;
+
+        fromGet.Should().Be(fromList, "the same store judged by the same expectation says the same thing");
+        fromGet.Should().Contain("ext-2.json").And.Contain("carries no signature");
+    }
+
+    [Fact]
+    public async Task A_keyed_decision_cannot_be_made_on_a_record_the_store_would_refuse()
+    {
+        // The laundering step, executed. DecideAsync reads through GetAsync, so while GetAsync
+        // carried the weaker posture, `ashlar gates --admit` on a stripped and tampered Held
+        // record signed the attacker's content under the OPERATOR'S key and handed back a verdict
+        // that verified — legitimate code minting the forgery the read rule exists to catch.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var store = Store(signer);
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await store.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+
+        File.Delete(MarkerFile);
+        Strip("ext-2");
+        var tampered = (JsonObject)JsonNode.Parse(File.ReadAllText(RecordFile("ext-2")))!;
+        tampered["Proposal"]!["Summary"] = "TAMPERED: add brick evil.backdoor";
+        File.WriteAllText(RecordFile("ext-2"), tampered.ToJsonString());
+        var before = await File.ReadAllBytesAsync(RecordFile("ext-2"));
+
+        var decide = async () => await store.DecideAsync("ext-2", admit: true, "alice", "looks good", T0.AddHours(2));
+        (await decide.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ext-2.json*carries no signature*");
+
+        (await File.ReadAllBytesAsync(RecordFile("ext-2"))).Should().Equal(
+            before, "nothing may be signed over content the store would refuse to read");
+        File.Exists(MarkerFile).Should().BeFalse(
+            "a refused decision must not re-create the marker the attacker deleted, at the decision instant");
+    }
+
+    [Fact]
+    public async Task A_corrupt_neighbour_names_itself_not_the_requested_record()
+    {
+        // GetAsync is no longer a single-file read, which is the price of the two funnels
+        // agreeing. The operator must therefore be pointed at the file that is actually broken,
+        // not at the one they asked about — a refusal built from the requested id would send them
+        // to inspect a healthy record.
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-good"), Held(), T0);
+        File.WriteAllText(RecordFile("ext-bad"), "{ \"Proposal\": ");
+
+        var get = async () => await Store().GetAsync("ext-good");
+        (await get.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*Corrupt gate record*")
+            .WithMessage("*ext-bad.json*", "the refusal names the file that is broken");
+    }
+
     [Fact]
     public async Task A_fabricated_unsigned_admission_cannot_spend_the_self_extension_budget()
     {
