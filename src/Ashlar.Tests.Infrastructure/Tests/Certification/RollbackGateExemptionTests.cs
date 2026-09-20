@@ -587,7 +587,14 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
         // The loop's next absorption, on another lineage so no in-flight window applies. A Working
         // brick with its own marker, not Faulting(): the same faulting source would carry the same
         // content hash, which the first breach revoked, and verify-at-load would refuse it.
-        (await host.SwapAsync(new[] { AutonomousRequest(Working("g4"), "lineage-b") })).Swapped.Should().BeTrue();
+        //
+        // The refusal codes are in the message because this precondition failed once inside a full
+        // parallel cert-gate run and could say only "expected True, found False". It did not
+        // reproduce in nine reruns - three full gates and six in isolation - so rather than guess
+        // at a cause, the next occurrence is made to name its own.
+        var g4 = await host.SwapAsync(new[] { AutonomousRequest(Working("g4"), "lineage-b") });
+        g4.Swapped.Should().BeTrue("the loop's next absorption must land; refusals: "
+            + string.Join(" | ", g4.Refusals.Select(r => $"{r.FailureCode}: {r.Reason}")));
         await Breach(host, 2, mode: "fail");
 
         var events = sink.Snapshot();
