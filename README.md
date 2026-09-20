@@ -149,11 +149,11 @@ Where to read and what to run:
 
 Ashlar also ships an engine that watches how teams build, test, release, and operate software, learns repeatable patterns, and improves automations over time under policy — with pause/resume, local-first routing, and audit on every step. It is one subsystem (see the [subsystem map](#subsystem-map) and [`docs/DogfoodValidation.md`](docs/DogfoodValidation.md)); every adaptation it promotes goes through the same trust path as everything else.
 
-## Quick Start (3 commands)
+## Quick Start (5 minutes)
 
 > ⚠️ **Not safe for public exposure as shipped.** Defaults are tuned for local dev: **HTTP-only, no authentication** (`ExposureProfile: Localhost`, `AuthorizationMode: None`, `AllowedHosts: "*"`). Before exposing Ashlar to any network, configure **auth + TLS** — see [Security Defaults](#security-defaults).
 
-**The fastest way to see a receipt** — uses the mock provider, so **no API keys are required**.
+**The fastest way to see a receipt** (3 commands, zero decisions) — uses the mock provider, so **no API keys are required**.
 
 ```bash
 git clone https://github.com/IanFrelinger/Ashlar.git && cd Ashlar
@@ -185,11 +185,13 @@ bash scripts/demo-receipt.sh
 
 Starts the API with mock provider, posts a canned task, prints a receipt, and gives you the URLs. Fails fast if the SDK is missing — does NOT silently install .NET.
 
-### Lane 1 — Tester (native SDK)
+### Lane 1 — Try (run the portal)
 
-Requires .NET SDK 10.x (see `global.json`). No Docker. Fifteen minutes from clone to an audited job and watching the cert-gate admit/reject.
+**Already done!** The 3-command Docker quickstart above is Lane 1. No additional steps needed.
 
-See [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md) for the full walkthrough.
+For a native alternative (no Docker), see [Native receipt script](#native-receipt-script).
+
+For the full tester walkthrough with cert-gate validation, see [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md).
 
 ### Lane 2 — Develop (dev container + CLI)
 
