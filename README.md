@@ -40,8 +40,6 @@ Open `http://localhost:8080`, run a task, see your first plain-English receipt. 
 
 **To embed Ashlar in your application:** [`docs/IntegratorGuide.md`](docs/IntegratorGuide.md) — NuGet packages, HTTP client, SDK integration, and distribution models.
 
-Other lanes: [**Try**](#lane-1--try-run-the-portal) (portal in Docker) · [**Develop**](#lane-2--develop-dev-container--cli) (dev container + CLI) · [**Deploy**](#lane-3--deploy-operators) (GHCR images + compose).
-
 The trust loop that makes "certified" checkable — and the experimental, hold-mode autonomy loop built on it — is described in [Trust loop / certification](#trust-loop--certification-experimental) below. The observe → adapt → improve engine that watches how teams build, test, release, and operate software is one subsystem among several, not the product.
 
 Repository: <https://github.com/IanFrelinger/Ashlar>
