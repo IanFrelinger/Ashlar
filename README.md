@@ -26,11 +26,19 @@ Ashlar is a self-hosted .NET runtime for AI workflows you can audit and embed in
 2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → witness (correctness) → mutation testing (does the witness have teeth) → determinism. The gate is a required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has proven is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md).
 3. **Your infrastructure.** Runs as a CLI, an HTTP API, containers, or embedded in your own host. Local-first: local model routing (Ollama; mock/offline behind an explicit `ASHLAR_ALLOW_MOCK=1`) is the default route and cloud providers are opt-in targets; the API refuses to start on a network exposure profile without auth. There is no hosted Ashlar service.
 
-**Start here:** [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md) — clone, build `Ashlar.Kernel.sln`, run the API on loopback, submit one task, read its audit trail, then run the gate and watch it admit and reject. About fifteen minutes; no Docker, no API keys.
+**See a receipt in 3 commands** (no keys, no decisions):
+
+```bash
+git clone https://github.com/IanFrelinger/Ashlar.git && cd Ashlar
+docker build -f .docker/Dockerfile.quickstart -t ashlar:quickstart .
+docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
+```
+
+Open `http://localhost:8080`, run a task, see your first plain-English receipt. Mock provider baked in — zero provider pick.
+
+**After the receipt:** [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md) — native SDK path (clone, build `Ashlar.Kernel.sln`, run API, submit task, read audit). About fifteen minutes; no Docker, no API keys.
 
 **To embed Ashlar in your application:** [`docs/IntegratorGuide.md`](docs/IntegratorGuide.md) — NuGet packages, HTTP client, SDK integration, and distribution models.
-
-Other lanes: [**Try**](#lane-1--try-run-the-portal) (portal in Docker) · [**Develop**](#lane-2--develop-dev-container--cli) (dev container + CLI) · [**Deploy**](#lane-3--deploy-operators) (GHCR images + compose).
 
 The trust loop that makes "certified" checkable — and the experimental, hold-mode autonomy loop built on it — is described in [Trust loop / certification](#trust-loop--certification-experimental) below. The observe → adapt → improve engine that watches how teams build, test, release, and operate software is one subsystem among several, not the product.
 
@@ -145,35 +153,49 @@ Ashlar also ships an engine that watches how teams build, test, release, and ope
 
 > ⚠️ **Not safe for public exposure as shipped.** Defaults are tuned for local dev: **HTTP-only, no authentication** (`ExposureProfile: Localhost`, `AuthorizationMode: None`, `AllowedHosts: "*"`). Before exposing Ashlar to any network, configure **auth + TLS** — see [Security Defaults](#security-defaults).
 
-Pick the lane that matches your goal. Most people should start with **Try**.
-
-| Lane | Goal | You need |
-|------|------|----------|
-| [**1. Try**](#lane-1--try-run-the-portal) | See Ashlar running in one command | Docker |
-| [**2. Develop**](#lane-2--develop-dev-container--cli) | Build/extend the code, run the CLI | Docker + Dev Container (or native .NET SDK) |
-| [**3. Deploy**](#lane-3--deploy-operators) | Run it as a service you operate | Docker + compose |
-
-### Lane 1 — Try (run the portal)
-
-The fastest way to see Ashlar work. Uses the mock provider, so **no API keys are required**.
+**The fastest way to see a receipt** (3 commands, zero decisions) — uses the mock provider, so **no API keys are required**.
 
 ```bash
 git clone https://github.com/IanFrelinger/Ashlar.git && cd Ashlar
 docker build -f .docker/Dockerfile.quickstart -t ashlar:quickstart .
 docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
-# Open http://localhost:8080
 ```
+
+Open `http://localhost:8080`. The portal loads straight to a working experience. Post a task (via the chat or run panel), see your first receipt with plain-English audit entries. No provider fork, no setup wizard — the mock is already baked in.
+
+> **Honesty:** This receipt is a **post-execution audit record** (not admit-before-run). Mock provider = smoke-only plumbing, not production gate proof. Gate admission proof: CI `cert-gate`, design partner demos, admit/reject ledger.
 
 The image has no auth; publish on all interfaces (`-p 8080:8080`) only behind auth + TLS — see [Security Defaults](#security-defaults) and `SECURITY.md`.
 
-Prefer the CLI? Pull the published image and run a command:
+**After the receipt:**
+
+| Path | When to use | First step |
+|------|-------------|------------|
+| [**Native receipt script**](#native-receipt-script) | See a plain receipt without Docker | `bash scripts/demo-receipt.sh` |
+| [**Tester / Native SDK**](#lane-1--tester-native-sdk) | Build from source, run the CLI and API natively, understand the gate | [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md) |
+| [**Develop**](#lane-2--develop-dev-container--cli) | Extend the code, run inside Dev Container | Open in Dev Container |
+| [**Deploy**](#lane-3--deploy-operators) | Run as a service you operate | `docker compose -f deploy/node.yml up` |
+| [**Integrator**](#to-embed-ashlar-in-your-application) | Embed in your application | [`docs/IntegratorGuide.md`](docs/IntegratorGuide.md) |
+
+### Native receipt script
+
+If you have .NET SDK 10.x installed and want to see a plain-English receipt without Docker:
 
 ```bash
-docker pull ghcr.io/ianfrelinger/nexo-cli:latest
-docker run --rm ghcr.io/ianfrelinger/nexo-cli:latest --help
+bash scripts/demo-receipt.sh
 ```
 
-> **Note:** The published GHCR package remains `nexo-cli` until republished as `ashlar-cli`.
+Starts the API with mock provider, posts a canned task, prints a receipt, and gives you the URLs. Fails fast if the SDK is missing — does NOT silently install .NET.
+
+> **Honesty:** Receipt = post-execution audit record, not admit-before-run. Mock = smoke-only plumbing, not gate proof.
+
+### Lane 1 — Try (run the portal)
+
+**Already done!** The 3-command Docker quickstart above is Lane 1. No additional steps needed.
+
+For a native alternative (no Docker), see [Native receipt script](#native-receipt-script).
+
+For the full tester walkthrough with cert-gate validation, see [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md).
 
 ### Lane 2 — Develop (dev container + CLI)
 

@@ -1140,23 +1140,34 @@
             row.textContent = "No recent trust audit events.";
             auditTable.appendChild(row);
           } else {
-            const greenTypes = ["ContextInitialized", "IdentityResolved"];
+            const greenTypes = ["ContextInitialized", "IdentityResolved", "CopilotTask"];
             const yellowTypes = ["DefaultApplied"];
             const redTypes = ["CeilingExceeded", "ValidationFailed", "ElevationDenied"];
-            function auditDotColor(eventType) {
+            function auditDotColor(eventType, disposition) {
+              if (eventType === "CopilotTask") {
+                return (disposition === "Success" || disposition === "Succeeded") ? "green" : "red";
+              }
               if (greenTypes.includes(eventType)) return "green";
               if (yellowTypes.includes(eventType)) return "yellow";
               if (redTypes.includes(eventType)) return "red";
               return "grey";
             }
+            function formatAuditType(e) {
+              if (e.eventType === "CopilotTask") {
+                const outcome = (e.disposition === "Success" || e.disposition === "Succeeded") ? "succeeded" : "failed";
+                const id = e.sourceId ? " #" + String(e.sourceId).substring(0, 8) : "";
+                return "Task " + outcome + id;
+              }
+              return e.eventType || "event";
+            }
             events.slice(0, 15).forEach((e) => {
               const row = document.createElement("div");
               row.className = "audit-row";
               const dot = document.createElement("span");
-              dot.className = "audit-dot " + auditDotColor(e.eventType || "");
+              dot.className = "audit-dot " + auditDotColor(e.eventType || "", e.disposition || "");
               const typeSpan = document.createElement("span");
               typeSpan.className = "audit-type";
-              typeSpan.textContent = e.eventType || "event";
+              typeSpan.textContent = formatAuditType(e);
               const tsSpan = document.createElement("span");
               tsSpan.className = "audit-ts";
               tsSpan.textContent = e.timestamp ? new Date(e.timestamp).toLocaleString() : "—";
@@ -1455,6 +1466,10 @@
             console.warn("[Ashlar onboarding]", hint.trim());
 
           if (!status.isFirstRun) return;
+          
+          // Skip wizard if mock provider is available (quickstart image path)
+          const mockAvailable = (status.providers || []).some(p => p.name === "mock" && p.available);
+          if (mockAvailable) return;
 
           const providersEl = el("setupProviders");
           providersEl.innerHTML = "";
