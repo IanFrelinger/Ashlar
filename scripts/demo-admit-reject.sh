@@ -14,7 +14,7 @@
 #
 # What this does NOT demonstrate:
 #   - Pre-execution admission for Copilot chat tasks (that integration is a follow-up)
-#   - Full autonomy unlock (requires portal wizard, provider keys, learning mode)
+#   - Autonomy/Learn marketing remains HOLD until Dogfood unlock (see docs/dogfood-scorecard.md)
 #   - Production deployment (this runs locally with mock keys)
 
 set -euo pipefail
@@ -280,7 +280,8 @@ echo "- This proves artifact admission gates work"
 echo "- Copilot chat tasks currently record AFTER execution"
 echo "- Wiring pre-admission to /api/copilot/task is a separate"
 echo "  product change (see CLOSING-PLAN.md Phase 3-4)"
-echo "- Full autonomy unlock requires provider setup + learning mode"
+echo "- Autonomy/Learn marketing remains HOLD until Dogfood unlock"
+echo "  (see docs/dogfood-scorecard.md + landed Strict PASS rows)"
 echo
 
 echo "Demo complete!"
