@@ -163,6 +163,8 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
 
 Open `http://localhost:8080`. The portal loads straight to a working experience. Post a task (via the chat or run panel), see your first receipt with plain-English audit entries. No provider fork, no setup wizard — the mock is already baked in.
 
+> **Honesty:** This receipt is a **post-execution audit record** (not admit-before-run). Mock provider = smoke-only plumbing, not production gate proof. Gate admission proof: CI `cert-gate`, design partner demos, admit/reject ledger.
+
 The image has no auth; publish on all interfaces (`-p 8080:8080`) only behind auth + TLS — see [Security Defaults](#security-defaults) and `SECURITY.md`.
 
 **After the receipt:**
@@ -184,6 +186,8 @@ bash scripts/demo-receipt.sh
 ```
 
 Starts the API with mock provider, posts a canned task, prints a receipt, and gives you the URLs. Fails fast if the SDK is missing — does NOT silently install .NET.
+
+> **Honesty:** Receipt = post-execution audit record, not admit-before-run. Mock = smoke-only plumbing, not gate proof.
 
 ### Lane 1 — Try (run the portal)
 
