@@ -36,6 +36,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `samples/autonomy-objectives/README.md` — a complete tracked objective + witness + recorded model proposal, and how to feed it to the loop.
 - `spikes/README.md` — what each spike under `spikes/` is, which ledger rows cite it, and why none of them is a supported entry point; `spikes/autonomy-first-flight/run-first-flight.ps1` flies one real iteration (Docker + Ollama).
 - `scripts/run-cert-gate.sh` + `scripts/cert-gate-config.sh` — reproduce the CI `cert-gate` locally with the same filter.
+- **`docs/LearningHarness.md`** — **long-term design sketch (M7, post-M6):** autonomous experience → verified adaptation; four-loop harness (record → reflect → evaluate → promote), learning ladder (episodic memory through trust-kernel changes), evidence-chain requirements, fleet learning, and autonomy HOLD until dogfood unlock. Roadmap feature, not yet implemented.
 
 ## Operator / Production Readiness
 
