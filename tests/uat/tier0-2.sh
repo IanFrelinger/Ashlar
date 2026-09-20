@@ -202,11 +202,11 @@ else
   result 1 task-submit FAIL "${TASK_S}s, no taskId/success in: $(printf '%s' "$R" | head -c 300)"
 fi
 
-say "1.4 the quickstart's claim: recentAudit is [] on the FIRST call"
-if printf '%s' "$R" | grep -qE '"recentAudit":\[\]'; then
-  result 1 recentaudit-empty-first PASS "recentAudit=[] on first call, as documented"
+say "1.4 first-task audit is immediately visible (empty-first-audit bug fixed 2026-09-20)"
+if printf '%s' "$R" | grep -qE '"recentAudit":\[.+\]' && printf '%s' "$R" | grep -q '"eventType":"CopilotTask"'; then
+  result 1 first-audit-includes-task PASS "recentAudit includes the submitted task (empty-first-audit fixed)"
 else
-  result 1 recentaudit-empty-first FAIL "doc says [] on first call; got $(printf '%s' "$R" | grep -o '"recentAudit":.\{0,80\}')"
+  result 1 first-audit-includes-task FAIL "first task should be in recentAudit; got $(printf '%s' "$R" | grep -o '"recentAudit":.\{0,80\}')"
 fi
 
 say "1.5 the record is retrievable by id"
