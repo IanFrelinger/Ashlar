@@ -7,9 +7,9 @@
 ## What This Proves
 
 ✓ **Certification gates exist** and enforce mutation + witness testing  
-✓ **Weak artifacts are REJECTED** with signed proof of failure  
-✓ **Strong artifacts are ADMITTED** with verifiable records  
-✓ **Content hashes + signatures** provide an audit trail  
+✓ **Weak artifacts are REJECTED** (unsigned records for audit)  
+✓ **Strong artifacts are ADMITTED** with signed, verifiable records  
+✓ **Content hashes** provide an audit trail for both outcomes  
 
 ## What This Does NOT Prove
 
@@ -38,7 +38,7 @@ dotnet test src/Ashlar.Tests.Infrastructure \
 Each test prints human-readable output with:
 - Brick IDs and content hashes
 - Escape rates and mutation counts
-- Signed records with signatures
+- Signed records for ADMITTED artifacts
 - Plain English explanations of why each verdict was reached
 
 ### Option 2: Standalone Script
@@ -131,8 +131,8 @@ Checks `errorCount` AND `firstErrorMessage`:
   "totalMutants": 12,
   "killedMutants": 8,
   "survivingMutants": 4,
-  "signed": true,
-  "signature": "...",
+  "signed": false,
+  "signature": null,
   "status": "FAIL",
   "stage": "mutation"
 }
@@ -141,7 +141,7 @@ Checks `errorCount` AND `firstErrorMessage`:
 **Key fields:**
 - `escapeRate > 0` → Gate REJECTS
 - `survivingMutants: 4` → Weak witness let these escape
-- `signed: true` → Record is verifiable (not forged)
+- `signed: false` → Rejection records are unsigned
 
 ### Admission Record (Strong Witness)
 
@@ -168,6 +168,7 @@ Checks `errorCount` AND `firstErrorMessage`:
 **Key fields:**
 - `escapeRate = 0` → Gate ADMITS
 - `survivingMutants: 0` → Strong witness killed all mutants
+- `signed: true` → Admission records are signed for verifiable proof
 - `gatesPassed` → Record shows which gates were passed
 - Both records share the same `brickId` and `contentHash` → correlation proof
 
@@ -181,7 +182,7 @@ Both records certify the **SAME artifact**:
 This proves:
 1. The gate is not a rubber stamp — same artifact, different witnesses → different verdicts
 2. Records are correlated by ID and hash → audit trail is verifiable
-3. Signatures prevent forgery → records cannot be tampered with
+3. Signatures on admitted records prevent forgery → admission proof cannot be tampered with
 
 ## Next Steps
 
