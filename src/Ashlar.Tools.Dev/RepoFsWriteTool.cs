@@ -29,10 +29,13 @@ public sealed class RepoFsWriteTool : ITool
     {
         var args = System.Text.Json.JsonSerializer.Deserialize<Args>(call.Arguments)!;
 
-        if (!ToolSandbox.TryResolvePath(s, args.path, out var full, out var reason))
+        if (!ToolSandbox.TryResolveWritePath(s, args.path, out var full, out var reason))
         {
+            // "write-refused:", not "write:". SelfExtendRunnerAdapter.ExtractWritePaths harvests
+            // "write:" lines into the write paths the signed admission record claims as its diff;
+            // sharing the prefix turned every refusal into a signed claim that the write landed.
             var rejected = new RepoDelta { TickFrom = s.Tick, TickTo = s.Tick + 1 };
-            rejected.AddLog($"write:{args.path} {reason}");
+            rejected.AddLog($"write-refused:{args.path} {reason}");
             return new ToolResult(rejected, new { path = args.path, written = false, error = reason });
         }
 

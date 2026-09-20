@@ -367,7 +367,8 @@ Operating rules:
 - Prefer small, reversible steps: list → read → propose a single write or search_replace.
 - If a previous call was DENIED, read the reason and choose a different path or argument; do not repeat the same call.
 - If ""RecentNotes"" is present in the world state, treat it as the planner's prior cycle log: continue from where you left off, do NOT redo work already noted there.
-- All write paths must be relative to root and live under one of: src/, tests/, docs/, .ashlar/.
+- All write paths must be relative to root and live under one of: src/, tests/, docs/, application/.
+- Never write governance or build-tooling files; they are refused and the refusal counts against the cycle. That means anything under .ashlar/, .git*/ or scripts/; ashlar.yaml and ashlar.policy.yaml at the root; .editorconfig, .globalconfig, global.json, nuget.config, Makefile, dotnet-tools.json and .pre-commit-config.yaml at any depth; and any *.props or *.targets file. Project and solution files (*.csproj, *.sln) are fine to write.
 
 Response format: a single JSON object, no markdown, with this shape:
 {{""tool_calls"": [{{""id"": ""<tool>"", ""arguments"": {{...}}}}], ""rationale"": ""<short reason>""}}";

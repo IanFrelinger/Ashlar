@@ -1,4 +1,5 @@
 using Ashlar.Abstractions;
+using Ashlar.Core.Application.Paths;
 
 namespace Ashlar.Tools.Dev;
 
@@ -69,8 +70,12 @@ public static class ToolSandbox
     }
 
     /// <summary>
-    /// Resolves a model-supplied relative path against the sandbox root, refusing anything
-    /// that lands outside it.
+    /// The READ-intent resolver: resolves a model-supplied relative path against the sandbox
+    /// root, refusing anything that lands outside it. Containment only — a read of
+    /// <c>.ashlar/</c>, a build import or the operator policy is legitimate, so nothing here
+    /// judges what the path IS. A tool that will WRITE the resolved path must call
+    /// <see cref="TryResolveWritePath"/> instead; <c>WriteToolResolverConventionTests</c> fails
+    /// the build of a mutating tool that calls this one.
     ///
     /// <para>This is belt-and-braces with <c>PathAllowlist</c>, deliberately. The allowlist
     /// is a policy and can be swapped or omitted — tools are reachable from the MCP bridge,
@@ -131,6 +136,68 @@ public static class ToolSandbox
         }
 
         full = candidate;
+        return true;
+    }
+
+    /// <summary>
+    /// The WRITE-intent resolver: everything <see cref="TryResolvePath"/> does, then the
+    /// authoring governance floor — <see cref="MediatedWritePath.RefuseAuthoringWrite"/> — on
+    /// the contained path. The admission ledger under <c>.ashlar/</c>, a build import, a
+    /// tooling config and the operator policy are refused under every spelling, a symlink or
+    /// junction anywhere on the path is refused, and a project or solution file still lands.
+    ///
+    /// <para>Here and not only in the policy engine, for the same reason containment is here:
+    /// the policy chain is composed per host and reachable from four edges, and the one that
+    /// wrote the ledger was composed with <c>.ashlar/</c> on its allowlist. A sibling of the
+    /// read resolver rather than a change to it, because <c>repo.fs.read</c> and
+    /// <c>repo.fs.list</c> must keep reading <c>.ashlar/</c>.</para>
+    ///
+    /// <para>The floor runs ONCE per real write and never throws out of here. It probes the
+    /// filesystem for reparse points, and a probe on an ancestor the process cannot stat
+    /// throws; a tool exception escapes into <c>ToolCallingAgent.RunCycleAsync</c>'s outer
+    /// handler and ends the whole cycle, so any throw is converted to a rejection.</para>
+    /// </summary>
+    /// <param name="snapshot">The world snapshot.</param>
+    /// <param name="relativePath">The model-supplied path the tool intends to write.</param>
+    /// <param name="full">The resolved absolute path, when this returns true.</param>
+    /// <param name="reason">A rejection reason, when this returns false.</param>
+    /// <returns>True when the path resolves inside the sandbox AND is beneath the governance floor.</returns>
+    public static bool TryResolveWritePath(
+        WorldSnapshot snapshot,
+        string? relativePath,
+        out string full,
+        out string reason)
+    {
+        // The established vocabulary and ordering first: no RepoRoot, "required", absolute,
+        // "traversal". Tests and other consumers match on those words.
+        if (!TryResolvePath(snapshot, relativePath, out full, out reason))
+        {
+            return false;
+        }
+
+        // TryResolvePath succeeded, so the root resolves; re-derive it rather than widen the
+        // read resolver's signature.
+        TryResolveRoot(snapshot, out var root, out _);
+
+        string? refusal;
+        try
+        {
+            refusal = MediatedWritePath.RefuseAuthoringWrite(root, relativePath!);
+        }
+        catch (Exception ex)
+        {
+            full = string.Empty;
+            reason = $"REJECTED: the governance floor could not evaluate '{relativePath}' ({ex.GetType().Name})";
+            return false;
+        }
+
+        if (refusal is not null)
+        {
+            full = string.Empty;
+            reason = "REJECTED: " + refusal;
+            return false;
+        }
+
         return true;
     }
 

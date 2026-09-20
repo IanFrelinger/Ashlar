@@ -26,7 +26,7 @@ public sealed class RepoFsSearchReplaceTool : ITool
     {
         var args = System.Text.Json.JsonSerializer.Deserialize<Args>(call.Arguments)!;
 
-        if (!ToolSandbox.TryResolvePath(s, args.path, out var full, out var reason))
+        if (!ToolSandbox.TryResolveWritePath(s, args.path, out var full, out var reason))
         {
             var rejected = new RepoDelta { TickFrom = s.Tick, TickTo = s.Tick + 1 };
             rejected.AddLog($"search_replace:{args.path} {reason}");

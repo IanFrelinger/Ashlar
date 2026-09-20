@@ -25,7 +25,7 @@ public sealed class RepoGitCommitTool : ITool
     {
         var args = System.Text.Json.JsonSerializer.Deserialize<Args>(call.Arguments)!;
 
-        if (!ToolSandbox.TryResolvePath(s, "COMMIT_LOG.txt", out var logPath, out var reason))
+        if (!ToolSandbox.TryResolveWritePath(s, "COMMIT_LOG.txt", out var logPath, out var reason))
         {
             var rejected = new RepoDelta { TickFrom = s.Tick, TickTo = s.Tick + 1 };
             rejected.AddLog($"commit:{args.message} {reason}");

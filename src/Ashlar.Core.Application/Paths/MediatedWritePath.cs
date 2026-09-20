@@ -30,6 +30,23 @@ public static class MediatedWritePath
     /// apart from reparse-point probes of already-existing paths (a filesystem read, never a write).
     /// </summary>
     public static string? Refuse(string repoRoot, string target, IReadOnlyList<string>? writableAllowlist = null)
+        => RefuseCore(repoRoot, target, writableAllowlist, authoringEdge: false);
+
+    /// <summary>
+    /// The same floor for an AUTHORING write — one a self-extend cycle makes directly through
+    /// <c>repo.fs.write</c> and its siblings — judged against <see cref="IsAuthoringGovernancePath"/>
+    /// instead of <see cref="IsGovernancePath"/>, so a project or solution file passes. Every other
+    /// leg (safe shape, containment, the reparse-point probes) is the mediated floor's, byte for
+    /// byte: one private core, so a fourth copy of the containment and symlink legs cannot drift.
+    ///
+    /// <para>No allowlist parameter. WHERE an authoring write may land is the policy engine's
+    /// decision (<c>PathAllowlist</c>) and is configurable; this is the floor beneath it that is
+    /// not.</para>
+    /// </summary>
+    public static string? RefuseAuthoringWrite(string repoRoot, string target)
+        => RefuseCore(repoRoot, target, writableAllowlist: null, authoringEdge: true);
+
+    private static string? RefuseCore(string repoRoot, string target, IReadOnlyList<string>? writableAllowlist, bool authoringEdge)
     {
         // Order matters: each spelling should be refused for the truest reason. Escapes are named
         // as escapes and governance targets as governance, before the catch-all safe-path check —
@@ -63,11 +80,16 @@ public static class MediatedWritePath
         // reduces to the path the write will actually hit. fullPath is known to be under
         // rootWithSep, so the substring is the clean relative form (ns2.0 has no GetRelativePath).
         var normalizedRel = fullPath.Substring(rootWithSep.Length).Replace('\\', '/');
-        if (IsGovernancePath(normalizedRel))
+        if (authoringEdge ? IsAuthoringGovernancePath(normalizedRel) : IsGovernancePath(normalizedRel))
         {
-            return $"'{target}' (resolves to '{normalizedRel}') is a governance path — the project "
-                + "contract, the operator policy, .ashlar/ state, or a build file the receiver's next "
-                + "build would execute.";
+            return authoringEdge
+                ? $"'{target}' (resolves to '{normalizedRel}') is a governance path — the project "
+                    + "contract, the operator policy, .ashlar/ state, or a build or tooling file the next "
+                    + "build would honour. A cycle cannot author it, directly or through "
+                    + "forge.propose_change; a change here is an operator's to make."
+                : $"'{target}' (resolves to '{normalizedRel}') is a governance path — the project "
+                    + "contract, the operator policy, .ashlar/ state, or a build file the receiver's next "
+                    + "build would execute.";
         }
 
         // Remaining unsafe spellings that neither escaped nor hit governance: an in-root '.'/'..',
@@ -93,13 +115,56 @@ public static class MediatedWritePath
     }
 
     /// <summary>
-    /// A repo-relative target is a governance path when it is the project contract or operator
-    /// policy (at the repo ROOT only — the loader reads exactly <c>./ashlar.yaml</c> and
-    /// <c>./ashlar.policy.yaml</c>), anything under a governance/CI/tooling directory, or any file
-    /// the receiver's build toolchain executes or honours (at ANY depth). Case-insensitive because
-    /// the filesystems this runs on are, and an admitted write must not reach these under any spelling.
+    /// The governance floor for a MEDIATED write — a forge-applied proposal, an imported package
+    /// file, an adopted shared adaptation. Strictly wider than
+    /// <see cref="IsAuthoringGovernancePath"/>: it is that set PLUS project and solution files,
+    /// which a mediated write has no business creating.
+    ///
+    /// <para>Defined as a superset in code rather than as a second list, so the relationship cannot
+    /// drift. Weakening the shared half now visibly weakens BOTH edges, which is the point: an
+    /// earlier shape of this fix put a narrowed copy beside the original, and the copy is the one
+    /// that would have rotted.</para>
     /// </summary>
     public static bool IsGovernancePath(string relativePath)
+    {
+        if (IsAuthoringGovernancePath(relativePath))
+        {
+            return true;
+        }
+
+        var projectSegments = relativePath.Split('/', '\\');
+        if (projectSegments.Length == 0)
+        {
+            return false;
+        }
+        var projectFileName = projectSegments[projectSegments.Length - 1];
+        foreach (var suffix in GovernanceProjectFileSuffixes)
+        {
+            if (projectFileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The governance floor for an AUTHORING write — one a self-extend cycle makes directly through
+    /// <c>repo.fs.write</c> and its siblings. Everything <see cref="IsGovernancePath"/> refuses
+    /// EXCEPT project and solution files, which the authoring edge legitimately scaffolds.
+    ///
+    /// <para>There is no carve-out under <c>.ashlar/</c>, and there must not be one.
+    /// <c>.ashlar/gates/</c> is the admission ledger that bounds how often a cycle may extend the
+    /// system, so a cycle that can write it has no budget. An earlier draft of this fix carved out
+    /// <c>.ashlar/tools/</c> and <c>.ashlar/host_apps/</c> to keep an agent sandbox working; that
+    /// hands a cycle the NuGet package cache and the host-app project root, which means an analyzer
+    /// assembly Roslyn loads on the next build — build-time code execution, which no name-based
+    /// check can see. The sandbox belongs outside <c>.ashlar/</c> instead.</para>
+    ///
+    /// <para>Case-insensitive, because the filesystems this runs on are and a refusal must not be
+    /// escapable by spelling.</para>
+    /// </summary>
+    public static bool IsAuthoringGovernancePath(string relativePath)
     {
         var segments = relativePath.Split('/', '\\');
         if (segments.Length == 0)
@@ -138,11 +203,11 @@ public static class MediatedWritePath
             }
         }
 
-        // Suffix families, any depth. MSBuild imports Directory.Build.*, Directory.Packages.props,
-        // Directory.Solution.*, before./after.<sln>.sln.targets AND any custom-<Import>ed file —
-        // all ending .props/.targets. Project and solution files carry <Target>s, analyzers and
-        // PackageReferences that run at build time; .slnx is the new XML solution format.
-        foreach (var suffix in GovernanceFileSuffixes)
+        // Build imports, any depth: Directory.Build.*, Directory.Packages.props,
+        // Directory.Solution.*, before./after.<sln>.sln.targets and any custom-<Import>ed file all
+        // end .props/.targets. Project and solution files are NOT here — they are the half
+        // IsGovernancePath adds for the mediated edge.
+        foreach (var suffix in GovernanceBuildImportSuffixes)
         {
             if (fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
             {
@@ -263,9 +328,22 @@ public static class MediatedWritePath
         ".pre-commit-config.yaml",            // a `repo: local` hook runs on the next git commit
     };
 
-    private static readonly string[] GovernanceFileSuffixes =
+    // Split deliberately, because the two write edges need different answers here and nowhere else.
+    //
+    // A build IMPORT is discovered by ancestor-walk: dropping a Directory.Build.props anywhere above a
+    // project changes how that project builds, and an <Import>ed .targets can add an <Exec> or silence an
+    // analyzer. Nothing legitimately authors one of these from inside a cycle, on either edge.
+    private static readonly string[] GovernanceBuildImportSuffixes =
     {
         ".props", ".targets",                                   // every MSBuild import, incl. Directory.Solution.*
+    };
+
+    // A PROJECT file is the repository's own authoring surface. It is still governance for a mediated
+    // write — an imported package or an adopted adaptation has no business creating one — but the
+    // authoring edge must be able to scaffold a project, so IsAuthoringGovernancePath omits this set.
+    // See IsGovernancePath for how the two relate, and the subset property test that freezes it.
+    private static readonly string[] GovernanceProjectFileSuffixes =
+    {
         ".csproj", ".fsproj", ".vbproj", ".proj", ".sln", ".slnx",
     };
 

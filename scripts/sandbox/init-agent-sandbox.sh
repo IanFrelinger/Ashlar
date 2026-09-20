@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
+# Creates the agent sandbox tree as a SIBLING of .ashlar/, never inside it. .ashlar/ is the
+# governance directory — the admission ledger, the forge queue, runtime state — and the write
+# floor (ToolSandbox.TryResolveWritePath) refuses every path beneath it. A sandbox rooted there
+# would either be unwritable or hand a cycle the package cache and the host-app project root.
 set -euo pipefail
 
 ROOT="$(pwd)"
-SANDBOX_ROOT="${ROOT}/.ashlar"
+SANDBOX_ROOT="${ROOT}/agent-sandbox"
 PROFILE="default"
 DRY_RUN=0
 
@@ -33,7 +37,7 @@ if [[ -z "${ROOT}" ]]; then
   exit 2
 fi
 
-SANDBOX_ROOT="${ROOT}/.ashlar"
+SANDBOX_ROOT="${ROOT}/agent-sandbox"
 
 if [[ "${DRY_RUN}" -eq 0 ]]; then
   mkdir -p "${SANDBOX_ROOT}/agents/workspaces"

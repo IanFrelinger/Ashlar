@@ -35,12 +35,34 @@ public readonly record struct McpGateDecision(bool Allowed, string? Reason)
 
 /// <summary>
 /// Default gate: every DI-registered <see cref="IPolicy"/> must approve (logical AND), mirroring
-/// the all-must-approve semantics of <c>PolicyEngine</c> in <c>AgentHost</c>. An empty policy set
-/// allows the call — the allowlist has already constrained what is reachable, and hosts opt into
-/// stricter behavior by registering policies or replacing this gate (TryAdd registration).
+/// the all-must-approve semantics of <c>PolicyEngine</c> in <c>AgentHost</c>.
+///
+/// <para>An empty policy set allows a READ and refuses a WRITE. No host registers an
+/// <see cref="IPolicy"/> in DI today, so this gate's set is empty in every shipped composition; the
+/// governance floor inside the write tools bounds WHAT such a call may write, but nothing then bounds
+/// WHERE it lands. Rather than let a host that lists <c>repo.fs.write</c> in
+/// <c>AshlarMcpServerOptions.ExposedToolIds</c> get an unbounded write edge silently, the gate refuses
+/// the mutating ids until a write policy is registered — a configuration gap that announces itself.
+/// Non-write ids keep the permissive behaviour: the allowlist has already constrained what is
+/// reachable. Hosts opt into stricter behaviour by registering policies or replacing this gate
+/// (TryAdd registration).</para>
 /// </summary>
 public sealed class PolicyMcpInvocationGate : IMcpInvocationGate
 {
+    /// <summary>
+    /// The tool ids that mutate the repository. Literal here because this assembly references only
+    /// <c>Ashlar.Abstractions</c>; the inventory of write tools is frozen by
+    /// <c>WriteToolResolverConventionTests</c>.
+    /// </summary>
+    private static readonly HashSet<string> WriteToolIds = new(StringComparer.Ordinal)
+    {
+        "repo.fs.write",
+        "repo.fs.search_replace",
+        "repo.fs.ensure_file",
+        "docs.update",
+        "repo.git.commit",
+    };
+
     private readonly IReadOnlyList<IPolicy> _policies;
     private readonly ILogger<PolicyMcpInvocationGate> _logger;
 
@@ -54,6 +76,15 @@ public sealed class PolicyMcpInvocationGate : IMcpInvocationGate
     /// <inheritdoc />
     public McpGateDecision Authorize(ToolCall call, WorldSnapshot snapshot)
     {
+        if (_policies.Count == 0 && WriteToolIds.Contains(call.Id))
+        {
+            _logger.LogWarning(
+                "MCP tool call denied: no write policy is registered. Tool={ToolId}", call.Id);
+            return McpGateDecision.Deny(
+                $"Denied: '{call.Id}' mutates the repository and no IPolicy is registered to bound where it may write. "
+                + "Register a write policy (for example PathAllowlist) or remove the id from ExposedToolIds.");
+        }
+
         foreach (var policy in _policies)
         {
             if (!policy.Approve(call, snapshot, out var reason))

@@ -50,7 +50,10 @@ internal static class RepoFsToolboxFactory
         var policies = new PolicyEngine(new IPolicy[]
         {
             new PathAllowlist(),
-            new MaxWriteSize()
+            new MaxWriteSize(),
+            // LAST, here and in CreateWithBuildTest: PolicyEngine returns on the first refusal,
+            // so order is observable in denial reasons and tests assert on which policy wins.
+            new GovernanceFloorPolicy()
         });
 
         return (tools, policies);
@@ -158,6 +161,12 @@ internal static class RepoFsToolboxFactory
         {
             policyList.Add(new DataExfiltrationPolicy(agentRegistry, sensitivityRegistry));
         }
+
+        // LAST. PolicyEngine returns on the first refusal, so a governance path that another
+        // policy also refuses keeps that policy's reason (SelfExtendInvariantACertGateTests asserts
+        // the certification policy's), and nothing earlier in the chain admits one, so last still
+        // closes it. The tool edge is the floor; this turns its refusal into a counted denial.
+        policyList.Add(new GovernanceFloorPolicy());
 
         var policies = new PolicyEngine(policyList.ToArray());
 
