@@ -14,7 +14,7 @@
 ## What This Does NOT Prove
 
 - Pre-execution admission for Copilot chat tasks (that integration is a follow-up)
-- Full autonomy unlock (requires provider setup + learning mode)
+- **Autonomy/Learn marketing remains HOLD until Dogfood unlock** (see `docs/dogfood-scorecard.md` + landed Strict PASS rows in the dogfood ledger)
 - Production-ready self-extending agents (see CLOSING-PLAN.md Phase 3-4)
 
 ## Two Ways to Run the Demo
@@ -206,15 +206,16 @@ This proves:
 
 What it does NOT prove:
 - Pre-execution admission for Copilot chat tasks — that integration is tracked in CLOSING-PLAN.md Phase 3-4
-- Full autonomy unlock — requires provider wizard, learning mode, and operator policy configuration
+- **Autonomy/Learn marketing remains HOLD until Dogfood unlock** — see `docs/dogfood-scorecard.md` and landed Strict PASS rows in the dogfood ledger
 - Production-ready self-extending agents — shipped in hold mode by default (see docs/RunningASelfExtendingNode.md)
 
 The Copilot task path currently records AFTER execution. Wiring the admission gate into `/api/copilot/task` is a separate product change.
 
 ## Related Documentation
 
-- **CLOSING-PLAN.md** — Autonomy phases and admission gate roadmap
-- **docs/certification-evidence.md** — Ledger of all proven ADMIT/REJECT decisions
+- **docs/dogfood-scorecard.md** — Dogfood unlock status and criteria
+- **docs/certification-evidence.md** — Ledger of all proven ADMIT/REJECT decisions (Strict PASS rows show unlock progress)
 - **docs/trust-loop/ashlar-trust-loop-spec.md** — Gate invariants and certification contract
 - **docs/AuthoringBricks.md** — How to write bricks the gate can certify
 - **ci/cert-gate-assertions.md** — What the cert-gate CI check enforces
+- **CLOSING-PLAN.md** — Engineering roadmap only (not GTM/unlock pointer)
