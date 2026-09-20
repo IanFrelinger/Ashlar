@@ -86,10 +86,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -d .ashlar/agents/workspaces/runtime-studio
-          test -d .ashlar/tools/cache/tmp
-          test -d .ashlar/tools/cache/nuget
-          test -d .ashlar/tools/cache/npm
+          # agent-sandbox/, not .ashlar/. The agent sandbox moved out of .ashlar/ when the
+          # governance floor began refusing that directory whole: a cycle that can write
+          # .ashlar/tools/cache reaches the NuGet cache, and an analyzer assembly restored into it
+          # is loaded by Roslyn on the next build. scripts/apps-gate-checks.sh is this job's local
+          # mirror and asserts the same four paths.
+          test -d agent-sandbox/agents/workspaces/runtime-studio
+          test -d agent-sandbox/tools/cache/tmp
+          test -d agent-sandbox/tools/cache/nuget
+          test -d agent-sandbox/tools/cache/npm
 
   # ─────────────────────────────────────────────────────────────────────
   # 3. Scaffold + Optimize path (provider unavailable — validates flow)

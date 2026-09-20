@@ -86,7 +86,13 @@ public sealed class PathAllowlist : IPolicy
         var rejected = new List<string>();
         foreach (var prefix in normalized)
         {
-            if (MediatedWritePath.IsAuthoringGovernancePath(prefix.TrimEnd('/')))
+            // Judge the prefix with its '.' segments collapsed. IsAuthoringGovernancePath keys on
+            // the FIRST segment, so './.ashlar/gates/' presents as '.' and slips past a check that
+            // '.ashlar/gates/' fails. No write escapes either way - the tool edge resolves the path
+            // before judging it, and GovernanceFloorPolicy refuses a '.' segment as unsafe - but an
+            // un-dropped prefix is reported as honoured, and the sandbox guide now tells operators
+            // to read RejectedExtras to see what their configuration did not get.
+            if (MediatedWritePath.IsAuthoringGovernancePath(CollapseDotSegments(prefix).TrimEnd('/')))
                 rejected.Add(prefix);
             else
                 allowed.Add(prefix);
@@ -177,6 +183,19 @@ public sealed class PathAllowlist : IPolicy
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Drops '.' segments so a prefix is judged as the directory it actually names. '..' never
+    /// reaches here: <see cref="NormalizePrefix"/> rejects any prefix containing one.
+    /// </summary>
+    private static string CollapseDotSegments(string prefix)
+    {
+        if (prefix.IndexOf('.') < 0)
+            return prefix;
+
+        var kept = prefix.Split('/').Where(s => s.Length > 0 && s != ".").ToArray();
+        return kept.Length == 0 ? string.Empty : string.Join("/", kept);
     }
 
     private static string? NormalizePrefix(string? prefix)

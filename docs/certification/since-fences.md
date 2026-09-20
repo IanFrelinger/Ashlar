@@ -121,7 +121,20 @@ of a release that has not been published.
   the default Passive mode (`ForgeMediatedWritesPolicy.MediatedPrefixes` is exactly
   `src/`, `tests/`); project and solution files are writable at the authoring edge by
   design, so a `.csproj` can carry a `<Target>` (`.props`/`.targets` stay refused
-  everywhere); a global analyzer config already `<Import>`ed under an arbitrary name is
+  everywhere) — and `dotnet.build` is registered in the same toolbox, so a cycle that
+  writes a project file can then ask the build to run its `<Target AfterTargets="Build">`
+  and reach any path the floor refuses it directly. This was executed, not reasoned about:
+  a probe wrote a project file the floor admits, invoked `dotnet.build` from the same
+  `CreateWithBuildTest` composition, and the target created `.ashlar/gates/pwned.json`.
+  Reachability against this repository: `Ashlar.LocalDevCore.slnf` sits at the root, so
+  `DotnetBuildTool.ResolveBuildArguments` prefers it, and the default chain approves a
+  cycle write to every project it names — one of which,
+  `application/src/Ashlar.CLI/Ashlar.CLI.csproj`, is under a prefix
+  `ForgeMediatedWritesPolicy` does not mediate, so it is directly writable in every
+  aggressiveness mode. **The floor bounds what a cycle writes directly. It does not bound
+  what a cycle can cause to be written.** Closing that means taking the build tool out of
+  the toolbox that can author its inputs, or routing project files through the forge, and
+  neither is in this change; a global analyzer config already `<Import>`ed under an arbitrary name is
   content-flagged (`is_global=true`) and cannot be leaf-matched; and a Windows junction
   used as an in-repo ancestor directory is now refused, because the floor's reparse-point
   probes run at the tool edge.

@@ -112,6 +112,29 @@ public sealed class SelfExtendGovernanceFloorTests : IDisposable
         Directory.Exists(Path.Combine(_root, ".ashlar")).Should().BeFalse("the tool edge never read the variable");
     }
 
+    /// <summary>
+    /// The same hardening variable, spelled with a leading './'. IsAuthoringGovernancePath keys on
+    /// the FIRST segment, so an un-collapsed './.ashlar/gates/' presents as '.' and was neither
+    /// dropped nor reported — the operator read an empty RejectedExtras and believed the prefix had
+    /// been honoured, which is the opposite of what the sandbox guide promises. No write escaped
+    /// either way, and this asserts both halves: the prefix is reported as dropped, AND the write
+    /// still never lands.
+    /// </summary>
+    [Fact]
+    public async Task A_dotted_spelling_of_a_governance_prefix_is_dropped_and_reported()
+    {
+        using var hardening = new EnvironmentVariableScope(ExtraVar, "./.ashlar/gates/");
+
+        var allowlist = new PathAllowlist();
+        allowlist.RejectedExtras.Should().ContainSingle().Which.Should().Contain(".ashlar/gates",
+            "a prefix that resolves to governance is dropped however it is spelled");
+
+        var result = await new RepoFsWriteTool().InvokeAsync(
+            WriteCall("./.ashlar/gates/forged.json"), Snapshot(), CancellationToken.None);
+        result.Delta.Log.Should().ContainSingle().Which.Should().Contain("REJECTED");
+        Directory.Exists(Path.Combine(_root, ".ashlar")).Should().BeFalse();
+    }
+
     /// <summary>The control: a benign extra still widens, so the filter is a filter and not a switch.</summary>
     [Fact]
     public void A_benign_extra_prefix_still_widens_the_allowlist()
