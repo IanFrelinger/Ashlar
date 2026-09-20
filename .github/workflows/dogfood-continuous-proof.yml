@@ -15,6 +15,9 @@ on:
       - 'samples/autonomy-objectives/rgb-hex-parse.*'
       - 'scripts/dogfood-continuous-proof.sh'
   workflow_dispatch:
+    # Manual dispatch via gh CLI requires repo write access (403 for GITHUB_TOKEN from forks/PRs).
+    # Repository owner/admin can dispatch via GitHub UI (Actions > Dogfood Continuous Proof > Run workflow)
+    # or with a PAT: gh workflow run dogfood-continuous-proof.yml --repo IanFrelinger/Ashlar --ref master
 
 # Read-only on purpose: this workflow publishes a ledger row for a human to land, it does not
 # write to the repository. See the "Publish ledger row" step for why a push cannot work here.
