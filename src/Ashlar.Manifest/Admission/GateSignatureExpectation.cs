@@ -50,10 +50,11 @@ public sealed record GateSignatureExpectation(
 
     /// <summary>
     /// The reason <paramref name="record"/> must be refused as corrupt, or null when it passes.
-    /// Three legs, in order: a PRESENT signature must verify (the S-1 refusal the store has always
+    /// Four legs, in order: a PRESENT signature must verify (the S-1 refusal the store has always
     /// raised, byte-identical); a verifying signature must be from a trusted signer when any are
-    /// pinned; and a MISSING signature is refused iff the store expects one and the record was
-    /// decided at or after <see cref="GraceBefore"/>.
+    /// pinned; a MISSING signature is refused iff the store expects one and the record was decided
+    /// at or after <see cref="GraceBefore"/>; and, evaluated LAST so every message above stays
+    /// byte-identical, a record's file name must be the id inside its own bytes.
     /// </summary>
     /// <param name="record">The record as parsed from disk.</param>
     /// <param name="fileName">The record's file name, for the message — the operator's pointer.</param>
@@ -81,17 +82,33 @@ public sealed record GateSignatureExpectation(
                     + "REPLACED signature, not a verified one. Refusing to operate — a forged verdict is worse than a "
                     + "missing one.";
             }
-
-            return null;
         }
-
-        if (Expected && (GraceBefore is null || record.DecidedAt >= GraceBefore.Value))
+        else if (Expected && (GraceBefore is null || record.DecidedAt >= GraceBefore.Value))
         {
             return $"Corrupt gate record: {fileName} carries no signature, but this store is signed ({Basis}). "
                 + "A removed signature and an honestly unsigned record are the same bytes, so a missing signature on "
                 + "a record decided after signing was activated is treated as stripped. Refusing to operate — a forged "
                 + "verdict is worse than a missing one. Deleting records from gates/ is NOT the remedy; if this machine "
                 + "should be signing, run `ashlar keys init`.";
+        }
+
+        // The id is INSIDE the signed bytes; the file name is not. Copy one legitimately signed
+        // admission to two more names and every copy verifies, every copy is enumerated, and the
+        // self-extension budget — which counts files, because that is all there is to count —
+        // reads three admissions where the operator made one. Scoped to a store that is signed or
+        // to a record that carries a signature, because an unconditional refusal would change what
+        // a never-signed store does today (S-2); conditioning on the signature still fires during
+        // the anchor pass, so a duplicate cannot anchor a posture for the rest of the store.
+        if (Expected || record.Sig is not null)
+        {
+            var owned = record.Proposal.Id + ".json";
+            if (!string.Equals(fileName, owned, StringComparison.Ordinal))
+            {
+                return $"Corrupt gate record: {fileName} holds proposal '{record.Proposal.Id}', whose record is "
+                    + $"{owned}. A record under a second name is a COPY — the id is signed, the file name is not, and "
+                    + "the self-extension budget counts files. Refusing to operate — a forged verdict is worse than a "
+                    + "missing one.";
+            }
         }
 
         return null;

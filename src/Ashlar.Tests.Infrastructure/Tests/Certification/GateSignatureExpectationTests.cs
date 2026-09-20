@@ -487,6 +487,73 @@ public sealed class GateSignatureExpectationTests : IDisposable
             .WithMessage("*ext-bad.json*", "the refusal names the file that is broken");
     }
 
+    // ─────────────────── a file's name is the id inside its bytes ───────────────────
+
+    [Fact]
+    public async Task A_duplicated_admitted_record_under_a_second_file_name_is_refused()
+    {
+        // No stripping needed. The proposal id is inside the signed bytes; the FILE NAME is not.
+        // Copy one legitimately signed admission to two more names and every copy verifies, every
+        // copy is enumerated, and AdmittedInWindowAsync — which counts files, because files are
+        // all there are to count — reads three admissions where the operator made one, holding an
+        // honest proposal as over-budget.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var store = Store(signer);
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await store.DecideAsync("ext-1", admit: true, "alice", "seated", T0.AddMinutes(1));
+
+        File.Copy(RecordFile("ext-1"), RecordFile("ext-1-dup1"));
+        File.Copy(RecordFile("ext-1"), RecordFile("ext-1-dup2"));
+
+        var list = async () => await store.ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ext-1-dup*holds proposal 'ext-1'*ext-1.json*",
+                "the refusal names the offending file and the id it holds");
+
+        var count = async () => await store.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(2));
+        await count.Should().ThrowAsync<InvalidOperationException>(
+            "the budget must never see three admissions where one was made");
+    }
+
+    [Fact]
+    public async Task A_never_signed_store_behaves_exactly_as_today_for_both_readers()
+    {
+        // SPEC-006 S-2, stated as a fact rather than as an intention. A store that has never been
+        // signed — no marker, no verifying record — must read exactly as it did before rule S-6
+        // existed, for a reader holding the operator key and for one holding nothing. Every
+        // refusal S-6 adds is scoped to a store that IS signed; if one of them ever goes
+        // unconditional, zero-setup breaks here first.
+        Keyless();
+        var writer = Store();
+        await writer.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await writer.DecideAsync("ext-1", admit: true, "alice", "seated", T0.AddMinutes(1));
+        await writer.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+
+        // A copy under a second name is NOT refused here: the file-name binding is scoped to a
+        // signed store. It is a pre-existing hole in an unsigned store, and S-2 owns it.
+        File.Copy(RecordFile("ext-1"), RecordFile("ext-1-copy"));
+
+        var keyless = Store();
+        (await keyless.ListAsync()).Should().HaveCount(3, "an unsigned store enumerates everything, copies included");
+        (await keyless.GetAsync("ext-2")).Should().NotBeNull();
+        (await keyless.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(2))).Should().Be(2,
+            "the copy counts, exactly as it did before this rule");
+        keyless.SignatureTrust!.Expected.Should().BeFalse();
+
+        OperatorKey.Generate(_keyDir);
+        Keyed();
+        var keyed = Store(OperatorKey.TryLoad());
+        (await keyed.ListAsync()).Should().HaveCount(3, "a key is not an expectation");
+        (await keyed.GetAsync("ext-1")).Should().NotBeNull();
+        (await keyed.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(2))).Should().Be(2);
+        keyed.SignatureTrust!.Expected.Should().BeFalse("keys alone create no expectation");
+
+        // And a keyless writer may still write: nothing here is signed, so nothing is downgraded.
+        await Store().RecordAsync(Proposal("ext-3"), Held(), T0.AddHours(2));
+        File.Exists(RecordFile("ext-3")).Should().BeTrue();
+    }
+
     [Fact]
     public async Task A_fabricated_unsigned_admission_cannot_spend_the_self_extension_budget()
     {
