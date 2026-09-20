@@ -96,7 +96,7 @@ public sealed class AdmissionGateDemoTests
         _output.WriteLine($"  Killed Mutants:  {decision.Record.KilledMutants.Count}");
         _output.WriteLine($"  Survivors:       {decision.Record.SurvivingMutants}");
         _output.WriteLine($"  Record Signed:   {decision.Record.Signed}");
-        _output.WriteLine($"  Signature:       {decision.Record.Signature![..16]}...");
+        _output.WriteLine($"  Signature:       {(decision.Record.Signature?.Length >= 16 ? decision.Record.Signature[..16] + "..." : decision.Record.Signature ?? "null")}");
         _output.WriteLine("");
         _output.WriteLine("WHY IT FAILED:");
         _output.WriteLine("  Weak witness cannot detect mutations to 'firstErrorMessage'");
@@ -158,7 +158,7 @@ public sealed class AdmissionGateDemoTests
         _output.WriteLine($"  Killed Mutants:  {decision.Record.KilledMutants.Count}");
         _output.WriteLine($"  Gates Passed:    {decision.Record.GatesPassed.Count}");
         _output.WriteLine($"  Record Signed:   {decision.Record.Signed}");
-        _output.WriteLine($"  Signature:       {decision.Record.Signature![..16]}...");
+        _output.WriteLine($"  Signature:       {(decision.Record.Signature?.Length >= 16 ? decision.Record.Signature[..16] + "..." : decision.Record.Signature ?? "null")}");
         _output.WriteLine("");
         _output.WriteLine("WHY IT PASSED:");
         _output.WriteLine("  Strong witness checks BOTH outputs ('errorCount' and");
@@ -273,8 +273,9 @@ public sealed class AdmissionGateDemoTests
 
     private static (string privateKey, string publicKey) CreateEd25519Key()
     {
-        var algorithm = SignatureAlgorithm.Ed25519;
-        using var key = Key.Create(algorithm);
+        using var key = Key.Create(
+            SignatureAlgorithm.Ed25519,
+            new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
         var privateKeyBytes = key.Export(KeyBlobFormat.RawPrivateKey);
         var publicKeyBytes = key.PublicKey.Export(KeyBlobFormat.RawPublicKey);
         return (Convert.ToBase64String(privateKeyBytes), Convert.ToBase64String(publicKeyBytes));
@@ -292,17 +293,15 @@ public sealed class AdmissionGateDemoTests
 
     private static string CreateCleanProjectFile()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), "ashlar-gate-demo-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(tempDir);
-        var projectPath = Path.Combine(tempDir, "Demo.csproj");
-        File.WriteAllText(projectPath,
-            """
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net8.0</TargetFramework>
-              </PropertyGroup>
-            </Project>
-            """);
-        return projectPath;
+        var path = Path.Combine(Path.GetTempPath(), $"ashlar-gate-demo-{Guid.NewGuid():N}.csproj");
+        File.WriteAllText(path, """
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.0" />
+    <PackageReference Include="Ashlar.Authoring" Version="0.1.0" />
+  </ItemGroup>
+</Project>
+""");
+        return path;
     }
 }
