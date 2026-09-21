@@ -454,12 +454,49 @@ public sealed partial class GateStore
         // for. The early File.Exists shortcut went with it: it answered from the filesystem's
         // case rules rather than from the store, which is the same mistake in cheaper form.
         var (records, _) = await ReadStoreAsync(ct).ConfigureAwait(false);
-        foreach (var entry in records)
+        var matches = records
+            .Where(entry => string.Equals(entry.Record.Proposal.Id, proposalId, StringComparison.Ordinal))
+            .ToList();
+
+        if (matches.Count > 1)
         {
-            if (string.Equals(entry.Record.Proposal.Id, proposalId, StringComparison.Ordinal))
+            // TWO FILES, ONE ID — possible only in a store that has never been signed. Group 3's
+            // file-name leg binds a file's name to the id inside it from the moment a store is
+            // signed, and activation refuses to mint over a store that already violates that, so a
+            // signed store cannot reach here. S-2 owns the unsigned case and deliberately keeps it
+            // permissive: ListAsync shows the caller every file, copies included, exactly as it did
+            // before rule S-6 existed, and that is pinned.
+            //
+            // What must NOT survive is answering this read by directory enumeration order. An actor
+            // who can write gates/ plants `aaa.json` holding an honest record's id and their own
+            // state; `aaa` sorts first, so GetAsync returns the plant, DecideAsync refuses to decide
+            // the real proposal because the plant is already Admitted, and the honest record becomes
+            // undecidable without anything having been overwritten. The canonical file — the one
+            // PathFor would write — wins, so a planted name can never outrank the record it is
+            // impersonating, and the answer does not depend on how the filesystem enumerates.
+            var canonical = Path.GetFileName(PathFor(proposalId));
+            var preferred = matches.FirstOrDefault(entry =>
+                string.Equals(Path.GetFileName(entry.Path), canonical, StringComparison.Ordinal));
+            if (preferred.Record is not null)
             {
-                return entry.Record;
+                return preferred.Record;
             }
+
+            // No file bears the id's own name, so there is no principled winner and picking one
+            // would be the enumeration-order answer under a different disguise.
+            var names = matches
+                .Select(entry => Path.GetFileName(entry.Path))
+                .OrderBy(name => name, StringComparer.Ordinal);
+            throw new InvalidOperationException(
+                $"Corrupt gate store: {matches.Count} record files hold proposal '{proposalId}' "
+                + $"({string.Join(", ", names)}) and none is named '{canonical}'. Refusing to pick one — "
+                + "exactly one of these is the record, and this store cannot tell which. Rename the "
+                + "real one to its own id, or remove the others, and retry.");
+        }
+
+        foreach (var entry in matches)
+        {
+            return entry.Record;
         }
         // The file was there a moment ago and is not now: another process removed it under us.
         return null;
@@ -631,8 +668,15 @@ public sealed partial class GateStore
 
     private async Task<List<(string Path, GateRecord Record)>> ParseAllAsync(CancellationToken ct)
     {
+        // ORDINAL BY PATH, because Directory.EnumerateFiles guarantees no order at all — it is
+        // directory-hash order on ext4 and creation order elsewhere. Everything downstream inherits
+        // that: which record answers a single-record read when two files claim one id, which file a
+        // refusal names first, the tiebreak inside ListAsync's ProposedAt sort, and the order the
+        // grandfather inventory is minted in. Leaving it unordered does not make those behaviours
+        // safe, only untestable — a fact aimed at any of them passes or fails on how the filesystem
+        // happened to lay the directory out, which is a flake wearing a green tick.
         var parsed = new List<(string, GateRecord)>();
-        foreach (var file in Directory.EnumerateFiles(_dir, "*.json"))
+        foreach (var file in Directory.EnumerateFiles(_dir, "*.json").OrderBy(p => p, StringComparer.Ordinal))
         {
             parsed.Add((file, await ParseRecordAsync(file, ct).ConfigureAwait(false)));
         }

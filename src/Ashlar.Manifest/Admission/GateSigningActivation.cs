@@ -117,9 +117,10 @@ public sealed record GateSigningActivation
     /// signatures already prove.</para>
     /// </summary>
     private const string RepairExit =
-        "Delete gate-signing.json and run `ashlar gates sign-activate --repair`, which re-mints at the "
-        + "earliest instant the surviving signatures prove — never later — and prints how many unsigned "
-        + "records it grandfathers.";
+        "`ashlar gates sign-activate --repair` cannot recover this on its own: it reads this same check "
+        + "first and fails here too. The exit is two steps — delete gate-signing.json, then run "
+        + "`ashlar gates sign-activate --repair`, which re-mints at the earliest instant the surviving "
+        + "signatures already prove — never later — and prints how many unsigned records it grandfathers.";
 
     public static GateSigningActivation? TryRead(string stateRoot)
     {

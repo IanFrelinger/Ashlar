@@ -1122,4 +1122,58 @@ public sealed class GateSignatureExpectationTests : IDisposable
             "the re-mint anchors at the earliest instant the surviving signature proves, never at now");
         (await Store(signer).ListAsync()).Should().ContainSingle("the store reads again");
     }
+
+    /// <summary>
+    /// When two files hold one proposal id, the file named for that id answers — never whichever
+    /// the filesystem happened to enumerate first.
+    ///
+    /// <para><b>Why this is not a refusal.</b> Two files can hold one id only in a store that has
+    /// never been signed: Group 3's file-name leg binds name to id from the moment a store is
+    /// signed, and activation refuses to mint over a store that already violates it. S-2 owns the
+    /// unsigned case and deliberately keeps it permissive — <c>ListAsync</c> returns copies and
+    /// <c>AdmittedInWindowAsync</c> counts them, exactly as before rule S-6, and
+    /// <see cref="A_never_signed_store_behaves_exactly_as_today_for_both_readers"/> pins that. An
+    /// actor who can plant a second file can overwrite the first, so refusing here would buy no
+    /// integrity and would break a promise the changelog makes.</para>
+    ///
+    /// <para><b>What must not survive is the arbitrary winner.</b> Plant <c>aaa.json</c> carrying
+    /// an honest record's id and a state of your choosing: <c>aaa</c> sorts before <c>ext-1</c>, so
+    /// a read that returned the first match would hand back the plant. <c>DecideAsync</c> reads
+    /// through here, so it would refuse to decide the real proposal — <i>is Admitted, not Held</i> —
+    /// and the honest record would become undecidable with nothing overwritten and nothing
+    /// refused. The canonical file wins, so a planted name cannot outrank the record it is
+    /// impersonating, and the answer no longer depends on enumeration order.</para>
+    /// </summary>
+    [Fact]
+    public async Task The_file_named_for_an_id_answers_for_it_when_a_second_file_claims_it_too()
+    {
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
+
+        // Sorts before "ext-1.json", so enumeration order would hand this one back.
+        var plant = Path.Combine(_state, "gates", "aaa-plant.json");
+        File.Copy(RecordFile("ext-1"), plant);
+        var node = (JsonObject)JsonNode.Parse(File.ReadAllText(plant))!;
+        node["State"] = nameof(ProposalState.Admitted);
+        File.WriteAllText(plant, node.ToJsonString());
+
+        // The arrangement is itself checked. Written as node["state"] this edit adds a SECOND,
+        // lower-cased property and leaves "State" alone, so the plant stays Held, the assertion
+        // below holds whichever file answers, and the fact passes while proving nothing — which is
+        // exactly how it first behaved. A fact whose setup can silently no-op is not a fact.
+        ((JsonObject)JsonNode.Parse(File.ReadAllText(plant))!)["State"]!.GetValue<string>()
+            .Should().Be(nameof(ProposalState.Admitted),
+                "the plant must really differ from the honest record, or this fact cannot fail");
+
+        var store = Store();
+        (await store.ListAsync()).Should().HaveCount(2,
+            "S-2 keeps an unsigned store permissive, and the caller is shown both files");
+
+        var got = await store.GetAsync("ext-1");
+        got.Should().NotBeNull();
+        got!.State.Should().Be(ProposalState.Held,
+            "ext-1.json is the file named for this id, so it answers for it. Returning the plant "
+            + "would let anyone who can write gates/ make an honest proposal undecidable — "
+            + "DecideAsync reads through here and refuses a record that is already Admitted");
+    }
 }
