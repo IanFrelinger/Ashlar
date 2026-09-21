@@ -14,21 +14,39 @@ namespace Ashlar.Tests.Kernel.Packaging;
 /// seal breaks), and the RECORD's own signature is the verdict's authority (re-seal a doctored
 /// record with your own key and the record check still refuses). Verification needs no local
 /// keys and no network; opening a package admits nothing.
+///
+/// <para><b>Hermetic against the machine's key directory.</b> <see cref="GateStore"/>'s constructor
+/// pins its signer set from <see cref="OperatorKey.TrustedPublicKeysBase64"/>, which resolves
+/// <c>ASHLAR_KEY_DIR</c> / <c>~/.ashlar/keys</c>.
+/// <see cref="A_record_signed_before_claims_existed_still_verifies_and_still_packs"/> re-reads
+/// through a store constructed with no signer, standing in for a bundle consumer — which by
+/// definition holds no key material — so the variable is pointed at a fresh EMPTY directory for the
+/// lifetime of the class, set BEFORE the origin key is generated. Pointing it at the origin key's
+/// own directory would make that consumer keyed and the fact would stop testing what it names.</para>
 /// </summary>
+[Collection("EnvironmentSensitive")]
 public sealed class ExtensionPackagingTests : IDisposable
 {
+    private const string KeyDirVariable = "ASHLAR_KEY_DIR";
+
     private readonly string _dir;
     private readonly SigningIdentity _origin;
+    private readonly string? _previousKeyDir;
 
     public ExtensionPackagingTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "ashpkg-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+        _previousKeyDir = Environment.GetEnvironmentVariable(KeyDirVariable);
+        var ambient = Path.Combine(_dir, "no-ambient-keys");
+        Directory.CreateDirectory(ambient);
+        Environment.SetEnvironmentVariable(KeyDirVariable, ambient);
         _origin = OperatorKey.Generate(Path.Combine(_dir, "origin-keys"));
     }
 
     public void Dispose()
     {
+        Environment.SetEnvironmentVariable(KeyDirVariable, _previousKeyDir);
         if (Directory.Exists(_dir))
         {
             Directory.Delete(_dir, recursive: true);

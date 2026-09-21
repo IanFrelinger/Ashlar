@@ -10,18 +10,28 @@ namespace Ashlar.Tests.Kernel;
 /// version under test: there is no path into Admitted except a full pass — no
 /// administrative shortcut, including for the vendor.
 /// </summary>
+[Collection("EnvironmentSensitive")]
 public sealed class AdmissionGateTests : IDisposable
 {
+    /// <summary>A GateStore pins its signers from this variable; see
+    /// <see cref="EnvironmentSensitiveCollection"/> for why every store-constructing fact pins it
+    /// to an EMPTY directory of its own.</summary>
+    private const string KeyDirVariable = "ASHLAR_KEY_DIR";
+
     private readonly string _dir;
+    private readonly string? _previousKeyDir;
 
     public AdmissionGateTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "gates-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+        _previousKeyDir = Environment.GetEnvironmentVariable(KeyDirVariable);
+        Environment.SetEnvironmentVariable(KeyDirVariable, Directory.CreateDirectory(Path.Combine(_dir, "no-ambient-keys")).FullName);
     }
 
     public void Dispose()
     {
+        Environment.SetEnvironmentVariable(KeyDirVariable, _previousKeyDir);
         if (Directory.Exists(_dir))
         {
             Directory.Delete(_dir, recursive: true);

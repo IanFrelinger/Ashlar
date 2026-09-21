@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Ashlar.BackgroundAgents.Telemetry;
 using Ashlar.Manifest.Admission;
+using Ashlar.Manifest.Signing;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
 
@@ -155,7 +156,10 @@ public class ReportBackgroundAgentCommand
         }
         try
         {
-            var records = await new GateStore(Path.Combine(projectRoot, ".ashlar")).ListAsync(ct: ct).ConfigureAwait(false);
+            // Read with the operator identity when there is one (SPEC-006 S-6): a report is where
+            // an operator learns their store refuses itself, and a corrupt key surfaces here as the
+            // store error below — the catch covers InvalidOperationException from TryLoad too.
+            var records = await new GateStore(Path.Combine(projectRoot, ".ashlar"), OperatorKey.TryLoad()).ListAsync(ct: ct).ConfigureAwait(false);
             var inWindow = records.Where(r => r.DecidedAt >= cutoff).ToList();
             var recentRejections = inWindow
                 .Where(r => r.State == ProposalState.Rejected)
