@@ -181,6 +181,12 @@ public sealed record GateSigningActivation
     /// state root a permanent brick of every keyed write with no named exit, and replacing always
     /// puts a new capability on a security artefact on the hot path.</para>
     ///
+    /// <para>A FOURTH case the three above do not cover: no marker at all, but records here whose
+    /// signatures verify. That state arises only from deletion, and re-minting over it is the
+    /// laundering step, so it is refused unless <paramref name="reMintVouchedFor"/> asks —
+    /// <paramref name="verifyingRecordAnchors"/> is how this method tells a store that was never
+    /// signed from one whose marker is gone.</para>
+    ///
     /// <para>Written temp-then-move. The no-marker path never overwrites, so losing the race to
     /// another writer means reading what won; only a deliberate replacement overwrites.</para>
     /// </summary>
@@ -190,6 +196,7 @@ public sealed record GateSigningActivation
         DateTimeOffset activatedAt,
         IReadOnlyList<string> vouchedFor,
         IReadOnlyList<GrandfatheredRecord> grandfathered,
+        int verifyingRecordAnchors,
         bool replaceUnvouchedFor,
         bool reMintVouchedFor)
     {
@@ -233,6 +240,27 @@ public sealed record GateSigningActivation
 
             // The operator may re-mint WHAT was authorized here; never WHEN.
             return (Write(stateRoot, Signed(signer, existing.ActivatedAt, grandfathered), overwrite: true), true, false);
+        }
+
+        // A store holding records whose signatures VERIFY but carrying no marker did not get
+        // that way by being new — the marker was deleted. Minting a fresh inventory over what is
+        // on disk now is the laundering step: every unsigned record present at this moment,
+        // including any an actor planted under the derived date floor while the marker was gone,
+        // becomes permanently blessed by the operator's key. WriteAsync rule (e) already refuses
+        // this on the automatic path; the operator's PLAIN verb must refuse it too, or the
+        // refusal simply redirects the attack through the command the operator is told to run.
+        // Only the verb that re-mints deliberately may proceed, and it anchors at the earliest
+        // instant the surviving signatures prove rather than at now.
+        if (verifyingRecordAnchors > 0 && !reMintVouchedFor)
+        {
+            throw new InvalidOperationException(
+                $"There is no signing activation at {PathFor(stateRoot)}, but this store holds "
+                + $"{verifyingRecordAnchors} record(s) whose signatures verify — so it was signing and the "
+                + "marker is gone. Minting a new inventory over the store as it stands would permanently "
+                + "bless every unsigned record present right now, including any placed here since the marker "
+                + "was deleted. Refusing to activate. Run `ashlar gates sign-activate --repair`, which "
+                + "re-mints at the earliest instant the surviving signatures prove and prints what it "
+                + "grandfathers.");
         }
 
         var marker = Signed(signer, activatedAt, grandfathered);

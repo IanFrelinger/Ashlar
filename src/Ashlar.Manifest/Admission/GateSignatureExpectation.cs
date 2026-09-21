@@ -117,7 +117,10 @@ public sealed record GateSignatureExpectation(
                     + "verdict is worse than a missing one. Deleting records from gates/ is NOT the remedy; if this "
                     + "machine should be signing, run `ashlar keys init`.";
             }
-            if (!string.Equals(entry.Sha256, canonicalSha256, StringComparison.Ordinal))
+            // OrdinalIgnoreCase: the value is hex. This store writes it lowercase, but refusing a
+            // marker because another writer spelled the same digest in uppercase would be a brick
+            // with no diagnosis — the two strings look identical in the error message.
+            if (!string.Equals(entry.Sha256, canonicalSha256, StringComparison.OrdinalIgnoreCase))
             {
                 return $"Corrupt gate record: {fileName} is grandfathered unsigned, but its bytes have changed since "
                     + $"the operator authorized it: the activation marker pins sha256 {entry.Sha256} for proposal "

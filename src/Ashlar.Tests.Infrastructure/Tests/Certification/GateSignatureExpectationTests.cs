@@ -945,4 +945,128 @@ public sealed class GateSignatureExpectationTests : IDisposable
                 "the fabricated admission is refused, not counted");
         File.Exists(RecordFile("ext-1")).Should().BeFalse("the transaction never reached the write");
     }
+
+    /// <summary>
+    /// A refusal is worth nothing if the verb it names performs the very step it refused.
+    ///
+    /// <para>Rule (e) of the keyed write branch refuses to auto-activate over a store whose marker
+    /// has been deleted, because re-minting an inventory over whatever is on disk NOW permanently
+    /// blesses every unsigned record present at this instant — including one an actor placed there
+    /// while the marker was gone, dated under a floor the store's own surviving records expose.
+    /// The operator reading that refusal is told to run a verb. If the PLAIN verb re-mints, the
+    /// refusal has not stopped the attack: it has routed it through the one command the operator
+    /// was told to run, and they see a tick.</para>
+    ///
+    /// <para>So the plain verb refuses too, and names the one that re-mints deliberately. The
+    /// second half of this fact is the part that keeps the design honest — the named exit EXISTS,
+    /// it anchors at the earliest instant the surviving signatures prove rather than at now, and
+    /// it says out loud that it is blessing the planted record. That printed number is the only
+    /// control on <c>--repair</c>, which is why it is asserted here and not merely rendered.</para>
+    /// </summary>
+    [Fact]
+    public async Task A_plain_activation_refuses_to_re_mint_over_a_deleted_marker()
+    {
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        await Store(signer).RecordAsync(Proposal("ext-1"), Held(), T0);
+        File.Exists(MarkerFile).Should().BeTrue("the first keyed write activates this store");
+
+        // The marker is gone. The signed record still verifies, so the store still PROVES it was
+        // signing — which is what distinguishes a deleted marker from a store that never had one.
+        File.Delete(MarkerFile);
+        Fabricate("evil", ProposalState.Admitted, T0.AddHours(-1));
+
+        var plain = async () => await Store(signer).ActivateSigningAsync(T0.AddHours(5));
+        (await plain.Should().ThrowAsync<InvalidOperationException>(
+                "records that verify beside a marker that is gone mean the marker was deleted, and "
+                + "minting a fresh inventory over the store as it stands is the laundering step the "
+                + "write path already refuses — the operator verb must not be the way around it"))
+            .WithMessage("*sign-activate --repair*");
+        File.Exists(MarkerFile).Should().BeFalse("the refused activation wrote no marker");
+
+        var repaired = await Store(signer).ActivateSigningAsync(T0.AddHours(5), repair: true);
+        repaired.Marker.ActivatedAt.Should().Be(T0,
+            "a re-mint anchors at the earliest instant the surviving signatures prove, never at now, "
+            + "or deleting the marker and the newest records would walk the floor forward");
+        repaired.Marker.Grandfathered.Should().ContainSingle().Which.Id.Should().Be("evil");
+        repaired.GrandfatheredAdmitted.Should().Be(1,
+            "the planted record is admitted, and this number is the whole of what stands between the "
+            + "operator and blessing it — an exit that blessed it silently would be worse than none");
+    }
+
+    /// <summary>
+    /// <see cref="GateStore.GetAsync"/> and <see cref="GateStore.ListAsync"/> must answer about the
+    /// same store, and the id the caller asked for is the id INSIDE the record — never the name of
+    /// the file it happens to sit in.
+    ///
+    /// <para><b>The shape this refuses.</b> Get used to resolve <c>{id}.json</c>, check
+    /// <c>File.Exists</c>, and then match the file name ordinally. On Windows and default macOS
+    /// <c>File.Exists("ext-1.json")</c> succeeds against a file called <c>EXT-1.json</c> while the
+    /// ordinal compare fails; with any other rename it returns null on every platform. Either way
+    /// List returned a record Get called absent — so <c>DecideAsync</c> reported no such proposal
+    /// and <c>PackageImport</c>'s dedup probe re-imported it. That is precisely the two-funnels-
+    /// disagree defect this class exists to remove, reintroduced by a string comparison.</para>
+    ///
+    /// <para>The store here has never been signed, which is the only state in which a file's name
+    /// and the id inside it are allowed to differ: Group 3's file-name leg binds them from the
+    /// instant the store is signed, and refuses through BOTH funnels when they diverge.</para>
+    /// </summary>
+    [Fact]
+    public async Task Get_and_list_agree_about_a_record_whose_file_name_is_not_its_id()
+    {
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
+        File.Move(RecordFile("ext-1"), Path.Combine(_state, "gates", "renamed.json"));
+
+        var store = Store();
+        (await store.ListAsync()).Should().ContainSingle()
+            .Which.Proposal.Id.Should().Be("ext-1");
+
+        var got = await store.GetAsync("ext-1");
+        got.Should().NotBeNull(
+            "ListAsync returns this record, so GetAsync must too. A single-record read that answers "
+            + "from the filesystem's naming rules rather than from the store is a second, weaker "
+            + "resolution point wearing a cheaper disguise");
+        got!.Proposal.Id.Should().Be("ext-1");
+
+        (await store.GetAsync("ext-absent")).Should().BeNull(
+            "an id no record here carries still reads as absent rather than as an error");
+    }
+
+    /// <summary>
+    /// Activation must refuse a store it is about to make unreadable, rather than bless it and
+    /// leave the operator holding the pieces.
+    ///
+    /// <para>Activation flips <c>Expected</c> true, and from that instant Group 3's file-name leg
+    /// refuses any record whose file is not named for the id inside it. A store holding an
+    /// operator's manual copy — or any misnamed file — reads perfectly well beforehand, because the
+    /// leg is inert while the store has never been signed. Minting a marker over it turns EVERY
+    /// read into a refusal, and the remedy the refusal names, <c>--repair</c>, re-mints the same
+    /// broken set: the operator's exit leads back to the same wall. So <c>keys init</c> — the one
+    /// command an operator is told to run — could brick the store it was asked to bless.</para>
+    ///
+    /// <para>The refusal names the offending file, happens before anything is written, and leaves
+    /// the store readable, which is the state in which the files can still be moved.</para>
+    /// </summary>
+    [Fact]
+    public async Task Activation_refuses_a_store_it_would_brick_rather_than_blessing_it()
+    {
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
+        File.Copy(RecordFile("ext-1"), Path.Combine(_state, "gates", "ext-1-backup.json"));
+        (await Store().ListAsync()).Should().HaveCount(2, "nothing refuses this store yet");
+
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var activate = async () => await Store(signer).ActivateSigningAsync(T0.AddHours(1));
+
+        (await activate.Should().ThrowAsync<InvalidOperationException>(
+                "a marker here would refuse every subsequent read of this store, and --repair would "
+                + "re-mint the same set, so the operator would have no exit that is not a deletion"))
+            .WithMessage("*ext-1-backup.json*");
+
+        File.Exists(MarkerFile).Should().BeFalse("the refused activation wrote no marker");
+        (await Store(signer).ListAsync()).Should().HaveCount(2,
+            "the store still reads, which is the state the operator needs in order to fix it");
+    }
 }

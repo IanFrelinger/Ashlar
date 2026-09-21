@@ -157,6 +157,35 @@ public sealed partial class GateStore
         using var _ = await AcquireLockAsync(ct).ConfigureAwait(false);
 
         var (entries, _) = await ReadStoreAsync(ct, judge: false).ConfigureAwait(false);
+
+        // Activation flips `Expected` true, and from that instant the file-name leg refuses any
+        // record whose file is not named for the id inside it. Minting a marker over a store that
+        // already violates that is how the one command an operator is told to run bricks the store
+        // it was asked to bless — and the named remedy, --repair, re-mints the SAME broken set, so
+        // the operator's exit leads back here. Refuse while the store still reads and the files can
+        // still be moved. (This subsumes a duplicated id: two files cannot both be named for it.)
+        var misnamed = entries
+            .Where(entry => !string.Equals(
+                Path.GetFileName(entry.Path),
+                entry.Record.Proposal.Id + ".json",
+                StringComparison.Ordinal))
+            .Select(entry => $"{Path.GetFileName(entry.Path)} (holds '{entry.Record.Proposal.Id}')")
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+        if (misnamed.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Refusing to activate signing: this store holds record file(s) whose name is not the "
+                + "proposal id inside them, and from the instant a marker lands every read of this store "
+                + "would be refused — including by `--repair`, which would re-mint the same set. Rename or "
+                + $"remove them first: {string.Join(", ", misnamed)}.");
+        }
+
+        // The records whose signatures verify under THIS reader's key material: the derived anchor.
+        // Computed once, because the COUNT decides whether a missing marker means a fresh store or
+        // a deleted one, and the INSTANTS decide where a re-mint may anchor.
+        var verifying = VerifyingAnchors(entries);
+
         var inventory = entries
             .Where(e => e.Record.Sig is null)
             .Select(e => new GrandfatheredRecord(e.Record.Proposal.Id, e.Sha256))
@@ -166,9 +195,10 @@ public sealed partial class GateStore
         var (marker, alreadyActive, replaced) = GateSigningActivation.Activate(
             _stateRoot,
             _signer,
-            EarliestProvenInstant(entries, now),
+            EarliestProvenInstant(verifying, now),
             _trustedSigners,
             inventory,
+            verifying.Count,
             replaceUnvouchedFor: true,
             reMintVouchedFor: repair);
 
@@ -191,10 +221,29 @@ public sealed partial class GateStore
     /// would grandfather every record between the true instant and the re-mint.
     /// </summary>
     private DateTimeOffset EarliestProvenInstant(
-        IReadOnlyList<(string Path, GateRecord Record, string Sha256)> entries, DateTimeOffset now)
+        IReadOnlyList<(string Path, GateRecord Record, string Sha256)> verifying, DateTimeOffset now)
+    {
+        var earliest = now;
+        foreach (var entry in verifying)
+        {
+            if (entry.Record.DecidedAt < earliest)
+            {
+                earliest = entry.Record.DecidedAt;
+            }
+        }
+        return earliest;
+    }
+
+    /// <summary>
+    /// The records here whose signatures verify under this reader's key material — the DERIVED
+    /// anchor of SPEC-006 S-6. A signature this machine cannot vouch for proves nothing and dates
+    /// nothing, so it is not one.
+    /// </summary>
+    private List<(string Path, GateRecord Record, string Sha256)> VerifyingAnchors(
+        IReadOnlyList<(string Path, GateRecord Record, string Sha256)> entries)
     {
         var unanchored = GateSignatureExpectation.None(_trustedSigners, "judging present signatures only");
-        var earliest = now;
+        var verifying = new List<(string Path, GateRecord Record, string Sha256)>();
         foreach (var entry in entries)
         {
             if (entry.Record.Sig is null
@@ -202,12 +251,9 @@ public sealed partial class GateStore
             {
                 continue;   // a signature this machine cannot vouch for dates nothing
             }
-            if (entry.Record.DecidedAt < earliest)
-            {
-                earliest = entry.Record.DecidedAt;
-            }
+            verifying.Add(entry);
         }
-        return earliest;
+        return verifying;
     }
 
     /// <summary>
@@ -383,18 +429,23 @@ public sealed partial class GateStore
     /// here, `gates --admit` signed tampered content under the operator's key.</para></summary>
     public async Task<GateRecord?> GetAsync(string proposalId, CancellationToken ct = default)
     {
-        var path = PathFor(proposalId);
-        if (!File.Exists(path))
-        {
-            // An unknown id in a healthy store still reads as absent rather than as an error.
-            return null;
-        }
+        // Validates the id's shape and refuses Win32 reserved names. Kept even though the read no
+        // longer resolves through the path it builds.
+        PathFor(proposalId);
 
-        var wanted = Path.GetFileName(path);
+        // MATCHED ON THE ID INSIDE THE RECORD, never on the file name. Comparing file names
+        // ordinally reintroduced the disagreement this class exists to remove: on Windows and
+        // default macOS, File.Exists("ext-1.json") succeeds against a file called EXT-1.json while
+        // the ordinal compare fails, so ListAsync returned a record GetAsync called absent —
+        // DecideAsync then reported no such proposal and PackageImport's dedup probe re-imported
+        // it. Group 3's file-name leg binds name to id whenever the store is signed; on a store
+        // that has never been signed (S-2) nothing binds them, and the id is what the caller asked
+        // for. The early File.Exists shortcut went with it: it answered from the filesystem's
+        // case rules rather than from the store, which is the same mistake in cheaper form.
         var (records, _) = await ReadStoreAsync(ct).ConfigureAwait(false);
         foreach (var entry in records)
         {
-            if (string.Equals(Path.GetFileName(entry.Path), wanted, StringComparison.Ordinal))
+            if (string.Equals(entry.Record.Proposal.Id, proposalId, StringComparison.Ordinal))
             {
                 return entry.Record;
             }
@@ -447,13 +498,10 @@ public sealed partial class GateStore
         var entries = new List<(string Path, GateRecord Record, string Sha256)>(parsed.Count);
         foreach (var (path, record) in parsed)
         {
-            // CANONICAL bytes, never the file's. A trailing newline, a reformat or a text=auto
-            // line-ending normalisation must not move this hash, or adopting a store would arm a
-            // brick whose only exit is the command that re-mints the set. Hashing the record we
-            // already parsed also means no second read: the bytes judged are the bytes returned.
-            var canonical = Convert.ToHexString(
-                SHA256.HashData(Signing.CanonicalJson.Bytes(record))).ToLowerInvariant();
-            entries.Add((path, record, canonical));
+            // Hashing the record we already parsed, never a second read of the file: the bytes
+            // judged are the bytes returned. ONE spelling of this hash exists (CanonicalSha256) —
+            // an inlined second copy of a security-critical derivation is how the two drift apart.
+            entries.Add((path, record, CanonicalSha256(record)));
         }
 
         var unanchored = GateSignatureExpectation.None(_trustedSigners, "judging present signatures only");
@@ -767,7 +815,8 @@ public sealed partial class GateStore
                 // An empty store: there is nothing to authorize, so activation is silent.
                 GateSigningActivation.Activate(
                     _stateRoot, _signer, record.DecidedAt, _trustedSigners,
-                    Array.Empty<GrandfatheredRecord>(), replaceUnvouchedFor: false, reMintVouchedFor: false);
+                    Array.Empty<GrandfatheredRecord>(), verifyingRecordAnchors: 0,
+                    replaceUnvouchedFor: false, reMintVouchedFor: false);
             }
 
             leavesTheInventory = expectation.Grandfathered?
