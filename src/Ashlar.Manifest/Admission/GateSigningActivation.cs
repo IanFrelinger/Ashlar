@@ -104,6 +104,23 @@ public sealed record GateSigningActivation
     /// the alternative readings are both wrong: a bare parse error tells the operator nothing, and
     /// treating a missing inventory as "grandfather everything" is the forgery it exists to stop.
     /// </summary>
+    /// <summary>
+    /// The two-step exit out of a marker NOTHING can read.
+    ///
+    /// <para>A marker that is unparseable, empty or unverifiable makes <see cref="ReadVerified"/>
+    /// throw, and <see cref="Activate"/> calls it first — so <c>--repair</c>, which exists
+    /// precisely for a store whose marker a reader refuses, throws on the very file it was
+    /// reached for. Without this sentence that state is the one place this product can put an
+    /// operator with NO named exit, recoverable only by knowing to delete a security artefact by
+    /// hand. Deleting it is safe to advise because a marker that does not verify carries no
+    /// authority to lose, and the re-mint cannot date the store later than its own surviving
+    /// signatures already prove.</para>
+    /// </summary>
+    private const string RepairExit =
+        "Delete gate-signing.json and run `ashlar gates sign-activate --repair`, which re-mints at the "
+        + "earliest instant the surviving signatures prove — never later — and prints how many unsigned "
+        + "records it grandfathers.";
+
     public static GateSigningActivation? TryRead(string stateRoot)
     {
         var marker = ReadVerified(stateRoot);
@@ -141,14 +158,16 @@ public sealed record GateSigningActivation
         {
             throw new InvalidOperationException(
                 $"Corrupt signing activation: {FileName} is not valid JSON ({ex.Message}). "
-                + "Refusing to operate on a store whose signing posture cannot be read — inspect the file.");
+                + "Refusing to operate on a store whose signing posture cannot be read. "
+                + $"{RepairExit}");
         }
 
         if (marker is null)
         {
             throw new InvalidOperationException(
                 $"Corrupt signing activation: {FileName} contains no marker. "
-                + "Refusing to operate on a store whose signing posture cannot be read — inspect the file.");
+                + "Refusing to operate on a store whose signing posture cannot be read. "
+                + $"{RepairExit}");
         }
 
         if (!marker.Verifies())
@@ -157,7 +176,7 @@ public sealed record GateSigningActivation
             throw new InvalidOperationException(
                 $"Corrupt signing activation: {FileName} {what}. An unsigned or unverifiable activation marker is "
                 + "never honoured — honouring one would let anyone who can write this directory brick a keyless "
-                + "store by planting a far-past activation. Refusing to operate.");
+                + $"store by planting a far-past activation. Refusing to operate. {RepairExit}");
         }
 
         return marker;
@@ -251,6 +270,16 @@ public sealed record GateSigningActivation
         // refusal simply redirects the attack through the command the operator is told to run.
         // Only the verb that re-mints deliberately may proceed, and it anchors at the earliest
         // instant the surviving signatures prove rather than at now.
+        //
+        // WHAT THIS GUARD DOES NOT COVER, said here because the count is what bounds it. It
+        // fires on records that still VERIFY, so an actor who strips every signature as well as
+        // deleting the marker drives the count to zero and the plain verb mints freely. That is
+        // not a hole this guard can close: with no signature and no marker left, nothing in the
+        // state root distinguishes such a store from one that was never signed, which is exactly
+        // the recorded residual that the store's own account of itself lives in the directory
+        // being attacked. Closing it needs evidence from outside the state root. The guard
+        // raises the price of the cheap attack from `delete one file` to `strip everything`; it
+        // does not make the expensive one impossible, and must not be read as though it did.
         if (verifyingRecordAnchors > 0 && !reMintVouchedFor)
         {
             throw new InvalidOperationException(

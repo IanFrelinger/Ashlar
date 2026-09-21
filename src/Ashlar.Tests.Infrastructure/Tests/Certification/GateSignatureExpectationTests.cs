@@ -1045,6 +1045,16 @@ public sealed class GateSignatureExpectationTests : IDisposable
     /// broken set: the operator's exit leads back to the same wall. So <c>keys init</c> — the one
     /// command an operator is told to run — could brick the store it was asked to bless.</para>
     ///
+    /// <para>The copy in this fact carries the SAME proposal id as the record it was copied from,
+    /// which is the sharper half. The inventory is minted one entry per file and read with
+    /// <c>FirstOrDefault</c> on the id, so a duplicated id yields two entries of which only the
+    /// first is ever consulted — and directory enumeration order picks it. After activation the
+    /// HONEST file can be the one whose hash misses, and the operator is told its bytes changed
+    /// since they authorized it, about a file nobody touched. Requiring every file to be named for
+    /// the id inside it makes that collision unrepresentable, because two files cannot share a
+    /// name — so this one refusal closes a store-wide brick available to anyone who can write
+    /// <c>gates/</c>, not merely an untidy filename.</para>
+    ///
     /// <para>The refusal names the offending file, happens before anything is written, and leaves
     /// the store readable, which is the state in which the files can still be moved.</para>
     /// </summary>
@@ -1068,5 +1078,48 @@ public sealed class GateSignatureExpectationTests : IDisposable
         File.Exists(MarkerFile).Should().BeFalse("the refused activation wrote no marker");
         (await Store(signer).ListAsync()).Should().HaveCount(2,
             "the store still reads, which is the state the operator needs in order to fix it");
+    }
+
+    /// <summary>
+    /// A marker nothing can read must still name a way out, and that way out must work.
+    ///
+    /// <para><see cref="GateSigningActivation.ReadVerified"/> throws on a marker that is
+    /// unparseable, empty, or unsigned/unverifiable, and <see cref="GateStore.ResolveExpectation"/>
+    /// calls it on EVERY read — so one junk file in the state root refuses every <c>GetAsync</c>,
+    /// <c>ListAsync</c>, <c>AdmittedInWindowAsync</c> and both write paths. The trap is that
+    /// <c>Activate</c> calls <c>ReadVerified</c> first too, so <c>--repair</c> — which exists
+    /// precisely for a store whose marker a reader refuses — throws on the very file it was reached
+    /// for. Without a named exit that is the one state this product can put an operator in with no
+    /// recovery at all short of knowing to delete a security artefact by hand.</para>
+    ///
+    /// <para>This fact asserts the exit is NAMED and that following it RECOVERS the store. A fact
+    /// that only matched the words would pass against advice that does not work.</para>
+    /// </summary>
+    [Fact]
+    public async Task A_marker_nothing_can_read_names_the_exit_that_recovers_the_store()
+    {
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        await Store(signer).RecordAsync(Proposal("ext-1"), Held(), T0);
+
+        File.WriteAllText(MarkerFile, "{ this is not json");
+
+        var read = async () => await Store(signer).ListAsync();
+        (await read.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*sign-activate --repair*",
+                "every refusal a store can hand an operator must name a way out of it");
+
+        var repair = async () => await Store(signer).ActivateSigningAsync(T0.AddHours(5), repair: true);
+        (await repair.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*sign-activate --repair*",
+                "--repair reads the marker before it repairs it, so it cannot recover this state on its "
+                + "own — which is exactly why the message must say to delete the file FIRST");
+
+        // Follow the advice the refusal gave, and the store comes back.
+        File.Delete(MarkerFile);
+        var recovered = await Store(signer).ActivateSigningAsync(T0.AddHours(5), repair: true);
+        recovered.Marker.ActivatedAt.Should().Be(T0,
+            "the re-mint anchors at the earliest instant the surviving signature proves, never at now");
+        (await Store(signer).ListAsync()).Should().ContainSingle("the store reads again");
     }
 }

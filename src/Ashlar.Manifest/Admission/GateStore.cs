@@ -163,7 +163,18 @@ public sealed partial class GateStore
         // already violates that is how the one command an operator is told to run bricks the store
         // it was asked to bless — and the named remedy, --repair, re-mints the SAME broken set, so
         // the operator's exit leads back here. Refuse while the store still reads and the files can
-        // still be moved. (This subsumes a duplicated id: two files cannot both be named for it.)
+        // still be moved.
+        //
+        // THIS IS ALSO WHAT KEEPS THE INVENTORY'S KEY UNIQUE, which matters more than it looks.
+        // The inventory is minted one entry per FILE and consulted with FirstOrDefault on the id,
+        // so two files carrying the same id yield two entries of which only the first is ever read
+        // — and which one that is falls to directory enumeration order. An actor who can write
+        // gates/ could plant a second file holding an honest record's id, and after activation the
+        // HONEST file is the one whose hash misses: the operator is told its bytes changed since
+        // they authorized it, about a file nobody touched, with neither named exit working
+        // (deleting is what the refusal text forbids; --repair re-mints the same colliding pair).
+        // Two files cannot share one name, so requiring every file to be named for the id inside it
+        // makes a duplicate id unrepresentable at mint time rather than merely unlikely.
         var misnamed = entries
             .Where(entry => !string.Equals(
                 Path.GetFileName(entry.Path),
