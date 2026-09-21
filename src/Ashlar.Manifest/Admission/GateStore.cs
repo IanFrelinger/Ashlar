@@ -126,12 +126,27 @@ public sealed partial class GateStore
     }
 
     /// <summary>
-    /// Activates signing for this store at <paramref name="now"/> — the explicit path behind
-    /// <c>ashlar keys init</c> and <c>ashlar gates sign-activate</c>. Requires a signer. A no-op
-    /// returning the existing marker when one is already on disk, so repeated activation and key
-    /// rotation never move the instant; taken under the store lock like every other write.
+    /// Activates signing for this store — the explicit path behind <c>ashlar keys init</c> and
+    /// <c>ashlar gates sign-activate</c>, and the ONLY place a grandfather inventory is minted.
+    /// Requires a signer. Taken under the store lock like every other write. Returns the marker on
+    /// disk and whether one was already there, so the CLI learns the posture from the store rather
+    /// than reading the marker for itself and disagreeing with it.
+    ///
+    /// <para>The inventory is every record on disk that carries NO signature, by id and canonical
+    /// hash, sorted ordinally. Those records are what the operator is being asked to authorize, and
+    /// the count is the authorization surface: an inventory minted without the operator seeing the
+    /// number trades one invisible forgery for another.</para>
+    ///
+    /// <para><paramref name="repair"/> is the operator's explicit second chance, for a store whose
+    /// marker was deleted, was planted under a foreign key, or predates the inventory. It re-mints
+    /// the set over what is on disk NOW — the same step the automatic write path refuses, demoted
+    /// to a command with a printed count. Two things bound it: a marker this machine vouches for
+    /// keeps its own <c>ActivatedAt</c>, and a MISSING marker is re-minted at the earliest instant
+    /// the surviving signatures already prove, never at "now", so deleting the marker and the
+    /// newest records cannot move the floor forward.</para>
     /// </summary>
-    public async Task<GateSigningActivation> ActivateSigningAsync(DateTimeOffset now, CancellationToken ct = default)
+    public async Task<GateSigningOutcome> ActivateSigningAsync(
+        DateTimeOffset now, bool repair = false, CancellationToken ct = default)
     {
         if (_signer is null)
         {
@@ -140,7 +155,59 @@ public sealed partial class GateStore
                 + "(or point ASHLAR_KEY_DIR at the operator's key directory) and try again.");
         }
         using var _ = await AcquireLockAsync(ct).ConfigureAwait(false);
-        return GateSigningActivation.Activate(_stateRoot, _signer, now);
+
+        var (entries, _) = await ReadStoreAsync(ct, judge: false).ConfigureAwait(false);
+        var inventory = entries
+            .Where(e => e.Record.Sig is null)
+            .Select(e => new GrandfatheredRecord(e.Record.Proposal.Id, e.Sha256))
+            .OrderBy(g => g.Id, StringComparer.Ordinal)
+            .ToList();
+
+        var (marker, alreadyActive, replaced) = GateSigningActivation.Activate(
+            _stateRoot,
+            _signer,
+            EarliestProvenInstant(entries, now),
+            _trustedSigners,
+            inventory,
+            replaceUnvouchedFor: true,
+            reMintVouchedFor: repair);
+
+        // Counted from the SAME scan that minted the inventory, still under the lock. An
+        // authorization surface reports the instant it authorized, not a later one — and on the
+        // already-active path the honoured marker's own inventory is the set in force, not the
+        // one this call would have minted.
+        var authorized = marker.Grandfathered ?? Array.Empty<GrandfatheredRecord>();
+        var admitted = entries.Count(entry =>
+            entry.Record.State == ProposalState.Admitted
+            && authorized.Any(g => string.Equals(g.Id, entry.Record.Proposal.Id, StringComparison.Ordinal)));
+
+        return new GateSigningOutcome(marker, alreadyActive, replaced, admitted);
+    }
+
+    /// <summary>
+    /// The earliest instant this store's surviving signatures already prove it was signing, or
+    /// <paramref name="now"/> when nothing proves anything. Used as the activation instant so a
+    /// re-mint over a deleted marker cannot date the store later than its own records do — which
+    /// would grandfather every record between the true instant and the re-mint.
+    /// </summary>
+    private DateTimeOffset EarliestProvenInstant(
+        IReadOnlyList<(string Path, GateRecord Record, string Sha256)> entries, DateTimeOffset now)
+    {
+        var unanchored = GateSignatureExpectation.None(_trustedSigners, "judging present signatures only");
+        var earliest = now;
+        foreach (var entry in entries)
+        {
+            if (entry.Record.Sig is null
+                || unanchored.Refuse(entry.Record, Path.GetFileName(entry.Path), entry.Sha256) is not null)
+            {
+                continue;   // a signature this machine cannot vouch for dates nothing
+            }
+            if (entry.Record.DecidedAt < earliest)
+            {
+                earliest = entry.Record.DecidedAt;
+            }
+        }
+        return earliest;
     }
 
     /// <summary>
@@ -364,19 +431,37 @@ public sealed partial class GateStore
     /// funnels came to disagree, so the posture is set here and nowhere else.</para>
     ///
     /// <para>The hash is the canonical sha256 of the record, computed where the bytes are already
-    /// in hand: it is what a grandfather inventory pins an unsigned record by.</para>
+    /// in hand: it is what the grandfather inventory pins an unsigned record by.</para>
+    ///
+    /// <para><paramref name="judge"/> is false at exactly ONE call site,
+    /// <see cref="ActivateSigningAsync"/>, and the convention test pins that: activation is where
+    /// a posture is MINTED, not consumed, and the stores it has to be able to read are precisely
+    /// the ones whose posture a reader refuses — a marker deleted, or one that predates the
+    /// inventory. It still parses fail-closed; it simply judges nothing and resolves nothing, and
+    /// it does not touch <see cref="SignatureTrust"/>.</para>
     /// </summary>
     private async Task<(IReadOnlyList<(string Path, GateRecord Record, string Sha256)> Records, GateSignatureExpectation Expectation)>
-        ReadStoreAsync(CancellationToken ct)
+        ReadStoreAsync(CancellationToken ct, bool judge = true)
     {
         var parsed = await ParseAllAsync(ct).ConfigureAwait(false);
         var entries = new List<(string Path, GateRecord Record, string Sha256)>(parsed.Count);
         foreach (var (path, record) in parsed)
         {
-            entries.Add((path, record, CanonicalSha256(record)));
+            // CANONICAL bytes, never the file's. A trailing newline, a reformat or a text=auto
+            // line-ending normalisation must not move this hash, or adopting a store would arm a
+            // brick whose only exit is the command that re-mints the set. Hashing the record we
+            // already parsed also means no second read: the bytes judged are the bytes returned.
+            var canonical = Convert.ToHexString(
+                SHA256.HashData(Signing.CanonicalJson.Bytes(record))).ToLowerInvariant();
+            entries.Add((path, record, canonical));
         }
 
         var unanchored = GateSignatureExpectation.None(_trustedSigners, "judging present signatures only");
+        if (!judge)
+        {
+            return (entries, unanchored);
+        }
+
         var anchors = new List<GateRecord>();
         foreach (var entry in entries)
         {
@@ -384,7 +469,7 @@ public sealed partial class GateStore
             {
                 continue;
             }
-            if (unanchored.Refuse(entry.Record, Path.GetFileName(entry.Path)) is { } refusal)
+            if (unanchored.Refuse(entry.Record, Path.GetFileName(entry.Path), entry.Sha256) is { } refusal)
             {
                 throw new InvalidOperationException(refusal);
             }
@@ -396,7 +481,7 @@ public sealed partial class GateStore
 
         foreach (var entry in entries)
         {
-            if (expectation.Refuse(entry.Record, Path.GetFileName(entry.Path)) is { } refusal)
+            if (expectation.Refuse(entry.Record, Path.GetFileName(entry.Path), entry.Sha256) is { } refusal)
             {
                 throw new InvalidOperationException(refusal);
             }
@@ -421,25 +506,32 @@ public sealed partial class GateStore
     /// through key material when there is any, or, for a keyless reader, through a verifying
     /// record under the same key. A keyed reader therefore catches TOTAL stripping (the marker
     /// alone creates expectation) and ignores a marker planted under a foreign key; a keyless
-    /// reader cannot be bricked by a plant, yet still catches partial stripping. The grace
-    /// floor is the MIN of whichever anchors fired: a forward-dated marker cannot grandfather a
-    /// record an earlier signed record already dates, and lowering the floor only ever makes
-    /// reads stricter, so caller clock skew cannot become store corruption. The pinning set is
-    /// key material only — deriving it from the records would accept whatever key an attacker
+    /// reader cannot be bricked by a plant, yet still catches partial stripping. The pinning set
+    /// is key material only — deriving it from the records would accept whatever key an attacker
     /// re-signed them all with.
+    ///
+    /// <para><b>What grandfathers an unsigned record.</b> An honoured marker carries its
+    /// inventory onto the expectation and that is the whole answer: membership plus a hash, never
+    /// a date. Only when no marker fires does the weak derived floor apply — the minimum
+    /// <c>DecidedAt</c> over the records that still verify. Note what that floor can never do: it
+    /// cannot date the EARLIEST record in the store, because it is the minimum over the survivors
+    /// and so sits at or before that record. Stripping the earliest record's signature therefore
+    /// leaves it grandfathered on this basis, which is why the basis is disclosed as a residual
+    /// and why the keyed write path refuses to run in this state at all.</para>
     /// </summary>
     private GateSignatureExpectation ResolveExpectation(IReadOnlyList<GateRecord> anchors)
     {
-        var marker = GateSigningActivation.TryRead(_stateRoot);   // throws on a corrupt or unsigned marker
-        var basis = new List<string>(3);
-        DateTimeOffset? grace = null;
+        var marker = GateSigningActivation.TryRead(_stateRoot);   // throws on a corrupt, unsigned or pre-inventory marker
+        var basis = new List<string>(4);
+        DateTimeOffset? derivedGrace = null;
+        IReadOnlyList<GrandfatheredRecord>? inventory = null;
         var expected = false;
 
         if (anchors.Count > 0)
         {
             expected = true;
-            grace = anchors.Min(r => r.DecidedAt);
-            basis.Add($"{anchors.Count} verifying signed record(s), earliest decided {grace:u}");
+            derivedGrace = anchors.Min(r => r.DecidedAt);
+            basis.Add($"{anchors.Count} verifying signed record(s), earliest decided {derivedGrace:u}");
         }
 
         if (marker is not null)
@@ -450,12 +542,14 @@ public sealed partial class GateStore
             if (honoured)
             {
                 expected = true;
-                if (grace is null || marker.ActivatedAt < grace.Value)
-                {
-                    grace = marker.ActivatedAt;
-                }
+                inventory = marker.Grandfathered;   // non-null: TryRead refuses a marker without one
                 basis.Add($"signing activated {marker.ActivatedAt:u}"
-                    + (_trustedSigners.Count > 0 ? " under a key this machine vouches for" : ", corroborated by a record under the same key"));
+                    + (_trustedSigners.Count > 0 ? " under a key this machine vouches for" : ", corroborated by a record under the same key")
+                    + $", grandfathering {inventory!.Count} unsigned record(s)");
+                if (anchors.Count == 0)
+                {
+                    basis.Add("no record in this store carries a verifying signature");
+                }
             }
             else
             {
@@ -472,7 +566,8 @@ public sealed partial class GateStore
                 : "no operator key and no signed record — unsigned, as SPEC-006 S-2 allows");
         }
 
-        return new GateSignatureExpectation(expected, grace, _trustedSigners, string.Join("; ", basis), marker?.ActivatedAt);
+        return new GateSignatureExpectation(
+            expected, derivedGrace, _trustedSigners, string.Join("; ", basis), marker?.ActivatedAt, inventory, anchors.Count);
     }
 
     private async Task<List<(string Path, GateRecord Record)>> ParseAllAsync(CancellationToken ct)
@@ -519,12 +614,24 @@ public sealed partial class GateStore
     /// self-extending budget check. Consumes <see cref="ReadStoreAsync"/> directly rather than
     /// <see cref="ListAsync"/>, so the count uses the very expectation instance that judged these
     /// records instead of re-reading the public <see cref="SignatureTrust"/> after an await.
+    ///
+    /// <para><b>Which unsigned admissions count.</b> Every one the funnel returned, EXCEPT on the
+    /// derived-anchors-only basis. An unsigned record that survived an inventory-bearing marker was
+    /// witnessed by the operator's own key, so counting it is counting what the operator
+    /// authorized; excluding it unconditionally would mean `ashlar keys init` silently freed up to
+    /// a full window of budget — a loosening of the asset triggered by the one command an operator
+    /// is told to run. The exclusion is kept exactly where grandfathering is still a date and
+    /// therefore still the writer's own input.</para>
     /// </summary>
     public async Task<int> AdmittedInWindowAsync(TimeSpan window, DateTimeOffset now, CancellationToken ct = default)
     {
-        var (records, _) = await ReadStoreAsync(ct).ConfigureAwait(false);
+        var (records, expectation) = await ReadStoreAsync(ct).ConfigureAwait(false);
         var cutoff = now - window;
-        return records.Count(e => e.Record.State == ProposalState.Admitted && e.Record.DecidedAt >= cutoff);
+        var dateGrandfatheringOnly = expectation.Expected && expectation.Grandfathered is null;
+        return records.Count(e =>
+            e.Record.State == ProposalState.Admitted
+            && e.Record.DecidedAt >= cutoff
+            && (e.Record.Sig is not null || !dateGrandfatheringOnly));
     }
 
     private string PathFor(string proposalId)
@@ -580,6 +687,7 @@ public sealed partial class GateStore
         // rule is absolute: never persist a signature we did not just compute over exactly
         // these bytes. No key ⇒ no signature (S-2), never a half-signed inheritance.
         var unsigned = record with { Sig = null, Signer = null };
+        var leavesTheInventory = false;
         if (_signer is null)
         {
             // FAIL CLOSED on a keyless write into a signed store. Without this the invariant is
@@ -607,11 +715,64 @@ public sealed partial class GateStore
         }
         else
         {
-            // Activate BEFORE the temp-write, a no-op once the marker exists: ActivatedAt anchors
-            // to the FIRST signed record's DecidedAt, so everything already on disk is
-            // grandfathered — the non-bricking adoption path. A corrupt marker throws here, so a
-            // keyed writer never signs into a store whose posture it cannot read.
-            GateSigningActivation.Activate(_stateRoot, _signer, record.DecidedAt);
+            // A keyed write never GRANDFATHERS. It used to: the first signed write activated at its
+            // own DecidedAt and everything already on disk fell under the floor, silently. That is
+            // the adoption path an attacker rides — plant records, let the operator's next admit
+            // bless them — so the automatic path now writes a marker only when there is nothing to
+            // authorize, and names the operator's verb in every other case. Resolving through
+            // ReadStoreAsync (the caller already holds the lock) also means a keyed writer never
+            // signs into a store whose posture it cannot read.
+            var (entries, expectation) = await ReadStoreAsync(ct).ConfigureAwait(false);
+            if (expectation.MarkerPresent)
+            {
+                if (expectation.Grandfathered is null)
+                {
+                    // The marker verifies but this machine does not vouch for its signer: somebody
+                    // else's declaration about this store. Signing beside it would leave it in force.
+                    throw new InvalidOperationException(
+                        $"This gate store's activation marker ({GateSigningActivation.FileName}) is signed by a key "
+                        + "this machine does not vouch for, so the verdict for "
+                        + $"'{record.Proposal.Id}' would be signed into a store somebody else declared the posture "
+                        + "of. Refusing to write it. Run `ashlar gates sign-activate` to replace it with this "
+                        + "operator's own marker; it prints how many unsigned records it grandfathers.");
+                }
+                // Honoured: nothing to do. The instant never moves.
+            }
+            else if (expectation.SignedRecordAnchors > 0)
+            {
+                // Verifying records but no marker: that state arises from marker DELETION, and
+                // re-minting an inventory over whatever is on disk now IS the laundering step.
+                throw new InvalidOperationException(
+                    $"This gate store holds {expectation.SignedRecordAnchors} record(s) whose signatures verify, but "
+                    + $"{GateSigningActivation.FileName} is missing — a marker is written once and never removed, so "
+                    + "it was deleted. Re-minting the grandfather inventory over whatever is on disk now is exactly "
+                    + $"the laundering this refuses to do automatically, so the verdict for '{record.Proposal.Id}' is "
+                    + "not written. Run `ashlar gates sign-activate --repair`, which re-mints the marker at the "
+                    + "earliest instant the surviving signatures already prove and prints what it grandfathers.");
+            }
+            else if (entries.Count > 0)
+            {
+                // Nothing signed, no marker, but records on disk: they are all unsigned, and
+                // signing here would grandfather a set the operator has never been shown. The
+                // printed count exists to stop exactly that.
+                throw new InvalidOperationException(
+                    $"This gate store holds {entries.Count} unsigned record(s) and has never been signed, so signing "
+                    + $"the verdict for '{record.Proposal.Id}' here would grandfather every one of them without the "
+                    + "operator ever seeing how many. Refusing to write it. Run `ashlar gates sign-activate` (or "
+                    + "`ashlar keys init` in this project), which prints how many unsigned records are being "
+                    + "grandfathered and how many of those are admitted — a number you can object to.");
+            }
+            else
+            {
+                // An empty store: there is nothing to authorize, so activation is silent.
+                GateSigningActivation.Activate(
+                    _stateRoot, _signer, record.DecidedAt, _trustedSigners,
+                    Array.Empty<GrandfatheredRecord>(), replaceUnvouchedFor: false, reMintVouchedFor: false);
+            }
+
+            leavesTheInventory = expectation.Grandfathered?
+                .Any(g => string.Equals(g.Id, record.Proposal.Id, StringComparison.Ordinal)) == true;
+
             record = unsigned with
             {
                 Sig = _signer.Sign(Signing.CanonicalJson.Bytes(unsigned)),
@@ -626,6 +787,18 @@ public sealed partial class GateStore
             await JsonSerializer.SerializeAsync(stream, record, Json, ct).ConfigureAwait(false);
         }
         File.Move(tmp, path, overwrite: true);
+
+        // ORDER MATTERS: record first, amendment second. This record was grandfathered unsigned and
+        // is now signed, so its inventory entry pins bytes that are no longer on disk — leave it and
+        // an actor can restore the pre-decision bytes and have them accepted. A crash between the
+        // two leaves that stale entry, which is exploitable only by writing those exact bytes back,
+        // i.e. a downgrade; the reverse order would leave an unsigned record with no entry and
+        // refuse the whole store.
+        if (leavesTheInventory)
+        {
+            GateSigningActivation.Amend(_stateRoot, _signer!, new[] { record.Proposal.Id });
+        }
+
         return record;
     }
 }

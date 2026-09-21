@@ -205,6 +205,10 @@ public sealed partial class GateRecordReadFunnelConventionTests
         Occurrences(store, "GateSigningActivation.TryRead(").Should().Be(1,
             "the marker is read where the posture is resolved and nowhere else — a second read is a "
             + "second answer, and the marker is a file the attacker can delete between the two");
+        Occurrences(store, "ReadStoreAsync(ct, judge: false)").Should().Be(1,
+            "exactly one caller may read the store without judging it: ActivateSigningAsync, which "
+            + "MINTS a posture rather than consuming one and so has to be able to read the very "
+            + "stores a reader refuses. A second unjudged read is a reader that judges nothing");
     }
 
     /// <summary>

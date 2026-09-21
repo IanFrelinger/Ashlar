@@ -134,22 +134,68 @@ public sealed class GateSignatureExpectationTests : IDisposable
         File.WriteAllText(RecordFile(id), JsonSerializer.Serialize(forged, Json));
     }
 
-    /// <summary>A record nobody decided, written straight into gates/ with no signature.</summary>
-    private void Fabricate(string id, ProposalState state, DateTimeOffset decidedAt)
+    /// <summary>An unsigned record on disk, exactly the shape a keyless store writes.</summary>
+    private void Unsigned(string id, ProposalState state, DateTimeOffset decidedAt, string reason)
     {
         var record = new GateRecord
         {
             Proposal = Proposal(id),
             State = state,
-            Reason = "fabricated by hand",
+            Reason = reason,
             Actor = "gate",
             DecidedAt = decidedAt,
         };
         File.WriteAllText(RecordFile(id), JsonSerializer.Serialize(record, Json));
     }
 
+    /// <summary>A record nobody decided, written straight into gates/ with no signature.</summary>
+    private void Fabricate(string id, ProposalState state, DateTimeOffset decidedAt) =>
+        Unsigned(id, state, decidedAt, "fabricated by hand");
+
+    /// <summary>Rewrites a record's file with different whitespace and the opposite key order, and
+    /// the same VALUES — what a reformat, a re-serialization or a line-ending normalisation does.
+    /// Nothing the signature or the inventory hash covers may move.</summary>
+    private void Reformat(string id)
+    {
+        var node = (JsonObject)JsonNode.Parse(File.ReadAllText(RecordFile(id)))!;
+        var reordered = new JsonObject();
+        foreach (var kv in node.OrderByDescending(k => k.Key, StringComparer.Ordinal))
+        {
+            reordered[kv.Key] = kv.Value?.DeepClone();
+        }
+        File.WriteAllText(
+            RecordFile(id),
+            "\n\n" + reordered.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    }
+
+    /// <summary>Edits one top-level field of an UNSIGNED record in place.</summary>
+    private void Rewrite(string id, string field, string value)
+    {
+        var node = (JsonObject)JsonNode.Parse(File.ReadAllText(RecordFile(id)))!;
+        node[field] = value;
+        File.WriteAllText(RecordFile(id), node.ToJsonString());
+    }
+
     private static string MarkerJson(GateSigningActivation marker) =>
         JsonSerializer.Serialize(marker, Json);
+
+    /// <summary>A marker in the shape that shipped before the inventory existed: signed over
+    /// <c>{ActivatedAt}</c> alone, with no <c>Grandfathered</c> member at all. It verifies —
+    /// <c>CanonicalJson</c> omits nulls, so the current type canonicalizes identically — which is
+    /// exactly why it has to be refused by name rather than by a signature check.</summary>
+    private static string V1MarkerJson(SigningIdentity signer, DateTimeOffset activatedAt)
+    {
+        var v1 = new V1Marker { ActivatedAt = activatedAt };
+        var node = (JsonObject)JsonNode.Parse(JsonSerializer.Serialize(v1, Json))!;
+        node["Sig"] = signer.Sign(CanonicalJson.Bytes(v1));
+        node["Signer"] = signer.PublicKeyBase64;
+        return node.ToJsonString();
+    }
+
+    private sealed record V1Marker
+    {
+        public required DateTimeOffset ActivatedAt { get; init; }
+    }
 
     // ─────────────────────────── the rule ───────────────────────────
 
@@ -260,25 +306,39 @@ public sealed class GateSignatureExpectationTests : IDisposable
     [Fact]
     public async Task Records_decided_before_activation_keep_verifying()
     {
-        // The adoption path when NO explicit activation was run: the first signed write anchors
-        // the marker to its own DecidedAt, so the unsigned history before it is grandfathered.
+        // The adoption path, re-expressed against the inventory. A keyed write used to activate
+        // silently at its own DecidedAt, so everything already on disk fell under the floor with
+        // nobody looking — which is the adoption path an attacker rides: plant records, wait for
+        // the operator's next admit to bless them. The keyed write now REFUSES and names the verb;
+        // the verb mints the inventory; and after that the history still reads.
         Keyless();
         await Store().RecordAsync(Proposal("ext-0"), Held(), T0);
 
         Keyed();
         var signer = OperatorKey.Generate(_keyDir);
         var activatedAt = T0.AddDays(1);
+
+        var blind = async () => await Store(signer).RecordAsync(Proposal("ext-1"), Held(), activatedAt);
+        (await blind.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*1 unsigned record(s)*ashlar gates sign-activate*",
+                "signing must not grandfather a set the operator has never been shown");
+        File.Exists(MarkerFile).Should().BeFalse("the refused write wrote no marker");
+
+        var (marker, wasActive, _, _) = await Store(signer).ActivateSigningAsync(activatedAt);
+        wasActive.Should().BeFalse();
+        marker.Grandfathered.Should().ContainSingle().Which.Id.Should().Be("ext-0");
+        marker.Signer.Should().Be(signer.PublicKeyBase64);
+        marker.ActivatedAt.Should().Be(activatedAt);
+
         await Store(signer).RecordAsync(Proposal("ext-1"), Held(), activatedAt);
 
         var keyed = Store(signer);
-        (await keyed.ListAsync()).Should().HaveCount(2, "ext-0 was decided before signing existed");
+        (await keyed.ListAsync()).Should().HaveCount(2, "ext-0 was authorized by the operator's own key");
         (await keyed.GetAsync("ext-0"))!.Sig.Should().BeNull();
-        keyed.SignatureTrust!.GraceBefore.Should().Be(activatedAt);
-
-        var marker = GateSigningActivation.TryRead(_state);
-        marker.Should().NotBeNull("the first signed write activates");
-        marker!.ActivatedAt.Should().Be(activatedAt, "anchored to the first signed record's DecidedAt, not to a clock");
-        marker.Signer.Should().Be(signer.PublicKeyBase64);
+        keyed.SignatureTrust!.Grandfathered.Should().ContainSingle(
+            "the posture's grandfather set is the marker's, not a date");
+        GateSigningActivation.TryRead(_state)!.ActivatedAt.Should().Be(
+            activatedAt, "the instant never moves once it is written");
     }
 
     [Fact]
@@ -312,8 +372,11 @@ public sealed class GateSignatureExpectationTests : IDisposable
     public async Task A_forward_dated_marker_cannot_grandfather_a_stripped_record()
     {
         // An attacker who can write the state root re-dates the marker LATER than a record whose
-        // signature they then strip, hoping the record reads as pre-activation. The grace floor is
-        // the MIN over every anchor, and the store's earliest verifying record dates the marker.
+        // signature they then strip, hoping the record reads as pre-activation. Under the
+        // inventory the date is not the question at all: the marker they minted names the records
+        // its own inventory names, and a record they stripped is not one of them. The attack now
+        // fails on membership rather than on a min-over-anchors comparison they could also have
+        // moved, which is the whole reason the floor stopped being a date.
         Keyed();
         var signer = OperatorKey.Generate(_keyDir);
         var store = Store(signer);
@@ -321,15 +384,23 @@ public sealed class GateSignatureExpectationTests : IDisposable
         await store.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
 
         // A VALIDLY signed marker (the operator's own key — a stolen-key or careless-operator
-        // scenario), dated after both records.
+        // scenario), dated after both records and grandfathering nothing.
         File.Delete(MarkerFile);
-        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(signer, T0.AddHours(2))));
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(signer, T0.AddHours(2), [])));
         Strip("ext-2");
 
         var list = async () => await store.ListAsync();
         (await list.Should().ThrowAsync<InvalidOperationException>())
-            .WithMessage("*ext-2.json*carries no signature*",
-                "ext-1 verifies and was decided at T0, so the grace floor is T0 whatever the marker says");
+            .WithMessage("*ext-2.json*carries no signature*not among them*",
+                "the marker names who is grandfathered, and ext-2 is not on the list");
+
+        // And the stronger half: even a marker whose inventory names ext-2 does not save it,
+        // because the inventory pins the bytes ext-2 had when it was signed, not the stripped ones.
+        File.Delete(MarkerFile);
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(
+            signer, T0.AddHours(2), [new GrandfatheredRecord("ext-2", new string('0', 64))])));
+        (await list.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ext-2.json*bytes have changed*");
     }
 
     [Fact]
@@ -351,7 +422,7 @@ public sealed class GateSignatureExpectationTests : IDisposable
         // Half two: a marker validly signed by a key NOBODY here vouches for. Ignored — by the
         // keyless reader (no record corroborates the key) and by a keyed one (not in its material).
         var foreign = OperatorKey.Generate(_otherKeyDir);
-        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(foreign, new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero))));
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(foreign, new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), [])));
 
         var keyless = Store();
         (await keyless.ListAsync()).Should().ContainSingle();
@@ -552,6 +623,304 @@ public sealed class GateSignatureExpectationTests : IDisposable
         // And a keyless writer may still write: nothing here is signed, so nothing is downgraded.
         await Store().RecordAsync(Proposal("ext-3"), Held(), T0.AddHours(2));
         File.Exists(RecordFile("ext-3")).Should().BeTrue();
+    }
+
+    // ──────────── grandfathering is a signed list, not a date comparison ────────────
+
+    [Fact]
+    public async Task A_fabricated_record_under_the_grace_floor_is_refused_not_seated()
+    {
+        // The flaw the date floor always had, executed. The attacker does not need to strip
+        // anything: DecidedAt on an unsigned record is a field they write, and the floor was a
+        // number they could read off the store's own records. One second below it and the
+        // fabrication was grandfathered, listed, counted and shown as a decision nobody made.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var store = Store(signer);
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await store.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+
+        Fabricate("evil", ProposalState.Held, T0.AddSeconds(-1));
+
+        var list = async () => await store.ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*evil.json*not among them*");
+
+        // The `gates --admit` pre-flight and `gates --show` both read through GetAsync, and they
+        // refuse too — including for a record that is not the forged one.
+        var getEvil = async () => await store.GetAsync("evil");
+        await getEvil.Should().ThrowAsync<InvalidOperationException>();
+        var getHonest = async () => await store.GetAsync("ext-1");
+        await getHonest.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task A_backdated_unsigned_admission_is_not_grandfathered()
+    {
+        // The same field, spent on the budget. Strip a signed REFUSAL, flip it to Admitted, and
+        // date it below activation: under a date floor that is a free admission, which both denies
+        // an honest proposal its budget and rewrites history.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var store = Store(signer);
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await store.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+        await store.DecideAsync("ext-2", admit: false, "alice", "no", T0.AddHours(2));
+
+        Strip("ext-2");
+        Rewrite("ext-2", "State", nameof(ProposalState.Admitted));
+        Rewrite("ext-2", "DecidedAt", T0.AddMinutes(-1).ToString("O"));
+
+        var list = async () => await store.ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*ext-2.json*not among them*");
+
+        var count = async () => await store.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(3));
+        await count.Should().ThrowAsync<InvalidOperationException>("the budget never sees a verdict nobody made");
+    }
+
+    [Fact]
+    public async Task A_grandfathered_record_rewritten_after_activation_is_refused()
+    {
+        // A grandfathered record is trusted for the BYTES it had at activation and for nothing
+        // else. Without the hash the inventory would be a list of ids, and an id the operator
+        // authorized as Held could be edited into an admission afterwards.
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
+
+        OperatorKey.Generate(_keyDir);
+        Keyed();
+        var keyed = Store(OperatorKey.TryLoad());
+        await keyed.ActivateSigningAsync(T0.AddHours(1));
+
+        (await keyed.ListAsync()).Should().ContainSingle("the operator authorized it as it stood");
+
+        Rewrite("ext-1", "State", nameof(ProposalState.Admitted));
+
+        var list = async () => await keyed.ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ext-1.json*bytes have changed*");
+    }
+
+    [Fact]
+    public async Task A_grandfathered_record_reformatted_but_unchanged_still_reads()
+    {
+        // The brick this design had to avoid: hashing the FILE rather than the record would make a
+        // trailing newline, a reformat or a text=auto line-ending normalisation refuse the whole
+        // store forever, with the operator's only exit being the command that re-blesses the set.
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
+
+        OperatorKey.Generate(_keyDir);
+        Keyed();
+        var keyed = Store(OperatorKey.TryLoad());
+        await keyed.ActivateSigningAsync(T0.AddHours(1));
+
+        Reformat("ext-1");
+
+        (await keyed.ListAsync()).Should().ContainSingle("only the VALUES are hashed, and none moved");
+        (await keyed.GetAsync("ext-1")).Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task A_grandfathered_id_leaves_the_inventory_once_it_is_signed()
+    {
+        // Once the operator decides a grandfathered record under their key it is signed, and its
+        // inventory entry now pins bytes that are no longer on disk. Leave the entry and an actor
+        // can put those exact bytes back — a downgrade to the pre-decision verdict.
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
+
+        OperatorKey.Generate(_keyDir);
+        Keyed();
+        var keyed = Store(OperatorKey.TryLoad());
+        var (before, _, _, _) = await keyed.ActivateSigningAsync(T0.AddHours(1));
+        before.Grandfathered.Should().ContainSingle().Which.Id.Should().Be("ext-1");
+
+        await keyed.DecideAsync("ext-1", admit: true, "alice", "seated", T0.AddHours(2));
+        GateSigningActivation.TryRead(_state)!.Grandfathered.Should().BeEmpty("the id left the inventory with the signature");
+
+        Strip("ext-1");
+        var list = async () => await keyed.ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*ext-1.json*not among them*");
+    }
+
+    [Fact]
+    public async Task Adopting_a_store_of_unsigned_records_keeps_every_one_readable()
+    {
+        // Brick-on-adoption would make `ashlar keys init` a destructive command, and a store with a
+        // real history is where that would bite. Every record the operator authorized keeps
+        // reading, and every admission among them keeps counting.
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-seed"), Held(), T0);
+        for (var i = 0; i < 300; i++)
+        {
+            Unsigned($"ext-{i:D3}", i % 3 == 0 ? ProposalState.Admitted : ProposalState.Held, T0.AddMinutes(i), "held for review");
+        }
+
+        OperatorKey.Generate(_keyDir);
+        Keyed();
+        var keyed = Store(OperatorKey.TryLoad());
+        var (marker, _, _, _) = await keyed.ActivateSigningAsync(T0.AddDays(1));
+        marker.Grandfathered.Should().HaveCount(301);
+        marker.Grandfathered!.Select(g => g.Id).Should().BeInAscendingOrder(StringComparer.Ordinal);
+
+        (await keyed.ListAsync()).Should().HaveCount(301);
+        (await keyed.AdmittedInWindowAsync(TimeSpan.FromDays(2), T0.AddDays(1))).Should().Be(100);
+    }
+
+    [Fact]
+    public async Task Keys_init_does_not_free_self_extension_budget()
+    {
+        // The price of excluding unsigned records from the count: running the one command an
+        // operator is told to run would silently free up to a full window of budget. An unsigned
+        // record that survived an inventory-bearing marker was witnessed by the operator's own
+        // key, so counting it is counting what they authorized.
+        Keyless();
+        var keyless = Store();
+        await keyless.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await keyless.DecideAsync("ext-1", admit: true, "alice", "seated", T0.AddMinutes(1));
+
+        var before = await keyless.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(1));
+        before.Should().Be(1);
+
+        OperatorKey.Generate(_keyDir);
+        Keyed();
+        var keyed = Store(OperatorKey.TryLoad());
+        await keyed.ActivateSigningAsync(T0.AddHours(1));
+
+        (await keyed.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(1))).Should().Be(
+            before, "activation authorizes a set; it does not forget one");
+    }
+
+    // ──────────── the marker is the operator's, and only they may move it ────────────
+
+    [Fact]
+    public async Task A_keyed_write_refuses_to_re_activate_over_a_deleted_marker()
+    {
+        // The marker is written once and never removed, so a store with verifying records and no
+        // marker got there by deletion. Re-minting an inventory over whatever is on disk NOW is
+        // the laundering step, and the automatic path must not perform it — a keyed admit would
+        // otherwise bless every record the attacker left behind.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var store = Store(signer);
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await store.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+        File.Delete(MarkerFile);
+
+        var write = async () => await store.RecordAsync(Proposal("ext-3"), Held(), T0.AddHours(2));
+        (await write.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*gate-signing.json is missing*sign-activate --repair*");
+
+        File.Exists(MarkerFile).Should().BeFalse("a refused write must not re-create the marker at the decision instant");
+        File.Exists(RecordFile("ext-3")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_repaired_marker_cannot_move_the_grace_floor_forward()
+    {
+        // `--repair` is the operator's exit from the state above, and it is the most dangerous verb
+        // here: it re-blesses whatever is on disk. Two things bound it, and this is the second —
+        // a re-mint is dated at the earliest instant the surviving signatures already prove, never
+        // at "now", so deleting the marker cannot buy the attacker a wider grace window.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var store = Store(signer);
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        await store.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+        File.Delete(MarkerFile);
+
+        var (marker, wasActive, _, _) = await store.ActivateSigningAsync(T0.AddHours(5), repair: true);
+        wasActive.Should().BeFalse("there was no marker to be already active");
+        marker.ActivatedAt.Should().Be(T0, "never dated later than this store's own signatures prove");
+        marker.Grandfathered.Should().BeEmpty("both records are signed; there is nothing to grandfather");
+
+        Strip("ext-1");
+        var list = async () => await store.ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ext-1.json*not among them*",
+                "the EARLIEST record is exactly the one a derived date floor could never date");
+    }
+
+    [Fact]
+    public async Task A_planted_foreign_marker_does_not_block_activation_and_does_not_ride_a_keyed_write()
+    {
+        // A marker planted under a key nobody here vouches for is somebody else's declaration about
+        // this store. Honouring it would ride a foreign activation; returning it as success would
+        // tell the operator their store is signed when it is not; refusing forever would brick
+        // every keyed write with no named exit. So: the automatic path refuses and names the verb,
+        // and the verb replaces.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var foreign = OperatorKey.Generate(_otherKeyDir);
+        File.WriteAllText(MarkerFile, MarkerJson(
+            GateSigningActivation.Signed(foreign, new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), [])));
+
+        var store = Store(signer);
+        var write = async () => await store.RecordAsync(Proposal("ext-1"), Held(), T0);
+        (await write.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*does not vouch for*ashlar gates sign-activate*");
+        File.Exists(RecordFile("ext-1")).Should().BeFalse();
+        GateSigningActivation.TryRead(_state)!.Signer.Should().Be(
+            foreign.PublicKeyBase64, "the refused write left the plant exactly where it was");
+
+        var (marker, wasActive, replaced, _) = await store.ActivateSigningAsync(T0.AddHours(1));
+        wasActive.Should().BeTrue("a marker was there — it was simply not this operator's");
+        replaced.Should().BeTrue(
+            "the caller must be TOLD it overwrote a foreign declaration about this store. Reported as a "
+            + "bare already-active, the operator learns nothing about the one event on this path that "
+            + "warrants their attention");
+        marker.Signer.Should().Be(signer.PublicKeyBase64);
+        marker.ActivatedAt.Should().Be(T0.AddHours(1), "a foreign marker's instant is not ours to keep");
+
+        await store.RecordAsync(Proposal("ext-1"), Held(), T0.AddHours(2));
+        (await store.ListAsync()).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task A_v1_marker_is_refused_by_name_not_reinterpreted()
+    {
+        // A marker written before the inventory existed verifies perfectly — CanonicalJson omits
+        // nulls, so the two shapes canonicalize identically — and says nothing about which unsigned
+        // records the operator authorized. The two wrong readings are a bare JSON error, which
+        // tells the operator nothing, and "grandfather everything", which is the forgery. Hence a
+        // nullable member and a named refusal: `required` would make this arm unreachable.
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        await Store(signer).RecordAsync(Proposal("ext-1"), Held(), T0);
+        File.WriteAllText(MarkerFile, V1MarkerJson(signer, T0));
+
+        var list = async () => await Store(signer).ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*gate-signing.json*no grandfather inventory*sign-activate --repair*");
+
+        var (repaired, wasActive, _, _) = await Store(signer).ActivateSigningAsync(T0.AddHours(1), repair: true);
+        wasActive.Should().BeTrue();
+        repaired.Grandfathered.Should().NotBeNull().And.BeEmpty();
+        repaired.ActivatedAt.Should().Be(T0, "a marker this machine vouches for keeps its instant even under repair");
+        (await Store(signer).ListAsync()).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task A_keyless_write_is_refused_by_a_marker_with_no_verifying_record()
+    {
+        // The write guard is stricter than the read rule ON PURPOSE, and this is the arm that says
+        // so: a marker that verifies but that THIS reader cannot vouch for creates no expectation,
+        // so the read is permissive — and the keyless write is still refused, because a keyless
+        // writer cannot vouch for the marker and must not gamble that a keyed reader will not
+        // honour it. Nothing else in this file pinned that arm.
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
+        var elsewhere = OperatorKey.Generate(_otherKeyDir);
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(elsewhere, T0, [])));
+
+        var keyless = Store();
+        (await keyless.ListAsync()).Should().ContainSingle("no key here and no record corroborates the marker");
+        keyless.SignatureTrust!.Expected.Should().BeFalse();
+        keyless.SignatureTrust.MarkerPresent.Should().BeTrue();
+
+        var record = async () => await keyless.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(1));
+        (await record.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*ashlar keys init*");
+        File.Exists(RecordFile("ext-2")).Should().BeFalse("nothing landed");
     }
 
     [Fact]

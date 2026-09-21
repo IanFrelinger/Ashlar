@@ -75,15 +75,25 @@ public sealed class GatesCommand : Command
 
         // Explicit activation of signed gate records for THIS project (SPEC-006 S-6). `keys init`
         // does this in the project it is run in; this verb covers a project set up after the key
-        // existed. Idempotent: an existing marker is never rewritten, so the activation instant
-        // cannot be moved — not by re-running this, and not by rotating the key.
+        // existed. The activation INSTANT never moves — not by re-running this, not by rotating
+        // the key, not under --repair — so the grace window cannot be re-opened. Two things this
+        // verb may still do that the kernel's automatic write path refuses: replace a marker
+        // signed by a key this machine does not vouch for, and, under --repair, re-mint the
+        // inventory of unsigned records over what is on disk now. Both print what they
+        // grandfathered, because both are a blessing and a blessing nobody counted is not one.
+        var repairOpt = new Option<bool>(
+            "--repair",
+            "Re-mint the grandfather inventory over the store as it stands now, keeping the original activation instant. "
+            + "For a store whose marker was deleted or predates the inventory. It re-blesses whatever is on disk: read the count.");
         var activateCmd = new Command(
             "sign-activate",
-            "Activate signed gate records here: from now on an unsigned verdict in this store is refused as a stripped signature.");
+            "Activate signed gate records here: from now on an unsigned verdict in this store is refused as a stripped signature.")
+        { repairOpt };
         activateCmd.SetHandler(async (InvocationContext ctx) =>
         {
             ctx.ExitCode = await SignActivateAsync(
-                ctx.ParseResult.GetValueForOption(pathOpt) ?? new DirectoryInfo(Environment.CurrentDirectory));
+                ctx.ParseResult.GetValueForOption(pathOpt) ?? new DirectoryInfo(Environment.CurrentDirectory),
+                ctx.ParseResult.GetValueForOption(repairOpt));
         });
         AddCommand(activateCmd);
 
@@ -341,7 +351,7 @@ public sealed class GatesCommand : Command
         return record.State == ProposalState.Rejected ? 65 : 0;
     }
 
-    private static async Task<int> SignActivateAsync(DirectoryInfo directory)
+    private static async Task<int> SignActivateAsync(DirectoryInfo directory, bool repair)
     {
         if (!File.Exists(Path.Combine(directory.FullName, "ashlar.yaml")))
         {
@@ -359,16 +369,30 @@ public sealed class GatesCommand : Command
                 return 1;
             }
 
-            var already = GateSigningActivation.TryRead(StateRoot(directory)) is not null;
-            var marker = await new GateStore(StateRoot(directory), signer).ActivateSigningAsync(DateTimeOffset.UtcNow);
-            if (already)
+            var outcome = await new GateStore(StateRoot(directory), signer)
+                .ActivateSigningAsync(DateTimeOffset.UtcNow, repair);
+            var marker = outcome.Marker;
+
+            if (outcome.ReplacedUnvouchedMarker)
+            {
+                // The one outcome here that is a security event rather than a setup step.
+                Console.WriteLine($"  {Clay("! replaced a signing marker this machine does not vouch for")}");
+                Console.WriteLine($"  {Dim("somebody else's declaration about this store was in force. It has been overwritten with this operator's own — if you did not expect that, investigate who wrote it before trusting anything here.")}");
+            }
+            else if (outcome.WasAlreadyActive && !repair)
             {
                 Console.WriteLine($"  {Dim($"signing already active here since {marker.ActivatedAt:u} — the instant never moves")}");
+                RenderGrandfathered(outcome, blessing: false);
                 return 0;
             }
 
+            // BEFORE the success line, never after: this count is what the operator is being asked
+            // to authorize, and an authorization printed under a tick has already been granted.
+            RenderGrandfathered(outcome, blessing: true);
+
             // The marker's signature was verified on the way back, so its fingerprint may be printed (S-3).
-            Console.WriteLine($"  {Gold("✓ signing activated")}  {Dim($"{marker.ActivatedAt:u} · {OperatorKey.Fingerprint(Convert.FromBase64String(marker.Signer!))}")}");
+            var verb = outcome.WasAlreadyActive && repair ? "✓ inventory re-minted" : "✓ signing activated";
+            Console.WriteLine($"  {Gold(verb)}  {Dim($"{marker.ActivatedAt:u} · {OperatorKey.Fingerprint(Convert.FromBase64String(marker.Signer!))}")}");
             Console.WriteLine($"  {Dim("records decided before this instant stay readable unsigned; an unsigned verdict after it is refused as stripped.")}");
             return 0;
         }
@@ -378,6 +402,35 @@ public sealed class GatesCommand : Command
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
+    }
+
+    /// <summary>
+    /// The number the operator is authorizing, and the only control on the grandfather mechanism.
+    ///
+    /// <para>An unsigned record in the inventory is trusted for the bytes it had at this instant
+    /// and is never signed, so a fabricated <c>Admitted</c> record planted BEFORE activation is
+    /// blessed permanently and spends self-extension budget forever. Nothing downstream can tell
+    /// that record from an honest one — the inventory records that the operator said yes, not that
+    /// the record is true. So the count is printed before the success line, the admitted subset is
+    /// broken out because that is the half that costs budget, and the operator is told plainly what
+    /// to do if the number surprises them. Every other mechanism in S-6 is downstream of this line
+    /// being read.</para>
+    /// </summary>
+    private static void RenderGrandfathered(GateSigningOutcome outcome, bool blessing)
+    {
+        var n = outcome.Marker.Grandfathered?.Count ?? 0;
+        if (n == 0)
+        {
+            Console.WriteLine($"  {Dim("grandfathering nothing — every record in this store is signed.")}");
+            return;
+        }
+
+        var verb = blessing ? "grandfathering" : "grandfathered here:";
+        Console.WriteLine(
+            $"  {Clay($"{verb} {n} unsigned record(s), {outcome.GrandfatheredAdmitted} of them admitted")}"
+            + $"  {Dim("— trusted as-is, and NOT signed")}");
+        Console.WriteLine(
+            $"  {Dim("if that is more than you decided yourself, stop: this authorizes every one of them, and an admitted record spends self-extension budget. inspect with: ashlar gates")}");
     }
 
     /// <summary>

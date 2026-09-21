@@ -85,8 +85,27 @@ public sealed class KeysCommand : Command
         }
         try
         {
-            var marker = await new GateStore(stateRoot, id).ActivateSigningAsync(DateTimeOffset.UtcNow);
-            Console.WriteLine($"  {Dim($"gate records under {stateRoot} are signed from {marker.ActivatedAt:u}; earlier unsigned records stay readable.")}");
+            var outcome = await new GateStore(stateRoot, id).ActivateSigningAsync(DateTimeOffset.UtcNow);
+            if (outcome.ReplacedUnvouchedMarker)
+            {
+                // Its own sentence, not folded into the line below. A marker signed by a key this
+                // machine does not vouch for was in force over this store and has just been
+                // overwritten; an operator who reads past that has been told nothing.
+                Console.WriteLine($"  {Dim("a signing marker under a key this machine does not vouch for was in force here and has been replaced with yours. if you did not expect that, find out who wrote it before trusting this store.")}");
+            }
+
+            // The count BEFORE the reassurance. `keys init` is the command an operator is told to
+            // run, so it is the likeliest place for a planted record to be blessed unnoticed.
+            var grandfathered = outcome.Marker.Grandfathered?.Count ?? 0;
+            if (grandfathered > 0)
+            {
+                Console.WriteLine(
+                    $"  {Dim($"grandfathering {grandfathered} unsigned record(s), {outcome.GrandfatheredAdmitted} of them admitted — trusted as-is, and NOT signed.")}");
+                Console.WriteLine(
+                    $"  {Dim("if that is more than you decided yourself, stop: an admitted record spends self-extension budget. inspect with: ashlar gates")}");
+            }
+
+            Console.WriteLine($"  {Dim($"gate records under {stateRoot} are signed from {outcome.Marker.ActivatedAt:u}; earlier unsigned records stay readable.")}");
             return 0;
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
