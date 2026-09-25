@@ -123,7 +123,7 @@
   <ItemGroup>
     <PackageVersion Include="AWSSDK.S3" Version="4.0.101" />
     <PackageVersion Include="AWSSDK.Lambda" Version="4.0.103" />
-    <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.103.5" />
+    <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.105" />
     <PackageVersion Include="AWSSDK.Core" Version="4.0.100.4" />
     <PackageVersion Include="AWSSDK.BedrockRuntime" Version="4.0.101.4" />
     <PackageVersion Include="AWSSDK.Extensions.Bedrock.MEAI" Version="4.0.101.8" />
