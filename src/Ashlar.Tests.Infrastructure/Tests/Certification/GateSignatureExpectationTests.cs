@@ -1178,7 +1178,7 @@ public sealed class GateSignatureExpectationTests : IDisposable
             + "would let anyone who can write gates/ make an honest proposal undecidable — "
             + "DecideAsync reads through here and refuses a record that is already Admitted");
     }
-}
+
     /// <summary>
     /// A grandfathered record whose bytes have changed is refused on the HASH, and being older than
     /// every record that still verifies does not buy it a second chance.
@@ -1274,3 +1274,4 @@ public sealed class GateSignatureExpectationTests : IDisposable
             "the budget never sees a verdict nobody made; an unsigned record edited into an "
             + "Admitted one must not spend self-extension budget just because it is old");
     }
+}
