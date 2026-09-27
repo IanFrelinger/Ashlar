@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using Ashlar.Certification.Contracts;
 using Ashlar.Core.Application.Autonomy;
@@ -253,6 +254,79 @@ public sealed class HotSwapProbeBrick : DomainBrick
         sink.Snapshot().Should().Contain(e =>
             e.Outcome == BrickSwapProvenanceOutcomes.WatchBreachQuarantined &&
             e.Reason!.Contains("ceiling"));
+    }
+
+    // The two facts below exist because the test ABOVE cannot see the defect they pin. It puts a
+    // ~50ms invocation against a 1ms cap, so it breaches on any platform and on either side of the
+    // bug: 50x of slack in the direction the defect already leans. The counter being compared holds
+    // Stopwatch ticks, and Stopwatch.Frequency is 10,000,000 on Windows QPC (coincidentally equal to
+    // TimeSpan.TicksPerSecond, so the raw comparison reads as correct on a developer box) but
+    // 1,000,000,000 on Linux. Measured in the devtest container: Ubuntu 24.04 reports 1e9, a factor
+    // of 100. Both the gate and every container run on Linux, so that is the platform that decides.
+
+    [Fact]
+    public async Task A_fast_invocation_does_not_breach_a_generous_duration_ceiling()
+    {
+        var revocations = new InMemoryCertificateRevocationList();
+        var sink = new RecordingSink();
+        // MinInvocations of 99 keeps the two baseline-relative legs out of this: the only leg that
+        // may speak here is the absolute ceiling.
+        using var host = CreateHost(sink, revocations, lineage: null,
+            new WatchThresholds
+            {
+                MinInvocations = 99,
+                MaxInvocationDuration = TimeSpan.FromSeconds(1),
+            });
+
+        (await host.SwapAsync(new[] { AutonomousRequest(Healthy("v1"), "lineage-a") })).Swapped.Should().BeTrue();
+        (await host.SwapAsync(new[] { AutonomousRequest(SlowSource, "lineage-b") })).Swapped.Should().BeTrue();
+
+        // ~50ms against a one-second ceiling. The margins are deliberately asymmetric and both are
+        // wide: the unconverted comparison trips at 10ms, so the defect is caught with 5x to spare,
+        // while the converted one needs a full second, so ordinary scheduler jitter has 20x of room
+        // and this fact does not become the next load-sensitive flake.
+        await Execute(host);
+
+        (await Execute(host)).Get<string>("marker").Should().Be("slow",
+            "50ms is comfortably inside a one-second ceiling, so the slow generation must keep serving");
+        sink.Snapshot().Should().NotContain(e =>
+            e.Outcome == BrickSwapProvenanceOutcomes.WatchBreachQuarantined &&
+            e.Reason!.Contains("ceiling"));
+    }
+
+    [Fact]
+    public async Task A_ceiling_breach_reports_the_elapsed_time_an_operator_would_recognise()
+    {
+        var revocations = new InMemoryCertificateRevocationList();
+        var sink = new RecordingSink();
+        using var host = CreateHost(sink, revocations, lineage: null,
+            new WatchThresholds
+            {
+                MinInvocations = 99,
+                MaxInvocationDuration = TimeSpan.FromMilliseconds(1),
+            });
+
+        (await host.SwapAsync(new[] { AutonomousRequest(Healthy("v1"), "lineage-a") })).Swapped.Should().BeTrue();
+        (await host.SwapAsync(new[] { AutonomousRequest(SlowSource, "lineage-b") })).Swapped.Should().BeTrue();
+        await Execute(host);
+        await Execute(host);
+
+        // This one breaches on either side of the defect, so the breach is not the fact — the NUMBER
+        // in the message is. Rendering a Stopwatch tick count through TimeSpan.FromTicks reported
+        // the ~50ms invocation as 5000ms on Linux, a figure that would send an operator hunting a
+        // five-second stall that never happened.
+        var reason = sink.Snapshot()
+            .Where(e => e.Outcome == BrickSwapProvenanceOutcomes.WatchBreachQuarantined)
+            .Select(e => e.Reason!)
+            .Should().ContainSingle(r => r.Contains("ceiling", StringComparison.Ordinal)).Subject;
+
+        var from = reason.IndexOf("took ", StringComparison.Ordinal) + "took ".Length;
+        var to = reason.IndexOf("ms", from, StringComparison.Ordinal);
+        (from > 4 && to > from).Should().BeTrue($"the message must still say 'took <n>ms'; got: {reason}");
+        var reported = int.Parse(reason[from..to], CultureInfo.InvariantCulture);
+
+        reported.Should().BeInRange(1, 1000,
+            $"a ~50ms invocation must be reported as tens of ms, not thousands; got: {reason}");
     }
 
     [Fact]

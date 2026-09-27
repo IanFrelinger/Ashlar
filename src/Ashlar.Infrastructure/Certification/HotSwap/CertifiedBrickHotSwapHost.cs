@@ -475,6 +475,17 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     }
 
     /// <summary>
+    /// Stopwatch ticks are not TimeSpan ticks, and the difference is silent on the machine most
+    /// likely to run this code by hand. Windows QPC reports Stopwatch.Frequency 10,000,000, which
+    /// happens to equal TimeSpan.TicksPerSecond, so a raw comparison against TimeSpan.Ticks reads
+    /// as correct on a developer box. On Linux .NET reports 1,000,000,000 — one tick per
+    /// nanosecond — so the same comparison is 100x out, and an operator's configured ceiling of
+    /// one second would fire at ten milliseconds. The gate and every container run on Linux.
+    /// </summary>
+    private static TimeSpan StopwatchTicksToDuration(long stopwatchTicks) =>
+        TimeSpan.FromSeconds((double)stopwatchTicks / System.Diagnostics.Stopwatch.Frequency);
+
+    /// <summary>
     /// Breach reasons when the watch thresholds are crossed; null otherwise (R5.2).
     /// Judges the stats the caller captured for the generation that served the invocation.
     /// </summary>
@@ -494,10 +505,14 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
         // The duration ceiling is absolute too: a first-generation deploy has no baseline
         // for the relative legs, and a pathological single invocation must not hide in a
         // healthy mean.
-        if (thresholds.MaxInvocationDuration is { } durationCap && maxLatencyTicks > durationCap.Ticks)
+        if (thresholds.MaxInvocationDuration is { } durationCap)
         {
-            reasons.Add($"an invocation took {TimeSpan.FromTicks(maxLatencyTicks).TotalMilliseconds:F0}ms, "
-                + $"exceeding the absolute ceiling of {durationCap.TotalMilliseconds:F0}ms");
+            var maxLatency = StopwatchTicksToDuration(maxLatencyTicks);
+            if (maxLatency > durationCap)
+            {
+                reasons.Add($"an invocation took {maxLatency.TotalMilliseconds:F0}ms, "
+                    + $"exceeding the absolute ceiling of {durationCap.TotalMilliseconds:F0}ms");
+            }
         }
 
         if (invocations >= thresholds.MinInvocations && Volatile.Read(ref _watchBaseline) is { } baseline)
