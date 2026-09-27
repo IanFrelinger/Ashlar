@@ -389,7 +389,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
             BrickOutput? output = null;
             Exception? brickFault = null;
             DomainBrick? brick = null;
-            var startTicks = System.Diagnostics.Stopwatch.GetTimestamp();
+            var startTicks = _clock.GetTimestamp();
             try
             {
                 brick = generation.GetBrick(brickId)
@@ -425,7 +425,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
                 // generation that served it, not to whichever one is current by the time
                 // the counters are read.
                 var current = Volatile.Read(ref _watchCurrent);
-                var elapsed = System.Diagnostics.Stopwatch.GetTimestamp() - startTicks;
+                var elapsed = _clock.GetTimestamp() - startTicks;
                 var undeclared = output is null ? 0 : CountUndeclaredWrites(brick, output);
                 current?.Record(elapsed, brickFault is not null, undeclared);
                 var breachReasons = EvaluateWatch(current);
@@ -475,15 +475,17 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     }
 
     /// <summary>
-    /// Stopwatch ticks are not TimeSpan ticks, and the difference is silent on the machine most
-    /// likely to run this code by hand. Windows QPC reports Stopwatch.Frequency 10,000,000, which
+    /// Timestamp ticks are not TimeSpan ticks, and the difference is silent on the machine most
+    /// likely to run this code by hand. Windows QPC reports a frequency of 10,000,000, which
     /// happens to equal TimeSpan.TicksPerSecond, so a raw comparison against TimeSpan.Ticks reads
     /// as correct on a developer box. On Linux .NET reports 1,000,000,000 — one tick per
     /// nanosecond — so the same comparison is 100x out, and an operator's configured ceiling of
     /// one second would fire at ten milliseconds. The gate and every container run on Linux.
+    /// The frequency must come from the same provider that produced the timestamps, which is why
+    /// this is an instance method reading _clock rather than Stopwatch directly.
     /// </summary>
-    private static TimeSpan StopwatchTicksToDuration(long stopwatchTicks) =>
-        TimeSpan.FromSeconds((double)stopwatchTicks / System.Diagnostics.Stopwatch.Frequency);
+    private TimeSpan TimestampTicksToDuration(long timestampTicks) =>
+        TimeSpan.FromSeconds((double)timestampTicks / _clock.TimestampFrequency);
 
     /// <summary>
     /// Breach reasons when the watch thresholds are crossed; null otherwise (R5.2).
@@ -507,7 +509,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
         // healthy mean.
         if (thresholds.MaxInvocationDuration is { } durationCap)
         {
-            var maxLatency = StopwatchTicksToDuration(maxLatencyTicks);
+            var maxLatency = TimestampTicksToDuration(maxLatencyTicks);
             if (maxLatency > durationCap)
             {
                 reasons.Add($"an invocation took {maxLatency.TotalMilliseconds:F0}ms, "

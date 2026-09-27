@@ -574,7 +574,19 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
         var revocations = new InMemoryCertificateRevocationList();
         var pause = new LoopPauseControl();
         var sink = new RecordingSink();
-        using var host = CreateHost(sink, revocations, watch: DefaultWatch, pause: pause); // retentionWindow: 2
+        // The stepping clock is load-bearing, and what it removes is a wall-clock comparison this
+        // test never meant to make. The subject here is retention accounting, but the watch's
+        // mean-latency leg judges the restored generation against generation 1's baseline, which a
+        // rollback deliberately does not rotate — and Healthy() is Task.FromResult, so that
+        // baseline is microseconds over two samples at DefaultWatch's inherited MaxLatencyFactor of
+        // 3.0. One GC pause from a concurrently running collection clears 3x of a few microseconds
+        // easily, manufacturing a breach on generation 3 that revokes v1 and exhausts the rollback.
+        // A stepping clock makes every invocation measure exactly one step, so the ratio is exactly
+        // 1.0 and the leg stays armed but silent. Not frozen: elapsed 0 makes baselineMean 0, and
+        // the host's `baselineMean > 0` guard would then disable the latency leg altogether, which
+        // would quietly cost this test the ability to see a real latency regression.
+        using var host = CreateHost(sink, revocations, watch: DefaultWatch, pause: pause,
+            clock: new SteppingClock(TimeSpan.FromMilliseconds(1))); // retentionWindow: 2
 
         var v1 = AutonomousRequest(Healthy("v1"), "lineage-a");
         (await host.SwapAsync(new[] { v1 })).Swapped.Should().BeTrue();
@@ -588,10 +600,12 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
         // brick with its own marker, not Faulting(): the same faulting source would carry the same
         // content hash, which the first breach revoked, and verify-at-load would refuse it.
         //
-        // The refusal codes are in the message because this precondition failed once inside a full
-        // parallel cert-gate run and could say only "expected True, found False". It did not
-        // reproduce in nine reruns - three full gates and six in isolation - so rather than guess
-        // at a cause, the next occurrence is made to name its own.
+        // The refusal codes are in the message because this precondition failed inside a full
+        // parallel cert-gate run and could say only "expected True, found False". That diagnostic
+        // then did its job: on 2026-09-27 the same assertion failed on run 36333553471 and named
+        // its own cause - "loop-paused: rollback exhausted after watch breach on generation 3" -
+        // which identified the spurious mean-latency breach the stepping clock above now removes.
+        // Keep the codes in the message anyway; the next unknown failure deserves the same help.
         var g4 = await host.SwapAsync(new[] { AutonomousRequest(Working("g4"), "lineage-b") });
         g4.Swapped.Should().BeTrue("the loop's next absorption must land; refusals: "
             + string.Join(" | ", g4.Refusals.Select(r => $"{r.FailureCode}: {r.Reason}")));
@@ -881,6 +895,25 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
         public MutableClock(DateTimeOffset start) => _now = start;
         public void Advance(TimeSpan by) => _now += by;
         public override DateTimeOffset GetUtcNow() => _now;
+    }
+
+    /// <summary>
+    /// A timestamp source where every read advances by exactly one fixed step, so a measured
+    /// interval is always that step and the watch's mean-latency ratio is always 1.0.
+    /// It overrides only the timestamp surface: GetUtcNow stays the base implementation, because
+    /// the cadence floor is a separate concern with its own fake (MutableClock).
+    ///
+    /// The one-step-per-interval property holds only while invocations are serialized, which the
+    /// Warm and Breach helpers guarantee by awaiting one Execute at a time. Do not reuse this for a
+    /// concurrency test: overlapping invocations would read step multiples and measure nonsense.
+    /// </summary>
+    private sealed class SteppingClock : TimeProvider
+    {
+        private readonly long _step;
+        private long _ticks;
+        public SteppingClock(TimeSpan step) => _step = step.Ticks;
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => Interlocked.Add(ref _ticks, _step);
     }
 
     private static (string PrivateKeyBase64, string PublicKeyBase64) CreateEd25519Key()
