@@ -69,13 +69,15 @@ Autonomy and design-partner marketing claims (e.g., "Ashlar autonomously propose
 3. ✅ **Dated Strict passes in ledger:** At least 7 dated ledger rows showing PASS with Strict verification and Ed25519 signatures (Gap column empty or only notes non-blocking issues).
 4. ✅ **Real hygiene PR proof:** A production-quality Ashlar PR (not fixture/sample) created via the Ashlar loop (extend → certify → admit → PR) is documented in the ledger. Fixture E2E is the floor; real dogfood PR is the framework proof.
 
-**Current Status (as of 2026-09-06):**
+**Current Status (as of 2026-09-27):**
 - ✅ PR #523 (Strict+Ed25519) merged to master (merge commit 966e6bf4)
-- ❌ No dated Strict passes in ledger yet (canary sweep script still stub; awaits real autonomy loop wiring)
-- ❌ No real hygiene PR via Ashlar loop yet
 - ✅ lim-9 CLOSED 2026-09-13: the composition signer takes the injected `CertificationRecordSigner` as its key holder and the shipped DI registration supplies it, so an operator key reaches composition records with no host code change and no key accessor on either type; the lane-agreement detection residual closed the same day
+- ✅ **The canary sweep is no longer a stub.** PR #627 replaced it with the real loop and PR #630 stopped a sweep that never ran from recording a PASS. Nine dated fixture E2E passes are now in the ledger (2026-09-15 through 2026-09-25, weekdays), each reaching `Certification ADMIT rgb-hex-parse escape_rate=0` in 13.9–18.7s. The 2026-09-14 run predates #630 and is recorded as GAP, not counted.
+- ❌ **Criterion 3 is NOT met, and the nine passes do not move it.** It requires PASS rows with *Strict verification and Ed25519 signatures* and an empty Gap column. These runs are neither: the sweep invokes `spikes/autonomy-first-flight/FirstFlight -- --sweep`, which parses no `--strict`, and nothing in the workflow or `scripts/dogfood-continuous-proof.sh` creates an operator key or sets `ASHLAR_KEY_DIR`. The workflow's Strict check greps `CertificationVerifyOptions.Strict` for `RequireEd25519Signature=true` — true of master's source, and silent about what the sweep did. Closing this needs the sweep itself to run under Strict with a real operator key, which is product work, not more waiting.
+- ❌ **Criterion 4 is NOT met:** no real hygiene PR through the loop. `rgb-hex-parse` is a fixture canary, which the Self-Apply Bar names as the floor rather than the proof.
+- ⚠️ **The ledger cannot fill itself.** `dogfood-continuous-proof.yml` is `contents: read` by design and publishes a row as an artifact for a human to land. Nine runs passed before anyone landed a row, so "N of 10" was never going to arrive on its own — the window advances only when someone merges the rows.
 
-**Action:** Keep marketing HOLD. Monitor ledger for dated Strict passes once real autonomy loop wiring completes. Revisit unlock criteria after 7+ consecutive green days with real E2E passes.
+**Action:** Keep marketing HOLD. Thresholds 1 and 2 have real dated evidence; criteria 3 and 4 do not, and no amount of additional fixture canary runs will change that. The next substantive step is running the canary under Strict with an operator Ed25519 key so a pass can legitimately carry an empty Gap, and after that a real hygiene PR produced by the loop. Landing scheduled rows promptly also matters: a row left in CI artifact storage is evidence nobody can review.
 
 ## Self-Apply Bar
 
