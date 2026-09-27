@@ -32,6 +32,18 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// before it lands.</para>
 ///
 /// <para><b>These are tripwires, not proofs.</b> Text scans: an alias, a <c>using static</c>, or a
+/// <para><b>And what grandfathers an unsigned record.</b>
+/// <see cref="Grandfathering_is_a_list_not_a_timestamp"/> pins that the normative arm is membership
+/// in an inventory the operator's key signed, checked by id AND by canonical hash, and that the one
+/// surviving date comparison is the disclosed weak fallback evaluated after it. The obvious spelling
+/// of that fact — "the file must not contain <c>DecidedAt &gt;=</c>" — would be VACUOUS here: that
+/// string occurs zero times, because the shipped floor is spelled
+/// <c>record.DecidedAt &lt; DerivedGraceBefore.Value</c> inside a negation, so a full regression to
+/// timestamp grandfathering spelled with <c>&lt;</c> would sail past it green.
+/// <see cref="Only_the_store_reads_the_activation_marker"/> then keeps the marker readable from ONE
+/// production file, because the marker is a file an attacker can delete between two reads, so two
+/// readers are two postures over two different instants of the same directory.</para>
+///
 /// <c>JsonNode</c> walk that rebuilds a record by hand would defeat them. Framing a scan as a proof
 /// is how a gate goes quiet (<c>docs/HowGatesGoQuiet.md</c>).</para>
 ///
@@ -91,6 +103,30 @@ public sealed partial class GateRecordReadFunnelConventionTests
             "gates list/show read with PUBLIC key material only: the store loads the pinning set and the "
             + "activation marker itself, so the read resolves the full expectation, and a corrupt operator.key "
             + "must never block an operator from seeing the queue (e2e: read-survives-a-corrupt-operator-key)",
+    };
+    /// <summary>A plain literal, deliberately not obfuscated: the needle is matched against
+    /// <see cref="ProductionSources"/> output, and this file lives in a project whose csproj carries
+    /// <see cref="TestSdkMarker"/>, so it is invisible to its own scan by SCOPE rather than by
+    /// spelling. Qualified with the trailing dot so a mention of the bare type name in a signature
+    /// or an XML doc does not count as reading it.</summary>
+    private const string MarkerType = "GateSigningActivation.";
+
+    /// <summary>
+    /// Production files known on 2026-09-26 to name the activation-marker type, repo-root-relative,
+    /// each with why. Expected to stay at exactly one row.
+    /// </summary>
+    private static readonly Dictionary<string, string> MarkerReaders = new(StringComparer.Ordinal)
+    {
+        [StorePath] =
+            "THE resolution point. It reads the marker once inside ResolveExpectation, mints it in "
+            + "ActivateSigningAsync, activates the empty-store case in WriteAsync, shrinks it through "
+            + "Amend once a grandfathered record is signed, and names its FileName in two refusals. "
+            + "NOT all of that is under the store lock, and the difference matters: AcquireLockAsync "
+            + "is taken by ActivateSigningAsync, RecordAsync, ProposeAsync and DecideAsync only, while "
+            + "GetAsync, ListAsync and AdmittedInWindowAsync take none — and those are precisely the "
+            + "callers that drive ResolveExpectation into reading the marker. A second production "
+            + "reader is therefore a second posture over a file an attacker can delete between the "
+            + "two unlocked reads.",
     };
 
     [Fact]
@@ -209,6 +245,154 @@ public sealed partial class GateRecordReadFunnelConventionTests
             "exactly one caller may read the store without judging it: ActivateSigningAsync, which "
             + "MINTS a posture rather than consuming one and so has to be able to read the very "
             + "stores a reader refuses. A second unjudged read is a reader that judges nothing");
+    }
+    /// <summary>
+    /// Grandfathering an unsigned record is MEMBERSHIP in a list the operator's key signed, checked
+    /// by id AND by canonical hash, and the one surviving date comparison is the disclosed weak
+    /// fallback that runs only when no marker fired — evaluated AFTER the membership leg, never
+    /// before it.
+    ///
+    /// <para><b>Why not the obvious spelling.</b> "The file must not contain
+    /// <c>DecidedAt &gt;=</c>" is VACUOUS on this tree: that string occurs ZERO times, so the
+    /// assertion is green on arrival and can never go red. The shipped floor is spelled
+    /// <c>record.DecidedAt &lt; DerivedGraceBefore.Value</c> inside a negation, and a full
+    /// regression to timestamp grandfathering spelled with <c>&lt;</c> would sail past it. A
+    /// tripwire that cannot bite is worse than no tripwire, because it reads as covered debt.</para>
+    ///
+    /// <para><b>Why the date needles count a SET, not just <c>DecidedAt</c>.</b>
+    /// <c>record.Proposal.ProposedAt</c> is equally the writer's own field on an unsigned record, so
+    /// a second floor compared against it restores the defect whole while leaving every
+    /// <c>DecidedAt</c> count untouched. Both names are counted and their SUM is one.</para>
+    ///
+    /// <para><b>Why the ordering assertions.</b> Swapping the two <c>else if</c> arms so the derived
+    /// date is tested before the inventory leaves every count above at its exact value and restores
+    /// the whole defect: an unsigned record back-dated below the floor would be grandfathered even
+    /// in a store whose operator signed an explicit inventory naming what they authorized. Counts
+    /// cannot see an order, so the order is asserted directly. The second ordering leg — the LAST
+    /// mention of the pinned hash must precede the date — is aimed at the one date escape execution
+    /// does not already catch: "the bytes moved, but the record is old, let it through", added to
+    /// the hash-mismatch guard. Its behavioural twin is
+    /// <c>GateSignatureExpectationTests.A_grandfathered_record_with_changed_bytes_is_refused_even_below_the_derived_floor</c>,
+    /// and the two ship together — a structural tripwire whose behavioural twin does not exist is
+    /// only an assertion about source text.</para>
+    ///
+    /// <para><b>Named blind spot, stated because it is real.</b> This fact is scoped STRICTLY to
+    /// <see cref="ExpectationPath"/>, because <c>GateStore.cs</c> legitimately spells
+    /// <c>DecidedAt</c> several times (the budget window, <c>EarliestProvenInstant</c>, the basis
+    /// string). A date rule RELOCATED into <c>GateStore.ResolveExpectation</c> and passed into
+    /// <c>Refuse</c> as an extra bool parameter is INVISIBLE to this fact and this fact WILL NOT
+    /// catch it. Nothing here scans for a fifth parameter on <c>Refuse</c>, and nothing can: all
+    /// that stands against that shape is <see cref="The_store_refuses_a_missing_signature_by_name"/>
+    /// pinning that the store judges through <c>.Refuse(</c> at all, plus review of the parameter
+    /// list. Do not read these counts as coverage of it.</para>
+    /// </summary>
+    [Fact]
+    public void Grandfathering_is_a_list_not_a_timestamp()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var expectation = StripCommentLines(File.ReadAllText(Path.Combine(root, ExpectationPath)));
+
+        (Occurrences(expectation, "DecidedAt") + Occurrences(expectation, "ProposedAt")).Should().Be(1,
+            "there is exactly ONE mention of a date field an unsigned record's own writer controls "
+            + "in this whole file, and it is the disclosed weak derived-only fallback. Both names "
+            + "are counted because they are equally the attacker's input: a floor compared against "
+            + "record.Proposal.ProposedAt restores timestamp grandfathering whole while leaving "
+            + "every DecidedAt count at one");
+
+        Occurrences(expectation, "record.DecidedAt < DerivedGraceBefore.Value").Should().Be(1,
+            "and that one comparison is against the floor whose own name says it is weak and whose "
+            + "XML doc says why. Re-pointing it at MarkerActivatedAt — an instant, explicitly NOT a "
+            + "grace floor — is the timestamp rule under another name and drops this count to zero");
+
+        Occurrences(expectation, "Grandfathered.FirstOrDefault(").Should().Be(1,
+            "the NORMATIVE missing-signature arm resolves membership ONCE, by id, over the inventory "
+            + "the operator's key signed. Zero means the normative arm is gone and grandfathering is "
+            + "a date again. A Should().Contain(\"Grandfathered\") here would be satisfied by the "
+            + "record's own positional member declaration even if Refuse stopped consulting the "
+            + "inventory entirely");
+
+        Occurrences(expectation, "entry.Sha256").Should().Be(2,
+            "twice, and both load-bearing: the comparison against the canonical hash the store "
+            + "computed, and the operator-facing refusal that prints the pinned hash beside the "
+            + "actual one. Membership alone is not enough — an id the operator authorized as Held "
+            + "could be edited into an admission afterwards — and a refusal that does not print the "
+            + "pinned hash cannot be acted on. Reducing GrandfatheredRecord to ids alone deletes both");
+
+        Occurrences(expectation, "canonicalSha256").Should().Be(3,
+            "the parameter, the comparison, and the message. A hash parameter that is accepted and "
+            + "never compared is the same hole as no hash at all");
+
+        // Counts cannot see an order, and two of the cheapest regressions here are pure reorderings.
+        // Each of these indices is > -1 only because the counts above already passed; a missing
+        // needle fails there first, so BeLessThan is never reached on a -1.
+        var membership = expectation.IndexOf("Grandfathered.FirstOrDefault(", StringComparison.Ordinal);
+        var lastPinnedHash = expectation.LastIndexOf("entry.Sha256", StringComparison.Ordinal);
+        var dateFloor = expectation.IndexOf("record.DecidedAt", StringComparison.Ordinal);
+
+        membership.Should().BeLessThan(dateFloor,
+            "the date floor is a FALLBACK and must be evaluated AFTER membership. Swapping the two "
+            + "else-if arms leaves every count above at its exact value and restores the whole "
+            + "defect: an unsigned record back-dated below the floor would be grandfathered even in "
+            + "a store whose operator signed an explicit inventory naming what they authorized");
+
+        lastPinnedHash.Should().BeLessThan(dateFloor,
+            "and the date must sit OUTSIDE the hash-mismatch block, after both mentions of the "
+            + "pinned hash — not inside its guard. A date escape added there reads 'the bytes moved, "
+            + "but the record is old, let it through', which is the one shape no count here can see: "
+            + "relocating the single existing comparison into that guard keeps the date-field sum at "
+            + "one and keeps membership first. Its executing twin is "
+            + "GateSignatureExpectationTests."
+            + "A_grandfathered_record_with_changed_bytes_is_refused_even_below_the_derived_floor");
+    }
+
+    /// <summary>
+    /// Exactly one production file names the activation-marker type, so the store's signing posture
+    /// cannot be resolved a second time from the marker by a caller that has not read the records
+    /// beside it.
+    ///
+    /// <para><b>Why this is not the same fact as
+    /// <see cref="One_resolution_point_serves_every_read"/>.</b> That one counts
+    /// <c>GateSigningActivation.TryRead(</c> INSIDE <c>GateStore.cs</c> and would stay green while a
+    /// CLI command, a renderer or a packaging step read the marker for itself. The marker is a file
+    /// an attacker can delete between two reads, so two readers are two postures over two different
+    /// instants of the same directory. The posture is available to callers on
+    /// <c>GateStore.SignatureTrust</c> and on the <c>GateSigningOutcome</c> that
+    /// <c>ActivateSigningAsync</c> returns; those are the ways to learn it.</para>
+    ///
+    /// <para><b>Why there is no stale-row companion here, unlike
+    /// <see cref="No_allowlisted_keyless_construction_has_gained_a_signer"/>.</b> That sibling pairs
+    /// with a <c>BeEmpty</c> over UNLISTED files, which says nothing about a listed file that
+    /// stopped qualifying. This fact asserts sequence EQUALITY, which already fails on a MISSING
+    /// element as well as an added one, so a stale-row fact would be green in exactly the states
+    /// this one is green and could never fire alone. It becomes worth writing only if this inventory
+    /// ever grows past one row. Recorded here so the next reader does not re-add it.</para>
+    ///
+    /// <para><b>A tripwire, not a proof.</b> A <c>using static</c>, a type alias, or
+    /// <c>nameof(GateSigningActivation)</c> defeats the needle, and <see cref="Roots"/> is
+    /// <c>src</c>, <c>application</c> and <c>commercial</c> only — <c>products/</c>, <c>tools/</c>,
+    /// <c>extensions/</c> and <c>consumer-template/</c> are unscanned.</para>
+    /// </summary>
+    [Fact]
+    public void Only_the_store_reads_the_activation_marker()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+
+        var readers = ProductionSources(root)
+            .Where(s => s.Code.Contains(MarkerType, StringComparison.Ordinal))
+            .Select(s => s.Path)
+            .OrderBy(p => p, StringComparer.Ordinal)
+            .ToList();
+
+        readers.Should().Equal(
+            MarkerReaders.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray(),
+            "the signing posture is resolved in ONE place and handed to callers on "
+            + "GateStore.SignatureTrust or on the GateSigningOutcome that ActivateSigningAsync "
+            + "returns. A CLI, a renderer or a packaging step that reads gate-signing.json for "
+            + "itself learns a posture the store did not resolve, over a different instant of a "
+            + "directory an attacker can write. Equality both ways: an unlisted reader is a second "
+            + "posture, and a listed file that stopped reading the marker means the posture moved "
+            + "somewhere this gate cannot see. Found: {0}",
+            string.Join(", ", readers));
     }
 
     /// <summary>

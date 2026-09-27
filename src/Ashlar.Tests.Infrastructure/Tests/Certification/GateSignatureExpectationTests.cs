@@ -22,8 +22,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>Why this is a certification test.</b> <see cref="GateStore.AdmittedInWindowAsync"/>
 /// counts admitted records to enforce the self-extension budget. Before this rule, anyone who
 /// could write <c>gates/</c> could hand-write an unsigned <c>Admitted</c> record and it counted,
-/// or strip a real admission's signature and it still counted. The last fact below ties the two
-/// together: a fabricated admission now refuses the whole listing rather than spending the budget.</para>
+/// or strip a real admission's signature and it still counted. Several facts below tie the two
+/// together: a fabricated admission refuses the whole listing rather than spending the budget, and
+/// an unsigned record is grandfathered only by MEMBERSHIP in an inventory the operator's key signed
+/// — by id and by canonical hash — never by a date the writer of that record chose.</para>
 ///
 /// <para><b>Environment.</b> The pinning set comes from <c>ASHLAR_KEY_DIR</c>, so every fact here
 /// sets it explicitly — to an EMPTY directory for a keyless reader, to the generated key's
@@ -1177,3 +1179,98 @@ public sealed class GateSignatureExpectationTests : IDisposable
             + "DecideAsync reads through here and refuses a record that is already Admitted");
     }
 }
+    /// <summary>
+    /// A grandfathered record whose bytes have changed is refused on the HASH, and being older than
+    /// every record that still verifies does not buy it a second chance.
+    ///
+    /// <para><b>Why this exists: measured, and here is the measurement.</b> On 2026-09-20 this exact
+    /// mutation was applied to the real tree and the full cert-gate suite was run in the devtest
+    /// container — <c>&amp;&amp; !(DerivedGraceBefore is not null &amp;&amp; record.DecidedAt &lt;
+    /// DerivedGraceBefore.Value)</c> appended to the hash-mismatch guard in
+    /// <c>GateSignatureExpectation.Refuse</c>, i.e. the NEGATED form, not an <c>||</c>, which would
+    /// make the guard fire more rather than less and prove nothing. Result: 1183 passed, 0 failed,
+    /// zero facts reddened. A mutation that restores timestamp grandfathering on that arm was
+    /// invisible to every fact in the suite, so the blind spot is real and this fact closes it.
+    /// Re-run it before trusting this paragraph: it is the only justification for both this fact and
+    /// its structural twin, and if some other fact DOES redden then one of the two is redundant and
+    /// should be deleted rather than kept as covered debt.</para>
+    ///
+    /// <para><b>Why this arrangement and not the simpler one.</b>
+    /// <see cref="A_grandfathered_record_rewritten_after_activation_is_refused"/> already covers the
+    /// hash-mismatch refusal, but it runs in a store with ZERO verifying records, so
+    /// <c>DerivedGraceBefore</c> is null there and a date escape on that arm is unreachable in it.
+    /// This fact supplies the arrangement that makes the escape reachable: an honoured marker whose
+    /// inventory names the unsigned record, AND a verifying signed record decided strictly later, so
+    /// the weak floor is live and sits ABOVE the grandfathered record. The two facts are the same
+    /// refusal in two stores, and only this one reddens on that mutation.</para>
+    ///
+    /// <para>It is the behavioural twin of
+    /// <c>GateRecordReadFunnelConventionTests.Grandfathering_is_a_list_not_a_timestamp</c>. A
+    /// structural tripwire whose behavioural twin does not exist is only an assertion about source
+    /// text, so the two ship together and neither ships alone.</para>
+    ///
+    /// <para>The derived date floor is a FALLBACK for a store with no marker. It is never a second
+    /// chance for a record whose pinned hash already missed — <c>DecidedAt</c> on an unsigned record
+    /// is written by whoever wrote the record.</para>
+    /// </summary>
+    [Fact]
+    public async Task A_grandfathered_record_with_changed_bytes_is_refused_even_below_the_derived_floor()
+    {
+        Keyless();
+        await Store().RecordAsync(Proposal("ext-1"), Held(), T0);   // unsigned, the oldest thing here
+
+        OperatorKey.Generate(_keyDir);
+        Keyed();
+        var keyed = Store(OperatorKey.TryLoad());
+        var activated = await keyed.ActivateSigningAsync(T0.AddHours(1));
+        activated.Marker.Grandfathered.Should().ContainSingle(
+            "the operator authorized exactly this one unsigned record, and its entry is what the "
+            + "hash arm below compares against")
+            .Which.Id.Should().Be("ext-1");
+
+        // A verifying record STRICTLY LATER than ext-1, so the weak floor is live and sits above it.
+        await keyed.RecordAsync(Proposal("ext-2"), Held(), T0.AddHours(2));
+
+        // Read through a FRESH store before asserting on the posture: SignatureTrust is assigned by
+        // the last pass through ReadStoreAsync, so reading it straight off `keyed` after a write
+        // reports the posture as it was BEFORE that write.
+        var probe = Store(OperatorKey.TryLoad());
+        (await probe.ListAsync()).Should().HaveCount(2,
+            "both records must still read here, or the arrangement has refused the store for some "
+            + "other reason and the refusal asserted below would prove nothing");
+        probe.SignatureTrust!.Expected.Should().BeTrue("the marker fired and a record verifies");
+        probe.SignatureTrust!.DerivedGraceBefore.Should().Be(T0.AddHours(2),
+            "the weak floor is LIVE in this store and sits two hours ABOVE ext-1, which is exactly "
+            + "what makes a date escape on the hash-mismatch arm reachable here and unreachable in "
+            + "A_grandfathered_record_rewritten_after_activation_is_refused, whose store has no "
+            + "verifying anchor at all and therefore a null floor");
+        probe.SignatureTrust!.Grandfathered.Should().ContainSingle(
+            "and the inventory fired too: BOTH bases are present at once, which is the arrangement "
+            + "this fact exists to create and the reason it is not a duplicate of its neighbour");
+
+        Rewrite("ext-1", "State", nameof(ProposalState.Admitted));
+
+        // The arrangement is itself checked. The serialized key is "State"; written as node["state"]
+        // this edit would add a SECOND, lower-cased property, leave "State" alone, leave the hash
+        // unmoved, and the refusal below would never be reached — a fact whose setup can silently
+        // no-op is not a fact.
+        ((JsonObject)JsonNode.Parse(File.ReadAllText(RecordFile("ext-1")))!)["State"]!.GetValue<string>()
+            .Should().Be(nameof(ProposalState.Admitted),
+                "the grandfathered record's bytes must really have moved, or nothing below can fail");
+
+        var list = async () => await Store(OperatorKey.TryLoad()).ListAsync();
+        (await list.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ext-1.json*bytes have changed*",
+                "a grandfathered record is trusted for the bytes it had at activation and for "
+                + "nothing else. The derived date floor is a FALLBACK for a store with no marker, "
+                + "never a second chance for a record whose pinned hash already missed — and "
+                + "DecidedAt on an unsigned record is written by whoever wrote it. The 'bytes have "
+                + "changed' wording is what distinguishes the HASH arm from the membership arm's "
+                + "'not among them', so this pattern proves which arm fired");
+
+        var count = async () => await Store(OperatorKey.TryLoad())
+            .AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(3));
+        await count.Should().ThrowAsync<InvalidOperationException>(
+            "the budget never sees a verdict nobody made; an unsigned record edited into an "
+            + "Admitted one must not spend self-extension budget just because it is old");
+    }
