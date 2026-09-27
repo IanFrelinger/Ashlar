@@ -55,7 +55,7 @@ fi
 
 # A test file that stops early must fail LOUDLY rather than just exit nonzero, for the same reason
 # the sweep must not report a fault as a pass. Bump this when assertions are added.
-EXPECTED_ASSERTIONS=12
+EXPECTED_ASSERTIONS=13
 
 mklog() { local f; f="$(mktemp)"; printf '%s\n' "$1" > "${f}"; printf '%s' "${f}"; }
 
@@ -173,6 +173,31 @@ if grep -qF "${TEMPLATE}" "${SRC}"; then
 else
   bad "AutonomyLoopService still logs the exact template classify_sweep_log parses" \
       "${TEMPLATE} is gone from ${SRC}; failed sweeps will be recorded as passes again"
+fi
+
+# The dogfood workflow used to grep CertificationVerifyOptions.cs to decide whether Strict still
+# required an Ed25519 signature, and gated the sweep and a GAP row on the answer. That step is gone,
+# because the same regression is asserted BEHAVIOURALLY - through the preset, not its source text -
+# by the fact named below, which sits in cert-gate's filter and therefore blocks a merge.
+#
+# This assertion is what makes that delegation safe. If the behavioural fact is deleted or renamed,
+# nothing is watching Strict any more, and the removal of the workflow step silently became a loss of
+# coverage. A required check failing here says so, and says where to look. It deliberately does NOT
+# re-check Strict's source: duplicating the scan is the mistake being undone.
+# The full signature, not just the name. A bare substring match on the name is vacuous under the
+# cheapest realistic edit: renaming the method by appending to it leaves the old name as a substring,
+# so the guard passes while the cross-reference in dogfood-continuous-proof.yml has gone stale.
+# Measured — the first version of this assertion survived exactly that mutation. Matching the
+# signature means a rename trips this and the fix is to update both places, which is the point.
+STRICT_FACT_FILE="${ROOT}/src/Ashlar.Tests.Infrastructure/Tests/Certification/SchemaVersionFloorTests.cs"
+STRICT_FACT='public void Strict_RejectsRecordWithoutEd25519()'
+if [[ -f "${STRICT_FACT_FILE}" ]] && grep -qF "${STRICT_FACT}" "${STRICT_FACT_FILE}"; then
+  ok "the behavioural Strict/Ed25519 fact the workflow now delegates to still exists"
+else
+  bad "the behavioural Strict/Ed25519 fact the workflow now delegates to still exists" \
+      "${STRICT_FACT} is gone from ${STRICT_FACT_FILE}. The dogfood workflow dropped its own Strict
+         source-grep on the grounds that this fact covers it inside cert-gate. Restore the fact, or
+         put a merge-blocking replacement in the Certification namespace before removing it"
 fi
 
 echo
