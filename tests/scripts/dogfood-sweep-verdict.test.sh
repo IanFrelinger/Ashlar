@@ -55,7 +55,7 @@ fi
 
 # A test file that stops early must fail LOUDLY rather than just exit nonzero, for the same reason
 # the sweep must not report a fault as a pass. Bump this when assertions are added.
-EXPECTED_ASSERTIONS=9
+EXPECTED_ASSERTIONS=12
 
 mklog() { local f; f="$(mktemp)"; printf '%s\n' "$1" > "${f}"; printf '%s' "${f}"; }
 
@@ -92,6 +92,34 @@ if [[ "${v}" == "2" ]]; then
 else
   bad "run 34889059104's log -> 2 (GAP), not 0" "got ${v} — a failed sweep would be recorded as a pass again"
 fi
+
+# NOTE: cases 4-6 use ${L2}. ${L} from case 3 is deliberately left alive for the
+# sweep_failure_reason section below, and clobbering it made those two assertions fail.
+#
+# 4. The sweep now says it itself. SweepAsync returns SweepOutcome.Failed and SweepMode maps a
+# nonzero one to exit 2, so this no longer depends on any log wording at all.
+L2="$(mklog 'SWEEP: attempted 1 objective(s) in 0.2s
+SWEEP: 1 of 1 objective(s) reached no verdict — infrastructure fault, not a result; refusing to report this as a pass')"
+v="$(verdict_of 2 "${L2}")"
+[[ "${v}" == "2" ]] && ok "exit 2 -> 2 (GAP), from the count and not the prose" \
+  || bad "exit 2 -> 2 from the count" "got ${v}"
+rm -f "${L2}"
+
+# 5. And it must not be downgraded to a refusal. A bare `-ne 0` check would return 1 here, which
+# reports the wrong KIND of failure: "nothing was eligible" instead of "an iteration died".
+v="$(verdict_of 2 /nonexistent-log-path)"
+[[ "${v}" == "2" ]] && ok "exit 2 with no readable log -> still 2, not 1 (refusal)" \
+  || bad "exit 2 with no readable log -> 2" "got ${v} — a fault reported as an ineligible sweep"
+
+# 6. The two signals must agree, and a disagreement is a failure. Exit 0 beside a failure in the
+# log is either a wrong exit code or a regressed count; both are refusals, and this is also how an
+# older binary that cannot exit 2 stays classified correctly.
+L2="$(mklog 'warn: Ashlar.BackgroundAgents.Autonomy.AutonomyLoopService[0] Objective x failed (/tmp/x.md); continuing the sweep
+SWEEP: attempted 1 objective(s) in 0.3s')"
+v="$(verdict_of 0 "${L2}")"
+[[ "${v}" == "2" ]] && ok "exit 0 disagreeing with the log -> 2 (the grep still bites)" \
+  || bad "exit 0 disagreeing with the log -> 2" "got ${v}"
+rm -f "${L2}"
 
 echo "== sweep_failure_reason =="
 

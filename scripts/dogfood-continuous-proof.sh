@@ -165,12 +165,29 @@ run_canary_sweep() {
 #   1  refused, or attempted no objective
 #   2  attempted one, but the iteration errored before reaching any verdict
 #
-# The marker for 2 is AutonomyLoopService's "Objective {Id} failed ({Path}); continuing the sweep"
-# warning. That template carries a comment saying it is parsed here.
+# TWO SIGNALS, AND THEY MUST AGREE. SweepAsync now returns its failure count
+# (SweepOutcome.Failed) and SweepMode maps a nonzero one to exit 2, so the sweep can finally say
+# "I charged an objective that reached no verdict" in the one channel that cannot be reworded.
+# Before that it could not, and the ONLY signal was AutonomyLoopService's "Objective {Id} failed
+# ({Path}); continuing the sweep" warning — which is why run 34889059104 recorded a PASS.
+#
+# The grep stays as a cross-check, for two reasons. It catches a build whose exit code is wrong
+# or whose count regressed, which is the failure the exit code cannot self-report. And exit 0
+# beside a failure in the log means the two DISAGREE: one of them is lying, neither is safe to
+# prefer, so that is a 2. That branch is also what classifies an older binary correctly.
 classify_sweep_log() {
   local sweep_exit="$1" log_file="$2"
+  local log_says_failed=0
+  grep -q '; continuing the sweep' "${log_file}" 2>/dev/null && log_says_failed=1
+
+  # The sweep counted it. Authoritative, and checked first: a bare -ne 0 would call this a
+  # refusal and report the wrong KIND of failure.
+  [[ "${sweep_exit}" -eq 2 ]] && return 2
+
   [[ "${sweep_exit}" -ne 0 ]] && return 1
-  grep -q '; continuing the sweep' "${log_file}" 2>/dev/null && return 2
+
+  # Exit 0 and a failure in the log: they disagree, so refuse.
+  [[ "${log_says_failed}" -eq 1 ]] && return 2
   return 0
 }
 

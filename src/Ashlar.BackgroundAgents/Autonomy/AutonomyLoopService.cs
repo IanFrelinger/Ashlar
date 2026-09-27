@@ -193,7 +193,7 @@ public sealed class AutonomyLoopService : BackgroundService
     /// <returns>The number of objectives actually RUN. Failures are counted separately: they
     /// charge the same per-sweep budget, but a sweep that only failed did not attempt anything
     /// in the sense callers and tests mean by the return value.</returns>
-    public async Task<int> SweepAsync(CancellationToken cancellationToken = default)
+    public async Task<SweepOutcome> SweepAsync(CancellationToken cancellationToken = default)
     {
         var pending = _objectives.List(ObjectiveStatus.Pending);
         var attempted = 0;
@@ -258,19 +258,24 @@ public sealed class AutonomyLoopService : BackgroundService
                 // Explained refusal for THIS objective, then carry on with the rest — but charged,
                 // so a systemic fault cannot turn one budgeted sweep into N calls.
                 failed++;
-                // THIS TEMPLATE IS PARSED. SweepAsync returns the ATTEMPTED count and discards
-                // `failed`, so a sweep whose only objective died here still reports "attempted 1"
-                // and exits 0. scripts/dogfood-continuous-proof.sh greps the rendered text for
-                // "; continuing the sweep" to tell an infrastructure fault apart from a result,
-                // because the exit code cannot. Change the wording and the dogfood ledger starts
-                // recording failed sweeps as passes again - it already did once, in run
-                // 34889059104. Surface a failure count from SweepAsync before relaxing this.
+                // THIS TEMPLATE IS STILL PARSED, but it is no longer the only signal. SweepAsync
+                // now returns this count (SweepOutcome.Failed), so a caller can tell an
+                // infrastructure fault from a result without reading prose — which is what run
+                // 34889059104 needed and did not have: a missing sandbox image, no iteration,
+                // "attempted 1", exit 0, and a row that said PASS.
+                //
+                // scripts/dogfood-continuous-proof.sh keeps grepping the rendered text as a
+                // CROSS-CHECK against the exit code, and treats a disagreement as a failure. So
+                // rewording this no longer silently turns a failed sweep into a pass — but it
+                // does cost the cross-check, which is the only thing that would catch the count
+                // itself being wrong. Keep the words, or update the script and its fixture with
+                // you: tests/scripts/dogfood-sweep-verdict.test.sh pins both halves.
                 _logger.LogWarning(
                     ex, "Objective {Id} failed ({Path}); continuing the sweep", objective.Id, path);
             }
         }
 
-        return attempted;
+        return new SweepOutcome(attempted, failed);
     }
 
     private string? ObjectivePath(ObjectiveDocument objective)

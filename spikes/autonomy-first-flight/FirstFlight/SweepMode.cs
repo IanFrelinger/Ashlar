@@ -131,7 +131,8 @@ public static class SweepMode
             proposals);
 
         var started = DateTimeOffset.UtcNow;
-        var attempted = await loop.SweepAsync();
+        var outcome = await loop.SweepAsync();
+        var attempted = outcome.Attempted;
         var elapsed = DateTimeOffset.UtcNow - started;
 
         Console.WriteLine();
@@ -143,6 +144,18 @@ public static class SweepMode
         {
             Console.WriteLine("SWEEP: no objective was eligible — check for a witness and proposal beside each one");
             return 1;
+        }
+
+        // An objective that was charged but reached no verdict is an INFRASTRUCTURE FAULT, not a
+        // result, and it must not leave this process as success. Exit 2 is the script's
+        // "attempted one, no verdict" code; it used to be inferred by grepping the log for a
+        // warning template, because the exit code could not say it. Now it can.
+        if (outcome.Failed > 0)
+        {
+            Console.WriteLine(
+                $"SWEEP: {outcome.Failed} of {attempted} objective(s) reached no verdict — "
+                + "infrastructure fault, not a result; refusing to report this as a pass");
+            return 2;
         }
 
         Console.WriteLine("SWEEP: complete (see the iteration outcome logged above)");

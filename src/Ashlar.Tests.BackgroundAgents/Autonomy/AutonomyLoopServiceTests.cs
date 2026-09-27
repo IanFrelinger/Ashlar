@@ -208,7 +208,7 @@ public sealed class AutonomyLoopServiceTests : IDisposable
             new WitnessFinding(0, WitnessFindingKind.Mismatch, "isValid", "true", "false"),
         }))));
 
-        (await loop.SweepAsync()).Should().Be(1);
+        (await loop.SweepAsync()).Attempted.Should().Be(1);
 
         TempProjectFiles().Should().BeEquivalentTo(before, "the compile-time project file is deleted with the iteration");
     }

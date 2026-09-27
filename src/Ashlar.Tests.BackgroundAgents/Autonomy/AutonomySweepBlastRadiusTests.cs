@@ -43,9 +43,9 @@ public sealed class AutonomySweepBlastRadiusTests : IDisposable
         var proposer = new ThrowingProposer();
         var loop = Loop(new AutonomyLoopSettings { MaxObjectivesPerSweep = 2 }, proposer);
 
-        var attempted = await loop.SweepAsync();
+        var outcome = await loop.SweepAsync();
 
-        attempted.Should().Be(0, "every objective failed before it could run");
+        outcome.Attempted.Should().Be(0, "every objective failed before it could run");
         proposer.Calls.Should().Be(2,
             "a failure charges the same per-sweep budget as a success; 8 pending objectives must " +
             "not become 8 calls to a proposer that is already refusing");
@@ -63,9 +63,12 @@ public sealed class AutonomySweepBlastRadiusTests : IDisposable
         var logger = new ListLogger<AutonomyLoopService>();
         var loop = Loop(new AutonomyLoopSettings { MaxObjectivesPerSweep = 2 }, proposals: null, logger: logger);
 
-        var attempted = await loop.SweepAsync();
+        var outcome = await loop.SweepAsync();
 
-        attempted.Should().Be(1, "the healthy objective behind the broken one still runs");
+        outcome.Attempted.Should().Be(1, "the healthy objective behind the broken one still runs");
+        outcome.Failed.Should().Be(0,
+            "the broken one was skipped before it was charged, so it is not a failed iteration — "
+            + "a sweep that reports a failure it did not have refuses a run that succeeded");
         logger.Entries.Should().Contain(
             e => e.Level == LogLevel.Warning && e.Message.Contains("obj-broken") && e.Message.Contains("unusable"),
             "a witness someone wrote that no longer parses is an operator error, not a Debug line");
