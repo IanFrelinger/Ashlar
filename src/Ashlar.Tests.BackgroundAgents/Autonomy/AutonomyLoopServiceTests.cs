@@ -51,11 +51,10 @@ public sealed class AutonomyLoopServiceTests : IDisposable
 
         outcome.Attempted.Should().Be(1, "the objective is eligible: witness and recorded proposal beside it");
         outcome.Failed.Should().Be(0,
-            "and it reached a verdict. Asserting on the OUTCOME rather than on Attempted alone is what
-"
-            + "catches a regression here: Should().Be(object) accepts any type, so when SweepAsync went
-"
-            + "from int to SweepOutcome this assertion still COMPILED and failed at runtime instead");
+            "and it reached a verdict. Asserting on the outcome rather than on Attempted alone is "
+            + "what catches a regression here: Should().Be(object) accepts any type, so when "
+            + "SweepAsync went from int to SweepOutcome this assertion still COMPILED and failed "
+            + "at runtime instead");
         sandbox.Sessions.Should().BeEmpty("UseSandboxSessions=false means no SessionSpec reaches the harness");
     }
 
