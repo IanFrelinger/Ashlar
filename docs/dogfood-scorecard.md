@@ -69,13 +69,16 @@ Autonomy and design-partner marketing claims (e.g., "Ashlar autonomously propose
 3. ✅ **Dated Strict passes in ledger:** At least 7 dated ledger rows showing PASS with Strict verification and Ed25519 signatures (Gap column empty or only notes non-blocking issues).
 4. ✅ **Real hygiene PR proof:** A production-quality Ashlar PR (not fixture/sample) created via the Ashlar loop (extend → certify → admit → PR) is documented in the ledger. Fixture E2E is the floor; real dogfood PR is the framework proof.
 
-**Current Status (as of 2026-09-06):**
+**Current Status (as of 2026-09-19):**
 - ✅ PR #523 (Strict+Ed25519) merged to master (merge commit 966e6bf4)
-- ❌ No dated Strict passes in ledger yet (canary sweep script still stub; awaits real autonomy loop wiring)
-- ❌ No real hygiene PR via Ashlar loop yet
+- ✅ PR #627 (real autonomy sweep) merged 2026-09-14; replaced stub with working `FirstFlight --sweep` invocation
+- ✅ PR #630 (SDK image precondition + exit honesty) merged 2026-09-15; prevents infrastructure faults from reporting as PASS
+- ⚠️ First real sweep run ([34889059104](https://github.com/IanFrelinger/Ashlar/actions/runs/34889059104), 2026-09-14) correctly recorded as **GAP** in ledger: missing SDK image meant no iteration ran; #630 prevents recurrence
+- ⚠️ Scheduled sweeps succeeding + publishing artifacts (e.g. [35333099875](https://github.com/IanFrelinger/Ashlar/actions/runs/35333099875) CertifiedButHeld) but **0 canary PASS rows on master** — N=10 empty until artifact rows are PR'd into docs/dogfood-ledger.md
+- ❌ No real hygiene PR via Ashlar loop yet (canary uses recorded proposals = fixture floor ≠ hygiene-via-Ashlar; live proposer lane not enabled)
 - ✅ lim-9 CLOSED 2026-09-13: the composition signer takes the injected `CertificationRecordSigner` as its key holder and the shipped DI registration supplies it, so an operator key reaches composition records with no host code change and no key accessor on either type; the lane-agreement detection residual closed the same day
 
-**Action:** Keep marketing HOLD. Monitor ledger for dated Strict passes once real autonomy loop wiring completes. Revisit unlock criteria after 7+ consecutive green days with real E2E passes.
+**Action:** Keep marketing HOLD. Continuous proof path operational and honest (workflow publishes artifacts; contents:read cannot push). Land pending artifact rows into docs/dogfood-ledger.md before counting toward N=10 window. Revisit unlock criteria once 7+ consecutive green days with real E2E passes appear in ledger on master.
 
 ## Self-Apply Bar
 
