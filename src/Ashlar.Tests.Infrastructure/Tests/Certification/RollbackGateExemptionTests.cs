@@ -621,6 +621,70 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
     }
 
     /// <summary>
+    /// The residual the test above stops SAMPLING but does not remove: a single long interval during
+    /// the restored generation's window is enough to manufacture a watch breach, revoke the
+    /// known-good origin and exhaust the rollback. This is the mechanism that reddened cert-gate on
+    /// run 36333553471, executed deliberately rather than waited for.
+    ///
+    /// It is a real property of the product, not of the test harness. The mean-latency leg judges a
+    /// two-sample mean against a baseline a rollback deliberately does not rotate, at the default
+    /// MaxLatencyFactor of 3.0, with no floor under the baseline's magnitude — so for a brick whose
+    /// invocations are microseconds, three times the baseline is still microseconds, and any
+    /// scheduler preemption or GC suspension clears it. A production operator on a busy host can
+    /// therefore lose a healthy generation to a pause that says nothing about the code.
+    ///
+    /// Asserting the CURRENT behaviour, deliberately: this fact is the one that has to be rewritten
+    /// by whoever decides the leg should carry an absolute floor, and that decision trades a
+    /// spurious-breach class against the ability to see a genuine latency regression on a fast
+    /// brick. It is not made here.
+    /// </summary>
+    [Fact]
+    public async Task A_single_paused_interval_during_the_restored_window_still_exhausts_the_rollback()
+    {
+        var revocations = new InMemoryCertificateRevocationList();
+        var pause = new LoopPauseControl();
+        var sink = new RecordingSink();
+
+        // Read 12 is the END of invocation 6 — the first invocation on the restored generation,
+        // since Warm(3) plus Breach(2) is five invocations at two timestamp reads each. One second
+        // against a one-millisecond baseline is a thousandfold, far past the 3.0 factor; the point
+        // is the ratio, and the leg first evaluates on invocation 7 when it has two samples.
+        using var host = CreateHost(sink, revocations, watch: DefaultWatch, pause: pause,
+            clock: new PausingClock(
+                step: TimeSpan.FromMilliseconds(1),
+                pause: TimeSpan.FromSeconds(1),
+                pauseOnRead: 12));
+
+        var v1 = AutonomousRequest(Healthy("v1"), "lineage-a");
+        (await host.SwapAsync(new[] { v1 })).Swapped.Should().BeTrue();
+        await Warm(host, 3);
+        (await host.SwapAsync(new[] { AutonomousRequest(Faulting(), "lineage-a") })).Swapped.Should().BeTrue();
+        await Breach(host, 2);
+        host.CurrentGenerationId.Should().Be(3, "the first breach rolled back to v1");
+
+        // Precondition: the arrange has to actually reach the restored generation's window, or this
+        // fact would hold for the wrong reason.
+        sink.Snapshot().Count(e => e.Outcome == BrickSwapProvenanceOutcomes.RollbackCommitted)
+            .Should().Be(1, "the faulting generation must have been rolled back before the pause lands");
+
+        await Warm(host, 3);
+
+        pause.IsPaused.Should().BeTrue(
+            "one paused interval on a microsecond brick clears 3x of its own baseline, and the "
+            + "resulting breach has nothing left to roll back to");
+        sink.Snapshot().Should().Contain(e =>
+            e.Outcome == BrickSwapProvenanceOutcomes.WatchBreachQuarantined &&
+            e.Reason!.Contains("mean latency", StringComparison.Ordinal));
+        sink.Snapshot().Should().Contain(e => e.Outcome == BrickSwapProvenanceOutcomes.RollbackExhausted);
+        revocations.IsRevoked(v1.Record.ContentHash!).Should().BeTrue(
+            "this is the harm: a pause revoked the known-good origin");
+
+        var g4 = await host.SwapAsync(new[] { AutonomousRequest(Working("g4"), "lineage-b") });
+        g4.Swapped.Should().BeFalse("a paused loop absorbs nothing");
+        g4.Refusals.Should().Contain(r => r.FailureCode == "loop-paused");
+    }
+
+    /// <summary>
     /// A watch without a revocation list cannot contain what it detects: the quarantine revokes
     /// nothing, SelectRollbackTarget re-selects the same origin, and the host replays the regressed
     /// content on every breach with no terminal state. Every real composition supplies both; the
@@ -914,6 +978,33 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
         public SteppingClock(TimeSpan step) => _step = step.Ticks;
         public override long TimestampFrequency => TimeSpan.TicksPerSecond;
         public override long GetTimestamp() => Interlocked.Add(ref _ticks, _step);
+    }
+
+    /// <summary>
+    /// A stepping clock with one long interval injected, standing in for the scheduler preemption or
+    /// GC suspension that a concurrently running test collection induces. Each invocation reads the
+    /// timestamp exactly twice, at start and at end, so the interval charged to invocation k is the
+    /// amount added on read 2k — which is what makes the target selectable.
+    /// </summary>
+    private sealed class PausingClock : TimeProvider
+    {
+        private readonly long _step;
+        private readonly long _pause;
+        private readonly int _pauseOnRead;
+        private int _reads;
+        private long _ticks;
+
+        public PausingClock(TimeSpan step, TimeSpan pause, int pauseOnRead)
+        {
+            _step = step.Ticks;
+            _pause = pause.Ticks;
+            _pauseOnRead = pauseOnRead;
+        }
+
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+
+        public override long GetTimestamp() =>
+            Interlocked.Add(ref _ticks, Interlocked.Increment(ref _reads) == _pauseOnRead ? _pause : _step);
     }
 
     private static (string PrivateKeyBase64, string PublicKeyBase64) CreateEd25519Key()

@@ -312,9 +312,15 @@ public sealed class HotSwapProbeBrick : DomainBrick
         await Execute(host);
 
         // This one breaches on either side of the defect, so the breach is not the fact — the NUMBER
-        // in the message is. Rendering a Stopwatch tick count through TimeSpan.FromTicks reported
+        // in the message is. Rendering a timestamp tick count through TimeSpan.FromTicks reported
         // the ~50ms invocation as 5000ms on Linux, a figure that would send an operator hunting a
         // five-second stall that never happened.
+        //
+        // ContainSingle, not Contain, and that is load-bearing: under the unconverted comparison a
+        // 1ms cap is really a 10us cap, so the HEALTHY generation's own sub-millisecond invocation
+        // breaches it too and two ceiling events appear. Measured — reinstating the defect fails this
+        // line on the count before it ever reaches the range check below. Weakening it to Contain
+        // would throw that signal away.
         var reason = sink.Snapshot()
             .Where(e => e.Outcome == BrickSwapProvenanceOutcomes.WatchBreachQuarantined)
             .Select(e => e.Reason!)
