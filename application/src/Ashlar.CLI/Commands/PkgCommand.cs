@@ -81,7 +81,7 @@ public sealed class PkgCommand : Command
                 return 1;
             }
 
-            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory);
+            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory, sealer);
             if (code != 0)
             {
                 return code;
@@ -110,9 +110,12 @@ public sealed class PkgCommand : Command
     /// extension cannot be packaged whole, 65 when the rows fail the admission's signed content
     /// claims — a verification refusal, same family as a package that fails its seal.
     /// </summary>
-    private static async Task<(int Code, GateRecord? Record, List<PackageFile>? Files)> GatherAsync(string id, DirectoryInfo directory)
+    private static async Task<(int Code, GateRecord? Record, List<PackageFile>? Files)> GatherAsync(string id, DirectoryInfo directory, SigningIdentity sealer)
     {
-        var store = new GateStore(Path.Combine(directory.FullName, ".ashlar"));
+        // The sealer is the operator identity both callers already loaded: this is the reader
+        // that decides what travels to ANOTHER node, so it reads with the identity that will seal —
+        // a stripped or re-signed admission must not leave the machine under the origin's seal.
+        var store = new GateStore(Path.Combine(directory.FullName, ".ashlar"), sealer);
         var record = await store.GetAsync(id);
         if (record is null)
         {
@@ -423,7 +426,7 @@ public sealed class PkgCommand : Command
                 return 1;
             }
 
-            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory);
+            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory, sealer);
             if (code != 0)
             {
                 return code;

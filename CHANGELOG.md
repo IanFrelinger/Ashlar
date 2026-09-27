@@ -8,6 +8,99 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ## [Unreleased]
 
+- **A removed gate-record signature is corruption, and the STORE decides it (SPEC-006 S-6).**
+  `GateStore` now decides whether a record with no signature is a *stripped* one from the store's
+  other verifying records and a signed activation marker at `.ashlar/gate-signing.json` — never
+  from the record itself — and refuses it through the same fail-closed path as a forged one.
+  Before this, anyone who could write `.ashlar/gates/` could strip a real admission's signature, or
+  hand-write an unsigned `Admitted` record, and it counted toward the self-extension budget. A
+  signature must now also be from a key this machine's key material vouches for (`operator.pub`,
+  `trusted/*.pub`), so re-signing under a forger's key is caught too. `ashlar keys init` activates
+  signing in the project it is run in; `ashlar gates sign-activate` does it for a project set up
+  later; `ashlar gates` prints the store's posture above the listing. A store that has never been
+  signed behaves exactly as before.
+
+  **Grandfathering is now a list the operator signed, not a date.** The activation marker carries,
+  inside its own signed bytes, an `(id, canonical sha256)` inventory of every unsigned record on
+  disk at the instant the operator activated, and an unsigned record is readable afterwards only if
+  that inventory names it *and* its canonical bytes still hash to the pinned value. The previous
+  rule compared a record's `DecidedAt` against a floor derived from the store's own records — and
+  on an unsigned record `DecidedAt` is written by whoever wrote the record. An attacker never had
+  to strip anything: they could write a brand-new unsigned `Admitted` record dated one second below
+  a floor they could read off the store, and it was grandfathered, counted toward the budget, and
+  displayed by `ashlar gates` as a decision nobody made. The hash is over the canonical form, never
+  the file's bytes, so a reformat or a `text=auto` line-ending change cannot brick an adopted store.
+
+  **Both operator verbs now print what they are about to bless, before the success line.**
+  `ashlar keys init` and `ashlar gates sign-activate` print how many unsigned records they are
+  grandfathering and how many of those are `Admitted`. **Read that number.** It is the only control
+  on the grandfather mechanism and every other part of S-6 is downstream of it — a record planted
+  in `gates/` before you activate is blessed permanently and spends self-extension budget, and that
+  count is your one chance to object. Both verbs also say, as their own sentence rather than folded
+  into a success line, when they replaced a signing marker this machine does not vouch for.
+
+  **Three things got stricter, and each can refuse a store that read fine yesterday.** (1)
+  `GetAsync` is now exactly as strict as `ListAsync`: a single-record read resolves the same posture
+  over the whole directory instead of reading one file, so one corrupt, stripped, re-signed, renamed
+  or duplicated record anywhere under `gates/` refuses `gates --show` of an *unrelated* record, the
+  `--admit` pre-flight, package gathering and import dedup. That is the contract, not a regression —
+  while the two funnels disagreed, `GetAsync` returned a stripped, state-flipped record that
+  `ListAsync` beside it refused, and `gates --admit` reads through `GetAsync`, so it signed tampered
+  content under the operator's key. It also resolves by the id *inside* the record rather than by a
+  file name. When two files hold one id — only possible in a store that has never been signed —
+  the file **named** for that id answers, never whichever the directory happens to enumerate
+  first. `ParseAllAsync` now imposes ordinal order by path, because `Directory.EnumerateFiles`
+  guarantees none and `gates --admit` reads through this path, so a planted file sorting first
+  under an honest record's id could otherwise make that proposal permanently undecidable with
+  nothing overwritten. A never-signed store is otherwise unchanged: copies still list and still
+  count. (2) A record file must be
+  named for the id inside its own signed bytes (`{id}.json`): the id is signed, the file name is
+  not, and the budget counts files, so one admission copied to two more names used to read as three.
+  (3) Activation refuses outright if any record file already violates that — before writing
+  anything, while the store still reads and the files can still be moved — because a marker minted
+  over such a store would refuse every later read and `--repair` would re-mint the same broken set.
+
+  **Marker format break.** A `.ashlar/gate-signing.json` written by an earlier build of this branch
+  carries no inventory and is refused **by name** on every read, not with a JSON error and not
+  reinterpreted — reading a missing inventory as "grandfather everything" is the forgery the
+  inventory exists to stop.
+The remedy is **`ashlar gates sign-activate --repair`**, which re-mints the inventory over the
+  store as it stands while keeping the original activation instant. The type is branch-local and
+  unreleased, so nothing is owed a migration; what is owed is that the refusal names the remedy,
+  and it does.
+
+  **Read this before upgrading a node that ever ran keyless and later gained a key:** its store is
+  *half-signed* — records decided after the first signed write, without a key, are now refused as
+  stripped by every keyed reader, so `gates`, `AdmittedInWindowAsync` and the background-agent
+  report fail closed on it, and a keyless process (a container, a CI runner, another service
+  account) can no longer write into it at all: `ProposeAsync` throws naming `ashlar keys init`.
+  That is the store doing its job, not an outage. The remedy for the *writer* is a key
+  (`ashlar keys init`, or `ASHLAR_KEY_DIR` pointing at the operator's key directory). **The remedy
+  for a half-signed history is `ashlar gates sign-activate --repair`**: it enumerates the unsigned
+  records, pins each one by its canonical hash into a marker your key signs, dates the marker at
+  the earliest instant the surviving signatures already prove rather than at now, and prints the
+  count and the admitted subset so you can refuse the number before it lands. **An earlier version
+  of this entry told you to *archive* the offending records out of `gates/`. Do not do that — it
+  was wrong.** Removing records is the budget forgery this change exists to stop: every removed
+  admission raises the remaining self-extension budget by one, because the budget counts what is
+  present, and removing a *refused* record lets the same proposal be made again and admitted. The
+  kernel's own refusal messages now say so, and a keyed write into a store whose marker went
+  missing refuses rather than quietly re-blessing whatever is left.
+
+  Pinned in cert-gate by `GateSignatureExpectationTests`,
+  `GateRecordReadFunnelConventionTests`, `GateStoreAnchorProvenanceConventionTests` and
+  `GateSignatureResidualTests`. **Recorded residuals** live in SPEC-006 §4 S-6 — fourteen of them,
+  each with a test that performs the attack and asserts the store does *not* catch it, except two
+  that say why no honest test can exist. The ones to know before you deploy: an actor who strips
+  *every* signature **and** deletes the marker leaves no anchor in the state root at all, so the
+  store reads clean for **every** reader — there is **no keyed-reader advantage**, because a keyed
+  reader holds public key material and not a memory of this store, and an earlier note here claimed
+  otherwise; the trust root is a directory and nothing signs it, so a `.pub` dropped into
+  `trusted/` makes a forged signature pin; a record planted *before* you activate is blessed
+  permanently; deleting a record still raises the budget and also erases a recorded refusal, until
+  SPEC-003's chained ledger exists; and one misnamed file in `gates/` holds a store permanently
+  un-signable.
+
 - **`VERSION` is `0.2.0`.** The minor moved rather than the patch because signed bytes changed: #592
   gave every `double` one canonical decimal form across all three target frameworks (the
   netstandard2.0 asset under Mono had been writing different digits from net8.0/net10.0), and the
