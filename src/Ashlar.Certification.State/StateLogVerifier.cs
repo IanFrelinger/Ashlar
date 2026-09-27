@@ -9,9 +9,12 @@ public static class StateLogVerifier
     private static readonly CertifiedTransitionBuilder TransitionBuilder = new();
 
     /// <summary>
-    /// Verifies <paramref name="log"/> under <see cref="Contracts.CertificationVerifyOptions.Strict"/>:
-    /// every behavior certificate must carry a verifying Ed25519 signature, a gate-emitted
-    /// artifact and a certifier identity. This is the production default and is unchanged.
+    /// Verifies <paramref name="log"/> under <see cref="Contracts.CertificationVerifyOptions.Strict"/>
+    /// plus the signer set the operator pinned through
+    /// <see cref="Contracts.CertificationTrustPolicy"/>: every behavior certificate must carry a
+    /// verifying Ed25519 signature, a gate-emitted artifact and a certifier identity, and — once
+    /// keys are configured — a signature from one of those keys. With nothing configured this is
+    /// the <c>Strict</c> preset itself, so the production default is unchanged.
     /// </summary>
     /// <remarks>
     /// Strict requires an Ed25519 signature, which the netstandard2.0 asset of
@@ -31,7 +34,7 @@ public static class StateLogVerifier
         ICertificateResolver resolver,
         string? hmacKey = null,
         ITransitionReplayer? replayer = null) =>
-        Verify(log, schema, resolver, hmacKey, replayer, Contracts.CertificationVerifyOptions.Strict);
+        Verify(log, schema, resolver, hmacKey, replayer, Contracts.CertificationTrustPolicy.Ambient.Strict);
 
     /// <summary>
     /// Verifies <paramref name="log"/>, applying <paramref name="options"/> to every behavior

@@ -20,7 +20,8 @@ namespace Ashlar.Infrastructure.Certification.HotSwap;
 /// <list type="number">
 /// <item><description><b>Verify-at-load.</b> Every brick's certification record is re-verified
 /// against the exact source bytes being loaded (<see cref="CertificationTrustVerifier"/>
-/// with <see cref="CertificationVerifyOptions.Strict"/>). When a supplied PE matches
+/// with <see cref="CertificationVerifyOptions.Strict"/>, plus the signer set the operator pinned
+/// through <see cref="CertificationTrustPolicy"/>). When a supplied PE matches
 /// the record's <c>gate-emitted-artifact</c> hash, the artifact-bytes overload binds
 /// those bytes; otherwise the host rematerializes from wrapped source.</description></item>
 /// <item><description><b>Fail-closed swap.</b> Any verification, compile, load, or
@@ -60,6 +61,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     private readonly Ashlar.Core.Application.Autonomy.LoopPauseControl? _pauseControl;
     private readonly TimeSpan? _cadenceFloor;
     private readonly TimeProvider _clock;
+    private readonly CertificationVerifyOptions _verifyOptions;
 
     private BrickGeneration? _current;
     private int _generationCounter;
@@ -110,6 +112,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     /// <param name="pauseControl">Global pause (R6.2): while paused, autonomous swaps are refused; human-driven swaps proceed.</param>
     /// <param name="cadenceFloor">Minimum interval between autonomous swaps (R6.1) so the runtime never absorbs changes faster than watch windows clear.</param>
     /// <param name="clock">Clock for cadence decisions; system time when null.</param>
+    /// <param name="trustPolicy">Operator trust configuration supplying the pinned signer set; defaults to <see cref="CertificationTrustPolicy.Ambient"/>, which is the <c>Strict</c> preset itself when nothing is configured.</param>
     public CertifiedBrickHotSwapHost(
         ICertifiedBrickSwapProvenanceSink? provenanceSink = null,
         ILogger<CertifiedBrickHotSwapHost>? logger = null,
@@ -121,8 +124,13 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
         Ashlar.Core.Application.Autonomy.ILineageAuthority? lineageAuthority = null,
         Ashlar.Core.Application.Autonomy.LoopPauseControl? pauseControl = null,
         TimeSpan? cadenceFloor = null,
-        TimeProvider? clock = null)
+        TimeProvider? clock = null,
+        CertificationTrustPolicy? trustPolicy = null)
     {
+        // Strict plus whatever signer set the operator pinned. Resolved once, at construction: a
+        // host must not change its mind about which signers it accepts between generations, and a
+        // trust configuration it cannot parse must stop it here rather than at its first swap.
+        _verifyOptions = (trustPolicy ?? CertificationTrustPolicy.Ambient).Strict;
         _provenanceSink = provenanceSink;
         _logger = logger;
         _hmacKey = hmacKey;
@@ -843,12 +851,12 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
                     request.SourceCode,
                     boundPe,
                     _hmacKey,
-                    CertificationVerifyOptions.Strict)
+                    _verifyOptions)
                 : CertificationTrustVerifier.Verify(
                     request.Record,
                     request.SourceCode,
                     _hmacKey,
-                    CertificationVerifyOptions.Strict);
+                    _verifyOptions);
             if (!trust.Trusted)
             {
                 refusals.Add(new BrickSwapRefusal

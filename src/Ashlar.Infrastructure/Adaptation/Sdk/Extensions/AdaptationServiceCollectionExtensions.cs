@@ -98,7 +98,10 @@ public static class AdaptationServiceCollectionExtensions
                 var store = sp.GetRequiredService<ICertificationRecordStore>();
                 var signer = sp.GetRequiredService<CertificationRecordSigner>();
                 var record = store.Get("observation.context");
-                if (record is { Admitted: true, Signed: true } && signer.Verify(record, CertificationVerifyOptions.Strict))
+                // Strict plus whatever signer set the operator pinned; with nothing configured this
+                // is the Strict preset unchanged.
+                if (record is { Admitted: true, Signed: true }
+                    && signer.Verify(record, CertificationTrustPolicy.Ambient.Strict))
                 {
                     var contextAssembler = sp.GetRequiredService<IContextAssembler>();
                     bricks.Add(new ObservationContextBrick(contextAssembler));
