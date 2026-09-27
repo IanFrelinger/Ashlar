@@ -47,9 +47,15 @@ public sealed class AutonomyLoopServiceTests : IDisposable
             new AutonomyLoopSettings { SessionImage = "loop:image" },
             harness: HarnessThatBuildsInSession(sandbox));
 
-        var attempted = await loop.SweepAsync();
+        var outcome = await loop.SweepAsync();
 
-        attempted.Should().Be(1, "the objective is eligible: witness and recorded proposal beside it");
+        outcome.Attempted.Should().Be(1, "the objective is eligible: witness and recorded proposal beside it");
+        outcome.Failed.Should().Be(0,
+            "and it reached a verdict. Asserting on the OUTCOME rather than on Attempted alone is what
+"
+            + "catches a regression here: Should().Be(object) accepts any type, so when SweepAsync went
+"
+            + "from int to SweepOutcome this assertion still COMPILED and failed at runtime instead");
         sandbox.Sessions.Should().BeEmpty("UseSandboxSessions=false means no SessionSpec reaches the harness");
     }
 
