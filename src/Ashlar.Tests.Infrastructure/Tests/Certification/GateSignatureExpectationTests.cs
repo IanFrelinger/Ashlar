@@ -388,7 +388,7 @@ public sealed class GateSignatureExpectationTests : IDisposable
         // A VALIDLY signed marker (the operator's own key — a stolen-key or careless-operator
         // scenario), dated after both records and grandfathering nothing.
         File.Delete(MarkerFile);
-        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(signer, T0.AddHours(2), [])));
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(signer, T0.AddHours(2), [], storeId: null)));
         Strip("ext-2");
 
         var list = async () => await store.ListAsync();
@@ -400,7 +400,7 @@ public sealed class GateSignatureExpectationTests : IDisposable
         // because the inventory pins the bytes ext-2 had when it was signed, not the stripped ones.
         File.Delete(MarkerFile);
         File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(
-            signer, T0.AddHours(2), [new GrandfatheredRecord("ext-2", new string('0', 64))])));
+            signer, T0.AddHours(2), [new GrandfatheredRecord("ext-2", new string('0', 64))], storeId: null)));
         (await list.Should().ThrowAsync<InvalidOperationException>())
             .WithMessage("*ext-2.json*bytes have changed*");
     }
@@ -424,7 +424,7 @@ public sealed class GateSignatureExpectationTests : IDisposable
         // Half two: a marker validly signed by a key NOBODY here vouches for. Ignored — by the
         // keyless reader (no record corroborates the key) and by a keyed one (not in its material).
         var foreign = OperatorKey.Generate(_otherKeyDir);
-        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(foreign, new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), [])));
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(foreign, new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), [], storeId: null)));
 
         var keyless = Store();
         (await keyless.ListAsync()).Should().ContainSingle();
@@ -855,7 +855,7 @@ public sealed class GateSignatureExpectationTests : IDisposable
         var signer = OperatorKey.Generate(_keyDir);
         var foreign = OperatorKey.Generate(_otherKeyDir);
         File.WriteAllText(MarkerFile, MarkerJson(
-            GateSigningActivation.Signed(foreign, new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), [])));
+            GateSigningActivation.Signed(foreign, new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), [], storeId: null)));
 
         var store = Store(signer);
         var write = async () => await store.RecordAsync(Proposal("ext-1"), Held(), T0);
@@ -913,7 +913,7 @@ public sealed class GateSignatureExpectationTests : IDisposable
         Keyless();
         await Store().RecordAsync(Proposal("ext-1"), Held(), T0);
         var elsewhere = OperatorKey.Generate(_otherKeyDir);
-        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(elsewhere, T0, [])));
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(elsewhere, T0, [], storeId: null)));
 
         var keyless = Store();
         (await keyless.ListAsync()).Should().ContainSingle("no key here and no record corroborates the marker");
