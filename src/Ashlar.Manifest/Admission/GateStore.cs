@@ -36,6 +36,27 @@ public sealed record GateRecord
 
     /// <summary>Base64 raw public key of the signer; null when unsigned.</summary>
     public string? Signer { get; init; }
+
+    /// <summary>
+    /// WHICH STORE this verdict was signed for: the <see cref="GateSigningActivation.StoreId"/> in
+    /// force when the signature was computed, inside the signed bytes (SPEC-006 rule S-7). Null on a
+    /// record written without keys, and null on one signed before the field existed.
+    ///
+    /// <para>A signed record said WHAT was decided and by WHICH key, and nothing about WHERE. So one
+    /// copied out of a sibling store under the same operator key verified, pinned, ANCHORED the
+    /// store it was copied into — creating an expectation where there was none — and counted toward
+    /// that store's self-extension budget. The file-name leg does not catch it: the copy keeps its
+    /// own <c>{id}.json</c> name. A reader refuses a record whose <see cref="StoreId"/> disagrees
+    /// with the identity its own honoured marker names, so a copy cannot anchor, cannot be counted,
+    /// and cannot be read as a decision made here.</para>
+    ///
+    /// <para><b>Null is accepted everywhere, and MUST be.</b> A record signed without the field
+    /// cannot be distinguished from one written under any store, so records signed before S-7 stay
+    /// transplantable for their lifetime rather than being refused wholesale on upgrade — the
+    /// compatibility <c>CanonicalJson</c>'s null-omission buys (rule S-5's mechanism), which also
+    /// means adding this member did not move one existing record's canonical hash and so did not
+    /// invalidate one grandfather inventory entry.</para></summary>
+    public string? StoreId { get; init; }
 }
 
 /// <summary>
@@ -210,6 +231,7 @@ public sealed partial class GateStore
             _trustedSigners,
             inventory,
             verifying.Count,
+            AgreedStoreIdentity(verifying),
             replaceUnvouchedFor: true,
             reMintVouchedFor: repair);
 
@@ -243,6 +265,41 @@ public sealed partial class GateStore
             }
         }
         return earliest;
+    }
+
+    /// <summary>
+    /// The ONE store identity (SPEC-006 S-7) that the records whose signatures verify all agree on,
+    /// or null when none names one or two of them disagree. It is what a re-mint carries forward
+    /// when there is no marker left to carry it: minting a fresh identity over a store whose records
+    /// already name one would refuse every one of them, so the operator's repair verb would brick
+    /// the store it was reached for.
+    ///
+    /// <para>Only a record signed under a key this reader vouches for can contribute, because
+    /// <paramref name="verifying"/> has already been through the verify-and-pin legs. A DISAGREEMENT
+    /// yields null and therefore a fresh identity, which refuses every record here and is the right
+    /// answer: two identities in one store means at least one of these records was signed somewhere
+    /// else, and this method must not guess which.</para>
+    /// </summary>
+    private static string? AgreedStoreIdentity(
+        IReadOnlyList<(string Path, GateRecord Record, string Sha256)> verifying)
+    {
+        string? agreed = null;
+        foreach (var entry in verifying)
+        {
+            if (entry.Record.StoreId is null)
+            {
+                continue;   // signed before S-7: it names no store and votes for none
+            }
+            if (agreed is null)
+            {
+                agreed = entry.Record.StoreId;
+            }
+            else if (!string.Equals(agreed, entry.Record.StoreId, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+        }
+        return agreed;
     }
 
     /// <summary>
@@ -606,6 +663,19 @@ public sealed partial class GateStore
     /// is key material only — deriving it from the records would accept whatever key an attacker
     /// re-signed them all with.
     ///
+    /// <para><b>WHICH STORE this is (S-7).</b> The identity comes off an honoured marker THIS READER
+    /// HOLDS KEY MATERIAL FOR, and from nowhere else, so it is attested by the operator's key rather
+    /// than asserted by a file. A marker this reader IGNORES contributes none: taking an identity
+    /// from an unvouched-for marker would let anyone who can write the state root declare this store
+    /// to be the one whose records they are copying in. Neither does a marker a KEYLESS reader
+    /// honours, and that is the same rule rather than a second one: keyless honouring is
+    /// corroboration by a record under the marker's own key, and an actor who can write the state
+    /// root writes both halves, so the identity would be theirs — and the records refused as
+    /// "copies" would be the store's own. A null identity — no marker, a foreign one, one minted
+    /// before S-7, or no key material here to vouch for any of them — binds nothing. That is the
+    /// honest bound on the rule: a keyless consumer gets no S-7 protection, which is a disclosed
+    /// residual and not an oversight.</para>
+    ///
     /// <para><b>What grandfathers an unsigned record.</b> An honoured marker carries its
     /// inventory onto the expectation and that is the whole answer: membership plus a hash, never
     /// a date. Only when no marker fires does the weak derived floor apply — the minimum
@@ -621,6 +691,7 @@ public sealed partial class GateStore
         var basis = new List<string>(4);
         DateTimeOffset? derivedGrace = null;
         IReadOnlyList<GrandfatheredRecord>? inventory = null;
+        string? storeId = null;
         var expected = false;
 
         if (anchors.Count > 0)
@@ -639,6 +710,25 @@ public sealed partial class GateStore
             {
                 expected = true;
                 inventory = marker.Grandfathered;   // non-null: TryRead refuses a marker without one
+                if (_trustedSigners.Count > 0)
+                {
+                    // WHICH STORE, off the one artefact here the operator's key signed — and ONLY
+                    // where KEY MATERIAL vouches for that signature. Two conditions, neither of
+                    // which subsumes the other. A marker this reader IGNORES contributes nothing, or
+                    // anyone who can write the state root could declare this store to be the one
+                    // whose records they are copying in. And a KEYLESS reader honours a marker
+                    // corroborated by a record under the same key — a pair whose BOTH halves the
+                    // same actor supplies — so an identity taken from it would be the attacker's,
+                    // and it is then the store's OWN genuine records that are refused, by a message
+                    // accusing them of being copies. That is this method's governing rule for the
+                    // pinning set applied to the identity: key material only, never derived from the
+                    // records, because a derivation accepts whatever an attacker re-signed them all
+                    // with. The cost is stated rather than hidden — a keyless consumer gets no S-7
+                    // protection at all — and it is the right side of the trade, because S-7 exists
+                    // to stop a copy anchoring a store, not to give an actor a new way to make a
+                    // store disown the verdicts it really wrote.
+                    storeId = marker.StoreId;
+                }
                 basis.Add($"signing activated {marker.ActivatedAt:u}"
                     + (_trustedSigners.Count > 0 ? " under a key this machine vouches for" : ", corroborated by a record under the same key")
                     + $", grandfathering {inventory!.Count} unsigned record(s)");
@@ -663,7 +753,8 @@ public sealed partial class GateStore
         }
 
         return new GateSignatureExpectation(
-            expected, derivedGrace, _trustedSigners, string.Join("; ", basis), marker?.ActivatedAt, inventory, anchors.Count);
+            expected, derivedGrace, _trustedSigners, string.Join("; ", basis), marker?.ActivatedAt, inventory,
+            anchors.Count, storeId);
     }
 
     private async Task<List<(string Path, GateRecord Record)>> ParseAllAsync(CancellationToken ct)
@@ -789,7 +880,12 @@ public sealed partial class GateStore
         // forged — bricking not just that record but every ListAsync over the store. The
         // rule is absolute: never persist a signature we did not just compute over exactly
         // these bytes. No key ⇒ no signature (S-2), never a half-signed inheritance.
-        var unsigned = record with { Sig = null, Signer = null };
+        // StoreId is stripped with the signature fields and re-applied only on the keyed path, for
+        // the same reason: it is part of what a signature covers, so it must never be inherited from
+        // the bytes that came in. A keyless write leaves it null — an unsigned record's fields are
+        // the writer's own input and an identity nobody signed would assert a provenance it cannot
+        // prove, and would move the canonical hash the grandfather inventory pins.
+        var unsigned = record with { Sig = null, Signer = null, StoreId = null };
         var leavesTheInventory = false;
         if (_signer is null)
         {
@@ -826,6 +922,14 @@ public sealed partial class GateStore
             // ReadStoreAsync (the caller already holds the lock) also means a keyed writer never
             // signs into a store whose posture it cannot read.
             var (entries, expectation) = await ReadStoreAsync(ct).ConfigureAwait(false);
+
+            // WHICH STORE this verdict is being signed for (S-7), resolved from the honoured marker
+            // that already governs this store — never invented here. It stays null when the marker
+            // this reader honours predates the identity, so a store adopted before S-7 keeps writing
+            // records that name no store until the operator re-mints; silently minting an identity
+            // on the hot path would put a new capability on a security artefact where the whole
+            // point is that only the operator's verb writes one.
+            var storeId = expectation.StoreId;
             if (expectation.MarkerPresent)
             {
                 if (expectation.Grandfathered is null)
@@ -867,19 +971,27 @@ public sealed partial class GateStore
             }
             else
             {
-                // An empty store: there is nothing to authorize, so activation is silent.
-                GateSigningActivation.Activate(
+                // An empty store: there is nothing to authorize, so activation is silent — and it is
+                // where this store's identity is born. The record about to be signed takes it from
+                // the marker that was just written, not from a second mint, or the very first verdict
+                // would name a store no marker here confirms.
+                var (minted, _, _) = GateSigningActivation.Activate(
                     _stateRoot, _signer, record.DecidedAt, _trustedSigners,
                     Array.Empty<GrandfatheredRecord>(), verifyingRecordAnchors: 0,
+                    inheritStoreId: null,
                     replaceUnvouchedFor: false, reMintVouchedFor: false);
+                storeId = minted.StoreId;
             }
 
             leavesTheInventory = expectation.Grandfathered?
                 .Any(g => string.Equals(g.Id, record.Proposal.Id, StringComparison.Ordinal)) == true;
 
-            record = unsigned with
+            // The identity goes in BEFORE the signature is computed, or it is a field an actor can
+            // edit: that is the whole of S-7. Sign exactly the bytes that are about to be persisted.
+            var forThisStore = unsigned with { StoreId = storeId };
+            record = forThisStore with
             {
-                Sig = _signer.Sign(Signing.CanonicalJson.Bytes(unsigned)),
+                Sig = _signer.Sign(Signing.CanonicalJson.Bytes(forThisStore)),
                 Signer = _signer.PublicKeyBase64,
             };
         }

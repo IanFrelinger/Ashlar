@@ -43,6 +43,20 @@ namespace Ashlar.Manifest.Admission;
 /// <param name="SignedRecordAnchors">How many records in this store carry a signature that
 /// verifies and pins. Zero with <paramref name="Expected"/> true means the whole posture rests on
 /// the marker — a structural tell worth showing an operator.</param>
+/// <param name="StoreId">WHICH STORE this is, carried off an activation marker this reader HONOURS
+/// AND HOLDS KEY MATERIAL FOR (SPEC-006 rule S-7) — and null when no such marker fired, when the one
+/// that did predates the identity, or when this reader has no key material at all. A signed record
+/// naming a DIFFERENT store is refused: it is a copy from a sibling store under the same operator
+/// key, and it must not anchor this one. Null binds nothing, in both directions and deliberately. A
+/// record carrying no identity is accepted because a record signed before the field existed cannot
+/// be distinguished from one written under any store; and a store with no identity of its own cannot
+/// deny one, because the only artefact that could attest an identity is the marker, and a store
+/// whose marker is missing, foreign or pre-S-7 has no attested account of itself — the residual that
+/// the store's own account lives in the directory being attacked, stated here in the field that
+/// depends on it. A KEYLESS reader is null for a different reason and deliberately: it honours a
+/// marker corroborated by a record under the same key, and an actor who can write the state root
+/// supplies both halves, so an identity taken from there would be the attacker's and the store's own
+/// records would be the ones refused as copies.</param>
 public sealed record GateSignatureExpectation(
     bool Expected,
     DateTimeOffset? DerivedGraceBefore,
@@ -50,7 +64,8 @@ public sealed record GateSignatureExpectation(
     string Basis,
     DateTimeOffset? MarkerActivatedAt,
     IReadOnlyList<GrandfatheredRecord>? Grandfathered,
-    int SignedRecordAnchors)
+    int SignedRecordAnchors,
+    string? StoreId)
 {
     /// <summary>Whether an activation marker exists on disk at all, honoured or ignored. The
     /// keyless write guard is deliberately stricter than the read rule and turns on this rather
@@ -61,13 +76,15 @@ public sealed record GateSignatureExpectation(
     /// <summary>No anchor: a present signature is verified and pinned, a missing one is
     /// tolerated — today's behaviour exactly (rule S-2).</summary>
     public static GateSignatureExpectation None(IReadOnlyList<string> trustedSigners, string basis) =>
-        new(false, null, trustedSigners, basis, null, null, 0);
+        new(false, null, trustedSigners, basis, null, null, 0, null);
 
     /// <summary>
     /// The reason <paramref name="record"/> must be refused as corrupt, or null when it passes.
-    /// Four legs, in order: a PRESENT signature must verify (the S-1 refusal the store has always
+    /// Five legs, in order: a PRESENT signature must verify (the S-1 refusal the store has always
     /// raised, byte-identical); a verifying signature must be from a trusted signer when any are
-    /// pinned; a MISSING signature is refused unless the operator's inventory names this record
+    /// pinned; a verified signature must name THIS store when both sides carry an identity (S-7,
+    /// evaluated inside the present-signature arm so every message above stays byte-identical); a
+    /// MISSING signature is refused unless the operator's inventory names this record
     /// with these bytes (or, on the weak derived-only basis, unless it predates
     /// <see cref="DerivedGraceBefore"/>); and, evaluated LAST so every message above stays
     /// byte-identical, a record's file name must be the id inside its own bytes.
@@ -100,6 +117,43 @@ public sealed record GateSignatureExpectation(
                     + "any key retained under trusted/. A signature from a key this machine does not vouch for is a "
                     + "REPLACED signature, not a verified one. Refusing to operate — a forged verdict is worse than a "
                     + "missing one.";
+            }
+
+            // WHICH STORE (S-7). The signature proves the key; it never proved the place. Both sides
+            // must be present for this to bite, and each null is a deliberate acceptance documented
+            // on the members: a record with no identity predates the field, and a null StoreId here
+            // means THIS READER bound none.
+            //
+            // Do not read that second null as "there is no honoured marker" — it was written that
+            // way once and it is false. A KEYLESS reader can honour a marker that names a store and
+            // still bind nothing, because keyless honouring is corroboration by a record under the
+            // marker's own key, an actor who can write the state root supplies both halves of that
+            // pair, and an identity taken from it would be the attacker's. So the null arises from
+            // four states, not three: no marker, a marker this reader ignores, one minted before
+            // S-7, or an honoured marker this reader holds no KEY MATERIAL to vouch for. The last is
+            // the one a future reader is most likely to mistake for a bug.
+            //
+            // OrdinalIgnoreCase because the value is hex, for the same reason the pinned hash is
+            // compared that way: refusing a store because another writer spelled the same identity
+            // in uppercase would be a brick whose two strings look identical in the message.
+            if (StoreId is not null
+                && record.StoreId is not null
+                && !string.Equals(record.StoreId, StoreId, StringComparison.OrdinalIgnoreCase))
+            {
+                // What this message may claim is bounded by what the leg above compared: two
+                // identities, and nothing else. It must NOT say "under the same operator key" — it
+                // was worded that way once and the leg never looked at a key. After a key rotation
+                // the record and this store's marker are legitimately signed by two different
+                // vouched-for keys, and the refusal still fires.
+                return $"Corrupt gate record: {fileName} is signed for store '{record.StoreId}', and this store is "
+                    + $"'{StoreId}'. A verdict names the store it was decided in INSIDE its own signed bytes, so "
+                    + "these bytes were signed for another store and copied in here. What that establishes is this "
+                    + "and no more: the signature verifies under a key this machine vouches for, the id matches its "
+                    + "file name — S-1 and S-6 both pass — and the two identities disagree. No KEYS were compared "
+                    + "here, so this is not a claim that one operator key signed both; after a key rotation two "
+                    + "different vouched-for keys are the ordinary case. It cannot anchor this store or spend its "
+                    + "self-extension budget. Refusing to operate — a forged verdict is worse than a missing one. "
+                    + "Remove the copied file; this store never wrote it.";
             }
         }
         else if (Expected && Grandfathered is not null)

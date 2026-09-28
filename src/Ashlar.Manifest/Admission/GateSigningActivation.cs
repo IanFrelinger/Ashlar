@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ashlar.Manifest.Signing;
@@ -52,6 +53,32 @@ public sealed record GateSigningActivation
     public required DateTimeOffset ActivatedAt { get; init; }
 
     /// <summary>
+    /// WHICH STORE this is: 32 lowercase hex characters over 128 cryptographically random bits,
+    /// minted when signing is activated and never moved afterwards. It is inside the signed bytes,
+    /// so the operator's key attests it and it travels with a bundle, and every record signed while
+    /// it exists carries it in ITS signed bytes (<see cref="GateRecord.StoreId"/>, SPEC-006 rule
+    /// S-7). That is what stops a record signed for one store from anchoring another.
+    ///
+    /// <para><b>Minted, not derived from the store's path.</b> A path-keyed identity is lost by a
+    /// clone, a remount or a move, so it would refuse every record in a store somebody relocated —
+    /// a brick delivered by an ordinary `git clone`. It is also not derived from the store's
+    /// contents: every input such a derivation could reach is a file in the directory being
+    /// attacked, and an actor who can write the state root must not be able to COMPUTE the identity
+    /// of the store they are copying into. The cost of putting it here is stated rather than hidden:
+    /// the marker is the anchor, the anchor is attacker-deletable, and a store with no marker this
+    /// reader honours has no identity to deny a copied record with. Both bounds are disclosed
+    /// residuals under S-7, not claims.</para>
+    ///
+    /// <para><b>Nullable, and deliberately not <c>required</c></b>, for the same mechanical reason
+    /// as <see cref="Grandfathered"/>: a marker written before S-7 must keep parsing and keep being
+    /// honoured. Null therefore means "a marker that predates the store identity", and it binds
+    /// NOTHING — reading it as a mismatch would refuse every record in every store signed before
+    /// this field existed. The operator's re-mint (<c>--repair</c>) is where such a marker gains
+    /// one.</para>
+    /// </summary>
+    public string? StoreId { get; init; }
+
+    /// <summary>
     /// Every unsigned record the operator authorized at <see cref="ActivatedAt"/>, by id and
     /// canonical sha256, sorted ordinally by id. Inside the signed bytes, so it travels with the
     /// store: a keyless bundle consumer gets the protection with no out-of-band state.
@@ -75,6 +102,13 @@ public sealed record GateSigningActivation
     /// <summary>The marker's path for a state root.</summary>
     public static string PathFor(string stateRoot) => Path.Combine(stateRoot, FileName);
 
+    /// <summary>
+    /// A fresh <see cref="StoreId"/>: 128 random bits as lowercase hex. Called only where a marker
+    /// is minted, so an identity cannot appear without the operator's key signing it.
+    /// </summary>
+    public static string NewStoreId() =>
+        Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+
     /// <summary>True when <see cref="Sig"/> verifies against <see cref="Signer"/> over the unsigned form.</summary>
     public bool Verifies() =>
         Sig is not null
@@ -82,14 +116,30 @@ public sealed record GateSigningActivation
         && OperatorKey.Verify(Signer, CanonicalJson.Bytes(this with { Sig = null, Signer = null }), Sig);
 
     /// <summary>A marker for <paramref name="activatedAt"/> over
-    /// <paramref name="grandfathered"/>, signed by <paramref name="signer"/>. The inventory is
-    /// folded into the unsigned form BEFORE signing, so it is covered by the signature.</summary>
+    /// <paramref name="grandfathered"/>, identifying the store as <paramref name="storeId"/> and
+    /// signed by <paramref name="signer"/>. The inventory and the identity are folded into the
+    /// unsigned form BEFORE signing, so both are covered by the signature.
+    ///
+    /// <para><paramref name="storeId"/> has no default on purpose. Every caller must decide whether
+    /// it is minting a marker that identifies its store (<see cref="NewStoreId"/>, or the identity
+    /// being carried forward) or deliberately writing one that predates S-7 and therefore binds
+    /// nothing. A defaulted null would let a future caller mint an identity-less marker by
+    /// omission, which is the one mistake that silently disarms rule S-7 for a whole store.</para>
+    /// </summary>
     public static GateSigningActivation Signed(
-        SigningIdentity signer, DateTimeOffset activatedAt, IReadOnlyList<GrandfatheredRecord> grandfathered)
+        SigningIdentity signer,
+        DateTimeOffset activatedAt,
+        IReadOnlyList<GrandfatheredRecord> grandfathered,
+        string? storeId)
     {
         ArgumentNullException.ThrowIfNull(signer);
         ArgumentNullException.ThrowIfNull(grandfathered);
-        var unsigned = new GateSigningActivation { ActivatedAt = activatedAt, Grandfathered = grandfathered };
+        var unsigned = new GateSigningActivation
+        {
+            ActivatedAt = activatedAt,
+            StoreId = storeId,
+            Grandfathered = grandfathered,
+        };
         return unsigned with
         {
             Sig = signer.Sign(CanonicalJson.Bytes(unsigned)),
@@ -209,6 +259,28 @@ public sealed record GateSigningActivation
     ///
     /// <para>Written temp-then-move. The no-marker path never overwrites, so losing the race to
     /// another writer means reading what won; only a deliberate replacement overwrites.</para>
+    ///
+    /// <para><b>The store identity is KEPT, never re-rolled, wherever there is one to keep.</b>
+    /// <see cref="StoreId"/> behaves like <see cref="ActivatedAt"/>: a marker this caller vouches
+    /// for keeps its own in every path, including repair, because the records already on disk name
+    /// it inside their signed bytes and a fresh identity would refuse every one of them — the
+    /// command an operator is told to run must not brick the store it was asked to bless. Where
+    /// there is no identity to keep (a marker this caller cannot vouch for, a marker that was
+    /// deleted, a marker minted before S-7), <paramref name="inheritStoreId"/> carries the one
+    /// identity the store's own verifying records agree on, and a fresh one is minted only when
+    /// nothing here names any.</para>
+    ///
+    /// <para><b>The disclosed cost, as what it actually takes.</b> ONE file planted in <c>gates/</c>
+    /// and signed under a key this caller vouches for, plus <c>--repair</c>. NOT marker deletion, and
+    /// not a disagreement: in a store whose marker predates S-7 none of the store's own records can
+    /// legitimately name an identity — a record takes its identity from the honoured marker and that
+    /// marker names none — so the only record that can name one is a copy, and the vote here is
+    /// first-non-null-UNOPPOSED (a record naming none votes for nothing). A single identity-bearing
+    /// file therefore decides which identity the store adopts on the operator's next repair, and the
+    /// UNTOUCHED sibling then accepts records from the compromised store because they name its
+    /// identity. A DISAGREEMENT between two identities yields null rather than a guess, which is the
+    /// one thing this method does bound. SPEC-006 S-7 carries the full disclosure and the open
+    /// candidates for closing it; do not narrow this comment back to "it takes marker deletion".</para>
     /// </summary>
     public static (GateSigningActivation Marker, bool WasAlreadyActive, bool ReplacedUnvouchedMarker) Activate(
         string stateRoot,
@@ -217,6 +289,7 @@ public sealed record GateSigningActivation
         IReadOnlyList<string> vouchedFor,
         IReadOnlyList<GrandfatheredRecord> grandfathered,
         int verifyingRecordAnchors,
+        string? inheritStoreId,
         bool replaceUnvouchedFor,
         bool reMintVouchedFor)
     {
@@ -240,9 +313,14 @@ public sealed record GateSigningActivation
                         + "would leave it in force. Refusing to activate over it. Run `ashlar gates sign-activate`, "
                         + "which replaces it with this operator's own marker and prints what it grandfathers.");
                 }
-                // A foreign marker's instant is not ours to keep. The caller is TOLD this happened:
-                // it is the one outcome of this method an operator must not learn about by inference.
-                return (Write(stateRoot, Signed(signer, activatedAt, grandfathered), overwrite: true), true, true);
+                // A foreign marker's instant is not ours to keep, and neither is the identity it
+                // declared. The store's own verifying records name the identity they were signed
+                // for, and keeping that is what stops this replacement from refusing them all. The
+                // caller is TOLD this happened: it is the one outcome of this method an operator
+                // must not learn about by inference.
+                var replacement = Signed(
+                    signer, activatedAt, grandfathered, inheritStoreId ?? NewStoreId());
+                return (Write(stateRoot, replacement, overwrite: true), true, true);
             }
 
             if (existing.Grandfathered is not null && !reMintVouchedFor)
@@ -258,8 +336,12 @@ public sealed record GateSigningActivation
                     + "with `ashlar gates sign-activate --repair`.");
             }
 
-            // The operator may re-mint WHAT was authorized here; never WHEN.
-            return (Write(stateRoot, Signed(signer, existing.ActivatedAt, grandfathered), overwrite: true), true, false);
+            // The operator may re-mint WHAT was authorized here; never WHEN, and never WHICH STORE
+            // while this marker already says. A marker predating S-7 says nothing, so it may gain
+            // the identity its records already agree on, or a fresh one.
+            var reMinted = Signed(
+                signer, existing.ActivatedAt, grandfathered, existing.StoreId ?? inheritStoreId ?? NewStoreId());
+            return (Write(stateRoot, reMinted, overwrite: true), true, false);
         }
 
         // A store holding records whose signatures VERIFY but carrying no marker did not get
@@ -293,7 +375,7 @@ public sealed record GateSigningActivation
                 + "grandfathers.");
         }
 
-        var marker = Signed(signer, activatedAt, grandfathered);
+        var marker = Signed(signer, activatedAt, grandfathered, inheritStoreId ?? NewStoreId());
         var path = PathFor(stateRoot);
         Directory.CreateDirectory(stateRoot);
         var tmp = path + ".tmp";
@@ -350,7 +432,9 @@ public sealed record GateSigningActivation
             return existing;
         }
 
-        return Write(stateRoot, Signed(signer, existing.ActivatedAt, kept), overwrite: true);
+        // Same instant, same store identity, a strictly smaller inventory. An amendment that
+        // re-rolled the identity would refuse every record signed under the old one.
+        return Write(stateRoot, Signed(signer, existing.ActivatedAt, kept, existing.StoreId), overwrite: true);
     }
 
     /// <summary>Temp-then-move onto the marker path. Only callers that have already decided the

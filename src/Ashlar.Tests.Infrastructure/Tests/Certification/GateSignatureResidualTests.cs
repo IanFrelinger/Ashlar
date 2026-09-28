@@ -144,8 +144,13 @@ public sealed class GateSignatureResidualTests : IDisposable
         new("moved together with the records it names is not bounded",
             nameof(A_sibling_marker_carried_with_its_records_imports_verdicts_the_victim_never_made), ""),
 
-        new("carries no store identity until S-7",
-            nameof(A_signed_admission_copied_from_a_sibling_store_anchors_it_and_spends_its_budget), ""),
+        new("no store identity to deny a record that names another",
+            nameof(A_signed_admission_copied_into_a_store_with_no_marker_of_its_own_still_anchors_it), ""),
+
+        // The sibling of the row above, and the distinction is the VICTIM: there the store has no
+        // identity, here the store has a perfectly good one and the READER may not believe it.
+        new("a keyless consumer gets no S-7 protection",
+            nameof(A_keyless_reader_counts_a_siblings_copy_the_stores_own_marker_would_deny), ""),
 
         new("trusted for the bytes it had at activation and for nothing else",
             nameof(A_record_planted_before_activation_is_grandfathered_permanently), ""),
@@ -424,12 +429,21 @@ public sealed class GateSignatureResidualTests : IDisposable
     }
 
     /// <summary>
-    /// RESIDUAL. A marker is signed over its own payload and carries no store identity, so a reader
-    /// cannot tell one it wrote from one it did not. Transplanted ALONE from a sibling store under
-    /// the same operator key it is denial of service — its inventory names the sibling's record
+    /// RESIDUAL. A marker is signed over its own payload, and the store identity S-7 put inside it is
+    /// SELF-ASSERTED — a transplanted marker names its own store consistently — so a reader still
+    /// cannot tell a marker it wrote from one it did not. Transplanted ALONE from a sibling store
+    /// under the same operator key it is denial of service — its inventory names the sibling's record
     /// ids, so the victim's own unsigned records are refused. Moved TOGETHER with the records it
     /// names it is not bounded at all: the victim store accepts the sibling's unsigned verdicts
     /// verbatim, and an Admitted one among them spends the victim's self-extension budget.
+    ///
+    /// <para><b>The first clause used to read "carries no store identity", and S-7 made that
+    /// false.</b> The marker now carries one. What survives — and what this residual actually rests
+    /// on — is that the identity is the marker's own claim about itself, so moving the marker moves
+    /// the claim with it and the imported records name exactly the store the imported marker
+    /// declares. The identical sentence in SPEC-006 was corrected the same way; this copy is the one
+    /// the correction missed, and nothing pins it, so it is written here as prose a reader can check
+    /// against <see cref="GateSigningActivation.StoreId"/>.</para>
     ///
     /// <para><b>This fact exists because the sentence it pins used to be wrong.</b> An earlier
     /// draft called the transplant "denial of service against an honestly-adopted store, not
@@ -483,22 +497,31 @@ public sealed class GateSignatureResidualTests : IDisposable
     }
 
     /// <summary>
-    /// RESIDUAL. A signed gate record says WHAT was decided and by WHICH key, and nothing about
-    /// WHICH STORE — it carries no store identity until S-7. One copied from a sibling store under
-    /// the same operator key verifies, pins, and ANCHORS a store that had never been signed,
-    /// creating an expectation where there was none, and counts toward that store's self-extension
-    /// budget.
+    /// RESIDUAL, NARROWED BY S-7 AND STILL OPEN. A signed record now names the store it was decided
+    /// in inside its signed bytes, and a store that can say which store IT is refuses a copy from a
+    /// sibling — that closure is
+    /// <see cref="GateRecordStoreIdentityTests.A_record_signed_for_another_store_is_refused_as_an_anchor_in_this_one"/>.
+    /// What survives is the victim this fact uses: a store with NO honoured marker has no attested
+    /// identity to deny the copy with, so the imported verdict still verifies, pins, ANCHORS a store
+    /// that had never been signed, creating an expectation where there was none, and still counts
+    /// toward that store's self-extension budget.
     ///
-    /// <para>Group 3's file-name leg does not bite: the copy keeps its own <c>{id}.json</c> name.
-    /// Verified by grep at implementation time — <c>StoreId</c> does not exist anywhere under
-    /// <c>src/</c> or <c>application/</c>.</para>
+    /// <para>The identity lives in the marker because that is the one artefact in the state root the
+    /// operator's key signs — and the marker is inside the directory being attacked, which is the
+    /// first residual in this file restated in a second place. A never-signed store has none to
+    /// begin with; a store whose marker was deleted, or one carrying a marker planted under a
+    /// foreign key, has none this reader may believe. Group 3's file-name leg does not bite either:
+    /// the copy keeps its own <c>{id}.json</c> name.</para>
     ///
-    /// <para>After S-7 this survives only for records signed BEFORE <c>StoreId</c> existed, which
-    /// stay transplantable for their lifetime, because a record signed without the field cannot be
-    /// distinguished from one written under any store.</para>
+    /// <para>Two further survivals are NOT demonstrated here and are disclosed in SPEC-006 instead:
+    /// a record signed BEFORE <c>StoreId</c> existed stays transplantable for its lifetime (its
+    /// accepting half is a passing fact in
+    /// <see cref="GateRecordStoreIdentityTests.A_record_signed_before_the_store_identity_existed_is_accepted_and_is_not_a_mismatch"/>),
+    /// and a copy of an ENTIRE store carries a consistent identity and so remains
+    /// indistinguishable from the original.</para>
     /// </summary>
     [Fact]
-    public async Task A_signed_admission_copied_from_a_sibling_store_anchors_it_and_spends_its_budget()
+    public async Task A_signed_admission_copied_into_a_store_with_no_marker_of_its_own_still_anchors_it()
     {
         Keyed();
         var signer = OperatorKey.Generate(_keyDir);
@@ -516,10 +539,26 @@ public sealed class GateSignatureResidualTests : IDisposable
 
         File.Copy(RecordFileIn(_stateA, "ext-a1"), RecordFileIn(_stateB, "ext-a1"));   // no marker travels
 
+        // NON-VACUITY, and it is the whole hinge of this fact after S-7. The copied verdict must
+        // really NAME the store it came from: without this assertion the acceptance below is equally
+        // consistent with a build in which no record carries an identity at all, so the fact would
+        // pass while reporting nothing about the residual it claims to demonstrate.
+        var carried = JsonSerializer.Deserialize<GateRecord>(
+            File.ReadAllText(RecordFileIn(_stateB, "ext-a1")), Json)!;
+        carried.StoreId.Should().NotBeNull(
+            "this half is what makes the guard bite. Both sides of the comparison below are null in "
+            + "a build that mints no identity at all, and Be(null) PASSES — so without an explicit "
+            + "non-null the guard would fail to exclude the exact state its own comment names")
+            .And.Be(GateSigningActivation.TryRead(_stateA)!.StoreId,
+            "the copy names A's identity inside its signed bytes, so what follows is about a victim "
+            + "that cannot deny it rather than about a record that names nobody");
+
         var b = StoreAt(_stateB, signer);
         (await b.GetAsync("ext-a1")).Should().NotBeNull(
-            "RESIDUAL: the signed bytes name the proposal and the key, never the store. "
-            + DeleteTogether);
+            "RESIDUAL: the copied record names the store it was signed for, and B has no marker, so "
+            + "B has no identity of its own to deny it with. The identity is attested by the marker "
+            + "and by nothing else, and a store with no marker this reader honours cannot say which "
+            + "store it is. " + DeleteTogether);
         b.SignatureTrust!.SignedRecordAnchors.Should().Be(1,
             "worse than merely accepted: the imported verdict is now an ANCHOR, so it creates an "
             + "expectation in a store that had none and every other record in B is judged against it");
@@ -530,6 +569,105 @@ public sealed class GateSignatureResidualTests : IDisposable
             "no marker travelled with it; the record did all of this on its own");
         (await b.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(1))).Should().Be(1,
             "and it spends B's self-extension budget");
+    }
+
+    /// <summary>
+    /// RESIDUAL, and the one S-7 chose to leave open rather than close wrongly. The victim is NOT a
+    /// store missing an identity: B adopted signing honestly, its marker is the operator's own, it
+    /// names a store, and a KEYED reader of these exact bytes refuses the copy. What has no
+    /// protection is the READER. A consumer holding no key material binds no identity, so the same
+    /// three files read clean, the imported admission anchors B through the single-record funnel as
+    /// well as the list, and it spends B's self-extension budget.
+    ///
+    /// <para><b>Why the bound is deliberate and not a fourth accident.</b> A keyless reader honours a
+    /// marker that a record under the marker's OWN key corroborates, and an actor who can write the
+    /// state root writes both halves of that pair — so an identity taken from there would be the
+    /// ATTACKER's, and the records then refused as copies would be the store's own genuine verdicts,
+    /// named by the one refusal whose remedy text tells the operator to delete them. That inversion
+    /// is measured from the other side by
+    /// <see cref="GateRecordStoreIdentityTests.A_keyless_reader_still_reads_its_own_records_under_a_planted_marker_and_record"/>.
+    /// This fact is its price: the two read one guard in opposite directions, so the same change
+    /// moves both, and the pair is the whole argument that the trade was made knowingly.</para>
+    ///
+    /// <para><b>Why the inventory wants its OWN fact rather than borrowing that one.</b> That fact
+    /// asserts the store still WORKS — a positive property, green today and green under any future
+    /// route to keyless protection. The residual is the LOST refusal, and only an inverted fact goes
+    /// red when it is regained. <see cref="Residuals"/> also binds rows to facts declared on THIS
+    /// class in both directions, so a row naming a fact on another class fails
+    /// <see cref="Every_residual_row_names_a_fact_on_this_class_or_says_why_it_cannot"/> as a ghost.
+    /// The row and this fact are therefore both new, and neither is a duplicate of the other
+    /// class's.</para>
+    ///
+    /// <para><b>The keyed contrast is inside the same fact on purpose</b>, exactly as
+    /// <see cref="A_keyless_reader_honours_a_store_whose_every_anchor_the_attacker_signed"/> does it.
+    /// Without it this reads as the no-marker residual above wearing a different hat, and the
+    /// sentence it pins is about the reader rather than about the store.</para>
+    /// </summary>
+    [Fact]
+    public async Task A_keyless_reader_counts_a_siblings_copy_the_stores_own_marker_would_deny()
+    {
+        Keyed();
+        var signer = OperatorKey.Generate(_keyDir);
+        var a = StoreAt(_stateA, signer);
+        await a.RecordAsync(Proposal("ext-a1"), Held(), T0);
+        await a.DecideAsync("ext-a1", admit: true, "alice", "seated in A", T0.AddMinutes(1));
+
+        // B adopts signing honestly — the marker is minted under the operator's own key by the first
+        // keyed write, and B's own signed record corroborates it. This is the victim the no-marker
+        // residual above does NOT cover: B can say which store it is to anybody holding the key
+        // material to ask.
+        await StoreAt(_stateB, signer).RecordAsync(Proposal("ext-b1"), Held(), T0.AddMinutes(2));
+
+        var identityA = GateSigningActivation.TryRead(_stateA)!.StoreId;
+        var identityB = GateSigningActivation.TryRead(_stateB)!.StoreId;
+        identityA.Should().NotBeNullOrEmpty(
+            "the copy must really name the store it came from, or it is a pre-S-7 record and this "
+            + "fact measures the compatibility bound instead");
+        identityB.Should().NotBeNullOrEmpty(
+            "and B must really have an identity of its own. Both sides are null in a build that mints "
+            + "none, and an assertion against null holds there too — so without this the residual "
+            + "below would be indistinguishable from the no-marker one above")
+            .And.NotBe(identityA,
+            "the two must differ, or the acceptance below is about two names that happen to match "
+            + "rather than about a refusal the reader could not make");
+
+        File.Copy(RecordFileIn(_stateA, "ext-a1"), RecordFileIn(_stateB, "ext-a1"));   // no marker travels
+
+        // The protection that DOES exist, on these exact bytes, so what follows is about the reader.
+        var keyed = async () => await StoreAt(_stateB, signer).ListAsync();
+        (await keyed.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*ext-a1.json is signed for store '" + identityA + "'*",
+                "a reader holding key material refuses the copy under S-7 — so nothing about the "
+                + "files on disk is what makes the read below succeed, and this residual is not the "
+                + "no-marker one restated");
+
+        // The same three files, read by a consumer that never ran `keys init`.
+        Keyless();
+        var keyless = StoreAt(_stateB);
+        (await keyless.ListAsync()).Should().HaveCount(2,
+            "RESIDUAL, normative in SPEC-006 under S-7 and recorded as a residual under S-6: a "
+            + "keyless consumer gets no S-7 protection. The identity binds only off a marker the "
+            + "reader holds KEY MATERIAL for, because a keyless reader's marker is corroborated by a "
+            + "record under the marker's own key and an actor who can write the state root supplies "
+            + "both halves. Closing this needs an identity attested from OUTSIDE the state root, "
+            + "which is the same v2 work the first residual in this file names. " + DeleteTogether);
+        keyless.SignatureTrust!.MarkerPresent.Should().BeTrue(
+            "B's own genuine marker is right there — the victim of this residual is a store that HAS "
+            + "an identity, which is what separates it from the row above");
+        keyless.SignatureTrust.Expected.Should().BeTrue(
+            "and the keyless reader HONOURS it, so the store resolves to signed and every other leg "
+            + "of Refuse is in force. Only the S-7 leg is scoped out");
+        keyless.SignatureTrust.Basis.Should().Contain("corroborated by a record under the same key",
+            "by exactly the corroboration path that makes the identity unsafe to bind. Naming it is "
+            + "what stops this fact drifting into a test of the ignored-marker arm");
+        keyless.SignatureTrust.StoreId.Should().BeNull(
+            "and binds no identity, which is the whole residual: an honoured marker that names the "
+            + "store, and a reader with no grounds to believe what it names");
+        (await keyless.GetAsync("ext-a1")).Should().NotBeNull(
+            "so the imported verdict reads as a decision made here through the single-record funnel "
+            + "too, and `ashlar gates --show` on a machine with no key material displays it");
+        (await keyless.AdmittedInWindowAsync(TimeSpan.FromHours(24), T0.AddHours(1))).Should().Be(1,
+            "and it spends B's self-extension budget, which is the consequence that outlives the read");
     }
 
     /// <summary>
@@ -743,7 +881,7 @@ public sealed class GateSignatureResidualTests : IDisposable
         ReSign("ext-1", attacker);
         ReSign("ext-evil", attacker);
         File.WriteAllText(MarkerFile,
-            MarkerJson(GateSigningActivation.Signed(attacker, T0.AddHours(-1), [])));
+            MarkerJson(GateSigningActivation.Signed(attacker, T0.AddHours(-1), [], storeId: null)));
         GateSigningActivation.TryRead(_state)!.Signer.Should().Be(attacker.PublicKeyBase64,
             "the planted marker must really carry the attacker's key, or the corroboration path "
             + "this fact pins is never reached");
@@ -1003,7 +1141,7 @@ public sealed class GateSignatureResidualTests : IDisposable
         await Store().RecordAsync(Proposal("ext-1"), Held(), T0);   // one unsigned record
 
         var foreign = OperatorKey.Generate(_otherKeyDir);
-        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(foreign, T0, [])));
+        File.WriteAllText(MarkerFile, MarkerJson(GateSigningActivation.Signed(foreign, T0, [], storeId: null)));
         GateSigningActivation.TryRead(_state)!.Signer.Should().Be(foreign.PublicKeyBase64,
             "the marker under test must really be the foreign one, or both verdicts below are about "
             + "a store nobody planted anything in");

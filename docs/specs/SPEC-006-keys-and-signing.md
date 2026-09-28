@@ -266,24 +266,48 @@ Rules:
   anchor is v2 work and MUST state which of those it survives before it is built.
 
   **A marker transplanted from a sibling store under the same operator key is honoured.** It is
-  signed over its own payload and carries no store identity, so a reader cannot tell one it wrote
+  signed over its own payload, and the store identity S-7 put inside it is SELF-ASSERTED — a
+  transplanted marker names its own store consistently — so a reader cannot tell a marker it wrote
   from one it did not. The inventory bounds a marker moved ALONE: it names the sibling's record ids,
   so every unsigned record in the victim store is refused and the effect is denial of service
   against an honestly-adopted store. A marker moved together with the records it names is not
   bounded — those records are accepted verbatim, and an `Admitted` one among them spends the
   victim's self-extension budget, because an expectation carrying an inventory counts the unsigned
   records that survived it. An earlier draft of this paragraph called the transplant denial of
-  service and not acceptance of a forgery; that was wrong. (Closed for records written after S-7 by
-  the `StoreId` inside their signed bytes; a copy of an entire store, records and marker together,
-  remains indistinguishable from the original.)
+  service and not acceptance of a forgery; that was wrong. (A note here predicted S-7 would close
+  this. It does not, and the prediction is corrected rather than quietly deleted: the identity S-7
+  adds lives IN THE MARKER, so when the marker travels the identity travels with it and the imported
+  records name exactly the store the imported marker declares. What S-7 bounds is a record moved
+  WITHOUT its marker into a store that has one of its own; a marker and its records moved together
+  are the whole-store copy that stays indistinguishable.)
 
-  **A signed gate record carries no store identity until S-7.** One copied from a sibling store
-  under the same operator key verifies, pins, ANCHORS the store it was copied into — creating an
-  expectation where there was none, against which every other record there is then judged — and
-  counts toward that store's self-extension budget. The file-name rule does not catch it: the copy
-  keeps its own `{id}.json` name. After S-7 this holds only for records signed before `StoreId`
-  existed, which stay transplantable for their lifetime, because a record signed without the field
-  cannot be distinguished from one written under any store.
+  **A store with no honoured marker has no store identity to deny a record that names another.**
+  S-7 put the store's identity inside a signed record's bytes, so a record copied from a sibling
+  store under the same operator key is refused by a store whose own honoured marker names a
+  different one. That identity is attested by the marker and by nothing else, AND only where the
+  reader holds key material that vouches for the marker's signature, so a victim that has none —
+  never signed, marker deleted, marker planted under a key this reader does not vouch for, or read by
+  a consumer holding no key material at all — cannot deny the copy: it verifies, pins, ANCHORS the
+  store it was copied into, creating an expectation where there was none against which every other
+  record there is then judged, and counts toward that store's self-extension budget. The file-name
+  rule does not catch it either: the copy keeps its own `{id}.json` name. This is the first residual
+  above biting a second time — the store's whole account of itself lives in the directory being
+  attacked — and closing it needs
+  an identity attested from OUTSIDE the state root, which is the same v2 work that residual names.
+  The KEYLESS case is a deliberate choice and not a fourth accident: a keyless reader honours a marker
+  that a record under the marker's own key corroborates, and an actor who can write the state root
+  writes both halves of that pair, so an identity taken from there would be the ATTACKER's — and the
+  records then refused as "copies" would be the store's own genuine verdicts, by the one command whose
+  remedy text says to delete them. A rule that lets an actor make a store disown what it really wrote
+  is worse than one that declines to protect a reader who brought no key material, so a keyless reader
+  binds no identity. This is the same rule the pinning set already obeys: key material only, never
+  derived from the records being judged.
+  Two further survivals are bounded and deliberately not demonstrated here: a record signed BEFORE
+  `StoreId` existed carries no field and is accepted in any store, because a record signed without
+  it cannot be distinguished from one written under any store, and `GateRecordStoreIdentityTests`
+  asserts that acceptance as the compatibility S-7 requires rather than as a hole; and a copy of an
+  ENTIRE store, records and marker together, carries a consistent identity and so remains
+  indistinguishable from the original.
 
   **A grandfathered record is trusted for the bytes it had at activation and for nothing else.** It
   is still unsigned. Activation mints the inventory from every record with no signature, reading the
@@ -402,6 +426,100 @@ Rules:
   where nobody is watching and red where someone is, and any non-racing reconstruction uses the
   operator's key and lands back on the problem above. Re-attempting the amendment on the next keyed
   write is the closure, and is not built.
+- **S-7** *(2026-09-27)* **A signed gate record belongs to ONE store, and says which one inside its
+  signed bytes.** `GateSigningActivation` carries a `StoreId`: 32 lowercase hex characters over 128
+  cryptographically random bits, minted when signing is activated, inside the marker's signed bytes.
+  Every record signed while an honoured marker carries one MUST carry that same value in ITS signed
+  bytes (`GateRecord.StoreId`), and a reader MUST refuse a record whose `StoreId` disagrees with the
+  identity named by a marker this reader BOTH honours AND holds key material for (the second half is
+  normative and is spelled out below) — before that record can anchor the store, be counted by
+  `AdmittedInWindowAsync`, or be read as a decision made there. Without this a signed record said
+  WHAT was decided and by WHICH key and nothing at all about WHERE, so one copied out of a sibling
+  store under the same operator key verified, pinned, anchored the store it was copied into and spent
+  that store's self-extension budget — and S-6's file-name leg did not catch it, because the copy
+  keeps its own `{id}.json` name.
+
+  **The identity is minted, never derived.** Not from the store's path: a path-keyed identity is lost
+  by a clone, a remount or a move, so it would refuse every record in a relocated store — a brick
+  delivered by an ordinary checkout. Not from the store's contents either: every input such a
+  derivation could reach is a file in the directory being attacked, and an actor who can write the
+  state root MUST NOT be able to COMPUTE the identity of the store they are copying into. It lives in
+  the marker because that is the one artefact in the state root the operator's key signs, which is
+  also what makes it travel with a bundle — and what bounds the rule, since a store with no marker
+  this reader honours has no identity at all. A reader MUST bind the identity only where it holds KEY
+  MATERIAL that vouches for the marker's signature: a keyless reader honours a marker corroborated by
+  a record under the marker's own key, an actor who can write the state root supplies both halves, and
+  an identity taken from there would be the attacker's — which would turn S-7 from a refusal of copies
+  into a way to make a store refuse its own genuine records. So a keyless consumer gets no S-7
+  protection. Both bounds are residuals recorded under S-6, not claims this rule may skip.
+
+  **It is stable, and a re-mint MUST NOT roll it.** Like `ActivatedAt`: repeated activation, key
+  rotation and `--repair` all KEEP the identity a vouched-for marker already carries, because every
+  record on disk names it and a fresh one would refuse them all — the one command an operator is told
+  to run must not brick the store it was reached for. Where there is no identity to keep (a marker
+  this caller cannot vouch for, a marker that was deleted, a marker minted before S-7), a re-mint
+  MUST carry forward the single identity the store's own VERIFYING records agree on, and mint a fresh
+  one only when nothing here names any; two disagreeing identities carry forward neither.
+
+  **What that inheritance costs, stated as what it actually takes.** ONE file, planted in `gates/`,
+  signed under a key this machine vouches for, plus the documented `--repair` verb. No marker
+  deletion, and no disagreement to trip the guard above. The reason it is that cheap is mechanical: a
+  record takes its identity from the honoured marker, so in a store whose marker predates S-7 none of
+  the store's OWN records can legitimately name one, and the only record that can is a copied one.
+  The vote is first-non-null-unopposed — a record naming no identity votes for nothing — so a single
+  identity-bearing file among any number of identity-less ones is unopposed and wins. An actor who can
+  write `gates/` therefore chooses which identity the store adopts the next time the operator runs
+  `ashlar gates sign-activate --repair`, which is the verb the store's own refusals print. Two
+  consequences, both worse than a single store: S-7 is then permanently disarmed for that pair, and
+  because every later record is signed naming the adopted identity, the UNTOUCHED sibling accepts
+  records from the compromised store — so a directory the actor cannot write to loses the protection
+  too. Removing the inheritance is NOT the obvious fix: a downgrade-then-upgrade re-mints through an
+  older binary that writes no identity, and that store's records then legitimately name the old one,
+  so a re-mint that refused to carry anything forward would brick it. The candidate closures —
+  unanimity among identity-bearing verifying records plus a count floor, or an explicit operator
+  ADOPT step that prints the identity and which files name it — are open, and this rule ships with
+  the cost disclosed rather than with a mechanism chosen in a hurry.
+
+  An earlier draft of this paragraph said it takes marker deletion plus the operator's verb, and that
+  while the store is in that state every read of it is refused. BOTH halves were false and are
+  corrected rather than quietly deleted. Deletion is not required, as above. And a store whose marker
+  is gone is not loud but SILENT: with no marker there is no identity bound, so the S-7 leg cannot
+  bite at all, and the copied admission is readable through `ListAsync` and `GetAsync` and — being
+  signed — is counted by `AdmittedInWindowAsync`, which is the residual above rather than a refusal.
+  `With_the_marker_deleted_the_earliest_record_cannot_be_dated_by_a_derived_anchor` and
+  `A_signed_admission_copied_into_a_store_with_no_marker_of_its_own_still_anchors_it` both pass today
+  and both demonstrate it.
+
+  **Compatibility is normative, and is S-5's mechanism again.** `CanonicalJson` omits nulls, so a
+  record signed before `StoreId` existed has no such field in the bytes its signature covers: adding
+  the member moved no existing record's canonical hash and invalidated no grandfather inventory
+  entry. A record carrying NO identity MUST keep verifying and MUST NOT be treated as a mismatch — it
+  cannot be distinguished from one written under any store, so records signed before S-7 stay
+  transplantable for their lifetime. A store with no identity likewise binds nothing. An unsigned
+  record never carries one: nothing attests it, and a value there would move the very hash the
+  grandfather inventory pins.
+
+  **The FORWARD direction does not hold, and that is worth one sentence here rather than a bug
+  report.** `CanonicalJson` serializes the typed value and `GateRecord` has no extension-data member,
+  so a pre-S-7 binary DROPS `StoreId` on deserialize and recomputes different bytes. It reports a
+  post-S-7 store's records as carrying a signature that does not verify, and a post-S-7 package as an
+  altered verdict. New artefacts are therefore unreadable to older readers, which is the ordinary cost
+  of adding a signed field — recorded so that nobody diagnoses a mixed-version lane as a forgery.
+
+  Conformance, in cert-gate: `GateRecordStoreIdentityTests` (the refusal; the compatibility; the
+  identity being under BOTH signatures, so it cannot be relabelled; its stability across repeated
+  activation, `--repair` over a deleted marker, a CONTESTED marker whose surviving record names
+  another store — the leg that pins the marker outranking the records, without which the stability
+  fact held equally against a build that read the records instead — and the replacement of a foreign
+  marker; the minted value's SHAPE, being 32 lowercase hex characters and distinct across mints, with
+  the entropy left to a review of the one line that mints it rather than claimed by a test that cannot
+  reach it; that a marker this reader IGNORES contributes no identity and a replaced foreign marker's
+  DECLARED identity is discarded, which is the half that stops the rule being inverted into a brick;
+  that a KEYLESS reader binds none and still reads its own records under a planted marker and record;
+  and that two disagreeing identities carry forward neither), with `GateSignatureResidualTests`
+  carrying what stays open — including the keyless bound, which has a row in that class's inventory
+  and an inverted fact of its own, because a fact asserting that the store still WORKS cannot go red
+  on the day the protection is regained.
 
 ## 5. What v1 explicitly does not claim
 
