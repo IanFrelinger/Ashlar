@@ -12,11 +12,19 @@ public sealed class FileCertificationRecordStore : ICertificationRecordStore
 {
     private readonly string _directory;
     private readonly CertificationRecordSigner _signer;
+    private readonly CertificationVerifyOptions _verifyOptions;
 
     /// <summary>Initializes a new file certification record store.</summary>
     /// <param name="directory">Directory holding one JSON record per brick.</param>
     /// <param name="signer">
     /// Signer used to RE-VERIFY every record on load. Defaults to the standard signer.
+    /// </param>
+    /// <param name="trustPolicy">
+    /// Operator trust configuration, which supplies the pinned signer set re-verification applies.
+    /// Defaults to <see cref="CertificationTrustPolicy.Ambient"/>, so a host that configured
+    /// <c>ASHLAR_CERT_TRUSTED_ED25519_KEYS</c> pins this store without threading anything through.
+    /// Resolved HERE rather than per load, so a host whose trust configuration is unusable fails
+    /// when the store is built instead of quietly verifying unpinned for the process's lifetime.
     /// </param>
     /// <remarks>
     /// Verification on load is the whole reason this store can be trusted. Records live
@@ -26,10 +34,14 @@ public sealed class FileCertificationRecordStore : ICertificationRecordStore
     /// including its <c>ContentHash</c>, so editing either the admission flags or the
     /// certified content hash invalidates it.
     /// </remarks>
-    public FileCertificationRecordStore(string directory, CertificationRecordSigner? signer = null)
+    public FileCertificationRecordStore(
+        string directory,
+        CertificationRecordSigner? signer = null,
+        CertificationTrustPolicy? trustPolicy = null)
     {
         _directory = directory ?? throw new ArgumentNullException(nameof(directory));
         _signer = signer ?? new CertificationRecordSigner();
+        _verifyOptions = (trustPolicy ?? CertificationTrustPolicy.Ambient).Strict;
         Directory.CreateDirectory(_directory);
     }
 
@@ -108,7 +120,9 @@ public sealed class FileCertificationRecordStore : ICertificationRecordStore
         if (record is null)
             return null;
 
-        return _signer.Verify(record, CertificationVerifyOptions.Strict) ? record : null;
+        // Strict PLUS whatever the operator pinned. Without the pinning set this check asks only
+        // "is this record self-consistent", which any keypair can satisfy.
+        return _signer.Verify(record, _verifyOptions) ? record : null;
     }
 
     /// <summary>Whether admitted.</summary>

@@ -8,12 +8,26 @@ namespace Ashlar.Infrastructure.Certification.Composition;
 internal static class CompositionConstituentChecker
 {
     /// <summary>Check.</summary>
+    /// <param name="spec">Composition whose constituents are checked.</param>
+    /// <param name="brickCertificationStore">Store holding each constituent's record.</param>
+    /// <param name="signer">Signer used to verify each record.</param>
+    /// <param name="trustPolicy">
+    /// Operator trust configuration supplying the pinned signer set. Defaults to
+    /// <see cref="CertificationTrustPolicy.Ambient"/>; with nothing configured this is the
+    /// <c>Strict</c> preset exactly as before.
+    /// </param>
     public static ConstituentCheckResult Check(
         CompositionSpec spec,
         ICertificationRecordStore brickCertificationStore,
-        CertificationRecordSigner signer)
+        CertificationRecordSigner signer,
+        CertificationTrustPolicy? trustPolicy = null)
     {
         var violations = new List<string>();
+        // Falsifiable through the trustPolicy parameter:
+        // TrustedKeyPinningConfigurationTests.A_configured_pinning_set_makes_the_composition_constituent_check_refuse_a_foreign_signer
+        // reddens if this reverts to the bare preset. Keep the parameter — without it, reverting
+        // this line is invisible, because with nothing configured Ambient.Strict IS that preset.
+        var verifyOptions = (trustPolicy ?? CertificationTrustPolicy.Ambient).Strict;
 
         foreach (var node in spec.Nodes)
         {
@@ -30,7 +44,7 @@ internal static class CompositionConstituentChecker
                 continue;
             }
 
-            if (!signer.Verify(record, CertificationVerifyOptions.Strict))
+            if (!signer.Verify(record, verifyOptions))
             {
                 violations.Add($"Constituent brick '{node.BrickId}' has invalid certification signature");
             }

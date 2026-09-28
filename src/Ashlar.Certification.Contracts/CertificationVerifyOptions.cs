@@ -95,6 +95,15 @@ public sealed class CertificationVerifyOptions
     /// self-consistent and verifies. Pinning is what makes "signed" mean "signed by someone
     /// we accept". Setting this implies <see cref="RequireEd25519Signature"/>: an unsigned
     /// record cannot be pinned.
+    ///
+    /// <para><b>Who sets this.</b> <see cref="CertificationTrustPolicy"/> is the production path:
+    /// an operator lists trusted PUBLIC keys in <c>ASHLAR_CERT_TRUSTED_ED25519_KEYS</c> (or any
+    /// configuration source), and the hosts that verify records — the record store, the certified
+    /// registry, the hot-swap host, the self-extend admission edge, the state-log verifier — apply
+    /// the resulting options instead of the bare <see cref="Strict"/> preset. Being settable was
+    /// never the gap; being assigned outside tests was. Configuration that is present but unusable
+    /// throws there rather than resolving to an empty set, because an empty set reads as pinning
+    /// off at every call site that tests <see cref="PinningEnabled"/>.</para>
     /// </remarks>
     public IReadOnlyCollection<string>? TrustedEd25519PublicKeys { get; init; }
 

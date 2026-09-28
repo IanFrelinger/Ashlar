@@ -15,16 +15,27 @@ public sealed class CertifiedBrickRegistry : Ashlar.Core.Domain.Execution.IBrick
     private readonly ICertificationRecordStore _store;
     private readonly CertificationRecordSigner _signer;
     private readonly ILogger<CertifiedBrickRegistry>? _logger;
+    private readonly CertificationVerifyOptions _verifyOptions;
 
     /// <summary>Initializes a new certified brick registry.</summary>
+    /// <param name="store">Record store admissions are persisted to.</param>
+    /// <param name="signer">Signer used to verify a record before admitting its brick.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="trustPolicy">
+    /// Operator trust configuration supplying the pinned signer set. Defaults to
+    /// <see cref="CertificationTrustPolicy.Ambient"/>; with nothing configured this is the
+    /// <c>Strict</c> preset exactly as before.
+    /// </param>
     public CertifiedBrickRegistry(
         ICertificationRecordStore store,
         CertificationRecordSigner signer,
-        ILogger<CertifiedBrickRegistry>? logger = null)
+        ILogger<CertifiedBrickRegistry>? logger = null,
+        CertificationTrustPolicy? trustPolicy = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _signer = signer ?? throw new ArgumentNullException(nameof(signer));
         _logger = logger;
+        _verifyOptions = (trustPolicy ?? CertificationTrustPolicy.Ambient).Strict;
     }
 
     /// <summary>Gets brick.</summary>
@@ -41,7 +52,7 @@ public sealed class CertifiedBrickRegistry : Ashlar.Core.Domain.Execution.IBrick
 
     internal bool TryAdmit(DomainBrick brick, CertificationRecord record)
     {
-        if (!record.Admitted || !record.Signed || !_signer.Verify(record, CertificationVerifyOptions.Strict))
+        if (!record.Admitted || !record.Signed || !_signer.Verify(record, _verifyOptions))
         {
             _logger?.LogWarning("Rejected ungated brick admission attempt for {BrickId}", brick.Id);
             return false;

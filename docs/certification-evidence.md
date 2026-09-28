@@ -642,7 +642,7 @@ redundant guard is exactly what a careful proposer writes.
 
 ## Known v0 limitations
 
-1. **Dev HMAC signer, not PKI.** `CertificationRecordSigner` uses a development HMAC key, not a public-key infrastructure. This becomes more load-bearing in the composition phase because trust chains from constituent atom signatures — a forged or weak constituent record undermines the whole composition admission path. Unless `ASHLAR_CERT_DEV_HMAC_KEY` is set, the key is the COMMITTED constant `CertificationRecordSigning.DefaultDevKey`, so every record verifiable here is forgeable by anyone with the source; both signers now warn at construction while that is the case (`UsesDevKey`), and `ASHLAR_CERT_ED25519_KEY` adds a real signature on top. **Ed25519 is now required on Default/Strict verification paths** (limitations 7–8 CLOSED as of 2026-09-06), but it is still not a complete operator trust root on its own: without `TrustedEd25519PublicKeys` pinning, a self-consistent attacker-signed record can verify; HMAC remains forgeable under the committed dev key (this row); and compositions ARE keyed by the operator as of 2026-09-13 (limitation 9 CLOSED — the composition signer takes the injected brick signer as its key holder and the shipped DI registration supplies it, so a host key reaches both lanes; see the CLOSING NOTE below). What remains in this row is the committed dev key itself, not composition reachability.
+1. **Dev HMAC signer, not PKI.** `CertificationRecordSigner` uses a development HMAC key, not a public-key infrastructure. This becomes more load-bearing in the composition phase because trust chains from constituent atom signatures — a forged or weak constituent record undermines the whole composition admission path. Unless `ASHLAR_CERT_DEV_HMAC_KEY` is set, the key is the COMMITTED constant `CertificationRecordSigning.DefaultDevKey`, so every record verifiable here is forgeable by anyone with the source; both signers now warn at construction while that is the case (`UsesDevKey`), and `ASHLAR_CERT_ED25519_KEY` adds a real signature on top. **Ed25519 is now required on Default/Strict verification paths** (limitations 7–8 CLOSED as of 2026-09-06), but it is still not a complete operator trust root on its own: without `TrustedEd25519PublicKeys` pinning, a self-consistent attacker-signed record can verify — and pinning is now CONFIGURABLE (`ASHLAR_CERT_TRUSTED_ED25519_KEYS`, see `docs/Configuration.md`) but still opt-in, and nothing in this repository or in CI sets it; HMAC remains forgeable under the committed dev key (this row); and compositions ARE keyed by the operator as of 2026-09-13 (limitation 9 CLOSED — the composition signer takes the injected brick signer as its key holder and the shipped DI registration supplies it, so a host key reaches both lanes; see the CLOSING NOTE below). What remains in this row is the committed dev key itself, not composition reachability.
 
 2. **Composition seam check is TYPE-level only.** The seam validator checks producer/consumer type compatibility (e.g. `string` vs `int`) but not semantic mismatches where types align (e.g. file path vs URL, both `string`). Graph-mutation teeth only partially compensate for this gap.
 
@@ -745,6 +745,36 @@ redundant guard is exactly what a careful proposer writes.
      is not consulted by the certification path, which reads `ASHLAR_CERT_ED25519_KEY` — the
      two-operator-identity split — **resolved 2026-08-27 to a single identity**, see
      `_handoff/readiness/DECISION-identity-split.md`).
+
+     *Update: the trust root is now the operator's own setting, not a deferred file.*
+     `CertificationTrustPolicy` reads `ASHLAR_CERT_TRUSTED_ED25519_KEYS` (Base64 raw PUBLIC
+     keys; any configuration source, not only the environment) and hands the resulting
+     `CertificationVerifyOptions` to every production verifier, and
+     `ASHLAR_CERT_PINNING_REQUIRED` makes "pinning is in effect" a checkable startup
+     assertion rather than a hope. This is a THIRD location for trust material, chosen over
+     `~/.ashlar/keys/trusted/` precisely because of the enumeration hazard below, and it
+     lives in a PACKABLE library (`Ashlar.Certification.Contracts`), so an external consumer
+     of that package has its trust decisions influenced by ambient process environment it
+     did not opt into — stated here because it is the kind of thing that should not be
+     discovered by surprise. **Nothing in this repository or in CI sets either variable**, so
+     every deployment that has not configured one still verifies unpinned: this row is
+     downgraded from an open hole to a *configurable* one, not closed.
+
+     *How much of that wiring is itself verified.* Seven production verifiers apply the
+     policy, and they are not equally covered. Five are falsifiable behaviourally — the file
+     record store, the certified brick registry, the hot-swap verify-at-load path, the
+     composition constituent check and the self-extend admission edge each take a
+     `CertificationTrustPolicy` a test can hand them, and each has a fact that reddens when
+     its call site reverts to the bare preset. Two are not: `StateLogVerifier`'s five-argument
+     overload and the adaptation DI factory resolve the process-wide `Ambient` directly, and
+     with nothing configured `Ambient.Strict` is *reference-identical* to the `Strict` preset,
+     so reverting either one is invisible to every test that configures no policy. That is not
+     hypothetical — five of these seven sites were in that state when pinning was first wired
+     in. `PinnedWiringSiteConventionTests` now asserts on shipped IL that all seven still call
+     `CertificationTrustPolicy.Ambient`, so the wiring being DELETED reddens; it does not prove
+     the pinned set is *enforced* at the two sites with no behavioural fact, and both of those
+     lines carry a comment saying so. Giving those two a policy parameter is the fix, and it is
+     a public API change on a packable library.
 
      **Pin against `operator.pub` only.** Do *not* enumerate `~/.ashlar/keys/trusted/`:
      `OperatorKey.Generate(rotate: true)` writes the *previous* public key into it

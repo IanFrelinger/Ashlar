@@ -9,9 +9,12 @@ public static class StateLogVerifier
     private static readonly CertifiedTransitionBuilder TransitionBuilder = new();
 
     /// <summary>
-    /// Verifies <paramref name="log"/> under <see cref="Contracts.CertificationVerifyOptions.Strict"/>:
-    /// every behavior certificate must carry a verifying Ed25519 signature, a gate-emitted
-    /// artifact and a certifier identity. This is the production default and is unchanged.
+    /// Verifies <paramref name="log"/> under <see cref="Contracts.CertificationVerifyOptions.Strict"/>
+    /// plus the signer set the operator pinned through
+    /// <see cref="Contracts.CertificationTrustPolicy"/>: every behavior certificate must carry a
+    /// verifying Ed25519 signature, a gate-emitted artifact and a certifier identity, and — once
+    /// keys are configured — a signature from one of those keys. With nothing configured this is
+    /// the <c>Strict</c> preset itself, so the production default is unchanged.
     /// </summary>
     /// <remarks>
     /// Strict requires an Ed25519 signature, which the netstandard2.0 asset of
@@ -31,7 +34,23 @@ public static class StateLogVerifier
         ICertificateResolver resolver,
         string? hmacKey = null,
         ITransitionReplayer? replayer = null) =>
-        Verify(log, schema, resolver, hmacKey, replayer, Contracts.CertificationVerifyOptions.Strict);
+        // UNVERIFIED BEHAVIOURALLY, deliberately, and this comment is the disclosure.
+        //
+        // With nothing configured, `Ambient.Strict` is reference-identical to the `Strict` preset,
+        // so replacing this argument with `Contracts.CertificationVerifyOptions.Strict` changes
+        // nothing any test can observe: a green gate is NOT evidence that an operator's pinning set
+        // reaches this overload. Five of the seven pinning wiring sites drifted invisibly for
+        // exactly this reason before anyone looked.
+        //
+        // What covers it: `PinnedWiringSiteConventionTests` asserts on shipped IL that this method
+        // still calls `CertificationTrustPolicy.get_Ambient`, so DELETING the wiring reddens. What
+        // does not cover it: nothing proves the pinning set is then ENFORCED here, because this
+        // overload takes no policy a test could hand it, and `Ambient` is a process-wide `Lazy`
+        // resolved once — a test that set the environment variables would either lose the race to
+        // whichever class touched `Ambient` first or pin the whole process to its own key.
+        // Giving this overload a `CertificationTrustPolicy` parameter is the fix; it is a public API
+        // change on a packable library, so it is flagged for review rather than taken here.
+        Verify(log, schema, resolver, hmacKey, replayer, Contracts.CertificationTrustPolicy.Ambient.Strict);
 
     /// <summary>
     /// Verifies <paramref name="log"/>, applying <paramref name="options"/> to every behavior
