@@ -65,6 +65,18 @@ jobs:
           # this belongs in a required check and not in the scheduled lane it guards.
           bash tests/scripts/dogfood-sweep-verdict.test.sh
 
+      - name: container harness exit-code tests
+        shell: bash
+        run: |
+          # scripts/test-in-container.sh is how every dotnet build and test in this repo is run on a
+          # developer machine, so its exit code is the primary "did that pass" signal - and under
+          # set -e its EXIT trap was discarding that status, reporting 1 for a fully passing run and
+          # flattening a genuine exit 3 to 1 as well. A harness whose exit code is wrong teaches
+          # people to ignore it, and an ignored signal is not a signal. Pure bash - no dotnet, no
+          # container - so the guard belongs in a required check even though what it guards is a
+          # local-only tool.
+          bash tests/scripts/container-harness-exit-code.test.sh
+
       - name: shellcheck -S error over scripts/**/*.sh
         shell: bash
         run: |
