@@ -119,3 +119,10 @@ brick.pp
 
 # Claude Code machine-local permission grants (overnight autonomy)
 .claude/settings.local.json
+
+# Agent scratch directories that live INSIDE the checkout. Both are tool-created and neither was
+# ignored, so `git add -A` would commit them — and .claude/worktrees/ holds entire git worktrees, so
+# that is not a stray file but a whole second copy of the repository plus another branch's edits.
+# This has already been caught twice by hand, and "remember to use named paths" is not a control.
+.claude/worktrees/
+.codex/
