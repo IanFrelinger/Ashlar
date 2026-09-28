@@ -41,44 +41,35 @@ jobs:
             10.0.x
             8.0.x
 
-      - name: Check Strict Ed25519 readiness
-        id: check-strict
-        shell: bash
-        run: |
-          set -euo pipefail
-          
-          # Precondition for the sweep below: does Strict still require an Ed25519 signature?
-          #
-          # The path was src/Ashlar.Infrastructure/Certification/CertificationVerifyOptions.cs,
-          # which has never existed — the type lives in Ashlar.Certification.Contracts. So this
-          # step always took the not-found branch, the sweep below was always SKIPPED, and the
-          # workflow recorded a GAP row saying Strict was not ready while master had required the
-          # signature for weeks. It proved nothing, in the direction of understating the product.
-          STRICT_FILE="src/Ashlar.Certification.Contracts/CertificationVerifyOptions.cs"
-          
-          # A missing file is a FAULT IN THIS CHECK, not a fact about Strict. Recording it as a GAP
-          # row would write a false statement about the product into a ledger that gates a
-          # marketing claim, which is how the wrong path stayed invisible. Fail instead.
-          if [[ ! -f "${STRICT_FILE}" ]]; then
-            echo "::error::${STRICT_FILE} not found — this check cannot answer its question. Fix the path; do not record a GAP row."
-            exit 1
-          fi
-          
-          # Check if Strict property sets RequireEd25519Signature=true
-          if grep -A 20 'public static CertificationVerifyOptions Strict' "${STRICT_FILE}" | \
-             grep -q 'RequireEd25519Signature.*=.*true'; then
-            echo "strict_ready=true" >> "$GITHUB_OUTPUT"
-            echo "gap_reason=" >> "$GITHUB_OUTPUT"
-            echo "✅ Strict Ed25519 requirement detected - PR #523 on master"
-          else
-            echo "strict_ready=false" >> "$GITHUB_OUTPUT"
-            echo "gap_reason=Strict lacks RequireEd25519Signature=true (regression check)" >> "$GITHUB_OUTPUT"
-            echo "⚠️  Strict Ed25519 requirement NOT detected - possible regression"
-          fi
+      # There was a "Check Strict Ed25519 readiness" step here that grepped
+      # Ashlar.Certification.Contracts/CertificationVerifyOptions.cs for RequireEd25519Signature and
+      # gated everything below on the result. It is gone, and the three reasons are worth keeping
+      # because they are the reasons any source-scanning precondition in this workflow is suspect.
+      #
+      # 1. The regression it watched for is already MERGE-BLOCKED, behaviourally.
+      #    SchemaVersionFloorTests.Strict_RejectsRecordWithoutEd25519 asserts a record without an
+      #    Ed25519 signature is refused UNDER THE PRESET, and it lives in
+      #    Ashlar.Tests.Infrastructure.Tests.Certification, which is inside cert-gate's filter. So it
+      #    runs on every PR to master and blocks the merge. A weaker copy of that check, in a lane
+      #    that runs on a schedule and cannot block anything, added a way to be wrong without adding
+      #    any protection. tests/scripts/dogfood-sweep-verdict.test.sh now asserts that fact still
+      #    exists, so deleting it fails a required check and says why.
+      #
+      # 2. It gated a sweep whose outcome cannot depend on it. The canary runs with
+      #    Ashlar:Autonomy:HoldAdmission=true, and AutonomousIterationHarness returns CertifiedButHeld
+      #    fifteen lines above the only Strict verification on the path. The sweep never verifies
+      #    anything under Strict, so "is Strict ready" was a precondition for work it does not affect.
+      #
+      # 3. Its false branch wrote a GAP row blaming Strict. That is a statement about the product in a
+      #    ledger that gates a marketing claim, and it was already emitted wrongly for weeks from a
+      #    path that never existed. A check that can only be wrong in the direction of a false ledger
+      #    row is worse than no check.
+      #
+      # A genuine gap is still recorded: classify_sweep_log decides PASS/GAP from what the sweep
+      # actually did, and treats a disagreement between exit code and log as failure.
 
       - name: Run autonomy loop sweep (canary objective)
         id: sweep
-        if: steps.check-strict.outputs.strict_ready == 'true'
         shell: bash
         run: |
           set +e  # Allow sweep to fail; we'll record the outcome
@@ -125,20 +116,7 @@ jobs:
           
           exit 0  # Don't fail the workflow; we'll append the result regardless
 
-      - name: Record GAP row (Strict not ready)
-        if: steps.check-strict.outputs.strict_ready == 'false'
-        shell: bash
-        run: |
-          bash scripts/dogfood-continuous-proof.sh append-ledger \
-            "$(date -u +%Y-%m-%d)" \
-            "Continuous dogfood proof canary (rgb-hex-parse)" \
-            "GAP" \
-            "${{ steps.check-strict.outputs.gap_reason }}" \
-            "Dogfood Continuous" \
-            "[CI run ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-      - name: Append ledger row (Strict ready)
-        if: steps.check-strict.outputs.strict_ready == 'true'
+      - name: Append ledger row
         shell: bash
         run: |
           bash scripts/dogfood-continuous-proof.sh append-ledger \
@@ -224,17 +202,18 @@ jobs:
           echo "- **Run ID:** ${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Canary:** rgb-hex-parse" >> "$GITHUB_STEP_SUMMARY"
           
-          if [[ "${{ steps.check-strict.outputs.strict_ready }}" == "true" ]]; then
-            echo "- **Strict Ready:** ✅ Yes (Ed25519 on master)" >> "$GITHUB_STEP_SUMMARY"
-            echo "- **Sweep Outcome:** ${{ steps.sweep.outputs.sweep_outcome }}" >> "$GITHUB_STEP_SUMMARY"
-            
-            if [[ -n "${{ steps.sweep.outputs.sweep_gap }}" ]]; then
-              echo "- **Gap:** ${{ steps.sweep.outputs.sweep_gap }}" >> "$GITHUB_STEP_SUMMARY"
-            fi
-          else
-            echo "- **Strict Ready:** ❌ No" >> "$GITHUB_STEP_SUMMARY"
-            echo "- **Gap:** ${{ steps.check-strict.outputs.gap_reason }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Sweep Outcome:** ${{ steps.sweep.outputs.sweep_outcome }}" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ -n "${{ steps.sweep.outputs.sweep_gap }}" ]]; then
+            echo "- **Gap:** ${{ steps.sweep.outputs.sweep_gap }}" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          # No "Strict Ready" line any more, and its absence is the honest position rather than an
+          # omission. This summary is about what the sweep did; the sweep runs with HoldAdmission=true
+          # and never reaches a Strict verification, so reporting Strict's configuration beside a
+          # sweep outcome invited exactly the reading that the sweep had verified something under it.
+          # Whether Strict still requires Ed25519 is asserted, behaviourally and merge-blockingly, by
+          # SchemaVersionFloorTests.Strict_RejectsRecordWithoutEd25519 in cert-gate.
           
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "See \`docs/dogfood-ledger.md\` for dated evidence." >> "$GITHUB_STEP_SUMMARY"
