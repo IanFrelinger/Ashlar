@@ -55,7 +55,7 @@ fi
 
 # A test file that stops early must fail LOUDLY rather than just exit nonzero, for the same reason
 # the sweep must not report a fault as a pass. Bump this when assertions are added.
-EXPECTED_ASSERTIONS=13
+EXPECTED_ASSERTIONS=23
 
 mklog() { local f; f="$(mktemp)"; printf '%s\n' "$1" > "${f}"; printf '%s' "${f}"; }
 
@@ -198,6 +198,152 @@ else
       "${STRICT_FACT} is gone from ${STRICT_FACT_FILE}. The dogfood workflow dropped its own Strict
          source-grep on the grounds that this fact covers it inside cert-gate. Restore the fact, or
          put a merge-blocking replacement in the Certification namespace before removing it"
+fi
+
+echo "== classify_sweep_evidence =="
+
+# Unlock criterion 3a asks whether the run's certification record was PERSISTED and RE-VERIFIED.
+# That question is answered by the archive's verdict sidecar, not by the sweep log, and the answer
+# has to fail closed: the shapes below are the ones that must NOT read as a pass.
+
+if ! declare -F classify_sweep_evidence >/dev/null; then
+  echo "FAIL — classify_sweep_evidence is not defined after sourcing ${SCRIPT}"
+  exit 1
+fi
+
+# Writes one sidecar into a fresh directory and echoes the directory.
+mkevidence() {
+  local d; d="$(mktemp -d)"
+  printf '%s\n' "$2" > "${d}/$1.evidence.json"
+  printf '%s' "${d}"
+}
+
+GOOD_SIDECAR='{
+  "verified": true,
+  "brickId": "rgb-hex-parse",
+  "recordPath": "/tmp/campaign/records/rgb-hex-parse.json",
+  "recordSha256": "3f786850e387550fdab836ed7e6dc881de23001b0000000000000000deadbeef",
+  "signerFingerprint": "ed25519:0123456789abcdef",
+  "pinningEnabled": false,
+  "usesDevHmacKey": true,
+  "failureCode": null,
+  "failureReason": null,
+  "verifiedAtUtc": "2026-09-28T06:00:00+00:00"
+}'
+
+evidence_of() {
+  local rc=0
+  classify_sweep_evidence "$1" || rc=$?
+  printf '%s' "${rc}"
+}
+
+# 1. THE ASSERTION THAT MATTERS MOST. No sidecar at all — an archive that was never wired up, or a
+# spike configuration line that was deleted (spikes/ is compiled by nothing, so no gate would say
+# so) — must be a GAP. If this ever returns 0, every other guard in this feature is decoration and
+# the ledger records PASS for a run with no reviewable record.
+D="$(mktemp -d)"
+v="$(evidence_of "${D}")"
+if [[ "${v}" == "3" ]]; then
+  ok "no sidecar -> 3 (GAP)"
+else
+  bad "no sidecar -> 3 (GAP)" "got ${v} — an UNWIRED archive would be recorded as a pass, and the row would cite nothing"
+fi
+rmdir "${D}" 2>/dev/null || true
+
+# 2. The happy path, so clause 1 is not simply "always 3".
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "0" ]] && ok "a verified sidecar with a fingerprint and a record path -> 0 (PASS)" \
+  || bad "a verified sidecar -> 0" "got ${v} — no row could ever count toward 3a"
+CITE="$(sweep_evidence_citation "${D}")"
+rm -rf "${D}"
+
+# 3. A record that did NOT re-verify is a GAP, and the reason must name the verifier's own code.
+#
+# Every OTHER cited field is deliberately present and non-empty here, so this fixture can only be
+# refused by the "verified" check itself. The first version of this assertion used a sidecar with a
+# null signerFingerprint, and deleting the "verified" check left it green — the fingerprint clause
+# was catching it. Measured, not assumed.
+D="$(mkevidence rgb-hex-parse '{
+  "verified": false,
+  "brickId": "rgb-hex-parse",
+  "recordPath": "/tmp/campaign/records/rgb-hex-parse.json",
+  "recordSha256": "3f786850e387550fdab836ed7e6dc881de23001b0000000000000000deadbeef",
+  "signerFingerprint": "ed25519:0123456789abcdef",
+  "pinningEnabled": true,
+  "usesDevHmacKey": true,
+  "failureCode": "ed25519-key-not-trusted",
+  "failureReason": "Certification record is signed by a key this verifier does not accept.",
+  "verifiedAtUtc": "2026-09-28T06:00:00+00:00"
+}')"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "\"verified\": false -> 3 (GAP)" \
+  || bad "\"verified\": false -> 3" "got ${v} — a refused record would be reported as verified"
+why="$(sweep_evidence_reason "${D}")"
+grep -q 'ed25519-key-not-trusted' <<<"${why}" \
+  && ok "the reason names the verifier's own failure code" \
+  || bad "the reason names the verifier's own failure code" "got '${why}'"
+rm -rf "${D}"
+
+# 4. A row cites a signer fingerprint. An empty one is not a citation.
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR/\"ed25519:0123456789abcdef\"/\"\"}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "an empty signerFingerprint -> 3" \
+  || bad "an empty signerFingerprint -> 3" "got ${v} — the row would cite an empty string"
+rm -rf "${D}"
+
+# 5. And an UNQUOTED null is the shape the archive actually writes when there is no key at all, so
+# it is asserted separately from the empty string above.
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR/\"ed25519:0123456789abcdef\"/null}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "a null signerFingerprint -> 3" \
+  || bad "a null signerFingerprint -> 3" "got ${v} — an unsigned record would read as cited"
+rm -rf "${D}"
+
+# 6. Same for the record path: a row that cannot name the file is not a 3a row.
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR/\"\/tmp\/campaign\/records\/rgb-hex-parse.json\"/\"\"}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "an empty recordPath -> 3" \
+  || bad "an empty recordPath -> 3" "got ${v} — the row would cite no file"
+rm -rf "${D}"
+
+# 7. Two sidecars in one directory. A campaign directory is reused across reruns, and `head -1`
+# over two verdicts would silently let one run decide another run's row.
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR}")"
+printf '%s\n' "${GOOD_SIDECAR}" > "${D}/some-other-brick.evidence.json"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "two sidecars in one campaign directory -> 3 (ambiguous evidence is not evidence)" \
+  || bad "two sidecars -> 3" "got ${v} — one run's verdict could be read as another's"
+rm -rf "${D}"
+
+# 8. The citation is what a 3a-counting row carries, so it has to carry all three cited values.
+if grep -q 'record=/tmp/campaign/records/rgb-hex-parse.json' <<<"${CITE}" \
+  && grep -q 'sha256=3f786850e387550fdab836ed7e6dc881de23001b0000000000000000deadbeef' <<<"${CITE}" \
+  && grep -q 'signer=ed25519:0123456789abcdef' <<<"${CITE}" \
+  && grep -q 'pinned=false' <<<"${CITE}" \
+  && grep -q 'dev-hmac=true' <<<"${CITE}"; then
+  ok "the citation carries the record path, its sha256, the signer, and the pinning/dev-key disclosures"
+else
+  bad "the citation carries the record path, its sha256, the signer, and the pinning/dev-key disclosures" \
+      "got '${CITE}'"
+fi
+
+echo "== the sidecar contract this depends on is frozen inside cert-gate =="
+# classify_sweep_evidence parses field names owned by a C# type. If they are renamed, every
+# assertion above keeps passing against its own hand-written fixtures while production silently
+# returns GAP forever. The merge-blocking fact that freezes those names is named here so a
+# rename fails a required check and says where to look — the same delegation the Strict/Ed25519
+# assertion above uses, for the same reason. Matching the full signature, not the bare name: a
+# rename that APPENDS to a method name leaves the old name as a substring and the guard passes.
+SIDECAR_FACT_FILE="${ROOT}/src/Ashlar.Tests.Infrastructure/Tests/Certification/CertificationEvidenceArchiveTests.cs"
+SIDECAR_FACT='public void PersistAndReverify_WritesASidecarWithTheFieldNamesTheSweepScriptParses()'
+if [[ -f "${SIDECAR_FACT_FILE}" ]] && grep -qF "${SIDECAR_FACT}" "${SIDECAR_FACT_FILE}"; then
+  ok "the merge-blocking fact that freezes the sidecar's field names still exists"
+else
+  bad "the merge-blocking fact that freezes the sidecar's field names still exists" \
+      "${SIDECAR_FACT} is gone from ${SIDECAR_FACT_FILE}. classify_sweep_evidence parses those
+         names; without that fact a rename makes every sweep a GAP with nothing saying why.
+         Restore the fact, or put a merge-blocking replacement in the Certification namespace"
 fi
 
 echo

@@ -14,10 +14,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <c>(trustPolicy ?? CertificationTrustPolicy.Ambient).Strict</c> back to the bare preset changes
 /// no observable behaviour in a test that configures no policy — and a green gate is therefore not
 /// evidence that the wiring is still there. That is not hypothetical: when pinning was first wired
-/// in, five of these seven sites could each be reverted with the whole suite green, and nobody would
-/// have seen the operator's pinning set stop being applied. A behavioural fact closes a site only
-/// where the site takes a policy a test can hand it; two of the seven do not, and this guard is what
-/// covers them.</para>
+/// in, five of the then-seven sites could each be reverted with the whole suite green, and nobody
+/// would have seen the operator's pinning set stop being applied. A behavioural fact closes a site
+/// only where the site takes a policy a test can hand it; two of the eight do not, and this guard is
+/// what covers them.</para>
 ///
 /// <para><b>What it asserts.</b> For each site, that the compiled IL of the declaring type — its
 /// nested closures and state machines included, because one site lives inside a DI factory
@@ -29,9 +29,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>What it does NOT assert.</b> That the options reaching each verifier are actually
 /// enforced — that is what the behavioural facts in
 /// <see cref="TrustedKeyPinningConfigurationTests"/> and
-/// <see cref="PinnedHotSwapVerifyAtLoadTests"/> are for, and five of the seven rows have one. It
+/// <see cref="PinnedHotSwapVerifyAtLoadTests"/> are for, and six of the eight rows have one. It
 /// also asserts presence, not count: if a type ever grows a second <c>Ambient</c> site, losing the
-/// first would no longer redden. Each of the seven types has exactly one today.</para>
+/// first would no longer redden. Each of the eight types has exactly one today.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class PinnedWiringSiteConventionTests
@@ -41,7 +41,7 @@ public sealed class PinnedWiringSiteConventionTests
     private const string AmbientAccessor = "get_Ambient";
 
     /// <summary>
-    /// The seven sites, each named by the assembly it ships in and the type that holds it. The
+    /// The eight sites, each named by the assembly it ships in and the type that holds it. The
     /// fifth column of the story — whether the site also has a behavioural fact — is in the
     /// <c>behaviourallyCovered</c> argument, so a reader can see at a glance which rows are carried
     /// by this guard alone.
@@ -58,6 +58,16 @@ public sealed class PinnedWiringSiteConventionTests
     [InlineData(
         "Ashlar.Infrastructure.dll",
         "Ashlar.Infrastructure.Certification.HotSwap.CertifiedBrickHotSwapHost",
+        true)]
+    // The evidence archive re-verifies a persisted record, so an operator who pinned a signer set
+    // must have it applied here too — otherwise a ledger row could cite a record that verified only
+    // because it was self-consistent. Behaviourally covered: the archive takes a
+    // CertificationTrustPolicy, and CertificationEvidenceArchiveTests.
+    // PersistAndReverify_ReportsPinningAndRefusesAnUntrustedKey hands it one pinning a foreign key
+    // and asserts the named refusal.
+    [InlineData(
+        "Ashlar.Infrastructure.dll",
+        "Ashlar.Infrastructure.Certification.CertificationEvidenceArchive",
         true)]
     [InlineData(
         "Ashlar.Infrastructure.dll",

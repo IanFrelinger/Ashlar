@@ -40,6 +40,15 @@ public enum IterationOutcome
 /// as REPAIRABLE — a proposer may be handed these, because they describe its own text and
 /// nothing of the witness. Null for every other outcome.
 /// </param>
+/// <param name="Evidence">
+/// The persist-and-re-verify verdict for this iteration's certification RECORD, non-null only when
+/// the harness was composed with a <see cref="CertificationEvidenceArchive"/>.
+/// <para><b>Read what it is about.</b> It says the record's bytes survived a round trip to disk and
+/// still verify under the archive's strictness. It says NOTHING about the admission path: the
+/// archive runs above the operator hold, so a verified record here does not mean anything was
+/// admitted, swapped, or verified at load. <c>Evidence.Verified == false</c> is a reported verdict
+/// and never changes <see cref="Outcome"/>.</para>
+/// </param>
 [Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]
 public sealed record IterationResult(
     IterationOutcome Outcome,
@@ -47,7 +56,8 @@ public sealed record IterationResult(
     TierClassification? Tier = null,
     CertificationDecision? Decision = null,
     SessionAttestation? Attestation = null,
-    IReadOnlyList<string>? BuildDiagnostics = null);
+    IReadOnlyList<string>? BuildDiagnostics = null,
+    CertificationEvidenceResult? Evidence = null);
 
 /// <summary>The context an iteration runs under: the objective's declarations, projected to core types.</summary>
 [Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]
@@ -146,6 +156,7 @@ public sealed class AutonomousIterationHarness
     private readonly bool _buildCandidateInSession;
     private readonly bool _executeCandidateInSession;
     private readonly bool _holdAdmission;
+    private readonly CertificationEvidenceArchive? _evidenceArchive;
 
     /// <summary>
     /// Creates the harness over the real gate and swap host. With
@@ -157,7 +168,26 @@ public sealed class AutonomousIterationHarness
     /// session (<see cref="SessionExecutionBackend"/> over the session-built assembly) —
     /// untrusted candidate code then never runs in this process. <c>holdAdmission</c>
     /// defaults to TRUE: pass false explicitly to let Tier-0 certificates swap unattended.
+    ///
+    /// <para><c>evidenceArchive</c> is null by default, and null keeps today's behaviour exactly:
+    /// every existing host and every existing test is unaffected, and
+    /// <see cref="IterationResult.Evidence"/> stays null.</para>
     /// </summary>
+    /// <param name="gate">The certification gate.</param>
+    /// <param name="host">The certified-brick hot-swap host.</param>
+    /// <param name="pause">Loop pause control, when the host has one.</param>
+    /// <param name="lineages">Lineage authority, for demotion checks.</param>
+    /// <param name="sandbox">Sandboxed session runner, when sessions are in use.</param>
+    /// <param name="budget">Cluster budget; a default one is built when null.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="buildCandidateInSession">Compile the candidate inside the attested session.</param>
+    /// <param name="executeCandidateInSession">Execute the witness/mutation legs inside that session.</param>
+    /// <param name="holdAdmission">Certify fully, admit nothing. Defaults to TRUE.</param>
+    /// <param name="evidenceArchive">
+    /// When supplied, every certified iteration persists its record, re-reads it from disk and
+    /// re-verifies it, reporting the verdict on <see cref="IterationResult.Evidence"/>. This is
+    /// evidence about record persistence; it is NOT an admission store and grants no admission.
+    /// </param>
     public AutonomousIterationHarness(
         ICertificationGate gate,
         CertifiedBrickHotSwapHost host,
@@ -168,7 +198,8 @@ public sealed class AutonomousIterationHarness
         ILogger<AutonomousIterationHarness>? logger = null,
         bool buildCandidateInSession = false,
         bool executeCandidateInSession = false,
-        bool holdAdmission = true)
+        bool holdAdmission = true,
+        CertificationEvidenceArchive? evidenceArchive = null)
     {
         _gate = gate ?? throw new ArgumentNullException(nameof(gate));
         _host = host ?? throw new ArgumentNullException(nameof(host));
@@ -180,6 +211,7 @@ public sealed class AutonomousIterationHarness
         _buildCandidateInSession = buildCandidateInSession;
         _executeCandidateInSession = executeCandidateInSession;
         _holdAdmission = holdAdmission;
+        _evidenceArchive = evidenceArchive;
     }
 
     /// <summary>Runs one iteration to a terminal state. Never throws for loop-shaped failures.</summary>
@@ -376,6 +408,45 @@ public sealed class AutonomousIterationHarness
                     tier, decision, attestation);
             }
 
+            // --- evidence archive: persist the record, read it back off disk, re-verify ---------
+            //
+            // THIS SITS HERE, ABOVE THE HOLD, ON PURPOSE, AND THE PLACEMENT IS THE POINT.
+            //
+            // The only other verification under this strictness on this path is inside
+            // CertifiedBrickHotSwapHost (verify-at-load, `CertifiedBrickHotSwapHost.cs` around the
+            // Strict call sites), fifteen lines below and BEHIND `_holdAdmission`. Reaching it
+            // would mean flipping the hold so a CI runner hot-swaps model-proposed code into its
+            // own process — buying a verification by deleting the containment the held loop exists
+            // to demonstrate. So persist-and-re-verify is its own mechanism, invoked before the
+            // hold is even consulted, and the hold below is untouched: no outcome changes, nothing
+            // is admitted, nothing is swapped.
+            //
+            // What this establishes is narrow and should not be overquoted: the record's bytes
+            // survived a round trip to disk and still verify. It is not a verification of the
+            // admission path.
+            CertificationEvidenceResult? evidence = null;
+            if (_evidenceArchive is not null)
+            {
+                evidence = _evidenceArchive.PersistAndReverify(
+                    decision.Record, candidate.SourceCode, artifact?.AssemblyBytes);
+
+                if (evidence.Verified)
+                {
+                    _logger?.LogInformation(
+                        "Certification record for {BrickId} persisted to {RecordPath} (sha256 {RecordSha256}) and "
+                        + "re-verified from those bytes; signer {Fingerprint}, pinning {Pinning}, committed dev HMAC key {DevKey}",
+                        decision.Record.BrickId, evidence.RecordPath, evidence.RecordSha256,
+                        evidence.SignerFingerprint, evidence.PinningEnabled, evidence.UsesDevHmacKey);
+                }
+                else
+                {
+                    _logger?.LogWarning(
+                        "Certification record for {BrickId} was persisted to {RecordPath} but did NOT re-verify: "
+                        + "{FailureCode} - {FailureReason}",
+                        decision.Record.BrickId, evidence.RecordPath, evidence.FailureCode, evidence.FailureReason);
+                }
+            }
+
             // Operator hold (host-level): certify fully, admit nothing. Distinct from
             // LoopPauseControl, which halts intake before any work happens - this runs the
             // whole chain and stops at the swap, so the evidence accrues while a human
@@ -385,15 +456,16 @@ public sealed class AutonomousIterationHarness
             {
                 return new IterationResult(IterationOutcome.CertifiedButHeld,
                     "certified; the operator holds admission (loop is in hold mode, no unattended "
-                    + "swap) with full evidence on the record",
-                    tier, decision, attestation);
+                    + "swap) with full evidence on the record"
+                    + DescribeEvidence(evidence),
+                    tier, decision, attestation, Evidence: evidence);
             }
 
             if (tier.Tier != ObjectiveTier.Tier0Autonomous)
             {
                 return new IterationResult(IterationOutcome.CertifiedButHeld,
                     $"certified; admission holds for the human gate (tier {tier.Tier}, R3.1) with full evidence on the record",
-                    tier, decision, attestation);
+                    tier, decision, attestation, Evidence: evidence);
             }
 
             var swap = await _host.SwapAsync(new[]
@@ -419,7 +491,7 @@ public sealed class AutonomousIterationHarness
             {
                 return new IterationResult(IterationOutcome.AdmittedAndSwapped,
                     $"certified and swapped as generation {swap.GenerationId}; the watch window is now the last gate",
-                    tier, decision, attestation);
+                    tier, decision, attestation, Evidence: evidence);
             }
 
             // A refused autonomous swap (cadence floor, in-flight window, pause landing
@@ -428,7 +500,7 @@ public sealed class AutonomousIterationHarness
             return new IterationResult(IterationOutcome.CertifiedButHeld,
                 "certified; the swap host held admission: "
                 + string.Join(" | ", swap.Refusals.Select(r => $"{r.FailureCode}: {r.Reason}")),
-                tier, decision, attestation);
+                tier, decision, attestation, Evidence: evidence);
         }
         finally
         {
@@ -436,4 +508,18 @@ public sealed class AutonomousIterationHarness
                 await session.DisposeAsync().ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// The archive's verdict, appended to the hold explanation that <c>AutonomyLoopService</c>
+    /// already logs verbatim — so a run's own console output names the record file and the signer,
+    /// which is what a ledger row cites. Empty when no archive is composed.
+    /// </summary>
+    private static string DescribeEvidence(CertificationEvidenceResult? evidence) =>
+        evidence is null
+            ? string.Empty
+            : evidence.Verified
+                ? $"; record at {evidence.RecordPath} (sha256 {evidence.RecordSha256}) re-read and verified"
+                    + $", signer {evidence.SignerFingerprint ?? "(none)"}, pinned={evidence.PinningEnabled}"
+                    + $", dev-hmac={evidence.UsesDevHmacKey}"
+                : $"; record at {evidence.RecordPath} did NOT re-verify: {evidence.FailureCode}";
 }
