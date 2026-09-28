@@ -102,6 +102,23 @@ jobs:
         shell: bash
         run: bash scripts/ci/verify-workflow-context-availability.sh
 
+      - name: Knowledge graph matches the repository
+        shell: bash
+        run: |
+          # docs/knowledge-graph.{json,md} are DERIVED from the tree. A derived map nobody is forced
+          # to regenerate becomes a confident description of a repository that has moved on, which is
+          # worse than no map because it is read and believed. This makes staleness a red build.
+          #
+          # It also carries two checks a drift comparison cannot make on its own: floors, because a
+          # regeneration and a committed file agree perfectly when an extractor has silently stopped
+          # matching and both describe nothing; and a documentation-debt ratchet whose baseline lives
+          # outside the artifact, because a baseline inside the file being regenerated ratchets
+          # against itself.
+          #
+          # Pure Python over the checked-out tree - no dotnet, no container, no network - so it
+          # belongs in a required check rather than a lane that runs on a schedule.
+          python3 scripts/knowledge-graph/verify-knowledge-graph-current.py
+
       - name: Consumer path scan rejects forbidden paths and scan errors
         shell: bash
         run: bash scripts/ci/test-consumer-repo-path-guard.sh
