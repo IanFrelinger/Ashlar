@@ -278,17 +278,27 @@ public sealed class HotSwapProbeBrick : DomainBrick
     /// TimestampFrequency, measured durations are exact and identical on every platform; treating
     /// these ticks as TimeSpan ticks instead inflates them exactly 100x.
     /// </summary>
+    /// <remarks>
+    /// <see cref="ShiftTo"/> exists so a test can make a LATER generation measurably slower than the
+    /// one that became its baseline, which is the only way to exercise the mean-latency leg without
+    /// depending on real elapsed time. Shifting by an explicit call rather than after a counted number
+    /// of reads is deliberate: an invocation reads the clock twice, so a read-counting variant encodes
+    /// the arrange's exact invocation count and breaks silently when a helper adds one.
+    /// </remarks>
     private sealed class NanosecondIntervalClock : TimeProvider
     {
         private const long NanosecondsPerSecond = 1_000_000_000;
-        private readonly long _stepTicks;
+        private long _stepTicks;
         private long _ticks;
 
-        public NanosecondIntervalClock(TimeSpan step) =>
-            _stepTicks = (long)(step.TotalSeconds * NanosecondsPerSecond);
+        public NanosecondIntervalClock(TimeSpan step) => ShiftTo(step);
+
+        public void ShiftTo(TimeSpan step) =>
+            Interlocked.Exchange(ref _stepTicks, (long)(step.TotalSeconds * NanosecondsPerSecond));
 
         public override long TimestampFrequency => NanosecondsPerSecond;
-        public override long GetTimestamp() => Interlocked.Add(ref _ticks, _stepTicks);
+        public override long GetTimestamp() =>
+            Interlocked.Add(ref _ticks, Interlocked.Read(ref _stepTicks));
     }
 
     [Fact]
@@ -378,6 +388,65 @@ public sealed class HotSwapProbeBrick : DomainBrick
 
         result.Swapped.Should().BeFalse();
         result.Refusals.Should().ContainSingle().Which.FailureCode.Should().Be("lineage-demoted");
+    }
+
+    /// <summary>
+    /// The mean-latency leg's FIRST positive fact. Until this existed the leg was the only one of the
+    /// watch's four with no test anywhere asserting it catches anything: repo-wide, `MaxLatencyFactor`
+    /// appeared in production five times and in exactly one test, which raised it to 10.0 in order to
+    /// stop the leg firing. Its only demonstrated effects were a spurious breach (the residual in
+    /// `RollbackGateExemptionTests`) and teaching a test author to silence it.
+    ///
+    /// That matters beyond coverage. There is an open question about whether this leg should carry an
+    /// absolute floor under the baseline's magnitude, to stop one scheduler pause on a microsecond
+    /// brick revoking a healthy generation. A floor trades away detection on fast bricks — and with no
+    /// positive fact, BOTH sides of that decision were unfalsifiable. This fact is what a floor would
+    /// have to be weighed against, and whoever adds one has to come here and say what it now permits.
+    /// </summary>
+    [Fact]
+    public async Task A_generation_slower_than_the_baseline_by_more_than_the_factor_is_quarantined()
+    {
+        var revocations = new InMemoryCertificateRevocationList();
+        var sink = new RecordingSink();
+
+        // The absolute ceiling stays null and the brick never faults, so of the four legs only the
+        // mean-latency ratio can speak here. That is what makes this fact about THIS leg.
+        var clock = new NanosecondIntervalClock(TimeSpan.FromMilliseconds(1));
+        using var host = CreateHost(sink, revocations, lineage: null,
+            new WatchThresholds { MinInvocations = 2, MaxErrorRateDelta = 0.2 },
+            clock: clock);
+
+        (await host.SwapAsync(new[] { AutonomousRequest(Healthy("v1"), "lineage-a") })).Swapped.Should().BeTrue();
+        for (var i = 0; i < 3; i++)
+            await Execute(host);
+
+        // A forward swap rotates the outgoing generation's signals into the baseline
+        // (CertifiedBrickHotSwapHost: `if (intent == SwapIntent.Forward)`), so v2 is now judged
+        // against v1's 1ms mean.
+        (await host.SwapAsync(new[] { AutonomousRequest(Healthy("v2"), "lineage-b") })).Swapped.Should().BeTrue();
+
+        // Precondition: v2 is actually serving before it regresses, so a failure below cannot be the
+        // swap silently not having taken effect.
+        (await Execute(host)).Get<string>("marker").Should().Be("v2", "v2 must be live before it slows");
+
+        // Ten times the baseline against a factor of 3.0. Exact, not approximate: the clock decides
+        // the interval, so this is 10.0x on every platform and at any load.
+        //
+        // Exactly ONE invocation after the shift, and that is load-bearing. The leg evaluates on this
+        // one (2 samples against MinInvocations 2, mean 5.5ms against a 1ms baseline) and quarantines.
+        // A second would land on the RESTORED generation, which a rollback deliberately does not
+        // re-baseline — so it would still be judged against v1's 1ms mean while the clock says 10ms,
+        // breach again, and cascade. The final read below is therefore invocation 1 of a fresh window,
+        // below MinInvocations, where nothing can fire and the marker is the only thing under test.
+        clock.ShiftTo(TimeSpan.FromMilliseconds(10));
+        await Execute(host);
+
+        sink.Snapshot().Should().Contain(e =>
+            e.Outcome == BrickSwapProvenanceOutcomes.WatchBreachQuarantined &&
+            e.Reason!.Contains("mean latency", StringComparison.Ordinal),
+            "a generation ten times slower than its baseline is the regression this leg exists for");
+        (await Execute(host)).Get<string>("marker").Should().Be("v1",
+            "and catching it has to mean something: the healthy generation must be serving again");
     }
 
     [Fact]
