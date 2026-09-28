@@ -760,6 +760,22 @@ redundant guard is exactly what a careful proposer writes.
      every deployment that has not configured one still verifies unpinned: this row is
      downgraded from an open hole to a *configurable* one, not closed.
 
+     *How much of that wiring is itself verified.* Seven production verifiers apply the
+     policy, and they are not equally covered. Five are falsifiable behaviourally — the file
+     record store, the certified brick registry, the hot-swap verify-at-load path, the
+     composition constituent check and the self-extend admission edge each take a
+     `CertificationTrustPolicy` a test can hand them, and each has a fact that reddens when
+     its call site reverts to the bare preset. Two are not: `StateLogVerifier`'s five-argument
+     overload and the adaptation DI factory resolve the process-wide `Ambient` directly, and
+     with nothing configured `Ambient.Strict` is *reference-identical* to the `Strict` preset,
+     so reverting either one is invisible to every test that configures no policy. That is not
+     hypothetical — five of these seven sites were in that state when pinning was first wired
+     in. `PinnedWiringSiteConventionTests` now asserts on shipped IL that all seven still call
+     `CertificationTrustPolicy.Ambient`, so the wiring being DELETED reddens; it does not prove
+     the pinned set is *enforced* at the two sites with no behavioural fact, and both of those
+     lines carry a comment saying so. Giving those two a policy parameter is the fix, and it is
+     a public API change on a packable library.
+
      **Pin against `operator.pub` only.** Do *not* enumerate `~/.ashlar/keys/trusted/`:
      `OperatorKey.Generate(rotate: true)` writes the *previous* public key into it
      (`src/Ashlar.Manifest/Signing/OperatorKey.cs:45-52`) and there is no revocation (`:28`),

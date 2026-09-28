@@ -34,6 +34,22 @@ public static class StateLogVerifier
         ICertificateResolver resolver,
         string? hmacKey = null,
         ITransitionReplayer? replayer = null) =>
+        // UNVERIFIED BEHAVIOURALLY, deliberately, and this comment is the disclosure.
+        //
+        // With nothing configured, `Ambient.Strict` is reference-identical to the `Strict` preset,
+        // so replacing this argument with `Contracts.CertificationVerifyOptions.Strict` changes
+        // nothing any test can observe: a green gate is NOT evidence that an operator's pinning set
+        // reaches this overload. Five of the seven pinning wiring sites drifted invisibly for
+        // exactly this reason before anyone looked.
+        //
+        // What covers it: `PinnedWiringSiteConventionTests` asserts on shipped IL that this method
+        // still calls `CertificationTrustPolicy.get_Ambient`, so DELETING the wiring reddens. What
+        // does not cover it: nothing proves the pinning set is then ENFORCED here, because this
+        // overload takes no policy a test could hand it, and `Ambient` is a process-wide `Lazy`
+        // resolved once — a test that set the environment variables would either lose the race to
+        // whichever class touched `Ambient` first or pin the whole process to its own key.
+        // Giving this overload a `CertificationTrustPolicy` parameter is the fix; it is a public API
+        // change on a packable library, so it is flagged for review rather than taken here.
         Verify(log, schema, resolver, hmacKey, replayer, Contracts.CertificationTrustPolicy.Ambient.Strict);
 
     /// <summary>

@@ -23,6 +23,10 @@ internal static class CompositionConstituentChecker
         CertificationTrustPolicy? trustPolicy = null)
     {
         var violations = new List<string>();
+        // Falsifiable through the trustPolicy parameter:
+        // TrustedKeyPinningConfigurationTests.A_configured_pinning_set_makes_the_composition_constituent_check_refuse_a_foreign_signer
+        // reddens if this reverts to the bare preset. Keep the parameter — without it, reverting
+        // this line is invisible, because with nothing configured Ambient.Strict IS that preset.
         var verifyOptions = (trustPolicy ?? CertificationTrustPolicy.Ambient).Strict;
 
         foreach (var node in spec.Nodes)

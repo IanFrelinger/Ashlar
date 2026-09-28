@@ -205,6 +205,8 @@ public sealed class CertificationTrustPolicy
     /// <paramref name="basis"/> already pins a different set of keys. Silently replacing it would
     /// mean configuration could redirect trust that was chosen in code, and merging the two would
     /// widen the accepted signer set beyond either — so a conflict is reported, not resolved.
+    /// Also thrown when <paramref name="basis"/> pins a blank or null entry: the same refusal
+    /// <c>Validate</c> gives a configured set, for the same reason.
     /// </exception>
     public CertificationVerifyOptions Apply(CertificationVerifyOptions basis)
     {
@@ -215,12 +217,38 @@ public sealed class CertificationTrustPolicy
         if (keys is null)
             return basis;
 
-        if (basis.PinningEnabled && !SameKeys(basis.TrustedEd25519PublicKeys!, keys))
+        if (basis.PinningEnabled)
         {
-            throw new CertificationTrustConfigurationException(
-                "The supplied verification options already pin a different set of Ed25519 signers. "
-                + $"Configured pinning ({TrustedKeysVariable}) will not override a pinning set chosen "
-                + "in code, and will not widen it by merging: resolve the two deliberately.");
+            var basisKeys = basis.TrustedEd25519PublicKeys!;
+            foreach (var basisKey in basisKeys)
+            {
+                if (!string.IsNullOrWhiteSpace(basisKey))
+                    continue;
+
+                // The caller-supplied side gets the same refusal a configured set gets, and for
+                // the same reason: an entry no signature can match is not part of the set the
+                // caller chose, so neither skipping it (which decides "same set" on a set that
+                // was never stated) nor comparing it (which decides "conflict" on a hole) is an
+                // answer. Refusing here is also what keeps this a NAMED failure: SameKeys builds
+                // a HashSet under StringComparer.Ordinal, and a null entry reaching that would
+                // surface as a bare ArgumentNullException out of a security type.
+                throw new CertificationTrustConfigurationException(
+                    "The supplied verification options pin a blank entry. Refusing rather than "
+                    + "ignoring it: an entry that is null or whitespace is a key no signature can "
+                    + "ever match, so it is not part of the pinning set the caller chose — and "
+                    + "silently dropping it would decide the conflict check below against a set "
+                    + "that was never stated. Remove the blank entry, or leave "
+                    + $"{nameof(CertificationVerifyOptions.TrustedEd25519PublicKeys)} unset on the "
+                    + $"basis and let configured pinning ({TrustedKeysVariable}) supply the set.");
+            }
+
+            if (!SameKeys(basisKeys, keys))
+            {
+                throw new CertificationTrustConfigurationException(
+                    "The supplied verification options already pin a different set of Ed25519 signers. "
+                    + $"Configured pinning ({TrustedKeysVariable}) will not override a pinning set chosen "
+                    + "in code, and will not widen it by merging: resolve the two deliberately.");
+            }
         }
 
         return new CertificationVerifyOptions
@@ -357,6 +385,12 @@ public sealed class CertificationTrustPolicy
     /// summary promises never happens. <see cref="Validate"/> de-duplicates the configured side,
     /// but <paramref name="left"/> comes from a caller-supplied options object and nothing
     /// de-duplicates that.
+    ///
+    /// <para><paramref name="left"/> arrives free of null and blank entries, because
+    /// <see cref="Apply"/> — the only caller — refuses them by name first. That guard is not
+    /// decoration: the <see cref="HashSet{T}"/> below is built under
+    /// <see cref="StringComparer.Ordinal"/>, and a security type should not be resting on what
+    /// that comparer happens to do with a null entry.</para>
     /// </summary>
     private static bool SameKeys(IReadOnlyCollection<string> left, IReadOnlyCollection<string> right) =>
         new HashSet<string>(left, StringComparer.Ordinal).SetEquals(right);

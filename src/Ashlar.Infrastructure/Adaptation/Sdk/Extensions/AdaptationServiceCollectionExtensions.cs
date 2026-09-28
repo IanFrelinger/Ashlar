@@ -100,6 +100,19 @@ public static class AdaptationServiceCollectionExtensions
                 var record = store.Get("observation.context");
                 // Strict plus whatever signer set the operator pinned; with nothing configured this
                 // is the Strict preset unchanged.
+                //
+                // UNVERIFIED BEHAVIOURALLY, deliberately, and this comment is the disclosure.
+                // Because `Ambient.Strict` IS the `Strict` preset instance when nothing is
+                // configured, replacing this argument with `CertificationVerifyOptions.Strict`
+                // changes nothing any test can observe — a green gate is not evidence that an
+                // operator's pinning set reaches this factory. `PinnedWiringSiteConventionTests`
+                // asserts on shipped IL that this type still calls
+                // `CertificationTrustPolicy.get_Ambient`, so DELETING the wiring reddens; nothing
+                // proves the pinned set is then enforced here. The reason it cannot be reached is
+                // this factory's own shape: it resolves the process-wide `Ambient` directly, and
+                // `Ambient` is a `Lazy` resolved once per process, so a test cannot vary it without
+                // pinning the whole run. Resolving an optional `CertificationTrustPolicy` from `sp`
+                // instead would create the seam — a DI contract change, flagged rather than taken.
                 if (record is { Admitted: true, Signed: true }
                     && signer.Verify(record, CertificationTrustPolicy.Ambient.Strict))
                 {

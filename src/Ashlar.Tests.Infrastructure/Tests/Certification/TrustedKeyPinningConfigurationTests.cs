@@ -4,7 +4,9 @@ using Ashlar.Abstractions;
 using Ashlar.BackgroundAgents.Security;
 using Ashlar.Certification.Contracts;
 using Ashlar.Core.Application.Certification.Models;
+using Ashlar.Core.Application.Paths;
 using Ashlar.Infrastructure.Certification;
+using Ashlar.Infrastructure.Certification.Composition;
 using Ashlar.Tests.Infrastructure.Certification.Fixtures;
 using FluentAssertions;
 using NSec.Cryptography;
@@ -562,6 +564,152 @@ public sealed class TrustedKeyPinningConfigurationTests : IDisposable
             .Should().BeTrue(
                 "pinned to the key that minted it, the same record must still be admitted — "
                 + "otherwise the refusal above proves nothing about pinning");
+    }
+
+    /// <summary>
+    /// The operator-facing NAMES, pinned to their literals and to the document that tells an
+    /// operator to set them.
+    ///
+    /// <para><b>Measured, not assumed.</b> Every other fact in this class — the environment fact
+    /// above included — writes and reads through
+    /// <c>CertificationTrustPolicy.TrustedKeysVariable</c> itself, so arrange and act agree on
+    /// whatever that constant happens to say. A reviewer changed its VALUE to
+    /// <c>ASHLAR_CERT_TRUSTED_ED25519_KEYS_MUTANT</c> and reddened nothing at all, while every
+    /// operator following <c>docs/Configuration.md</c> would have been setting a variable this
+    /// process never reads — pinning silently off, with no error anywhere. A variable whose NAME is
+    /// pinned by nothing is not an operator-facing variable; it is an internal detail with
+    /// documentation attached.</para>
+    ///
+    /// <para>The documentation half is the other direction of the same fact: <c>Configuration.md</c>
+    /// is the only place an operator learns the spelling, and line 444 of it had already drifted
+    /// from this code once. Asserting the code's literal alone would let the doc rot instead.</para>
+    /// </summary>
+    [Fact]
+    public void The_variable_names_an_operator_is_told_to_set_are_the_names_this_type_reads()
+    {
+        CertificationTrustPolicy.TrustedKeysVariable.Should().Be(
+            "ASHLAR_CERT_TRUSTED_ED25519_KEYS",
+            "this exact string lives in docs/Configuration.md and in deployment templates nothing "
+            + "in this repository can grep, so renaming it turns pinning off for every host that "
+            + "had configured it — fail-open, and silent");
+        CertificationTrustPolicy.PinningRequiredVariable.Should().Be(
+            "ASHLAR_CERT_PINNING_REQUIRED",
+            "the same, for the switch whose whole purpose is making pinning checkable at startup");
+
+        var configurationDoc = Path.Combine(
+            RepoPathResolver.FindRepoRoot(), "docs", "Configuration.md");
+        File.Exists(configurationDoc).Should().BeTrue(
+            "the documentation half of this fact needs the document to exist, or it asserts nothing");
+
+        var documented = File.ReadAllText(configurationDoc);
+        documented.Should().Contain(
+            CertificationTrustPolicy.TrustedKeysVariable,
+            "the name an operator is told to set and the name this type reads are one fact, or they "
+            + "are two facts that drift");
+        documented.Should().Contain(
+            CertificationTrustPolicy.PinningRequiredVariable,
+            "an undocumented switch is a switch nobody sets");
+    }
+
+    /// <summary>
+    /// A basis that pins a blank or null entry is refused by name, rather than reaching
+    /// <c>SameKeys</c>.
+    ///
+    /// <para>This is the sharp edge the <c>SameKeys</c> rewrite introduced. The loop it replaced
+    /// tolerated a null entry; <c>new HashSet&lt;string&gt;(left, StringComparer.Ordinal)</c> does
+    /// not necessarily, and a security type should not be resting on which. No production caller
+    /// pins in code today, so nothing reached it — which is exactly why it had to be decided
+    /// deliberately rather than left to the framework.</para>
+    ///
+    /// <para>The configured side is <c>{mine}</c> and the basis is <c>{mine}</c> plus a hole, so
+    /// the two sets agree on every stated key: without the guard this is either a bare
+    /// <c>ArgumentNullException</c> out of a security type or a CONFLICT report about a key the
+    /// caller never stated. The message assertion is what separates the two refusals — the
+    /// conflict message does not say "blank entry".</para>
+    /// </summary>
+    [Fact]
+    public void A_basis_that_pins_a_blank_entry_is_refused_by_name()
+    {
+        var mine = CreateEd25519Key().PublicKeyBase64;
+        var policy = Policy(mine);
+
+        var nullEntry = () => policy.Apply(new CertificationVerifyOptions
+        {
+            TrustedEd25519PublicKeys = new[] { mine, null! },
+        });
+        nullEntry.Should().Throw<CertificationTrustConfigurationException>(
+                "a null entry is a key no signature can match, and the answer to it is this type's "
+                + "own named refusal rather than whatever StringComparer.Ordinal does with null")
+            .WithMessage("*blank entry*");
+
+        var whitespaceEntry = () => policy.Apply(new CertificationVerifyOptions
+        {
+            TrustedEd25519PublicKeys = new[] { mine, "   " },
+        });
+        whitespaceEntry.Should().Throw<CertificationTrustConfigurationException>(
+                "whitespace is refused for the same reason and with the same message, so the two "
+                + "cannot diverge later")
+            .WithMessage("*blank entry*");
+
+        policy.Apply(new CertificationVerifyOptions { TrustedEd25519PublicKeys = new[] { mine } })
+            .TrustedEd25519PublicKeys.Should().BeEquivalentTo(
+                new[] { mine },
+                "the same basis without the hole is the same set as the configuration and must "
+                + "still pass, or the guard has turned an honest basis into a startup failure");
+    }
+
+    /// <summary>
+    /// Fact (a) on a fourth production consumer: the composition lane's constituent check.
+    ///
+    /// <para>Of the seven wiring sites, three were unfalsifiable even after the first round — with
+    /// nothing configured <c>Ambient.Strict</c> IS the <c>Strict</c> preset instance, so reverting a
+    /// call site to the bare preset is invisible to every test that configures no policy. This one
+    /// has the same seam the registry and the hot-swap host have (an optional
+    /// <c>CertificationTrustPolicy</c> parameter), so it takes a behavioural fact rather than a
+    /// disclosure: a composition whose constituent record was signed by an unpinned key must fail
+    /// the check, and the identical composition under a policy pinned to the minting key must
+    /// pass.</para>
+    ///
+    /// <para>The positive control is load-bearing here for the usual reason: <c>Check</c> reports a
+    /// violation for a missing record, an unadmitted record and a bad signature alike, so a failure
+    /// alone would prove nothing about pinning.</para>
+    /// </summary>
+    [Fact]
+    public void A_configured_pinning_set_makes_the_composition_constituent_check_refuse_a_foreign_signer()
+    {
+        var ours = CreateEd25519Key();
+        var theirs = CreateEd25519Key();
+        var brickId = "pinned-constituent-" + Guid.NewGuid().ToString("N")[..8];
+        var store = new InMemoryCertificationRecordStore();
+        store.Save(new CertificationRecordSigner(
+                hmacKey: StoreHmacKey,
+                ed25519PrivateKeyBase64: theirs.PrivateKeyBase64)
+            .SignRecord(UnsignedRecord(brickId)));
+        var verifier = new CertificationRecordSigner(hmacKey: StoreHmacKey);
+        var spec = new CompositionSpec(
+            "pinned-composition",
+            new[] { new CompositionNode("only-node", brickId) },
+            Array.Empty<CompositionEdge>(),
+            Array.Empty<CompositionPort>(),
+            Array.Empty<CompositionPort>());
+
+        var foreign = CompositionConstituentChecker.Check(
+            spec, store, verifier, trustPolicy: Policy(ours.PublicKeyBase64));
+
+        foreign.Passed.Should().BeFalse(
+            "the constituent's record is signed by a key this operator did not pin, and without a "
+            + "pinning set the check only asks whether the record is self-consistent");
+        foreign.Violations.Should().ContainSingle()
+            .Which.Should().Contain(
+                "invalid certification signature",
+                "the violation must be the SIGNATURE one — a missing or unadmitted record produces "
+                + "its own violation, and either would satisfy a bare Passed==false");
+
+        CompositionConstituentChecker
+            .Check(spec, store, verifier, trustPolicy: Policy(theirs.PublicKeyBase64))
+            .Passed.Should().BeTrue(
+                "pinned to the key that minted it, the identical composition must pass — otherwise "
+                + "the refusal above proves nothing about pinning");
     }
 
     /// <summary>
