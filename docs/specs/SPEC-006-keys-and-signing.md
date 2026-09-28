@@ -508,12 +508,18 @@ Rules:
 
   Conformance, in cert-gate: `GateRecordStoreIdentityTests` (the refusal; the compatibility; the
   identity being under BOTH signatures, so it cannot be relabelled; its stability across repeated
-  activation, `--repair` over a deleted marker, and the replacement of a foreign marker; that a marker
-  this reader IGNORES contributes no identity and a replaced foreign marker's DECLARED identity is
-  discarded, which is the half that stops the rule being inverted into a brick; that a KEYLESS reader
-  binds none and still reads its own records under a planted marker and record; and that two
-  disagreeing identities carry forward neither), with `GateSignatureResidualTests` carrying what stays
-  open.
+  activation, `--repair` over a deleted marker, a CONTESTED marker whose surviving record names
+  another store — the leg that pins the marker outranking the records, without which the stability
+  fact held equally against a build that read the records instead — and the replacement of a foreign
+  marker; the minted value's SHAPE, being 32 lowercase hex characters and distinct across mints, with
+  the entropy left to a review of the one line that mints it rather than claimed by a test that cannot
+  reach it; that a marker this reader IGNORES contributes no identity and a replaced foreign marker's
+  DECLARED identity is discarded, which is the half that stops the rule being inverted into a brick;
+  that a KEYLESS reader binds none and still reads its own records under a planted marker and record;
+  and that two disagreeing identities carry forward neither), with `GateSignatureResidualTests`
+  carrying what stays open — including the keyless bound, which has a row in that class's inventory
+  and an inverted fact of its own, because a fact asserting that the store still WORKS cannot go red
+  on the day the protection is regained.
 
 ## 5. What v1 explicitly does not claim
 

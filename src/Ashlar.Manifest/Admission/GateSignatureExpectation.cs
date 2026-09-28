@@ -121,21 +121,39 @@ public sealed record GateSignatureExpectation(
 
             // WHICH STORE (S-7). The signature proves the key; it never proved the place. Both sides
             // must be present for this to bite, and each null is a deliberate acceptance documented
-            // on the members: a record with no identity predates the field, and a store with no
-            // identity has no honoured marker to attest one. OrdinalIgnoreCase because the value is
-            // hex, for the same reason the pinned hash is compared that way: refusing a store
-            // because another writer spelled the same identity in uppercase would be a brick whose
-            // two strings look identical in the message.
+            // on the members: a record with no identity predates the field, and a null StoreId here
+            // means THIS READER bound none.
+            //
+            // Do not read that second null as "there is no honoured marker" — it was written that
+            // way once and it is false. A KEYLESS reader can honour a marker that names a store and
+            // still bind nothing, because keyless honouring is corroboration by a record under the
+            // marker's own key, an actor who can write the state root supplies both halves of that
+            // pair, and an identity taken from it would be the attacker's. So the null arises from
+            // four states, not three: no marker, a marker this reader ignores, one minted before
+            // S-7, or an honoured marker this reader holds no KEY MATERIAL to vouch for. The last is
+            // the one a future reader is most likely to mistake for a bug.
+            //
+            // OrdinalIgnoreCase because the value is hex, for the same reason the pinned hash is
+            // compared that way: refusing a store because another writer spelled the same identity
+            // in uppercase would be a brick whose two strings look identical in the message.
             if (StoreId is not null
                 && record.StoreId is not null
                 && !string.Equals(record.StoreId, StoreId, StringComparison.OrdinalIgnoreCase))
             {
+                // What this message may claim is bounded by what the leg above compared: two
+                // identities, and nothing else. It must NOT say "under the same operator key" — it
+                // was worded that way once and the leg never looked at a key. After a key rotation
+                // the record and this store's marker are legitimately signed by two different
+                // vouched-for keys, and the refusal still fires.
                 return $"Corrupt gate record: {fileName} is signed for store '{record.StoreId}', and this store is "
-                    + $"'{StoreId}'. A verdict names the store it was decided in INSIDE its own signed bytes, so this "
-                    + "file is a copy taken from another store under the same operator key: the signature verifies, "
-                    + "the id matches its file name, and none of that makes it a decision anybody made here. It "
-                    + "cannot anchor this store or spend its self-extension budget. Refusing to operate — a forged "
-                    + "verdict is worse than a missing one. Remove the copied file; this store never wrote it.";
+                    + $"'{StoreId}'. A verdict names the store it was decided in INSIDE its own signed bytes, so "
+                    + "these bytes were signed for another store and copied in here. What that establishes is this "
+                    + "and no more: the signature verifies under a key this machine vouches for, the id matches its "
+                    + "file name — S-1 and S-6 both pass — and the two identities disagree. No KEYS were compared "
+                    + "here, so this is not a claim that one operator key signed both; after a key rotation two "
+                    + "different vouched-for keys are the ordinary case. It cannot anchor this store or spend its "
+                    + "self-extension budget. Refusing to operate — a forged verdict is worse than a missing one. "
+                    + "Remove the copied file; this store never wrote it.";
             }
         }
         else if (Expected && Grandfathered is not null)

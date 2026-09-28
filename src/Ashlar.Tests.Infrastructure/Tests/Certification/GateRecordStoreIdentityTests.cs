@@ -272,6 +272,18 @@ public sealed class GateRecordStoreIdentityTests : IDisposable
     /// store it was reached for — the failure shape this rule's own activation refusal exists to
     /// avoid. The inheritance is bounded and disclosed: only a record signed under a key this machine
     /// vouches for can contribute an identity, and two disagreeing identities yield neither.</para>
+    ///
+    /// <para><b>The fourth leg exists because the first three did not pin the line this fact
+    /// names.</b> A re-mint over a vouched-for marker reads
+    /// <c>existing.StoreId ?? inheritStoreId ?? NewStoreId()</c>, and in the three arrangements above
+    /// the marker's identity and the one the store's records name are the SAME value — so deleting
+    /// the marker's half of that expression left this fact green, which a review measured. The fourth
+    /// leg makes the two sources DISAGREE, both non-null: B's marker still says what it always said,
+    /// and the only verifying record left in B is a copy that names the sibling. The marker wins,
+    /// because it is the artefact the operator's key attested; a build that preferred the records
+    /// would let one planted file choose the name the operator's own repair verb signs, which is the
+    /// same inversion <see cref="An_ignored_marker_contributes_no_store_identity"/> refuses on the
+    /// read side.</para>
     /// </summary>
     [Fact]
     public async Task The_store_identity_survives_repeated_activation_and_a_repair()
@@ -281,7 +293,10 @@ public sealed class GateRecordStoreIdentityTests : IDisposable
         await store.RecordAsync(Proposal("ext-b1"), Held(), T0);
 
         var minted = GateSigningActivation.TryRead(_stateB)!.StoreId;
-        minted.Should().NotBeNull();
+        minted.Should().NotBeNullOrEmpty(
+            "every assertion in this fact compares against this value, and Be(null) passes when both "
+            + "sides are null — so without a non-null arrange guard the whole fact would hold against "
+            + "a build that mints no identity at all");
 
         var again = await new GateStore(_stateB, signer).ActivateSigningAsync(T0.AddHours(1));
         again.WasAlreadyActive.Should().BeTrue();
@@ -303,6 +318,51 @@ public sealed class GateRecordStoreIdentityTests : IDisposable
         (await new GateStore(_stateB, signer).ListAsync()).Should().ContainSingle(
             "and the store reads afterwards, which is the only proof that the carried-forward "
             + "identity is the one the records name");
+
+        // ── the two sources made to DISAGREE, which is what pins the marker's half of the expression ──
+        var a = new GateStore(_stateA, signer);
+        await a.RecordAsync(Proposal("ext-a1"), Held(), T0);
+        var identityA = GateSigningActivation.TryRead(_stateA)!.StoreId;
+        identityA.Should().NotBeNullOrEmpty().And.NotBe(minted,
+            "the sibling must name a DIFFERENT store, or this leg is the third one again and the "
+            + "marker's half of the expression stays unmeasured");
+
+        // B's own record is moved OUT of gates/ rather than deleted: parking it inside would either
+        // trip the file-name refusal or leave a second vote, and the tail below needs it back to show
+        // the kept identity is still the one B's own verdict names. The copy is then the only
+        // verifying record here, so the identity the records agree on is the sibling's while the
+        // marker still carries B's.
+        var parked = Path.Combine(_root, "parked-ext-b1.json");
+        File.Move(RecordFileIn(_stateB, "ext-b1"), parked);
+        File.Copy(RecordFileIn(_stateA, "ext-a1"), RecordFileIn(_stateB, "ext-a1"));
+
+        JsonSerializer.Deserialize<GateRecord>(
+                File.ReadAllText(RecordFileIn(_stateB, "ext-a1")), Json)!.StoreId
+            .Should().Be(identityA,
+                "the plant must really name the sibling inside its signed bytes, or the two sources "
+                + "still agree and the assertion below cannot tell which one the re-mint read");
+        GateSigningActivation.TryRead(_stateB)!.StoreId.Should().Be(minted,
+            "and B's marker must still carry its own identity, or there is nothing here to keep");
+
+        var contested = await new GateStore(_stateB, signer).ActivateSigningAsync(T0.AddHours(4), repair: true);
+        contested.Marker.StoreId.Should().Be(minted,
+            "a repair keeps the identity the HONOURED MARKER carries: that is the one artefact here "
+            + "the operator's key attested, and it outranks what the files in gates/ name")
+            .And.NotBe(identityA,
+            "and it does NOT adopt what a planted file names. Dropping the marker's half of "
+            + "`existing.StoreId ?? inheritStoreId ?? NewStoreId()` reads the records instead, which "
+            + "hands anyone who can write gates/ the name the operator's own repair verb then signs — "
+            + "and every record B really wrote would be refused under it");
+
+        // Put B back as it was, so the tail proves the kept identity is B's own records' identity.
+        File.Delete(RecordFileIn(_stateB, "ext-a1"));
+        File.Move(parked, RecordFileIn(_stateB, "ext-b1"));
+        var recovered = new GateStore(_stateB, signer);
+        (await recovered.ListAsync()).Should().ContainSingle(
+            "with the copy removed B reads its own record again — the contest changed nothing about B");
+        recovered.SignatureTrust!.StoreId.Should().Be(minted,
+            "under the identity it has carried through repeated activation, a repair, a deleted marker "
+            + "and a contested one, which is what stability means for this field");
     }
 
     /// <summary>
@@ -569,6 +629,91 @@ public sealed class GateRecordStoreIdentityTests : IDisposable
             .And.NotBe(identityB,
             "and not the store's own either, because this code cannot tell which of two disagreeing "
             + "records was signed somewhere else. Neither, and a fresh one, is the only honest answer");
+    }
+
+    /// <summary>
+    /// The minted identity's normative SHAPE — and an explicit statement of the half of the normative
+    /// sentence a fact cannot reach. SPEC-006 S-7 makes the value "32 lowercase hex characters over
+    /// 128 cryptographically random bits" normative, and nothing asserted any of it: measured on this
+    /// branch, <c>ToUpperInvariant()</c> left the whole gate green DETERMINISTICALLY, because every
+    /// comparison on this field is deliberately <c>OrdinalIgnoreCase</c>, and <c>GetBytes(2)</c> left
+    /// it green almost always.
+    ///
+    /// <para><b>What is provable here, and what is NOT.</b> Length, alphabet, case and DISTINCTNESS
+    /// across mints are properties of a sample, and they are asserted. ENTROPY is not, and this fact
+    /// does not pretend to it: no number of samples distinguishes 128 random bits from 128 bits of a
+    /// counter nobody has watched roll over, so an assertion dressed up as a randomness test would be
+    /// exactly the covered debt this repository keeps paying for. The one thing that establishes the
+    /// entropy is reading the single line that mints it — <c>RandomNumberGenerator.GetBytes(16)</c> in
+    /// <see cref="GateSigningActivation.NewStoreId"/> — and what this fact does is pin the shape any
+    /// substitution there would also have to reproduce, which is what makes the review of that line a
+    /// narrow one rather than a broad one.</para>
+    ///
+    /// <para><b>Why the shape is load-bearing rather than cosmetic.</b> The LENGTH is the collision
+    /// resistance, and collision resistance is the whole of what stops an actor who can write the
+    /// state root from GUESSING the identity of the store they are copying into — the attack the
+    /// "minted, never derived" clause exists to prevent, and the one property a shorter value would
+    /// silently give away. The CASE is load-bearing in the opposite direction: because the comparison
+    /// legs are OrdinalIgnoreCase on purpose (refusing a store over two strings that look identical in
+    /// the message would be a brick with no diagnosis), an implementation that emitted uppercase would
+    /// keep working while making the normative sentence false. No comparison in the system can catch
+    /// that, which is why it is asserted at the mint.</para>
+    ///
+    /// <para><b>Both paths, deliberately.</b> The value on a real marker is asserted, so the shape is
+    /// pinned where an operator actually meets it, and a batch straight from
+    /// <see cref="GateSigningActivation.NewStoreId"/> is asserted too, because distinctness needs more
+    /// samples than one store's activation produces.</para>
+    /// </summary>
+    [Fact]
+    public async Task The_minted_store_identity_is_thirty_two_lowercase_hex_characters_and_distinct_per_mint()
+    {
+        const string HexLower = "0123456789abcdef";
+        const int Samples = 64;
+
+        // First the value an operator actually gets, through the path a real store takes.
+        var signer = OperatorKey.Generate(_keyDir);
+        await new GateStore(_stateB, signer).RecordAsync(Proposal("ext-b1"), Held(), T0);
+        var onTheMarker = GateSigningActivation.TryRead(_stateB)!.StoreId;
+        onTheMarker.Should().NotBeNull(
+            "activation mints one, and every assertion below is about that value rather than about a "
+            + "build in which the field is never filled in");
+        onTheMarker!.Should().HaveLength(32,
+            "SPEC-006 S-7 makes 32 lowercase hex characters over 128 random bits normative, and the "
+            + "length is the collision resistance: a shorter value lets an actor who can write the "
+            + "state root GUESS the identity of the store they are copying into, which is precisely "
+            + "what the minted-never-derived clause exists to stop. GetBytes(2) is caught here and "
+            + "nowhere else");
+        onTheMarker.Where(c => !HexLower.Contains(c, StringComparison.Ordinal)).Should().BeEmpty(
+            "lowercase hex and nothing else. Every comparison on this field is OrdinalIgnoreCase on "
+            + "purpose, so an uppercase or non-hex value would keep WORKING while making the normative "
+            + "sentence false — no comparison in the system can catch that, so it is caught at the "
+            + "mint. Offending characters, if any, are listed above");
+
+        // Two real stores must not share one, which is the same property as distinctness but through
+        // the path that matters. The sample below is what makes that more than an anecdote.
+        var a = new GateStore(_stateA, signer);
+        await a.RecordAsync(Proposal("ext-a1"), Held(), T0);
+        GateSigningActivation.TryRead(_stateA)!.StoreId.Should().NotBe(onTheMarker,
+            "two stores activated under one operator key get different identities, or S-7 refuses "
+            + "nothing at all");
+
+        // DISTINCTNESS, compared the way the store compares: two values differing only in case are
+        // the SAME identity to every leg that reads this field, so OrdinalIgnoreCase is the honest
+        // comparer here and Ordinal would overstate the result.
+        var mints = Enumerable.Range(0, Samples)
+            .Select(_ => GateSigningActivation.NewStoreId())
+            .ToList();
+        mints.Where(id => id.Length != 32).Should().BeEmpty(
+            "the shape holds for every mint and not only for the one a store happened to write");
+        mints.SelectMany(id => id).Where(c => !HexLower.Contains(c, StringComparison.Ordinal))
+            .Should().BeEmpty("and so does the alphabet");
+        mints.Distinct(StringComparer.OrdinalIgnoreCase).Should().HaveCount(Samples,
+            "and {0} mints yield {0} distinct identities. This is DISTINCTNESS, not randomness: it "
+            + "refuses a constant, a counter reset per process, and a value derived from the store, "
+            + "and it says nothing whatever about the quality of the bits. That property is "
+            + "established by reading RandomNumberGenerator.GetBytes(16) at the mint and by nothing "
+            + "a test can assert",
+            Samples);
     }
 
     private static ExtensionProposal Proposal(string id) => new()
