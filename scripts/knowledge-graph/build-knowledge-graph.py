@@ -31,6 +31,18 @@ The verifier compares a regeneration against the committed file, so any nondeter
 into a coin flip that everyone learns to rerun. No timestamps, no absolute paths, no set iteration
 order: every collection is sorted before it is written.
 
+Two specific hazards, both found by this gate failing on its own first CI run:
+
+* **Sort by STRING, never by `Path`.** `pathlib.Path` compares case-insensitively on Windows and
+  case-sensitively on POSIX, so `sorted(root.glob(...))` puts `Tests/API` before `Tests/Adaptation`
+  on Linux and after it on Windows. Same files, different order, different artifact — a Windows
+  contributor could never make the gate pass. Every sort here is keyed on a POSIX-relative string.
+
+* **Enumerate from git, not from the filesystem.** A glob picks up whatever happens to be lying in a
+  working directory — a stray file, a leftover build output, an agent worktree — so the artifact
+  would depend on the machine that generated it. `git ls-files` is the repository, which is what this
+  graph claims to describe, and it excludes ignored files for free.
+
 Run:  python3 scripts/knowledge-graph/build-knowledge-graph.py
       python3 scripts/knowledge-graph/build-knowledge-graph.py --stdout   # print, write nothing
 """
@@ -39,6 +51,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -71,6 +84,21 @@ def rel(root: Path, path: Path) -> str:
     return path.relative_to(root).as_posix()
 
 
+def tracked(root: Path, *prefixes: str, suffix: str) -> list[str]:
+    """Repository-relative POSIX paths git tracks, sorted as STRINGS.
+
+    Not a filesystem glob, and not sorted as Path objects. Both of those make the artifact depend on
+    the machine that produced it — a glob picks up untracked build output and agent worktrees, and
+    Path sorts case-insensitively on Windows only. Both were real: this gate failed its own first CI
+    run because Windows ordered `Tests/API` after `Tests/Adaptation` and Linux ordered it before.
+    """
+    out = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z", "--", *prefixes],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    return sorted(p for p in out.split("\0") if p and p.endswith(suffix))
+
+
 def cert_gate_namespaces(root: Path) -> list[str]:
     """The namespace prefixes cert-gate selects, read from its single source of truth.
 
@@ -88,9 +116,9 @@ def cert_gate_namespaces(root: Path) -> list[str]:
 
 def collect_projects(root: Path) -> dict[str, dict]:
     projects: dict[str, dict] = {}
-    for csproj in sorted(root.glob("src/**/*.csproj")) + sorted(root.glob("application/**/*.csproj")):
+    for path in tracked(root, "src", "application", suffix=".csproj"):
+        csproj = root / path
         text = read(csproj)
-        path = rel(root, csproj)
         name = csproj.stem
         tfms = TARGET_FRAMEWORKS.search(text)
         refs = []
@@ -133,15 +161,14 @@ def collect_config_variables(root: Path, projects: dict[str, dict]) -> list[dict
     in_reference = set(re.findall(r"ASHLAR_[A-Z0-9_]+", read(doc))) if doc.is_file() else set()
 
     anywhere: set[str] = set()
-    for md in sorted((root / "docs").rglob("*.md")):
-        if rel(root, md) in GENERATED_ARTIFACTS:
+    for path in tracked(root, "docs", suffix=".md"):
+        if path in GENERATED_ARTIFACTS:
             continue
-        anywhere.update(re.findall(r"ASHLAR_[A-Z0-9_]+", read(md)))
+        anywhere.update(re.findall(r"ASHLAR_[A-Z0-9_]+", read(root / path)))
 
     found: dict[str, set[str]] = {}
-    for source in sorted(root.glob("src/**/*.cs")) + sorted(root.glob("application/**/*.cs")):
-        if "/obj/" in source.as_posix() or "/bin/" in source.as_posix():
-            continue
+    for path in tracked(root, "src", "application", suffix=".cs"):
+        source = root / path
         names = set(ASHLAR_VAR.findall(read(source)))
         if not names:
             continue
@@ -169,10 +196,8 @@ def collect_config_variables(root: Path, projects: dict[str, dict]) -> list[dict
 
 def collect_test_facts(root: Path, projects: dict[str, dict], gate_namespaces: list[str]) -> list[dict]:
     out = []
-    for source in sorted(root.glob("src/**/*.cs")) + sorted(root.glob("application/**/*.cs")):
-        posix = source.as_posix()
-        if "/obj/" in posix or "/bin/" in posix:
-            continue
+    for path in tracked(root, "src", "application", suffix=".cs"):
+        source = root / path
         text = read(source)
         count = len(XUNIT_FACT.findall(text))
         if count == 0:
@@ -180,7 +205,7 @@ def collect_test_facts(root: Path, projects: dict[str, dict], gate_namespaces: l
         ns_match = NAMESPACE.search(text)
         namespace = ns_match.group(1) if ns_match else ""
         out.append({
-            "file": rel(root, source),
+            "file": path,
             "project": owning_project(root, source, projects) or "(unowned)",
             "namespace": namespace,
             "declared_facts": count,
@@ -188,12 +213,15 @@ def collect_test_facts(root: Path, projects: dict[str, dict], gate_namespaces: l
             # required lives in branch protection, which cannot be read here.
             "in_cert_gate_filter": any(namespace.startswith(ns) for ns in gate_namespaces),
         })
-    return out
+    # Sorted again on the emitted key, so output order cannot depend on traversal order even if the
+    # enumeration above is ever changed.
+    return sorted(out, key=lambda e: e["file"])
 
 
 def collect_workflows(root: Path) -> list[dict]:
     out = []
-    for wf in sorted((root / ".github/workflows").glob("*.yml")):
+    for path in tracked(root, ".github/workflows", suffix=".yml"):
+        wf = root / path
         text = read(wf)
         name_match = WORKFLOW_NAME.search(text)
         triggers = sorted({
@@ -201,11 +229,11 @@ def collect_workflows(root: Path) -> list[dict]:
             if re.search(rf"^\s{{2,}}{t}:", text, re.MULTILINE)
         })
         out.append({
-            "file": rel(root, wf),
+            "file": path,
             "name": (name_match.group(1).strip().strip("\"'") if name_match else wf.stem),
             "triggers": triggers,
         })
-    return out
+    return sorted(out, key=lambda e: e["file"])
 
 
 def build(root: Path) -> dict:

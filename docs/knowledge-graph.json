@@ -2568,6 +2568,216 @@
   ],
   "test_files": [
     {
+      "file": "application/src/Ashlar.Tests.CLI/Framework/UnitTestBridgeTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Framework",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/BrickAuthoringPublicApiSnapshotTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/CertifyCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/CloudBundleTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 8,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/DisarmBackgroundAgentCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/DoctorProjectReadinessTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ForgeRelatedCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 14,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/HelloBrickSampleSmokeTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/InitCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshAutoPullServiceTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshDiscoveryTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshLanPartyTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshTlsTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/NativeBundleTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/NewCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ObjectivesBackgroundAgentCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 7,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ObservationsBackgroundAgentCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PkgCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PolicyCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 18,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ProposalsBackgroundAgentCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ReportBackgroundAgentCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/RootCommandRegistrationTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 11,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/RuntimeStudioOperatorDashboardSummaryTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/SafePackageReadTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 7,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/SelfExtendAutoShareEnvTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/StatsBackgroundAgentCommandTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/TailnetPeerSourceTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/Workflow/WorkflowOptimizeReportRendererTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands.Workflow",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Formatting/ValidationResultRenderingTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Formatting",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Output/UntrustedTextTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Output",
+      "declared_facts": 13,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Agents.TestKit/AgentProfileConformanceTests.cs",
       "project": "Ashlar.Agents.TestKit",
       "namespace": "Ashlar.Agents.TestKit",
@@ -3954,6 +4164,97 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/ApiDevelopmentHostDiTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarApiKeyAuthMiddlewareTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 16,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarApiOpenInternetReadinessTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarHttpOrgTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarHttpTenantTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/CapabilitiesEndpointTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/CopilotSubmissionQuotaTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/DirectorEndpointsTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/MeshSecurityMiddlewareTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/PrivateLicenseMiddlewareTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/PrivateLicenseValidatorTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/RuntimeStudioMetricsEndpointTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/SecurityAdvisoryEndpointTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Adaptation/AdaptationBrickRegistrationTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Adaptation",
@@ -4108,97 +4409,6 @@
       "in_cert_gate_filter": false
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/ApiDevelopmentHostDiTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarApiKeyAuthMiddlewareTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 16,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarApiOpenInternetReadinessTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 6,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarHttpOrgTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 2,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/AshlarHttpTenantTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 4,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/CapabilitiesEndpointTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/CopilotSubmissionQuotaTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/DirectorEndpointsTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 2,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/MeshSecurityMiddlewareTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 5,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/PrivateLicenseMiddlewareTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 4,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/PrivateLicenseValidatorTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 3,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/RuntimeStudioMetricsEndpointTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/API/SecurityAdvisoryEndpointTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.API",
-      "declared_facts": 2,
-      "in_cert_gate_filter": false
-    },
-    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Autonomy/AutonomyCompositionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Autonomy",
@@ -4329,6 +4539,41 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/FullPipelineE2ETests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/Phases14CliE2ETests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
+      "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/Phases59CliE2ETests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
+      "declared_facts": 7,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/RuntimeStudioBlackBoxPlaygroundTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/RuntimeStudioBlackBoxSmokeTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {
@@ -4948,17 +5193,17 @@
       "in_cert_gate_filter": true
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/TrustedKeyPinningConfigurationTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 19,
-      "in_cert_gate_filter": true
-    },
-    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/TrustLoopRecordSchemaTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 17,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/TrustedKeyPinningConfigurationTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 19,
       "in_cert_gate_filter": true
     },
     {
@@ -5002,41 +5247,6 @@
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 4,
       "in_cert_gate_filter": true
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/FullPipelineE2ETests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
-      "declared_facts": 2,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/Phases14CliE2ETests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
-      "declared_facts": 5,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/Phases59CliE2ETests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
-      "declared_facts": 7,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/RuntimeStudioBlackBoxPlaygroundTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
-      "declared_facts": 3,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/CLI/RuntimeStudioBlackBoxSmokeTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
-      "declared_facts": 11,
-      "in_cert_gate_filter": false
     },
     {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Client/AshlarClientInvokeAsyncTests.cs",
@@ -5312,17 +5522,17 @@
       "in_cert_gate_filter": false
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/HotSwappableModelGapCoverageTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 5,
-      "in_cert_gate_filter": false
-    },
-    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/HotSwapTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
       "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/HotSwappableModelGapCoverageTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
+      "declared_facts": 5,
       "in_cert_gate_filter": false
     },
     {
@@ -5970,14 +6180,14 @@
       "in_cert_gate_filter": false
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/Pipelines/InfrastructurePipelinesGapCoverageTests.cs",
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Pipelines/InMemoryPipelineRunStoreTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Pipelines",
       "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/Pipelines/InMemoryPipelineRunStoreTests.cs",
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Pipelines/InfrastructurePipelinesGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Pipelines",
       "declared_facts": 3,
@@ -6180,6 +6390,27 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/SDK/AshlarSdkTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.SDK",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/SDK/HostAshlarSdkBuilderGapCoverageTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.SDK",
+      "declared_facts": 7,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/SDK/InfrastructureSdkGapCoverageTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.SDK",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Safety/FailClosedTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Safety",
@@ -6240,27 +6471,6 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Scaling",
       "declared_facts": 3,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/SDK/AshlarSdkTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.SDK",
-      "declared_facts": 3,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/SDK/HostAshlarSdkBuilderGapCoverageTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.SDK",
-      "declared_facts": 7,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/SDK/InfrastructureSdkGapCoverageTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.SDK",
-      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {
@@ -6418,13 +6628,6 @@
       "in_cert_gate_filter": false
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/Trust/InfrastructureTrustGapCoverageTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.Trust",
-      "declared_facts": 6,
-      "in_cert_gate_filter": false
-    },
-    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Trust/InMemoryUserKnowledgeLogStoreGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Trust",
@@ -6433,6 +6636,13 @@
     },
     {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Trust/InMemoryUserKnowledgeLogStoreTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Trust",
+      "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Trust/InfrastructureTrustGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Trust",
       "declared_facts": 6,
@@ -7430,216 +7640,6 @@
       "project": "Ashlar.Transport.A2A.Tests",
       "namespace": "Ashlar.Transport.A2A.Tests",
       "declared_facts": 6,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Framework/UnitTestBridgeTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Framework",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/BrickAuthoringPublicApiSnapshotTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/CertifyCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 10,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/CloudBundleTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 8,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/DisarmBackgroundAgentCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 2,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/DoctorProjectReadinessTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 5,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ForgeRelatedCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 14,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/HelloBrickSampleSmokeTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/InitCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 3,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshAutoPullServiceTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 5,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshDiscoveryTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 10,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshLanPartyTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 10,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshTlsTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 3,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/NativeBundleTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 6,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/NewCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 4,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ObjectivesBackgroundAgentCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 7,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ObservationsBackgroundAgentCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 6,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PkgCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 10,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PolicyCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 18,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ProposalsBackgroundAgentCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 10,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ReportBackgroundAgentCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 4,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/RootCommandRegistrationTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 11,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/RuntimeStudioOperatorDashboardSummaryTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/SafePackageReadTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 7,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/SelfExtendAutoShareEnvTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 2,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/StatsBackgroundAgentCommandTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 4,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/TailnetPeerSourceTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 4,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/Workflow/WorkflowOptimizeReportRendererTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Commands.Workflow",
-      "declared_facts": 4,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Formatting/ValidationResultRenderingTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Formatting",
-      "declared_facts": 1,
-      "in_cert_gate_filter": false
-    },
-    {
-      "file": "application/src/Ashlar.Tests.CLI/Tests/Output/UntrustedTextTests.cs",
-      "project": "Ashlar.Tests.CLI",
-      "namespace": "Ashlar.Tests.CLI.Tests.Output",
-      "declared_facts": 13,
       "in_cert_gate_filter": false
     }
   ],
