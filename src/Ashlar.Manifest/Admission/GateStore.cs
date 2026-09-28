@@ -663,12 +663,18 @@ public sealed partial class GateStore
     /// is key material only — deriving it from the records would accept whatever key an attacker
     /// re-signed them all with.
     ///
-    /// <para><b>WHICH STORE this is (S-7).</b> The identity comes off the honoured marker and from
-    /// nowhere else, so it is attested by the operator's key rather than asserted by a file. A marker
-    /// this reader IGNORES contributes none: taking an identity from an unvouched-for marker would
-    /// let anyone who can write the state root declare this store to be the one whose records they
-    /// are copying in. A null identity — no marker, a foreign one, or one minted before S-7 — binds
-    /// nothing, which is the honest bound on the rule and not an oversight.</para>
+    /// <para><b>WHICH STORE this is (S-7).</b> The identity comes off an honoured marker THIS READER
+    /// HOLDS KEY MATERIAL FOR, and from nowhere else, so it is attested by the operator's key rather
+    /// than asserted by a file. A marker this reader IGNORES contributes none: taking an identity
+    /// from an unvouched-for marker would let anyone who can write the state root declare this store
+    /// to be the one whose records they are copying in. Neither does a marker a KEYLESS reader
+    /// honours, and that is the same rule rather than a second one: keyless honouring is
+    /// corroboration by a record under the marker's own key, and an actor who can write the state
+    /// root writes both halves, so the identity would be theirs — and the records refused as
+    /// "copies" would be the store's own. A null identity — no marker, a foreign one, one minted
+    /// before S-7, or no key material here to vouch for any of them — binds nothing. That is the
+    /// honest bound on the rule: a keyless consumer gets no S-7 protection, which is a disclosed
+    /// residual and not an oversight.</para>
     ///
     /// <para><b>What grandfathers an unsigned record.</b> An honoured marker carries its
     /// inventory onto the expectation and that is the whole answer: membership plus a hash, never
@@ -704,11 +710,25 @@ public sealed partial class GateStore
             {
                 expected = true;
                 inventory = marker.Grandfathered;   // non-null: TryRead refuses a marker without one
-                // WHICH STORE, from the one artefact here the operator's key signed, and only when
-                // this reader vouches for that key. Taking it off a marker this reader IGNORES would
-                // let anyone who can write the state root name this store whatever they like, and
-                // every record they copied in would then belong here.
-                storeId = marker.StoreId;
+                if (_trustedSigners.Count > 0)
+                {
+                    // WHICH STORE, off the one artefact here the operator's key signed — and ONLY
+                    // where KEY MATERIAL vouches for that signature. Two conditions, neither of
+                    // which subsumes the other. A marker this reader IGNORES contributes nothing, or
+                    // anyone who can write the state root could declare this store to be the one
+                    // whose records they are copying in. And a KEYLESS reader honours a marker
+                    // corroborated by a record under the same key — a pair whose BOTH halves the
+                    // same actor supplies — so an identity taken from it would be the attacker's,
+                    // and it is then the store's OWN genuine records that are refused, by a message
+                    // accusing them of being copies. That is this method's governing rule for the
+                    // pinning set applied to the identity: key material only, never derived from the
+                    // records, because a derivation accepts whatever an attacker re-signed them all
+                    // with. The cost is stated rather than hidden — a keyless consumer gets no S-7
+                    // protection at all — and it is the right side of the trade, because S-7 exists
+                    // to stop a copy anchoring a store, not to give an actor a new way to make a
+                    // store disown the verdicts it really wrote.
+                    storeId = marker.StoreId;
+                }
                 basis.Add($"signing activated {marker.ActivatedAt:u}"
                     + (_trustedSigners.Count > 0 ? " under a key this machine vouches for" : ", corroborated by a record under the same key")
                     + $", grandfathering {inventory!.Count} unsigned record(s)");

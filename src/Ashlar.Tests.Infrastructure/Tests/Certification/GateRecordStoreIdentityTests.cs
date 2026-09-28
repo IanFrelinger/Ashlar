@@ -37,6 +37,17 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// is still a residual. This class is the closure for the case that matters in a live store: the
 /// victim has adopted signing, so it has a marker, so it can say which store it is.</para>
 ///
+/// <para><b>Where the identity may NOT come from, which is half the rule and the half that can
+/// invert it.</b> A store binds an identity only off a marker it HONOURS and holds KEY MATERIAL for.
+/// An ignored marker contributes none, and neither does one a keyless reader honours by
+/// corroboration, because an actor who can write the state root supplies both halves of that
+/// corroboration. Get either wrong and S-7 stops refusing copies and starts making a store refuse the
+/// records it really wrote, on the say-so of one file the actor planted — so
+/// <see cref="An_ignored_marker_contributes_no_store_identity"/> and
+/// <see cref="A_keyless_reader_still_reads_its_own_records_under_a_planted_marker_and_record"/> are
+/// load-bearing rather than defensive, and each one plants a marker that DECLARES an identity, which
+/// no fact in this suite used to do.</para>
+///
 /// <para><b>Environment.</b> The pinning set comes from <c>ASHLAR_KEY_DIR</c>, read inside
 /// <see cref="GateStore"/>'s CONSTRUCTOR, so it is set before any store is built. The class writes a
 /// process-global variable and therefore joins the serialized collection, which is the remedy
@@ -308,12 +319,13 @@ public sealed class GateRecordStoreIdentityTests : IDisposable
         var store = new GateStore(_stateB, signer);
         await store.RecordAsync(Proposal("ext-b1"), Held(), T0);
         var minted = GateSigningActivation.TryRead(_stateB)!.StoreId;
+        minted.Should().NotBeNullOrEmpty(
+            "every assertion below compares against this value, and Be(null) passes — so without a "
+            + "non-null arrange guard this fact would hold equally against a build that mints no "
+            + "identity at all");
 
         var foreign = OperatorKey.Generate(_otherKeyDir);
-        File.WriteAllText(
-            GateSigningActivation.PathFor(_stateB),
-            JsonSerializer.Serialize(
-                GateSigningActivation.Signed(foreign, T0.AddYears(-20), [], storeId: null), Json));
+        PlantMarker(_stateB, foreign, T0.AddYears(-20), storeId: null);
         GateSigningActivation.TryRead(_stateB)!.Signer.Should().Be(foreign.PublicKeyBase64,
             "the planted marker must really be the foreign one, or this fact replaces nothing");
 
@@ -352,6 +364,211 @@ public sealed class GateRecordStoreIdentityTests : IDisposable
             + "empty rather than filled in with a store nobody attested. An identity on an unsigned "
             + "record would also move the canonical hash the grandfather inventory pins for exactly "
             + "these records");
+    }
+
+    /// <summary>
+    /// THE OTHER HALF OF THE RULE, and until this fact existed it had no test at all. A marker this
+    /// reader IGNORES contributes NO identity. The refusal fact above proves that a store which names
+    /// itself refuses a foreigner; this one proves the store only ever gets that name from a marker it
+    /// vouches for — which is what stops the rule being inverted.
+    ///
+    /// <para><b>The attack this closes.</b> An actor who can write the state root — the threat model
+    /// the whole rule assumes — overwrites B's marker with one signed under a key of their OWN that
+    /// declares A's identity, and copies A's signed admission into B. If an ignored marker could
+    /// contribute an identity, B would resolve itself as A: the copy would anchor B and spend B's
+    /// self-extension budget, and B's own records would be the ones refused. Every marker plant in
+    /// this suite before this fact passed <c>storeId: null</c>, so nothing exercised an unvouched
+    /// marker that DECLARES an identity, and hoisting the assignment out of the honoured branch left
+    /// the whole gate green.</para>
+    /// </summary>
+    [Fact]
+    public async Task An_ignored_marker_contributes_no_store_identity()
+    {
+        var signer = OperatorKey.Generate(_keyDir);
+
+        var a = new GateStore(_stateA, signer);
+        await a.RecordAsync(Proposal("ext-a1"), Held(), T0);
+        var identityA = GateSigningActivation.TryRead(_stateA)!.StoreId;
+
+        var b = new GateStore(_stateB, signer);
+        await b.RecordAsync(Proposal("ext-b1"), Held(), T0.AddMinutes(1));
+        var identityB = GateSigningActivation.TryRead(_stateB)!.StoreId;
+        identityA.Should().NotBeNullOrEmpty();
+        identityB.Should().NotBeNullOrEmpty().And.NotBe(identityA,
+            "the two identities must differ, or a marker declaring A's is indistinguishable from "
+            + "one declaring B's and this fact measures nothing");
+
+        var ownRecord = JsonSerializer.Deserialize<GateRecord>(
+            File.ReadAllText(RecordFileIn(_stateB, "ext-b1")), Json)!;
+        ownRecord.StoreId.Should().Be(identityB,
+            "B's own record must really name B inside its signed bytes, or there is nothing here for "
+            + "a wrongly-adopted identity to refuse");
+
+        // The actor cannot sign with the operator's key, so they bring their own — and they declare
+        // this store to be the one whose records they are copying in.
+        var attacker = OperatorKey.Generate(_otherKeyDir);
+        PlantMarker(_stateB, attacker, T0.AddMinutes(2), identityA);
+        var planted = GateSigningActivation.TryRead(_stateB)!;
+        planted.Signer.Should().Be(attacker.PublicKeyBase64,
+            "the plant must really be under a key this machine does not vouch for");
+        planted.StoreId.Should().Be(identityA,
+            "and it must really DECLARE the sibling's identity. A plant carrying no identity is the "
+            + "shape every other marker plant in this suite already had, and it cannot fail this way");
+
+        var reader = new GateStore(_stateB, signer);
+        (await reader.ListAsync()).Should().ContainSingle(
+            "B reads its OWN record. An identity taken off a marker B does not vouch for would make "
+            + "B call itself A, and B's genuine verdict would be refused as a copy — the rule "
+            + "inverted into a one-file brick by the actor it exists to stop");
+        reader.SignatureTrust!.Basis.Should().Contain("activation marker ignored",
+            "the marker must really have been IGNORED, or this fact is about a marker that failed to "
+            + "parse rather than about one this reader declined to believe");
+        reader.SignatureTrust.StoreId.Should().BeNull(
+            "and the posture names no store at all: the identity is attested by a marker this reader "
+            + "vouches for or it does not exist. Null binds nothing, which is the honest bound");
+    }
+
+    /// <summary>
+    /// The same rule on the WRITE side of the marker. The operator's plain verb replaces a foreign
+    /// marker, and the replacement takes the identity the store's own verifying records name — never
+    /// the one the foreign marker DECLARED.
+    ///
+    /// <para>Its sibling fact plants a foreign marker carrying no identity, which cannot distinguish
+    /// "ignores what the plant declared" from "there was nothing to take". This one declares the
+    /// sibling's identity, so an <c>existing.StoreId ??</c> added to the replacement — the one-token
+    /// tidy-up that would let an actor choose the victim's new name — reddens here and nowhere
+    /// else.</para>
+    /// </summary>
+    [Fact]
+    public async Task Replacing_a_foreign_marker_ignores_the_identity_that_marker_declared()
+    {
+        var signer = OperatorKey.Generate(_keyDir);
+
+        var a = new GateStore(_stateA, signer);
+        await a.RecordAsync(Proposal("ext-a1"), Held(), T0);
+        var identityA = GateSigningActivation.TryRead(_stateA)!.StoreId;
+
+        var b = new GateStore(_stateB, signer);
+        await b.RecordAsync(Proposal("ext-b1"), Held(), T0.AddMinutes(1));
+        var identityB = GateSigningActivation.TryRead(_stateB)!.StoreId;
+        identityA.Should().NotBeNullOrEmpty();
+        identityB.Should().NotBeNullOrEmpty().And.NotBe(identityA);
+
+        var foreign = OperatorKey.Generate(_otherKeyDir);
+        PlantMarker(_stateB, foreign, T0.AddYears(-20), identityA);
+        GateSigningActivation.TryRead(_stateB)!.StoreId.Should().Be(identityA,
+            "the plant must really declare the sibling's identity, or this fact cannot tell "
+            + "'ignored what it declared' from 'it declared nothing'");
+
+        var outcome = await new GateStore(_stateB, signer).ActivateSigningAsync(T0.AddHours(1));
+        outcome.ReplacedUnvouchedMarker.Should().BeTrue("the operator's verb replaces a foreign marker");
+        outcome.Marker.StoreId.Should().Be(identityB,
+            "the replacement keeps the identity B's own verifying records name, so the store still "
+            + "reads afterwards")
+            .And.NotBe(identityA,
+            "and it does NOT adopt what the foreign marker declared. Adopting it would let anyone who "
+            + "can write the state root choose the name the operator's own repair verb then signs");
+        (await new GateStore(_stateB, signer).ListAsync()).Should().ContainSingle(
+            "which is what that identity being the right one actually means");
+    }
+
+    /// <summary>
+    /// A reader holding NO key material must not be brickable by a plant. It honours a marker that a
+    /// record under the marker's own key corroborates — and an actor who can write the state root
+    /// supplies BOTH halves of that pair, so an identity taken from there is the ATTACKER's value.
+    /// Binding it would make the store refuse its own genuine records, with a message telling the
+    /// operator to delete the files it really wrote.
+    ///
+    /// <para><b>This is a regression fact, not a feature fact.</b> These same three files read clean
+    /// before S-7 existed, so the version of this rule that bound a keyless reader's identity turned a
+    /// hardening into a one-file denial of service. The remedy is the rule
+    /// <see cref="GateStore"/> already states for the pinning set — key material only, never derived
+    /// from the records, because a derivation accepts whatever key an attacker re-signed them all with
+    /// — applied to the identity as well. The cost is disclosed in SPEC-006: a keyless consumer gets
+    /// no S-7 protection at all.</para>
+    /// </summary>
+    [Fact]
+    public async Task A_keyless_reader_still_reads_its_own_records_under_a_planted_marker_and_record()
+    {
+        var signer = OperatorKey.Generate(_keyDir);
+        await new GateStore(_stateB, signer).RecordAsync(Proposal("ext-b1"), Held(), T0);
+        var identityB = GateSigningActivation.TryRead(_stateB)!.StoreId;
+        identityB.Should().NotBeNullOrEmpty("B's records name B, which is what a wrong identity refuses");
+
+        // The actor writes the state root and signs with their own key: a marker declaring a store of
+        // their choosing, plus one record under the same key to corroborate it.
+        var attacker = OperatorKey.Generate(_otherKeyDir);
+        var declared = GateSigningActivation.NewStoreId();
+        declared.Should().NotBe(identityB);
+        PlantMarker(_stateB, attacker, T0.AddMinutes(5), declared);
+        PlantSignedRecord(_stateB, "ext-evil", declared, attacker);
+
+        // A consumer with no key material at all — `ashlar gates` on a machine that never ran
+        // `keys init`. The directory exists and is empty: keyless means yielding nothing, not throwing.
+        var noKeys = Path.Combine(_root, "no-keys");
+        Directory.CreateDirectory(noKeys);
+        Environment.SetEnvironmentVariable(KeyDirVariable, noKeys);
+
+        var reader = new GateStore(_stateB);
+        var read = await reader.ListAsync();
+        read.Select(r => r.Proposal.Id).Should().Contain("ext-b1",
+            "the store's OWN record is still readable. Taking the identity off a marker this reader "
+            + "cannot vouch for would refuse it — and the refusal would say 'Remove the copied file; "
+            + "this store never wrote it' about a file this store did write");
+        (await reader.GetAsync("ext-b1")).Should().NotBeNull(
+            "and through the single-record funnel too, because both read the one posture");
+        reader.SignatureTrust!.Basis.Should().Contain("corroborated by a record under the same key",
+            "the marker really IS honoured by this reader, and by exactly the corroboration the actor "
+            + "supplied both halves of — without that, this fact is about an ignored marker and "
+            + "measures the sibling rule instead of this one");
+        reader.SignatureTrust.StoreId.Should().BeNull(
+            "so the posture binds no identity: honouring a marker is not vouching for it. A keyless "
+            + "consumer gets no S-7 protection, which SPEC-006 discloses, and that is strictly better "
+            + "than handing an actor a way to make a store disown its own verdicts");
+    }
+
+    /// <summary>
+    /// The disagreement rule, which SPEC-006 states as a MUST and nothing tested. Two verifying
+    /// records naming two different stores carry forward NEITHER identity: the re-mint gets a fresh
+    /// one.
+    ///
+    /// <para>This fact exists to stop the rule being widened silently. "Majority", "first wins" or
+    /// "most recent wins" all leave every other fact in this class green, and each of them hands an
+    /// actor who can plant one file a vote on what the operator's repair verb signs. Two identities in
+    /// one store means at least one of these records was signed somewhere else, and this code must not
+    /// guess which. The consequence is deliberately harsh and is disclosed rather than asserted here:
+    /// a fresh identity refuses every record in the store, so the operator has to move the copied file
+    /// out and repair again.</para>
+    /// </summary>
+    [Fact]
+    public async Task Two_disagreeing_store_identities_carry_forward_neither_on_a_repair()
+    {
+        var signer = OperatorKey.Generate(_keyDir);
+
+        var a = new GateStore(_stateA, signer);
+        await a.RecordAsync(Proposal("ext-a1"), Held(), T0);
+        await a.DecideAsync("ext-a1", admit: true, "alice", "seated in A", T0.AddMinutes(1));
+        var identityA = GateSigningActivation.TryRead(_stateA)!.StoreId;
+
+        var b = new GateStore(_stateB, signer);
+        await b.RecordAsync(Proposal("ext-b1"), Held(), T0.AddMinutes(2));
+        var identityB = GateSigningActivation.TryRead(_stateB)!.StoreId;
+        identityA.Should().NotBeNullOrEmpty();
+        identityB.Should().NotBeNullOrEmpty().And.NotBe(identityA,
+            "the two records must name DIFFERENT stores, or there is no disagreement to resolve");
+
+        File.Copy(RecordFileIn(_stateA, "ext-a1"), RecordFileIn(_stateB, "ext-a1"));
+        File.Delete(GateSigningActivation.PathFor(_stateB));
+
+        var repaired = await new GateStore(_stateB, signer).ActivateSigningAsync(T0.AddHours(1), repair: true);
+        repaired.Marker.StoreId.Should().NotBeNullOrEmpty(
+            "a re-mint always leaves the store carrying an identity; the question is WHOSE")
+            .And.NotBe(identityA,
+            "not the copied record's. 'First wins' would hand the actor who planted one file the "
+            + "identity the operator's own verb signs")
+            .And.NotBe(identityB,
+            "and not the store's own either, because this code cannot tell which of two disagreeing "
+            + "records was signed somewhere else. Neither, and a fresh one, is the only honest answer");
     }
 
     private static ExtensionProposal Proposal(string id) => new()
@@ -397,6 +614,19 @@ public sealed class GateRecordStoreIdentityTests : IDisposable
         File.WriteAllText(RecordFileIn(stateRoot, id), JsonSerializer.Serialize(signed, Json));
         return signed;
     }
+
+    /// <summary>
+    /// Overwrites the activation marker with one signed by <paramref name="signer"/> declaring
+    /// <paramref name="storeId"/> — the shape an actor who can write the state root but cannot sign
+    /// with the operator's key produces. The inventory is empty rather than null on purpose:
+    /// <see cref="GateSigningActivation.TryRead"/> REFUSES a marker without one, so a null there
+    /// would make every fact below a test of the corrupt-marker path instead.
+    /// </summary>
+    private static void PlantMarker(
+        string stateRoot, SigningIdentity signer, DateTimeOffset activatedAt, string? storeId) =>
+        File.WriteAllText(
+            GateSigningActivation.PathFor(stateRoot),
+            JsonSerializer.Serialize(GateSigningActivation.Signed(signer, activatedAt, [], storeId), Json));
 
     /// <summary>Rewrites one top-level string field of a JSON artefact in place, and CHECKS the
     /// edit landed on the field it named: the repo's keys are PascalCase, and a mis-cased key adds a

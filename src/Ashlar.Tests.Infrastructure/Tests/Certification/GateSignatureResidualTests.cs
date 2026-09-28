@@ -531,7 +531,11 @@ public sealed class GateSignatureResidualTests : IDisposable
         // pass while reporting nothing about the residual it claims to demonstrate.
         var carried = JsonSerializer.Deserialize<GateRecord>(
             File.ReadAllText(RecordFileIn(_stateB, "ext-a1")), Json)!;
-        carried.StoreId.Should().Be(GateSigningActivation.TryRead(_stateA)!.StoreId,
+        carried.StoreId.Should().NotBeNull(
+            "this half is what makes the guard bite. Both sides of the comparison below are null in "
+            + "a build that mints no identity at all, and Be(null) PASSES — so without an explicit "
+            + "non-null the guard would fail to exclude the exact state its own comment names")
+            .And.Be(GateSigningActivation.TryRead(_stateA)!.StoreId,
             "the copy names A's identity inside its signed bytes, so what follows is about a victim "
             + "that cannot deny it rather than about a record that names nobody");
 

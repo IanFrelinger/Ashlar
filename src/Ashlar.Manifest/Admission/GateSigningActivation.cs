@@ -268,11 +268,19 @@ public sealed record GateSigningActivation
     /// there is no identity to keep (a marker this caller cannot vouch for, a marker that was
     /// deleted, a marker minted before S-7), <paramref name="inheritStoreId"/> carries the one
     /// identity the store's own verifying records agree on, and a fresh one is minted only when
-    /// nothing here names any. That inheritance is the disclosed cost of S-7: a record signed under
-    /// a vouched key can put its identity on a re-mint, so an operator who repairs a store after an
-    /// actor deleted its marker and copied a sibling's record in may adopt the sibling's identity.
-    /// It takes marker deletion plus the operator's explicit verb, and a DISAGREEMENT between two
-    /// identities yields null rather than a guess.</para>
+    /// nothing here names any.</para>
+    ///
+    /// <para><b>The disclosed cost, as what it actually takes.</b> ONE file planted in <c>gates/</c>
+    /// and signed under a key this caller vouches for, plus <c>--repair</c>. NOT marker deletion, and
+    /// not a disagreement: in a store whose marker predates S-7 none of the store's own records can
+    /// legitimately name an identity — a record takes its identity from the honoured marker and that
+    /// marker names none — so the only record that can name one is a copy, and the vote here is
+    /// first-non-null-UNOPPOSED (a record naming none votes for nothing). A single identity-bearing
+    /// file therefore decides which identity the store adopts on the operator's next repair, and the
+    /// UNTOUCHED sibling then accepts records from the compromised store because they name its
+    /// identity. A DISAGREEMENT between two identities yields null rather than a guess, which is the
+    /// one thing this method does bound. SPEC-006 S-7 carries the full disclosure and the open
+    /// candidates for closing it; do not narrow this comment back to "it takes marker deletion".</para>
     /// </summary>
     public static (GateSigningActivation Marker, bool WasAlreadyActive, bool ReplacedUnvouchedMarker) Activate(
         string stateRoot,

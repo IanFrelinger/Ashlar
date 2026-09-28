@@ -44,15 +44,19 @@ namespace Ashlar.Manifest.Admission;
 /// verifies and pins. Zero with <paramref name="Expected"/> true means the whole posture rests on
 /// the marker — a structural tell worth showing an operator.</param>
 /// <param name="StoreId">WHICH STORE this is, carried off an activation marker this reader HONOURS
-/// (SPEC-006 rule S-7) — and null when no such marker fired or when the one that did predates the
-/// identity. A signed record naming a DIFFERENT store is refused: it is a copy from a sibling store
-/// under the same operator key, and it must not anchor this one. Null binds nothing, in both
-/// directions and deliberately. A record carrying no identity is accepted because a record signed
-/// before the field existed cannot be distinguished from one written under any store; and a store
-/// with no identity of its own cannot deny one, because the only artefact that could attest an
-/// identity is the marker, and a store whose marker is missing, foreign or pre-S-7 has no attested
-/// account of itself — the residual that the store's own account lives in the directory being
-/// attacked, stated here in the field that depends on it.</param>
+/// AND HOLDS KEY MATERIAL FOR (SPEC-006 rule S-7) — and null when no such marker fired, when the one
+/// that did predates the identity, or when this reader has no key material at all. A signed record
+/// naming a DIFFERENT store is refused: it is a copy from a sibling store under the same operator
+/// key, and it must not anchor this one. Null binds nothing, in both directions and deliberately. A
+/// record carrying no identity is accepted because a record signed before the field existed cannot
+/// be distinguished from one written under any store; and a store with no identity of its own cannot
+/// deny one, because the only artefact that could attest an identity is the marker, and a store
+/// whose marker is missing, foreign or pre-S-7 has no attested account of itself — the residual that
+/// the store's own account lives in the directory being attacked, stated here in the field that
+/// depends on it. A KEYLESS reader is null for a different reason and deliberately: it honours a
+/// marker corroborated by a record under the same key, and an actor who can write the state root
+/// supplies both halves, so an identity taken from there would be the attacker's and the store's own
+/// records would be the ones refused as copies.</param>
 public sealed record GateSignatureExpectation(
     bool Expected,
     DateTimeOffset? DerivedGraceBefore,
