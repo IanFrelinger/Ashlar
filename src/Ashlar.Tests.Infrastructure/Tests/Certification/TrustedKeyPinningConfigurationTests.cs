@@ -5,6 +5,7 @@ using Ashlar.BackgroundAgents.Security;
 using Ashlar.Certification.Contracts;
 using Ashlar.Core.Application.Certification.Models;
 using Ashlar.Infrastructure.Certification;
+using Ashlar.Tests.Infrastructure.Certification.Fixtures;
 using FluentAssertions;
 using NSec.Cryptography;
 using Xunit;
@@ -28,11 +29,16 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// attempt to pin into the weakest posture available, exactly when they believed they had the
 /// strongest.</para>
 ///
-/// <para>Joins the non-parallel <c>EnvironmentVariables</c> collection. This class writes no
-/// environment variable, but the self-extend edge verifies with no explicit HMAC key, so it READS
-/// <c>ASHLAR_CERT_DEV_HMAC_KEY</c> through <c>CertificationRecordSigning</c>; a class that rewrote
-/// that variable beside it would invalidate signatures minted here between the mint and the
-/// verification.</para>
+/// <para>Joins the non-parallel <c>EnvironmentVariables</c> collection, for two reasons now.
+/// <see cref="The_environment_variables_an_operator_sets_are_the_ones_that_turn_pinning_on"/>
+/// WRITES <c>ASHLAR_CERT_TRUSTED_ED25519_KEYS</c> and <c>ASHLAR_CERT_PINNING_REQUIRED</c>, which
+/// are process-global; and the self-extend edge verifies with no explicit HMAC key, so it READS
+/// <c>ASHLAR_CERT_DEV_HMAC_KEY</c> through <c>CertificationRecordSigning</c>, and a class that
+/// rewrote that variable beside it would invalidate signatures minted here between the mint and
+/// the verification. The collection serializes the classes in it; what it cannot serialize is a
+/// class in another collection resolving <c>CertificationTrustPolicy.Ambient</c> for the first
+/// time inside the write window, so that test resolves <c>Ambient</c> itself before writing
+/// anything.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 [Collection("EnvironmentVariables")]
@@ -193,8 +199,7 @@ public sealed class TrustedKeyPinningConfigurationTests : IDisposable
 
     /// <summary>
     /// Fact (b), the operator's own assertion: a host told that pinning must be in effect refuses to
-    /// start without keys, and a switch value it cannot read is refused rather than taken as "not
-    /// required" — a typo must not be the thing that disables pinning.
+    /// start without keys.
     /// </summary>
     [Fact]
     public void Requiring_pinning_without_keys_refuses_to_start()
@@ -203,17 +208,140 @@ public sealed class TrustedKeyPinningConfigurationTests : IDisposable
         missingKeys.Should().Throw<CertificationTrustConfigurationException>()
             .WithMessage($"*{CertificationTrustPolicy.TrustedKeysVariable}*");
 
-        var typo = () => CertificationTrustPolicy.FromConfiguration(
-            Config(CreateEd25519Key().PublicKeyBase64, "treu"));
-        typo.Should().Throw<CertificationTrustConfigurationException>(
-            "an unrecognized value read as false would silently switch pinning off");
-
         CertificationTrustPolicy
             .FromConfiguration(Config(CreateEd25519Key().PublicKeyBase64, "yes"))
             .PinningConfigured.Should().BeTrue();
         CertificationTrustPolicy
             .FromConfiguration(Config(CreateEd25519Key().PublicKeyBase64, "off"))
             .PinningConfigured.Should().BeTrue("keys configure pinning whether or not it is demanded");
+    }
+
+    /// <summary>
+    /// Fact (b), the switch itself: a value this code cannot read refuses to start rather than
+    /// being taken as "not required".
+    ///
+    /// <para><b>Blank is the case that matters, and it was a fail-open.</b>
+    /// <c>ParsePinningRequired</c> treated a present-but-empty value as falsy, so a deployment
+    /// template that rendered <c>ASHLAR_CERT_PINNING_REQUIRED=</c> with nothing substituted into
+    /// it — a Kubernetes configMap empty value, <c>export VAR=$UNSET</c>, a YAML empty string, an
+    /// <c>IConfiguration</c> key present with no value — started the host UNPINNED while the
+    /// operator believed they had demanded pinning, which is the one failure this variable exists
+    /// to catch. The sibling keys variable throws for the identical input. Keys are supplied in
+    /// every case here, so the only thing that can throw is the switch — and the message
+    /// assertion names the switch's own variable, so the keys refusal cannot satisfy it.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("treu")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public void A_pinning_switch_value_that_cannot_be_read_refuses_to_start(string configured)
+    {
+        var keys = CreateEd25519Key().PublicKeyBase64;
+
+        var resolve = () => CertificationTrustPolicy.FromConfiguration(Config(keys, configured));
+
+        resolve.Should().Throw<CertificationTrustConfigurationException>(
+                "a value read as false would silently switch pinning off, and the operator would "
+                + "see no error at all")
+            .WithMessage($"*{CertificationTrustPolicy.PinningRequiredVariable}*");
+    }
+
+    /// <summary>
+    /// The path production actually uses, executed rather than described.
+    ///
+    /// <para>Every wiring site resolves <see cref="CertificationTrustPolicy.Ambient"/>, whose
+    /// factory is <see cref="CertificationTrustPolicy.FromEnvironment"/>. Every OTHER fact in this
+    /// class reaches <c>FromConfiguration</c> through <see cref="Config"/>, whose keys are
+    /// <c>CertificationTrustPolicy.TrustedKeysVariable</c> itself — so arrange and act read the
+    /// same symbol, and changing that constant's VALUE, or breaking the
+    /// <c>Environment.GetEnvironmentVariable</c> call, leaves them all green while no operator can
+    /// turn pinning on. This one sets the REAL variables.</para>
+    ///
+    /// <para><c>FromEnvironment</c> and not <c>Ambient</c>: <c>Ambient</c> is a
+    /// <see cref="Lazy{T}"/> resolved once per process, so it would answer whatever the first
+    /// caller anywhere in the run happened to see. For the same reason this test TOUCHES
+    /// <c>Ambient</c> before it writes anything — every store, registry and host built anywhere in
+    /// this assembly resolves it on construction, and a first resolution landing inside this
+    /// test's window would pin the whole process to a key only this test knows.</para>
+    /// </summary>
+    [Fact]
+    public void The_environment_variables_an_operator_sets_are_the_ones_that_turn_pinning_on()
+    {
+        _ = CertificationTrustPolicy.Ambient;
+
+        var key = CreateEd25519Key().PublicKeyBase64;
+        var keysBefore = Environment.GetEnvironmentVariable(CertificationTrustPolicy.TrustedKeysVariable);
+        var requiredBefore = Environment.GetEnvironmentVariable(CertificationTrustPolicy.PinningRequiredVariable);
+        try
+        {
+            Environment.SetEnvironmentVariable(CertificationTrustPolicy.TrustedKeysVariable, key);
+            Environment.SetEnvironmentVariable(CertificationTrustPolicy.PinningRequiredVariable, "true");
+
+            var configured = CertificationTrustPolicy.FromEnvironment();
+
+            configured.PinningConfigured.Should().BeTrue(
+                "this is the only path any production consumer uses: all seven wiring sites fall "
+                + "through to Ambient, whose factory is FromEnvironment");
+            configured.TrustedEd25519PublicKeys.Should().BeEquivalentTo(new[] { key });
+            configured.Strict.PinningEnabled.Should().BeTrue();
+
+            Store(configured).Get(SaveRecordSignedBy(CreateEd25519Key().PrivateKeyBase64))
+                .Should().BeNull("a signer absent from the environment's list is not trusted");
+
+            Environment.SetEnvironmentVariable(CertificationTrustPolicy.TrustedKeysVariable, null);
+            var demandedWithoutKeys = () => CertificationTrustPolicy.FromEnvironment();
+            demandedWithoutKeys.Should().Throw<CertificationTrustConfigurationException>(
+                "the operator's assertion is checkable through the environment too, or it is not "
+                + "checkable at all");
+
+            Environment.SetEnvironmentVariable(CertificationTrustPolicy.PinningRequiredVariable, null);
+            CertificationTrustPolicy.FromEnvironment().Strict
+                .Should().BeSameAs(CertificationVerifyOptions.Strict,
+                    "with neither variable set, the environment path leaves the preset alone");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(CertificationTrustPolicy.TrustedKeysVariable, keysBefore);
+            Environment.SetEnvironmentVariable(CertificationTrustPolicy.PinningRequiredVariable, requiredBefore);
+        }
+    }
+
+    /// <summary>
+    /// <see cref="CertificationTrustPolicy.FromTrustedKeys"/> — new public surface on a security
+    /// type, documented as the path for "a mounted trust bundle, a parsed manifest", and until now
+    /// with no test at all. It pins like a setting does, and it refuses the entries a setting
+    /// refuses, including the blank line a bundle read line-by-line will contain.
+    /// </summary>
+    [Fact]
+    public void A_trust_bundle_handed_in_directly_pins_the_way_a_setting_does()
+    {
+        var first = CreateEd25519Key();
+        var second = CreateEd25519Key();
+        var stranger = CreateEd25519Key();
+
+        var policy = CertificationTrustPolicy.FromTrustedKeys(
+            new[] { first.PublicKeyBase64, second.PublicKeyBase64 });
+
+        policy.PinningConfigured.Should().BeTrue();
+        var store = Store(policy);
+        store.Get(SaveRecordSignedBy(first.PrivateKeyBase64)).Should().NotBeNull();
+        store.Get(SaveRecordSignedBy(second.PrivateKeyBase64)).Should().NotBeNull();
+        store.Get(SaveRecordSignedBy(stranger.PrivateKeyBase64)).Should().BeNull(
+            "a bundle is a pinning set like any other, or it is decoration");
+
+        var withBlankLine = () => CertificationTrustPolicy.FromTrustedKeys(
+            new[] { first.PublicKeyBase64, "   " });
+        withBlankLine.Should().Throw<CertificationTrustConfigurationException>(
+            "dropping it would return a set narrower than the bundle lists, which refuses honest "
+            + "records signed by the key that went missing");
+
+        var notAKey = () => CertificationTrustPolicy.FromTrustedKeys(new[] { "c2hvcnQ=" });
+        notAKey.Should().Throw<CertificationTrustConfigurationException>();
+
+        var nothingAtAll = () => CertificationTrustPolicy.FromTrustedKeys(Array.Empty<string>());
+        nothingAtAll.Should().Throw<CertificationTrustConfigurationException>(
+            "an empty bundle reads as pinning off at every call site downstream");
     }
 
     /// <summary>
@@ -270,6 +398,49 @@ public sealed class TrustedKeyPinningConfigurationTests : IDisposable
     }
 
     /// <summary>
+    /// <c>Apply</c> must carry its ARGUMENT through, not a preset it was once handed.
+    ///
+    /// <para>This is a hole a reviewer proved rather than argued:
+    /// <see cref="Pinning_adds_to_strictness_and_relaxes_nothing"/> applies <c>Strict</c> and
+    /// compares every value back to <c>Strict</c>, so hardcoding <c>Strict</c>'s three copied
+    /// values inside <c>Apply</c> left the whole suite green — while every pinned host that asked
+    /// for <c>Default</c> or <c>Legacy</c> would silently have been handed <c>Strict</c>, which is
+    /// a strictness change nobody configured. A configured policy's <c>Default</c> is therefore
+    /// checked against the <c>Default</c> preset, and <c>Apply(Legacy)</c> against <c>Legacy</c> —
+    /// the two bases whose values DIFFER from Strict's.</para>
+    /// </summary>
+    [Fact]
+    public void A_configured_policy_pins_each_basis_without_promoting_it_to_Strict()
+    {
+        var key = CreateEd25519Key().PublicKeyBase64;
+        var policy = Policy(key);
+
+        var pinnedDefault = policy.Default;
+        pinnedDefault.PinningEnabled.Should().BeTrue();
+        pinnedDefault.MinimumSchemaVersion.Should()
+            .Be(CertificationVerifyOptions.Default.MinimumSchemaVersion);
+        pinnedDefault.RequireGateEmittedArtifact.Should()
+            .Be(CertificationVerifyOptions.Default.RequireGateEmittedArtifact).And.BeFalse(
+                "Default demands no gate-emitted artifact and pinning adds none; if this turns "
+                + "true, Apply returned Strict's value in place of its basis's");
+        pinnedDefault.RequireCertifierIdentity.Should()
+            .Be(CertificationVerifyOptions.Default.RequireCertifierIdentity).And.BeFalse(
+                "Default names no judge requirement either");
+
+        var pinnedLegacy = policy.Apply(CertificationVerifyOptions.Legacy);
+        pinnedLegacy.PinningEnabled.Should().BeTrue(
+            "a configured policy pins whatever basis it is given, Legacy included");
+        pinnedLegacy.MinimumSchemaVersion.Should()
+            .Be(CertificationVerifyOptions.Legacy.MinimumSchemaVersion).And.Be(0,
+                "Legacy sets no schema floor, and configuration that says nothing about schema "
+                + "must not raise one");
+        pinnedLegacy.RequireGateEmittedArtifact.Should().BeFalse();
+        pinnedLegacy.RequireCertifierIdentity.Should().BeFalse();
+        pinnedLegacy.RequireEd25519Signature.Should().BeTrue(
+            "the single value Apply sets on its own authority: an unsigned record cannot be pinned");
+    }
+
+    /// <summary>
     /// Configuration may turn pinning on; it may not redirect a pinning set that code already chose,
     /// and merging the two would widen the accepted signer set beyond either. Applying the same set
     /// twice is not a conflict.
@@ -285,6 +456,146 @@ public sealed class TrustedKeyPinningConfigurationTests : IDisposable
         redirect.Should().Throw<CertificationTrustConfigurationException>();
 
         Policy(mine).Apply(inCode).TrustedEd25519PublicKeys.Should().BeEquivalentTo(new[] { mine });
+    }
+
+    /// <summary>
+    /// The conflict check has to be SET equality on both sides, and a count plus one-directional
+    /// containment is not.
+    ///
+    /// <para>Basis <c>{A, A}</c> against configuration <c>{A, B}</c>: the counts match and every
+    /// basis key is present, so the old check reported "same set", no conflict was raised, and
+    /// <c>Apply</c> returned options accepting B — a signer the basis did not accept. That is
+    /// precisely the widening <c>Apply</c>'s own summary promises never happens, so the guarantee
+    /// was documented and false. The configured side is de-duplicated by <c>Validate</c>; the basis
+    /// side comes from a caller-supplied options object and nothing de-duplicates it.</para>
+    /// </summary>
+    [Fact]
+    public void A_basis_that_repeats_one_key_is_not_the_same_set_as_one_that_adds_another()
+    {
+        var mine = CreateEd25519Key().PublicKeyBase64;
+        var yours = CreateEd25519Key().PublicKeyBase64;
+        var repeatedInCode = new CertificationVerifyOptions
+        {
+            TrustedEd25519PublicKeys = new[] { mine, mine },
+        };
+
+        var widen = () => Policy($"{mine},{yours}").Apply(repeatedInCode);
+        widen.Should().Throw<CertificationTrustConfigurationException>(
+            "the basis accepts one signer and the configuration two, so this is the widening the "
+            + "conflict check exists to refuse — equal counts are not equal sets");
+
+        Policy($"{mine} {mine}").Apply(repeatedInCode).TrustedEd25519PublicKeys
+            .Should().BeEquivalentTo(
+                new[] { mine },
+                "one key on both sides, however often either side repeats it, is the same set and "
+                + "not a conflict — a count comparison would have refused this one instead");
+    }
+
+    /// <summary>
+    /// Validation decodes; enforcement compares strings. The two have to agree on the encoding, so
+    /// the stored set is canonical.
+    ///
+    /// <para>A 32-byte key has four valid 44-character Base64 encodings, because the 43rd
+    /// character carries two bits the decoder discards. Storing the operator's string verbatim
+    /// therefore let a value that decodes to exactly the right key match no record at all:
+    /// <c>record.Ed25519PublicKey</c> is always <c>Convert.ToBase64String</c> of the raw key and
+    /// both verification tiers compare ordinally. Fail-CLOSED, so an outage rather than a hole —
+    /// but a host that refuses every honest record while reporting itself correctly pinned is a
+    /// nasty thing to debug.</para>
+    /// </summary>
+    [Fact]
+    public void A_key_encoded_differently_but_decoding_the_same_still_matches_its_records()
+    {
+        var signer = CreateEd25519Key();
+        var variant = SecondValidEncodingOf(signer.PublicKeyBase64);
+
+        variant.Should().NotBeNull(
+            "this fact's premise is that a second valid encoding of the same 32 bytes exists; "
+            + "without one it asserts nothing, so the premise is checked rather than assumed");
+        variant.Should().NotBe(signer.PublicKeyBase64, "the two STRINGS must differ");
+        Convert.FromBase64String(variant!).Should().Equal(
+            Convert.FromBase64String(signer.PublicKeyBase64), "and the BYTES must not");
+
+        var policy = Policy(variant!);
+
+        policy.TrustedEd25519PublicKeys.Should().BeEquivalentTo(
+            new[] { signer.PublicKeyBase64 },
+            "the operator's encoding is normalized to the one a record carries");
+        Store(policy).Get(SaveRecordSignedBy(signer.PrivateKeyBase64)).Should().NotBeNull(
+            "this is the key that minted the record; storing the operator's spelling verbatim "
+            + "would refuse it");
+    }
+
+    /// <summary>
+    /// Fact (a) on a third production consumer: <c>CertifiedBrickRegistry</c>'s admission path.
+    /// Five of the seven wiring sites were unfalsifiable — with nothing configured
+    /// <c>Ambient.Strict</c> IS the <c>Strict</c> preset instance, so reverting a call site to the
+    /// bare preset is invisible to every test that does not configure a policy. This one and
+    /// <c>PinnedHotSwapVerifyAtLoadTests</c> take two of the five.
+    /// </summary>
+    [Fact]
+    public void A_configured_pinning_set_makes_the_certified_registry_refuse_a_foreign_signer()
+    {
+        var ours = CreateEd25519Key();
+        var theirs = CreateEd25519Key();
+        var brick = new MutationProbeBrick();
+        var record = new CertificationRecordSigner(
+                hmacKey: StoreHmacKey,
+                ed25519PrivateKeyBase64: theirs.PrivateKeyBase64)
+            .SignRecord(UnsignedRecord(brick.Id));
+        var verifier = new CertificationRecordSigner(hmacKey: StoreHmacKey);
+
+        new CertifiedBrickRegistry(
+                new InMemoryCertificationRecordStore(),
+                verifier,
+                trustPolicy: Policy(ours.PublicKeyBase64))
+            .TryAdmit(brick, record)
+            .Should().BeFalse(
+                "the record is signed by a key this operator did not pin, and without a pinning "
+                + "set the registry only asks whether the record is self-consistent");
+
+        new CertifiedBrickRegistry(
+                new InMemoryCertificationRecordStore(),
+                verifier,
+                trustPolicy: Policy(theirs.PublicKeyBase64))
+            .TryAdmit(brick, record)
+            .Should().BeTrue(
+                "pinned to the key that minted it, the same record must still be admitted — "
+                + "otherwise the refusal above proves nothing about pinning");
+    }
+
+    /// <summary>
+    /// A second valid 44-character Base64 encoding of the same 32 bytes, or null when this
+    /// runtime's decoder rejects the spare bits — in which case the trap this guards cannot arise
+    /// and the caller should say so rather than pass quietly. Found by search over the alphabet
+    /// rather than by bit arithmetic, so the fact does not rest on my arithmetic.
+    /// </summary>
+    private static string? SecondValidEncodingOf(string canonical)
+    {
+        const string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        if (canonical.Length != 44)
+            return null;
+
+        var bytes = Convert.FromBase64String(canonical);
+        foreach (var replacement in Alphabet)
+        {
+            var candidate = canonical[..42] + replacement + "=";
+            if (string.Equals(candidate, canonical, StringComparison.Ordinal))
+                continue;
+
+            try
+            {
+                if (Convert.FromBase64String(candidate).AsSpan().SequenceEqual(bytes))
+                    return candidate;
+            }
+            catch (FormatException)
+            {
+                // Not a valid encoding at all; keep looking.
+            }
+        }
+
+        return null;
     }
 
     private static Func<string, string?> Config(string? trustedKeys, string? pinningRequired = null) =>

@@ -50,7 +50,8 @@ public sealed class CertificationTrustConfigurationException : Exception
 /// <para><b>The failure directions are not symmetric.</b> Configuration that is absent leaves the
 /// basis preset untouched: the host runs as it did before pinning was configurable, which is a
 /// weaker posture the operator already had. Configuration that is PRESENT but unusable — no keys
-/// in it, a value that is not Base64, a key that is not 32 bytes — throws
+/// in it, a blank entry, a value that is not Base64, a key that is not 32 bytes, a pinning switch
+/// this code cannot read (blank included) — throws
 /// <see cref="CertificationTrustConfigurationException"/> at resolution, before any record is
 /// verified. An operator who wants "pinning must be in effect" to be checkable sets
 /// <see cref="PinningRequiredVariable"/>, and then an absent or empty key set is a startup failure
@@ -70,7 +71,10 @@ public sealed class CertificationTrustPolicy
     /// and <c>0/false/no/off</c>, case-insensitively. When it asserts pinning and
     /// <see cref="TrustedKeysVariable"/> yields no keys, resolution throws rather than running
     /// unpinned. A value that is neither also throws: reading an unrecognized value as "not
-    /// required" would let a typo silently switch pinning off.
+    /// required" would let a typo silently switch pinning off. <b>Present but blank throws too</b>
+    /// — a deployment template that rendered this variable without substituting a value has said
+    /// nothing, and must not be what decides pinning is optional. Only an ABSENT variable means
+    /// "no assertion made".
     /// </summary>
     public const string PinningRequiredVariable = "ASHLAR_CERT_PINNING_REQUIRED";
 
@@ -112,6 +116,9 @@ public sealed class CertificationTrustPolicy
     /// The trusted signer set, or null when the operator configured none. Never empty: an empty
     /// set would read as "pinning off" at every call site that tests
     /// <see cref="CertificationVerifyOptions.PinningEnabled"/>, so it is refused at parse time.
+    /// Each key is the CANONICAL <c>Convert.ToBase64String</c> encoding of the 32 raw bytes, not
+    /// necessarily the string the operator wrote, because that is the encoding a record carries
+    /// and enforcement is an ordinal string comparison.
     /// </summary>
     public IReadOnlyCollection<string>? TrustedEd25519PublicKeys { get; }
 
@@ -175,7 +182,9 @@ public sealed class CertificationTrustPolicy
     /// <summary>
     /// Builds a policy from an explicit set of Base64 raw Ed25519 public keys, for a host that
     /// already holds them (a mounted trust bundle, a parsed manifest) rather than a raw setting.
-    /// The same validation applies: an empty or malformed set throws.
+    /// The same validation applies: an empty or malformed set throws, and so does a blank entry —
+    /// a bundle read line-by-line must have its blank lines removed by the caller rather than
+    /// silently yielding a narrower pinning set than the bundle lists.
     /// </summary>
     /// <param name="trustedEd25519PublicKeys">Base64 raw 32-byte Ed25519 public keys.</param>
     public static CertificationTrustPolicy FromTrustedKeys(IEnumerable<string> trustedEd25519PublicKeys)
@@ -248,7 +257,21 @@ public sealed class CertificationTrustPolicy
         {
             var candidate = entry?.Trim();
             if (string.IsNullOrEmpty(candidate))
-                continue;
+            {
+                // Skipping it would hand back a set narrower than the one the caller listed,
+                // which is the failure the Base64 message below refuses by name. FromTrustedKeys
+                // passes a caller's bundle straight in, and a bundle with a blank line is the
+                // ordinary case. It is reachable from ParseTrustedKeys too, though rarer:
+                // RemoveEmptyEntries drops the separators in KeySeparators, but whitespace
+                // outside that set — a vertical tab, a form feed, a non-breaking space — arrives
+                // as an entry that Trim() empties.
+                throw new CertificationTrustConfigurationException(
+                    $"{settingName} contains a blank entry. Refusing rather than skipping it: a "
+                    + "pinning set that silently loses an entry is not the set that was "
+                    + "configured, and it refuses honest records signed by the key that went "
+                    + "missing. Remove the blank entry, or unset the whole setting to run "
+                    + "unpinned deliberately.");
+            }
 
             byte[] bytes;
             try
@@ -273,8 +296,17 @@ public sealed class CertificationTrustPolicy
                     + "can ever match.");
             }
 
-            if (!keys.Contains(candidate!, StringComparer.Ordinal))
-                keys.Add(candidate!);
+            // Store the CANONICAL encoding, not the operator's. Validation decodes; enforcement
+            // compares strings ordinally against `record.Ed25519PublicKey`, which is always
+            // `Convert.ToBase64String` of the raw key. A 32-byte key has four valid 44-character
+            // encodings, because the 43rd character carries two bits the decoder discards — so an
+            // operator can configure a value that decodes to exactly the right key and then match
+            // no record at all, with the host reporting itself correctly pinned. Normalizing here
+            // is also what makes the de-duplication below real: two encodings of one key would
+            // otherwise count as two keys.
+            var canonical = Convert.ToBase64String(bytes);
+            if (!keys.Contains(canonical, StringComparer.Ordinal))
+                keys.Add(canonical);
         }
 
         if (keys.Count == 0)
@@ -293,30 +325,39 @@ public sealed class CertificationTrustPolicy
         if (configured is null)
             return false;
 
+        // Blank is NOT falsy. It is the commonest configuration accident there is — a deployment
+        // template rendering `ASHLAR_CERT_PINNING_REQUIRED=` with nothing substituted into it, an
+        // `export VAR=$UNSET`, a YAML empty string, an IConfiguration key present with no value —
+        // and reading it as "pinning not required" would start the host unpinned while the
+        // operator believed they had demanded pinning. That is the one failure this switch exists
+        // to catch, so it falls through to the throw below. Absent is handled above, by the null
+        // check: absent means "no assertion made", blank means "an assertion that arrived empty".
+        // The sibling keys variable already refuses the identical input.
         var value = configured.Trim();
-        if (value.Length == 0 || FalsyValues.Contains(value, StringComparer.OrdinalIgnoreCase))
+        if (FalsyValues.Contains(value, StringComparer.OrdinalIgnoreCase))
             return false;
 
         if (TruthyValues.Contains(value, StringComparer.OrdinalIgnoreCase))
             return true;
 
         throw new CertificationTrustConfigurationException(
-            $"{PinningRequiredVariable} is set to a value that is neither true nor false. It is "
-            + "refused rather than read as false, because a typo in a switch that demands pinning "
-            + "must not be the thing that silently disables it.");
+            $"{PinningRequiredVariable} is set to a value that is neither true nor false"
+            + (value.Length == 0 ? " (it is present but blank)" : $" ('{value}')")
+            + ". It is refused rather than read as false, because a typo — or a deployment "
+            + "template that rendered the variable without substituting a value — in a switch "
+            + "that demands pinning must not be the thing that silently disables it. Unset "
+            + $"{PinningRequiredVariable} to run unpinned deliberately.");
     }
 
-    private static bool SameKeys(IReadOnlyCollection<string> left, IReadOnlyCollection<string> right)
-    {
-        if (left.Count != right.Count)
-            return false;
-
-        foreach (var key in left)
-        {
-            if (!right.Contains(key, StringComparer.Ordinal))
-                return false;
-        }
-
-        return true;
-    }
+    /// <summary>
+    /// Set equality, de-duplicated on BOTH sides. The de-duplication is the whole point: counting
+    /// and then checking one direction reports "same set" for a basis of <c>{A, A}</c> against a
+    /// configuration of <c>{A, B}</c> — matching counts, every left key present — and
+    /// <see cref="Apply"/> would return options accepting B, which is exactly the widening its
+    /// summary promises never happens. <see cref="Validate"/> de-duplicates the configured side,
+    /// but <paramref name="left"/> comes from a caller-supplied options object and nothing
+    /// de-duplicates that.
+    /// </summary>
+    private static bool SameKeys(IReadOnlyCollection<string> left, IReadOnlyCollection<string> right) =>
+        new HashSet<string>(left, StringComparer.Ordinal).SetEquals(right);
 }
