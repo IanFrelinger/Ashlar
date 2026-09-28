@@ -389,7 +389,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
             BrickOutput? output = null;
             Exception? brickFault = null;
             DomainBrick? brick = null;
-            var startTicks = System.Diagnostics.Stopwatch.GetTimestamp();
+            var startTicks = _clock.GetTimestamp();
             try
             {
                 brick = generation.GetBrick(brickId)
@@ -425,7 +425,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
                 // generation that served it, not to whichever one is current by the time
                 // the counters are read.
                 var current = Volatile.Read(ref _watchCurrent);
-                var elapsed = System.Diagnostics.Stopwatch.GetTimestamp() - startTicks;
+                var elapsed = _clock.GetTimestamp() - startTicks;
                 var undeclared = output is null ? 0 : CountUndeclaredWrites(brick, output);
                 current?.Record(elapsed, brickFault is not null, undeclared);
                 var breachReasons = EvaluateWatch(current);
@@ -475,6 +475,19 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     }
 
     /// <summary>
+    /// Timestamp ticks are not TimeSpan ticks, and the difference is silent on the machine most
+    /// likely to run this code by hand. Windows QPC reports a frequency of 10,000,000, which
+    /// happens to equal TimeSpan.TicksPerSecond, so a raw comparison against TimeSpan.Ticks reads
+    /// as correct on a developer box. On Linux .NET reports 1,000,000,000 — one tick per
+    /// nanosecond — so the same comparison is 100x out, and an operator's configured ceiling of
+    /// one second would fire at ten milliseconds. The gate and every container run on Linux.
+    /// The frequency must come from the same provider that produced the timestamps, which is why
+    /// this is an instance method reading _clock rather than Stopwatch directly.
+    /// </summary>
+    private TimeSpan TimestampTicksToDuration(long timestampTicks) =>
+        TimeSpan.FromSeconds((double)timestampTicks / _clock.TimestampFrequency);
+
+    /// <summary>
     /// Breach reasons when the watch thresholds are crossed; null otherwise (R5.2).
     /// Judges the stats the caller captured for the generation that served the invocation.
     /// </summary>
@@ -494,10 +507,14 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
         // The duration ceiling is absolute too: a first-generation deploy has no baseline
         // for the relative legs, and a pathological single invocation must not hide in a
         // healthy mean.
-        if (thresholds.MaxInvocationDuration is { } durationCap && maxLatencyTicks > durationCap.Ticks)
+        if (thresholds.MaxInvocationDuration is { } durationCap)
         {
-            reasons.Add($"an invocation took {TimeSpan.FromTicks(maxLatencyTicks).TotalMilliseconds:F0}ms, "
-                + $"exceeding the absolute ceiling of {durationCap.TotalMilliseconds:F0}ms");
+            var maxLatency = TimestampTicksToDuration(maxLatencyTicks);
+            if (maxLatency > durationCap)
+            {
+                reasons.Add($"an invocation took {maxLatency.TotalMilliseconds:F0}ms, "
+                    + $"exceeding the absolute ceiling of {durationCap.TotalMilliseconds:F0}ms");
+            }
         }
 
         if (invocations >= thresholds.MinInvocations && Volatile.Read(ref _watchBaseline) is { } baseline)
