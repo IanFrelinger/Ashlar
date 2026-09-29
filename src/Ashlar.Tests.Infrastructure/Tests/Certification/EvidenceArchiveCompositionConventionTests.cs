@@ -7,6 +7,7 @@ using Ashlar.Core.Application.Autonomy;
 using Ashlar.Core.Application.Certification.Models;
 using Ashlar.Core.Application.Certification.Ports;
 using Ashlar.Core.Domain.Bricks;
+using Ashlar.Core.Domain.Execution;
 using Ashlar.Infrastructure.Autonomy;
 using Ashlar.Infrastructure.Certification;
 using Ashlar.Infrastructure.Certification.HotSwap;
