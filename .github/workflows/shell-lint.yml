@@ -147,3 +147,11 @@ jobs:
       - name: Commercial receipt checker accepts real-shaped evidence and rejects bad files
         shell: bash
         run: python3 scripts/ci/test-commercial-receipts.py
+
+      - name: Every shipped package says what it is
+        shell: bash
+        run: |
+          # Ten of the twenty-two packages this repository pushes to nuget.org carried the SDK's
+          # placeholder description for three releases. A missing <Description> is a build warning
+          # at most and the pack step succeeds, so nothing said so.
+          bash tests/scripts/shipped-package-metadata.test.sh

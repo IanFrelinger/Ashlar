@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Concrete agent-execution services for an Ashlar host: a step loop that approves an entire tool-call chain before executing it, barrier-level identity resolution with audit sinks, and endpoint/transport routing.</Description>
+    <PackageTags>ashlar runtime agents barriers routing</PackageTags>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>

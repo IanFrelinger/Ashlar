@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Client side of Ashlar's agent transport: a gRPC IAgentTransport invoking agents on remote hosts, with per-endpoint channel caching, mTLS/custom-CA options, and barrier-context headers.</Description>
+    <PackageTags>ashlar grpc transport agents mtls</PackageTags>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>

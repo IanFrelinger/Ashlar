@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>ITool implementations for repository work in an Ashlar agent host: file read/write/list/search-replace resolved against the host-supplied repo root, Roslyn source-consistency rules, and dotnet build/test/run, which run the .NET CLI with that root as their working directory.</Description>
+    <PackageTags>ashlar tools agents repository dotnet</PackageTags>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
