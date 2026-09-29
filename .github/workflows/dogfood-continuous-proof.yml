@@ -68,22 +68,92 @@ jobs:
       # A genuine gap is still recorded: classify_sweep_log decides PASS/GAP from what the sweep
       # actually did, and treats a disagreement between exit code and log as failure.
 
+      - name: Mint an ephemeral certification signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          # EPHEMERAL, PER RUN, AND NEVER A REPOSITORY SECRET. SPEC-006 keeps a long-lived operator
+          # key on the operator's machine and says it must never appear inside a repository;
+          # revocation is deferred to v2. Unlock criterion 3a explicitly accepts a CI-GENERATED key
+          # PROVIDED THE ROW SAYS SO, and the row says so in three fields the archive puts on its own
+          # verdict: signerFingerprint, pinningEnabled=false and usesDevHmacKey=true.
+          #
+          # This key is generated here, used by this run, and discarded with the runner. NOBODY HOLDS
+          # IT — which is exactly why a row signed by it counts toward 3a (loop mechanics) and toward
+          # nothing else. It is NOT custody, and pinning to a key CI generated and threw away would
+          # be pinning to nobody, so criterion 3b is untouched by this step.
+          #
+          # CertificationRecordSigner resolves ASHLAR_CERT_ED25519_KEY through
+          # CertificationRecordEd25519.ResolvePrivateKey, which requires Base64 of 32 raw bytes;
+          # `openssl rand -base64 32` is exactly that. The mask is written BEFORE the value reaches
+          # the environment file, so a later step that dumps the environment cannot print it.
+          KEY="$(openssl rand -base64 32)"
+          echo "::add-mask::${KEY}"
+          echo "ASHLAR_CERT_ED25519_KEY=${KEY}" >> "$GITHUB_ENV"
+          echo "Minted an ephemeral Ed25519 signing key for this run (value masked, never logged)."
+
       - name: Run autonomy loop sweep (canary objective)
         id: sweep
         shell: bash
         run: |
           set +e  # Allow sweep to fail; we'll record the outcome
-          
+
           bash scripts/dogfood-continuous-proof.sh run-canary-sweep
           SWEEP_EXIT=$?
-          
+
           echo "sweep_exit_code=${SWEEP_EXIT}" >> "$GITHUB_OUTPUT"
-          
+
           LATEST_LOG="$(ls -t test-results/dogfood-sweep-*.log 2>/dev/null | head -1 || true)"
+
+          # The record citation the sweep emitted, if any. A row that counts toward 3a has to carry
+          # this line; a row without it does not count, whatever its Pass/Fail cell says.
+          EVIDENCE=""
+          if [[ -n "${LATEST_LOG}" ]]; then
+            EVIDENCE="$(grep -o 'SWEEP EVIDENCE: .*' "${LATEST_LOG}" | head -1 \
+              | sed 's/^SWEEP EVIDENCE: //' || true)"
+          fi
+          echo "sweep_evidence=${EVIDENCE}" >> "$GITHUB_OUTPUT"
 
           if [[ ${SWEEP_EXIT} -eq 0 ]]; then
             echo "sweep_outcome=PASS" >> "$GITHUB_OUTPUT"
-            echo "sweep_gap=" >> "$GITHUB_OUTPUT"
+            if [[ -z "${EVIDENCE}" ]]; then
+              # A PASS with no citation must NOT claim 3a. The comment above says a row without the
+              # citation line does not count; until this branch existed, nothing enforced it and the
+              # row read "Counts toward 3a: ." - a 3a-counting PASS citing nothing. That is the same
+              # shape as the pre-#655 sweep that reached no verdict and exited 0: the cell asserting
+              # the claim was not the cell computing it.
+              echo "sweep_gap=Does NOT count toward 3a: the sweep reached a verdict but emitted no record citation, so there is no record for this row to be about. Either the archive was not composed (Ashlar:Autonomy:EvidenceArchiveDirectory unset), the candidate emitted no gate artifact so no Strict-verifiable record exists, or the citation line the script emits and the line this workflow greps have drifted apart - tests/scripts/dogfood-sweep-verdict.test.sh pins those two literals together." >> "$GITHUB_OUTPUT"
+            else
+              # The disclosures are READ BACK from the citation rather than restated. They used to be
+              # a hard-coded sentence beside computed values, so turning pinning on would have
+              # produced a row reading "pinned=true" next to prose asserting "pinned=false means
+              # nothing pins that signer". A record that contradicts itself is worse than none.
+              PINNED="$(printf '%s' "${EVIDENCE}" | sed -n 's/.*[[:space:]]pinned=\([^[:space:]]*\).*/\1/p')"
+              DEV_HMAC="$(printf '%s' "${EVIDENCE}" | sed -n 's/.*[[:space:]]dev-hmac=\([^[:space:]]*\).*/\1/p')"
+              case "${PINNED}" in
+                true)  PIN_PROSE="pinned=true means verification ran against an operator-supplied trust set, so this record is bound to that signer and would be refused if signed by any other keypair" ;;
+                false) PIN_PROSE="pinned=false means nothing pins that signer, so this record verifies exactly as one signed by any other keypair would" ;;
+                *)     PIN_PROSE="the pinning disclosure could not be read from the citation, so treat this row as making no pinning claim" ;;
+              esac
+              case "${DEV_HMAC}" in
+                true)  HMAC_PROSE="dev-hmac=true means the symmetric half is the committed development key, which anyone with the source can forge" ;;
+                false) HMAC_PROSE="dev-hmac=false means the symmetric half is not the committed development key" ;;
+                *)     HMAC_PROSE="the dev-key disclosure could not be read from the citation, so treat this row as making no claim about the symmetric half" ;;
+              esac
+              echo "sweep_gap=Counts toward 3a: ${EVIDENCE}. The record was re-read from that file and verified under Strict. ${PIN_PROSE}; ${HMAC_PROSE}. The Ed25519 key was minted by this CI run and discarded with it - no operator holds it. Does NOT count toward 3b (no operator custody) or 4 (fixture canary, not a real hygiene PR)." >> "$GITHUB_OUTPUT"
+            fi
+          elif [[ ${SWEEP_EXIT} -eq 3 ]]; then
+            # Exit 3 is "the iteration reached a verdict, but its record did not persist and
+            # re-verify". It gets its OWN branch deliberately: folding it into 2 would report a
+            # record-verification gap as a sandbox infrastructure fault, and folding it into 0 would
+            # write a PASS row citing a record nobody can open. Both are the pre-#630 error shape.
+            echo "sweep_outcome=GAP" >> "$GITHUB_OUTPUT"
+            WHY=""
+            if [[ -n "${LATEST_LOG}" ]]; then
+              WHY="$(grep -o 'SWEEP: the record did not persist-and-verify: .*' "${LATEST_LOG}" \
+                | head -1 | sed 's/^SWEEP: the record did not persist-and-verify: //' || true)"
+            fi
+            echo "sweep_gap=The iteration reached a verdict but its record did not persist and re-verify under Strict: ${WHY:-see the attached log}. This is a loop-mechanics gap, not a candidate failure, and it does not count toward 3a." >> "$GITHUB_OUTPUT"
           elif [[ ${SWEEP_EXIT} -eq 2 ]]; then
             # Exit 2 is "an objective was attempted and the iteration errored before reaching any
             # verdict". Reporting that as PASS is the specific failure this branch exists to stop:
@@ -125,7 +195,7 @@ jobs:
             "${{ steps.sweep.outputs.sweep_outcome }}" \
             "${{ steps.sweep.outputs.sweep_gap }}" \
             "Dogfood Continuous" \
-            "[CI run ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            "[CI run ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}); ${{ steps.sweep.outputs.sweep_evidence || 'no record citation this run' }}"
 
       - name: Upload sweep artifacts
         if: always()
@@ -170,6 +240,20 @@ jobs:
           git diff -- docs/dogfood-ledger.md > "${RUNNER_TEMP}/ledger/dogfood-ledger.patch"
           cp docs/dogfood-ledger.md "${RUNNER_TEMP}/ledger/dogfood-ledger.md"
 
+          # Stage the CITED artefacts beside the row, so the human who lands the row lands the
+          # record it cites. A citation a reviewer cannot open is not a citation, and this
+          # workflow's own sweep artifacts expire in 14 days.
+          #
+          # WHETHER THOSE FILES ARE THEN COMMITTED TO THE REPOSITORY IS NOT DECIDED HERE. Staging
+          # them makes both options available; putting model-adjacent output into docs/ is a call
+          # for the repository's owner. Until it is made, the citation points into artifact storage
+          # and therefore dangles after 14 days — which docs/dogfood-scorecard.md already names as
+          # "a row left in CI artifact storage is evidence nobody can review".
+          mkdir -p "${RUNNER_TEMP}/ledger/record"
+          find .ashlar/campaign -type f \( -name '*.evidence.json' -o -path '*/records/*.json' \) \
+            -exec cp {} "${RUNNER_TEMP}/ledger/record/" \; 2>/dev/null || true
+          ls -la "${RUNNER_TEMP}/ledger/record/" || true
+
           {
             echo "## Dogfood ledger — one row to land"
             echo ""
@@ -189,6 +273,7 @@ jobs:
           path: |
             ${{ runner.temp }}/ledger/dogfood-ledger.patch
             ${{ runner.temp }}/ledger/dogfood-ledger.md
+            ${{ runner.temp }}/ledger/record/**
           if-no-files-found: ignore
           retention-days: 30
 
@@ -206,6 +291,17 @@ jobs:
 
           if [[ -n "${{ steps.sweep.outputs.sweep_gap }}" ]]; then
             echo "- **Gap:** ${{ steps.sweep.outputs.sweep_gap }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # The record's own verdict. Reported as the archive computed it, with no line claiming
+          # anything about pinning or operator custody: this run's signing key was generated here
+          # and thrown away, so there is no custody to report and nothing pins it.
+          if [[ -n "${{ steps.sweep.outputs.sweep_evidence }}" ]]; then
+            echo "- **Record:** \`${{ steps.sweep.outputs.sweep_evidence }}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Strict re-verification:** PASS (the record was re-read from that file, not from memory)" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Signer:** ephemeral, generated by this run and discarded with it; nothing pins it" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- **Strict re-verification:** NONE — this run produced no reviewable record, so it counts toward criterion 3a not at all" >> "$GITHUB_STEP_SUMMARY"
           fi
 
           # No "Strict Ready" line any more, and its absence is the honest position rather than an

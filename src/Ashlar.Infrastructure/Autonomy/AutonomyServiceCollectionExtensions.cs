@@ -122,6 +122,34 @@ public static class AutonomyServiceCollectionExtensions
             var options = sp.GetRequiredService<IOptions<AshlarAutonomyOptions>>().Value;
             var logger = sp.GetService<ILogger<AutonomousIterationHarness>>();
             WarnIfCandidatesExecuteInProcess(options, logger);
+
+            // The evidence archive, when the operator configured a directory for it.
+            //
+            // IT IS DELIBERATELY NOT REGISTERED AS ICertificationRecordStore, and that is the whole
+            // reason it is constructed here by hand rather than routed through
+            // AddCertificationInfrastructure(recordStorePath: ...). Doing the convenient thing —
+            // making the archive directory the process's record store so `Save` is already on the
+            // path — would also make FileCertificationRecordStore.IsAdmitted return true for the
+            // held brick, because a persisted PASS record carries Admitted/Signed/Status=PASS.
+            // Persisting evidence would then manufacture admission for a candidate the operator is
+            // holding. EvidenceArchiveCompositionConventionTests.
+            // TheEvidenceArchiveIsNeverTheAdmissionRecordStore is the guard that notices.
+            //
+            // It reuses the container's CertificationRecordSigner (registered by
+            // AddCertificationInfrastructure with TryAddSingleton), so the archive re-verifies under
+            // the same key that signed, and an operator-supplied signer reaches it for free. It
+            // takes no CertificationVerifyOptions: strictness comes from CertificationTrustPolicy
+            // inside the archive, so an operator's pinning set applies with no edit here.
+            CertificationEvidenceArchive? archive = null;
+            if (!string.IsNullOrWhiteSpace(options.EvidenceArchiveDirectory))
+            {
+                archive = new CertificationEvidenceArchive(
+                    options.EvidenceArchiveDirectory!,
+                    sp.GetRequiredService<CertificationRecordSigner>(),
+                    trustPolicy: null,
+                    sp.GetService<ILogger<CertificationEvidenceArchive>>());
+            }
+
             return new AutonomousIterationHarness(
                 sp.GetRequiredService<ICertificationGate>(),
                 sp.GetRequiredService<CertifiedBrickHotSwapHost>(),
@@ -132,7 +160,8 @@ public static class AutonomyServiceCollectionExtensions
                 logger,
                 buildCandidateInSession: options.BuildCandidateInSession,
                 executeCandidateInSession: options.ExecuteCandidateInSession,
-                holdAdmission: options.HoldAdmission);
+                holdAdmission: options.HoldAdmission,
+                evidenceArchive: archive);
         });
 
         return services;

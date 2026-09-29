@@ -46,6 +46,22 @@ public sealed class FileCertificationRecordStore : ICertificationRecordStore
     }
 
     /// <summary>
+    /// The one declaration of this store's on-disk naming: one JSON file per brick, named by the
+    /// brick id.
+    ///
+    /// <para>Public and static because <see cref="CertificationEvidenceArchive"/> has to read back
+    /// exactly the file <see cref="Save"/> wrote. Two independent spellings of the
+    /// <c>{brickId}.json</c> convention would drift, and the archive would discover the drift only
+    /// as a confusing <c>record-file-missing</c> — a verdict that reads as "the write failed" when
+    /// what actually happened is that two callers disagreed about a filename. One declaration,
+    /// every caller.</para>
+    /// </summary>
+    /// <param name="directory">The record directory.</param>
+    /// <param name="brickId">The brick the record is about.</param>
+    public static string RecordPathFor(string directory, string brickId) =>
+        Path.Combine(directory, $"{brickId}.json");
+
+    /// <summary>
     /// Writes a record by staging it to a private sibling file and moving that into place.
     ///
     /// <para>A direct write truncates first, so a failure partway — full disk, I/O error, process
@@ -74,7 +90,7 @@ public sealed class FileCertificationRecordStore : ICertificationRecordStore
     public void Save(CertificationRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
-        var path = Path.Combine(_directory, $"{record.BrickId}.json");
+        var path = RecordPathFor(_directory, record.BrickId);
         var tmp = $"{path}.{Guid.NewGuid():N}.tmp";
         var json = JsonSerializer.Serialize(record, JsonOptions);
         try
@@ -101,7 +117,7 @@ public sealed class FileCertificationRecordStore : ICertificationRecordStore
     /// </remarks>
     public CertificationRecord? Get(string brickId)
     {
-        var path = Path.Combine(_directory, $"{brickId}.json");
+        var path = RecordPathFor(_directory, brickId);
         if (!File.Exists(path))
             return null;
 

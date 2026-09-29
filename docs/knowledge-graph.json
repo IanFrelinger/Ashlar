@@ -14,8 +14,8 @@
     "operator_facing_config_variables": 142,
     "operator_vars_missing_from_configuration_reference": 65,
     "operator_vars_absent_from_all_documentation": 47,
-    "test_files_declaring_facts": 725,
-    "declared_facts": 4353,
+    "test_files_declaring_facts": 727,
+    "declared_facts": 4375,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4643,7 +4643,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AutonomousIterationHarnessTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 11,
+      "declared_facts": 15,
       "in_cert_gate_filter": true
     },
     {
@@ -4707,6 +4707,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 2,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/CertificationEvidenceArchiveTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 13,
       "in_cert_gate_filter": true
     },
     {
@@ -4899,6 +4906,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EvidenceArchiveCompositionConventionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 4,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/ExtensionCompileCheckTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5056,7 +5070,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/PinnedWiringSiteConventionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 1,
+      "declared_facts": 2,
       "in_cert_gate_filter": true
     },
     {
