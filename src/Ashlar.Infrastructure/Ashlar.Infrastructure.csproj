@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <Description>Default implementations behind Ashlar's application ports: CertificationGate with its mutation and witness runners, signed certification record stores, LLM provider factories, and their DI extensions. The certified-brick hot-swap host lives here too, behind the experimental ASHLAREXP001 opt-in.</Description>
+    <PackageTags>ashlar certification hot-swap adapters infrastructure</PackageTags>
+  </PropertyGroup>
+
+
     <ItemGroup>
         <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
     </ItemGroup>

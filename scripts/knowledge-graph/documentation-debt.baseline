@@ -6,4 +6,4 @@
 #
 # It lives here rather than inside docs/knowledge-graph.json on purpose: a baseline stored in the
 # artifact being regenerated ratchets against itself and enforces nothing.
-47
+0

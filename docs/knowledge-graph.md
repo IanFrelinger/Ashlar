@@ -13,11 +13,12 @@ remembered to update — staleness here is a red build.
 | | count |
 |---|---|
 | projects | 61 |
-| of those, packable (they ship to consumers) | 19 |
-| `ASHLAR_*` variables named in code | 161 |
-| of those, operator-facing (not test-only) | 142 |
-| missing from `docs/Configuration.md` | 65 |
-| **mentioned in no document at all** | **47** |
+| of those, published to nuget.org by a release | 22 |
+| of those, declaring `<IsPackable>true</IsPackable>` | 19 |
+| `ASHLAR_*` variables named in code | 173 |
+| of those, operator-facing (not test-only) | 153 |
+| missing from `docs/Configuration.md` | 18 |
+| **mentioned in no document at all** | **0** |
 | test files declaring xUnit facts | 728 |
 | declared facts | 4376 |
 | workflows | 62 |
@@ -40,53 +41,7 @@ Kept separate from "missing from `docs/Configuration.md`" on purpose: a variable
 some other document is a discoverability problem, not an undocumented one, and conflating the
 two overstates the gap by the difference between the counts above.
 
-- `ASHLAR_ANALYZER_SEVERITY_FLOOR`
-- `ASHLAR_APP_STATE`
-- `ASHLAR_AVAILABLE_VRAM_BYTES`
-- `ASHLAR_BACKGROUND_TASK_PERMISSION`
-- `ASHLAR_BATTERY_OPTIMIZATION_ENABLED`
-- `ASHLAR_BATTERY_PERCENT`
-- `ASHLAR_BUILD_BUDGET`
-- `ASHLAR_CHARGING`
-- `ASHLAR_CPU_UTIL_PERCENT`
-- `ASHLAR_E2E_LIVE_MODEL`
-- `ASHLAR_E2E_LIVE_STACK`
-- `ASHLAR_FORGE_APPROVED_TTL_HOURS`
-- `ASHLAR_FORGE_PROPOSED_TTL_HOURS`
-- `ASHLAR_GENERATION_DEPTH_CEILING`
-- `ASHLAR_GPU_UTIL_PERCENT`
-- `ASHLAR_LOCAL_CONTEXT_SIZE`
-- `ASHLAR_MESH_DIR`
-- `ASHLAR_NETWORK_LATENCY_MS`
-- `ASHLAR_NETWORK_METERED`
-- `ASHLAR_NETWORK_WIFI`
-- `ASHLAR_ON_BATTERY`
-- `ASHLAR_RELEASE_CORE_HISTORY_WINDOW`
-- `ASHLAR_RELEASE_CORE_MIN_PASS_RATE`
-- `ASHLAR_RELEASE_CORE_MIN_TOTAL`
-- `ASHLAR_RELEASE_HISTORY_WINDOW`
-- `ASHLAR_RELEASE_LANE_REPETITIONS`
-- `ASHLAR_RELEASE_MIN_PASS_RATE`
-- `ASHLAR_RELEASE_MIN_TOTAL`
-- `ASHLAR_RELEASE_PROVIDER`
-- `ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE`
-- `ASHLAR_RELEASE_SLO_NCR_LOAD_MS`
-- `ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS`
-- `ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS`
-- `ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW`
-- `ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE`
-- `ASHLAR_RELEASE_VISUAL_MIN_TOTAL`
-- `ASHLAR_STORAGE_AVAILABLE_BYTES`
-- `ASHLAR_STORAGE_TOTAL_BYTES`
-- `ASHLAR_TAILNET_CMD`
-- `ASHLAR_TAILNET_REFRESH_SECONDS`
-- `ASHLAR_TEST_BUDGET`
-- `ASHLAR_TEST_NO_NETWORK`
-- `ASHLAR_THERMAL_STATE`
-- `ASHLAR_TOTAL_VRAM_BYTES`
-- `ASHLAR_USER_ACTIVE`
-- `ASHLAR_VISUAL_PROMOTION_STREAK`
-- `ASHLAR_VISUAL_REQUIRED_MODE`
+_None._
 
 ## Packable projects
 
@@ -95,21 +50,24 @@ commitment and ambient process configuration reaching them is a design decision,
 convenience.
 
 - `Ashlar.AI.Pipeline` (src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj)
-- `Ashlar.API` (application/src/Ashlar.API/Ashlar.API.csproj)
+- `Ashlar.Abstractions` (src/Ashlar.Abstractions/Ashlar.Abstractions.csproj)
 - `Ashlar.Analyzers` (src/Ashlar.Analyzers/Ashlar.Analyzers.csproj)
 - `Ashlar.Authoring` (src/Ashlar.Authoring/Ashlar.Authoring.csproj)
+- `Ashlar.BackgroundAgents` (src/Ashlar.BackgroundAgents/Ashlar.BackgroundAgents.csproj)
 - `Ashlar.Brick.Contracts` (src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj)
 - `Ashlar.CLI` (application/src/Ashlar.CLI/Ashlar.CLI.csproj)
 - `Ashlar.Certification.Contracts` (src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj)
-- `Ashlar.Certification.State` (src/Ashlar.Certification.State/Ashlar.Certification.State.csproj)
 - `Ashlar.Client` (src/Ashlar.Client/Ashlar.Client.csproj)
 - `Ashlar.Contracts` (src/Ashlar.Contracts/Ashlar.Contracts.csproj)
+- `Ashlar.Core.Application` (src/Ashlar.Core.Application/Ashlar.Core.Application.csproj)
 - `Ashlar.Core.Domain` (src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj)
 - `Ashlar.Hosting` (src/Ashlar.Hosting/Ashlar.Hosting.csproj)
 - `Ashlar.Hosting.Bundle` (src/Ashlar.Hosting.Bundle/Ashlar.Hosting.Bundle.csproj)
-- `Ashlar.Ingress.AwsSns` (src/Ashlar.Ingress.AwsSns/Ashlar.Ingress.AwsSns.csproj)
-- `Ashlar.Ingress.DynamoDb` (src/Ashlar.Ingress.DynamoDb/Ashlar.Ingress.DynamoDb.csproj)
-- `Ashlar.Lite` (src/Ashlar.Lite/Ashlar.Lite.csproj)
-- `Ashlar.Manifest` (src/Ashlar.Manifest/Ashlar.Manifest.csproj)
-- `Ashlar.Runtime.Bundle` (src/Ashlar.Runtime.Bundle/Ashlar.Runtime.Bundle.csproj)
+- `Ashlar.Infrastructure` (src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj)
+- `Ashlar.Orchestration` (src/Ashlar.Orchestration/Ashlar.Orchestration.csproj)
+- `Ashlar.Policies` (src/Ashlar.Policies/Ashlar.Policies.csproj)
+- `Ashlar.Runtime` (src/Ashlar.Runtime/Ashlar.Runtime.csproj)
 - `Ashlar.Sdk` (src/Ashlar.Sdk/Ashlar.Sdk.csproj)
+- `Ashlar.Tools.Assembly` (src/Ashlar.Tools.Assembly/Ashlar.Tools.Assembly.csproj)
+- `Ashlar.Tools.Dev` (src/Ashlar.Tools.Dev/Ashlar.Tools.Dev.csproj)
+- `Ashlar.Transport.Grpc` (src/Ashlar.Transport.Grpc/Ashlar.Transport.Grpc.csproj)

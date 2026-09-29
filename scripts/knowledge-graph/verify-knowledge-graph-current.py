@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -87,7 +88,14 @@ def main() -> int:
         if actual != expected:
             fail(
                 f"{rel_path} does not match the repository. The graph is DERIVED, so this means the "
-                f"tree changed and the artifact was not regenerated. Run:\n"
+                f"tree changed and the artifact was not regenerated.\n"
+                f"       TWO CAUSES, and the second is the one people miss:\n"
+                f"         1. you edited the tree and did not regenerate;\n"
+                f"         2. you MERGED or REBASED. That brings the other branch's artifact in "
+                f"alongside your own tree changes, and a derived file does not regenerate "
+                f"itself on a merge - git resolves it as TEXT rather than recomputing it. "
+                f"Regenerate after every merge and rebase, not only after an edit.\n"
+                f"       Run:\n"
                 f"         python3 scripts/knowledge-graph/build-knowledge-graph.py\n"
                 f"       and commit the result. First differences:"
             )
@@ -99,6 +107,35 @@ def main() -> int:
                 print(f"         {line}", file=sys.stderr)
             failures += 1
 
+    # --- 1b. untracked inputs ---------------------------------------------------------------
+    # The generator enumerates with `git ls-files`, deliberately: it makes the artifact identical
+    # on every platform and ignores build output. The cost is that a file which is NEW and NOT YET
+    # STAGED is invisible to it. Regenerate before `git add` and you reproduce the OLD artifact,
+    # this verifier passes, and CI - where the file is tracked - reports drift you cannot
+    # reproduce locally. That happened on the very next PR after this gate landed.
+    #
+    # So an untracked file the graph WOULD have described is a failure here, not a shrug.
+    untracked = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "--others", "--exclude-standard", "-z",
+         "--", "src", "application", ".github/workflows", "scripts"],
+        capture_output=True, text=True, check=False,
+    ).stdout
+    would_describe = sorted(
+        path for path in untracked.split(chr(0))
+        if path and path.endswith((".csproj", ".cs", ".yml", ".yaml", ".sh"))
+    )
+    if would_describe:
+        shown = would_describe[:20]
+        more = len(would_describe) - len(shown)
+        fail(
+            "these files are untracked, and the graph is built from `git ls-files`, so they are "
+            "invisible to it. A regeneration now reproduces the PREVIOUS artifact and this check "
+            "passes, while CI - where they are tracked - reports drift. Run `git add` first, then "
+            "regenerate:"
+            + "".join(chr(10) + "         " + path for path in shown)
+            + (chr(10) + f"         ... and {more} more" if more > 0 else "")
+        )
+        failures += 1
     # --- 2. floors ------------------------------------------------------------------------------
     counts = graph["counts"]
     for key, floor in sorted(FLOORS.items()):

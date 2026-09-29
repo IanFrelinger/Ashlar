@@ -8,6 +8,31 @@ At release time, move the `[Unreleased]` notes under a new `[X.Y.Z] - YYYY-MM-DD
 
 ## [Unreleased]
 
+### Breaking
+
+- **`CertificationVerifyOptions.Default` is fail-closed, and was not in 0.1.x.** At `v0.1.2` it was
+  literally `new()` — no schema floor, no required signature, no pinning. It now sets
+  `MinimumSchemaVersion = TrustLoopSchemaVersion` and `RequireEd25519Signature = true`. **Any
+  certification record a 0.1.x consumer holds that is schema-v1, or signed with HMAC only, is
+  refused after upgrading**, through the same code path and with the same public shape as before.
+
+  This entry exists because nothing else would have told you. The change is invisible to
+  `PublicApiAnalyzers` — the property's declaration is unchanged, only the value it is initialised
+  to — so no `PublicAPI.*.txt` line moved and no signature broke. It is a behavioural break wearing
+  an unchanged API, which is the kind this project's own compatibility policy asks to be written
+  down (`docs/SdkCompatibilityPolicy.md`, "Breaking change process", step 2).
+
+  **Migration, exactly.** `CertificationVerifyOptions.Legacy` is `new()` today — byte-for-byte the
+  preset `Default` used to be — so a consumer who needs the old behaviour during migration passes
+  `Legacy` explicitly and gets precisely what they had. That is a documented downgrade and it is
+  marked INSECURE in its own XML docs: it accepts a record whose Ed25519 signature was stripped and
+  whose schema was downgraded, which is the attack the floor closes (`certification-evidence.md`,
+  limitations 7 and 8). The supported path is to re-mint records through the trust loop and stay on
+  `Default`.
+
+  Kept rather than reverted because fail-closed is the correct default for a verifier: a trust
+  product whose default preset accepts unsigned records has a default nobody should use.
+
 - **A removed gate-record signature is corruption, and the STORE decides it (SPEC-006 S-6).**
   `GateStore` now decides whether a record with no signature is a *stripped* one from the store's
   other verifying records and a signed activation marker at `.ashlar/gate-signing.json` — never

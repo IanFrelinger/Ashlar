@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Description>Hosts Ashlar's unattended agents: JSON agent configs, cron/interval scheduling, and a registry that gates registration on an approval gate and on per-agent policy narrowing. Ships the opt-in trust layer too - DataExfiltrationPolicy and SanitizingProviderFactory - which a host wires up to block or sanitize outbound model and web-search calls.</Description>
+    <PackageTags>ashlar agents background-agents scheduling trust</PackageTags>
+  </PropertyGroup>
+
+
+  <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

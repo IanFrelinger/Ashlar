@@ -9,38 +9,22 @@
   ],
   "counts": {
     "projects": 61,
-    "packable_projects": 19,
-    "config_variables": 161,
-    "operator_facing_config_variables": 142,
-    "operator_vars_missing_from_configuration_reference": 65,
-    "operator_vars_absent_from_all_documentation": 47,
+    "projects_shipped_to_nuget": 22,
+    "projects_declaring_ispackable_true": 19,
+    "config_variables": 173,
+    "operator_facing_config_variables": 153,
+    "operator_vars_missing_from_configuration_reference": 18,
+    "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 728,
     "declared_facts": 4376,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
-    "ASHLAR_ANALYZER_SEVERITY_FLOOR",
-    "ASHLAR_APP_STATE",
-    "ASHLAR_AVAILABLE_VRAM_BYTES",
-    "ASHLAR_BACKGROUND_TASK_PERMISSION",
-    "ASHLAR_BATTERY_OPTIMIZATION_ENABLED",
-    "ASHLAR_BATTERY_PERCENT",
-    "ASHLAR_BUILD_BUDGET",
-    "ASHLAR_CHARGING",
-    "ASHLAR_CPU_UTIL_PERCENT",
-    "ASHLAR_E2E_LIVE_MODEL",
-    "ASHLAR_E2E_LIVE_STACK",
-    "ASHLAR_FORGE_APPROVED_TTL_HOURS",
-    "ASHLAR_FORGE_PROPOSED_TTL_HOURS",
-    "ASHLAR_GENERATION_DEPTH_CEILING",
-    "ASHLAR_GPU_UTIL_PERCENT",
     "ASHLAR_KEY_DIR",
-    "ASHLAR_LOCAL_CONTEXT_SIZE",
     "ASHLAR_MESH_AUTOSHARE",
     "ASHLAR_MESH_CA",
     "ASHLAR_MESH_CLIENT_CERT",
     "ASHLAR_MESH_CLIENT_KEY",
-    "ASHLAR_MESH_DIR",
     "ASHLAR_MESH_DISCOVERY",
     "ASHLAR_MESH_PEERS",
     "ASHLAR_MESH_PULL_DIR",
@@ -52,94 +36,17 @@
     "ASHLAR_MESH_SERVE_TLS_CERT",
     "ASHLAR_MESH_SERVE_TLS_KEY",
     "ASHLAR_MESH_TAILNET",
-    "ASHLAR_NETWORK_LATENCY_MS",
-    "ASHLAR_NETWORK_METERED",
-    "ASHLAR_NETWORK_WIFI",
     "ASHLAR_NODE_NAME",
-    "ASHLAR_ON_BATTERY",
-    "ASHLAR_RELEASE_CORE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_CORE_MIN_TOTAL",
-    "ASHLAR_RELEASE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_LANE_REPETITIONS",
-    "ASHLAR_RELEASE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_MIN_TOTAL",
-    "ASHLAR_RELEASE_PROVIDER",
-    "ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE",
-    "ASHLAR_RELEASE_SLO_NCR_LOAD_MS",
-    "ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS",
-    "ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS",
-    "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
-    "ASHLAR_STORAGE_AVAILABLE_BYTES",
-    "ASHLAR_STORAGE_TOTAL_BYTES",
-    "ASHLAR_TAILNET_CMD",
-    "ASHLAR_TAILNET_PEER_PORT",
-    "ASHLAR_TAILNET_REFRESH_SECONDS",
-    "ASHLAR_TEST_BUDGET",
-    "ASHLAR_TEST_NO_NETWORK",
-    "ASHLAR_THERMAL_STATE",
-    "ASHLAR_TOTAL_VRAM_BYTES",
-    "ASHLAR_USER_ACTIVE",
-    "ASHLAR_VISUAL_PROMOTION_STREAK",
-    "ASHLAR_VISUAL_REQUIRED_MODE"
+    "ASHLAR_TAILNET_PEER_PORT"
   ],
-  "operator_vars_absent_from_all_documentation": [
-    "ASHLAR_ANALYZER_SEVERITY_FLOOR",
-    "ASHLAR_APP_STATE",
-    "ASHLAR_AVAILABLE_VRAM_BYTES",
-    "ASHLAR_BACKGROUND_TASK_PERMISSION",
-    "ASHLAR_BATTERY_OPTIMIZATION_ENABLED",
-    "ASHLAR_BATTERY_PERCENT",
-    "ASHLAR_BUILD_BUDGET",
-    "ASHLAR_CHARGING",
-    "ASHLAR_CPU_UTIL_PERCENT",
-    "ASHLAR_E2E_LIVE_MODEL",
-    "ASHLAR_E2E_LIVE_STACK",
-    "ASHLAR_FORGE_APPROVED_TTL_HOURS",
-    "ASHLAR_FORGE_PROPOSED_TTL_HOURS",
-    "ASHLAR_GENERATION_DEPTH_CEILING",
-    "ASHLAR_GPU_UTIL_PERCENT",
-    "ASHLAR_LOCAL_CONTEXT_SIZE",
-    "ASHLAR_MESH_DIR",
-    "ASHLAR_NETWORK_LATENCY_MS",
-    "ASHLAR_NETWORK_METERED",
-    "ASHLAR_NETWORK_WIFI",
-    "ASHLAR_ON_BATTERY",
-    "ASHLAR_RELEASE_CORE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_CORE_MIN_TOTAL",
-    "ASHLAR_RELEASE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_LANE_REPETITIONS",
-    "ASHLAR_RELEASE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_MIN_TOTAL",
-    "ASHLAR_RELEASE_PROVIDER",
-    "ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE",
-    "ASHLAR_RELEASE_SLO_NCR_LOAD_MS",
-    "ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS",
-    "ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS",
-    "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
-    "ASHLAR_STORAGE_AVAILABLE_BYTES",
-    "ASHLAR_STORAGE_TOTAL_BYTES",
-    "ASHLAR_TAILNET_CMD",
-    "ASHLAR_TAILNET_REFRESH_SECONDS",
-    "ASHLAR_TEST_BUDGET",
-    "ASHLAR_TEST_NO_NETWORK",
-    "ASHLAR_THERMAL_STATE",
-    "ASHLAR_TOTAL_VRAM_BYTES",
-    "ASHLAR_USER_ACTIVE",
-    "ASHLAR_VISUAL_PROMOTION_STREAK",
-    "ASHLAR_VISUAL_REQUIRED_MODE"
-  ],
+  "operator_vars_absent_from_all_documentation": [],
   "projects": [
     {
       "name": "Ashlar.AI.Pipeline",
       "path": "src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -152,7 +59,8 @@
       "name": "Ashlar.API",
       "path": "application/src/Ashlar.API/Ashlar.API.csproj",
       "layer": "application",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -174,7 +82,8 @@
       "name": "Ashlar.Abstractions",
       "path": "src/Ashlar.Abstractions/Ashlar.Abstractions.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -186,7 +95,8 @@
       "name": "Ashlar.Adapters.Models",
       "path": "src/Ashlar.Adapters.Models/Ashlar.Adapters.Models.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -200,7 +110,8 @@
       "name": "Ashlar.Agents.TestKit",
       "path": "src/Ashlar.Agents.TestKit/Ashlar.Agents.TestKit.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -215,7 +126,8 @@
       "name": "Ashlar.Analyzers",
       "path": "src/Ashlar.Analyzers/Ashlar.Analyzers.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "netstandard2.0"
       ],
@@ -227,7 +139,8 @@
       "name": "Ashlar.Analyzers.Tests",
       "path": "src/Ashlar.Analyzers.Tests/Ashlar.Analyzers.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -240,7 +153,8 @@
       "name": "Ashlar.Authoring",
       "path": "src/Ashlar.Authoring/Ashlar.Authoring.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -256,7 +170,8 @@
       "name": "Ashlar.BackgroundAgents",
       "path": "src/Ashlar.BackgroundAgents/Ashlar.BackgroundAgents.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -273,7 +188,8 @@
       "name": "Ashlar.BackgroundAgents.HostRunners",
       "path": "src/Ashlar.BackgroundAgents.HostRunners/Ashlar.BackgroundAgents.HostRunners.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -292,7 +208,8 @@
       "name": "Ashlar.Brick.Contracts",
       "path": "src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -304,7 +221,8 @@
       "name": "Ashlar.Bricks.Owasp",
       "path": "src/Ashlar.Bricks.Owasp/Ashlar.Bricks.Owasp.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -319,7 +237,8 @@
       "name": "Ashlar.Bricks.SqlProfile",
       "path": "src/Ashlar.Bricks.SqlProfile/Ashlar.Bricks.SqlProfile.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -334,7 +253,8 @@
       "name": "Ashlar.CLI",
       "path": "application/src/Ashlar.CLI/Ashlar.CLI.csproj",
       "layer": "application",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0"
       ],
@@ -360,7 +280,8 @@
       "name": "Ashlar.Certification.Contracts",
       "path": "src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -372,7 +293,8 @@
       "name": "Ashlar.Certification.State",
       "path": "src/Ashlar.Certification.State/Ashlar.Certification.State.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -386,7 +308,8 @@
       "name": "Ashlar.Client",
       "path": "src/Ashlar.Client/Ashlar.Client.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -399,7 +322,8 @@
       "name": "Ashlar.Contracts",
       "path": "src/Ashlar.Contracts/Ashlar.Contracts.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -410,7 +334,8 @@
       "name": "Ashlar.Core.Application",
       "path": "src/Ashlar.Core.Application/Ashlar.Core.Application.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -427,7 +352,8 @@
       "name": "Ashlar.Core.Domain",
       "path": "src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -441,7 +367,8 @@
       "name": "Ashlar.Framework.Sdk",
       "path": "src/Ashlar.Framework.Sdk/Ashlar.Framework.Sdk.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -455,7 +382,8 @@
       "name": "Ashlar.Hosting",
       "path": "src/Ashlar.Hosting/Ashlar.Hosting.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -477,7 +405,8 @@
       "name": "Ashlar.Hosting.Bundle",
       "path": "src/Ashlar.Hosting.Bundle/Ashlar.Hosting.Bundle.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -488,7 +417,8 @@
       "name": "Ashlar.Infrastructure",
       "path": "src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -508,7 +438,8 @@
       "name": "Ashlar.Ingress.AwsSns",
       "path": "src/Ashlar.Ingress.AwsSns/Ashlar.Ingress.AwsSns.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -519,7 +450,8 @@
       "name": "Ashlar.Ingress.AwsSns.Tests",
       "path": "src/Ashlar.Ingress.AwsSns.Tests/Ashlar.Ingress.AwsSns.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -531,7 +463,8 @@
       "name": "Ashlar.Ingress.DynamoDb",
       "path": "src/Ashlar.Ingress.DynamoDb/Ashlar.Ingress.DynamoDb.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -544,7 +477,8 @@
       "name": "Ashlar.Ingress.DynamoDb.Tests",
       "path": "src/Ashlar.Ingress.DynamoDb.Tests/Ashlar.Ingress.DynamoDb.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -556,7 +490,8 @@
       "name": "Ashlar.Lite",
       "path": "src/Ashlar.Lite/Ashlar.Lite.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -572,7 +507,8 @@
       "name": "Ashlar.Manifest",
       "path": "src/Ashlar.Manifest/Ashlar.Manifest.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -583,7 +519,8 @@
       "name": "Ashlar.Mcp.Client",
       "path": "src/Ashlar.Mcp.Client/Ashlar.Mcp.Client.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -596,7 +533,8 @@
       "name": "Ashlar.Mcp.Client.Tests",
       "path": "src/Ashlar.Mcp.Client.Tests/Ashlar.Mcp.Client.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -609,7 +547,8 @@
       "name": "Ashlar.Mcp.Server",
       "path": "src/Ashlar.Mcp.Server/Ashlar.Mcp.Server.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -622,7 +561,8 @@
       "name": "Ashlar.Mcp.Server.Host",
       "path": "src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -636,7 +576,8 @@
       "name": "Ashlar.Mcp.Server.Tests",
       "path": "src/Ashlar.Mcp.Server.Tests/Ashlar.Mcp.Server.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -648,7 +589,8 @@
       "name": "Ashlar.Orchestration",
       "path": "src/Ashlar.Orchestration/Ashlar.Orchestration.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -663,7 +605,8 @@
       "name": "Ashlar.Policies",
       "path": "src/Ashlar.Policies/Ashlar.Policies.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -677,7 +620,8 @@
       "name": "Ashlar.Policies.Dev",
       "path": "src/Ashlar.Policies.Dev/Ashlar.Policies.Dev.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -691,7 +635,8 @@
       "name": "Ashlar.Runtime",
       "path": "src/Ashlar.Runtime/Ashlar.Runtime.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -706,7 +651,8 @@
       "name": "Ashlar.Runtime.Bundle",
       "path": "src/Ashlar.Runtime.Bundle/Ashlar.Runtime.Bundle.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -731,7 +677,8 @@
       "name": "Ashlar.Sdk",
       "path": "src/Ashlar.Sdk/Ashlar.Sdk.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -744,7 +691,8 @@
       "name": "Ashlar.Tests.AI.Pipeline",
       "path": "src/Ashlar.Tests.AI.Pipeline/Ashlar.Tests.AI.Pipeline.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -757,7 +705,8 @@
       "name": "Ashlar.Tests.Application",
       "path": "src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -774,7 +723,8 @@
       "name": "Ashlar.Tests.BackgroundAgents",
       "path": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -793,7 +743,8 @@
       "name": "Ashlar.Tests.CLI",
       "path": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "layer": "application",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -811,7 +762,8 @@
       "name": "Ashlar.Tests.Contracts",
       "path": "src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -825,7 +777,8 @@
       "name": "Ashlar.Tests.Domain",
       "path": "src/Ashlar.Tests.Domain/Ashlar.Tests.Domain.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -839,7 +792,8 @@
       "name": "Ashlar.Tests.Infrastructure",
       "path": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -871,7 +825,8 @@
       "name": "Ashlar.Tests.Kernel",
       "path": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -889,7 +844,8 @@
       "name": "Ashlar.Tests.Orchestration",
       "path": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -906,7 +862,8 @@
       "name": "Ashlar.Tests.Transport",
       "path": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -921,7 +878,8 @@
       "name": "Ashlar.Tools.Assembly",
       "path": "src/Ashlar.Tools.Assembly/Ashlar.Tools.Assembly.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -934,7 +892,8 @@
       "name": "Ashlar.Tools.Dev",
       "path": "src/Ashlar.Tools.Dev/Ashlar.Tools.Dev.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -948,7 +907,8 @@
       "name": "Ashlar.Transport.A2A",
       "path": "src/Ashlar.Transport.A2A/Ashlar.Transport.A2A.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -961,7 +921,8 @@
       "name": "Ashlar.Transport.A2A.Server",
       "path": "src/Ashlar.Transport.A2A.Server/Ashlar.Transport.A2A.Server.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -974,7 +935,8 @@
       "name": "Ashlar.Transport.A2A.Server.Tests",
       "path": "src/Ashlar.Transport.A2A.Server.Tests/Ashlar.Transport.A2A.Server.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -987,7 +949,8 @@
       "name": "Ashlar.Transport.A2A.Tests",
       "path": "src/Ashlar.Transport.A2A.Tests/Ashlar.Transport.A2A.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -999,7 +962,8 @@
       "name": "Ashlar.Transport.Grpc",
       "path": "src/Ashlar.Transport.Grpc/Ashlar.Transport.Grpc.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -1012,7 +976,8 @@
       "name": "Ashlar.Transport.Grpc.Server",
       "path": "src/Ashlar.Transport.Grpc.Server/Ashlar.Transport.Grpc.Server.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -1026,7 +991,8 @@
       "name": "Ashlar.Transport.Grpc.Server.Host",
       "path": "src/Ashlar.Transport.Grpc.Server.Host/Ashlar.Transport.Grpc.Server.Host.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -1039,7 +1005,8 @@
       "name": "copy-assemblies",
       "path": "src/Ashlar.Tests.Infrastructure/scripts/copy-assemblies.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -1113,8 +1080,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_APP_STATE",
@@ -1122,8 +1089,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_ARTIFACT_CLEANUP_REPO_ROOT",
@@ -1141,12 +1108,13 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BACKGROUND_AGENTS_CONFIG",
       "declared_in": [
+        "(unowned)",
         "Ashlar.API"
       ],
       "test_only": false,
@@ -1159,8 +1127,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BARRIER_MIDDLEWARE_ENABLED",
@@ -1178,8 +1146,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BATTERY_PERCENT",
@@ -1187,8 +1155,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BEDROCK_BALANCED_MODEL",
@@ -1217,12 +1185,22 @@
         "Ashlar.Tests.Kernel"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_CAMPAIGN_DIR",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CERT_DEV_HMAC_KEY",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Certification.Contracts"
       ],
       "test_only": false,
@@ -1241,11 +1219,12 @@
     {
       "name": "ASHLAR_CERT_NUGET_CONFIG",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Tests.Infrastructure"
       ],
-      "test_only": true,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CERT_PINNING_REQUIRED",
@@ -1273,8 +1252,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CLEAN_AFTER_TEST",
@@ -1321,8 +1300,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CYCLE_EVENTS_PATH",
@@ -1355,6 +1334,7 @@
     {
       "name": "ASHLAR_DEPLOYMENT_PROFILE",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Hosting",
         "Ashlar.Mcp.Client",
         "Ashlar.Mcp.Server",
@@ -1380,7 +1360,7 @@
       "declared_in": [
         "Ashlar.Agents.TestKit"
       ],
-      "test_only": false,
+      "test_only": true,
       "in_configuration_reference": false,
       "in_any_document": false
     },
@@ -1389,7 +1369,7 @@
       "declared_in": [
         "Ashlar.Agents.TestKit"
       ],
-      "test_only": false,
+      "test_only": true,
       "in_configuration_reference": false,
       "in_any_document": false
     },
@@ -1464,8 +1444,8 @@
         "Ashlar.BackgroundAgents"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_FORGE_PROPOSED_TTL_HOURS",
@@ -1473,8 +1453,8 @@
         "Ashlar.BackgroundAgents"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_FORGE_ROOT",
@@ -1501,8 +1481,8 @@
         "Ashlar.Core.Application"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_GPU_COMPUTE_CLASS",
@@ -1519,8 +1499,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_INCOMPLETE_BLOB_PATH",
@@ -1589,8 +1569,8 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_LOCAL_MODEL_ENV_DIR",
@@ -1650,6 +1630,15 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_MESH_API_KEY",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
       "name": "ASHLAR_MESH_AUTOSHARE",
       "declared_in": [
         "Ashlar.BackgroundAgents.HostRunners",
@@ -1694,8 +1683,17 @@
         "Ashlar.Tests.Kernel"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_MESH_DIRECTOR_BASE_URL",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_MESH_DISCOVERY",
@@ -1728,6 +1726,15 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_MESH_MUTATING_TOKEN",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
       "name": "ASHLAR_MESH_PEERS",
       "declared_in": [
         "Ashlar.CLI",
@@ -1741,6 +1748,15 @@
       "name": "ASHLAR_MESH_PEER_ID",
       "declared_in": [
         "Ashlar.Infrastructure"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_MESH_PEER_REGISTRATION_KEY",
+      "declared_in": [
+        "(unowned)"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -1855,8 +1871,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_NETWORK_METERED",
@@ -1864,8 +1880,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_NETWORK_WIFI",
@@ -1873,8 +1889,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_NODECAP_OLLAMA_URL",
@@ -1897,6 +1913,7 @@
     {
       "name": "ASHLAR_OBJECTIVES_ROOT",
       "declared_in": [
+        "(unowned)",
         "Ashlar.BackgroundAgents",
         "Ashlar.Tests.Infrastructure"
       ],
@@ -1935,6 +1952,7 @@
     {
       "name": "ASHLAR_OLLAMA_BASE_URL",
       "declared_in": [
+        "(unowned)",
         "Ashlar.AI.Pipeline",
         "Ashlar.Infrastructure",
         "Ashlar.Tests.Infrastructure"
@@ -1944,9 +1962,55 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_OLLAMA_MAX_TOKENS",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
       "name": "ASHLAR_OLLAMA_MODEL",
       "declared_in": [
+        "(unowned)",
         "Ashlar.AI.Pipeline"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_OLLAMA_TEMPERATURE",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_OLLAMA_THINK",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_OLLAMA_TIMEOUT_MINUTES",
+      "declared_in": [
+        "(unowned)"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -1958,8 +2022,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_PATH_ALLOWLIST_EXTRA",
@@ -2081,8 +2145,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
@@ -2090,8 +2154,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_CORE_MIN_TOTAL",
@@ -2099,8 +2163,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_HISTORY_WINDOW",
@@ -2108,8 +2172,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_LANE_REPETITIONS",
@@ -2117,8 +2181,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_MIN_PASS_RATE",
@@ -2126,8 +2190,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_MIN_TOTAL",
@@ -2135,8 +2199,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_PROVIDER",
@@ -2144,8 +2208,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE",
@@ -2153,8 +2217,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_LOAD_MS",
@@ -2162,8 +2226,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS",
@@ -2171,8 +2235,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS",
@@ -2180,8 +2244,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
@@ -2189,8 +2253,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
@@ -2198,8 +2262,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
@@ -2207,8 +2271,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RUN_DYNAMODB_CONTAINER",
@@ -2266,8 +2330,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_STORAGE_TOTAL_BYTES",
@@ -2275,8 +2339,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_STRICT_MODE",
@@ -2289,13 +2353,31 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_SWEEP_MAX_OBJECTIVES",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_SWEEP_PROPOSER",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
       "name": "ASHLAR_TAILNET_CMD",
       "declared_in": [
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TAILNET_PEER_PORT",
@@ -2312,8 +2394,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TEST_A2A_KEY_THAT_DOES_NOT_EXIST",
@@ -2341,8 +2423,8 @@
         "Ashlar.Tests.Kernel"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TEST_EPHEMERAL",
@@ -2396,8 +2478,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TEST_POSTGRES_ADMIN",
@@ -2441,8 +2523,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TOTAL_VRAM_BYTES",
@@ -2451,8 +2533,8 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TRUSTED_PEER_IDS",
@@ -2507,8 +2589,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_USE_MEAI_PIPELINE",
@@ -2526,8 +2608,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_VISUAL_REQUIRED_MODE",
@@ -2535,8 +2617,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_WORKLOAD_AUTOSCALE",
