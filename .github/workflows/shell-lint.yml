@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: bash scripts/ci/verify-workflow-context-availability.sh
 
-      - name: Workflows keep outsider-controlled values out of run: scripts
+      - name: Workflows keep outsider-controlled values out of run scripts
         shell: bash
         run: |
           # A ${{ }} expression is substituted into the script TEXT before bash parses it, so a
