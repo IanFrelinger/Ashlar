@@ -185,3 +185,11 @@ jobs:
           # packages are public and nuget.org allows unlisting but not deletion. It had never run:
           # the v0.1.2 release died a step earlier on index lag.
           bash tests/scripts/nupkg-content-digest.test.sh
+      - name: Markdown links resolve to headings that exist
+        shell: bash
+        run: |
+          # README.md is packed into every package this repository publishes, so a dead in-page
+          # anchor renders on the nuget.org page of all 22 of them, for as long as that version
+          # exists. The required lychee check runs without --include-fragments: it resolves that a
+          # FILE exists and never looks at the #fragment. This is local and needs no network.
+          python3 scripts/ci/verify-doc-anchors.py

@@ -13,6 +13,6 @@ High-level maps of how Ashlar is structured. For day-to-day commands, see the re
 | [Protocol integration: MCP + A2A](ProtocolIntegration-MCP-A2A.md) | MCP server bridge over `ITool` (allowlists, policy gate, stdio host) and the planned MCP client / A2A phases. MCP client/A2A refuse AirGapped and SecureWorkstation; local MCP server stays allowed on SecureWorkstation. |
 | [Shipping and consumption (all audiences)](../DistributionModels.md) | How Ashlar is packaged (NuGet, containers, HTTP); pinning; **distribution-matrix** CI jobs per channel. |
 | [SDK-style layout](SdkStructure.md) | Ports vs options vs builders; `Ashlar.Hosting.Sdk` vs `Ashlar.Sdk.Client`; folder conventions. |
-| [SDK migration plan (remaining gaps)](SdkMigrationPlan.md) | **Execution status** at top; **[Plan: close remaining gaps](#plan-close-remaining-gaps-post-migration)** (D1–D6: docs, sweep, consumers, optional `Sdk/Options`, hosting polish, CI clarity). |
+| [SDK migration plan (remaining gaps)](SdkMigrationPlan.md) | **Execution status** at top; **[Plan: close remaining gaps](SdkMigrationPlan.md#plan-close-remaining-gaps-post-migration)** (D1–D6: docs, sweep, consumers, optional `Sdk/Options`, hosting polish, CI clarity). |
 | **`Ashlar.Framework.Sdk`** | Optional megaproject in `src/Ashlar.Framework.Sdk/` — `AddAshlarFramework` combines HTTP client + `AddAshlar`. |
 | [GitHub Actions trigger policy](../../.github/workflows/README.md) | Manual-first workflow policy (`workflow_dispatch`); tag-driven release automation unchanged. |
