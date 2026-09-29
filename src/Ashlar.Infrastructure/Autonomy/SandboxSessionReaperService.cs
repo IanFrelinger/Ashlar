@@ -14,7 +14,7 @@ namespace Ashlar.Infrastructure.Autonomy;
 /// service — the next sweep retries, which is the whole point of a periodic backstop.
 /// </summary>
 [Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]
-public sealed class SandboxSessionReaperService : BackgroundService
+internal sealed class SandboxSessionReaperService : BackgroundService
 {
     private readonly DockerSandboxSessionReaper _reaper;
     private readonly TimeSpan _interval;

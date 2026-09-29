@@ -21,7 +21,7 @@ namespace Ashlar.Infrastructure.Certification;
 /// reference <c>Ashlar.Manifest</c>), so changing either format reddens cert-gate. Restating the
 /// format in prose would not have caught it.</para>
 /// </summary>
-public static class CertificationSignerFingerprint
+internal static class CertificationSignerFingerprint
 {
     /// <summary>
     /// The SPEC-006 §3 fingerprint of a Base64 raw Ed25519 public key: <c>ed25519:</c> plus the

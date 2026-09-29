@@ -225,7 +225,7 @@ public sealed record BrickSwapProvenanceEvent
 
 /// <summary>Well-known <see cref="BrickSwapProvenanceEvent.Outcome"/> values.</summary>
 [Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]
-public static class BrickSwapProvenanceOutcomes
+internal static class BrickSwapProvenanceOutcomes
 {
     /// <summary>A brick passed verify-at-load and was loaded into the new generation.</summary>
     public const string BrickLoaded = "brick-loaded";

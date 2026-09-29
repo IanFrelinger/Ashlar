@@ -9,7 +9,7 @@ namespace Ashlar.Infrastructure.Certification;
 /// Closes constructor <c>Environment.Exit</c> / constructor-hang during discovery:
 /// nothing in this type calls <c>Assembly.Load*</c> or <c>Activator.CreateInstance</c>.
 /// </summary>
-public static class MetadataBrickDiscovery
+internal static class MetadataBrickDiscovery
 {
     /// <summary>Metadata name of the brick base type.</summary>
     public const string BrickMetadataName = "Ashlar.Core.Domain.Bricks.Brick";

@@ -9,7 +9,7 @@ namespace Ashlar.Infrastructure.Execution.Routing;
 /// <summary>
 /// Lightweight poller that keeps peer capability snapshots current for routing.
 /// </summary>
-public sealed class PeerCapabilitySnapshotPoller : BackgroundService, IPeerCapabilitySnapshot
+internal sealed class PeerCapabilitySnapshotPoller : BackgroundService, IPeerCapabilitySnapshot
 {
     private readonly IInstanceDiscovery _discovery;
     private readonly ILogger<PeerCapabilitySnapshotPoller> _logger;

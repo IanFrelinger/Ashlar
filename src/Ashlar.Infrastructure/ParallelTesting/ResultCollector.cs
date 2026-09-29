@@ -6,7 +6,7 @@ namespace Ashlar.Infrastructure.ParallelTesting;
 /// <summary>
 /// Collects and aggregates test instance results.
 /// </summary>
-public sealed class ResultCollector : IResultCollector
+internal sealed class ResultCollector : IResultCollector
 {
     /// <inheritdoc />
     public Task<AggregatedTestResult> CollectAsync(IReadOnlyList<TestInstance> instances, CancellationToken cancellationToken = default)

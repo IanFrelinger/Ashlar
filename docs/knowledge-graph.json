@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 153,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 729,
-    "declared_facts": 4378,
+    "test_files_declaring_facts": 730,
+    "declared_facts": 4380,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5240,6 +5240,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/SdkCompositionSurfaceTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 1,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/SelfExtendBudgetClockTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5845,7 +5852,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/KernelDiCompositionProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
-      "declared_facts": 7,
+      "declared_facts": 8,
       "in_cert_gate_filter": false
     },
     {

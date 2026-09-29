@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Ashlar.Infrastructure.Execution.Ollama;
 
 /// <summary>Single model entry in an Ollama tags response.</summary>
-public sealed record OllamaTagsModel
+internal sealed record OllamaTagsModel
 {
     /// <summary>Model name including tag (e.g. <c>llama3:8b</c>).</summary>
     [JsonPropertyName("name")]
