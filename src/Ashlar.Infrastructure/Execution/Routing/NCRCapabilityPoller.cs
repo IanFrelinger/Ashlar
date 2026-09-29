@@ -10,7 +10,7 @@ namespace Ashlar.Infrastructure.Execution.Routing;
 /// <summary>
 /// Background poller that keeps NCR capability snapshot current for routing.
 /// </summary>
-public sealed class NCRCapabilityPoller : BackgroundService, INCRCapabilitySnapshot
+internal sealed class NCRCapabilityPoller : BackgroundService, INCRCapabilitySnapshot
 {
     private readonly IHardwareProfiler _hardwareProfiler;
     private readonly ILocalQueueDepthProvider _queueDepthProvider;

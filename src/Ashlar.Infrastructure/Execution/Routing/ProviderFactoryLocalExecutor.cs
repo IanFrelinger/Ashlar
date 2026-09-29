@@ -8,7 +8,7 @@ namespace Ashlar.Infrastructure.Execution.Routing;
 /// <summary>
 /// Local generation executor backed by the existing provider factory.
 /// </summary>
-public sealed class ProviderFactoryLocalExecutor : ILocalExecutor
+internal sealed class ProviderFactoryLocalExecutor : ILocalExecutor
 {
     private readonly IProviderFactory _providerFactory;
     private readonly ILogger<ProviderFactoryLocalExecutor> _logger;

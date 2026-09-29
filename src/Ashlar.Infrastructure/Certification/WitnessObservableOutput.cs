@@ -20,7 +20,7 @@ namespace Ashlar.Infrastructure.Certification;
 /// colliding with declared brick keys, and it is deliberately NOT counted as an undeclared
 /// write by the swap host's contract leg.</para>
 /// </summary>
-public static class WitnessObservableOutput
+internal static class WitnessObservableOutput
 {
     /// <summary>Reserved witness key under which a brick's summary is observable.</summary>
     public const string SummaryKey = "$summary";

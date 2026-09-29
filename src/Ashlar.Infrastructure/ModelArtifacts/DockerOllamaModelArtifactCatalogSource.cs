@@ -13,7 +13,7 @@ namespace Ashlar.Infrastructure.ModelArtifacts;
 /// Lists Ollama models by probing running Ollama Docker containers on the local engine
 /// (<c>GET http://127.0.0.1:&lt;mapped-port&gt;/api/tags</c> per container).
 /// </summary>
-public sealed class DockerOllamaModelArtifactCatalogSource : IModelArtifactCatalogSource, IDisposable
+internal sealed class DockerOllamaModelArtifactCatalogSource : IModelArtifactCatalogSource, IDisposable
 {
     /// <summary>http client name constant.</summary>
     public const string HttpClientName = "Ashlar.ModelArtifactCatalog.DockerOllamaProbe";

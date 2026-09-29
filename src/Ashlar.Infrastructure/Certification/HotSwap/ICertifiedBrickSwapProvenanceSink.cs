@@ -18,7 +18,7 @@ public interface ICertifiedBrickSwapProvenanceSink
 
 /// <summary>Default sink: structured log lines, one per event.</summary>
 [Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]
-public sealed class LoggingBrickSwapProvenanceSink : ICertifiedBrickSwapProvenanceSink
+internal sealed class LoggingBrickSwapProvenanceSink : ICertifiedBrickSwapProvenanceSink
 {
     private readonly ILogger<LoggingBrickSwapProvenanceSink> _logger;
 

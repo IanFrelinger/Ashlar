@@ -12,7 +12,7 @@ namespace Ashlar.Infrastructure.Adaptation.Generation;
 /// (spec R3.5) rather than prose, so the instructions the proposer sees are the same
 /// object an ingest gate enforces.
 /// </summary>
-public sealed class ProviderGeneratorModel : IGeneratorModel
+internal sealed class ProviderGeneratorModel : IGeneratorModel
 {
     private readonly IProviderFactory _providerFactory;
     private readonly ILogger<ProviderGeneratorModel>? _logger;

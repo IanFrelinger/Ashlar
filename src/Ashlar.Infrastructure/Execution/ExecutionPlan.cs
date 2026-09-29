@@ -13,4 +13,4 @@ namespace Ashlar.Infrastructure.Execution;
 /// <summary>
 /// Execution plan for a cluster.
 /// </summary>
-public record ExecutionPlan(IReadOnlyList<ExecutionStep> Steps);
+internal record ExecutionPlan(IReadOnlyList<ExecutionStep> Steps);

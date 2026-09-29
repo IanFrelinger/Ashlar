@@ -8,7 +8,7 @@ namespace Ashlar.Infrastructure.Composition;
 /// Runs tests through a composed agent pipeline.
 /// Phase D: Composition-driven testing (Block 7–8).
 /// </summary>
-public sealed class ComposedTestRunner : IComposedTestRunner
+internal sealed class ComposedTestRunner : IComposedTestRunner
 {
     private static readonly string[] TestRunnerComponents = ["test-discovery", "test-execution", "result-aggregation"];
 

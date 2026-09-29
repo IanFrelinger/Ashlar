@@ -7,7 +7,7 @@ namespace Ashlar.Infrastructure.Adaptation;
 /// <summary>
 /// Decomposes bricks into editable BrickManifest.
 /// </summary>
-public sealed class BrickDecomposer : IBrickDecomposer
+internal sealed class BrickDecomposer : IBrickDecomposer
 {
     /// <inheritdoc />
     public Task<BrickManifest> DecomposeAsync(DomainBrick brick, CancellationToken cancellationToken = default)
