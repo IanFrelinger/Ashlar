@@ -102,17 +102,24 @@ jobs:
         shell: bash
         run: bash scripts/ci/verify-workflow-context-availability.sh
 
+      # A GitHub expression is substituted into the script TEXT before bash parses it, so a value
+      # carrying $( ) or a backtick executes; quoting does not stop that. Refnames may contain all
+      # three, so a branch name interpolated into a run: block is arbitrary code chosen by whoever
+      # opened the PR. One such site existed, in the workflow that dispatches releases.
+      #
+      # Nothing here could see it: the bash -n step walks scripts/ and tests/, and shellcheck only
+      # scripts/**/*.sh, so embedded workflow bash is parsed by neither. Hence its own step.
+      #
+      # THESE LINES ARE YAML COMMENTS, DELIBERATELY, AND MUST STAY OUTSIDE THE run: BLOCK. A comment
+      # INSIDE a run: block is still part of the script string, and GitHub evaluates expressions in
+      # it before bash ever sees a '#'. An earlier version of this step explained the hazard using a
+      # literal empty expression inside the block, which is not valid, and the whole workflow was
+      # rejected: the run was named after the file path instead of "Shell lint", posted no check,
+      # and the pull request read "0 failing". PyYAML parses such a file happily, so the cert-gate
+      # parse fact cannot catch it either - the linter below now does.
       - name: Workflows keep outsider-controlled values out of run scripts
         shell: bash
         run: |
-          # A ${{ }} expression is substituted into the script TEXT before bash parses it, so a
-          # value carrying $( ) or a backtick executes; quoting does not stop that. Refnames may
-          # contain all three, so a branch name interpolated into a run: block is arbitrary code
-          # chosen by whoever opened the PR. One such site existed, in the workflow that dispatches
-          # releases.
-          #
-          # Nothing here could see it: the bash -n step walks scripts/ and tests/, and shellcheck
-          # only scripts/**/*.sh, so embedded workflow bash is parsed by neither. Hence its own step.
           bash tests/scripts/workflow-interpolation.test.sh
           python3 scripts/ci/verify-workflow-run-interpolation.py
 

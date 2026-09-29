@@ -58,6 +58,15 @@ OUTSIDER_CONTROLLED = [
 ]
 
 RISKY = re.compile(r"\$\{\{\s*(" + "|".join(OUTSIDER_CONTROLLED) + r")\s*\}\}")
+
+# An expression with nothing in it. GitHub evaluates expressions inside a run: block BEFORE bash
+# sees the script, including inside what looks like a shell comment, and an empty one is not valid -
+# it rejects the entire workflow. The run is then named after the file path instead of the
+# workflow's `name:`, posts no check, and the pull request reads "0 failing". PyYAML parses such a
+# file without complaint, so a YAML-level parse check cannot catch this class; only a scan for the
+# expression itself can. Found the hard way: a comment in this very check's own step explained the
+# injection hazard by writing an empty expression, and silenced shell-lint for 23 minutes.
+EMPTY_EXPRESSION = re.compile(r"\$\{\{\s*\}\}")
 RUN_KEY = re.compile(r"^(\s*)(?:-\s+)?run:\s*(\|[-+]?|>[-+]?)?\s*(\S.*)?$")
 
 
@@ -77,6 +86,8 @@ def findings_in(path: Path) -> list[tuple[int, str, str]]:
             if inline:
                 for hit in RISKY.finditer(inline):
                     out.append((number, hit.group(1), line.strip()))
+                if EMPTY_EXPRESSION.search(inline):
+                    out.append((number, "an EMPTY expression, which GitHub rejects", line.strip()))
             in_run = bool(match.group(2))
             run_indent = len(match.group(1))
             continue
@@ -90,6 +101,8 @@ def findings_in(path: Path) -> list[tuple[int, str, str]]:
             else:
                 for hit in RISKY.finditer(line):
                     out.append((number, hit.group(1), stripped))
+                if EMPTY_EXPRESSION.search(line):
+                    out.append((number, "an EMPTY expression, which GitHub rejects", stripped))
 
     return out
 

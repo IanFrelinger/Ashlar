@@ -34,7 +34,7 @@ if [[ -z "${PY_BIN}" ]]; then
 fi
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=10
+EXPECTED_ASSERTIONS=11
 
 PASS=0
 FAIL=0
@@ -85,6 +85,23 @@ for ctx in "github.event.issue.title" "github.event.comment.body" "github.event.
     bad "refuses ${ctx}" "exit ${r%%|*}: ${r#*|}"
   fi
 done
+
+echo "== it rejects an empty expression, which GitHub refuses the whole workflow for =="
+# PyYAML parses such a file happily, so the cert-gate parse fact cannot see this. GitHub evaluates
+# expressions inside a run: block before bash sees a '#', so even a comment breaks the workflow: the
+# run is named after the file path instead of the workflow name, posts NO check, and the pull request
+# reads "0 failing". This happened to this very check's own step.
+r="$(scan_one 'jobs:
+  a:
+    steps:
+      - run: |
+          # explaining that a ${{ }} expression is substituted before bash parses it
+          echo hi')"
+if [[ "${r%%|*}" != "0" ]] && grep -q 'EMPTY expression' <<<"${r#*|}"; then
+  ok "an empty expression inside a run: block is refused, even in a comment"
+else
+  bad "an empty expression inside a run: block is refused" "exit ${r%%|*}: ${r#*|}"
+fi
 
 echo "== it accepts the safe shape, so the fix is not itself flagged =="
 r="$(scan_one 'jobs:
