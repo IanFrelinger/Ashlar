@@ -56,10 +56,10 @@ var app = builder.Build();
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
-using Ashlar.Sdk;
+using Ashlar.Sdk.Client;
 
 var services = new ServiceCollection();
-services.AddAshlarSdk("http://localhost:5000");
+services.AddAshlarClientSdk("http://localhost:5000");
 var provider = services.BuildServiceProvider();
 ```
 
