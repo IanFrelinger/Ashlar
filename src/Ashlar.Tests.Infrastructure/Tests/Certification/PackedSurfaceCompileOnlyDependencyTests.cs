@@ -117,10 +117,14 @@ public sealed class PackedSurfaceCompileOnlyDependencyTests
             return true;
         }
 
+        // TypeReference derives from MemberReference in Cecil, so it must be matched FIRST. With the
+        // arms the other way round the compiler rejects the second as unreachable - and had it not,
+        // a bare `ldtoken SomeXunitType` would have been read through DeclaringType, which is null
+        // for a top-level type, and silently missed.
         return method.Body.Instructions.Any(instruction => instruction.Operand switch
         {
-            MemberReference member => IsCompileOnly(member.DeclaringType?.Scope?.Name),
             TypeReference typeRef => IsCompileOnly(typeRef.Scope?.Name),
+            MemberReference member => IsCompileOnly(member.DeclaringType?.Scope?.Name),
             _ => false,
         });
     }
