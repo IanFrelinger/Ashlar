@@ -55,7 +55,7 @@ fi
 
 # A test file that stops early must fail LOUDLY rather than just exit nonzero, for the same reason
 # the sweep must not report a fault as a pass. Bump this when assertions are added.
-EXPECTED_ASSERTIONS=23
+EXPECTED_ASSERTIONS=28
 
 mklog() { local f; f="$(mktemp)"; printf '%s\n' "$1" > "${f}"; printf '%s' "${f}"; }
 
@@ -344,6 +344,72 @@ else
       "${SIDECAR_FACT} is gone from ${SIDECAR_FACT_FILE}. classify_sweep_evidence parses those
          names; without that fact a rename makes every sweep a GAP with nothing saying why.
          Restore the fact, or put a merge-blocking replacement in the Certification namespace"
+fi
+
+echo "== the script emits what the workflow greps for =="
+# The sweep script ECHOES a citation line; the workflow separately GREPS it back out of the log and
+# interpolates it into the ledger row. Nothing coupled the two, so renaming either side left every
+# assertion in this file green and produced a row reading "Counts toward 3a: ." - a 3a-counting PASS
+# citing nothing, which is the pre-#655 shape one layer up. Measured before this guard existed:
+# renaming the script's echo to 'SWEEP RECORD:' kept 23/23 green.
+#
+# Both sides are EXTRACTED from the real files. A literal restated here would be a third copy that
+# also drifts. Each extraction is guarded for non-emptiness first, because `grep -qF ""` matches
+# everything - an extraction that silently stopped matching would otherwise pass forever.
+SWEEP_SCRIPT="${ROOT}/scripts/dogfood-continuous-proof.sh"
+SWEEP_WF="${ROOT}/.github/workflows/dogfood-continuous-proof.yml"
+
+check_literal_shared() {
+  local what="$1" literal="$2"
+  if [[ -z "${literal}" ]]; then
+    bad "${what}" "the literal could not be extracted from ${SWEEP_SCRIPT}. Either the echo was
+         reshaped or this guard's pattern is stale. An empty literal would match the workflow
+         trivially, so this is a failure and not a skip"
+  elif grep -qF -- "${literal}" "${SWEEP_WF}"; then
+    ok "${what}"
+  else
+    bad "${what}" "the script emits '${literal}' but ${SWEEP_WF} does not grep that string.
+         One side was renamed. The row would keep its Pass/Fail cell and lose the reason or the
+         citation that makes the cell mean anything"
+  fi
+}
+
+check_literal_shared "the citation prefix the script echoes is the one the workflow greps" \
+  "$(grep -o 'echo "[^"]*\$(sweep_evidence_citation' "${SWEEP_SCRIPT}" | head -1 \
+     | sed 's/^echo "//; s/\$(sweep_evidence_citation$//')"
+
+check_literal_shared "the persist-failure prefix the script echoes is the one the workflow greps" \
+  "$(grep -o 'echo "[^"]*\$(sweep_evidence_reason' "${SWEEP_SCRIPT}" | head -1 \
+     | sed 's/^echo "//; s/\$(sweep_evidence_reason$//')"
+
+check_literal_shared "the precondition prefix the script echoes is the one the workflow greps" \
+  "$(grep -o 'PRECONDITION FAILED:' "${SWEEP_SCRIPT}" | head -1)"
+
+# A PASS whose citation is empty must not claim 3a. The workflow's own comment already said a row
+# without the citation line does not count; nothing enforced it.
+if grep -q 'Does NOT count toward 3a' "${SWEEP_WF}" \
+  && grep -q 'z "${EVIDENCE}"' "${SWEEP_WF}"; then
+  ok "a PASS with no citation is refused the 3a claim rather than counting with an empty one"
+else
+  bad "a PASS with no citation is refused the 3a claim rather than counting with an empty one" \
+      "${SWEEP_WF} no longer guards the empty-citation case, so exit 0 with no record emits
+         'Counts toward 3a: .' — a row asserting evidence it does not have"
+fi
+
+# The ephemeral signing key is written to \$GITHUB_ENV, so it is in the environment of the sweep
+# step whose stdout is tee'd into an uploaded log. ::add-mask:: is the only thing standing between
+# that and a published key, it occurs exactly once in the repository, and nothing asserted it:
+# shell-lint's bash -n walks scripts/ and tests/ only, and shellcheck only scripts/**/*.sh, so
+# embedded workflow bash is never parsed at all. Deleting the mask line left every check green.
+MASK_LINE="$(grep -n '::add-mask::' "${SWEEP_WF}" | head -1 | cut -d: -f1)"
+KEY_ENV_LINE="$(grep -n 'ASHLAR_CERT_ED25519_KEY=.*GITHUB_ENV' "${SWEEP_WF}" | head -1 | cut -d: -f1)"
+if [[ -n "${MASK_LINE}" && -n "${KEY_ENV_LINE}" && "${MASK_LINE}" -lt "${KEY_ENV_LINE}" ]]; then
+  ok "the ephemeral key is masked before it is exported to the job environment"
+else
+  bad "the ephemeral key is masked before it is exported to the job environment" \
+      "mask at line '${MASK_LINE:-none}', \$GITHUB_ENV write at line '${KEY_ENV_LINE:-none}'.
+         The key reaches the sweep step's environment and that step's stdout is uploaded; without
+         ::add-mask:: ahead of the export, a key that leaks into the log is published verbatim"
 fi
 
 echo

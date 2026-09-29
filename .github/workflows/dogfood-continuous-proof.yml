@@ -116,7 +116,32 @@ jobs:
 
           if [[ ${SWEEP_EXIT} -eq 0 ]]; then
             echo "sweep_outcome=PASS" >> "$GITHUB_OUTPUT"
-            echo "sweep_gap=Counts toward 3a: ${EVIDENCE}. The record was re-read from that file and verified under Strict. pinned=false means nothing pins that signer, so this record verifies exactly as one signed by any other keypair would; dev-hmac=true means the symmetric half is the committed development key. The Ed25519 key was minted by this CI run and discarded with it - no operator holds it. Does NOT count toward 3b (no operator custody) or 4 (fixture canary, not a real hygiene PR)." >> "$GITHUB_OUTPUT"
+            if [[ -z "${EVIDENCE}" ]]; then
+              # A PASS with no citation must NOT claim 3a. The comment above says a row without the
+              # citation line does not count; until this branch existed, nothing enforced it and the
+              # row read "Counts toward 3a: ." - a 3a-counting PASS citing nothing. That is the same
+              # shape as the pre-#655 sweep that reached no verdict and exited 0: the cell asserting
+              # the claim was not the cell computing it.
+              echo "sweep_gap=Does NOT count toward 3a: the sweep reached a verdict but emitted no record citation, so there is no record for this row to be about. Either the archive was not composed (Ashlar:Autonomy:EvidenceArchiveDirectory unset), the candidate emitted no gate artifact so no Strict-verifiable record exists, or the citation line the script emits and the line this workflow greps have drifted apart - tests/scripts/dogfood-sweep-verdict.test.sh pins those two literals together." >> "$GITHUB_OUTPUT"
+            else
+              # The disclosures are READ BACK from the citation rather than restated. They used to be
+              # a hard-coded sentence beside computed values, so turning pinning on would have
+              # produced a row reading "pinned=true" next to prose asserting "pinned=false means
+              # nothing pins that signer". A record that contradicts itself is worse than none.
+              PINNED="$(printf '%s' "${EVIDENCE}" | sed -n 's/.*[[:space:]]pinned=\([^[:space:]]*\).*/\1/p')"
+              DEV_HMAC="$(printf '%s' "${EVIDENCE}" | sed -n 's/.*[[:space:]]dev-hmac=\([^[:space:]]*\).*/\1/p')"
+              case "${PINNED}" in
+                true)  PIN_PROSE="pinned=true means verification ran against an operator-supplied trust set, so this record is bound to that signer and would be refused if signed by any other keypair" ;;
+                false) PIN_PROSE="pinned=false means nothing pins that signer, so this record verifies exactly as one signed by any other keypair would" ;;
+                *)     PIN_PROSE="the pinning disclosure could not be read from the citation, so treat this row as making no pinning claim" ;;
+              esac
+              case "${DEV_HMAC}" in
+                true)  HMAC_PROSE="dev-hmac=true means the symmetric half is the committed development key, which anyone with the source can forge" ;;
+                false) HMAC_PROSE="dev-hmac=false means the symmetric half is not the committed development key" ;;
+                *)     HMAC_PROSE="the dev-key disclosure could not be read from the citation, so treat this row as making no claim about the symmetric half" ;;
+              esac
+              echo "sweep_gap=Counts toward 3a: ${EVIDENCE}. The record was re-read from that file and verified under Strict. ${PIN_PROSE}; ${HMAC_PROSE}. The Ed25519 key was minted by this CI run and discarded with it - no operator holds it. Does NOT count toward 3b (no operator custody) or 4 (fixture canary, not a real hygiene PR)." >> "$GITHUB_OUTPUT"
+            fi
           elif [[ ${SWEEP_EXIT} -eq 3 ]]; then
             # Exit 3 is "the iteration reached a verdict, but its record did not persist and
             # re-verify". It gets its OWN branch deliberately: folding it into 2 would report a
