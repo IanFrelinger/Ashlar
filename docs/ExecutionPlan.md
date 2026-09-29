@@ -168,7 +168,7 @@ These items establish the first end-to-end product experience and close the most
 - `.github/workflows/` — new or extended workflow for SDK sample CI
 - `docs/sdk.md` — classification table
 - `docs/SdkCompatibilityPolicy.md` — new
-- `src/Ashlar.Sdk/AshlarSdkBuilder.cs` — stability annotations
+- `src/Ashlar.Hosting/Sdk/Builders/AshlarSdkBuilder.cs` — stability annotations
 - `src/Ashlar.Abstractions/` — stability annotations on ports
 
 **Dependencies:** None — can be done in parallel.  
