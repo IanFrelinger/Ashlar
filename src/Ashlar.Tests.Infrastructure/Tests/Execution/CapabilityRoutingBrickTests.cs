@@ -118,7 +118,14 @@ public sealed class CapabilityRoutingBrickTests
 
         var localExecutor = new StubLocalExecutor(_ =>
             Result<GenerationExecutionResult>.Failure("local.should_not_run", "Local executor should not run in this test."));
-        var runPodBrick = new RunPodBrick(runPodClient, config, NullLogger<RunPodBrick>.Instance);
+        // The deadline in RunPodBrick is measured against the clock this provides. With
+        // TimeProvider.System it is measured against real wall clock, which made this fact a race
+        // with the machine: the stub status queue below completes in about 40ms and the config allows
+        // 2s, and on a contended macOS runner it consumed the full 2s and reported runpod.timeout -
+        // 5698/5699 passing, and the required readiness gate red. The step clock advances 1ms per
+        // reading, so the loop's budget is spent by the loop rather than by the runner's load.
+        var pollClock = new SteppingUtcClock(TimeSpan.FromMilliseconds(1));
+        var runPodBrick = new RunPodBrick(runPodClient, config, NullLogger<RunPodBrick>.Instance, pollClock);
         var peerExecutor = new StubPeerExecutor();
         var peerSnapshot = new StubPeerSnapshot();
         var router = new NcrCapabilityRouter(
@@ -775,5 +782,22 @@ public sealed class CapabilityRoutingBrickTests
             IExecutionContext context,
             CancellationToken cancellationToken = default)
             => Task.FromResult(NextResult);
+    }
+
+    /// <summary>
+    /// A UTC clock that advances a fixed step on every reading and never consults the machine.
+    /// <para>Deliberately NOT a fake that also fakes delays: the polling interval here is 20ms of
+    /// real time, which is cheap and keeps the loop's own asynchrony honest. What must not depend on
+    /// the machine is the DEADLINE, and this is the smallest change that achieves that.</para>
+    /// </summary>
+    private sealed class SteppingUtcClock : TimeProvider
+    {
+        private readonly TimeSpan _step;
+        private long _ticks;
+
+        public SteppingUtcClock(TimeSpan step) => _step = step;
+
+        public override DateTimeOffset GetUtcNow() =>
+            new DateTimeOffset(Interlocked.Add(ref _ticks, _step.Ticks), TimeSpan.Zero);
     }
 }
