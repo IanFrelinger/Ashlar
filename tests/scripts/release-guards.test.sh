@@ -171,8 +171,16 @@ else
   bad "refuses a stale pin" "exit ${r%%|*}: ${r#*|}"
 fi
 
+# Asserting the MESSAGE, not just the exit code. The lib runs under set -e, so reading an absent
+# file fails the function anyway - an exit-code-only assertion here passes whether or not the
+# explicit guard exists, and says nothing about what the operator is told. Measured: deleting the
+# guard left an exit-code-only version of this green.
 r="$(in_fake_root_with_pin "0.2.0" "__NONE__" "assert_consumer_pin_matches 0.2.0")"
-[[ "${r%%|*}" != "0" ]] && ok "refuses when the pin file is absent" || bad "refuses absent pin" "exit 0"
+if [[ "${r%%|*}" != "0" ]] && grep -q 'consumers have no version to pin' <<<"${r#*|}"; then
+  ok "refuses when the pin file is absent, naming that as the reason"
+else
+  bad "refuses when the pin file is absent, naming that as the reason" "exit ${r%%|*}: ${r#*|}"
+fi
 
 echo
 echo "passed: ${PASS}   failed: ${FAIL}"
