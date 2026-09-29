@@ -55,11 +55,29 @@ jobs:
           echo "version=${V}" >> "$GITHUB_OUTPUT"
           echo "Resolved version: ${V}"
 
+      # HEAD_REF and REL_VERSION go through the ENVIRONMENT, not through ${{ }} inside the script.
+      #
+      # A ${{ }} expression is substituted into the script TEXT before bash ever parses it, so a
+      # value containing $( ) or backticks is executed, and double quotes do not stop that - command
+      # substitution happens inside them. git check-ref-format forbids space, ~, ^, :, ?, *, [ and
+      # backslash in a refname, but it permits $, (, ), ; and backtick, so a branch named
+      #   x$(...)
+      # was a valid refname whose contents ran here as shell.
+      #
+      # Reaching it needed a maintainer to apply the release:staging label, and a fork PR's token is
+      # read-only, so this was not a route to nuget.org. It was still arbitrary code execution on a
+      # runner, chosen by whoever opened the PR, in the workflow that dispatches releases.
+      #
+      # An env var is expanded by bash at runtime as a plain value and is never reparsed as script,
+      # which is what makes this shape safe rather than merely quoted.
       - name: Dispatch release.yml (staging-only guard passed)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REL_VERSION: ${{ steps.version.outputs.version }}
         run: |
+          set -euo pipefail
           gh workflow run release.yml \
-            --ref "${{ github.event.pull_request.head.ref }}" \
-            -f "version=${{ steps.version.outputs.version }}" \
+            --ref "${HEAD_REF}" \
+            -f "version=${REL_VERSION}" \
             -f skip_multi_arch=false
