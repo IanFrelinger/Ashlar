@@ -223,7 +223,7 @@ No `Startup.cs`. Feature flags are **Options + env**, not Microsoft.FeatureManag
 | `src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs` | `AddAshlar` / `AddAshlarProfile` |
 | `src/Ashlar.Hosting/AshlarKernelRegistrar.cs` + `.Phases.cs` | Ordered phases |
 | `src/Ashlar.Hosting/ModuleSelection.cs` | Profile gates (`IncludeBackgroundAgentRag`, `IncludeTrustServices`, …) |
-| `src/Ashlar.Hosting/AshlarHostingOptions.cs` | `TrustEnabled`, hosted-agent flags, etc. |
+| `src/Ashlar.Hosting/Sdk/Options/AshlarHostingOptions.cs` | `TrustEnabled`, hosted-agent flags, etc. |
 
 ### AI-relevant kernel phases
 

@@ -43,7 +43,15 @@ The analyzers' RS0036 (missing nullable annotation in the API file) and RS0037 (
 
 #### Release step: promote Unshipped -> Shipped on tag
 
-Nothing has shipped yet, so **all** of the current surface (including the 438 lines `Ashlar.Brick.Contracts` had accumulated in its `Shipped.txt` before this policy was enforced) lives in `PublicAPI.Unshipped.txt`, and every `PublicAPI.Shipped.txt` contains only the `#nullable enable` header. This is deliberate: the first tag freezes a **reviewed** baseline rather than whatever happened to be public the day the analyzer was switched on.
+**This has happened.** `v0.1.0`, `v0.1.1` and `v0.1.2` are tagged and published, and the promotion ran: the reviewed surface now lives in `PublicAPI.Shipped.txt` (399 lines in `Ashlar.Abstractions`, 465 in `Ashlar.Brick.Contracts`, 31 in `Ashlar.Client`, 9 in `Ashlar.Sdk`, 5 in `Ashlar.Authoring`) and every `PublicAPI.Unshipped.txt` is back to the bare `#nullable enable` header.
+
+So `Shipped.txt` is now a **promise already made**, not an empty file waiting for one. Read the paragraph above accordingly: additions go to `Unshipped.txt` and are promised at the next tag; a change to a line already in `Shipped.txt` is a break against published packages and needs the process in "Breaking change process" below.
+
+`Ashlar.Hosting.Bundle` is the exception, and deliberately: its `Shipped.txt` is header-only because a metapackage declares no surface of its own, and the analyzer is there to keep it that way.
+
+> This section described the pre-`v0.1.0` state for three releases after it stopped being true, which
+> is why `scripts/ci/verify-compat-policy-current.py` now fails the build if it says nothing has
+> shipped while `git tag` disagrees.
 
 When tagging `v0.1.0` (and every release after it), as part of "Before you tag" in `docs/RELEASE_RUNBOOK.md`:
 

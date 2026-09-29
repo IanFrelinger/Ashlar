@@ -515,8 +515,8 @@ From `docs/certification-evidence.md` (authoritative):
 |-----------|------|-------|
 | AutonomousIterationHarness | `src/Ashlar.Infrastructure/Certification/HotSwap/AutonomousIterationHarness.cs` | (full file) |
 | CertifiedBrickHotSwapHost | `src/Ashlar.Infrastructure/Certification/HotSwap/CertifiedBrickHotSwapHost.cs` | (full file) |
-| SessionExecutionBackend | `src/Ashlar.Infrastructure/Certification/SessionExecutionBackend.cs` | (full file) |
-| RepairFeedbackPolicy | `src/Ashlar.Infrastructure/Autonomy/RepairFeedbackPolicy.cs` | (inferred) |
+| SessionExecutionBackend | `src/Ashlar.Infrastructure/Certification/HotSwap/SessionExecutionBackend.cs` | (full file) |
+| RepairFeedbackPolicy | `src/Ashlar.Core.Application/Autonomy/RepairFeedbackPolicy.cs` | (inferred) |
 | First Flight spike | `spikes/autonomy-first-flight/FirstFlight/Program.cs` | (full file) |
 
 ### 7.4 Trust & Policy
@@ -535,7 +535,7 @@ From `docs/certification-evidence.md` (authoritative):
 |-----------|------|-------|
 | CertificationRecordSigner | `src/Ashlar.Infrastructure/Certification/CertificationRecordSigner.cs` | 37-41 (explicit key) |
 | CertificationRecordSigning (payload) | `src/Ashlar.Certification.Contracts/CertificationRecordSigning.cs` | 106-163 (legacy lane) |
-| CertificationTrustVerifier | `src/Ashlar.Infrastructure/Certification/CertificationTrustVerifier.cs` | (Ed25519 conditional) |
+| CertificationTrustVerifier | `src/Ashlar.Certification.Contracts/CertificationTrustVerifier.cs` | (Ed25519 conditional) |
 | CompositionCertificationRecordSigner | `src/Ashlar.Infrastructure/Certification/Composition/CompositionCertificationRecordSigner.cs` | 20-30 (bypass) |
 | DefaultDevKey constant | `src/Ashlar.Certification.Contracts/CertificationRecordSigning.cs` | (search for `DefaultDevKey`) |
 
