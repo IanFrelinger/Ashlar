@@ -550,6 +550,67 @@ Bound from the `Ashlar:Barriers` section (`appsettings.json` or `Ashlar__Barrier
 
 `ASHLAR_LOCAL_MODEL_PATH` alone is not enough to get the `local` provider: the GGUF weights are loaded by `LLamaSharp.Backend.Cpu`, which the `Ashlar.*` libraries reference with `PrivateAssets="all"` so that no consumer inherits its four same-named CPU-variant native payloads (they collide on `dotnet publish -r <rid>` with `NETSDK1152`). A deployable host opts in with its own `<PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.25.0" />`. Every deployable host in this repo does: `application/src/Ashlar.API` and `application/src/Ashlar.CLI` (which is why the shipped images keep the capability), `src/Ashlar.Mcp.Server.Host` and `src/Ashlar.Transport.Grpc.Server.Host` (the two standalone hosts of `docs/ProjectTiers.md`, neither of which is built by a Dockerfile — whoever publishes them chooses the mode), and `commercial/src/Ashlar.Commercial.Fleet.Host`. `Ashlar.Tests.Infrastructure` carries the same line so the model-loading tests can run real inference. A host you add is not on that list until you put it there. Missing the opt-in is never a build error, and `IsAvailable()` does not detect it — it only checks that `ASHLAR_LOCAL_MODEL_PATH` names an existing file. With the variable unset (the shipped default) routing simply never selects `local`; with it set but no backend present, the first execution fails at `LLamaWeights.LoadFromFile` and surfaces as `ModelUnavailableException` wrapping the missing native library. See [consumer-template/CONSUMING.md](../consumer-template/CONSUMING.md#local-model-inference-is-opt-in) for the consumer-side snippet, including the CPU-variant prune a RID publish needs.
 
+## Release preflight thresholds (`ASHLAR_RELEASE_*`, `ASHLAR_VISUAL_*`)
+
+These back the **default values of `ashlar ci release-bundle` command-line options**
+(`RuntimeCommand.Configure.cs`), so a flag always wins over the variable. Nothing in this repository
+sets them: every CI invocation passes the thresholds explicitly. They exist for an operator running
+`scripts/release-preflight-local.sh` who wants to tighten or relax a gate without editing a command
+line, and they were undiscoverable until now — each appeared in exactly one file, its own read site.
+
+| Variable | Backs | Default |
+|---|---|---|
+| `ASHLAR_RELEASE_PROVIDER` | `--provider` — model provider for the bundle run | `mock-json` |
+| `ASHLAR_RELEASE_MIN_PASS_RATE` | fallback for the core pass-rate floor | `0.85` |
+| `ASHLAR_RELEASE_CORE_MIN_PASS_RATE` | core lane pass-rate floor (wins over the above) | `ASHLAR_RELEASE_MIN_PASS_RATE`, else `0.85` |
+| `ASHLAR_RELEASE_MIN_TOTAL` | fallback for the core minimum sample size | `10` |
+| `ASHLAR_RELEASE_CORE_MIN_TOTAL` | core lane minimum sample size (wins over the above) | `ASHLAR_RELEASE_MIN_TOTAL`, else `10` |
+| `ASHLAR_RELEASE_HISTORY_WINDOW` | fallback for the core history window, runs | `20` |
+| `ASHLAR_RELEASE_CORE_HISTORY_WINDOW` | core lane history window (wins over the above) | `ASHLAR_RELEASE_HISTORY_WINDOW`, else `20` |
+| `ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE` | visual lane pass-rate floor | `0.80` |
+| `ASHLAR_RELEASE_VISUAL_MIN_TOTAL` | visual lane minimum sample size | `8` |
+| `ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW` | visual lane history window, runs | `20` |
+| `ASHLAR_VISUAL_PROMOTION_STREAK` | consecutive visual passes required to promote | `3` |
+| `ASHLAR_VISUAL_REQUIRED_MODE` | visual comparison mode | `auto` |
+| `ASHLAR_RELEASE_LANE_REPETITIONS` | times each lane is repeated | `1` |
+| `ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS` | NCR model-resolution SLO, ms | `250` |
+| `ASHLAR_RELEASE_SLO_NCR_LOAD_MS` | NCR model-load SLO, ms | `1000` |
+| `ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS` | NCR outcome-recording SLO, ms | `1500` |
+| `ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE` | NCR failure-rate ceiling | `0.2` |
+
+The three `CORE_` variables each fall back to their un-prefixed sibling before the built-in default,
+so setting `ASHLAR_RELEASE_MIN_TOTAL` alone moves the core lane and leaves the visual lane untouched.
+
+## Dogfood sweep and its proposer (`ASHLAR_SWEEP_*`, `ASHLAR_OLLAMA_*`, `ASHLAR_CAMPAIGN_DIR`)
+
+Read by `spikes/autonomy-first-flight/FirstFlight/SweepMode.cs`, which is what the scheduled dogfood
+canary runs. **`spikes/` is compiled by no solution**, so these are exercised by the sweep and by
+nothing else in CI — which is exactly why they were invisible.
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `ASHLAR_CAMPAIGN_DIR` | Where the sweep writes its campaign directory, including the certification evidence sidecar the ledger row cites. | `<objectives-root>/../campaign` |
+| `ASHLAR_SWEEP_PROPOSER` | `ollama` for a live model proposer; anything else uses the recorded proposals beside each objective. | unset (recorded proposals) |
+| `ASHLAR_SWEEP_MAX_OBJECTIVES` | Stop after this many objectives. Ignored unless it parses to a positive integer. | unlimited |
+| `ASHLAR_OLLAMA_MAX_TOKENS` | Token ceiling for the live proposer. Ignored unless positive. | provider default |
+| `ASHLAR_OLLAMA_TIMEOUT_MINUTES` | Per-request timeout for the live proposer. Ignored unless positive. | provider default |
+| `ASHLAR_OLLAMA_TEMPERATURE` | Sampling temperature for the live proposer. | provider default |
+| `ASHLAR_OLLAMA_THINK` | `true`/`false`: enable the model's thinking mode. | provider default |
+| `ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE` | Path to operator house rules handed to the proposer as **data, never as a witness**. Silently ignored when the file does not exist. | unset |
+
+`ASHLAR_OLLAMA_BASE_URL` and `ASHLAR_OLLAMA_MODEL` are documented under the Ollama section above and
+default to `http://host.docker.internal:11434` and `codellama:7b` in this sweep.
+
+## `ASHLAR_CERT_NUGET_CONFIG`
+
+**Nothing in this repository reads this variable; several places deliberately clear it.**
+`CompositionDogfoodHarness`, four certification test fixtures and
+`tools/Ashlar.ExportCertifiedBrick` all call
+`Environment.SetEnvironmentVariable("ASHLAR_CERT_NUGET_CONFIG", null)` before doing work, so an
+ambient value on the machine cannot influence a certification run's package resolution. It is listed
+here because a knob that is silently neutralised should be discoverable — if you set it and nothing
+happens, that is why.
+
 ## Config File
 
 `~/.ashlar/config.json` (or path from `ASHLAR_CONFIG_PATH`):

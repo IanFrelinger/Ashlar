@@ -13,15 +13,13 @@
     "projects_declaring_ispackable_true": 19,
     "config_variables": 173,
     "operator_facing_config_variables": 153,
-    "operator_vars_missing_from_configuration_reference": 44,
-    "operator_vars_absent_from_all_documentation": 26,
+    "operator_vars_missing_from_configuration_reference": 18,
+    "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 728,
     "declared_facts": 4376,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
-    "ASHLAR_CAMPAIGN_DIR",
-    "ASHLAR_CERT_NUGET_CONFIG",
     "ASHLAR_KEY_DIR",
     "ASHLAR_MESH_AUTOSHARE",
     "ASHLAR_MESH_CA",
@@ -39,60 +37,9 @@
     "ASHLAR_MESH_SERVE_TLS_KEY",
     "ASHLAR_MESH_TAILNET",
     "ASHLAR_NODE_NAME",
-    "ASHLAR_OLLAMA_MAX_TOKENS",
-    "ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE",
-    "ASHLAR_OLLAMA_TEMPERATURE",
-    "ASHLAR_OLLAMA_THINK",
-    "ASHLAR_OLLAMA_TIMEOUT_MINUTES",
-    "ASHLAR_RELEASE_CORE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_CORE_MIN_TOTAL",
-    "ASHLAR_RELEASE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_LANE_REPETITIONS",
-    "ASHLAR_RELEASE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_MIN_TOTAL",
-    "ASHLAR_RELEASE_PROVIDER",
-    "ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE",
-    "ASHLAR_RELEASE_SLO_NCR_LOAD_MS",
-    "ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS",
-    "ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS",
-    "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
-    "ASHLAR_SWEEP_MAX_OBJECTIVES",
-    "ASHLAR_SWEEP_PROPOSER",
-    "ASHLAR_TAILNET_PEER_PORT",
-    "ASHLAR_VISUAL_PROMOTION_STREAK",
-    "ASHLAR_VISUAL_REQUIRED_MODE"
+    "ASHLAR_TAILNET_PEER_PORT"
   ],
-  "operator_vars_absent_from_all_documentation": [
-    "ASHLAR_CAMPAIGN_DIR",
-    "ASHLAR_CERT_NUGET_CONFIG",
-    "ASHLAR_OLLAMA_MAX_TOKENS",
-    "ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE",
-    "ASHLAR_OLLAMA_TEMPERATURE",
-    "ASHLAR_OLLAMA_THINK",
-    "ASHLAR_OLLAMA_TIMEOUT_MINUTES",
-    "ASHLAR_RELEASE_CORE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_CORE_MIN_TOTAL",
-    "ASHLAR_RELEASE_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_LANE_REPETITIONS",
-    "ASHLAR_RELEASE_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_MIN_TOTAL",
-    "ASHLAR_RELEASE_PROVIDER",
-    "ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE",
-    "ASHLAR_RELEASE_SLO_NCR_LOAD_MS",
-    "ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS",
-    "ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS",
-    "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
-    "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
-    "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
-    "ASHLAR_SWEEP_MAX_OBJECTIVES",
-    "ASHLAR_SWEEP_PROPOSER",
-    "ASHLAR_VISUAL_PROMOTION_STREAK",
-    "ASHLAR_VISUAL_REQUIRED_MODE"
-  ],
+  "operator_vars_absent_from_all_documentation": [],
   "projects": [
     {
       "name": "Ashlar.AI.Pipeline",
@@ -1247,8 +1194,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CERT_DEV_HMAC_KEY",
@@ -1276,8 +1223,8 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CERT_PINNING_REQUIRED",
@@ -2020,8 +1967,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_OLLAMA_MODEL",
@@ -2039,8 +1986,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_OLLAMA_TEMPERATURE",
@@ -2048,8 +1995,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_OLLAMA_THINK",
@@ -2057,8 +2004,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_OLLAMA_TIMEOUT_MINUTES",
@@ -2066,8 +2013,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_ON_BATTERY",
@@ -2198,8 +2145,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
@@ -2207,8 +2154,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_CORE_MIN_TOTAL",
@@ -2216,8 +2163,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_HISTORY_WINDOW",
@@ -2225,8 +2172,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_LANE_REPETITIONS",
@@ -2234,8 +2181,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_MIN_PASS_RATE",
@@ -2243,8 +2190,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_MIN_TOTAL",
@@ -2252,8 +2199,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_PROVIDER",
@@ -2261,8 +2208,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE",
@@ -2270,8 +2217,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_LOAD_MS",
@@ -2279,8 +2226,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS",
@@ -2288,8 +2235,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS",
@@ -2297,8 +2244,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
@@ -2306,8 +2253,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
@@ -2315,8 +2262,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
@@ -2324,8 +2271,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_RUN_DYNAMODB_CONTAINER",
@@ -2411,8 +2358,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_SWEEP_PROPOSER",
@@ -2420,8 +2367,8 @@
         "(unowned)"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TAILNET_CMD",
@@ -2661,8 +2608,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_VISUAL_REQUIRED_MODE",
@@ -2670,8 +2617,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_WORKLOAD_AUTOSCALE",

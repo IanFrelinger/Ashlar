@@ -17,8 +17,8 @@ remembered to update — staleness here is a red build.
 | of those, declaring `<IsPackable>true</IsPackable>` | 19 |
 | `ASHLAR_*` variables named in code | 173 |
 | of those, operator-facing (not test-only) | 153 |
-| missing from `docs/Configuration.md` | 44 |
-| **mentioned in no document at all** | **26** |
+| missing from `docs/Configuration.md` | 18 |
+| **mentioned in no document at all** | **0** |
 | test files declaring xUnit facts | 728 |
 | declared facts | 4376 |
 | workflows | 62 |
@@ -41,32 +41,7 @@ Kept separate from "missing from `docs/Configuration.md`" on purpose: a variable
 some other document is a discoverability problem, not an undocumented one, and conflating the
 two overstates the gap by the difference between the counts above.
 
-- `ASHLAR_CAMPAIGN_DIR`
-- `ASHLAR_CERT_NUGET_CONFIG`
-- `ASHLAR_OLLAMA_MAX_TOKENS`
-- `ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE`
-- `ASHLAR_OLLAMA_TEMPERATURE`
-- `ASHLAR_OLLAMA_THINK`
-- `ASHLAR_OLLAMA_TIMEOUT_MINUTES`
-- `ASHLAR_RELEASE_CORE_HISTORY_WINDOW`
-- `ASHLAR_RELEASE_CORE_MIN_PASS_RATE`
-- `ASHLAR_RELEASE_CORE_MIN_TOTAL`
-- `ASHLAR_RELEASE_HISTORY_WINDOW`
-- `ASHLAR_RELEASE_LANE_REPETITIONS`
-- `ASHLAR_RELEASE_MIN_PASS_RATE`
-- `ASHLAR_RELEASE_MIN_TOTAL`
-- `ASHLAR_RELEASE_PROVIDER`
-- `ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE`
-- `ASHLAR_RELEASE_SLO_NCR_LOAD_MS`
-- `ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS`
-- `ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS`
-- `ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW`
-- `ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE`
-- `ASHLAR_RELEASE_VISUAL_MIN_TOTAL`
-- `ASHLAR_SWEEP_MAX_OBJECTIVES`
-- `ASHLAR_SWEEP_PROPOSER`
-- `ASHLAR_VISUAL_PROMOTION_STREAK`
-- `ASHLAR_VISUAL_REQUIRED_MODE`
+_None._
 
 ## Packable projects
 
