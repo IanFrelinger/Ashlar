@@ -258,8 +258,23 @@ Run Ashlar as a service on a host you control. Review the [security warning](#qu
 
 ```bash
 docker compose -f deploy/node.yml up -d          # the node
-ashlar keys init                                 # give it an operator identity (once)
+
+# Give it an operator identity (once). This runs INSIDE the node container: there is no
+# host `ashlar` binary in this lane, and the keys must land on the node's own state volume
+# (ashlar-state:/data/state), not on your laptop.
+docker compose -f deploy/node.yml exec node dotnet /app/Ashlar.CLI.dll keys init
 ```
+
+**Do not skip the second command, and read what it prints.** Until a node has an operator
+identity it writes gate records with no signature, and under SPEC-006 S-6 an unsigned record is
+indistinguishable from one whose signature was stripped — so a node left in that state is one whose
+trust decisions cannot later be told apart from forged ones. `keys init` also prints how many
+existing unsigned records it is grandfathering, and how many of those are `Admitted`; that count is
+the only control on the grandfather mechanism.
+
+If you prefer a host binary for this lane, install the CLI as a .NET tool first and use plain
+`ashlar keys init` — see [docs/GettingStarted.md](docs/GettingStarted.md). The container form above
+is the one that needs no host .NET SDK.
 
 **Lab / demo stacks:**
 

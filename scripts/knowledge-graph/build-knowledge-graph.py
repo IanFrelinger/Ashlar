@@ -62,12 +62,38 @@ SCHEMA_VERSION = 1
 ASHLAR_VAR = re.compile(r'"(ASHLAR_[A-Z0-9_]+)"')
 PROJECT_REFERENCE = re.compile(r'<ProjectReference\s+Include="([^"]+)"', re.IGNORECASE)
 IS_PACKABLE_TRUE = re.compile(r"<IsPackable>\s*true\s*</IsPackable>", re.IGNORECASE)
+# Which projects a release actually pushes. This is READ FROM THE RELEASE SOURCES rather than
+# inferred from a csproj property, because <IsPackable> DEFAULTS TO TRUE in the .NET SDK: a project
+# that says nothing is packable, so "the csproj says IsPackable=true" answers a different question
+# from "this ships", and answers it wrongly in both directions. The graph reported 19 packable while
+# a release pushed 21 - ten of the difference being projects that set no <IsPackable> at all.
+PACK_CSPROJ = re.compile(r"((?:application/)?src/[A-Za-z0-9.]+/[A-Za-z0-9.]+\.csproj)")
 TARGET_FRAMEWORKS = re.compile(r"<TargetFrameworks?>([^<]+)</TargetFrameworks?>", re.IGNORECASE)
 NAMESPACE = re.compile(r"^\s*namespace\s+([A-Za-z0-9_.]+)\s*;", re.MULTILINE)
 XUNIT_FACT = re.compile(r"^\s*\[(Fact|Theory)[\(\]]", re.MULTILINE)
 CERT_GATE_FILTER = re.compile(r"CERT_GATE_FILTER='([^']*)'")
 FQN_CLAUSE = re.compile(r"FullyQualifiedName~([A-Za-z0-9_.]+)")
 WORKFLOW_NAME = re.compile(r"^name:\s*(.+?)\s*$", re.MULTILINE)
+
+
+def released_package_projects(root: Path) -> set[str]:
+    """Project NAMES (csproj stems) that a v*.*.* release packs and pushes to nuget.org.
+
+    Two sources, because the release uses two: a scripted graph pack, plus a handful packed inline
+    by the reusable workflow. Both are read; neither is restated here, so a project added to either
+    appears in the graph without anyone remembering to update this file.
+    """
+    names: set[str] = set()
+    for rel in (
+        "scripts/pack-ashlar-hosting-graph.sh",
+        ".github/workflows/reusable-release-nuget.yml",
+    ):
+        path = root / rel
+        if not path.is_file():
+            continue
+        for match in PACK_CSPROJ.findall(read(path)):
+            names.add(Path(match).stem)
+    return names
 
 
 def repo_root() -> Path:
@@ -115,6 +141,7 @@ def cert_gate_namespaces(root: Path) -> list[str]:
 
 
 def collect_projects(root: Path) -> dict[str, dict]:
+    shipped = released_package_projects(root)
     projects: dict[str, dict] = {}
     for path in tracked(root, "src", "application", suffix=".csproj"):
         csproj = root / path
@@ -128,7 +155,9 @@ def collect_projects(root: Path) -> dict[str, dict]:
             "name": name,
             "path": path,
             "layer": "application" if path.startswith("application/") else "src",
-            "packable": bool(IS_PACKABLE_TRUE.search(text)),
+            # Two different questions, kept apart on purpose.
+            "is_packable_explicit": bool(IS_PACKABLE_TRUE.search(text)),
+            "ships_to_nuget": name in shipped,
             "target_frameworks": sorted(
                 f.strip() for f in (tfms.group(1).split(";") if tfms else []) if f.strip()
             ),
@@ -258,7 +287,10 @@ def build(root: Path) -> dict:
         "cert_gate_selected_namespaces": gate_namespaces,
         "counts": {
             "projects": len(projects),
-            "packable_projects": sum(1 for p in projects.values() if p["packable"]),
+            "projects_shipped_to_nuget": sum(1 for p in projects.values() if p["ships_to_nuget"]),
+            "projects_declaring_ispackable_true": sum(
+                1 for p in projects.values() if p["is_packable_explicit"]
+            ),
             "config_variables": len(config_variables),
             "operator_facing_config_variables": len(operator_vars),
             "operator_vars_missing_from_configuration_reference": len(not_in_reference),
@@ -299,7 +331,8 @@ def render_markdown(graph: dict) -> str:
         "| | count |",
         "|---|---|",
         f"| projects | {c['projects']} |",
-        f"| of those, packable (they ship to consumers) | {c['packable_projects']} |",
+        f"| of those, published to nuget.org by a release | {c['projects_shipped_to_nuget']} |",
+        f"| of those, declaring `<IsPackable>true</IsPackable>` | {c['projects_declaring_ispackable_true']} |",
         f"| `ASHLAR_*` variables named in code | {c['config_variables']} |",
         f"| of those, operator-facing (not test-only) | {c['operator_facing_config_variables']} |",
         f"| missing from `docs/Configuration.md` | {c['operator_vars_missing_from_configuration_reference']} |",
@@ -343,7 +376,7 @@ def render_markdown(graph: dict) -> str:
         "",
     ]
     for p in graph["projects"]:
-        if p["packable"]:
+        if p["ships_to_nuget"]:
             lines.append(f"- `{p['name']}` ({p['path']})")
     lines.append("")
     return "\n".join(lines)

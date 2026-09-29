@@ -9,7 +9,8 @@
   ],
   "counts": {
     "projects": 61,
-    "packable_projects": 19,
+    "projects_shipped_to_nuget": 22,
+    "projects_declaring_ispackable_true": 19,
     "config_variables": 161,
     "operator_facing_config_variables": 142,
     "operator_vars_missing_from_configuration_reference": 65,
@@ -139,7 +140,8 @@
       "name": "Ashlar.AI.Pipeline",
       "path": "src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -152,7 +154,8 @@
       "name": "Ashlar.API",
       "path": "application/src/Ashlar.API/Ashlar.API.csproj",
       "layer": "application",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -174,7 +177,8 @@
       "name": "Ashlar.Abstractions",
       "path": "src/Ashlar.Abstractions/Ashlar.Abstractions.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -186,7 +190,8 @@
       "name": "Ashlar.Adapters.Models",
       "path": "src/Ashlar.Adapters.Models/Ashlar.Adapters.Models.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -200,7 +205,8 @@
       "name": "Ashlar.Agents.TestKit",
       "path": "src/Ashlar.Agents.TestKit/Ashlar.Agents.TestKit.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -215,7 +221,8 @@
       "name": "Ashlar.Analyzers",
       "path": "src/Ashlar.Analyzers/Ashlar.Analyzers.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "netstandard2.0"
       ],
@@ -227,7 +234,8 @@
       "name": "Ashlar.Analyzers.Tests",
       "path": "src/Ashlar.Analyzers.Tests/Ashlar.Analyzers.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -240,7 +248,8 @@
       "name": "Ashlar.Authoring",
       "path": "src/Ashlar.Authoring/Ashlar.Authoring.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -256,7 +265,8 @@
       "name": "Ashlar.BackgroundAgents",
       "path": "src/Ashlar.BackgroundAgents/Ashlar.BackgroundAgents.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -273,7 +283,8 @@
       "name": "Ashlar.BackgroundAgents.HostRunners",
       "path": "src/Ashlar.BackgroundAgents.HostRunners/Ashlar.BackgroundAgents.HostRunners.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -292,7 +303,8 @@
       "name": "Ashlar.Brick.Contracts",
       "path": "src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -304,7 +316,8 @@
       "name": "Ashlar.Bricks.Owasp",
       "path": "src/Ashlar.Bricks.Owasp/Ashlar.Bricks.Owasp.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -319,7 +332,8 @@
       "name": "Ashlar.Bricks.SqlProfile",
       "path": "src/Ashlar.Bricks.SqlProfile/Ashlar.Bricks.SqlProfile.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -334,7 +348,8 @@
       "name": "Ashlar.CLI",
       "path": "application/src/Ashlar.CLI/Ashlar.CLI.csproj",
       "layer": "application",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0"
       ],
@@ -360,7 +375,8 @@
       "name": "Ashlar.Certification.Contracts",
       "path": "src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -372,7 +388,8 @@
       "name": "Ashlar.Certification.State",
       "path": "src/Ashlar.Certification.State/Ashlar.Certification.State.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -386,7 +403,8 @@
       "name": "Ashlar.Client",
       "path": "src/Ashlar.Client/Ashlar.Client.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -399,7 +417,8 @@
       "name": "Ashlar.Contracts",
       "path": "src/Ashlar.Contracts/Ashlar.Contracts.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -410,7 +429,8 @@
       "name": "Ashlar.Core.Application",
       "path": "src/Ashlar.Core.Application/Ashlar.Core.Application.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -427,7 +447,8 @@
       "name": "Ashlar.Core.Domain",
       "path": "src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -441,7 +462,8 @@
       "name": "Ashlar.Framework.Sdk",
       "path": "src/Ashlar.Framework.Sdk/Ashlar.Framework.Sdk.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -455,7 +477,8 @@
       "name": "Ashlar.Hosting",
       "path": "src/Ashlar.Hosting/Ashlar.Hosting.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -477,7 +500,8 @@
       "name": "Ashlar.Hosting.Bundle",
       "path": "src/Ashlar.Hosting.Bundle/Ashlar.Hosting.Bundle.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -488,7 +512,8 @@
       "name": "Ashlar.Infrastructure",
       "path": "src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -508,7 +533,8 @@
       "name": "Ashlar.Ingress.AwsSns",
       "path": "src/Ashlar.Ingress.AwsSns/Ashlar.Ingress.AwsSns.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -519,7 +545,8 @@
       "name": "Ashlar.Ingress.AwsSns.Tests",
       "path": "src/Ashlar.Ingress.AwsSns.Tests/Ashlar.Ingress.AwsSns.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -531,7 +558,8 @@
       "name": "Ashlar.Ingress.DynamoDb",
       "path": "src/Ashlar.Ingress.DynamoDb/Ashlar.Ingress.DynamoDb.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -544,7 +572,8 @@
       "name": "Ashlar.Ingress.DynamoDb.Tests",
       "path": "src/Ashlar.Ingress.DynamoDb.Tests/Ashlar.Ingress.DynamoDb.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -556,7 +585,8 @@
       "name": "Ashlar.Lite",
       "path": "src/Ashlar.Lite/Ashlar.Lite.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -572,7 +602,8 @@
       "name": "Ashlar.Manifest",
       "path": "src/Ashlar.Manifest/Ashlar.Manifest.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -583,7 +614,8 @@
       "name": "Ashlar.Mcp.Client",
       "path": "src/Ashlar.Mcp.Client/Ashlar.Mcp.Client.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -596,7 +628,8 @@
       "name": "Ashlar.Mcp.Client.Tests",
       "path": "src/Ashlar.Mcp.Client.Tests/Ashlar.Mcp.Client.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -609,7 +642,8 @@
       "name": "Ashlar.Mcp.Server",
       "path": "src/Ashlar.Mcp.Server/Ashlar.Mcp.Server.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -622,7 +656,8 @@
       "name": "Ashlar.Mcp.Server.Host",
       "path": "src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -636,7 +671,8 @@
       "name": "Ashlar.Mcp.Server.Tests",
       "path": "src/Ashlar.Mcp.Server.Tests/Ashlar.Mcp.Server.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -648,7 +684,8 @@
       "name": "Ashlar.Orchestration",
       "path": "src/Ashlar.Orchestration/Ashlar.Orchestration.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -663,7 +700,8 @@
       "name": "Ashlar.Policies",
       "path": "src/Ashlar.Policies/Ashlar.Policies.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -677,7 +715,8 @@
       "name": "Ashlar.Policies.Dev",
       "path": "src/Ashlar.Policies.Dev/Ashlar.Policies.Dev.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -691,7 +730,8 @@
       "name": "Ashlar.Runtime",
       "path": "src/Ashlar.Runtime/Ashlar.Runtime.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0",
@@ -706,7 +746,8 @@
       "name": "Ashlar.Runtime.Bundle",
       "path": "src/Ashlar.Runtime.Bundle/Ashlar.Runtime.Bundle.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -731,7 +772,8 @@
       "name": "Ashlar.Sdk",
       "path": "src/Ashlar.Sdk/Ashlar.Sdk.csproj",
       "layer": "src",
-      "packable": true,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -744,7 +786,8 @@
       "name": "Ashlar.Tests.AI.Pipeline",
       "path": "src/Ashlar.Tests.AI.Pipeline/Ashlar.Tests.AI.Pipeline.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -757,7 +800,8 @@
       "name": "Ashlar.Tests.Application",
       "path": "src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -774,7 +818,8 @@
       "name": "Ashlar.Tests.BackgroundAgents",
       "path": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -793,7 +838,8 @@
       "name": "Ashlar.Tests.CLI",
       "path": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "layer": "application",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -811,7 +857,8 @@
       "name": "Ashlar.Tests.Contracts",
       "path": "src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -825,7 +872,8 @@
       "name": "Ashlar.Tests.Domain",
       "path": "src/Ashlar.Tests.Domain/Ashlar.Tests.Domain.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -839,7 +887,8 @@
       "name": "Ashlar.Tests.Infrastructure",
       "path": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -871,7 +920,8 @@
       "name": "Ashlar.Tests.Kernel",
       "path": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -889,7 +939,8 @@
       "name": "Ashlar.Tests.Orchestration",
       "path": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -906,7 +957,8 @@
       "name": "Ashlar.Tests.Transport",
       "path": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -921,7 +973,8 @@
       "name": "Ashlar.Tools.Assembly",
       "path": "src/Ashlar.Tools.Assembly/Ashlar.Tools.Assembly.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -934,7 +987,8 @@
       "name": "Ashlar.Tools.Dev",
       "path": "src/Ashlar.Tools.Dev/Ashlar.Tools.Dev.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -948,7 +1002,8 @@
       "name": "Ashlar.Transport.A2A",
       "path": "src/Ashlar.Transport.A2A/Ashlar.Transport.A2A.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -961,7 +1016,8 @@
       "name": "Ashlar.Transport.A2A.Server",
       "path": "src/Ashlar.Transport.A2A.Server/Ashlar.Transport.A2A.Server.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -974,7 +1030,8 @@
       "name": "Ashlar.Transport.A2A.Server.Tests",
       "path": "src/Ashlar.Transport.A2A.Server.Tests/Ashlar.Transport.A2A.Server.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -987,7 +1044,8 @@
       "name": "Ashlar.Transport.A2A.Tests",
       "path": "src/Ashlar.Transport.A2A.Tests/Ashlar.Transport.A2A.Tests.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net8.0"
       ],
@@ -999,7 +1057,8 @@
       "name": "Ashlar.Transport.Grpc",
       "path": "src/Ashlar.Transport.Grpc/Ashlar.Transport.Grpc.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -1012,7 +1071,8 @@
       "name": "Ashlar.Transport.Grpc.Server",
       "path": "src/Ashlar.Transport.Grpc.Server/Ashlar.Transport.Grpc.Server.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0",
         "net8.0"
@@ -1026,7 +1086,8 @@
       "name": "Ashlar.Transport.Grpc.Server.Host",
       "path": "src/Ashlar.Transport.Grpc.Server.Host/Ashlar.Transport.Grpc.Server.Host.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],
@@ -1039,7 +1100,8 @@
       "name": "copy-assemblies",
       "path": "src/Ashlar.Tests.Infrastructure/scripts/copy-assemblies.csproj",
       "layer": "src",
-      "packable": false,
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
       "target_frameworks": [
         "net10.0"
       ],

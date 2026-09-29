@@ -13,7 +13,8 @@ remembered to update — staleness here is a red build.
 | | count |
 |---|---|
 | projects | 61 |
-| of those, packable (they ship to consumers) | 19 |
+| of those, published to nuget.org by a release | 22 |
+| of those, declaring `<IsPackable>true</IsPackable>` | 19 |
 | `ASHLAR_*` variables named in code | 161 |
 | of those, operator-facing (not test-only) | 142 |
 | missing from `docs/Configuration.md` | 65 |
@@ -95,21 +96,24 @@ commitment and ambient process configuration reaching them is a design decision,
 convenience.
 
 - `Ashlar.AI.Pipeline` (src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj)
-- `Ashlar.API` (application/src/Ashlar.API/Ashlar.API.csproj)
+- `Ashlar.Abstractions` (src/Ashlar.Abstractions/Ashlar.Abstractions.csproj)
 - `Ashlar.Analyzers` (src/Ashlar.Analyzers/Ashlar.Analyzers.csproj)
 - `Ashlar.Authoring` (src/Ashlar.Authoring/Ashlar.Authoring.csproj)
+- `Ashlar.BackgroundAgents` (src/Ashlar.BackgroundAgents/Ashlar.BackgroundAgents.csproj)
 - `Ashlar.Brick.Contracts` (src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj)
 - `Ashlar.CLI` (application/src/Ashlar.CLI/Ashlar.CLI.csproj)
 - `Ashlar.Certification.Contracts` (src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj)
-- `Ashlar.Certification.State` (src/Ashlar.Certification.State/Ashlar.Certification.State.csproj)
 - `Ashlar.Client` (src/Ashlar.Client/Ashlar.Client.csproj)
 - `Ashlar.Contracts` (src/Ashlar.Contracts/Ashlar.Contracts.csproj)
+- `Ashlar.Core.Application` (src/Ashlar.Core.Application/Ashlar.Core.Application.csproj)
 - `Ashlar.Core.Domain` (src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj)
 - `Ashlar.Hosting` (src/Ashlar.Hosting/Ashlar.Hosting.csproj)
 - `Ashlar.Hosting.Bundle` (src/Ashlar.Hosting.Bundle/Ashlar.Hosting.Bundle.csproj)
-- `Ashlar.Ingress.AwsSns` (src/Ashlar.Ingress.AwsSns/Ashlar.Ingress.AwsSns.csproj)
-- `Ashlar.Ingress.DynamoDb` (src/Ashlar.Ingress.DynamoDb/Ashlar.Ingress.DynamoDb.csproj)
-- `Ashlar.Lite` (src/Ashlar.Lite/Ashlar.Lite.csproj)
-- `Ashlar.Manifest` (src/Ashlar.Manifest/Ashlar.Manifest.csproj)
-- `Ashlar.Runtime.Bundle` (src/Ashlar.Runtime.Bundle/Ashlar.Runtime.Bundle.csproj)
+- `Ashlar.Infrastructure` (src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj)
+- `Ashlar.Orchestration` (src/Ashlar.Orchestration/Ashlar.Orchestration.csproj)
+- `Ashlar.Policies` (src/Ashlar.Policies/Ashlar.Policies.csproj)
+- `Ashlar.Runtime` (src/Ashlar.Runtime/Ashlar.Runtime.csproj)
 - `Ashlar.Sdk` (src/Ashlar.Sdk/Ashlar.Sdk.csproj)
+- `Ashlar.Tools.Assembly` (src/Ashlar.Tools.Assembly/Ashlar.Tools.Assembly.csproj)
+- `Ashlar.Tools.Dev` (src/Ashlar.Tools.Dev/Ashlar.Tools.Dev.csproj)
+- `Ashlar.Transport.Grpc` (src/Ashlar.Transport.Grpc/Ashlar.Transport.Grpc.csproj)

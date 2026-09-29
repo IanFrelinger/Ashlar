@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -99,6 +100,35 @@ def main() -> int:
                 print(f"         {line}", file=sys.stderr)
             failures += 1
 
+    # --- 1b. untracked inputs ---------------------------------------------------------------
+    # The generator enumerates with `git ls-files`, deliberately: it makes the artifact identical
+    # on every platform and ignores build output. The cost is that a file which is NEW and NOT YET
+    # STAGED is invisible to it. Regenerate before `git add` and you reproduce the OLD artifact,
+    # this verifier passes, and CI - where the file is tracked - reports drift you cannot
+    # reproduce locally. That happened on the very next PR after this gate landed.
+    #
+    # So an untracked file the graph WOULD have described is a failure here, not a shrug.
+    untracked = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "--others", "--exclude-standard", "-z",
+         "--", "src", "application", ".github/workflows", "scripts"],
+        capture_output=True, text=True, check=False,
+    ).stdout
+    would_describe = sorted(
+        path for path in untracked.split(chr(0))
+        if path and path.endswith((".csproj", ".cs", ".yml", ".yaml", ".sh"))
+    )
+    if would_describe:
+        shown = would_describe[:20]
+        more = len(would_describe) - len(shown)
+        fail(
+            "these files are untracked, and the graph is built from `git ls-files`, so they are "
+            "invisible to it. A regeneration now reproduces the PREVIOUS artifact and this check "
+            "passes, while CI - where they are tracked - reports drift. Run `git add` first, then "
+            "regenerate:"
+            + "".join(chr(10) + "         " + path for path in shown)
+            + (chr(10) + f"         ... and {more} more" if more > 0 else "")
+        )
+        failures += 1
     # --- 2. floors ------------------------------------------------------------------------------
     counts = graph["counts"]
     for key, floor in sorted(FLOORS.items()):
