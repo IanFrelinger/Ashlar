@@ -93,9 +93,72 @@ The diagnostic id and the help link it carries are defined once, in `Ashlar.Core
 
 `netstandard2.0` targets: `System.Diagnostics.CodeAnalysis.ExperimentalAttribute` is a `net8.0+` BCL type. `Ashlar.Core.Application` (multi-targeted `netstandard2.0;net8.0;net10.0`) compiles an internal polyfill of the attribute (`src/Ashlar.Compat/Polyfills/ExperimentalAttribute.cs`, linked into every `.NETStandard` inner build by `Directory.Build.targets`); the compiler recognises the attribute by its full name, so a `netstandard2.0` consumer gets the same `ASHLAREXP001` diagnostic as a `net8.0` one. Nothing is documented-only.
 
+### Substrate
+
+**Every package this repository publishes that is not in the Stable table above.** They are not
+frozen, and this tier does not pretend otherwise. What they promise is different in kind:
+
+> **A change to a substrate package's public surface is permitted in a minor release. Making one
+> silently is not.**
+
+**Why not simply promote them.** `Ashlar.Core.Application` declares 474 public types,
+`Ashlar.Infrastructure` 390, `Ashlar.Orchestration` 198 and `Ashlar.BackgroundAgents` 126 (counted as
+public type declarations in each project's sources). Freezing that at 0.2.0 would end meaningful refactoring, and it would be a promise made over a
+surface nobody yet maps accurately — an IL analysis run against this tree in September proposed 52
+`Ashlar.Infrastructure` types as unreferenced and the compiler rejected 9 of them, one of which had
+12 call sites the analysis could not see.
+
+**Why not leave them unpromised.** A consumer who builds their own repository on Ashlar lives in this
+tier. "May change in any release" is honest and useless to them: it tells them nothing about what an
+upgrade costs.
+
+**What this tier is worth to a consumer.** Not that an upgrade is safe, but that it is *knowable* —
+a minor release enumerates what moved, so the cost of upgrading can be read before it is paid rather
+than discovered during.
+
+#### What enforces it today, and what does not
+
+Stating this exactly, because a policy that claims enforcement it does not have is worse than one
+that claims none:
+
+| | Status |
+|---|---|
+| Surface changes recorded in `CHANGELOG.md` under `### Breaking` | **In force**, by review. `v0.2.0` records 41 `Ashlar.Infrastructure` types becoming internal. |
+| `PublicAPI.Shipped.txt` tracked for substrate packages, so a surface change appears as a reviewable diff | **Not yet.** Only the Stable tier and `Ashlar.Abstractions` carry these files. |
+| Release notes generated from the API diff between tags, rather than written by hand | **Not yet**, and it depends on the row above. |
+
+Until the second row lands, the promise rests on review rather than on a mechanism — which is
+precisely the shape this repository distrusts elsewhere, and the reason it is written down here as a
+gap rather than implied as coverage.
+
+#### A naming hazard, recorded rather than fixed
+
+Three substrate packages are named as if they were optional developer tooling and are not:
+
+| Package | Actually required by |
+|---|---|
+| `Ashlar.Tools.Assembly` | `Ashlar.Hosting` |
+| `Ashlar.Tools.Dev` | `Ashlar.Hosting`, `Ashlar.Mcp.Server.Host` |
+| `Ashlar.Policies.Dev` | `Ashlar.Runtime.Bundle`, `Ashlar.CLI` |
+
+They cannot be unpublished — `Ashlar.Hosting.Bundle` is a Stable-tier package and reaches two of them
+transitively, so removing them from the feed breaks restore for the tier that carries the strongest
+promise. Renaming them is a breaking change and belongs to a major. Recorded here so that a consumer
+reading `.Dev` on nuget.org does not conclude it is optional.
+
+This is also worth stating plainly for the Stable tier: **its promise covers the API you call, not
+the dependency graph beneath it.** `Ashlar.Hosting.Bundle` declares no surface of its own and pulls a
+substrate graph; the guarantee is that `AddAshlar()` keeps working, not that nothing under it moves.
+
 ### Internal
 
-All other assemblies and packages are internal to the Ashlar repository and tooling. They are not covered by this compatibility promise unless explicitly promoted to a stable package. `Ashlar.Infrastructure.*`, `Ashlar.Core.Application.*` (outside the experimental namespace above) and `Ashlar.Hosting` internals may change in any release; the supported way to reach them is through the stable packages' entry points (`AddAshlar`, `IAshlarClient.InvokeAsync`, the authoring base types).
+Assemblies this repository does **not** publish: test projects, in-repo tooling, spikes, and the
+commercial tree. They are reachable only by a `ProjectReference` inside a checkout, they carry no
+promise of any kind, and they may change without a note.
+
+If an assembly is on nuget.org, it is not in this tier — it is Substrate, and the disclosure promise
+above applies to it. That distinction is the point of the split: "internal" previously covered both
+things a consumer could never see and things they could `dotnet add package`.
 
 ## Breaking change process
 

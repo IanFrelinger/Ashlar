@@ -144,6 +144,50 @@ def main(argv: list[str]) -> int:
                 )
                 failures += 1
 
+    # --- 4. the Substrate tier's "not yet enforced" row must still be true ----------------------
+    # The document states that only the Stable tier and Ashlar.Abstractions carry PublicAPI files,
+    # and lists tracked substrate baselines as NOT YET in force. The day someone adds one, that row
+    # becomes false and a consumer reads a weaker promise than the repository actually offers.
+    if "| **Not yet.** Only the Stable tier and `Ashlar.Abstractions` carry these files. |" in text:
+        allowed = set(packages) | {"Ashlar.Abstractions"}
+        unexpected = sorted(
+            path.parent.name
+            for path in root.glob("src/*/PublicAPI.Shipped.txt")
+            if path.parent.name not in allowed
+        )
+        if unexpected:
+            fail(
+                f"{POLICY} says only the Stable tier and Ashlar.Abstractions carry PublicAPI files, "
+                f"but these also do: {', '.join(unexpected)}. The Substrate tier's enforcement table "
+                f"now understates what is in force - update the 'What enforces it today' rows."
+            )
+            failures += 1
+
+    # --- 5. the naming-hazard table names real references --------------------------------------
+    # Three substrate packages are named as if they were optional tooling. The table says which
+    # shipped projects actually require them; if a reference is dropped, the warning stops being
+    # true and should go rather than mislead in the other direction.
+    NAMING_HAZARD = {
+        "Ashlar.Tools.Assembly": ["Ashlar.Hosting"],
+        "Ashlar.Tools.Dev": ["Ashlar.Hosting", "Ashlar.Mcp.Server.Host"],
+        "Ashlar.Policies.Dev": ["Ashlar.Runtime.Bundle"],
+    }
+    if "#### A naming hazard, recorded rather than fixed" in text:
+        for pkg, requirers in NAMING_HAZARD.items():
+            for requirer in requirers:
+                proj = root / "src" / requirer / f"{requirer}.csproj"
+                if not proj.is_file():
+                    fail(f"{POLICY} names {requirer} as requiring {pkg}, but src/{requirer} is gone")
+                    failures += 1
+                    continue
+                if f"{pkg}.csproj" not in proj.read_text(encoding="utf-8", errors="replace"):
+                    fail(
+                        f"{POLICY} says {requirer} requires {pkg}, but its .csproj no longer "
+                        f"references it. Either the reference moved - in which case the naming-hazard "
+                        f"table is stale - or {pkg} is now genuinely optional and could be unpublished."
+                    )
+                    failures += 1
+
     if failures:
         print(f"compat-policy: {failures} finding(s)", file=sys.stderr)
         return 1
