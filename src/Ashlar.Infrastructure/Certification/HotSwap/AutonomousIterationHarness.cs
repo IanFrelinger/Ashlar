@@ -452,7 +452,7 @@ public sealed class AutonomousIterationHarness
                     + "that requires one. This is a property of the candidate, not a verification failure.",
                     decision.Record.BrickId);
             }
-            else if (_evidenceArchive is not null)
+            else if (_evidenceArchive is not null && artifact is not null)
             {
                 evidence = _evidenceArchive.PersistAndReverify(
                     decision.Record, candidate.SourceCode, artifact.AssemblyBytes);
