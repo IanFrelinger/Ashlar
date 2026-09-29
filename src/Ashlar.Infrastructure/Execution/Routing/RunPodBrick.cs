@@ -17,16 +17,18 @@ public sealed class RunPodBrick : DomainBrick, IBrickExecutor
     private readonly TimeProvider _timeProvider;
 
     /// <summary>Initializes a new run pod brick.</summary>
-    /// <param name="timeProvider">
-    /// Source of "now" for the job-completion deadline. Optional and defaulting to
-    /// <see cref="TimeProvider.System"/>, so production wiring is unchanged.
-    /// <para>It exists because the deadline below is measured against real wall clock, which makes
-    /// any test of the polling loop a race with the machine it runs on rather than a statement about
-    /// this code. <c>CapabilityRoutingBrickTests.HappyPath_RemoteExecution</c> stubs a two-entry
-    /// status queue that completes in about 40ms and allows 2s for it; on a contended macOS runner it
-    /// consumed the whole 2s and reported a timeout, failing the required readiness gate with
-    /// 5698/5699 passing. Injecting the clock makes that test a statement about the loop.</para>
-    /// </param>
+    /// <remarks>
+    /// <paramref name="timeProvider"/> is the source of "now" for the job-completion deadline below.
+    /// Optional and defaulting to <see cref="TimeProvider.System"/>, so production wiring is
+    /// unchanged.
+    /// <para>It exists because that deadline is otherwise measured against real wall clock, which
+    /// makes any test of the polling loop a race with the machine it runs on rather than a statement
+    /// about this code. <c>CapabilityRoutingBrickTests.HappyPath_RemoteExecution</c> stubs a
+    /// two-entry status queue that completes in about 40ms and allows 2s for it; on a contended
+    /// macOS runner it consumed the whole 2s and returned <c>runpod.timeout</c>, failing the required
+    /// readiness gate with 5698/5699 passing. Injecting the clock makes that test a statement about
+    /// the loop.</para>
+    /// </remarks>
     public RunPodBrick(
         IRunPodClient runPodClient,
         IOptions<RunPodBrickConfig> config,
