@@ -88,7 +88,14 @@ def main() -> int:
         if actual != expected:
             fail(
                 f"{rel_path} does not match the repository. The graph is DERIVED, so this means the "
-                f"tree changed and the artifact was not regenerated. Run:\n"
+                f"tree changed and the artifact was not regenerated.\n"
+                f"       TWO CAUSES, and the second is the one people miss:\n"
+                f"         1. you edited the tree and did not regenerate;\n"
+                f"         2. you MERGED or REBASED. That brings the other branch's artifact in "
+                f"alongside your own tree changes, and a derived file does not regenerate "
+                f"itself on a merge - git resolves it as TEXT rather than recomputing it. "
+                f"Regenerate after every merge and rebase, not only after an edit.\n"
+                f"       Run:\n"
                 f"         python3 scripts/knowledge-graph/build-knowledge-graph.py\n"
                 f"       and commit the result. First differences:"
             )
