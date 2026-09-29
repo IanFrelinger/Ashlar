@@ -15,10 +15,67 @@ permissions:
   id-token: write
 
 jobs:
+  # This workflow hands `version` straight to the reusable publish job, which pushes to nuget.org -
+  # an irreversible act, since nuget.org permits unlisting but not deletion. release.yml guards the
+  # same publish behind a validate job; this one did not, so a dispatch could publish a version that
+  # disagreed with the assemblies it shipped, or leave consumer-template pinning a different release.
+  # The guards are duplicated rather than shared because a reusable workflow cannot gate its own
+  # caller, and a guard that the caller may skip is not a guard.
+  validate:
+    name: Validate release inputs
+    if: github.repository_owner == 'IanFrelinger'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Verify global.json SDK pin matches installed SDKs
+        shell: bash
+        run: bash scripts/verify-release-sdk-pin.sh
+
+      # Directory.Build.props/.targets stamp every assembly from the root VERSION file, while the
+      # publish job takes package_version from this input. Without the guard a dispatch ships nupkgs
+      # whose PackageVersion disagrees with the assemblies inside them.
+      - name: Dispatch version must match root VERSION
+        shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=scripts/lib/release-staging-guards.sh
+          source scripts/lib/release-staging-guards.sh
+          if ! assert_dispatch_version_allowed "${IN_VERSION}"; then
+            echo "::error::Publishing ${IN_VERSION} from ${GITHUB_REF_NAME} would ship packages whose version disagrees with their assemblies. See the ABORT lines above."
+            exit 1
+          fi
+
+      # ci/published-version is what consumer-template pins strangers to. Publishing without moving
+      # it leaves every copied template installing the previous release.
+      - name: Consumer pin (ci/published-version) must name this release
+        shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=scripts/lib/release-staging-guards.sh
+          source scripts/lib/release-staging-guards.sh
+          if ! assert_consumer_pin_matches "${IN_VERSION}"; then
+            echo "::error::ci/published-version does not name this release; a stranger copying consumer-template would install the previous one. See the ABORT lines above."
+            exit 1
+          fi
+
   nuget:
     # Forks: without NUGET_PUBLISH_MODE this is artifact-only, but the guard keeps a fork from
     # ever reaching the nuget.org push steps by accident (docs/CiSecrets.md).
-    if: github.repository_owner == 'IanFrelinger'
+    needs: [validate]
+    if: github.repository_owner == 'IanFrelinger' && needs.validate.result == 'success'
     uses: ./.github/workflows/reusable-release-nuget.yml
     secrets: inherit
     with:

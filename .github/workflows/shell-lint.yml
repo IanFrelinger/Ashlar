@@ -175,3 +175,13 @@ jobs:
           # then required >= 10.0.12, and NU1605 failed three packaging lanes at once - in the one
           # project that stands in for a stranger consuming these packages.
           bash tests/scripts/sample-pin-alignment.test.sh
+
+      - name: Published package bytes are compared against something that can match
+        shell: bash
+        run: |
+          # The post-push check compared the raw SHA-256 of the pushed .nupkg against the bytes
+          # nuget.org serves. nuget.org repository-signs on publish, appending .signature.p7s, so
+          # those never match - the check could only fail, and it runs AFTER the push, once the
+          # packages are public and nuget.org allows unlisting but not deletion. It had never run:
+          # the v0.1.2 release died a step earlier on index lag.
+          bash tests/scripts/nupkg-content-digest.test.sh
