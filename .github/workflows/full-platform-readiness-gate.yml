@@ -75,10 +75,14 @@ on:
       - "VERSION"
       - "Directory.Build.targets"
       - "Directory.Packages.props"
+  # Merge queue. A required check that does not run on `merge_group` never reports, and the
+  # queue waits on it forever - so this is deliberately unfiltered, exactly like the
+  # `pull_request` trigger above.
+  merge_group:
   workflow_dispatch:
 
 concurrency:
-  group: full-platform-readiness-${{ github.event.pull_request.number || github.ref }}
+  group: full-platform-readiness-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -102,7 +106,8 @@ jobs:
       run_heavy: ${{ steps.filter.outputs.run_heavy }}
     steps:
       - name: Checkout
-        if: github.event_name == 'pull_request'
+        # A merge-queue entry is pre-merge, like a PR, and has a base/head pair to diff.
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -112,12 +117,12 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
         run: |
           set -euo pipefail
 
-          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+          if [[ "$EVENT_NAME" != "pull_request" && "$EVENT_NAME" != "merge_group" ]]; then
             echo "Event is '$EVENT_NAME' (no PR base to diff against) — heavy lanes run unconditionally."
             echo "run_heavy=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -530,7 +535,7 @@ jobs:
     needs: changes
     # Production images are never built on PRs (kept from before the PR trigger existed);
     # on push/schedule/dispatch they additionally follow the shared run_heavy decision.
-    if: github.event_name != 'pull_request' && needs.changes.outputs.run_heavy == 'true'
+    if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && needs.changes.outputs.run_heavy == 'true'
     runs-on: ubuntu-latest
     # Builds take ~1 minute each (layer cache); the smoke below is bounded at 2 minutes.
     # The previous 90-minute budget only ever measured how long a hung smoke could hang.
