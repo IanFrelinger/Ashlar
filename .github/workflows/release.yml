@@ -138,10 +138,13 @@ jobs:
             exit 1
           fi
 
+  # Ordered AFTER nuget on purpose. GHCR tags can be re-pointed or deleted; nuget.org packages
+  # can only be unlisted. Running the two in parallel let `:0.2.0` go permanent on one side
+  # while the other failed - which is how v0.1.2 carried a semver image tag and a red NuGet job.
   images:
     name: Container images (GHCR)
-    needs: [validate]
-    if: needs.validate.result == 'success'
+    needs: [validate, nuget]
+    if: needs.validate.result == 'success' && needs.nuget.result == 'success'
     uses: ./.github/workflows/reusable-container-publish.yml
     secrets: inherit
     with:
@@ -248,10 +251,17 @@ jobs:
   github-release:
     name: Draft GitHub Release
     needs: [validate, images, nuget]
+    # always(), gated on publication having BEGUN rather than on everything having succeeded.
+    # When a post-push check failed, `success()` skipped this job and the only copy of the
+    # nupkgs and nuget-publish-manifest.json was a 90-day Actions artifact - for packages that
+    # are permanent. That is how the v0.1.2 release page came to be assembled by hand. The
+    # release is created as a DRAFT, so running here after a failure publishes nothing.
     if: >-
-      success() &&
+      always() &&
       github.ref_type == 'tag' &&
-      vars.RELEASE_CREATE_GITHUB_RELEASE != 'false'
+      vars.RELEASE_CREATE_GITHUB_RELEASE != 'false' &&
+      needs.validate.result == 'success' &&
+      needs.nuget.outputs.publish_began == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -266,6 +276,10 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUGET_RESULT: ${{ needs.nuget.result }}
+          IMAGES_RESULT: ${{ needs.images.result }}
+          CLI_SHA_TAG: ${{ needs.images.outputs.cli_sha_tag }}
+          API_SHA_TAG: ${{ needs.images.outputs.api_sha_tag }}
         run: |
           TAG="${GITHUB_REF_NAME}"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
@@ -277,11 +291,21 @@ jobs:
           SNIP="$(mktemp)"
           bash scripts/changelog-snippet-for-release.sh > "$SNIP" || true
           {
+            if [ "${NUGET_RESULT}" != "success" ]; then
+              echo "> **This release did not complete cleanly.** NuGet publication began, but the"
+              echo "> nuget job ended \`${NUGET_RESULT}\` - see the run below. Packages may already be"
+              echo "> public on nuget.org. Do NOT publish this draft until that is resolved."
+              echo ""
+            fi
             echo "Automated draft for **${TAG}**."
             echo ""
             echo "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- NuGet: \`Ashlar.Hosting.Bundle\` **${VER}** (+ graph). Packages, symbols, \`nuget-publish-manifest.json\` and per-package \`.sha256.txt\` are attached as release assets (also in the \`nuget-packages-${VER}\` workflow artifact)."
-            echo "- Images: \`${{ needs.images.outputs.cli_sha_tag }}\`, \`${{ needs.images.outputs.api_sha_tag }}\`"
+            if [ "${IMAGES_RESULT}" = "success" ]; then
+              echo "- Images: \`${CLI_SHA_TAG}\`, \`${API_SHA_TAG}\`"
+            else
+              echo "- Images: **not published** (images job ended \`${IMAGES_RESULT}\`; it runs only after NuGet succeeds)."
+            fi
             echo ""
             cat "$SNIP"
             echo ""

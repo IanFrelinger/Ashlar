@@ -25,7 +25,7 @@ trap 'rm -rf "${WORKDIR}"' EXIT
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/lib" && pwd)"
 
 python3 - "$MAN" "$VER" "$WORKDIR" "$LIB_DIR" <<'PY'
-import json, os, sys, urllib.request
+import json, os, sys, time, urllib.error, urllib.request
 
 manifest_path, ver, workdir, lib_dir = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 sys.path.insert(0, lib_dir)
@@ -34,6 +34,42 @@ from nupkg_content_digest import content_digest, has_signature
 with open(manifest_path, encoding="utf-8") as f:
     rows = json.load(f)
 os.makedirs(workdir, exist_ok=True)
+
+# nuget.org indexes packages one at a time after a push, so a package pushed seconds ago can
+# still 404 from the flat container. The visibility poll that runs before this step waits for a
+# handful of ids, not all of them, so the rest can legitimately be missing on the first request.
+# That is exactly the lag that failed v0.1.2's release. A bare urlretrieve raised HTTPError on the
+# first such 404 and ended the step with a traceback - after every package was already public.
+ATTEMPTS = int(os.environ.get("ASHLAR_NUGET_VERIFY_ATTEMPTS") or 40)
+SLEEP_SEC = float(os.environ.get("ASHLAR_NUGET_VERIFY_SLEEP_SEC") or 15)
+REQUEST_TIMEOUT_SEC = 60
+# Overridable so the retry path can be exercised against a local server, and so a staging feed can
+# be verified with the same code that verifies nuget.org rather than a copy of it.
+FLAT_CONTAINER = (os.environ.get("ASHLAR_NUGET_FLAT_CONTAINER") or "https://api.nuget.org/v3-flatcontainer").rstrip("/")
+RETRYABLE_STATUS = {404, 408, 429, 500, 502, 503, 504}
+
+
+def fetch(url, dest):
+    """Download url to dest, riding out index lag. Returns None on success, else a reason."""
+    last = "no attempt made"
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=REQUEST_TIMEOUT_SEC) as resp:
+                data = resp.read()
+            with open(dest, "wb") as fh:
+                fh.write(data)
+            return None
+        except urllib.error.HTTPError as exc:
+            last = f"HTTP {exc.code}"
+            if exc.code not in RETRYABLE_STATUS:
+                return f"{last} (not retryable)"
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last = f"{type(exc).__name__}: {exc}"
+        if attempt < ATTEMPTS:
+            print(f"  attempt {attempt}/{ATTEMPTS}: {last}; retrying in {SLEEP_SEC:g}s", file=sys.stderr)
+            time.sleep(SLEEP_SEC)
+    return f"{last} after {ATTEMPTS} attempts"
+
 
 checked = 0
 failures = 0
@@ -54,10 +90,19 @@ for row in rows:
         continue
 
     id_lc, v_lc = pid.lower(), v.lower()
-    url = f"https://api.nuget.org/v3-flatcontainer/{id_lc}/{v_lc}/{id_lc}.{v_lc}.nupkg"
+    url = f"{FLAT_CONTAINER}/{id_lc}/{v_lc}/{id_lc}.{v_lc}.nupkg"
     out = os.path.join(workdir, row["fileName"])
     print(f"download {url}")
-    urllib.request.urlretrieve(url, out)
+    problem = fetch(url, out)
+    if problem is not None:
+        print(
+            f"::error::could not download {pid} {v} from nuget.org: {problem}. The package was "
+            f"pushed before this step ran, so it is public; this is a failure to VERIFY it, not a "
+            f"failure to publish it. Re-run this job to verify once indexing catches up.",
+            file=sys.stderr,
+        )
+        failures += 1
+        continue
 
     got = content_digest(out)
     if got.lower() != expected.lower():
