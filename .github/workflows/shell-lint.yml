@@ -155,3 +155,13 @@ jobs:
           # placeholder description for three releases. A missing <Description> is a build warning
           # at most and the pack step succeeds, so nothing said so.
           bash tests/scripts/shipped-package-metadata.test.sh
+
+      - name: Compatibility policy describes the current state
+        shell: bash
+        run: |
+          # docs/SdkCompatibilityPolicy.md is the promise: it tells a consumer what is stable and a
+          # contributor which of the two API files an addition goes in. It said "Nothing has shipped
+          # yet ... every PublicAPI.Shipped.txt contains only the #nullable enable header" for three
+          # releases after the reverse became true. A contributor believing that treats a line in
+          # Shipped.txt as unclaimed and changes a promise already published.
+          python3 scripts/ci/verify-compat-policy-current.py
