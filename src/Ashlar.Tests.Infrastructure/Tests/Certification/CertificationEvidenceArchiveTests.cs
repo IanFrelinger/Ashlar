@@ -335,6 +335,73 @@ public sealed class CertificationEvidenceArchiveTests
     }
 
     [Fact]
+    public void PersistAndReverify_WritesTheFAILUREShapeTheSweepScriptParses()
+    {
+        // The happy half of the sidecar contract had a fact; this half did not, and this is the
+        // half that decides what an operator is TOLD when something is wrong.
+        // scripts/dogfood-continuous-proof.sh reads `failureCode` and `failureReason` out of this
+        // file to build the GAP reason, and its `_evidence_string` returns empty for an unquoted
+        // null - so a refusal serialised with nulls degrades the row to "see the attached log",
+        // which is the exact outcome the workflow says it exists to avoid. Nothing proved the
+        // archive ever emits this shape, because every sidecar fact ran on a verified result.
+        var root = TempRoot();
+        var archive = new CertificationEvidenceArchive(
+            root, new CertificationRecordSigner(), CertificationTrustPolicy.Unpinned);
+
+        var refused = archive.PersistAndReverify(
+            new CertificationRecordSigner().SignRecord(UnsignedShape("rgb-hex-parse")),
+            BrickSource, ArtifactBytes);
+
+        refused.Verified.Should().BeFalse(
+            "POSITIVE CONTROL: this fixture must actually be refused, or the assertions below are "
+            + "about a verified sidecar wearing the wrong name");
+
+        var text = File.ReadAllText(Path.Combine(root, "rgb-hex-parse.evidence.json"));
+
+        text.Should().Contain("\"verified\": false",
+            "the classifier matches this literal to decide a run produced a refusal rather than a pass");
+
+        // QUOTED, not null. The shell reads these with a string extractor; a null serialises
+        // unquoted and reads back as empty, which is how a real refusal turns into a row that
+        // cannot say what went wrong.
+        text.Should().MatchRegex("\"failureCode\":\\s*\"[^\"]+\"",
+            "an unquoted null here degrades the ledger's GAP reason to nothing");
+        text.Should().MatchRegex("\"failureReason\":\\s*\"[^\"]+\"",
+            "an unquoted null here degrades the ledger's GAP reason to nothing");
+    }
+
+    [Fact]
+    public void PersistAndReverify_RefusesARecordBindingNoGateEmittedArtifact_WhichIsWhatMakesThisStrict()
+    {
+        // Until this fact existed, no test in this file could tell Strict from Default. Strict adds
+        // exactly two clauses - RequireCertifierIdentity and RequireGateEmittedArtifact - and every
+        // fixture supplied both, so the words "under Strict" in a fact's name asserted nothing and
+        // a Strict->Default slip in the archive would have gone unnoticed by all eleven facts.
+        //
+        // This is also the clause the real loop can actually fail: the gate binds the artifact
+        // input only when the candidate emitted one, and refuses nothing when it did not.
+        var root = TempRoot();
+        var (privateKey, _) = CreateEd25519Key();
+        var signer = new CertificationRecordSigner(ed25519PrivateKeyBase64: privateKey);
+
+        // POSITIVE CONTROL: same key, same archive, same everything except the bound artifact.
+        var bound = new CertificationEvidenceArchive(
+            Path.Combine(root, "bound"), signer, CertificationTrustPolicy.Unpinned);
+        bound.PersistAndReverify(SignedRecord(signer, "rgb-hex-parse"), BrickSource, ArtifactBytes)
+            .Verified.Should().BeTrue("the only difference below is the missing artifact input");
+
+        var archive = new CertificationEvidenceArchive(
+            Path.Combine(root, "unbound"), signer, CertificationTrustPolicy.Unpinned);
+        var result = archive.PersistAndReverify(
+            SignedRecord(signer, "rgb-hex-parse", bindArtifact: false), BrickSource, ArtifactBytes);
+
+        result.Verified.Should().BeFalse();
+        result.FailureCode.Should().Be("gate-emitted-artifact-missing",
+            "Default accepts a record that binds no gate-emitted artifact; only Strict refuses it, "
+            + "so a slip from Strict to Default reddens exactly here");
+    }
+
+    [Fact]
     public void TheSidecarDoesNotLiveInTheRecordStoreDirectory()
     {
         var root = TempRoot();
@@ -398,11 +465,18 @@ public sealed class CertificationEvidenceArchiveTests
     /// <paramref name="signer"/>, whose own key material decides whether an Ed25519 signature is
     /// present.
     /// </summary>
-    private static CertificationRecord SignedRecord(CertificationRecordSigner signer, string brickId) =>
-        signer.SignRecord(UnsignedShape(brickId));
+    private static CertificationRecord SignedRecord(
+        CertificationRecordSigner signer, string brickId, bool bindArtifact = true) =>
+        signer.SignRecord(UnsignedShape(brickId, bindArtifact));
 
-    /// <summary>The record shape, before any signature is attached.</summary>
-    private static CertificationRecord UnsignedShape(string brickId)
+    /// <summary>
+    /// The record shape, before any signature is attached. <paramref name="bindArtifact"/> exists
+    /// because the real gate binds the gate-emitted-artifact input ONLY when the candidate emitted
+    /// one, so a record without it is a shape production actually mints - and until it was
+    /// expressible here, every fixture in this file supplied both of the clauses Strict adds, which
+    /// made "under Strict" in a fact's name unfalsifiable.
+    /// </summary>
+    private static CertificationRecord UnsignedShape(string brickId, bool bindArtifact = true)
     {
         return new CertificationRecord
         {
@@ -415,16 +489,18 @@ public sealed class CertificationEvidenceArchiveTests
             ContentHash = BrickContentHasher.ComputeSha256(BrickSource),
             Gate = "evidence-archive-tests",
             SchemaVersion = CertificationRecordData.TrustLoopSchemaVersion,
-            Inputs =
-            [
-                CertifierIdentity.ToInput(),
-                new CertificationInput
-                {
-                    Kind = CertificationInputKinds.GateEmittedArtifact,
-                    Id = brickId,
-                    Hash = BrickContentHasher.ComputeSha256(ArtifactBytes),
-                },
-            ],
+            Inputs = bindArtifact
+                ?
+                [
+                    CertifierIdentity.ToInput(),
+                    new CertificationInput
+                    {
+                        Kind = CertificationInputKinds.GateEmittedArtifact,
+                        Id = brickId,
+                        Hash = BrickContentHasher.ComputeSha256(ArtifactBytes),
+                    },
+                ]
+                : [CertifierIdentity.ToInput()],
         };
     }
 

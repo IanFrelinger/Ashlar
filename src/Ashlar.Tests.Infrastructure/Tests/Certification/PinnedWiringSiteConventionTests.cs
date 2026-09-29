@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using Ashlar.Tests.Infrastructure.Certification.Reuse;
 using FluentAssertions;
 using Mono.Cecil;
 using Xunit;
@@ -63,7 +65,7 @@ public sealed class PinnedWiringSiteConventionTests
     // must have it applied here too — otherwise a ledger row could cite a record that verified only
     // because it was self-consistent. Behaviourally covered: the archive takes a
     // CertificationTrustPolicy, and CertificationEvidenceArchiveTests.
-    // PersistAndReverify_ReportsPinningAndRefusesAnUntrustedKey hands it one pinning a foreign key
+    // PersistAndReverify_ReportsPinning_AndRefusesAKeyTheOperatorDidNotTrust hands it one pinning a foreign key
     // and asserts the named refusal.
     [InlineData(
         "Ashlar.Infrastructure.dll",
@@ -125,6 +127,53 @@ public sealed class PinnedWiringSiteConventionTests
                 + "this row; if it did not, check that the fact still hands the site a policy."
                 : " This site has NO behavioural fact: it takes no policy a test can supply, so "
                 + "this row is the only thing standing between it and silent drift.");
+    }
+
+    /// <summary>
+    /// Every "behaviourally covered by X.Y" citation in this file must name a fact that exists.
+    /// <para>
+    /// <c>behaviourallyCovered</c> is never asserted — it only reaches a <c>because</c> string, so
+    /// any value passes — which makes the prose beside each row the only record of WHY a site is
+    /// considered covered. One of those citations named a test that has never existed in this
+    /// repository, and nothing noticed; the claim read as verified while resolving to nothing. That
+    /// is the same defect as a guard grepping a bare method name, and it gets the same treatment.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void TheCoverageCitationsInThisFileResolveToFactsThatExist()
+    {
+        var conventionDir = Path.Combine(
+            RepoPaths.FindRepoRoot(), "src", "Ashlar.Tests.Infrastructure", "Tests", "Certification");
+        var thisFile = Path.Combine(conventionDir, nameof(PinnedWiringSiteConventionTests) + ".cs");
+        File.Exists(thisFile).Should().BeTrue(
+            "this fact reads its own source to find the citations; if the file moved, move this too");
+
+        // Citations wrap across comment lines, so rejoin continuations before matching.
+        var text = Regex.Replace(File.ReadAllText(thisFile), @"\r?\n\s*//\s*", string.Empty);
+        var citations = Regex.Matches(text, @"\b(\w+Tests)\.(\w+)\b")
+            .Select(m => (Class: m.Groups[1].Value, Fact: m.Groups[2].Value))
+            .Where(c => !string.Equals(c.Class, nameof(PinnedWiringSiteConventionTests), StringComparison.Ordinal))
+            .Distinct()
+            .ToArray();
+
+        citations.Should().NotBeEmpty(
+            "POSITIVE CONTROL: this file cites covering facts by name. Matching none means the "
+            + "pattern went stale, and an empty set would satisfy every assertion below.");
+
+        foreach (var (className, factName) in citations)
+        {
+            var source = Path.Combine(conventionDir, className + ".cs");
+            File.Exists(source).Should().BeTrue(
+                "{0} is cited here as covering a wiring site, but {1} does not exist",
+                className, source);
+
+            File.ReadAllText(source).Should().MatchRegex(
+                $@"public\s+(async\s+Task|void)\s+{Regex.Escape(factName)}\s*\(",
+                "{0}.{1} is cited here as the behavioural cover for a pinning wiring site, but no "
+                + "fact by that name exists. Either fix the citation or write the fact — a citation "
+                + "that resolves to nothing is a coverage claim nobody can check, and this file had "
+                + "exactly one of those.", className, factName);
+        }
     }
 
     private static bool IsAmbientAccess(Mono.Cecil.Cil.Instruction instruction) =>
