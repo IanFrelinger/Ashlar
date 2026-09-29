@@ -424,11 +424,38 @@ public sealed class AutonomousIterationHarness
             // What this establishes is narrow and should not be overquoted: the record's bytes
             // survived a round trip to disk and still verify. It is not a verification of the
             // admission path.
+            // A candidate that emitted no artifact is NOT sent to the archive, and the reason is
+            // not squeamishness about a failing check - it is that the record cannot satisfy the
+            // strictness the archive verifies under, by construction, so the refusal would carry no
+            // information. `CertificationVerifyOptions.Strict` sets RequireGateEmittedArtifact, and
+            // `CertificationGate.RecordCompileAuthority` adds that input ONLY when an artifact is
+            // bound; `BindEmittedArtifact` returns the request unchanged rather than refusing when
+            // one is absent, and none of the gate's checks (load, recursion, analyzer, correctness,
+            // mutation, determinism, dependency) refuses for a missing artifact. So an admitted
+            // identity-handle probe or incomplete proposal - shapes this method deliberately keeps
+            // alive twenty lines above - would hand the archive a record the gate itself minted and
+            // signed, and the archive would refuse it as `gate-emitted-artifact-missing`.
+            //
+            // That is the failure this repository has already shipped once: a verifier refusing its
+            // OWN genuine records because of a binding every happy-path fixture satisfies by
+            // construction (the S-7 regression). The operator-facing consequence is worse than the
+            // gap itself - a warning reading "did NOT re-verify" invites a reader to suspect
+            // tampering or a signing fault when the truth is "this candidate emitted no artifact".
+            //
+            // So: no artifact, no evidence claim, and the log says which of the two it is.
             CertificationEvidenceResult? evidence = null;
-            if (_evidenceArchive is not null)
+            if (_evidenceArchive is not null && artifact is null)
+            {
+                _logger?.LogInformation(
+                    "Certification record for {BrickId} was not sent to the evidence archive: the candidate "
+                    + "emitted no gate artifact, so its record binds none and cannot verify under a strictness "
+                    + "that requires one. This is a property of the candidate, not a verification failure.",
+                    decision.Record.BrickId);
+            }
+            else if (_evidenceArchive is not null)
             {
                 evidence = _evidenceArchive.PersistAndReverify(
-                    decision.Record, candidate.SourceCode, artifact?.AssemblyBytes);
+                    decision.Record, candidate.SourceCode, artifact.AssemblyBytes);
 
                 if (evidence.Verified)
                 {

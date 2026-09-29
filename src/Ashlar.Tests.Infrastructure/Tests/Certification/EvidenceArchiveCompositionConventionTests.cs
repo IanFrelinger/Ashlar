@@ -132,7 +132,70 @@ public sealed class EvidenceArchiveCompositionConventionTests
         hmacOnly.Verified.Should().BeFalse();
         hmacOnly.FailureCode.Should().Be("ed25519-signature-required",
             "Legacy would have accepted an HMAC-only record");
+
+        // The third clause Strict adds, and the only one the REAL loop can fail. The other two are
+        // unreachable in production: the gate always names its judge and always signs. This one is
+        // not, because the gate binds the artifact input only when an artifact exists and refuses
+        // nothing when it does not.
+        using var artifactless = Compose(TempRoot(), StubMode.NoGateEmittedArtifact);
+        var unbound = (await RunOneIteration(artifactless)).Evidence!;
+        unbound.Verified.Should().BeFalse();
+        unbound.FailureCode.Should().Be("gate-emitted-artifact-missing",
+            "Default would have accepted this record; only Strict requires the record to bind the "
+            + "artifact the gate emitted");
     }
+
+    [Fact]
+    public async Task ACandidateThatEmitsNoArtifactIsNotSentToTheArchiveAtAll()
+    {
+        // The regression this exists for: an identity-handle probe or incomplete proposal compiles
+        // to no DomainBrick, so the harness keeps the supplied handle and carries on - deliberately,
+        // it is a supported shape. The gate then mints and signs a record that binds no artifact,
+        // and nothing in the gate refuses for that. Sending that record to an archive verifying
+        // under Strict makes the system refuse its OWN genuine record, and report it to an operator
+        // as "did NOT re-verify", which reads as tampering rather than as "there was no artifact".
+        //
+        // This repository has shipped that exact shape once already (the S-7 regression), so the
+        // fact is written as behaviour, not as a comment.
+        using var provider = Compose(TempRoot(), StubMode.Full);
+
+        // POSITIVE CONTROL: the same composition, same gate, same archive, DOES produce evidence
+        // for a candidate that emits an artifact. Without this, an archive that was simply never
+        // composed would satisfy the assertion below and the fact would prove nothing.
+        var withArtifact = await RunOneIteration(provider);
+        withArtifact.Evidence.Should().NotBeNull(
+            "POSITIVE CONTROL: this composition must produce evidence for an ordinary candidate, "
+            + "otherwise the null below is explained by the archive being absent");
+        withArtifact.Evidence!.Verified.Should().BeTrue(
+            "refused with {0}: {1}", withArtifact.Evidence.FailureCode, withArtifact.Evidence.FailureReason);
+
+        var noArtifact = await RunOneIteration(provider, sourceCode: SourceThatEmitsNoBrick);
+
+        // The candidate must still be ADMITTED, or the null below is explained by an early refusal
+        // rather than by the archive being skipped - and the whole point is that nothing in the
+        // gate refuses a candidate for emitting no artifact.
+        noArtifact.Outcome.Should().Be(withArtifact.Outcome,
+            "a candidate that emits no artifact must reach the same outcome as one that does; if it "
+            + "is refused earlier then this fact is not exercising the path it claims to");
+        noArtifact.Evidence.Should().BeNull(
+            "a record that binds no artifact cannot satisfy the strictness the archive verifies "
+            + "under, so sending it there would manufacture a refusal that carries no information "
+            + "and reads to an operator as a signing or tampering fault");
+    }
+
+    /// <summary>
+    /// Compiles cleanly and defines no public, non-nested, concrete type derived from DomainBrick,
+    /// which is exactly the condition <c>MetadataBrickDiscovery</c> raises
+    /// "contains no public, non-nested, concrete type" for and the harness catches.
+    /// </summary>
+    private const string SourceThatEmitsNoBrick = """
+        namespace Ashlar.Tests.Infrastructure.Certification.Fixtures;
+
+        internal sealed class EmitsNoBrick
+        {
+            public static int Identity(int value) => value;
+        }
+        """;
 
     // --- composition -----------------------------------------------------------------------------
 
@@ -146,6 +209,17 @@ public sealed class EvidenceArchiveCompositionConventionTests
 
         /// <summary>HMAC signature only: accepted by Legacy, refused by Default and Strict.</summary>
         NoEd25519,
+
+        /// <summary>
+        /// No gate-emitted-artifact input, even though the request carries an artifact. This is the
+        /// THIRD clause Strict adds, and until now it was the only one no fact exercised - which
+        /// mattered because it is the one clause the real loop can fail. The real gate binds this
+        /// input only when an artifact is present
+        /// (<c>CertificationGate.RecordCompileAuthority</c>), and refuses nothing when it is
+        /// absent, so a record minted for an identity-handle probe reaches a Strict verifier
+        /// carrying no such input.
+        /// </summary>
+        NoGateEmittedArtifact,
     }
 
     private static ServiceProvider Compose(string? archiveRoot, StubMode mode)
@@ -177,7 +251,8 @@ public sealed class EvidenceArchiveCompositionConventionTests
         return services.BuildServiceProvider();
     }
 
-    private static async Task<IterationResult> RunOneIteration(ServiceProvider provider)
+    private static async Task<IterationResult> RunOneIteration(
+        ServiceProvider provider, string? sourceCode = null)
     {
         var harness = provider.GetRequiredService<AutonomousIterationHarness>();
         return await harness.RunIterationAsync(
@@ -194,7 +269,7 @@ public sealed class EvidenceArchiveCompositionConventionTests
             new ProposalCandidate
             {
                 Brick = new MutationProbeBrick(),
-                SourceCode = MutationProbeBrickSource.Code,
+                SourceCode = sourceCode ?? MutationProbeBrickSource.Code,
                 Witness = new WitnessSpec("mutation-probe-brick", []),
                 ProjectPath = CleanProjectFile(),
                 CompilationReferences =
@@ -225,7 +300,7 @@ public sealed class EvidenceArchiveCompositionConventionTests
             var inputs = new List<CertificationInput>();
             if (mode != StubMode.NoCertifierIdentity)
                 inputs.Add(CertifierIdentity.ToInput());
-            if (request.EmittedArtifact is { } artifact)
+            if (request.EmittedArtifact is { } artifact && mode != StubMode.NoGateEmittedArtifact)
             {
                 inputs.Add(new CertificationInput
                 {
