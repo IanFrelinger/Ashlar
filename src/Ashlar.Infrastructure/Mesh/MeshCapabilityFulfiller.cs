@@ -10,7 +10,7 @@ namespace Ashlar.Infrastructure.Mesh;
 /// Fulfills capability requests by polling the transport inbox and invoking registered handlers.
 /// Phase E: Local IPC mesh - validates artifact transfer between instances.
 /// </summary>
-public sealed class MeshCapabilityFulfiller : ICapabilityFulfiller
+internal sealed class MeshCapabilityFulfiller : ICapabilityFulfiller
 {
     private readonly ILocalTransport _transport;
     private readonly ILogger<MeshCapabilityFulfiller>? _logger;

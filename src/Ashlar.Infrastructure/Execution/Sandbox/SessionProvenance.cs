@@ -33,7 +33,7 @@ public sealed record SessionProvenanceEvent
 }
 
 /// <summary>Well-known <see cref="SessionProvenanceEvent.Outcome"/> values.</summary>
-public static class SessionProvenanceOutcomes
+internal static class SessionProvenanceOutcomes
 {
     /// <summary>The session container started.</summary>
     public const string Started = "started";
@@ -64,7 +64,7 @@ public interface ISessionProvenanceSink
 }
 
 /// <summary>Default sink: structured log lines, one per event.</summary>
-public sealed class LoggingSessionProvenanceSink : ISessionProvenanceSink
+internal sealed class LoggingSessionProvenanceSink : ISessionProvenanceSink
 {
     private readonly ILogger<LoggingSessionProvenanceSink> _logger;
 

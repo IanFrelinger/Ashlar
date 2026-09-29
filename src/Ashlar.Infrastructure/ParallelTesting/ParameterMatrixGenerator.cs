@@ -6,7 +6,7 @@ namespace Ashlar.Infrastructure.ParallelTesting;
 /// <summary>
 /// Generates diverse parameter combinations for parallel testing.
 /// </summary>
-public sealed class ParameterMatrixGenerator : IParameterMatrixGenerator
+internal sealed class ParameterMatrixGenerator : IParameterMatrixGenerator
 {
     /// <inheritdoc />
     public Task<IReadOnlyList<ParameterSet>> GenerateAsync(Scenario scenario, CancellationToken cancellationToken = default)

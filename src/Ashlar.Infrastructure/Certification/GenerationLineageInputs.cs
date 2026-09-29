@@ -11,7 +11,7 @@ namespace Ashlar.Infrastructure.Certification;
 /// named lineage — a fresh session cannot re-mint the same artifact at depth 0 without
 /// the input chain visibly changing (R5.4 revocation propagation also keys off these).
 /// </summary>
-public static class GenerationLineageInputs
+internal static class GenerationLineageInputs
 {
     /// <summary>Input kind for the recursion pedigree.</summary>
     public const string GenerationDepthKind = "generation-depth";

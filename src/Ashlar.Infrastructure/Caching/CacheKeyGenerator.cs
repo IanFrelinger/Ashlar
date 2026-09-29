@@ -7,7 +7,7 @@ namespace Ashlar.Infrastructure.Caching;
 /// Shared utility for generating cache keys from content.
 /// Used by CachedValidationServiceAdapter and CachedAnalysisServiceAdapter.
 /// </summary>
-public static class CacheKeyGenerator
+internal static class CacheKeyGenerator
 {
     /// <summary>
     /// Computes a SHA256 hash of the content, returned as Base64.

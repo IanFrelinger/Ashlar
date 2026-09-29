@@ -7,7 +7,7 @@ namespace Ashlar.Infrastructure.Mesh;
 /// SendAsync writes to peer's inbox; ReceiveAsync reads from our inbox.
 /// Works for same-machine communication when peers use the same mesh base path.
 /// </summary>
-public sealed class FileBasedLocalTransport : ILocalTransport
+internal sealed class FileBasedLocalTransport : ILocalTransport
 {
     private readonly string _meshBasePath;
     private readonly string _peerId;

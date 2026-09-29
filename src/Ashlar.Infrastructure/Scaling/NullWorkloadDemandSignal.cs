@@ -4,7 +4,7 @@ using Ashlar.Core.Application.Scaling.Ports;
 namespace Ashlar.Infrastructure.Scaling;
 
 /// <summary>Default demand signal with zero queue pressure.</summary>
-public sealed class NullWorkloadDemandSignal : IWorkloadDemandSignal
+internal sealed class NullWorkloadDemandSignal : IWorkloadDemandSignal
 {
     /// <inheritdoc />
     public Task<WorkloadDemandSnapshot> GetDemandAsync(

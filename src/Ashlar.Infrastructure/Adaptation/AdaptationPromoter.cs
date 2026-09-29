@@ -6,7 +6,7 @@ namespace Ashlar.Infrastructure.Adaptation;
 /// <summary>
 /// Promotes validated fixes. Records to adaptation log with Promoted=true.
 /// </summary>
-public sealed class AdaptationPromoter : IAdaptationPromoter
+internal sealed class AdaptationPromoter : IAdaptationPromoter
 {
     private readonly IAdaptationLog _log;
 

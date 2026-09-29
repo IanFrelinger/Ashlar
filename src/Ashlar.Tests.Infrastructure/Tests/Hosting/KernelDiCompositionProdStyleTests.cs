@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Ashlar.Core.Application.Execution.Routing;
+using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
 using Ashlar.Core.Application.Observation.Ports;
 using Ashlar.Core.Application.Persistence;
 using Ashlar.Hosting;
@@ -175,6 +177,35 @@ public sealed class KernelDiCompositionProdStyleTests : IDisposable
             "production deliberately registers no TimeProvider; RunPodBrick's deadline therefore "
             + "uses TimeProvider.System. Registering one here changes that silently, so decide it "
             + "on purpose and update this fact.");
+    }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task InternalisedRoutingImplementations_StillResolveFromTheRealComposition()
+    {
+        await Task.CompletedTask;
+
+        // NCRCapabilityPoller, PeerCapabilitySnapshotPoller and ProviderFactoryLocalExecutor stopped
+        // being public API. Nothing OUTSIDE Ashlar.Infrastructure named them, so the compiler had
+        // nothing to say - but two of the three are reached through a RUNTIME type filter over the
+        // hosted-service enumerable:
+        //
+        //     sp.GetServices<IHostedService>().OfType<NCRCapabilityPoller>().First()
+        //
+        // .First() throws rather than returning null. If the container ever stopped surfacing an
+        // internal implementation through IHostedService, the failure would be an
+        // InvalidOperationException at host start - in production, and nowhere in the build.
+        using var sp = BuildProvider(AshlarDeploymentProfile.Full, trust: false, adaptive: false);
+
+        sp.GetRequiredService<INCRCapabilitySnapshot>().Should().BeOfType<NCRCapabilityPoller>(
+            "the snapshot is resolved by filtering the hosted-service enumerable for this concrete "
+            + "type, so an implementation the container declines to surface fails at .First()");
+
+        sp.GetRequiredService<IPeerCapabilitySnapshot>().Should().BeOfType<PeerCapabilitySnapshotPoller>(
+            "same shape, same failure mode, separate registration");
+
+        sp.GetRequiredService<ILocalExecutor>().Should().BeOfType<ProviderFactoryLocalExecutor>(
+            "registered by concrete type rather than through a factory, so this one proves the "
+            + "container activates an internal type at all: the constructor is public, the type is not");
     }
 
     // ───────────────────────────────── helpers ────────────────────────────────

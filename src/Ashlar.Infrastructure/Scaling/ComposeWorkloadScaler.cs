@@ -9,7 +9,7 @@ namespace Ashlar.Infrastructure.Scaling;
 /// Scales Docker Compose services via <c>docker compose up -d --scale</c>.
 /// Useful locally; swap to <see cref="KubernetesWorkloadScaler"/> for clusters.
 /// </summary>
-public sealed class ComposeWorkloadScaler : IWorkloadScaler
+internal sealed class ComposeWorkloadScaler : IWorkloadScaler
 {
     private readonly WorkloadScalerOptions _options;
     private readonly IProcessCommandRunner _runner;

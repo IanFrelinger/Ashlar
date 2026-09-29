@@ -2,7 +2,7 @@
   <!-- Explicit transitive pins for local-feed restore (repo root skips versionless refs for this project name). -->
   <!-- Align with repo Directory.Packages.props / GHSA mitigations: NU1904, NU1903, NU1902. -->
   <ItemGroup>
-    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.11" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.12" />
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageReference Include="OpenTelemetry.Api" Version="1.15.3" />
     <PackageReference Include="OpenTelemetry.Extensions.Propagators" Version="1.15.3" />
