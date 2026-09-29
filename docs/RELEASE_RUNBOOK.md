@@ -48,7 +48,28 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
 1. **Green CI** on the commit — run **`runtime-release-gate`** on that ref.
 2. **`python3 scripts/verify-pack-ashlar-hosting-graph-alignment.py`** after changing `Ashlar.Hosting` refs or pack scripts.
 3. **`bash scripts/verify-stable-sdk-host-sample-packages.sh`** with `ASHLAR_SDK_PACKAGE_VERSION` (isolated cache + `--force-evaluate` by default).
-4. **Promote the public API**: review each stable-tier project's `PublicAPI.Unshipped.txt`, move its lines into `PublicAPI.Shipped.txt`, commit on the release commit (`docs/SdkCompatibilityPolicy.md`, "Release step"). After the tag those lines are the promise.
+4. **Bump the three version files on the release commit, together.** `release.yml` refuses the
+   tag unless they agree, and each is checked by a different guard:
+
+   | file | what it controls | guard |
+   |---|---|---|
+   | `VERSION` | stamps every assembly and package | `assert_version_matches_canonical` |
+   | `ci/published-version` | what `consumer-template` and the docs pin a stranger to | `assert_consumer_pin_matches` |
+   | `consumer-template/Directory.Packages.props` (`AshlarConsumerPackageVersion`) | the version a copied template actually installs | C6 lint (`scripts/verify-docs-published-version.sh`) |
+
+   `ci/published-version` names what is **on nuget.org**, so between releases it trails `VERSION`
+   rather than leading it. It moves on the release commit, not before.
+
+5. **Rewrite `consumer-template/CONSUMING.md`'s trust rows — do not find-and-replace the version.**
+   That document states the verification behaviour *of the version it pins*. On `0.1.2` the
+   statement "`Strict` leaves `RequireEd25519Signature` **false**" is correct. From `0.2.0` it is
+   **false**: `CertificationVerifyOptions.Default` *and* `.Strict` both set
+   `RequireEd25519Signature = true` and a `MinimumSchemaVersion` floor
+   (`src/Ashlar.Certification.Contracts/CertificationVerifyOptions.cs`). Changing the pin without
+   rewriting those rows publishes a document that tells a consumer the opposite of what the package
+   does. See the `### Breaking` entry for `CertificationVerifyOptions` in `CHANGELOG.md`.
+
+6. **Promote the public API**: review each stable-tier project's `PublicAPI.Unshipped.txt`, move its lines into `PublicAPI.Shipped.txt`, commit on the release commit (`docs/SdkCompatibilityPolicy.md`, "Release step"). After the tag those lines are the promise.
 
 ## After `release.yml`
 
