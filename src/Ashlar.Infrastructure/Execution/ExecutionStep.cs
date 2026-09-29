@@ -13,4 +13,4 @@ namespace Ashlar.Infrastructure.Execution;
 /// <summary>
 /// A step in the execution plan.
 /// </summary>
-public record ExecutionStep(string LocalId, string BrickId);
+internal record ExecutionStep(string LocalId, string BrickId);

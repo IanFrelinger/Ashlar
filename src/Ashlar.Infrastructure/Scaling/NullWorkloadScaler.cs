@@ -4,7 +4,7 @@ using Ashlar.Core.Application.Scaling.Ports;
 namespace Ashlar.Infrastructure.Scaling;
 
 /// <summary>Default no-op scaler — safe when no cluster/compose control plane is configured.</summary>
-public sealed class NullWorkloadScaler : IWorkloadScaler
+internal sealed class NullWorkloadScaler : IWorkloadScaler
 {
     /// <inheritdoc />
     public string ProviderName => "null";
