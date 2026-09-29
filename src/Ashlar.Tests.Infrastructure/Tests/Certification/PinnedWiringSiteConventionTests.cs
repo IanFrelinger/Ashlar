@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using Ashlar.Tests.Infrastructure.Certification.Reuse;
 using FluentAssertions;
 using Mono.Cecil;
 using Xunit;
@@ -14,10 +16,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <c>(trustPolicy ?? CertificationTrustPolicy.Ambient).Strict</c> back to the bare preset changes
 /// no observable behaviour in a test that configures no policy — and a green gate is therefore not
 /// evidence that the wiring is still there. That is not hypothetical: when pinning was first wired
-/// in, five of these seven sites could each be reverted with the whole suite green, and nobody would
-/// have seen the operator's pinning set stop being applied. A behavioural fact closes a site only
-/// where the site takes a policy a test can hand it; two of the seven do not, and this guard is what
-/// covers them.</para>
+/// in, five of the then-seven sites could each be reverted with the whole suite green, and nobody
+/// would have seen the operator's pinning set stop being applied. A behavioural fact closes a site
+/// only where the site takes a policy a test can hand it; two of the eight do not, and this guard is
+/// what covers them.</para>
 ///
 /// <para><b>What it asserts.</b> For each site, that the compiled IL of the declaring type — its
 /// nested closures and state machines included, because one site lives inside a DI factory
@@ -29,9 +31,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>What it does NOT assert.</b> That the options reaching each verifier are actually
 /// enforced — that is what the behavioural facts in
 /// <see cref="TrustedKeyPinningConfigurationTests"/> and
-/// <see cref="PinnedHotSwapVerifyAtLoadTests"/> are for, and five of the seven rows have one. It
+/// <see cref="PinnedHotSwapVerifyAtLoadTests"/> are for, and six of the eight rows have one. It
 /// also asserts presence, not count: if a type ever grows a second <c>Ambient</c> site, losing the
-/// first would no longer redden. Each of the seven types has exactly one today.</para>
+/// first would no longer redden. Each of the eight types has exactly one today.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class PinnedWiringSiteConventionTests
@@ -41,7 +43,7 @@ public sealed class PinnedWiringSiteConventionTests
     private const string AmbientAccessor = "get_Ambient";
 
     /// <summary>
-    /// The seven sites, each named by the assembly it ships in and the type that holds it. The
+    /// The eight sites, each named by the assembly it ships in and the type that holds it. The
     /// fifth column of the story — whether the site also has a behavioural fact — is in the
     /// <c>behaviourallyCovered</c> argument, so a reader can see at a glance which rows are carried
     /// by this guard alone.
@@ -58,6 +60,16 @@ public sealed class PinnedWiringSiteConventionTests
     [InlineData(
         "Ashlar.Infrastructure.dll",
         "Ashlar.Infrastructure.Certification.HotSwap.CertifiedBrickHotSwapHost",
+        true)]
+    // The evidence archive re-verifies a persisted record, so an operator who pinned a signer set
+    // must have it applied here too — otherwise a ledger row could cite a record that verified only
+    // because it was self-consistent. Behaviourally covered: the archive takes a
+    // CertificationTrustPolicy, and CertificationEvidenceArchiveTests.
+    // PersistAndReverify_ReportsPinning_AndRefusesAKeyTheOperatorDidNotTrust hands it one pinning a foreign key
+    // and asserts the named refusal.
+    [InlineData(
+        "Ashlar.Infrastructure.dll",
+        "Ashlar.Infrastructure.Certification.CertificationEvidenceArchive",
         true)]
     [InlineData(
         "Ashlar.Infrastructure.dll",
@@ -115,6 +127,53 @@ public sealed class PinnedWiringSiteConventionTests
                 + "this row; if it did not, check that the fact still hands the site a policy."
                 : " This site has NO behavioural fact: it takes no policy a test can supply, so "
                 + "this row is the only thing standing between it and silent drift.");
+    }
+
+    /// <summary>
+    /// Every "behaviourally covered by X.Y" citation in this file must name a fact that exists.
+    /// <para>
+    /// <c>behaviourallyCovered</c> is never asserted — it only reaches a <c>because</c> string, so
+    /// any value passes — which makes the prose beside each row the only record of WHY a site is
+    /// considered covered. One of those citations named a test that has never existed in this
+    /// repository, and nothing noticed; the claim read as verified while resolving to nothing. That
+    /// is the same defect as a guard grepping a bare method name, and it gets the same treatment.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void TheCoverageCitationsInThisFileResolveToFactsThatExist()
+    {
+        var conventionDir = Path.Combine(
+            RepoPaths.FindRepoRoot(), "src", "Ashlar.Tests.Infrastructure", "Tests", "Certification");
+        var thisFile = Path.Combine(conventionDir, nameof(PinnedWiringSiteConventionTests) + ".cs");
+        File.Exists(thisFile).Should().BeTrue(
+            "this fact reads its own source to find the citations; if the file moved, move this too");
+
+        // Citations wrap across comment lines, so rejoin continuations before matching.
+        var text = Regex.Replace(File.ReadAllText(thisFile), @"\r?\n\s*//\s*", string.Empty);
+        var citations = Regex.Matches(text, @"\b(\w+Tests)\.(\w+)\b")
+            .Select(m => (Class: m.Groups[1].Value, Fact: m.Groups[2].Value))
+            .Where(c => !string.Equals(c.Class, nameof(PinnedWiringSiteConventionTests), StringComparison.Ordinal))
+            .Distinct()
+            .ToArray();
+
+        citations.Should().NotBeEmpty(
+            "POSITIVE CONTROL: this file cites covering facts by name. Matching none means the "
+            + "pattern went stale, and an empty set would satisfy every assertion below.");
+
+        foreach (var (className, factName) in citations)
+        {
+            var source = Path.Combine(conventionDir, className + ".cs");
+            File.Exists(source).Should().BeTrue(
+                "{0} is cited here as covering a wiring site, but {1} does not exist",
+                className, source);
+
+            File.ReadAllText(source).Should().MatchRegex(
+                $@"public\s+(async\s+Task|void)\s+{Regex.Escape(factName)}\s*\(",
+                "{0}.{1} is cited here as the behavioural cover for a pinning wiring site, but no "
+                + "fact by that name exists. Either fix the citation or write the fact — a citation "
+                + "that resolves to nothing is a coverage claim nobody can check, and this file had "
+                + "exactly one of those.", className, factName);
+        }
     }
 
     private static bool IsAmbientAccess(Mono.Cecil.Cil.Instruction instruction) =>

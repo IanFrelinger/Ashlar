@@ -63,6 +63,26 @@ public sealed class AshlarAutonomyOptions
     /// </summary>
     public bool HoldAdmission { get; set; } = true;
 
+    /// <summary>
+    /// When set, every certified iteration persists its certification record under
+    /// <c>&lt;dir&gt;/records/&lt;brickId&gt;.json</c>, re-reads it FROM THAT FILE, re-verifies it
+    /// under <c>CertificationVerifyOptions.Strict</c> plus whatever
+    /// <c>ASHLAR_CERT_TRUSTED_ED25519_KEYS</c> pins, and writes a verdict sidecar at
+    /// <c>&lt;dir&gt;/&lt;brickId&gt;.evidence.json</c>. Default null (off).
+    ///
+    /// <para><b>This directory is EVIDENCE, not an admission store.</b> Nothing resolves it as
+    /// <c>ICertificationRecordStore</c>, and a record sitting in it grants no admission: the brick
+    /// registry still reports the held brick as unadmitted. The persist-and-re-verify step runs
+    /// ABOVE <see cref="HoldAdmission"/> precisely so that reaching a Strict verification never
+    /// requires hot-swapping a model-proposed candidate into the host process. Wiring this
+    /// directory as the admission store instead would make persisting evidence manufacture
+    /// admission for a brick the operator is holding.</para>
+    ///
+    /// <para>The verdict is reported, never escalated: a record that fails re-verification leaves
+    /// the iteration's outcome unchanged and rides on <c>IterationResult.Evidence</c>.</para>
+    /// </summary>
+    public string? EvidenceArchiveDirectory { get; set; }
+
     /// <summary>Committed generations retained for no-build rollback (R5.1). Minimum 1 to roll back at all.</summary>
     public int RetentionWindow { get; set; } = 2;
 

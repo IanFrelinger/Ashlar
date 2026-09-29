@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Ashlar.Agents.TestKit;
+using Ashlar.Certification.Contracts;
 using Ashlar.Core.Application.Autonomy;
 using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Core.Application.Certification.Models;
@@ -287,6 +288,122 @@ public sealed class AutonomousIterationHarnessTests
             "median 12s x factor 4 — one degenerate session cannot starve the cadence (R4.6)");
     }
 
+    // --- criterion 3a: the record is persisted and re-verified ON THE HELD PATH ---------------
+
+    [Fact]
+    public async Task CertifiedButHeld_StillPersistsAndReverifiesTheRecord_WhenAnArchiveIsComposed()
+    {
+        // THE FACT THAT CLOSES 3a's MECHANICS. Nine ledger rows to date say the sweep verifies
+        // under NOTHING, because HoldAdmission returns CertifiedButHeld above the only Strict
+        // verification on the path. This asserts a verification happens on the HELD path, with the
+        // hold itself untouched.
+        var sandbox = new FakeSandboxedSessionRunner(FakeSandboxedSessionRunner.Success());
+        var harness = Harness(sandbox: sandbox, holdAdmission: true, evidenceRoot: EvidenceRoot());
+
+        var result = await harness.RunIterationAsync(Context("obj-evidence"), Candidate());
+
+        result.Outcome.Should().Be(IterationOutcome.CertifiedButHeld, result.Explanation);
+        result.Evidence.Should().NotBeNull(
+            "an archive was composed, so the held iteration must have produced a verdict");
+        result.Evidence!.Verified.Should().BeTrue(
+            "the record was persisted and re-read from disk; refused with {0}: {1}",
+            result.Evidence.FailureCode, result.Evidence.FailureReason);
+        File.Exists(result.Evidence.RecordPath).Should().BeTrue(
+            "a ledger row cites this path, so it has to be a file that exists after the run");
+        result.Evidence.RecordSha256.Should().NotBeNullOrEmpty();
+        result.Evidence.SignerFingerprint.Should().NotBeNull(
+            "the row cites a signer fingerprint, and this harness signs with an Ed25519 key");
+        result.Explanation.Should().Contain(result.Evidence.RecordPath,
+            "AutonomyLoopService logs this explanation verbatim, and that log is where a run's "
+            + "operator finds the artefact the row cites");
+    }
+
+    [Fact]
+    public async Task TheHoldStillBlocksTheSwap_WhenAnArchiveIsComposed()
+    {
+        // The containment guard. 3a must not be closed by quietly reaching the hot-swap verifier:
+        // that would mean a CI runner hot-swapping model-proposed code into its own process, which
+        // is the property the held sweep exists to demonstrate.
+        using var swapped = new CertifiedBrickHotSwapHost(
+            hmacKey: null, drainTimeout: TimeSpan.FromSeconds(10),
+            revocations: new InMemoryCertificateRevocationList());
+        using var held = new CertifiedBrickHotSwapHost(
+            hmacKey: null, drainTimeout: TimeSpan.FromSeconds(10),
+            revocations: new InMemoryCertificateRevocationList());
+
+        // POSITIVE CONTROL, and it is load-bearing: without it, "nothing swapped" would be equally
+        // true of a harness that can no longer swap anything at all, and this fact would pass while
+        // proving nothing about the hold.
+        var unheld = await Harness(
+                sandbox: new FakeSandboxedSessionRunner(FakeSandboxedSessionRunner.Success()),
+                holdAdmission: false, evidenceRoot: EvidenceRoot(), host: swapped)
+            .RunIterationAsync(Context("obj-swaps"), Candidate());
+        unheld.Outcome.Should().Be(IterationOutcome.AdmittedAndSwapped, unheld.Explanation);
+        swapped.CurrentGenerationId.Should().NotBeNull("the control must actually have swapped");
+        swapped.CurrentBrickIds.Should().NotBeEmpty();
+
+        var result = await Harness(
+                sandbox: new FakeSandboxedSessionRunner(FakeSandboxedSessionRunner.Success()),
+                holdAdmission: true, evidenceRoot: EvidenceRoot(), host: held)
+            .RunIterationAsync(Context("obj-no-swaps"), Candidate());
+
+        result.Outcome.Should().Be(IterationOutcome.CertifiedButHeld, result.Explanation);
+        result.Evidence!.Verified.Should().BeTrue(
+            "the archive ran, so 'nothing swapped' is not simply 'nothing happened'");
+        held.CurrentGenerationId.Should().BeNull(
+            "persisting and re-verifying a record must not put a generation into the host process");
+        held.CurrentBrickIds.Should().BeEmpty(
+            "the operator is holding this brick; nothing about the archive may admit it");
+    }
+
+    [Fact]
+    public async Task NoArchiveComposed_LeavesEvidenceNull_AndChangesNothingElse()
+    {
+        // The change is opt-in and cannot alter an existing host.
+        var sandbox = new FakeSandboxedSessionRunner(FakeSandboxedSessionRunner.Success());
+        var harness = Harness(sandbox: sandbox, holdAdmission: true);
+
+        var result = await harness.RunIterationAsync(Context("obj-no-archive"), Candidate());
+
+        result.Outcome.Should().Be(IterationOutcome.CertifiedButHeld, result.Explanation);
+        result.Evidence.Should().BeNull("no archive was composed");
+        result.Explanation.Should().Be(
+            "certified; the operator holds admission (loop is in hold mode, no unattended "
+            + "swap) with full evidence on the record",
+            "the explanation an existing host already logs must be unchanged, to the character, "
+            + "when no archive is composed");
+    }
+
+    [Fact]
+    public async Task AFailedReverificationIsReported_AndDoesNotBecomeAnAdmission()
+    {
+        // A record that does not verify is a reported verdict, never an escalation. Turning it into
+        // ExplainedFailure would report the model's candidate as failed for a reason that has
+        // nothing to do with it, and AutonomyLoopService branches on outcome for its repair channel.
+        var (_, foreignPublicKey) = CreateEd25519Key();
+        using var host = new CertifiedBrickHotSwapHost(
+            hmacKey: null, drainTimeout: TimeSpan.FromSeconds(10),
+            revocations: new InMemoryCertificateRevocationList());
+        var harness = Harness(
+            sandbox: new FakeSandboxedSessionRunner(FakeSandboxedSessionRunner.Success()),
+            holdAdmission: true,
+            evidenceRoot: EvidenceRoot(),
+            evidenceTrustPolicy: CertificationTrustPolicy.FromTrustedKeys([foreignPublicKey]),
+            host: host);
+
+        var result = await harness.RunIterationAsync(Context("obj-untrusted-signer"), Candidate());
+
+        result.Evidence.Should().NotBeNull();
+        result.Evidence!.Verified.Should().BeFalse("the operator pinned a signer this run is not");
+        result.Evidence.FailureCode.Should().Be("ed25519-key-not-trusted");
+        result.Outcome.Should().Be(IterationOutcome.CertifiedButHeld,
+            "the archive's verdict is about the RECORD, not about the candidate");
+        host.CurrentGenerationId.Should().BeNull("a refused re-verification must never admit anything");
+        File.Exists(result.Evidence.RecordPath).Should().BeTrue(
+            "the record is still written: a row reporting a refusal must be able to cite the bytes "
+            + "it refused");
+    }
+
     // --- helpers -------------------------------------------------------------------------
 
     private static AutonomousIterationHarness Harness(
@@ -295,18 +412,35 @@ public sealed class AutonomousIterationHarnessTests
         ISandboxedSessionRunner? sandbox = null,
         ClusterBudget? budget = null,
         bool holdAdmission = false,
-        bool buildInSession = false)
+        bool buildInSession = false,
+        string? evidenceRoot = null,
+        CertificationTrustPolicy? evidenceTrustPolicy = null,
+        CertifiedBrickHotSwapHost? host = null)
     {
         var (privateKey, _) = CreateEd25519Key();
+        var signer = new CertificationRecordSigner(ed25519PrivateKeyBase64: privateKey);
+        var archive = evidenceRoot is null
+            ? null
+            : new CertificationEvidenceArchive(
+                evidenceRoot, signer, evidenceTrustPolicy ?? CertificationTrustPolicy.Unpinned);
+
         return new AutonomousIterationHarness(
-            new CertificationGate(new CertificationRecordSigner(ed25519PrivateKeyBase64: privateKey)),
-            new CertifiedBrickHotSwapHost(
+            new CertificationGate(signer),
+            host ?? new CertifiedBrickHotSwapHost(
                 hmacKey: null, drainTimeout: TimeSpan.FromSeconds(10),
                 revocations: new InMemoryCertificateRevocationList(),
                 lineageAuthority: lineages),
             pause, lineages, sandbox, budget,
             buildCandidateInSession: buildInSession,
-            holdAdmission: holdAdmission);
+            holdAdmission: holdAdmission,
+            evidenceArchive: archive);
+    }
+
+    private static string EvidenceRoot()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"ashlar-harness-evidence-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(path);
+        return path;
     }
 
     private static ProposalIterationContext Context(string objectiveId) => new()
