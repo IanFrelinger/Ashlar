@@ -18,6 +18,10 @@ on:
   pull_request:
     # Always run on PRs (no path filter) to serve as a fast required check.
     # Parse/lint errors in scripts/ would break ops; catch them early.
+  # Merge queue. A required check that does not run on `merge_group` never reports, and the
+  # queue waits on it forever - so this is deliberately unfiltered, exactly like the
+  # `pull_request` trigger above.
+  merge_group:
   workflow_dispatch:
 
 jobs:
@@ -43,40 +47,6 @@ jobs:
           done
           exit "$rc"
 
-      - name: release guard tests
-        shell: bash
-        run: |
-          # These exercise scripts/lib/release-staging-guards.sh, which stands between a
-          # mislabelled package and nuget.org and was previously only exercised by a real
-          # release - three times in this repository's lifetime. Pure bash: no network, no
-          # dotnet, no container, so it belongs in a required check rather than a lane that
-          # runs monthly.
-          bash tests/scripts/release-guards.test.sh
-
-      - name: dogfood sweep verdict tests
-        shell: bash
-        run: |
-          # These decide whether a dogfood sweep that FAILED is allowed to be recorded as a pass.
-          # On 2026-09-14 it was: the sandbox image was absent, the objective died at `docker run`,
-          # and because AutonomyLoopService counts a throwing iteration as attempted, the sweep
-          # exited 0 and the workflow wrote PASS to the ledger that gates the autonomy claim
-          # (run 34889059104). The row reached no further than the runner only because the
-          # workflow cannot push to a protected branch. Pure bash - no dotnet, no container - so
-          # this belongs in a required check and not in the scheduled lane it guards.
-          bash tests/scripts/dogfood-sweep-verdict.test.sh
-
-      - name: container harness exit-code tests
-        shell: bash
-        run: |
-          # scripts/test-in-container.sh is how every dotnet build and test in this repo is run on a
-          # developer machine, so its exit code is the primary "did that pass" signal - and under
-          # set -e its EXIT trap was discarding that status, reporting 1 for a fully passing run and
-          # flattening a genuine exit 3 to 1 as well. A harness whose exit code is wrong teaches
-          # people to ignore it, and an ignored signal is not a signal. Pure bash - no dotnet, no
-          # container - so the guard belongs in a required check even though what it guards is a
-          # local-only tool.
-          bash tests/scripts/container-harness-exit-code.test.sh
-
       - name: shellcheck -S error over scripts/**/*.sh
         shell: bash
         run: |
@@ -98,98 +68,21 @@ jobs:
         shell: bash
         run: python3 -c "import yaml" || python3 -m pip install --quiet --break-system-packages pyyaml
 
-      - name: Workflow files use contexts that exist where they use them
-        shell: bash
-        run: bash scripts/ci/verify-workflow-context-availability.sh
-
-      # A GitHub expression is substituted into the script TEXT before bash parses it, so a value
-      # carrying $( ) or a backtick executes; quoting does not stop that. Refnames may contain all
-      # three, so a branch name interpolated into a run: block is arbitrary code chosen by whoever
-      # opened the PR. One such site existed, in the workflow that dispatches releases.
-      #
-      # Nothing here could see it: the bash -n step walks scripts/ and tests/, and shellcheck only
-      # scripts/**/*.sh, so embedded workflow bash is parsed by neither. Hence its own step.
-      #
-      # THESE LINES ARE YAML COMMENTS, DELIBERATELY, AND MUST STAY OUTSIDE THE run: BLOCK. A comment
-      # INSIDE a run: block is still part of the script string, and GitHub evaluates expressions in
-      # it before bash ever sees a '#'. An earlier version of this step explained the hazard using a
-      # literal empty expression inside the block, which is not valid, and the whole workflow was
-      # rejected: the run was named after the file path instead of "Shell lint", posted no check,
-      # and the pull request read "0 failing". PyYAML parses such a file happily, so the cert-gate
-      # parse fact cannot catch it either - the linter below now does.
-      - name: Workflows keep outsider-controlled values out of run scripts
-        shell: bash
-        run: |
-          bash tests/scripts/workflow-interpolation.test.sh
-          python3 scripts/ci/verify-workflow-run-interpolation.py
-
-      - name: Knowledge graph matches the repository
-        shell: bash
-        run: |
-          # docs/knowledge-graph.{json,md} are DERIVED from the tree. A derived map nobody is forced
-          # to regenerate becomes a confident description of a repository that has moved on, which is
-          # worse than no map because it is read and believed. This makes staleness a red build.
-          #
-          # It also carries two checks a drift comparison cannot make on its own: floors, because a
-          # regeneration and a committed file agree perfectly when an extractor has silently stopped
-          # matching and both describe nothing; and a documentation-debt ratchet whose baseline lives
-          # outside the artifact, because a baseline inside the file being regenerated ratchets
-          # against itself.
-          #
-          # Pure Python over the checked-out tree - no dotnet, no container, no network - so it
-          # belongs in a required check rather than a lane that runs on a schedule.
-          python3 scripts/knowledge-graph/verify-knowledge-graph-current.py
-
-      - name: Consumer path scan rejects forbidden paths and scan errors
-        shell: bash
-        run: bash scripts/ci/test-consumer-repo-path-guard.sh
 
       - name: Commercial receipt checker accepts real-shaped evidence and rejects bad files
         shell: bash
+        # Kept as its own step on purpose. CommercialReceiptRoutingTests pins this as a direct,
+        # unconditional command in a required job; discovery would not carry that guarantee.
         run: python3 scripts/ci/test-commercial-receipts.py
 
-      - name: Every shipped package says what it is
+      - name: Repository gates
         shell: bash
         run: |
-          # Ten of the twenty-two packages this repository pushes to nuget.org carried the SDK's
-          # placeholder description for three releases. A missing <Description> is a build warning
-          # at most and the pack step succeeds, so nothing said so.
-          bash tests/scripts/shipped-package-metadata.test.sh
-
-      - name: Compatibility policy describes the current state
-        shell: bash
-        run: |
-          # docs/SdkCompatibilityPolicy.md is the promise: it tells a consumer what is stable and a
-          # contributor which of the two API files an addition goes in. It said "Nothing has shipped
-          # yet ... every PublicAPI.Shipped.txt contains only the #nullable enable header" for three
-          # releases after the reverse became true. A contributor believing that treats a line in
-          # Shipped.txt as unclaimed and changes a promise already published.
-          python3 scripts/ci/verify-compat-policy-current.py
-      - name: Consumer sample pins agree with the repository's
-        shell: bash
-        run: |
-          # docs/samples/StableSdkHostSample/package-consumer opts out of central package management
-          # and restates transitive pins by hand, under a comment saying "Align with repo
-          # Directory.Packages.props". That comment was the entire enforcement. When the repository
-          # bumped System.Text.Encodings.Web to 10.0.12 the sample kept 10.0.11, our packed bundle
-          # then required >= 10.0.12, and NU1605 failed three packaging lanes at once - in the one
-          # project that stands in for a stranger consuming these packages.
-          bash tests/scripts/sample-pin-alignment.test.sh
-
-      - name: Published package bytes are compared against something that can match
-        shell: bash
-        run: |
-          # The post-push check compared the raw SHA-256 of the pushed .nupkg against the bytes
-          # nuget.org serves. nuget.org repository-signs on publish, appending .signature.p7s, so
-          # those never match - the check could only fail, and it runs AFTER the push, once the
-          # packages are public and nuget.org allows unlisting but not deletion. It had never run:
-          # the v0.1.2 release died a step earlier on index lag.
-          bash tests/scripts/nupkg-content-digest.test.sh
-      - name: Markdown links resolve to headings that exist
-        shell: bash
-        run: |
-          # README.md is packed into every package this repository publishes, so a dead in-page
-          # anchor renders on the nuget.org page of all 22 of them, for as long as that version
-          # exists. The required lychee check runs without --include-fragments: it resolves that a
-          # FILE exists and never looks at the #fragment. This is local and needs no network.
-          python3 scripts/ci/verify-doc-anchors.py
+          # Every gate that is a bare invocation, DISCOVERED rather than listed. This step used to be
+          # one step per gate, appended to the same list, which became this repository's worst merge
+          # conflict - four consecutive pull requests conflicted on it and every resolution was
+          # identical. Adding a gate is now adding a file. The runner refuses if discovery returns
+          # fewer gates than its floor, so a glob that stops matching fails loudly instead of passing
+          # having run nothing, and it runs every gate before reporting rather than stopping at the
+          # first failure.
+          bash scripts/ci/run-repo-gates.sh

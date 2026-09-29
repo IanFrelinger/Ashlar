@@ -10,6 +10,10 @@ on:
       - master
       - main
       - "cursor/**"
+  # Merge queue. A required check that does not run on `merge_group` never reports, and the
+  # queue waits on it forever - so this is deliberately unfiltered, exactly like the
+  # `pull_request` trigger above.
+  merge_group:
   workflow_dispatch:
 
 permissions:
