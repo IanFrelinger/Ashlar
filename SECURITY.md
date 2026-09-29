@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Ashlar is pre-1.0; the first tagged release is `v0.1.0` (2026-08-30). Only the most recent release line (`0.1.x`) and `master` are supported with security fixes.
+Ashlar is pre-1.0; the first tagged release is `v0.1.0` (2026-08-30). Only the most recent release line (`0.2.x`) and `master` are supported with security fixes.
 
 ## Reporting a vulnerability
 

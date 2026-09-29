@@ -85,7 +85,7 @@ Use **code-authored bricks** when you want to ship source-controlled domain logi
 
 ## Packages on nuget.org
 
-Published feed version is **`0.1.2`** (`ci/published-version`). Repo `VERSION` may already read ahead of that for an unpublished cut — do not treat `VERSION` as the public pin. `Ashlar.CLI`, `Ashlar.Authoring`, `Ashlar.Hosting`, and `Ashlar.Hosting.Bundle` restore from nuget.org at **0.1.2**. A checkout still works with `ProjectReference` (next section) if you do not want the feed.
+Published feed version is **`0.2.0`** (`ci/published-version`). Repo `VERSION` may already read ahead of that for an unpublished cut — do not treat `VERSION` as the public pin. `Ashlar.CLI`, `Ashlar.Authoring`, `Ashlar.Hosting`, and `Ashlar.Hosting.Bundle` restore from nuget.org at **0.2.0**. A checkout still works with `ProjectReference` (next section) if you do not want the feed.
 
 ## Primary path: `samples/hello-brick` (ProjectReference)
 
@@ -118,7 +118,7 @@ To start your own brick, copy `samples/hello-brick/` next to it (or anywhere ins
 ashlar new brick MyThing --ashlar-version 1.2.3
 ```
 
-Because an unpublished CLI version may generate a `PackageReference` to a version that is not on the feed yet, restoring a freshly scaffolded project can fail with `NU1101` until you pin `--ashlar-version` to **`0.1.2`** (`ci/published-version`) or use a local folder feed (next section). Inside a checkout you can run the CLI without installing it:
+Because an unpublished CLI version may generate a `PackageReference` to a version that is not on the feed yet, restoring a freshly scaffolded project can fail with `NU1101` until you pin `--ashlar-version` to **`0.2.0`** (`ci/published-version`) or use a local folder feed (next section). Inside a checkout you can run the CLI without installing it:
 
 ```bash
 dotnet run --project application/src/Ashlar.CLI -- new brick Hello --output /tmp/hello-brick --ashlar-version 9.9.9-local

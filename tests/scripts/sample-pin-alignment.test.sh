@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The consumer sample restates package pins that must match the repository's, and nothing checked it.
+# Consumer samples restate package pins that must match the repository's, and nothing checked them.
 #
 # docs/samples/StableSdkHostSample/package-consumer/Directory.Build.props opts out of central package
 # management and pins transitive packages by hand, with a comment reading "Align with repo
@@ -10,8 +10,16 @@
 # stranger consuming our packages. It failed on three lanes at once (Linux, macOS, and the dedicated
 # pack lane), which is what told us it was real and not a flake.
 #
-# Only packages pinned in BOTH files are compared. The sample also pins packages the repository does
-# not list at all (OpenTelemetry.*, which reach it transitively); those are the sample's own business.
+# THREE SAMPLES, NOT ONE. That fix covered StableSdkHostSample and left the two nuget.org restore
+# samples on 10.0.11, where the same bump re-armed the same NU1605 - and those two are worse, because
+# they run AFTER `dotnet nuget push` in reusable-release-nuget.yml against the version being
+# released. A release would have gone red with all 22 packages already public, which nuget.org
+# permits unlisting but not deleting. They are checked here because nothing else runs them before a
+# tag: their own workflow only path-filters on them, and they are never exercised on master.
+#
+# Only packages pinned in BOTH a sample and the repository are compared. A sample also pins packages
+# the repository does not list at all (OpenTelemetry.*, which reach it transitively); those are the
+# sample's own business.
 #
 # Run:  bash tests/scripts/sample-pin-alignment.test.sh
 # Pure bash: no network, no dotnet, no container.
@@ -20,7 +28,13 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPO_PINS="${ROOT}/Directory.Packages.props"
-SAMPLE_PINS="${ROOT}/docs/samples/StableSdkHostSample/package-consumer/Directory.Build.props"
+
+# Every sample that opts out of central package management and restates repository pins by hand.
+SAMPLE_PINS=(
+  "${ROOT}/docs/samples/StableSdkHostSample/package-consumer/Directory.Build.props"
+  "${ROOT}/docs/samples/NugetOrgRestoreVerify/Directory.Build.props"
+  "${ROOT}/docs/samples/NugetOrgRestoreHostingOnly/Directory.Build.props"
+)
 
 PASS=0
 FAIL=0
@@ -32,52 +46,58 @@ version_of() {
   sed -n "s|.*Include=\"$2\"[[:space:]]*Version=\"\([^\"]*\)\".*|\1|p" "$1" | head -1
 }
 
-for f in "${REPO_PINS}" "${SAMPLE_PINS}"; do
+[[ -f "${REPO_PINS}" ]] || { echo "FAIL - ${REPO_PINS} is missing; nothing can be compared."; exit 1; }
+for f in "${SAMPLE_PINS[@]}"; do
   [[ -f "${f}" ]] || { echo "FAIL - ${f} is missing; this file cannot compare anything."; exit 1; }
 done
 
-# Every package the sample pins by hand.
-mapfile -t SAMPLE_PKGS < <(sed -n 's|.*<PackageReference Include="\([^"]*\)".*|\1|p' "${SAMPLE_PINS}" | sort -u)
+TOTAL_COMPARED=0
 
-if [[ "${#SAMPLE_PKGS[@]}" -eq 0 ]]; then
-  echo "FAIL - no PackageReference found in ${SAMPLE_PINS}."
-  echo "       An empty list would make every comparison below vacuous, so this is a failure"
-  echo "       and not a clean run."
-  exit 1
-fi
-echo "== the sample pins ${#SAMPLE_PKGS[@]} packages by hand =="
+for SAMPLE in "${SAMPLE_PINS[@]}"; do
+  rel="${SAMPLE#"${ROOT}/"}"
+  mapfile -t SAMPLE_PKGS < <(sed -n 's|.*<PackageReference Include="\([^"]*\)".*|\1|p' "${SAMPLE}" | sort -u)
 
-COMPARED=0
-for pkg in "${SAMPLE_PKGS[@]}"; do
-  repo_v="$(version_of "${REPO_PINS}" "${pkg}")"
-  samp_v="$(version_of "${SAMPLE_PINS}" "${pkg}")"
-
-  if [[ -z "${repo_v}" ]]; then
-    echo "  --   ${pkg}: the repository does not pin this, so the sample owns it"
-    continue
+  if [[ "${#SAMPLE_PKGS[@]}" -eq 0 ]]; then
+    echo "FAIL - no PackageReference found in ${rel}."
+    echo "       An empty list would make every comparison below vacuous, so this is a failure"
+    echo "       and not a clean run."
+    exit 1
   fi
 
-  COMPARED=$((COMPARED + 1))
-  if [[ "${repo_v}" == "${samp_v}" ]]; then
-    ok "${pkg} agrees (${repo_v})"
-  else
-    bad "${pkg} agrees" \
-        "repo Directory.Packages.props pins ${repo_v}, the sample pins ${samp_v}.
+  echo "== ${rel} pins ${#SAMPLE_PKGS[@]} package(s) by hand =="
+
+  for pkg in "${SAMPLE_PKGS[@]}"; do
+    repo_v="$(version_of "${REPO_PINS}" "${pkg}")"
+    samp_v="$(version_of "${SAMPLE}" "${pkg}")"
+
+    if [[ -z "${repo_v}" ]]; then
+      echo "  --   ${pkg}: the repository does not pin this, so the sample owns it"
+      continue
+    fi
+
+    TOTAL_COMPARED=$((TOTAL_COMPARED + 1))
+    if [[ "${repo_v}" == "${samp_v}" ]]; then
+      ok "${pkg} agrees (${repo_v})"
+    else
+      bad "${pkg} agrees in ${rel}" \
+          "repo Directory.Packages.props pins ${repo_v}, the sample pins ${samp_v}.
          The sample stands in for a stranger consuming our packages: when our packages require
          >= ${repo_v} and the consumer pins ${samp_v}, restore fails with NU1605 and the
          packaging lanes go red. Set both to the same version."
-  fi
+    fi
+  done
+  echo
 done
 
-# POSITIVE CONTROL. If the extraction breaks, or the repository stops pinning everything the sample
-# restates, every comparison above is skipped and the loop reports a clean run having compared
+# POSITIVE CONTROL. If the extraction breaks, or the repository stops pinning everything the samples
+# restate, every comparison above is skipped and the loop reports a clean run having compared
 # nothing - the precise shape this file exists to prevent elsewhere.
-if [[ "${COMPARED}" -eq 0 ]]; then
+if [[ "${TOTAL_COMPARED}" -eq 0 ]]; then
   bad "at least one pin is actually compared" \
-      "no package is pinned in both files, so nothing above was checked. Either the extraction
-         pattern went stale or the sample stopped restating repository pins."
+      "no package is pinned in both a sample and the repository, so nothing above was checked.
+         Either the extraction pattern went stale or the samples stopped restating repository pins."
 else
-  ok "${COMPARED} pin(s) were actually compared, so a clean run means something"
+  ok "${TOTAL_COMPARED} pin(s) were actually compared across ${#SAMPLE_PINS[@]} sample(s)"
 fi
 
 echo
