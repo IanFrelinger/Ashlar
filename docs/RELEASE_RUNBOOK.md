@@ -79,6 +79,15 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
    alone — they stay true.
 
 7. **Promote the public API**: review each stable-tier project's `PublicAPI.Unshipped.txt`, move its lines into `PublicAPI.Shipped.txt`, commit on the release commit (`docs/SdkCompatibilityPolicy.md`, "Release step"). After the tag those lines are the promise.
+8. **Rehearse the publish with a prerelease before tagging.** Dispatch `release-nuget.yml` with
+   version `X.Y.Z-rc1` from the release commit. Both guards accept it -
+   `assert_dispatch_version_allowed` permits a prerelease of the canonical version, and
+   `assert_consumer_pin_matches` compares `base_semver`, so `0.2.0-rc1` matches a pin of `0.2.0`.
+   It runs pack, both pre-publish gates, the real OIDC push and every post-push check against
+   nuget.org. **Cost: one permanent `X.Y.Z-rc1` prerelease**, which no `X.Y.Z` pin resolves to.
+   Skip this and the tag is the first time the post-push chain runs against a live feed, on the
+   one trigger where a failure cannot be taken back. The staging-feed path does not substitute: the
+   post-push scripts target nuget.org, and `NUGET_STAGING_FEED_URL` is unset.
 
 ## After `release.yml`
 

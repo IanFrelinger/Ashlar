@@ -2,7 +2,8 @@
 # Poll nuget.org flat container until all listed package versions return HTTP 200 (index lag after push).
 #
 # ASHLAR_NUGET_VERIFY_VERSION — required semver (no v prefix)
-# ASHLAR_NUGET_VERIFY_PACKAGE_IDS — comma-separated ids (default: Ashlar.Hosting.Bundle,Ashlar.Hosting,Ashlar.Sdk,Ashlar.CLI)
+# ASHLAR_NUGET_VERIFY_PACKAGE_IDS — comma-separated ids; overrides everything below
+# ASHLAR_MANIFEST_JSON — when set, poll EVERY id in the release manifest (the default in CI)
 # ASHLAR_NUGET_VERIFY_PACKAGE_ID — if set and ASHLAR_NUGET_VERIFY_PACKAGE_IDS unset, a single id (backward compat)
 # ASHLAR_NUGET_VERIFY_ATTEMPTS / ASHLAR_NUGET_VERIFY_SLEEP_SEC — optional (defaults 40 / 15)
 # v0.1.2: 12×15s timed out after every nupkg was pushed; nuget.org listed them later.
@@ -25,7 +26,14 @@ if [[ -n "${ASHLAR_NUGET_VERIFY_PACKAGE_IDS:-}" && "${ASHLAR_NUGET_VERIFY_PACKAG
   mapfile -t IDS < <(echo "${ASHLAR_NUGET_VERIFY_PACKAGE_IDS}" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' || true)
 elif [[ -n "${ASHLAR_NUGET_VERIFY_PACKAGE_ID:-}" ]]; then
   IDS=("${ASHLAR_NUGET_VERIFY_PACKAGE_ID}")
+elif [[ -n "${ASHLAR_MANIFEST_JSON:-}" && -f "${ASHLAR_MANIFEST_JSON}" ]]; then
+  # Every package this release pushed, not a sample of them. Polling four ids and then letting the
+  # next step download all ~22 is how the rest were still 404 on index lag when they were fetched -
+  # the failure that ended the v0.1.2 release after its packages were already public.
+  mapfile -t IDS < <(python3 -c 'import json,sys
+for r in json.load(open(sys.argv[1], encoding="utf-8")): print(r["id"])' "${ASHLAR_MANIFEST_JSON}" | tr -d '\r')
 else
+  # Last resort, for a local run with no manifest: the four packages a stranger restores first.
   IDS=(Ashlar.Hosting.Bundle Ashlar.Hosting Ashlar.Sdk Ashlar.CLI)
 fi
 

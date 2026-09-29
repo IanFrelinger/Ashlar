@@ -12,6 +12,9 @@ on:
       package_version:
         description: "Resolved semver without v prefix"
         value: ${{ jobs.pack-and-publish.outputs.package_version }}
+      publish_began:
+        description: "true once a push to nuget.org was attempted - i.e. something may now be public"
+        value: ${{ jobs.pack-and-publish.outputs.publish_began }}
 
 permissions:
   contents: read
@@ -22,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       package_version: ${{ steps.resolve.outputs.package_version }}
+      publish_began: ${{ steps.publish_began.outputs.began }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -184,6 +188,15 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
+      # Recorded BEFORE the first push. The push loops below run per-file under -e, so a failure
+      # half way leaves some packages public; the caller uses this to keep the release artifacts
+      # durable in exactly that case, instead of treating "the job failed" as "nothing shipped".
+      - name: Record that irreversible publication is beginning
+        id: publish_began
+        if: vars.NUGET_PUBLISH_MODE == 'oidc' || vars.NUGET_PUBLISH_MODE == 'apikey'
+        shell: bash
+        run: echo "began=true" >> "$GITHUB_OUTPUT"
+
       - name: dotnet nuget push packages (OIDC)
         if: vars.NUGET_PUBLISH_MODE == 'oidc'
         shell: bash
@@ -234,6 +247,7 @@ jobs:
         env:
           ASHLAR_NUGET_VERIFY_VERSION: ${{ env.PACKAGE_VERSION }}
           ASHLAR_NUGET_VERIFY_PACKAGE_IDS: ${{ vars.NUGET_POST_PUSH_VERIFY_PACKAGE_IDS }}
+          ASHLAR_MANIFEST_JSON: ${{ runner.temp }}/nuget-release/nuget-publish-manifest.json
           ASHLAR_NUGET_VERIFY_ATTEMPTS: ${{ vars.NUGET_POST_PUSH_ATTEMPTS || '40' }}
           ASHLAR_NUGET_VERIFY_SLEEP_SEC: ${{ vars.NUGET_POST_PUSH_SLEEP_SEC || '15' }}
         run: bash scripts/verify-nuget-org-packages-visible.sh
