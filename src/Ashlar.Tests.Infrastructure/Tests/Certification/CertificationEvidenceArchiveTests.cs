@@ -150,8 +150,12 @@ public sealed class CertificationEvidenceArchiveTests
     }
 
     [Fact]
-    public void PersistAndReverify_RefusesARecordWithNoEd25519Signature_UnderStrict()
+    public void PersistAndReverify_RefusesARecordWithNoEd25519Signature()
     {
+        // The name used to end "_UnderStrict". It was dropped because it was not true: Default
+        // requires an Ed25519 signature too (only Legacy does not), so this fact passes unchanged
+        // when the archive is downgraded from Strict to Default - measured. What it actually pins
+        // is the floor below Default, which is worth having under its own honest name.
         var root = TempRoot();
 
         // POSITIVE CONTROL first: the same record shape, signed with an Ed25519 key, verifies. So
@@ -371,15 +375,26 @@ public sealed class CertificationEvidenceArchiveTests
     }
 
     [Fact]
-    public void PersistAndReverify_RefusesARecordBindingNoGateEmittedArtifact_WhichIsWhatMakesThisStrict()
+    public void PersistAndReverify_RefusesARecordBindingNoGateEmittedArtifact_WhenArtifactBytesAreSupplied()
     {
-        // Until this fact existed, no test in this file could tell Strict from Default. Strict adds
-        // exactly two clauses - RequireCertifierIdentity and RequireGateEmittedArtifact - and every
-        // fixture supplied both, so the words "under Strict" in a fact's name asserted nothing and
-        // a Strict->Default slip in the archive would have gone unnoticed by all eleven facts.
+        // The shape the real gate mints for an identity-handle probe or an incomplete proposal: the
+        // gate binds the gate-emitted-artifact input ONLY when the candidate emitted one, and
+        // refuses nothing when it did not. This fact pins what the archive does with such a record.
         //
-        // This is also the clause the real loop can actually fail: the gate binds the artifact
-        // input only when the candidate emitted one, and refuses nothing when it did not.
+        // WHAT THIS DOES NOT PROVE, stated because the first draft of it claimed otherwise and was
+        // wrong. This refusal is NOT evidence that the archive verifies under Strict. Two sites in
+        // CertificationTrustVerifier emit "gate-emitted-artifact-missing": one gated on
+        // strictness.RequireGateEmittedArtifact, and one in the four-argument overload that fires
+        // whenever a consumer supplies artifact bytes and the record binds no artifact hash,
+        // whatever the strictness. The archive always supplies bytes, so it is the SECOND that
+        // refuses here - and this fact passes unchanged when the archive is downgraded to Default.
+        // Measured, not assumed.
+        //
+        // For the archive, the only clause that actually separates Strict from Default is
+        // RequireCertifierIdentity, and the fact holding that line is
+        // EvidenceArchiveCompositionConventionTests
+        //   .TheComposedArchiveVerifiesUnderStrict_NotUnderTheLooserPresets,
+        // which does redden on that downgrade. Do not put "under Strict" in this name.
         var root = TempRoot();
         var (privateKey, _) = CreateEd25519Key();
         var signer = new CertificationRecordSigner(ed25519PrivateKeyBase64: privateKey);
@@ -397,8 +412,8 @@ public sealed class CertificationEvidenceArchiveTests
 
         result.Verified.Should().BeFalse();
         result.FailureCode.Should().Be("gate-emitted-artifact-missing",
-            "Default accepts a record that binds no gate-emitted artifact; only Strict refuses it, "
-            + "so a slip from Strict to Default reddens exactly here");
+            "a consumer that supplies artifact bytes must not be told a record binds them when it "
+            + "does not - the four-argument overload's own check, independent of strictness");
     }
 
     [Fact]
