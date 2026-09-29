@@ -299,7 +299,7 @@ Validate a pipeline template from a mounted workspace with the published CLI ima
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/ianfrelinger/nexo-cli:0.1.2 \
+  ghcr.io/ianfrelinger/nexo-cli:0.2.0 \
   pipeline validate --template /work/path/to/template.json
 ```
 
@@ -339,8 +339,8 @@ Ship Ashlar from published container images and compose files. Host-native scrip
 
 | Image | Use |
 |-------|-----|
-| `ghcr.io/ianfrelinger/nexo-cli:0.1.2` | **Recommended for operators** — the immutable, smoke-tested, multi-arch release tag. Automation, agents, validation, and mounted-workspace commands. (`deploy/node.yml` pins its digest.) |
-| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.1.2` (or a digest) for anything durable. |
+| `ghcr.io/ianfrelinger/nexo-cli:0.2.0` | **Recommended for operators** — the immutable, smoke-tested, multi-arch release tag. Automation, agents, validation, and mounted-workspace commands. (`deploy/node.yml` pins a digest, re-pinned to this tag's after it publishes.) |
+| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.2.0` (or a digest) for anything durable. |
 | Build from `.docker/Dockerfile.quickstart` | Single-container API + portal smoke path with mock-friendly defaults. |
 | Build from `.docker/Dockerfile.api` | API image used by compose stacks. |
 

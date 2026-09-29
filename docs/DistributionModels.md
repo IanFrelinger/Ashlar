@@ -22,14 +22,14 @@ Release automation is summarized in **`docs/RELEASE.md`** (NuGet + GHCR from one
 | **NuGet host embed** | `Ashlar.Hosting` graph, **`Ashlar.Hosting.Bundle`** | Package version on a feed | Build and run **`docs/samples/StableSdkHostSample/`** (see **`docs/SdkIntegrationGuide.md`**) |
 | **NuGet client** | **`Ashlar.Client`** / **`Ashlar.Sdk`** | Package version | **`docs/sdk.md`** (client quick start) |
 | **HTTP-only** | Running **`Ashlar.API`** | Base URL + TLS + API key policy | **`curl`** `GET /health`, `GET /api/status` (see **`docs/SelfHostedAgentServer.md`**) |
-| **CLI** | **`Ashlar.CLI`** .NET tool (`PackAsTool`; nuget.org pin is **`ci/published-version`**, currently **0.1.2** — or install from a local feed, see **`docs/AuthoringBricks.md`**) or **GHCR `nexo-cli`** image | Image tag or digest; CLI `--version` / package | **`docs/GettingStarted.md`** (`doctor`, `pipeline`) |
+| **CLI** | **`Ashlar.CLI`** .NET tool (`PackAsTool`; nuget.org pin is **`ci/published-version`**, currently **0.2.0** — or install from a local feed, see **`docs/AuthoringBricks.md`**) or **GHCR `nexo-cli`** image | Image tag or digest; CLI `--version` / package | **`docs/GettingStarted.md`** (`doctor`, `pipeline`) |
 | **Compose / operators** | **`deploy/compose/docker-compose*.yml`** + operator docs | Compose file revision + image digests | **`docs/DEPLOYMENT.md`**, stack-specific guides |
 | **Source / monorepo** | `ProjectReference` into **`src/`** | Git commit / branch | **`docs/IntegratorGuide.md`** (project reference example) |
 | **Mesh / federation (open peers)** | Peer config, local mesh primitives, worker executor | `instances.json`, env vars | **`docs/IntegratorGuide.md`**, **`docs/FriendMeshPrefab.md`**, **`docs/MeshVirtualLab.md`** |
 | **Mesh fleet director (commercial)** | `Ashlar.Commercial.Fleet.Host`, `/api/mesh/*` director APIs | Image tag + API key + peer registration key | **`.docker/Dockerfile.fleet-host`**, **`scripts/commercial-fleet-host-smoke.sh`**, mesh-lab peer-a |
 
-**Publication status:** **0.1.2** is on nuget.org (`ci/published-version`).
-Repo `VERSION` may already read ahead of that pin for an unpublished cut — do not treat the repo file as the public pin. GHCR `nexo-cli:0.1.2` is the operator image. Until the next tag, NuGet rows that name a newer version are proven against **local folder feeds** (`nuget-local-pack-consumer`, `scripts/verify-standalone-brick-authoring.sh`) plus `ProjectReference` into `src/` (`samples/hello-brick/` is the smallest example).
+**Publication status:** **0.2.0** is on nuget.org (`ci/published-version`).
+Repo `VERSION` may already read ahead of that pin for an unpublished cut — do not treat the repo file as the public pin. GHCR `nexo-cli:0.2.0` is the operator image. Until the next tag, NuGet rows that name a newer version are proven against **local folder feeds** (`nuget-local-pack-consumer`, `scripts/verify-standalone-brick-authoring.sh`) plus `ProjectReference` into `src/` (`samples/hello-brick/` is the smallest example).
 
 ## Golden reference pins (copy/paste)
 

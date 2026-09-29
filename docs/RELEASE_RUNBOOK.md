@@ -69,13 +69,26 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
    rewriting those rows publishes a document that tells a consumer the opposite of what the package
    does. See the `### Breaking` entry for `CertificationVerifyOptions` in `CHANGELOG.md`.
 
-6. **Promote the public API**: review each stable-tier project's `PublicAPI.Unshipped.txt`, move its lines into `PublicAPI.Shipped.txt`, commit on the release commit (`docs/SdkCompatibilityPolicy.md`, "Release step"). After the tag those lines are the promise.
+6. **Bump the docs that name a published version.** `ci/published-version` becoming equal to
+   `VERSION` *silences* the C6 clause that catches stale pins — it only fires when the two disagree
+   — so the sweep is manual from this point and nothing will flag a miss:
+   `consumer-template/CONSUMING.md`, `docs/AuthoringBricks.md`, `docs/DistributionModels.md`,
+   `docs/certification-evidence.md`, `docs/TesterQuickstart.md`, `README.md` (which is packed into
+   every package, so a stale pin there ships), `assets/brand/BRAND.md`, and **`SECURITY.md`'s
+   supported release line**. Leave statements scoped to a past release ("on `0.1.2` and earlier")
+   alone — they stay true.
+
+7. **Promote the public API**: review each stable-tier project's `PublicAPI.Unshipped.txt`, move its lines into `PublicAPI.Shipped.txt`, commit on the release commit (`docs/SdkCompatibilityPolicy.md`, "Release step"). After the tag those lines are the promise.
 
 ## After `release.yml`
 
-1. Workflow **Summary** — image `sha-*` tags, NuGet version, cross-verify status.
-2. Artifact **`nuget-packages-<version>`** — includes **`nuget-publish-manifest.json`** and per-`.nupkg` **`.sha256.txt`** for audit / manual hash checks.
-3. Optional **`nuget-sbom-<version>`** if **`NUGET_RELEASE_SBOM=true`** on the repo.
+1. **Re-pin `deploy/node.yml` to the new image digest.** It pins `nexo-cli` by `sha256:`, which
+   cannot be known until the tag publishes, so it is the one version reference that must move
+   *after* the release rather than on the release commit. `README.md`'s operator row points at it.
+
+2. Workflow **Summary** — image `sha-*` tags, NuGet version, cross-verify status.
+3. Artifact **`nuget-packages-<version>`** — includes **`nuget-publish-manifest.json`** and per-`.nupkg` **`.sha256.txt`** for audit / manual hash checks.
+4. Optional **`nuget-sbom-<version>`** if **`NUGET_RELEASE_SBOM=true`** on the repo.
 
 ## If something went wrong
 
