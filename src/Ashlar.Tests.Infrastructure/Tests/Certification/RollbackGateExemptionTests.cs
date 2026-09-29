@@ -403,7 +403,19 @@ public sealed class HookedOutputs : IReadOnlyList<BrickOutputDefinition>
         var revocations = new InMemoryCertificateRevocationList();
         var pause = new LoopPauseControl();
         var sink = new RecordingSink();
+        // Stepping clock for the same reason A_second_breach_at_the_default_retention_window_is_still
+        // _contained needs one, and the omission here is why this test failed intermittently on
+        // macOS for weeks ("expected 1 ... but found 2"). A rollback deliberately does NOT rotate the
+        // baseline, so the restored generation is judged against generation 1's - and Working() is
+        // synchronous, so that baseline is microseconds over two samples. MaxLatencyFactor of 10 then
+        // puts the quarantine line tens of microseconds away, which one GC pause on a loaded runner
+        // clears, manufacturing a second quarantine this test asserts against. A stepping clock makes
+        // every invocation measure exactly one step, so the ratio is exactly 1.0 and the latency leg
+        // stays ARMED but silent - the error-rate leg below is still the one under test, and a real
+        // latency regression would still be seen. Not a frozen clock: elapsed 0 makes baselineMean 0
+        // and the host's `baselineMean > 0` guard would switch the latency leg off altogether.
         using var host = CreateHost(sink, revocations, pause: pause,
+            clock: new SteppingClock(TimeSpan.FromMilliseconds(1)),
             watch: new WatchThresholds { MinInvocations = 2, MaxErrorRateDelta = 0.2, MaxLatencyFactor = 10.0 });
 
         var v1 = AutonomousRequest(Working("v1"), "lineage-a");
