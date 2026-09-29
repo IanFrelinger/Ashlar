@@ -34,8 +34,35 @@ if [[ "${VERSION}" != "${PUBLISHED}" ]]; then
   done < <(find "${ROOT}/docs" "${ROOT}/consumer-template" -type f -name '*.md' -print0)
 fi
 
+# The consumer template is what a stranger copies. Its pin is a hand-maintained literal, and
+# nothing asserted it tracks ci/published-version - only that ci/published-version matches the
+# release being tagged (assert_consumer_pin_matches, at tag time). Those are different claims: a
+# release commit can bump ci/published-version, satisfy that guard, publish green, and leave the
+# template pinning the PREVIOUS version, which is the exact outcome that guard exists to prevent.
+TEMPLATE_PROPS="${ROOT}/consumer-template/Directory.Packages.props"
+if [[ ! -f "${TEMPLATE_PROPS}" ]]; then
+  echo "C6: consumer-template/Directory.Packages.props is missing; the template pin is unchecked" >&2
+  fail=1
+else
+  # grep -o exits 1 when it matches nothing. Without `|| true`, `set -e` kills the script right
+  # here and the branch below never gets to say WHY the pin could not be read - a rename would
+  # fail the gate with no message, which is the one thing these guards are written not to do.
+  TEMPLATE_PIN="$(grep -o '<AshlarConsumerPackageVersion>[^<]*' "${TEMPLATE_PROPS}" | head -1 | cut -d'>' -f2 | tr -d '[:space:]' || true)"
+  if [[ -z "${TEMPLATE_PIN}" ]]; then
+    echo "C6: could not read <AshlarConsumerPackageVersion> from consumer-template/Directory.Packages.props." >&2
+    echo "    The element was renamed or removed, so this check is inspecting nothing." >&2
+    fail=1
+  elif [[ "${TEMPLATE_PIN}" != "${PUBLISHED}" ]]; then
+    echo "C6: consumer-template pins ${TEMPLATE_PIN} but ci/published-version is ${PUBLISHED}." >&2
+    echo "    Every Ashlar.* PackageVersion in that file flows from AshlarConsumerPackageVersion, so a" >&2
+    echo "    stranger copying the template installs ${TEMPLATE_PIN}, not the published release." >&2
+    echo "    Bump both on the release commit." >&2
+    fail=1
+  fi
+fi
+
 if [[ "${fail}" -ne 0 ]]; then
   exit 1
 fi
 
-echo "C6: docs published-version lint ok (published=${PUBLISHED}, repo VERSION=${VERSION})"
+echo "C6: docs published-version lint ok (published=${PUBLISHED}, repo VERSION=${VERSION}, template=${TEMPLATE_PIN})"
