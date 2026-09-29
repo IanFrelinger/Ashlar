@@ -7,7 +7,12 @@
 
 
     <ItemGroup>
+        <!-- UnitTestFrameworkBridge is internal (it compiles against xunit, which this package does
+             NOT ship), and the four test assemblies that drive it each need to see it. -->
         <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
+        <InternalsVisibleTo Include="Ashlar.Tests.Application" />
+        <InternalsVisibleTo Include="Ashlar.Tests.Domain" />
+        <InternalsVisibleTo Include="Ashlar.Tests.CLI" />
     </ItemGroup>
 
     <PropertyGroup>
