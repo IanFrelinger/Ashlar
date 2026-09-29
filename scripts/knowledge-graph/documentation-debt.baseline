@@ -1,0 +1,9 @@
+# Operator-facing ASHLAR_* variables that no document in docs/ mentions.
+#
+# The ratchet in verify-knowledge-graph-current.py refuses any INCREASE, and also refuses a value
+# left above the truth after someone improves things — so this number only ever moves down, and
+# moving it down is part of the change that earned it.
+#
+# It lives here rather than inside docs/knowledge-graph.json on purpose: a baseline stored in the
+# artifact being regenerated ratchets against itself and enforces nothing.
+47
