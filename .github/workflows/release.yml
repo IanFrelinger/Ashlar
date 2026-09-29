@@ -72,15 +72,71 @@ jobs:
       - name: Dispatch on tag must match version input
         if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/')
         shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          IN="${{ inputs.version }}"
-          IN="${IN#v}"
+          IN="${IN_VERSION#v}"
           if [ "$TAG" != "$IN" ]; then
             echo "::error::When running Release from workflow_dispatch on tag ${GITHUB_REF_NAME}, input version must be **${TAG}** (you entered **${IN}**)."
             exit 1
           fi
           echo "OK: version input matches tag."
+
+      # THE CASE THE TWO GUARDS ABOVE BOTH MISS: workflow_dispatch from a BRANCH.
+      #
+      # The first is `if: github.ref_type == 'tag'`. The second is `if: workflow_dispatch AND
+      # startsWith(github.ref, 'refs/tags/')`. Dispatch from a branch satisfies neither, and that
+      # path publishes to nuget.org. Directory.Build.targets stamps Version/AssemblyVersion/
+      # FileVersion from the root VERSION file, while the nuget job takes package_version from the
+      # input - `-p:PackageVersion=` is a global property that overrides PackageVersion and NOT
+      # Version - so an unguarded dispatch ships nupkgs whose package version disagrees with the
+      # assemblies inside them. That is the same defect the tag guard exists to prevent, on the
+      # trigger nobody guarded.
+      #
+      # A prerelease of the canonical version is allowed, because cutting 0.2.0-rc1 from a branch
+      # while VERSION reads 0.2.0 is the staging flow this input was added for. What is refused is a
+      # DIFFERENT release: 0.9.9 while VERSION says 0.2.0.
+      - name: Dispatch from a branch must match root VERSION
+        if: github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=scripts/lib/release-staging-guards.sh
+          source scripts/lib/release-staging-guards.sh
+          if ! assert_dispatch_version_allowed "${IN_VERSION}"; then
+            echo "::error::Dispatching ${IN_VERSION} from ${GITHUB_REF_NAME} would publish packages whose version disagrees with their assemblies. See the ABORT lines above."
+            exit 1
+          fi
+
+      # ci/published-version is what consumer-template/Directory.Packages.props and CONSUMING.md
+      # pin strangers to. Nothing in the release path writes it, so after a release it still names
+      # the PREVIOUS one and every copied consumer template installs a version behind - silently,
+      # because the lint only checks the file is well-formed, not that it is current.
+      #
+      # It is enforced here rather than automated, for the same reason VERSION and CHANGELOG are:
+      # the release commit is where a human decides what is being shipped, and a workflow that
+      # rewrites the repo mid-publish is a bigger hazard than a guard that refuses.
+      - name: Consumer pin (ci/published-version) must name this release
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=scripts/lib/release-staging-guards.sh
+          source scripts/lib/release-staging-guards.sh
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            WANT="${GITHUB_REF_NAME}"
+          else
+            WANT="${IN_VERSION}"
+          fi
+          if ! assert_consumer_pin_matches "${WANT}"; then
+            echo "::error::ci/published-version does not name this release; a stranger copying consumer-template would install the previous one. See the ABORT lines above."
+            exit 1
+          fi
 
   images:
     name: Container images (GHCR)

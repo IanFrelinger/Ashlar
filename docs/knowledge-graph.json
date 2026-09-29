@@ -14,8 +14,8 @@
     "operator_facing_config_variables": 142,
     "operator_vars_missing_from_configuration_reference": 65,
     "operator_vars_absent_from_all_documentation": 47,
-    "test_files_declaring_facts": 727,
-    "declared_facts": 4375,
+    "test_files_declaring_facts": 728,
+    "declared_facts": 4376,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5253,6 +5253,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 8,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/WorkflowFilesParseTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 1,
       "in_cert_gate_filter": true
     },
     {
