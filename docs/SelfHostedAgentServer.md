@@ -2,7 +2,7 @@
 
 Docker lane for **Ashlar.API** with a **mounted workspace**, bundled **Ollama**, the **Director portal**, and the **same** background agent JSON as Runtime Studio (`ASHLAR_BACKGROUND_AGENTS_CONFIG` → `apps/runtime-studio/config/agent_set.local.json` by default).
 
-**Mental model:** [How this fits](../apps/runtime-studio/README.md#how-runtime-studio-fits-with-ashlar-api) in `apps/runtime-studio/README.md` — one JSON agent set; pick CLI daemon, API-hosted cluster, or portal-only compose as needed.
+**Mental model:** [How this fits](../apps/runtime-studio/README.md#how-this-fits-one-config-flexible-hosts) in `apps/runtime-studio/README.md` — one JSON agent set; pick CLI daemon, API-hosted cluster, or portal-only compose as needed.
 
 Not the Cursor IDE remote stack — Ashlar is the framework that hosts agents over HTTP.
 
