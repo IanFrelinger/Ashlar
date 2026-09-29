@@ -103,7 +103,7 @@ that refuses everything passes a suite of refusal assertions.
 ## 5. The check points at something that does not exist, and calls that a finding
 
 `dogfood-continuous-proof.yml` read
-`src/Ashlar.Infrastructure/Certification/CertificationVerifyOptions.cs`. That path has never
+`src/Ashlar.Certification.Contracts/CertificationVerifyOptions.cs`. That path has never
 existed; the type is in `Ashlar.Certification.Contracts`. The step always took its not-found branch,
 the canary sweep was always skipped, and the workflow wrote a `GAP` row saying `Strict` was not
 ready — while `master` had required the signature for weeks.

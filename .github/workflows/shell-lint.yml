@@ -155,3 +155,23 @@ jobs:
           # placeholder description for three releases. A missing <Description> is a build warning
           # at most and the pack step succeeds, so nothing said so.
           bash tests/scripts/shipped-package-metadata.test.sh
+
+      - name: Compatibility policy describes the current state
+        shell: bash
+        run: |
+          # docs/SdkCompatibilityPolicy.md is the promise: it tells a consumer what is stable and a
+          # contributor which of the two API files an addition goes in. It said "Nothing has shipped
+          # yet ... every PublicAPI.Shipped.txt contains only the #nullable enable header" for three
+          # releases after the reverse became true. A contributor believing that treats a line in
+          # Shipped.txt as unclaimed and changes a promise already published.
+          python3 scripts/ci/verify-compat-policy-current.py
+      - name: Consumer sample pins agree with the repository's
+        shell: bash
+        run: |
+          # docs/samples/StableSdkHostSample/package-consumer opts out of central package management
+          # and restates transitive pins by hand, under a comment saying "Align with repo
+          # Directory.Packages.props". That comment was the entire enforcement. When the repository
+          # bumped System.Text.Encodings.Web to 10.0.12 the sample kept 10.0.11, our packed bundle
+          # then required >= 10.0.12, and NU1605 failed three packaging lanes at once - in the one
+          # project that stands in for a stranger consuming these packages.
+          bash tests/scripts/sample-pin-alignment.test.sh

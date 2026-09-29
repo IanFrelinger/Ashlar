@@ -15,6 +15,22 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# NOTE ON PLACEMENT: this must be defined BEFORE the filter that calls it. When it sat below,
+# bash reached the call first, "command not found" inside an `if` condition is not fatal even under
+# set -e, and the test simply evaluated FALSE - so nothing was ever skipped and the exemption looked
+# like it did not work rather than like it had not loaded.
+
+# A document may declare itself a HISTORICAL RECORD, and then its paths are checked no further.
+#
+# There is exactly one legitimate case: a file whose job is to say where code USED to live.
+# docs/FleetGovernanceExtractionInventory.md lists 63 pre-extraction paths and states that the
+# extraction is complete; rewriting them to today's locations would destroy the record it exists to
+# be. The marker is required to be IN the document rather than in a list here, so the reason travels
+# with the file and a reader meets it before the stale-looking paths.
+is_historical_record() {
+  grep -q '<!-- phantom-paths: historical-record -->' "$1" 2>/dev/null
+}
+
 echo "== Docs Phantom Path Check =="
 echo "Scanning README.md, docs/, scripts/, and Makefile for backtick-wrapped repo paths..."
 
@@ -28,8 +44,21 @@ while IFS= read -r f; do
 done < <(find scripts -maxdepth 1 -type f \( -name '*.sh' -o -name '*.ps1' \) 2>/dev/null | sort)
 
 # Pattern matches backtick-wrapped paths
-pattern='`(scripts|docs|deploy|\.github|src|application|applications|samples)/[A-Za-z0-9._/-]+\.(sh|ps1|md|yml|yaml|json|csproj|sln|slnf)`'
+# Drop declared historical records from the scan, and name them, because a silent exclusion is how a
+# document stops being checked without anyone deciding that.
+kept=()
+for f in "${files[@]}"; do
+  if is_historical_record "$f"; then
+    echo "  skipping $f (declared a historical record: it documents where code USED to live)"
+  else
+    kept+=("$f")
+  fi
+done
+files=("${kept[@]}")
+
+pattern='`(scripts|docs|deploy|\.github|src|application|applications|samples)/[A-Za-z0-9._/-]+\.(sh|ps1|md|yml|yaml|json|csproj|sln|slnf|cs)`'
 missing=0
+
 
 while IFS= read -r token; do
   path="${token#\`}"; path="${path%\`}"
