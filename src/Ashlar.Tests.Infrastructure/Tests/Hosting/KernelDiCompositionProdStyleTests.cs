@@ -4,6 +4,7 @@ using Ashlar.Core.Application.Observation.Ports;
 using Ashlar.Core.Application.Persistence;
 using Ashlar.Hosting;
 using Ashlar.Infrastructure.Execution;
+using Ashlar.Infrastructure.Execution.Routing;
 using Ashlar.Tests.Infrastructure.Helpers;
 using Xunit;
 
@@ -146,6 +147,34 @@ public sealed class KernelDiCompositionProdStyleTests : IDisposable
         ConnectionString(sp.GetRequiredService<IPatternStore>()).Should().Be(
             LiteDbConnectionString.ForSharedAccess("pinning-patterns.db"),
             "with the pipeline off, adaptation registers the store and uses the path verbatim");
+    }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task RunPodBrick_ResolvesFromTheRealComposition_AndTakesTheSystemClock()
+    {
+        await Task.CompletedTask;
+
+        // RunPodBrick gained an OPTIONAL TimeProvider parameter so its job-completion deadline could
+        // stop being measured against the machine a test happens to run on. Optional is what keeps
+        // production wiring unchanged - and "unchanged" is a claim about the CONTAINER, not about the
+        // constructor, so it is asserted here rather than in a unit test that news the type up.
+        using var sp = BuildProvider(AshlarDeploymentProfile.Full, trust: false, adaptive: false);
+
+        var resolve = () => sp.GetRequiredService<RunPodBrick>();
+        resolve.Should().NotThrow(
+            "the kernel composes this through AddRunPodCapabilityRouting, so every constructor "
+            + "parameter must be satisfiable by the real container. A parameter added without a "
+            + "default, or with a type nothing registers, fails here and nowhere else - unit tests "
+            + "construct this type directly and would not notice.");
+
+        // And nothing registers a TimeProvider, which is WHY the parameter can be optional: the
+        // brick falls back to TimeProvider.System, so production measures real time exactly as it
+        // did before. If someone later registers one, this fact fails and says what changed - the
+        // brick's notion of a deadline would silently become whatever that registration provides.
+        sp.GetService<TimeProvider>().Should().BeNull(
+            "production deliberately registers no TimeProvider; RunPodBrick's deadline therefore "
+            + "uses TimeProvider.System. Registering one here changes that silently, so decide it "
+            + "on purpose and update this fact.");
     }
 
     // ───────────────────────────────── helpers ────────────────────────────────
