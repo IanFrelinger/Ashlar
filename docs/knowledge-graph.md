@@ -15,10 +15,10 @@ remembered to update — staleness here is a red build.
 | projects | 61 |
 | of those, published to nuget.org by a release | 22 |
 | of those, declaring `<IsPackable>true</IsPackable>` | 19 |
-| `ASHLAR_*` variables named in code | 161 |
-| of those, operator-facing (not test-only) | 142 |
-| missing from `docs/Configuration.md` | 65 |
-| **mentioned in no document at all** | **47** |
+| `ASHLAR_*` variables named in code | 173 |
+| of those, operator-facing (not test-only) | 153 |
+| missing from `docs/Configuration.md` | 44 |
+| **mentioned in no document at all** | **26** |
 | test files declaring xUnit facts | 728 |
 | declared facts | 4376 |
 | workflows | 62 |
@@ -41,27 +41,13 @@ Kept separate from "missing from `docs/Configuration.md`" on purpose: a variable
 some other document is a discoverability problem, not an undocumented one, and conflating the
 two overstates the gap by the difference between the counts above.
 
-- `ASHLAR_ANALYZER_SEVERITY_FLOOR`
-- `ASHLAR_APP_STATE`
-- `ASHLAR_AVAILABLE_VRAM_BYTES`
-- `ASHLAR_BACKGROUND_TASK_PERMISSION`
-- `ASHLAR_BATTERY_OPTIMIZATION_ENABLED`
-- `ASHLAR_BATTERY_PERCENT`
-- `ASHLAR_BUILD_BUDGET`
-- `ASHLAR_CHARGING`
-- `ASHLAR_CPU_UTIL_PERCENT`
-- `ASHLAR_E2E_LIVE_MODEL`
-- `ASHLAR_E2E_LIVE_STACK`
-- `ASHLAR_FORGE_APPROVED_TTL_HOURS`
-- `ASHLAR_FORGE_PROPOSED_TTL_HOURS`
-- `ASHLAR_GENERATION_DEPTH_CEILING`
-- `ASHLAR_GPU_UTIL_PERCENT`
-- `ASHLAR_LOCAL_CONTEXT_SIZE`
-- `ASHLAR_MESH_DIR`
-- `ASHLAR_NETWORK_LATENCY_MS`
-- `ASHLAR_NETWORK_METERED`
-- `ASHLAR_NETWORK_WIFI`
-- `ASHLAR_ON_BATTERY`
+- `ASHLAR_CAMPAIGN_DIR`
+- `ASHLAR_CERT_NUGET_CONFIG`
+- `ASHLAR_OLLAMA_MAX_TOKENS`
+- `ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE`
+- `ASHLAR_OLLAMA_TEMPERATURE`
+- `ASHLAR_OLLAMA_THINK`
+- `ASHLAR_OLLAMA_TIMEOUT_MINUTES`
 - `ASHLAR_RELEASE_CORE_HISTORY_WINDOW`
 - `ASHLAR_RELEASE_CORE_MIN_PASS_RATE`
 - `ASHLAR_RELEASE_CORE_MIN_TOTAL`
@@ -77,15 +63,8 @@ two overstates the gap by the difference between the counts above.
 - `ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW`
 - `ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE`
 - `ASHLAR_RELEASE_VISUAL_MIN_TOTAL`
-- `ASHLAR_STORAGE_AVAILABLE_BYTES`
-- `ASHLAR_STORAGE_TOTAL_BYTES`
-- `ASHLAR_TAILNET_CMD`
-- `ASHLAR_TAILNET_REFRESH_SECONDS`
-- `ASHLAR_TEST_BUDGET`
-- `ASHLAR_TEST_NO_NETWORK`
-- `ASHLAR_THERMAL_STATE`
-- `ASHLAR_TOTAL_VRAM_BYTES`
-- `ASHLAR_USER_ACTIVE`
+- `ASHLAR_SWEEP_MAX_OBJECTIVES`
+- `ASHLAR_SWEEP_PROPOSER`
 - `ASHLAR_VISUAL_PROMOTION_STREAK`
 - `ASHLAR_VISUAL_REQUIRED_MODE`
 

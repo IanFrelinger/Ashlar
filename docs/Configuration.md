@@ -289,6 +289,45 @@ Three code paths reach Ollama — the default MEAI model path, the NCR serving b
 
 **Docker (models in containers):** `docker compose -f deploy/compose/docker-compose.ollama.yml up -d`, then `scripts/run-ollama-docker.ps1` / `scripts/run-ollama-docker.sh` to pull a tag. **Host-run Ashlar.API with Ollama in Docker (all platforms):** `scripts/start-ashlar-api-dev.ps1` or `scripts/start-ashlar-api-dev.sh` (waits for Ollama, sets `OLLAMA_*` + NCR URL, runs `dotnet run`). Use `-Pull` / `--pull` when the model is not yet local. **Phone / another device on the same LAN:** `-ListenLan` / `--listen-lan` binds `http://0.0.0.0:<port>`; browse `http://<host-LAN-IP>:8080` and allow the port in the host firewall. Default bind is loopback-only (`127.0.0.1`). Stop: `scripts/stop-ashlar-api-dev.ps1` / `.sh`.
 
+## Node Capability Runtime (NCR) hardware profile (`ASHLAR_*`)
+
+`EnvironmentHardwareProfiler` is the only `IHardwareProfiler` the shipped path registers
+(`NodeCapabilityRuntimeServiceCollectionExtensions`), and it is reached from Ashlar.Hosting kernel
+phase 01 whenever a deployment profile sets `IncludeNodeCapabilityRuntime: true`. **RAM is measured**
+(`GC.GetGCMemoryInfo`). **Everything else in the table below is read from the environment**, because
+there is no cross-platform way to read it — so on a node where nothing sets these, the profile
+describes a machine with no GPU, idle CPU, mains power and empty disks.
+
+> **Set `ASHLAR_TOTAL_VRAM_BYTES` on any node with a GPU.** It defaults to `0`, `AvailableVRAMBytes`
+> falls back to it, and both `LinuxPolicy` and `WindowsPolicy` require
+> `MinVRAMRequiredBytes <= AvailableVRAMBytes`. Two of the four models in `DefaultModelSuite` —
+> `llama3-8b` and `qwen-coder-7b` — declare `MinVRAMRequiredBytes` of 6 GiB, so with VRAM unreported
+> they are **silently unselectable** and the runtime falls back to `phi3-mini`. Nothing warns: an
+> unset knob and a genuinely GPU-less machine are indistinguishable to the profiler.
+
+| Variable | Meaning | Default when unset |
+|---|---|---|
+| `ASHLAR_TOTAL_VRAM_BYTES` | Total GPU memory, bytes. See the warning above. | `0` |
+| `ASHLAR_AVAILABLE_VRAM_BYTES` | Free GPU memory, bytes. Falls back to `ASHLAR_TOTAL_VRAM_BYTES` when `0`. | `0` |
+| `ASHLAR_CPU_UTIL_PERCENT` | Current CPU utilisation, 0–100. | `0` |
+| `ASHLAR_GPU_UTIL_PERCENT` | Current GPU utilisation, 0–100. | `0` |
+| `ASHLAR_ON_BATTERY` | `true` when running on battery. | `false` |
+| `ASHLAR_CHARGING` | `true` when the battery is charging. | `false` |
+| `ASHLAR_BATTERY_PERCENT` | Battery charge, 0–100. | `100` |
+| `ASHLAR_THERMAL_STATE` | `ThermalState` name: `Nominal`, `Fair`, `Serious`, `Critical`. | `Nominal` |
+| `ASHLAR_APP_STATE` | `AppState` name: `Foreground`, `Background`, `Suspended`. | `Foreground` |
+| `ASHLAR_USER_ACTIVE` | `true` when a user is actively at the machine. | `false` |
+| `ASHLAR_BACKGROUND_TASK_PERMISSION` | `true` when the OS permits background work. | `false` |
+| `ASHLAR_BATTERY_OPTIMIZATION_ENABLED` | `true` when the OS is throttling background work to save power. | `false` |
+| `ASHLAR_NETWORK_WIFI` | `true` when the active link is Wi-Fi. | `true` |
+| `ASHLAR_NETWORK_METERED` | `true` when the active link is metered. | `false` |
+| `ASHLAR_NETWORK_LATENCY_MS` | Average network latency, milliseconds. | `25` |
+| `ASHLAR_STORAGE_AVAILABLE_BYTES` | Free disk, bytes. | `0` |
+| `ASHLAR_STORAGE_TOTAL_BYTES` | Total disk, bytes. | `0` |
+
+Defaults above are read from `EnvironmentHardwareProfiler`; a value that fails to parse falls back to
+the same default rather than throwing.
+
 ### Node Capability Runtime (NCR) Ollama
 
 Desktop NCR uses its own options-bound Ollama endpoint for model serving.
@@ -344,6 +383,9 @@ For a **layered breakdown** of mesh capabilities (identity, registry, transport,
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `ASHLAR_MESH_DIR` | Root for this node's published packages and imported peer content. One level off yields an empty peer store with **no error**. | `<state>/mesh` |
+| `ASHLAR_TAILNET_CMD` | Command invoked to enumerate tailnet peers. See `docs/Federation.md` (F4). | unset (tailnet discovery off) |
+| `ASHLAR_TAILNET_REFRESH_SECONDS` | How often the tailnet peer list is re-read. | `300` |
 | `ASHLAR_MESH_PEER_ID` | Mesh peer identifier | random GUID |
 | `ASHLAR_MESH_INSTANCES_PATH` | Path to file-based mesh instance registry | unset |
 | `ASHLAR_TRUSTED_PEER_IDS` | Comma-separated peer IDs trusted for execution (mesh + RunPod/peer capability routing) | unset (all peers trusted) |
@@ -387,6 +429,7 @@ See `docs/runtime/ExecutionRouting.md` for detailed execution flow and resilienc
 | `ASHLAR_EPHEMERAL_MODELS` | `1` = use ephemeral Ollama container for LLM; container removed when session ends | unset |
 | `ASHLAR_EPHEMERAL_DB` | `postgres` = use ephemeral Postgres container for workflows/tests | unset |
 | `ASHLAR_TEST_EPHEMERAL` | `1` = run tests in ephemeral containers (no volume mounts) | unset |
+| `ASHLAR_TEST_NO_NETWORK` | `1` = run tests with no network access. | unset |
 
 ## Artifact Cleanup
 
@@ -406,12 +449,18 @@ See `docs/runtime/ExecutionRouting.md` for detailed execution flow and resilienc
 | `ASHLAR_AGENT_MODE_PATH` | Path to the file-based aggressiveness mode store (`{"Mode":"passive"|"semi-active"|"active"|"ambient"}`). This file is what ARMS the extender: missing file, unreadable JSON, `{}` or an unknown value all read as **Passive** (observe only, fail-closed); the effective mode is logged when it changes | `~/.ashlar/agent-mode.json` |
 | `ASHLAR_OBJECTIVES_ROOT` | Objective store root (`{status}/{id}.md` + witness/proposal siblings); read by `AddBackgroundAgents` and the Runtime Studio path resolver | `<cwd>/.ashlar/runtime-studio/objectives` |
 | `ASHLAR_FORGE_ROOT` | Forge change-proposal queue root | `<cwd>/.ashlar/runtime-studio/forge` |
+| `ASHLAR_FORGE_PROPOSED_TTL_HOURS` | How long a *proposed* change sits in the forge queue before expiry. | `72` |
+| `ASHLAR_FORGE_APPROVED_TTL_HOURS` | How long an *approved* change stays applicable before expiry. | `168` |
+| `ASHLAR_BUILD_BUDGET` | Wall-clock budget, seconds, for a build a policy will approve. Operator knob (`BuildTestBudget`). | policy default |
+| `ASHLAR_TEST_BUDGET` | Wall-clock budget, seconds, for a test run a policy will approve. Operator knob (`BuildTestBudget`). | policy default |
 | `ASHLAR_OBSERVATIONS_PATH` | Path to the shared `observations.jsonl` | `<cwd>/.ashlar/runtime-studio/observations.jsonl` |
 | `ASHLAR_CYCLE_EVENTS_PATH` | Path to `cycles.jsonl` (absolute or cwd-relative) | `<cwd>/.ashlar/runtime-studio/cycles.jsonl` |
 | `ASHLAR_DASHBOARD_AUTH_TOKEN` | Shared secret for `ashlar background-agent dashboard` (same as `--auth-token`); when set, requests need `?token=` or a Bearer header | unset (dashboard binds `127.0.0.1` only) |
 | `ASHLAR_SANDBOX_ROOT` | Sandbox root for confined tool paths (`PathAllowlist`, forge propose-change) when the world snapshot carries no `SandboxRoot`. Must be a SIBLING of `.ashlar/`, never inside it — `.ashlar/` is the governance and admission-ledger directory and is refused at the write edge; `scripts/sandbox/init-agent-sandbox.sh` creates `<repo>/agent-sandbox/` | unset |
 | `ASHLAR_PATH_ALLOWLIST_EXTRA` | Comma/semicolon-separated extra path prefixes appended to the confined toolbox allowlist (defaults: `src/`, `tests/`, `docs/`, `application/`). Widening only — the default allowlist cannot be narrowed from here — and never onto a governance prefix: an entry such as `.ashlar/host_apps/`, `scripts/`, or any `*.props` is dropped at construction and reported on `PathAllowlist.RejectedExtras`, because the governance floor in `ToolSandbox.TryResolveWritePath` would refuse every write beneath it anyway | unset |
 | `ASHLAR_EXTENSION_MAX_LINEAGE_DEPTH` | Extender ceiling (SX-AUDIT invariant D): max `ParentId` hops below a human-authored root an extender may sit and still extend. May only LOWER the built-in default. | 1 |
+| `ASHLAR_ANALYZER_SEVERITY_FLOOR` | Lowest analyzer severity that still refuses a candidate. May only TIGHTEN the built-in floor. | built-in floor |
+| `ASHLAR_GENERATION_DEPTH_CEILING` | Max generations a single autonomous loop may produce. May only LOWER the built-in ceiling. | built-in ceiling |
 | `ASHLAR_EXTENSION_MAX_UNATTENDED_CYCLES` | Extender ceiling: extend cycles since a human last armed the agent before it holds (re-arm: restart or `RearmExtension`). May only LOWER the default. | 8 |
 | `ASHLAR_EXTENSION_MAX_CYCLES_PER_HOUR` | Extender ceiling: extend cycles in any trailing hour. May only LOWER the default. | 4 |
 | `ASHLAR_OBSERVATION_DEGRADED_MODE` | `1` = start observation pipeline in degraded mode | unset |
@@ -493,6 +542,7 @@ Bound from the `Ashlar:Barriers` section (`appsettings.json` or `Ashlar__Barrier
 |----------|-------------|---------|
 | `ASHLAR_ALLOW_MOCK` | `1` = enable mock/offline/mock-json/echo providers | unset |
 | `ASHLAR_LOCAL_MODEL_PATH` | Path to local ONNX/LLamaSharp model for `local` provider | unset |
+| `ASHLAR_LOCAL_CONTEXT_SIZE` | Context window, tokens, for the local model. | model default |
 | `ASHLAR_LOCAL_QUEUE_DEPTH` | Local execution queue depth for routing decisions | unset (auto) |
 | `ASHLAR_GPU_COMPUTE_CLASS` | GPU compute class label for NCR capability matching | unset |
 | `ASHLAR_LOAD_PREFERENCE` | Default load balancing preference | unset |

@@ -11,37 +11,22 @@
     "projects": 61,
     "projects_shipped_to_nuget": 22,
     "projects_declaring_ispackable_true": 19,
-    "config_variables": 161,
-    "operator_facing_config_variables": 142,
-    "operator_vars_missing_from_configuration_reference": 65,
-    "operator_vars_absent_from_all_documentation": 47,
+    "config_variables": 173,
+    "operator_facing_config_variables": 153,
+    "operator_vars_missing_from_configuration_reference": 44,
+    "operator_vars_absent_from_all_documentation": 26,
     "test_files_declaring_facts": 728,
     "declared_facts": 4376,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
-    "ASHLAR_ANALYZER_SEVERITY_FLOOR",
-    "ASHLAR_APP_STATE",
-    "ASHLAR_AVAILABLE_VRAM_BYTES",
-    "ASHLAR_BACKGROUND_TASK_PERMISSION",
-    "ASHLAR_BATTERY_OPTIMIZATION_ENABLED",
-    "ASHLAR_BATTERY_PERCENT",
-    "ASHLAR_BUILD_BUDGET",
-    "ASHLAR_CHARGING",
-    "ASHLAR_CPU_UTIL_PERCENT",
-    "ASHLAR_E2E_LIVE_MODEL",
-    "ASHLAR_E2E_LIVE_STACK",
-    "ASHLAR_FORGE_APPROVED_TTL_HOURS",
-    "ASHLAR_FORGE_PROPOSED_TTL_HOURS",
-    "ASHLAR_GENERATION_DEPTH_CEILING",
-    "ASHLAR_GPU_UTIL_PERCENT",
+    "ASHLAR_CAMPAIGN_DIR",
+    "ASHLAR_CERT_NUGET_CONFIG",
     "ASHLAR_KEY_DIR",
-    "ASHLAR_LOCAL_CONTEXT_SIZE",
     "ASHLAR_MESH_AUTOSHARE",
     "ASHLAR_MESH_CA",
     "ASHLAR_MESH_CLIENT_CERT",
     "ASHLAR_MESH_CLIENT_KEY",
-    "ASHLAR_MESH_DIR",
     "ASHLAR_MESH_DISCOVERY",
     "ASHLAR_MESH_PEERS",
     "ASHLAR_MESH_PULL_DIR",
@@ -53,11 +38,12 @@
     "ASHLAR_MESH_SERVE_TLS_CERT",
     "ASHLAR_MESH_SERVE_TLS_KEY",
     "ASHLAR_MESH_TAILNET",
-    "ASHLAR_NETWORK_LATENCY_MS",
-    "ASHLAR_NETWORK_METERED",
-    "ASHLAR_NETWORK_WIFI",
     "ASHLAR_NODE_NAME",
-    "ASHLAR_ON_BATTERY",
+    "ASHLAR_OLLAMA_MAX_TOKENS",
+    "ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE",
+    "ASHLAR_OLLAMA_TEMPERATURE",
+    "ASHLAR_OLLAMA_THINK",
+    "ASHLAR_OLLAMA_TIMEOUT_MINUTES",
     "ASHLAR_RELEASE_CORE_HISTORY_WINDOW",
     "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
     "ASHLAR_RELEASE_CORE_MIN_TOTAL",
@@ -73,41 +59,20 @@
     "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
     "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
     "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
-    "ASHLAR_STORAGE_AVAILABLE_BYTES",
-    "ASHLAR_STORAGE_TOTAL_BYTES",
-    "ASHLAR_TAILNET_CMD",
+    "ASHLAR_SWEEP_MAX_OBJECTIVES",
+    "ASHLAR_SWEEP_PROPOSER",
     "ASHLAR_TAILNET_PEER_PORT",
-    "ASHLAR_TAILNET_REFRESH_SECONDS",
-    "ASHLAR_TEST_BUDGET",
-    "ASHLAR_TEST_NO_NETWORK",
-    "ASHLAR_THERMAL_STATE",
-    "ASHLAR_TOTAL_VRAM_BYTES",
-    "ASHLAR_USER_ACTIVE",
     "ASHLAR_VISUAL_PROMOTION_STREAK",
     "ASHLAR_VISUAL_REQUIRED_MODE"
   ],
   "operator_vars_absent_from_all_documentation": [
-    "ASHLAR_ANALYZER_SEVERITY_FLOOR",
-    "ASHLAR_APP_STATE",
-    "ASHLAR_AVAILABLE_VRAM_BYTES",
-    "ASHLAR_BACKGROUND_TASK_PERMISSION",
-    "ASHLAR_BATTERY_OPTIMIZATION_ENABLED",
-    "ASHLAR_BATTERY_PERCENT",
-    "ASHLAR_BUILD_BUDGET",
-    "ASHLAR_CHARGING",
-    "ASHLAR_CPU_UTIL_PERCENT",
-    "ASHLAR_E2E_LIVE_MODEL",
-    "ASHLAR_E2E_LIVE_STACK",
-    "ASHLAR_FORGE_APPROVED_TTL_HOURS",
-    "ASHLAR_FORGE_PROPOSED_TTL_HOURS",
-    "ASHLAR_GENERATION_DEPTH_CEILING",
-    "ASHLAR_GPU_UTIL_PERCENT",
-    "ASHLAR_LOCAL_CONTEXT_SIZE",
-    "ASHLAR_MESH_DIR",
-    "ASHLAR_NETWORK_LATENCY_MS",
-    "ASHLAR_NETWORK_METERED",
-    "ASHLAR_NETWORK_WIFI",
-    "ASHLAR_ON_BATTERY",
+    "ASHLAR_CAMPAIGN_DIR",
+    "ASHLAR_CERT_NUGET_CONFIG",
+    "ASHLAR_OLLAMA_MAX_TOKENS",
+    "ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE",
+    "ASHLAR_OLLAMA_TEMPERATURE",
+    "ASHLAR_OLLAMA_THINK",
+    "ASHLAR_OLLAMA_TIMEOUT_MINUTES",
     "ASHLAR_RELEASE_CORE_HISTORY_WINDOW",
     "ASHLAR_RELEASE_CORE_MIN_PASS_RATE",
     "ASHLAR_RELEASE_CORE_MIN_TOTAL",
@@ -123,15 +88,8 @@
     "ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW",
     "ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE",
     "ASHLAR_RELEASE_VISUAL_MIN_TOTAL",
-    "ASHLAR_STORAGE_AVAILABLE_BYTES",
-    "ASHLAR_STORAGE_TOTAL_BYTES",
-    "ASHLAR_TAILNET_CMD",
-    "ASHLAR_TAILNET_REFRESH_SECONDS",
-    "ASHLAR_TEST_BUDGET",
-    "ASHLAR_TEST_NO_NETWORK",
-    "ASHLAR_THERMAL_STATE",
-    "ASHLAR_TOTAL_VRAM_BYTES",
-    "ASHLAR_USER_ACTIVE",
+    "ASHLAR_SWEEP_MAX_OBJECTIVES",
+    "ASHLAR_SWEEP_PROPOSER",
     "ASHLAR_VISUAL_PROMOTION_STREAK",
     "ASHLAR_VISUAL_REQUIRED_MODE"
   ],
@@ -1175,8 +1133,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_APP_STATE",
@@ -1184,8 +1142,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_ARTIFACT_CLEANUP_REPO_ROOT",
@@ -1203,12 +1161,13 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BACKGROUND_AGENTS_CONFIG",
       "declared_in": [
+        "(unowned)",
         "Ashlar.API"
       ],
       "test_only": false,
@@ -1221,8 +1180,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BARRIER_MIDDLEWARE_ENABLED",
@@ -1240,8 +1199,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BATTERY_PERCENT",
@@ -1249,8 +1208,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_BEDROCK_BALANCED_MODEL",
@@ -1279,12 +1238,22 @@
         "Ashlar.Tests.Kernel"
       ],
       "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_CAMPAIGN_DIR",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
       "in_configuration_reference": false,
       "in_any_document": false
     },
     {
       "name": "ASHLAR_CERT_DEV_HMAC_KEY",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Certification.Contracts"
       ],
       "test_only": false,
@@ -1303,9 +1272,10 @@
     {
       "name": "ASHLAR_CERT_NUGET_CONFIG",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Tests.Infrastructure"
       ],
-      "test_only": true,
+      "test_only": false,
       "in_configuration_reference": false,
       "in_any_document": false
     },
@@ -1335,8 +1305,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CLEAN_AFTER_TEST",
@@ -1383,8 +1353,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_CYCLE_EVENTS_PATH",
@@ -1417,6 +1387,7 @@
     {
       "name": "ASHLAR_DEPLOYMENT_PROFILE",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Hosting",
         "Ashlar.Mcp.Client",
         "Ashlar.Mcp.Server",
@@ -1442,7 +1413,7 @@
       "declared_in": [
         "Ashlar.Agents.TestKit"
       ],
-      "test_only": false,
+      "test_only": true,
       "in_configuration_reference": false,
       "in_any_document": false
     },
@@ -1451,7 +1422,7 @@
       "declared_in": [
         "Ashlar.Agents.TestKit"
       ],
-      "test_only": false,
+      "test_only": true,
       "in_configuration_reference": false,
       "in_any_document": false
     },
@@ -1526,8 +1497,8 @@
         "Ashlar.BackgroundAgents"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_FORGE_PROPOSED_TTL_HOURS",
@@ -1535,8 +1506,8 @@
         "Ashlar.BackgroundAgents"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_FORGE_ROOT",
@@ -1563,8 +1534,8 @@
         "Ashlar.Core.Application"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_GPU_COMPUTE_CLASS",
@@ -1581,8 +1552,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_INCOMPLETE_BLOB_PATH",
@@ -1651,8 +1622,8 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_LOCAL_MODEL_ENV_DIR",
@@ -1712,6 +1683,15 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_MESH_API_KEY",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
       "name": "ASHLAR_MESH_AUTOSHARE",
       "declared_in": [
         "Ashlar.BackgroundAgents.HostRunners",
@@ -1756,8 +1736,17 @@
         "Ashlar.Tests.Kernel"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_MESH_DIRECTOR_BASE_URL",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_MESH_DISCOVERY",
@@ -1790,6 +1779,15 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_MESH_MUTATING_TOKEN",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
       "name": "ASHLAR_MESH_PEERS",
       "declared_in": [
         "Ashlar.CLI",
@@ -1803,6 +1801,15 @@
       "name": "ASHLAR_MESH_PEER_ID",
       "declared_in": [
         "Ashlar.Infrastructure"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_MESH_PEER_REGISTRATION_KEY",
+      "declared_in": [
+        "(unowned)"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -1917,8 +1924,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_NETWORK_METERED",
@@ -1926,8 +1933,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_NETWORK_WIFI",
@@ -1935,8 +1942,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_NODECAP_OLLAMA_URL",
@@ -1959,6 +1966,7 @@
     {
       "name": "ASHLAR_OBJECTIVES_ROOT",
       "declared_in": [
+        "(unowned)",
         "Ashlar.BackgroundAgents",
         "Ashlar.Tests.Infrastructure"
       ],
@@ -1997,6 +2005,7 @@
     {
       "name": "ASHLAR_OLLAMA_BASE_URL",
       "declared_in": [
+        "(unowned)",
         "Ashlar.AI.Pipeline",
         "Ashlar.Infrastructure",
         "Ashlar.Tests.Infrastructure"
@@ -2006,8 +2015,18 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_OLLAMA_MAX_TOKENS",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
       "name": "ASHLAR_OLLAMA_MODEL",
       "declared_in": [
+        "(unowned)",
         "Ashlar.AI.Pipeline"
       ],
       "test_only": false,
@@ -2015,13 +2034,49 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
+      "name": "ASHLAR_OLLAMA_TEMPERATURE",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
+      "name": "ASHLAR_OLLAMA_THINK",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
+      "name": "ASHLAR_OLLAMA_TIMEOUT_MINUTES",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
       "name": "ASHLAR_ON_BATTERY",
       "declared_in": [
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_PATH_ALLOWLIST_EXTRA",
@@ -2328,8 +2383,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_STORAGE_TOTAL_BYTES",
@@ -2337,8 +2392,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_STRICT_MODE",
@@ -2351,13 +2406,31 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_SWEEP_MAX_OBJECTIVES",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
+      "name": "ASHLAR_SWEEP_PROPOSER",
+      "declared_in": [
+        "(unowned)"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
       "name": "ASHLAR_TAILNET_CMD",
       "declared_in": [
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TAILNET_PEER_PORT",
@@ -2374,8 +2447,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TEST_A2A_KEY_THAT_DOES_NOT_EXIST",
@@ -2403,8 +2476,8 @@
         "Ashlar.Tests.Kernel"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TEST_EPHEMERAL",
@@ -2458,8 +2531,8 @@
         "Ashlar.CLI"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TEST_POSTGRES_ADMIN",
@@ -2503,8 +2576,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TOTAL_VRAM_BYTES",
@@ -2513,8 +2586,8 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_TRUSTED_PEER_IDS",
@@ -2569,8 +2642,8 @@
         "Ashlar.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
-      "in_any_document": false
+      "in_configuration_reference": true,
+      "in_any_document": true
     },
     {
       "name": "ASHLAR_USE_MEAI_PIPELINE",

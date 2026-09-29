@@ -185,6 +185,30 @@ def owning_project(root: Path, file_path: Path, projects: dict[str, dict]) -> st
 GENERATED_ARTIFACTS = frozenset({"docs/knowledge-graph.json", "docs/knowledge-graph.md"})
 
 
+# Every top-level directory that holds C# in this repository. Named explicitly rather than globbed so
+# that adding a tree is a deliberate edit with a reviewer, not a silent widening.
+CSHARP_TREES = (
+    "src", "application", "commercial", "products", "tools", "extensions", "samples", "spikes",
+    "tests", "consumer-template",
+)
+
+
+def is_test_project_name(owner: str) -> bool:
+    """Whether a project is test-only, and therefore whose variables are not operator knobs.
+
+    Keying on the literal ".Tests" alone was wrong: Ashlar.Agents.TestKit is a test-support library
+    whose two env vars gate opt-in attributes, and it counted as operator-facing, which put knobs no
+    operator should ever set into the documentation debt.
+    """
+    return (
+        ".Tests" in owner
+        or owner.startswith("Ashlar.Tests")
+        or owner.endswith(".TestKit")
+        or ".TestKit." in owner
+        or owner.endswith(".Testing")
+    )
+
+
 def collect_config_variables(root: Path, projects: dict[str, dict]) -> list[dict]:
     doc = root / "docs/Configuration.md"
     in_reference = set(re.findall(r"ASHLAR_[A-Z0-9_]+", read(doc))) if doc.is_file() else set()
@@ -195,8 +219,13 @@ def collect_config_variables(root: Path, projects: dict[str, dict]) -> list[dict
             continue
         anywhere.update(re.findall(r"ASHLAR_[A-Z0-9_]+", read(root / path)))
 
+    # EVERY tree that holds C#, not just src/ and application/. The first version scanned those two,
+    # which made commercial/, tools/, products/, extensions/, samples/ and spikes/ invisible - so the
+    # debt number was an undercount, and a variable introduced in one of those trees could never
+    # appear in the ratchet at all. A gated number that cannot see part of the tree is worse than no
+    # number, because it is quoted.
     found: dict[str, set[str]] = {}
-    for path in tracked(root, "src", "application", suffix=".cs"):
+    for path in tracked(root, *CSHARP_TREES, suffix=".cs"):
         source = root / path
         names = set(ASHLAR_VAR.findall(read(source)))
         if not names:
@@ -213,7 +242,7 @@ def collect_config_variables(root: Path, projects: dict[str, dict]) -> list[dict
             "declared_in": owners,
             # Read by a TEST project only: not an operator-facing knob, and counting it as
             # undocumented would inflate the gap with things no operator should ever set.
-            "test_only": all(".Tests" in o or o.startswith("Ashlar.Tests") for o in owners),
+            "test_only": all(is_test_project_name(o) for o in owners),
             # Two distinct facts, kept distinct because conflating them overstates the problem.
             # "Not in the central reference" is a discoverability gap; "in no document at all" is
             # the sharper one. 19 of the first group are described somewhere else.
