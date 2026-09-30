@@ -141,9 +141,40 @@ app.UseAshlarMeshCorrelation();
 app.UseAshlarMeshSecurity();
 app.UseAshlarApiKeyAuth();
 app.UseAshlarCopilotScopedAuthorization();
+// No UsePrivateLicenseGate() here, and that is a recorded decision rather than a gap in the copy
+// from Ashlar.API: this host registers neither IPrivateLicenseValidator nor the
+// Ashlar:PrivateLicense options, so Ashlar:PrivateLicense:EnforceLicense has no effect on Fleet.Host;
+// the enforcement in docs/product-fleet/private-reference-deployment.md runs in that stack's
+// Ashlar.API container (.docker/Dockerfile.api). Adding it here is a licensing change with its own
+// blast radius (with enforcement on, an expired license would answer 402 to fleet node
+// registration), not part of gating Swagger; docs/OpenCoreBoundary.md tracks moving the gate into
+// the commercial host.
 app.UseRateLimiter();
-app.UseSwagger();
-app.UseSwaggerUI(static c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ashlar Commercial Fleet Host v1"));
+
+// --- Swagger (OpenAPI document + UI): the same gate as application/src/Ashlar.API/Program.cs ---
+// On in Development, otherwise opt-in via Ashlar:Api:EnableSwagger (Ashlar__Api__EnableSwagger=true);
+// an explicit false turns it off in Development too. /swagger is outside /api, so neither
+// UseAshlarApiKeyAuth nor UseAshlarMeshSecurity ever evaluates it: whenever it is served, it is served
+// to anyone who can reach the port, under every AuthorizationMode and AuthorizationScope. This host
+// used to call UseSwagger unconditionally, which published its route catalogue in Production.
+// The key is also read from appsettings.{Environment}.json files this project does not own: the
+// ProjectReference to Ashlar.API copies its appsettings.Development.json and appsettings.Testing.json
+// into this host's build and publish output, and the Testing one sets EnableSwagger to true, so
+// ASPNETCORE_ENVIRONMENT=Testing serves Swagger from the fleet-host image too.
+// Pinned, that exception included, by FleetHostSwaggerExposureTests.
+{
+    var enableSwagger = app.Configuration.GetValue<bool?>("Ashlar:Api:EnableSwagger") ?? app.Environment.IsDevelopment();
+    if (enableSwagger)
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(static c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ashlar Commercial Fleet Host v1"));
+        if (!app.Environment.IsDevelopment())
+        {
+            app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Ashlar.Security")
+                .LogInformation("Swagger UI is enabled outside Development (Ashlar:Api:EnableSwagger=true): /swagger exposes the full route catalogue.");
+        }
+    }
+}
 
 app.MapAshlarEndpoints();
 app.MapAshlarCommercialFleetEndpoints();
