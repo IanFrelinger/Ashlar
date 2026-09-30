@@ -463,3 +463,150 @@ const Ashlar.Core.Domain.Bricks.GenerativeBrick.ProvenanceOutputKey = "generativ
 static Ashlar.Core.Domain.Bricks.GenerativeBrick.ApplyAuditPolicy(Ashlar.Core.Domain.Bricks.GenerativeProvenance provenance, Ashlar.Core.Domain.Execution.IExecutionContext context) -> Ashlar.Core.Domain.Bricks.GenerativeProvenance
 static Ashlar.Core.Domain.Bricks.GenerativeBrick.EmitProvenance(Ashlar.Core.Domain.Execution.BrickOutput output, Ashlar.Core.Domain.Bricks.GenerativeProvenance provenance) -> void
 static Ashlar.Core.Domain.Bricks.GenerativeBrick.RouteHumanReviewIfRequiredAsync(Ashlar.Core.Domain.Bricks.GenerativeProvenance provenance, System.Func<string, System.TimeSpan, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>> requestApproval, string actionDescription, System.TimeSpan timeout, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext.AcceptanceContext(Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact! Artifact, Ashlar.Core.Domain.Bricks.GenerativeProvenance! Provenance, Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult! Smoke) -> void
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext.Artifact.get -> Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact!
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext.Artifact.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext.Provenance.get -> Ashlar.Core.Domain.Bricks.GenerativeProvenance!
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext.Provenance.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext.Smoke.get -> Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult!
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext.Smoke.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceDecision
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceDecision.Rollback = 1 -> Ashlar.Core.Domain.Bricks.Ports.AcceptanceDecision
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceDecision.Ship = 0 -> Ashlar.Core.Domain.Bricks.Ports.AcceptanceDecision
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.AcceptanceResult(Ashlar.Core.Domain.Bricks.Ports.AcceptanceDecision Decision, string! Reason, System.Collections.Generic.IReadOnlyList<string!>! Signals) -> void
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Decision.get -> Ashlar.Core.Domain.Bricks.Ports.AcceptanceDecision
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Decision.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Reason.get -> string!
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Reason.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Signals.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Signals.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Acceptance.get -> Ashlar.Core.Domain.Bricks.Ports.IAcceptanceEvaluator?
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Acceptance.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.AgentProfile() -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Capabilities.get -> Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities!
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Capabilities.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.ConstraintManifest.get -> Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest?
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.ConstraintManifest.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Deployment.get -> Ashlar.Core.Domain.Bricks.Ports.IDeploymentTarget?
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Deployment.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.DeterministicDrafter.get -> Ashlar.Core.Domain.Bricks.Ports.IDeterministicDrafter?
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.DeterministicDrafter.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Drafter.get -> Ashlar.Core.Domain.Bricks.Ports.IArtifactDrafter!
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Drafter.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Knowledge.get -> Ashlar.Core.Domain.Bricks.DomainKnowledge!
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Knowledge.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Llm.get -> Ashlar.Core.Domain.Bricks.LLMConfig!
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Llm.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Sandbox.get -> Ashlar.Core.Domain.Bricks.Ports.ISandboxProvider?
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Sandbox.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.TargetId.get -> string!
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.TargetId.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Tunables.get -> Ashlar.Core.Domain.Bricks.Ports.GenerationTunables!
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Tunables.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Validators.get -> System.Collections.Generic.IReadOnlyList<object!>!
+Ashlar.Core.Domain.Bricks.Ports.AgentProfile.Validators.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities.AgentProfileCapabilities() -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities.SupportsDeployment.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities.SupportsDeployment.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities.SupportsDeterministic.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities.SupportsDeterministic.init -> void
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities.SupportsSandbox.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.AgentProfileCapabilities.SupportsSandbox.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.AllowedUsings.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.AllowedUsings.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.BaseTypeInstruction() -> string!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.BrickConstraintManifest() -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.ClassNameInstruction() -> string!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.ForbiddenApiInstruction(string! token) -> string!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.ForbiddenApiTokens.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.ForbiddenApiTokens.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.ForbiddenNamespaceInstruction(string! ns) -> string!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.ForbiddenNamespaces.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.ForbiddenNamespaces.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.NamespaceInstruction() -> string!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RenderInstructions() -> string!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredBaseType.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredBaseType.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredClassNameSuffix.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredClassNameSuffix.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredDeclarationInstruction(string! declaration) -> string!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredDeclarations.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredDeclarations.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredNamespace.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.RequiredNamespace.init -> void
+Ashlar.Core.Domain.Bricks.Ports.BrickConstraintManifest.UsingsInstruction() -> string!
+Ashlar.Core.Domain.Bricks.Ports.DefaultAcceptanceEvaluator
+Ashlar.Core.Domain.Bricks.Ports.DefaultAcceptanceEvaluator.DefaultAcceptanceEvaluator() -> void
+Ashlar.Core.Domain.Bricks.Ports.DefaultAcceptanceEvaluator.Evaluate(Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext! context) -> Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult!
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult.DeploymentApplyResult() -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult.Destination.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult.Destination.init -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult.Message.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult.Message.init -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult.Succeeded.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult.Succeeded.init -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.DeploymentSmokeResult(bool Ran, bool Succeeded, string? Detail, System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Outputs) -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Detail.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Detail.init -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Outputs.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Outputs.init -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Ran.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Ran.init -> void
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Succeeded.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Succeeded.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact.Content.get -> string!
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact.Content.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact.Files.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact.Files.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact.GeneratedArtifact() -> void
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact.Provenance.get -> Ashlar.Core.Domain.Bricks.GenerativeProvenance?
+Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact.Provenance.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.ConstraintInstructions.get -> string!
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.ConstraintInstructions.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.ContextHash.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.ContextHash.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.GenerationRequest() -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.Grounding.get -> string!
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.Grounding.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.OutputPath.get -> string?
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.OutputPath.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.Overrides.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>!
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.Overrides.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.TargetId.get -> string!
+Ashlar.Core.Domain.Bricks.Ports.GenerationRequest.TargetId.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables.GenerationTunables() -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables.MaxRepairAttempts.get -> int
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables.MaxRepairAttempts.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables.PreferDeterministic.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables.PreferDeterministic.init -> void
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables.RequireHumanReviewForModelDrafts.get -> bool
+Ashlar.Core.Domain.Bricks.Ports.GenerationTunables.RequireHumanReviewForModelDrafts.init -> void
+Ashlar.Core.Domain.Bricks.Ports.IAcceptanceEvaluator
+Ashlar.Core.Domain.Bricks.Ports.IAcceptanceEvaluator.Evaluate(Ashlar.Core.Domain.Bricks.Ports.AcceptanceContext! context) -> Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult!
+Ashlar.Core.Domain.Bricks.Ports.IAcceptanceGatedDeploymentTarget
+Ashlar.Core.Domain.Bricks.Ports.IAcceptanceGatedDeploymentTarget.ApplyAsync(Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact! artifact, Ashlar.Core.Domain.Bricks.Ports.IAcceptanceEvaluator! acceptance, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult!>!
+Ashlar.Core.Domain.Bricks.Ports.IArtifactDrafter
+Ashlar.Core.Domain.Bricks.Ports.IArtifactDrafter.DraftAsync(Ashlar.Core.Domain.Bricks.Ports.GenerationRequest! request, System.Collections.Generic.IReadOnlyList<string!>! priorFeedback, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact!>!
+Ashlar.Core.Domain.Bricks.Ports.IDeploymentTarget
+Ashlar.Core.Domain.Bricks.Ports.IDeploymentTarget.ApplyAsync(Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact! artifact, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ashlar.Core.Domain.Bricks.Ports.DeploymentApplyResult!>!
+Ashlar.Core.Domain.Bricks.Ports.IDeterministicDrafter
+Ashlar.Core.Domain.Bricks.Ports.IDeterministicDrafter.TryDraft(Ashlar.Core.Domain.Bricks.Ports.GenerationRequest! request, out Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact? artifact) -> bool
+Ashlar.Core.Domain.Bricks.Ports.ISandboxProvider
+Ashlar.Core.Domain.Bricks.Ports.ISandboxProvider.BuildSpec(Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact! artifact, string! scratchRoot) -> object!
+const Ashlar.Core.Domain.Bricks.Ports.DefaultAcceptanceEvaluator.HumanReviewSignal = "requires-human-review" -> string!
+static Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Rollback(string! reason, System.Collections.Generic.IReadOnlyList<string!>? signals = null) -> Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult!
+static Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult.Ship(string! reason, System.Collections.Generic.IReadOnlyList<string!>? signals = null) -> Ashlar.Core.Domain.Bricks.Ports.AcceptanceResult!
+static Ashlar.Core.Domain.Bricks.Ports.DefaultAcceptanceEvaluator.Instance.get -> Ashlar.Core.Domain.Bricks.Ports.DefaultAcceptanceEvaluator!
+static Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Fail(string? detail, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? outputs = null) -> Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult!
+static Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.NotRun.get -> Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult!
+static Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Pass(string? detail, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? outputs = null) -> Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult!

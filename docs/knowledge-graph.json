@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 153,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 735,
-    "declared_facts": 4429,
+    "test_files_declaring_facts": 736,
+    "declared_facts": 4444,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4992,6 +4992,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 4,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/DiagnosticSuppressionConventionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 15,
       "in_cert_gate_filter": true
     },
     {

@@ -4,7 +4,6 @@ using Ashlar.Core.Domain.Bricks;
 using Ashlar.Infrastructure.Sdk.Ports;
 
 namespace Ashlar.Hosting.Sdk.Builders;
-#pragma warning disable CS0618 // AshlarSdkBuilder is an obsolete type forwarder in this file
 
 /// <summary>
 /// Default implementation of <see cref="IAshlarSdkBuilder"/>. Configures <see cref="AshlarSdkOptions"/> for kernel registration.

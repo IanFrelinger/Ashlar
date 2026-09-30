@@ -1,5 +1,3 @@
-#pragma warning disable RS0016
-
 namespace Ashlar.Core.Domain.Bricks.Ports;
 
 /// <summary>
