@@ -215,4 +215,11 @@ Run `environment-setup-gate-v1` in GitHub Actions to validate dependency bootstr
 - `macos-latest`: `scripts/setup/setup.sh check` + `scripts/setup/setup.sh restore`
 - `windows-latest`: `scripts/setup/setup.ps1 -Mode check` + `scripts/setup/setup.ps1 -Mode restore`
 
+Those three are floating labels, and `environment-setup-gate-v1` (advisory) still uses them, so a green
+run says which image it ran on only in its "Set up job" step. On 2026-09-30 the three labels resolved to
+`ubuntu-24.04`, `macos-26-arm64` and `windows-2025-vs2026`; from 2026-10-19 GitHub starts moving
+`ubuntu-latest` to Ubuntu 26.04 (actions/runner-images#14748). The required readiness lanes
+(`full-platform-readiness-gate.yml`) are pinned to `ubuntu-24.04`, `macos-26` and
+`windows-2025-vs2026` instead.
+
 This gate validates the repo can be prepared cleanly on each OS before functional/runtime gates run.

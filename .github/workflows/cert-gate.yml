@@ -17,7 +17,7 @@ concurrency:
 jobs:
   cert-gate:
     name: cert-gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Checkout

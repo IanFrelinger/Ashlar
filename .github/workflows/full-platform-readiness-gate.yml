@@ -162,7 +162,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   changes:
     name: "Changes — core paths touched?"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -344,13 +344,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             label: Linux
             setup_cmd: bash scripts/setup/setup.sh
-          - os: macos-latest
+          - os: macos-26
             label: macOS
             setup_cmd: bash scripts/setup/setup.sh
-          - os: windows-latest
+          - os: windows-2025-vs2026
             label: Windows
             setup_cmd: pwsh scripts/setup/setup.ps1 -Mode
 
@@ -520,7 +520,7 @@ jobs:
     name: "${{ matrix.label }} (container) — setup · discover · dry-run"
     needs: changes
     if: needs.changes.outputs.run_heavy == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -620,7 +620,7 @@ jobs:
     name: "Docker CLI image — build · smoke · discover"
     needs: changes
     if: needs.changes.outputs.run_heavy == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -653,7 +653,7 @@ jobs:
     # Production images are never built on PRs (kept from before the PR trigger existed);
     # on push/schedule/dispatch they additionally follow the shared run_heavy decision.
     if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && needs.changes.outputs.run_heavy == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Builds take ~1 minute each (layer cache); the smoke below is bounded at 2 minutes.
     # The previous 90-minute budget only ever measured how long a hung smoke could hang.
     timeout-minutes: 20
@@ -707,7 +707,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   readiness-summary:
     name: "Readiness summary"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [changes, native-platform, container-platform, docker-cli-image, docker-all-images]
     if: always()
     # `verdict` distinguishes "every platform passed" from "no platform ran". Both exit 0 - this is a
