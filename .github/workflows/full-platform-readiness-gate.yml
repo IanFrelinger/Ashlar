@@ -44,6 +44,16 @@ on:
       - "src/Ashlar.Core.Application/**"
       - "src/Ashlar.Brick.Contracts/**"
       - "src/Ashlar.Policies/**"
+      # The code src/Ashlar.Tests.Kernel actually tests. Its 412 SPEC-006 admission and signing
+      # cases run only in the heavy lanes below, and those lanes are diff-conditional - so before
+      # these four entries, editing GateStore.cs or AdmissionGate.cs skipped the tests that guard
+      # them while editing the tests re-ran them. Ashlar.Analyzers is here because it is a
+      # build-time analyzer of Ashlar.Core.Application (OutputItemType="Analyzer"), so breaking it
+      # breaks the kernel suite's BUILD, not its assertions.
+      - "src/Ashlar.Manifest/**"
+      - "src/Ashlar.Policies.Dev/**"
+      - "src/Ashlar.Certification.Contracts/**"
+      - "src/Ashlar.Analyzers/**"
       - "src/Ashlar.Tools.Assembly/**"
       - "src/Ashlar.Tools.Dev/**"
       - "src/Ashlar.Transport.Grpc/**"
@@ -144,6 +154,13 @@ jobs:
             "src/Ashlar.Core.Application/**"
             "src/Ashlar.Brick.Contracts/**"
             "src/Ashlar.Policies/**"
+            # The code src/Ashlar.Tests.Kernel actually tests - see the matching note in the
+            # push trigger above. Editing GateStore.cs or AdmissionGate.cs used to skip the 412
+            # SPEC-006 cases that guard them.
+            "src/Ashlar.Manifest/**"
+            "src/Ashlar.Policies.Dev/**"
+            "src/Ashlar.Certification.Contracts/**"
+            "src/Ashlar.Analyzers/**"
             "src/Ashlar.Tools.Assembly/**"
             "src/Ashlar.Tools.Dev/**"
             "src/Ashlar.Transport.Grpc/**"
