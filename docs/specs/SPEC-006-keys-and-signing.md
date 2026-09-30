@@ -251,13 +251,16 @@ Rules:
   `ashlar ci verify` -> `ashlar validate`, whose unfiltered recursive sweep discovers the project
   and runs it on Linux, macOS and Windows. Observed green three times in readiness run
   36639604217 (master `f5846d3a`), 412 cases per lane. Two caveats a reader should carry, because
-  they are the difference between a lane and a receipt. Those heavy lanes are diff-conditional:
-  `src/Ashlar.Tests.Kernel/**` is in both readiness path lists, so editing these tests re-runs
-  them, but `src/Ashlar.Manifest/**` - where `GateStore`, `AdmissionGate` and the signing types in
-  this rule actually live - is in neither, so a change confined to the code under test does not
-  re-run the tests that guard it. And the sweep emits no per-project count, while a project that
-  selects zero tests still passes (`ValidationServiceAdapter.cs:248`), so a green sweep does not by
-  itself prove these facts executed. [corrected 2026-09-29]
+  they are the difference between a lane and a receipt. Those heavy lanes are diff-conditional, and
+  a lane that is SKIPPED is counted as a pass by `readiness-summary`. Both readiness path lists now
+  route the code this rule is about - `src/Ashlar.Manifest/**`, `src/Ashlar.Policies.Dev/**`,
+  `src/Ashlar.Certification.Contracts/**` and `src/Ashlar.Analyzers/**` were added alongside
+  `src/Ashlar.Tests.Kernel/**` - so editing `GateStore` or `AdmissionGate` re-runs the 412 cases
+  that guard them. It did not before. A diff that touches none of those entries still skips the
+  lanes, which is the design; it is not evidence about this rule either way. And the sweep emits no
+  per-project count, while a project that selects zero tests still passes
+  (`ValidationServiceAdapter.cs:248`), so a green sweep does not by itself prove these facts
+  executed. [corrected 2026-09-29; routing 2026-09-30]
 
   *Residuals, recorded rather than papered over. Every anchor this rule rests on is a file in the
   state root, and each residual below is demonstrated by a fact in `GateSignatureResidualTests`
