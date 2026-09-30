@@ -55,6 +55,10 @@ on:
 #      - 'src/Ashlar.Tests.Application/**'
 #      - 'application/src/Ashlar.Tests.CLI/**'
 #
+# Every filtered `dotnet test` below pins -f and writes its own TRX, and each step ends with
+# scripts/ci/zero-test-guard.sh over those files. Before, each ran both target frameworks under ONE
+# LogFileName, so net10.0's TRX overwrote net8.0's ("WARNING: Overwriting results file") and a
+# framework whose filter matched nothing left no trace in the file the publish step read.
 jobs:
   cross-platform:
     name: Build & Test - ${{ matrix.os }}
@@ -86,117 +90,224 @@ jobs:
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 450s \
             --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=smoke-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=smoke-net8.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 450s \
+            --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=smoke-net10.0-${{ matrix.os }}.trx" \
             --results-directory test-results
           dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 60s \
             --filter "FullyQualifiedName~RuntimeStudioWhiteBoxSmokeTests" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=smoke-whitebox-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=smoke-whitebox-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 60s \
+            --filter "FullyQualifiedName~RuntimeStudioWhiteBoxSmokeTests" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=smoke-whitebox-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/smoke-net8.0-${{ matrix.os }}.trx test-results/smoke-net10.0-${{ matrix.os }}.trx test-results/smoke-whitebox-net8.0-${{ matrix.os }}.trx test-results/smoke-whitebox-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (playground)
         if: github.event.inputs.scope == 'playground'
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 900s \
             --filter "Category=Playground" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=playground-infra-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=playground-infra-net8.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 900s \
+            --filter "Category=Playground" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=playground-infra-net10.0-${{ matrix.os }}.trx" \
             --results-directory test-results
           dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 300s \
             --filter "Category=Playground" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=playground-bg-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=playground-bg-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 300s \
+            --filter "Category=Playground" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=playground-bg-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/playground-infra-net8.0-${{ matrix.os }}.trx test-results/playground-infra-net10.0-${{ matrix.os }}.trx test-results/playground-bg-net8.0-${{ matrix.os }}.trx test-results/playground-bg-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (dogfood)
         if: github.event.inputs.scope == 'dogfood'
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 180s \
             --filter "FullyQualifiedName~Dogfood" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=dogfood-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=dogfood-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 180s \
+            --filter "FullyQualifiedName~Dogfood" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=dogfood-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/dogfood-net8.0-${{ matrix.os }}.trx test-results/dogfood-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (integration)
         if: github.event.inputs.scope == 'integration' || github.event.inputs.scope == 'full'
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 720s \
             --filter "Category=Integration" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=integration-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=integration-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 720s \
+            --filter "Category=Integration" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=integration-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/integration-net8.0-${{ matrix.os }}.trx test-results/integration-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (persistence)
         if: github.event.inputs.scope == 'persistence' || github.event.inputs.scope == 'full'
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 60s \
             --filter "FullyQualifiedName~InMemoryPersistenceTests" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=persistence-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=persistence-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 60s \
+            --filter "FullyQualifiedName~InMemoryPersistenceTests" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=persistence-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/persistence-net8.0-${{ matrix.os }}.trx test-results/persistence-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (e2e)
         if: github.event.inputs.scope == 'e2e' || github.event.inputs.scope == 'full'
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 900s \
             --filter "Category=E2E" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=e2e-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=e2e-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 900s \
+            --filter "Category=E2E" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=e2e-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/e2e-net8.0-${{ matrix.os }}.trx test-results/e2e-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (adaptation)
         if: github.event.inputs.scope == 'adaptation'
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 90s \
             --filter "Category=Adaptation" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=adaptation-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=adaptation-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 90s \
+            --filter "Category=Adaptation" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=adaptation-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/adaptation-net8.0-${{ matrix.os }}.trx test-results/adaptation-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (trust)
         if: github.event.inputs.scope == 'trust' || github.event.inputs.scope == 'full'
         shell: bash
         run: |
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 180s \
             --filter "FullyQualifiedName~Trust" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=trust-infra-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=trust-infra-net8.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 180s \
+            --filter "FullyQualifiedName~Trust" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=trust-infra-net10.0-${{ matrix.os }}.trx" \
             --results-directory test-results
           dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 60s \
             --filter "FullyQualifiedName~Trust" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=trust-bg-${{ matrix.os }}.trx" \
+            --logger "trx;LogFileName=trust-bg-net8.0-${{ matrix.os }}.trx" \
             --results-directory test-results
+          dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 60s \
+            --filter "FullyQualifiedName~Trust" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=trust-bg-net10.0-${{ matrix.os }}.trx" \
+            --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/trust-infra-net8.0-${{ matrix.os }}.trx test-results/trust-infra-net10.0-${{ matrix.os }}.trx test-results/trust-bg-net8.0-${{ matrix.os }}.trx test-results/trust-bg-net10.0-${{ matrix.os }}.trx
 
       - name: Run tests (full Infrastructure)
         if: github.event.inputs.scope == 'full'

@@ -9,18 +9,24 @@ cd "$ROOT"
 
 INFRA="src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
 ORCH="src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj"
+TRX_DIR="test-results/kernel-gate-tier-e"
+rm -rf "$TRX_DIR"
 
 echo "== Tier E: OpenTelemetry registration =="
 dotnet build "$INFRA" -v minimal
 dotnet test "$INFRA" -f net8.0 --no-build \
   --filter "FullyQualifiedName~OpenTelemetryTests" \
+  --logger "trx;LogFileName=opentelemetry.trx" --results-directory "$TRX_DIR" \
   --blame-hang-timeout 180s --blame-hang-dump-type none
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/opentelemetry.trx"
 
 echo "== Tier E: orchestration performance-scoped tests =="
 dotnet build "$ORCH" -v minimal
 dotnet test "$ORCH" -f net8.0 --no-build \
   --filter "FullyQualifiedName~Ashlar.Tests.Orchestration.Performance" \
+  --logger "trx;LogFileName=orchestration-performance.trx" --results-directory "$TRX_DIR" \
   --blame-hang-timeout 120s --blame-hang-dump-type none
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/orchestration-performance.trx"
 
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   echo "== Tier E: production-shaped Compose dry run (portal) =="

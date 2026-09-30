@@ -39,6 +39,10 @@ jobs:
           set -euo pipefail
           mkdir -p test-results
           docker compose -f deploy/compose/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-ubuntu test-ubuntu
+          # The service's pinned filter (FullyQualifiedName~BaseFrameworkSmokeTests) exits 0 when it
+          # matches nothing, and the service then writes ok:true whether or not a test ran. Its TRX
+          # lands here through the ../../test-results volume; the guard fails the step if it ran nothing.
+          bash scripts/ci/zero-test-guard.sh test-results/ubuntu-baseframework.trx
           test -f test-results/ubuntu-results.json
           test -f test-results/ubuntu-logs.txt
 
@@ -77,6 +81,7 @@ jobs:
           path: |
             test-results/ubuntu-results.json
             test-results/ubuntu-logs.txt
+            test-results/ubuntu-baseframework.trx
             ${{ runner.temp }}/compose-test-summary.txt
           retention-days: 14
 

@@ -6,6 +6,8 @@ cd "$ROOT"
 
 CLI="application/src/Ashlar.CLI/Ashlar.CLI.csproj"
 CLI_TESTS="application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj"
+TRX_DIR="test-results/security-gate-tier-c"
+rm -rf "$TRX_DIR"
 
 echo "== Security Tier C: package-admission and untrusted-output suites =="
 dotnet build "$CLI_TESTS" -v minimal
@@ -32,7 +34,9 @@ dotnet build "$CLI_TESTS" -v minimal
 # workflow's `paths:` select the CLI directories these suites cover.
 ASHLAR_ALLOW_MOCK=1 dotnet test "$CLI_TESTS" -f net10.0 --no-build \
   --filter "FullyQualifiedName~SafePackageReadTests|FullyQualifiedName~PkgCommandTests|FullyQualifiedName~UntrustedTextTests|FullyQualifiedName~MeshLanPartyTests|(FullyQualifiedName~UnitTestBridgeTests&DisplayName~TrustCommandTests)" \
+  --logger "trx;LogFileName=trust-cli.trx" --results-directory "$TRX_DIR" \
   --blame-hang-timeout 120s --blame-hang-dump-type none
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/trust-cli.trx"
 
 echo "== Security Tier C: trust boundary + dashboard JSON smoke =="
 dotnet build "$CLI" -v minimal

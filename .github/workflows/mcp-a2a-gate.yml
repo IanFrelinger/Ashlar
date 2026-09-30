@@ -107,4 +107,6 @@ jobs:
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             -f net10.0 \
             --filter "FullyQualifiedName~McpA2AProtocolIngress|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests" \
+            --logger "trx;LogFileName=protocol-prodstyle.trx" --results-directory test-results \
             --blame-hang-timeout 720s
+          bash scripts/ci/zero-test-guard.sh test-results/protocol-prodstyle.trx

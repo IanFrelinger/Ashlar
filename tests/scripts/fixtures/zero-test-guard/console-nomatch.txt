@@ -1,0 +1,4 @@
+Test run for /repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+No test matches the given testcase filter `FullyQualifiedName~AshlarApiKeyAuthMiddlewareTests|FullyQualifiedName~MeshSecurityMiddlewareTests|FullyQualifiedName~AshlarApiOpenInternetReadinessTests|FullyQualifiedName~SecurityAdvisoryEndpointTests|FullyQualifiedName~SecurityAnalysisRuleTests` in /repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll
+

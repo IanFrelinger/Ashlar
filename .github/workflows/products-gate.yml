@@ -51,6 +51,16 @@ jobs:
       - name: Distributed contract tests
         run: |
           set -euo pipefail
+          # One invocation per target framework, each with its own TRX: without -f both frameworks
+          # run and the second overwrites the first's TRX, hiding a framework that matched nothing.
           dotnet test src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj \
+            -f net8.0 \
             --filter FullyQualifiedName~DistributedContractTests \
+            --logger "trx;LogFileName=distributed-contracts-net8.0.trx" --results-directory test-results \
             --blame-hang-timeout 120s
+          dotnet test src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj \
+            -f net10.0 \
+            --filter FullyQualifiedName~DistributedContractTests \
+            --logger "trx;LogFileName=distributed-contracts-net10.0.trx" --results-directory test-results \
+            --blame-hang-timeout 120s
+          bash scripts/ci/zero-test-guard.sh test-results/distributed-contracts-net8.0.trx test-results/distributed-contracts-net10.0.trx

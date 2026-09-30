@@ -191,7 +191,9 @@ jobs:
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
             -f net10.0 \
             --filter "FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.VirtualProduction.FrameworkVirtualProdDemosTests.Virtual_prod_IAshlarClient_GetStatusAsync_matches_console_and_blazor_demos" \
+            --logger "trx;LogFileName=virtual-prod-client.trx" --results-directory test-results \
             --verbosity minimal
+          bash scripts/ci/zero-test-guard.sh test-results/virtual-prod-client.trx
 
   pack-hosting-graph-alignment:
     name: Pack script vs Ashlar.Hosting graph
