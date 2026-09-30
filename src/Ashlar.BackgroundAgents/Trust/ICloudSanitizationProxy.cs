@@ -2,7 +2,8 @@ namespace Ashlar.BackgroundAgents.Trust;
 
 /// <summary>
 /// Sanitizes outgoing LLM/vision context before delegation to IProviderFactory.
-/// Blocks if classification uncertain. Logs all redactions.
+/// Blocks if classification uncertain -- and an implementation that cannot inspect content at all
+/// (no content filter) must block, never allow. Logs all redactions.
 /// </summary>
 public interface ICloudSanitizationProxy
 {

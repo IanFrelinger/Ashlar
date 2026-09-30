@@ -6,18 +6,29 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// <summary>
 /// In-memory vector store. Stores embeddings and text; supports sensitivity-filtered search.
 /// </summary>
+/// <remarks>
+/// <para><b>Search always filters, and fails closed.</b> A null, blank or unknown clearance is the
+/// registry's FLOOR (Public for the primitives), and an unmarked or unknown document label is its
+/// MOST RESTRICTIVE level -- see <see cref="DataSensitivityFallbacks"/>. This store used to apply
+/// no filter at all unless BOTH a registry was supplied AND the clearance resolved, and it returned
+/// every unmarked document to every caller.</para>
+/// <para><b>Re-indexing never lowers a label.</b> <see cref="IndexAsync"/> refuses to replace an
+/// existing id with a lower-labelled document; remove it first if the lower label is right.</para>
+/// </remarks>
 public sealed class InMemoryVectorStore : IVectorStore
 {
     private readonly ConcurrentDictionary<string, (string Text, float[] Embedding, string? SensitivityLevelName)> _documents = new();
-    private readonly IDataSensitivityRegistry? _sensitivityRegistry;
+    private readonly IDataSensitivityRegistry _sensitivityRegistry;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InMemoryVectorStore"/> class.
     /// </summary>
-    /// <param name="sensitivityRegistry">Optional registry for sensitivity-level filtering in search.</param>
+    /// <param name="sensitivityRegistry">Registry that orders sensitivity levels. When null, a
+    /// registry of the five primitive levels is used, so filtering is never switched off by
+    /// omission.</param>
     public InMemoryVectorStore(IDataSensitivityRegistry? sensitivityRegistry = null)
     {
-        _sensitivityRegistry = sensitivityRegistry;
+        _sensitivityRegistry = sensitivityRegistry ?? new DataSensitivityRegistry();
     }
 
     /// <inheritdoc />
@@ -30,7 +41,17 @@ public sealed class InMemoryVectorStore : IVectorStore
     {
         if (string.IsNullOrEmpty(id))
             throw new ArgumentNullException(nameof(id));
-        _documents[id] = (text ?? string.Empty, (float[])embedding.Clone(), sensitivityLevelName);
+        var incoming = (text ?? string.Empty, (float[])embedding.Clone(), sensitivityLevelName);
+        // AddOrUpdate, not an indexer write, so the downgrade check and the replacement see the same
+        // existing document even under a concurrent writer.
+        _documents.AddOrUpdate(
+            id,
+            incoming,
+            (key, existing) =>
+            {
+                RagSensitivity.ThrowIfDowngrade(_sensitivityRegistry, key, existing.SensitivityLevelName, sensitivityLevelName);
+                return incoming;
+            });
         return Task.CompletedTask;
     }
 
@@ -51,21 +72,15 @@ public sealed class InMemoryVectorStore : IVectorStore
         if (!VectorMath.IsRankable(embedding))
             throw VectorMath.UnrankableQuery(nameof(embedding));
 
-        IDataSensitivityLevel? maxLevel = null;
-        if (!string.IsNullOrWhiteSpace(maxSensitivityLevelName) && _sensitivityRegistry != null)
-            maxLevel = _sensitivityRegistry.GetByName(maxSensitivityLevelName);
+        var clearance = _sensitivityRegistry.ResolveClearance(maxSensitivityLevelName);
 
         var querySpan = embedding.AsSpan();
         var results = new List<VectorSearchResult>();
 
         foreach (var (docId, doc) in _documents)
         {
-            if (maxLevel != null && !string.IsNullOrEmpty(doc.SensitivityLevelName))
-            {
-                var docLevel = _sensitivityRegistry!.GetByName(doc.SensitivityLevelName);
-                if (docLevel == null || !_sensitivityRegistry.CanAccess(maxLevel, docLevel))
-                    continue;
-            }
+            if (!RagSensitivity.CanRead(_sensitivityRegistry, clearance, doc.SensitivityLevelName))
+                continue;
 
             // Skip a document that cannot be ranked against this query rather than scoring it --
             // a different dimension, or a zero-magnitude embedding. Both used to arrive as the

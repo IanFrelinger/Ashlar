@@ -34,7 +34,7 @@ public class KnowledgeBaseIndexerTests : IDisposable
         var service = new RAGService(store, gen);
         var indexer = new KnowledgeBaseIndexer(service);
 
-        var count = await indexer.IndexDocumentsAsync(new[] { _tempFile }, null, default);
+        var count = await indexer.IndexDocumentsAsync(new[] { _tempFile }, "Public", default);
 
         count.Should().Be(1);
         var results = await service.SearchAsync("RAG", 5, 0.0, null, default);

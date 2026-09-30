@@ -15,7 +15,7 @@ public class RAGServiceTests
         var gen = new TokenEmbeddingGenerator(32);
         var service = new RAGService(store, gen);
 
-        await service.IndexAsync("id1", "Ashlar is a game framework", null, default);
+        await service.IndexAsync("id1", "Ashlar is a game framework", "Public", default);
         var results = await service.SearchAsync("Ashlar framework", 5, 0.0, null, default);
 
         results.Should().HaveCount(1);
@@ -29,7 +29,7 @@ public class RAGServiceTests
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(32);
         var service = new RAGService(store, gen);
-        await service.IndexAsync("id1", "content", null, default);
+        await service.IndexAsync("id1", "content", "Public", default);
         await service.ClearAsync(default);
 
         var results = await service.SearchAsync("content", 5, 0.0, null, default);

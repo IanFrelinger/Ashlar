@@ -21,10 +21,12 @@ public sealed class ChunkRecord
 
     /// <summary>
     /// Trust / sensitivity tier tag (e.g. Public, Internal, Confidential, Secret, TopSecret).
-    /// Must be ≤ caller tier to be returned.
+    /// Must be ≤ caller tier to be returned. Defaults to the empty string -- UNLABELLED -- which
+    /// <see cref="TrustTierOrder.RecordRank"/> ranks at the top, so a record built without a tier
+    /// is served only to the top clearance. It used to default to "Public", which published it.
     /// </summary>
     [VectorStoreData(IsIndexed = true)]
-    public string TrustTier { get; set; } = "Public";
+    public string TrustTier { get; set; } = string.Empty;
 
     /// <summary>When the chunk was indexed (UTC).</summary>
     [VectorStoreData]

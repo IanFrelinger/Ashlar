@@ -28,13 +28,53 @@ public sealed class VectorDataRagService
     }
 
     /// <summary>Indexes a chunk (embed + upsert).</summary>
+    /// <remarks>
+    /// <para><b>An omitted tier is unlabelled, not Public.</b> It is stored as the empty string
+    /// and <see cref="TrustTierOrder.RecordRank"/> ranks it at the top, so it is served only to
+    /// the top clearance. The parameter used to default to "Public", which published every chunk
+    /// whose caller forgot to classify it.</para>
+    /// <para><b>Re-indexing never lowers a label.</b> Upserting an existing key at a LOWER tier than
+    /// the one it is stored at is refused (and audited as <c>rag:index</c> / <c>denied</c>): the
+    /// knowledge-base indexer keys chunks on the full file path, so re-running an index over the
+    /// same files with a lower label used to downgrade previously Secret content silently.
+    /// Lowering a label is a separate, explicit act: <see cref="RemoveAsync"/> first. The same or
+    /// a higher tier is accepted. The read-then-upsert is not atomic across concurrent writers to
+    /// one key; it guards the sequential re-index, which is the path that downgraded.</para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The key is stored at a higher tier.</exception>
     public async Task IndexAsync(
         string key,
         string text,
         string? sourceUri = null,
-        string trustTier = "Public",
+        string? trustTier = null,
         CancellationToken cancellationToken = default)
     {
+        var tier = TrustTierOrder.NormalizeRecordTier(trustTier);
+
+        var existing = await _collection.GetAsync(key, options: null, cancellationToken).ConfigureAwait(false);
+        if (existing is not null
+            && TrustTierOrder.RecordRank(tier) < TrustTierOrder.RecordRank(existing.TrustTier))
+        {
+            var stored = Describe(existing.TrustTier);
+            var requested = Describe(tier);
+            _auditor.Record(new ChatInvocationAuditRecord
+            {
+                TargetKey = "rag:index",
+                Outcome = "denied",
+                PolicyDecisions = new[]
+                {
+                    "event=downgrade_refused",
+                    $"stored_tier={stored}",
+                    $"requested_tier={requested}",
+                },
+            });
+            throw new InvalidOperationException(
+                $"Refusing to re-index '{key}' at '{requested}': it is already stored at '{stored}', and "
+                + "re-indexing must never lower a record's sensitivity. If the lower label is correct, "
+                + "remove the record first and index it again -- lowering a label has to be a separate, "
+                + "deliberate act.");
+        }
+
         var embedding = await EmbedAsync(text, cancellationToken).ConfigureAwait(false);
         var now = DateTimeOffset.UtcNow;
         await _collection.UpsertAsync(new ChunkRecord
@@ -42,7 +82,7 @@ public sealed class VectorDataRagService
             Key = key,
             Text = text,
             SourceUri = sourceUri ?? string.Empty,
-            TrustTier = trustTier,
+            TrustTier = tier,
             CreatedAt = now,
             UpdatedAt = now,
             Embedding = embedding,
@@ -52,18 +92,26 @@ public sealed class VectorDataRagService
     /// <summary>
     /// Searches for similar chunks, excluding records above <paramref name="callerMaxTrustTier"/>.
     /// </summary>
+    /// <remarks>
+    /// An omitted or unrecognised <paramref name="callerMaxTrustTier"/> is the FLOOR
+    /// (<see cref="TrustTierOrder.Floor"/>), never everything. The <c>rag:search</c> audit record
+    /// carries the clearance actually applied (<c>caller_tier=</c>) and why
+    /// (<c>caller_tier_basis=</c> explicit | omitted | unrecognised), so a floored search can be
+    /// told apart from one the caller asked for.
+    /// </remarks>
     public async Task<IReadOnlyList<VectorSearchResult<ChunkRecord>>> SearchAsync(
         string query,
-        string callerMaxTrustTier,
+        string? callerMaxTrustTier,
         int top = 5,
         double? minScore = null,
         CancellationToken cancellationToken = default)
     {
         var embedding = await EmbedAsync(query, cancellationToken).ConfigureAwait(false);
-        var maxRank = TrustTierOrder.Rank(callerMaxTrustTier);
+        var (appliedTier, basis) = TrustTierOrder.ResolveCaller(callerMaxTrustTier);
+        var maxRank = TrustTierOrder.CallerRank(appliedTier);
         var options = new VectorSearchOptions<ChunkRecord>
         {
-            Filter = r => TrustTierOrder.Rank(r.TrustTier) <= maxRank,
+            Filter = r => TrustTierOrder.RecordRank(r.TrustTier) <= maxRank,
             ScoreThreshold = minScore,
         };
 
@@ -82,7 +130,8 @@ public sealed class VectorDataRagService
             {
                 "event=retrieval",
                 $"results={results.Count}",
-                $"caller_tier={callerMaxTrustTier}",
+                $"caller_tier={appliedTier}",
+                $"caller_tier_basis={basis}",
             },
         });
 
@@ -130,6 +179,8 @@ public sealed class VectorDataRagService
 
         return Task.FromResult(-1);
     }
+
+    private static string Describe(string? tier) => string.IsNullOrWhiteSpace(tier) ? "(unlabelled)" : tier;
 
     private async Task<float[]> EmbedAsync(string text, CancellationToken cancellationToken)
     {

@@ -7,10 +7,19 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// <summary>
 /// SQLite-backed vector store. Persists embeddings to a SQLite database; search loads and scores in memory.
 /// </summary>
+/// <remarks>
+/// <para><b>Search always filters, and fails closed</b>, exactly as <see cref="InMemoryVectorStore"/>
+/// does: a null, blank or unknown clearance is the registry's FLOOR, and a row with no label (or a
+/// label the registry does not know) is its MOST RESTRICTIVE level. Rows written before this change
+/// with a NULL <c>sensitivity_level_name</c> are therefore visible only to the top clearance until
+/// they are relabelled (remove, then index again).</para>
+/// <para><b>Re-indexing never lowers a label</b>: replacing an id with a lower-labelled row is
+/// refused inside the same transaction that would have written it.</para>
+/// </remarks>
 public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
 {
     private readonly string _connectionString;
-    private readonly IDataSensitivityRegistry? _sensitivityRegistry;
+    private readonly IDataSensitivityRegistry _sensitivityRegistry;
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
 
@@ -25,7 +34,8 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
     /// Initializes a new instance of the <see cref="SqliteVectorStore"/> class.
     /// </summary>
     /// <param name="connectionStringOrPath">SQLite connection string or file path (e.g. "Data Source=rag.db").</param>
-    /// <param name="sensitivityRegistry">Optional registry for sensitivity-level filtering in search.</param>
+    /// <param name="sensitivityRegistry">Registry that orders sensitivity levels. When null, a registry
+    /// of the five primitive levels is used, so filtering is never switched off by omission.</param>
     public SqliteVectorStore(string connectionStringOrPath, IDataSensitivityRegistry? sensitivityRegistry = null)
     {
         if (string.IsNullOrWhiteSpace(connectionStringOrPath))
@@ -33,7 +43,7 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
         _connectionString = connectionStringOrPath.Trim().StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase)
             ? connectionStringOrPath
             : $"Data Source={connectionStringOrPath}";
-        _sensitivityRegistry = sensitivityRegistry;
+        _sensitivityRegistry = sensitivityRegistry ?? new DataSensitivityRegistry();
     }
 
     /// <inheritdoc />
@@ -51,7 +61,23 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
         var blob = FloatArrayToBlob(embedding);
         await using var conn = new SqliteConnection(_connectionString);
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var tx = conn.BeginTransaction();
+
+        await using (var existing = conn.CreateCommand())
+        {
+            existing.Transaction = tx;
+            existing.CommandText = "SELECT sensitivity_level_name FROM rag_vectors WHERE id = $id";
+            existing.Parameters.AddWithValue("$id", id);
+            await using var reader = await existing.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var storedLabel = reader.IsDBNull(0) ? null : reader.GetString(0);
+                RagSensitivity.ThrowIfDowngrade(_sensitivityRegistry, id, storedLabel, sensitivityLevelName);
+            }
+        }
+
         await using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
         cmd.CommandText = """
             INSERT OR REPLACE INTO rag_vectors (id, text, embedding, sensitivity_level_name)
             VALUES ($id, $text, $embedding, $sensitivity_level_name)
@@ -61,6 +87,7 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
         cmd.Parameters.AddWithValue("$embedding", blob);
         cmd.Parameters.AddWithValue("$sensitivity_level_name", (object?)sensitivityLevelName ?? DBNull.Value);
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -84,9 +111,7 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
 
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
 
-        IDataSensitivityLevel? maxLevel = null;
-        if (!string.IsNullOrWhiteSpace(maxSensitivityLevelName) && _sensitivityRegistry != null)
-            maxLevel = _sensitivityRegistry.GetByName(maxSensitivityLevelName);
+        var clearance = _sensitivityRegistry.ResolveClearance(maxSensitivityLevelName);
 
         var results = new List<VectorSearchResult>();
 
@@ -103,12 +128,8 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
             var blob = (byte[]?)reader.GetValue(2);
             var sensitivityLevelName = reader.IsDBNull(3) ? null : reader.GetString(3);
 
-            if (maxLevel != null && !string.IsNullOrEmpty(sensitivityLevelName))
-            {
-                var docLevel = _sensitivityRegistry!.GetByName(sensitivityLevelName);
-                if (docLevel == null || !_sensitivityRegistry.CanAccess(maxLevel, docLevel))
-                    continue;
-            }
+            if (!RagSensitivity.CanRead(_sensitivityRegistry, clearance, sensitivityLevelName))
+                continue;
 
             if (blob == null || blob.Length == 0)
                 continue;
