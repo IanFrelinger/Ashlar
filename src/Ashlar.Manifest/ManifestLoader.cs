@@ -34,12 +34,20 @@ public static class ManifestLoader
         "policy",
     ];
 
-    private static readonly IDeserializer Deserializer = new DeserializerBuilder()
+    /// <summary>
+    /// NEW deserializers for every parse, for the reason given on
+    /// <c>PolicyLoader.NewDeserializer</c>: a YamlDotNet 13.7.1 deserializer is not safe to share
+    /// across threads during its first parses, and a shared one made this loader reject valid
+    /// manifests as "could not be parsed" (seen in <c>ProjectVerifierTests</c>, run 34062198636).
+    /// <c>YamlDeserializerNotSharedConventionTests</c> fails if any static field in this assembly
+    /// holds a YamlDotNet type again.
+    /// </summary>
+    private static IDeserializer NewDeserializer() => new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .IgnoreUnmatchedProperties()
         .Build();
 
-    private static readonly IDeserializer RawDeserializer = new DeserializerBuilder()
+    private static IDeserializer NewRawDeserializer() => new DeserializerBuilder()
         .IgnoreUnmatchedProperties()
         .Build();
 
@@ -71,7 +79,7 @@ public static class ManifestLoader
         Dictionary<string, object>? raw;
         try
         {
-            raw = RawDeserializer.Deserialize<Dictionary<string, object>>(yaml!);
+            raw = NewRawDeserializer().Deserialize<Dictionary<string, object>>(yaml!);
         }
         catch (YamlException ex)
         {
@@ -97,7 +105,7 @@ public static class ManifestLoader
         AshlarManifest? parsed;
         try
         {
-            parsed = Deserializer.Deserialize<AshlarManifest>(yaml!);
+            parsed = NewDeserializer().Deserialize<AshlarManifest>(yaml!);
         }
         catch (YamlException ex)
         {
