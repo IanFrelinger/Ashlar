@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Paths;
 using Ashlar.Core.Application.Execution.Ports;
 
 namespace Ashlar.Infrastructure.Execution.Scratch;
@@ -104,10 +105,7 @@ public sealed class SnapshotManagedFileSet : IManagedFileSet
 
     private static void EnsureUnderRoot(string root, string fullPath)
     {
-        var prefix = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                     + Path.DirectorySeparatorChar;
-        if (!fullPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(fullPath, root, StringComparison.OrdinalIgnoreCase))
+        if (!PathContainment.IsWithin(fullPath, root))
         {
             throw new InvalidOperationException($"managed file escapes destRoot: {fullPath}");
         }

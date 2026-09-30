@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Paths;
 using Ashlar.Tests.Application.Helpers;
 using Xunit;
 
@@ -50,7 +51,7 @@ public abstract class TempDirTestBase : IDisposable
     {
         var tempRoot = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var fullTempDir = Path.GetFullPath(_tempDir);
-        Assert.True(fullTempDir.StartsWith(tempRoot, StringComparison.OrdinalIgnoreCase),
+        Assert.True(PathContainment.IsWithin(fullTempDir, tempRoot),
             $"Temp dir should be under {tempRoot}, got {fullTempDir}");
     }
 }
