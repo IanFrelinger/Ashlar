@@ -644,7 +644,7 @@ static partial class Program
         // ashlar background-agent rag
         var ragCmd = new Command("rag", "RAG (Retrieval Augmented Generation) operations");
         var ragIndexPathsOpt = new Option<string[]>("--paths", "Paths to index (files or directories)") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
-        var ragIndexSensOpt = new Option<string?>("--sensitivity", "Default sensitivity level for indexed documents");
+        var ragIndexSensOpt = new Option<string?>("--sensitivity", "Sensitivity level for the indexed documents (required; e.g. Public, Internal, Confidential, Secret, TopSecret). Omitting it indexes nothing");
         var ragIndexCmd = new Command("index", "Index paths into RAG store") { ragIndexPathsOpt, ragIndexSensOpt };
         ragIndexCmd.SetHandler(
             /// <summary>Async.</summary>
@@ -664,7 +664,7 @@ static partial class Program
             ragSearchQueryOpt,
             new Option<int>("--max-results", () => 5, "Max results"),
             new Option<double>("--min-score", () => 0.0, "Min similarity score"),
-            new Option<string?>("--max-sensitivity", "Max sensitivity level for results")
+            new Option<string?>("--max-sensitivity", "Max sensitivity level for results (your clearance). Omitted means the floor, Public; an unknown level is refused")
         };
         ragSearchCmd.SetHandler(
             /// <summary>Async.</summary>

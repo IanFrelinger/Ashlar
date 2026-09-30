@@ -19,7 +19,9 @@ public sealed class SanitizingProviderFactoryTests
         infraMock.Setup(x => x.ExecuteLLMAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("response");
 
-        var proxy = new CloudSanitizationProxy(contentFilter: null);
+        // A real filter: a proxy with NO filter now blocks every cloud prompt, so it cannot stand in
+        // for "a proxy that allows" any more. "sys"/"user" carry no PII and pass this one.
+        var proxy = new CloudSanitizationProxy(new SensitiveContentFilter());
         var factory = new SanitizingProviderFactory(
             infraMock.Object,
             proxy,
@@ -196,7 +198,7 @@ public sealed class SanitizingProviderFactoryTests
         var infraMock = new Mock<Ashlar.Infrastructure.Execution.IProviderFactory>();
         infraMock.Setup(x => x.IsProviderAvailable("ollama")).Returns(true);
 
-        var proxy = new CloudSanitizationProxy(contentFilter: null);
+        var proxy = new CloudSanitizationProxy(new SensitiveContentFilter());
         var factory = new SanitizingProviderFactory(
             infraMock.Object,
             proxy,

@@ -20,16 +20,19 @@ public sealed class DataSensitivityMarker : IDataSensitivityMarker
     }
 
     /// <summary>
-    /// Get the sensitivity level for a data object.
+    /// Get the sensitivity level for a data object. Unmarked (or null) data is the MOST
+    /// RESTRICTIVE level the registry knows, never Public: nobody classified it, so nothing about
+    /// it may be assumed safe. It used to report Public, which made every unmarked object readable
+    /// by every agent through <see cref="CanAccess"/>.
     /// </summary>
     public IDataSensitivityLevel GetSensitivityLevel(object data)
     {
         if (data == null)
-            return DataSensitivityLevels.Public;
+            return _registry.MostRestrictive();
 
         return _markings.TryGetValue(data, out var level)
             ? level
-            : DataSensitivityLevels.Public;
+            : _registry.MostRestrictive();
     }
 
     /// <summary>

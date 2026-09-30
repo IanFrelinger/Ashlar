@@ -14,7 +14,7 @@ public class SqliteVectorStoreTests
         await using var store = new SqliteVectorStore(path);
         var gen = new TokenEmbeddingGenerator(32);
         var emb = await gen.GenerateAsync("hello sqlite", default);
-        await store.IndexAsync("doc1", "hello sqlite", emb, null, default);
+        await store.IndexAsync("doc1", "hello sqlite", emb, "Public", default);
 
         var queryEmb = await gen.GenerateAsync("hello sqlite", default);
         var results = await store.SearchAsync(queryEmb, 5, 0.0, null, default);
@@ -30,7 +30,7 @@ public class SqliteVectorStoreTests
         var path = Path.Combine(Path.GetTempPath(), $"rag_test_{Guid.NewGuid():N}.db");
         await using var store = new SqliteVectorStore(path);
         var gen = new TokenEmbeddingGenerator(32);
-        await store.IndexAsync("doc1", "text", await gen.GenerateAsync("text", default), null, default);
+        await store.IndexAsync("doc1", "text", await gen.GenerateAsync("text", default), "Public", default);
         await store.RemoveAsync("doc1", default);
 
         var results = await store.SearchAsync(await gen.GenerateAsync("text", default), 5, 0.0, null, default);
@@ -58,7 +58,7 @@ public class SqliteVectorStoreTests
             "stale-doc",
             "hello sqlite",
             await indexedGen.GenerateAsync("hello sqlite", default),
-            null,
+            "Public",
             default);
 
         var queryGen = new TokenEmbeddingGenerator(32);
@@ -79,7 +79,7 @@ public class SqliteVectorStoreTests
         await using var store = new SqliteVectorStore(path);
         var gen = new TokenEmbeddingGenerator(64);
         foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon") })
-            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), "Public", default);
 
         var unrankable = await gen.GenerateAsync("!!!", default);
         var refuse = async () => await store.SearchAsync(unrankable, 5, 0.0, null, default);
@@ -100,8 +100,8 @@ public class SqliteVectorStoreTests
         var path = Path.Combine(Path.GetTempPath(), $"rag_test_{Guid.NewGuid():N}.db");
         await using var store = new SqliteVectorStore(path);
         var gen = new TokenEmbeddingGenerator(64);
-        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), null, default);
-        await store.IndexAsync("empty", "", await gen.GenerateAsync("", default), null, default);
+        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), "Public", default);
+        await store.IndexAsync("empty", "", await gen.GenerateAsync("", default), "Public", default);
 
         var results = await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default);
 
@@ -119,7 +119,7 @@ public class SqliteVectorStoreTests
         var store = new SqliteVectorStore(path);
         var gen = new TokenEmbeddingGenerator(32);
         var emb = await gen.GenerateAsync("hello sqlite", default);
-        await store.IndexAsync("doc1", "hello sqlite", emb, null, default);
+        await store.IndexAsync("doc1", "hello sqlite", emb, "Public", default);
 
         // POSITIVE CONTROL: the store works before disposal, so what follows is about disposal
         // and not about a store that never worked.
@@ -130,7 +130,7 @@ public class SqliteVectorStoreTests
         var search = async () => await store.SearchAsync(emb, 5, 0.0, null, default);
         await search.Should().ThrowAsync<ObjectDisposedException>();
 
-        var index = async () => await store.IndexAsync("doc2", "more", emb, null, default);
+        var index = async () => await store.IndexAsync("doc2", "more", emb, "Public", default);
         await index.Should().ThrowAsync<ObjectDisposedException>();
 
         var count = async () => await store.GetDocumentCountAsync(default);
@@ -155,7 +155,7 @@ public class SqliteVectorStoreTests
         var gen = new TokenEmbeddingGenerator(32);
         var emb = await gen.GenerateAsync("hello sqlite", default);
 
-        var index = async () => await store.IndexAsync("doc1", "hello sqlite", emb, null, default);
+        var index = async () => await store.IndexAsync("doc1", "hello sqlite", emb, "Public", default);
 
         var thrown = await index.Should().ThrowAsync<ObjectDisposedException>();
         thrown.And.Message.Should().NotContain(
@@ -168,7 +168,7 @@ public class SqliteVectorStoreTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"rag_test_{Guid.NewGuid():N}.db");
         var store = new SqliteVectorStore(path);
-        await store.IndexAsync("doc1", "t", await new TokenEmbeddingGenerator(32).GenerateAsync("t", default), null, default);
+        await store.IndexAsync("doc1", "t", await new TokenEmbeddingGenerator(32).GenerateAsync("t", default), "Public", default);
 
         await store.DisposeAsync();
 
@@ -195,7 +195,7 @@ public class SqliteVectorStoreTests
         var gen = new TokenEmbeddingGenerator(32);
 
         var first = new SqliteVectorStore(path);
-        await first.IndexAsync("doc1", "hello sqlite", await gen.GenerateAsync("hello sqlite", default), null, default);
+        await first.IndexAsync("doc1", "hello sqlite", await gen.GenerateAsync("hello sqlite", default), "Public", default);
         (await first.GetDocumentCountAsync(default)).Should().Be(1, "positive control: the row was written");
         await first.DisposeAsync();
 
@@ -237,7 +237,7 @@ public class SqliteVectorStoreTests
         await using var store = new SqliteVectorStore(path);
         var gen = new TokenEmbeddingGenerator(64);
         foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon") })
-            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), "Public", default);
 
         var refuse = async () => await store.SearchAsync(Filled(64, component), 5, 0.0, null, default);
         await refuse.Should().ThrowAsync<ArgumentException>();
@@ -257,9 +257,9 @@ public class SqliteVectorStoreTests
         var path = Path.Combine(Path.GetTempPath(), $"rag_test_{Guid.NewGuid():N}.db");
         await using var store = new SqliteVectorStore(path);
         var gen = new TokenEmbeddingGenerator(64);
-        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), null, default);
-        await store.IndexAsync("nan", "malformed", Filled(64, float.NaN), null, default);
-        await store.IndexAsync("overflow", "malformed", Filled(64, 1e20f), null, default);
+        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), "Public", default);
+        await store.IndexAsync("nan", "malformed", Filled(64, float.NaN), "Public", default);
+        await store.IndexAsync("overflow", "malformed", Filled(64, 1e20f), "Public", default);
 
         var results = await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default);
 
@@ -276,7 +276,7 @@ public class SqliteVectorStoreTests
         await using var store = new SqliteVectorStore(path);
         var unit = new float[64];
         unit[0] = 1f;
-        await store.IndexAsync("real", "real document", unit, null, default);
+        await store.IndexAsync("real", "real document", unit, "Public", default);
 
         var results = await store.SearchAsync(Filled(64, 1e19f), 5, 0.0, null, default);
 

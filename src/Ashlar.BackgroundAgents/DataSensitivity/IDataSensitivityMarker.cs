@@ -18,7 +18,8 @@ public interface IDataSensitivityMarker
     /// Get the sensitivity level for a data object.
     /// </summary>
     /// <param name="data">The data object.</param>
-    /// <returns>The sensitivity level, or Public if not marked.</returns>
+    /// <returns>The sensitivity level, or the most restrictive level the registry knows if not marked
+    /// (see <see cref="DataSensitivityFallbacks.MostRestrictive"/>).</returns>
     IDataSensitivityLevel GetSensitivityLevel(object data);
 
     /// <summary>

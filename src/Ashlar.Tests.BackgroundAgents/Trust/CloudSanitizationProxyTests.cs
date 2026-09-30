@@ -64,10 +64,14 @@ public class CloudSanitizationProxyTests
         result.SanitizedContext!.UserPrompt.Should().Be("What is the weather?");
     }
 
+    // INVERTED. This used to be SanitizeForCloud_WhenNoFilter_Allows and pinned the pass-through as
+    // the contract -- with a prompt that carries an email address. A sanitizer that cannot inspect
+    // content must block, and say why, rather than wave the prompt through unaudited.
     [Fact]
-    public void SanitizeForCloud_WhenNoFilter_Allows()
+    public void SanitizeForCloud_WhenNoFilter_BlocksAndAuditsTheBlock()
     {
-        var proxy = new CloudSanitizationProxy(contentFilter: null);
+        var auditLog = new InMemorySanitizationAuditLog();
+        var proxy = new CloudSanitizationProxy(contentFilter: null, taxonomy: null, auditLog: auditLog);
 
         var context = new OutgoingContext
         {
@@ -77,6 +81,45 @@ public class CloudSanitizationProxyTests
         };
 
         var result = proxy.SanitizeForCloud(context);
+
+        result.Allowed.Should().BeFalse();
+        result.SanitizedContext.Should().BeNull();
+        result.BlockReason.Should().Contain("No sensitive-content filter");
+        auditLog.GetRecent(10).Should().ContainSingle()
+            .Which.Disposition.Should().Be("blocked");
+    }
+
+    // A prompt with no PII at all is blocked too: without a filter nothing can be shown clean. This
+    // is what distinguishes "no filter blocks" from "the PII check blocked".
+    [Fact]
+    public void SanitizeForCloud_WhenNoFilter_BlocksEvenAPromptWithNoPii()
+    {
+        var proxy = new CloudSanitizationProxy(contentFilter: null);
+
+        var result = proxy.SanitizeForCloud(new OutgoingContext
+        {
+            SystemPrompt = "System",
+            UserPrompt = "What is the weather?",
+            IsAirGapped = false,
+        });
+
+        result.Allowed.Should().BeFalse();
+        result.BlockReason.Should().Contain("No sensitive-content filter");
+    }
+
+    // POSITIVE CONTROL for the two above: an air-gapped context never leaves the machine, so it is
+    // still allowed with no filter.
+    [Fact]
+    public void SanitizeForCloud_WhenNoFilterButAirGapped_StillAllows()
+    {
+        var proxy = new CloudSanitizationProxy(contentFilter: null);
+
+        var result = proxy.SanitizeForCloud(new OutgoingContext
+        {
+            SystemPrompt = "System",
+            UserPrompt = "user@test.com",
+            IsAirGapped = true,
+        });
 
         result.Allowed.Should().BeTrue();
     }
@@ -100,6 +143,9 @@ public class CloudSanitizationProxyTests
         result.Allowed.Should().BeTrue();
         result.SanitizedContext!.UserPrompt.Should().Contain("[REDACTED]");
         var entries = auditLog.GetRecent(10);
-        entries.Should().NotBeEmpty();
+        // Exactly one: the redaction happened once. A second loop used to log every redaction
+        // again, so the trail showed two for each one that happened.
+        entries.Should().ContainSingle().Which.Disposition.Should().Be("redacted");
+        result.Redactions.Should().ContainSingle();
     }
 }

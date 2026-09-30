@@ -1,11 +1,20 @@
 using System.Text.Json;
 using Ashlar.Abstractions;
+using Ashlar.BackgroundAgents.DataSensitivity;
 
 namespace Ashlar.BackgroundAgents.RAG;
 
 /// <summary>
 /// ITool that exposes RAG search to agents. Id: "rag_search".
 /// </summary>
+/// <remarks>
+/// <b>The model cannot raise its own clearance.</b> The clearance searched at is the AGENT's
+/// (<c>maxDataSensitivity</c> in the snapshot). The model's <c>maxSensitivityLevelName</c> argument
+/// may only NARROW it; a request above the agent's clearance is ignored, and with no agent
+/// clearance in the snapshot the search runs at the floor whatever the model asks for. It used to
+/// be the other way round -- the model's value won and the agent's was only a fallback -- so a
+/// prompt injection that talked the model into asking for TopSecret got TopSecret.
+/// </remarks>
 public sealed class RAGTool : ITool
 {
     /// <summary>
@@ -16,11 +25,12 @@ public sealed class RAGTool : ITool
     private static readonly ToolSchema SchemaInstance = new(
         DefaultId,
         "Search the RAG knowledge base for documents similar to the query. Returns matching text chunks with scores.",
-        """{"type":"object","properties":{"query":{"type":"string","description":"Search query text"},"maxResults":{"type":"integer","description":"Max results (default 5)"},"minScore":{"type":"number","description":"Min similarity 0-1 (default 0.7)"},"maxSensitivityLevelName":{"type":"string","description":"Only return docs at or below this sensitivity level"}},"required":["query"]}""");
+        """{"type":"object","properties":{"query":{"type":"string","description":"Search query text"},"maxResults":{"type":"integer","description":"Max results (default 5)"},"minScore":{"type":"number","description":"Min similarity 0-1 (default 0.7)"},"maxSensitivityLevelName":{"type":"string","description":"Optionally narrow the search below your clearance; it cannot raise it"}},"required":["query"]}""");
 
     private readonly IRAGService _ragService;
     private readonly int _defaultMaxResults;
     private readonly double _defaultMinScore;
+    private readonly IDataSensitivityRegistry _sensitivityRegistry;
 
     /// <inheritdoc />
     public string Id => DefaultId;
@@ -34,11 +44,18 @@ public sealed class RAGTool : ITool
     /// <param name="ragService">RAG service.</param>
     /// <param name="defaultMaxResults">Default max results when not specified (default 5).</param>
     /// <param name="defaultMinScore">Default min score when not specified (default 0.7).</param>
-    public RAGTool(IRAGService ragService, int defaultMaxResults = 5, double defaultMinScore = 0.7)
+    /// <param name="sensitivityRegistry">Registry used to compare the agent's clearance with the one
+    /// the model asks for; the five primitive levels when null.</param>
+    public RAGTool(
+        IRAGService ragService,
+        int defaultMaxResults = 5,
+        double defaultMinScore = 0.7,
+        IDataSensitivityRegistry? sensitivityRegistry = null)
     {
         _ragService = ragService ?? throw new ArgumentNullException(nameof(ragService));
         _defaultMaxResults = defaultMaxResults;
         _defaultMinScore = defaultMinScore;
+        _sensitivityRegistry = sensitivityRegistry ?? new DataSensitivityRegistry();
     }
 
     /// <inheritdoc />
@@ -48,9 +65,7 @@ public sealed class RAGTool : ITool
         var query = args.Query ?? string.Empty;
         var maxResults = args.MaxResults ?? _defaultMaxResults;
         var minScore = args.MinScore ?? _defaultMinScore;
-        var maxSensitivity = args.MaxSensitivityLevelName;
-        if (string.IsNullOrEmpty(maxSensitivity) && s.Data.TryGetValue("maxDataSensitivity", out var levelObj) && levelObj is string levelName)
-            maxSensitivity = levelName;
+        var maxSensitivity = EffectiveClearance(s, args.MaxSensitivityLevelName);
 
         var tick = s.Tick;
 
@@ -88,6 +103,27 @@ public sealed class RAGTool : ITool
         var delta = new ActionDelta(tick, tick + 1, log);
         var payload = results.Select(r => new { r.Id, r.Text, r.Score, r.SensitivityLevelName }).ToList();
         return new ToolResult(delta, payload);
+    }
+
+    /// <summary>
+    /// The agent's clearance, narrowed (never widened) by what the model asked for. Null -- the
+    /// floor, downstream -- when the snapshot carries no agent clearance.
+    /// </summary>
+    private string? EffectiveClearance(WorldSnapshot s, string? requested)
+    {
+        if (!s.Data.TryGetValue("maxDataSensitivity", out var levelObj)
+            || levelObj is not string agentClearance
+            || string.IsNullOrWhiteSpace(agentClearance))
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(requested) || _sensitivityRegistry.GetByName(requested) is not { } requestedLevel)
+            return agentClearance;
+
+        return requestedLevel.SensitivityValue < _sensitivityRegistry.ResolveClearance(agentClearance).SensitivityValue
+            ? requestedLevel.Value
+            : agentClearance;
     }
 
     private static RAGSearchArgs ParseArgs(ToolCall call)

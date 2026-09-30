@@ -13,6 +13,16 @@ namespace Ashlar.BackgroundAgents.Security;
 /// then applies ExfiltrationPolicy to block tool calls that would send data to
 /// external LLMs, web search, or network exports when disallowed.
 /// Implements IPolicy for use with PolicyEngine.
+///
+/// <para><b>An agent it cannot identify gets the MOST restrictive policy, not none.</b> When the
+/// snapshot carries no usable <c>agentId</c>, or names an agent the registry does not hold, every
+/// block this policy knows applies (external LLM, web search, network export, local-only). It used
+/// to APPROVE such a call with reason "OK", so a caller could escape every exfiltration rule by
+/// omitting or misspelling its own id. The scope is unchanged: this policy only ever refuses the
+/// exfiltration-class tool ids below, so a local tool (a file read, a build) is still approved
+/// for an unidentified agent exactly as for the most restricted registered one. That the tool
+/// lists are deny-lists -- an exfiltrating tool with an id not on them passes -- is a separate,
+/// known gap.</para>
 /// </summary>
 public sealed class DataExfiltrationPolicy : IPolicy
 {
@@ -29,6 +39,16 @@ public sealed class DataExfiltrationPolicy : IPolicy
     private static readonly HashSet<string> DefaultNetworkExportToolIds = new(StringComparer.OrdinalIgnoreCase)
     {
         "export", "Export", "upload", "Upload", "send_to_network", "SendToNetwork", "http_post", "HttpPost"
+    };
+
+    /// <summary>What an agent that cannot be identified is held to: every block at once.</summary>
+    private static readonly ExfiltrationPolicy MostRestrictivePolicy = new()
+    {
+        BlockExternalLLMs = true,
+        BlockWebSearch = true,
+        BlockNetworkExports = true,
+        RequireLocalOnly = true,
+        MaxAllowedLevel = DataSensitivityLevels.Public.Value,
     };
 
     private readonly IBackgroundAgentRegistry _registry;
@@ -70,37 +90,55 @@ public sealed class DataExfiltrationPolicy : IPolicy
     {
         reason = string.Empty;
 
-        if (!s.Data.TryGetValue("agentId", out var agentIdObj) || agentIdObj is not string agentId)
+        // Resolve whose policy applies. Every branch that cannot name a registered agent falls to
+        // the most restrictive policy, with the reason saying why, so a refusal of an unidentified
+        // caller reads differently from a refusal of a known one.
+        ExfiltrationPolicy policy;
+        var basis = "Exfiltration policy";
+        if (!s.Data.TryGetValue("agentId", out var agentIdObj)
+            || agentIdObj is not string agentId
+            || string.IsNullOrWhiteSpace(agentId))
         {
-            reason = "OK";
-            return true;
+            policy = MostRestrictivePolicy;
+            basis = "Exfiltration policy (no agent id in the snapshot; most restrictive policy applied)";
+        }
+        else if (_registry.GetAgent(agentId) is not { } instance)
+        {
+            policy = MostRestrictivePolicy;
+            basis = $"Exfiltration policy (agent '{agentId}' is not registered; most restrictive policy applied)";
+        }
+        else if (instance.Config?.ExfiltrationPolicy is not { } configured)
+        {
+            // A registered agent with no config, or a config whose policy was nulled after loading
+            // (BackgroundAgentConfig.ExfiltrationPolicy is non-nullable but settable, and not every
+            // registration goes through the loader). Before this class failed closed, this line
+            // threw a NullReferenceException; the permissive `new ExfiltrationPolicy()` is the
+            // tempting fix and the wrong one.
+            policy = MostRestrictivePolicy;
+            basis = $"Exfiltration policy (agent '{agentId}' has no exfiltration policy; most restrictive policy applied)";
+        }
+        else
+        {
+            policy = configured;
         }
 
-        var instance = _registry.GetAgent(agentId);
-        if (instance == null)
-        {
-            reason = "OK";
-            return true;
-        }
-
-        var policy = instance.Config.ExfiltrationPolicy;
         var toolId = call.Id ?? string.Empty;
 
         if (policy.BlockExternalLLMs && _externalLlmToolIds.Contains(toolId))
         {
-            reason = $"Exfiltration policy blocks external LLM tool: {toolId}";
+            reason = $"{basis} blocks external LLM tool: {toolId}";
             return false;
         }
 
         if (policy.BlockWebSearch && _webSearchToolIds.Contains(toolId))
         {
-            reason = $"Exfiltration policy blocks web search tool: {toolId}";
+            reason = $"{basis} blocks web search tool: {toolId}";
             return false;
         }
 
         if (policy.BlockNetworkExports && _networkExportToolIds.Contains(toolId))
         {
-            reason = $"Exfiltration policy blocks network export tool: {toolId}";
+            reason = $"{basis} blocks network export tool: {toolId}";
             return false;
         }
 
@@ -108,7 +146,7 @@ public sealed class DataExfiltrationPolicy : IPolicy
         {
             if (_externalLlmToolIds.Contains(toolId) || _webSearchToolIds.Contains(toolId) || _networkExportToolIds.Contains(toolId))
             {
-                reason = $"Exfiltration policy requires local-only; tool {toolId} is not local";
+                reason = $"{basis} requires local-only; tool {toolId} is not local";
                 return false;
             }
         }

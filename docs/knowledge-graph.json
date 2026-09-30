@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 153,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 736,
-    "declared_facts": 4444,
+    "test_files_declaring_facts": 743,
+    "declared_facts": 4495,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2706,6 +2706,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ImproveCommandTrustWiringTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/InitCommandTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
@@ -2787,6 +2794,13 @@
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
       "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/RAGCommandFailClosedTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
@@ -3067,6 +3081,20 @@
       "project": "Ashlar.Tests.AI.Pipeline",
       "namespace": "Ashlar.Tests.AI.Pipeline",
       "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.AI.Pipeline/TrustTierOrderTests.cs",
+      "project": "Ashlar.Tests.AI.Pipeline",
+      "namespace": "Ashlar.Tests.AI.Pipeline",
+      "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.AI.Pipeline/VectorDataRagFailClosedTests.cs",
+      "project": "Ashlar.Tests.AI.Pipeline",
+      "namespace": "Ashlar.Tests.AI.Pipeline",
+      "declared_facts": 8,
       "in_cert_gate_filter": false
     },
     {
@@ -3416,7 +3444,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/Configuration/BackgroundAgentConfigLoaderGapCoverageTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Configuration",
-      "declared_facts": 13,
+      "declared_facts": 20,
       "in_cert_gate_filter": false
     },
     {
@@ -3458,7 +3486,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/DataSensitivity/DataSensitivityMarkerTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.DataSensitivity",
-      "declared_facts": 7,
+      "declared_facts": 8,
       "in_cert_gate_filter": false
     },
     {
@@ -3623,6 +3651,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.BackgroundAgents/RAG/LegacyVectorStoreFailClosedTests.cs",
+      "project": "Ashlar.Tests.BackgroundAgents",
+      "namespace": "Ashlar.Tests.BackgroundAgents.RAG",
+      "declared_facts": 8,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.BackgroundAgents/RAG/RAGServiceTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.RAG",
@@ -3633,7 +3668,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/RAG/RAGToolTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.RAG",
-      "declared_facts": 5,
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
@@ -3728,6 +3763,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.BackgroundAgents/Security/AgentPolicyNarrowingValidatorTests.cs",
+      "project": "Ashlar.Tests.BackgroundAgents",
+      "namespace": "Ashlar.Tests.BackgroundAgents.Security",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.BackgroundAgents/Security/BackgroundAgentPolicyEngineFactoryGapCoverageTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Security",
@@ -3752,7 +3794,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/Security/DataExfiltrationPolicyTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Security",
-      "declared_facts": 7,
+      "declared_facts": 10,
       "in_cert_gate_filter": false
     },
     {
@@ -3913,7 +3955,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/Trust/CloudSanitizationProxyTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Trust",
-      "declared_facts": 5,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -5895,6 +5937,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/MeaiVectorDataRagAdapterTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
+      "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {
