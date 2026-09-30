@@ -233,12 +233,31 @@ Rules:
   are `Admitted`. An inventory minted without the operator seeing that number trades one invisible
   forgery for another, and every other mechanism in this rule is downstream of that line being read.
 
-  Conformance, all in cert-gate: `GateSignatureExpectationTests` (the rule),
+  Conformance. Four of these are carried by cert-gate: `GateSignatureExpectationTests` (the rule),
   `GateRecordReadFunnelConventionTests` (one reader, one resolution point, one marker reader, and
   grandfathering is a list rather than a timestamp), `GateStoreAnchorProvenanceConventionTests`
   (every posture anchor has a row, and while every row is attacker-writable the residual below must
-  say so), `GateSignatureResidualTests` (one executed attack per residual below), and the deliberate
-  contract reversal `SignedGateStoreTests.A_keyless_store_refuses_to_decide_a_record_in_a_signed_store`.
+  say so), and `GateSignatureResidualTests` (one executed attack per residual below).
+
+  The fifth is not, and this line used to claim it was. The deliberate contract reversal
+  `SignedGateStoreTests.A_keyless_store_refuses_to_decide_a_record_in_a_signed_store` lives in
+  `src/Ashlar.Tests.Kernel/Signing/`, and cert-gate builds and tests a single project -
+  `Ashlar.Tests.Infrastructure.csproj` (`scripts/run-cert-gate.sh`) - so no clause of
+  `CERT_GATE_FILTER` can reach another assembly. The repo's own generated graph already records
+  this: all 33 `src/Ashlar.Tests.Kernel/` entries in `docs/knowledge-graph.json` carry
+  `in_cert_gate_filter: false`.
+
+  The rule is still enforced, by `full-platform-readiness-gate`: its native lanes run
+  `ashlar ci verify` -> `ashlar validate`, whose unfiltered recursive sweep discovers the project
+  and runs it on Linux, macOS and Windows. Observed green three times in readiness run
+  36639604217 (master `f5846d3a`), 412 cases per lane. Two caveats a reader should carry, because
+  they are the difference between a lane and a receipt. Those heavy lanes are diff-conditional:
+  `src/Ashlar.Tests.Kernel/**` is in both readiness path lists, so editing these tests re-runs
+  them, but `src/Ashlar.Manifest/**` - where `GateStore`, `AdmissionGate` and the signing types in
+  this rule actually live - is in neither, so a change confined to the code under test does not
+  re-run the tests that guard it. And the sweep emits no per-project count, while a project that
+  selects zero tests still passes (`ValidationServiceAdapter.cs:248`), so a green sweep does not by
+  itself prove these facts executed. [corrected 2026-09-29]
 
   *Residuals, recorded rather than papered over. Every anchor this rule rests on is a file in the
   state root, and each residual below is demonstrated by a fact in `GateSignatureResidualTests`

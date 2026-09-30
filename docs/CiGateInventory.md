@@ -2,7 +2,7 @@
 
 This file describes what CI **actually does** on this repository: which workflow files exist, what triggers each one, and which checks branch protection **really** requires. Workflow YAML controls when checks run; GitHub branch protection (a repository setting, not YAML) controls which check names must be green before merge. Where the two disagree, this file follows the settings and says so.
 
-Snapshot: **61 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), recounted 2026-09-13 (this line read 58, verified 2026-09-04, while the trigger map below said 58 too; both were stale). Includes `products-gate.yml` (added with the product-split scaffolds) and `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
+Snapshot: **62 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), recounted 2026-09-13 (this line read 58, verified 2026-09-04, while the trigger map below said 58 too; both were stale). Includes `products-gate.yml` (added with the product-split scaffolds) and `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
 
 > **Companion:** `docs/HowGatesGoQuiet.md` — the ways a check in this repository has stopped
 > answering while still looking like it was. Read it before adding a gate, and before believing one.
@@ -89,7 +89,7 @@ gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-
 
 ## Trigger map
 
-Counts by trigger class (61 files, counted 2026-09-13):
+Counts by trigger class (62 files, counted 2026-09-29):
 
 | Class | Count | Meaning |
 | --- | --- | --- |
