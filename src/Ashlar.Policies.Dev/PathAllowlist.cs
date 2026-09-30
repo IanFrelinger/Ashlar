@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Paths;
 using Ashlar.Core.Application.Paths;
 
 namespace Ashlar.Policies.Dev;
@@ -162,7 +163,7 @@ public sealed class PathAllowlist : IPolicy
                         return false;
                     }
 
-                    if (!IsPathWithinRoot(fullPath, sandboxRoot))
+                    if (!PathContainment.IsWithin(fullPath, sandboxRoot))
                     {
                         reason = $"Path not allowed: outside SandboxRoot: {fullPath}";
                         return false;
@@ -237,17 +238,5 @@ public sealed class PathAllowlist : IPolicy
         {
             return null;
         }
-    }
-
-    private static bool IsPathWithinRoot(string candidate, string root)
-    {
-        var normalizedRoot = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var normalizedCandidate = candidate;
-
-        if (normalizedCandidate.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        var prefix = normalizedRoot + Path.DirectorySeparatorChar;
-        return normalizedCandidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     }
 }

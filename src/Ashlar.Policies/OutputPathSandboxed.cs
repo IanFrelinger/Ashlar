@@ -1,16 +1,23 @@
 using System.Text.Json;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Paths;
 
 namespace Ashlar.Policies;
 
 /// <summary>
 /// Policy that enforces output path sandboxing.
-/// 
+///
 /// Ensures that tool calls that write files only write within a specified sandbox directory.
 /// Prevents path traversal attacks and unauthorized file system access.
-/// 
+///
 /// Implements IPolicy for use with PolicyEngine.
 /// Checks for "output" property in tool call arguments and validates it's within the sandbox.
+///
+/// <para>Containment is <see cref="PathContainment.IsWithin(string, string)"/>: the output must be
+/// the root itself or lie under the root FOLLOWED BY A SEPARATOR, so OutputRoot <c>.../out</c> no
+/// longer admits the sibling <c>.../out-evil</c>, and letter case is compared the way the platform's
+/// default file system does. The check is lexical: it does not follow symbolic links. A relative
+/// output resolves against the process working directory, not against OutputRoot.</para>
 /// </summary>
 public sealed class OutputPathSandboxed : IPolicy
 {
@@ -25,12 +32,14 @@ public sealed class OutputPathSandboxed : IPolicy
 
         if (call.Arguments.TryGetProperty("output", out var outProp))
         {
-            var output = outProp.GetString() ?? "";
             try
             {
+                // Inside the try: GetString throws on a non-string "output", and a policy refuses what
+                // it cannot read rather than throwing out of Approve.
+                var output = outProp.GetString() ?? "";
                 var full = Path.GetFullPath(output);
                 var baseDir = Path.GetFullPath(root);
-                if (!full.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase))
+                if (!PathContainment.IsWithin(full, baseDir))
                 {
                     reason = $"Output '{full}' escapes sandbox '{baseDir}'";
                     return false;

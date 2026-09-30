@@ -82,12 +82,50 @@ public class OutputPathSandboxedTests
     }
 
     [Fact]
+    public void Approve_rejects_a_sibling_whose_name_extends_the_sandbox_root()
+    {
+        // The check compared without a directory separator after the root, so OutputRoot .../out
+        // admitted .../out-evil, .../outx and .../out.dll: every sibling sharing the root's name.
+        var p = new OutputPathSandboxed();
+        var root = Path.Combine(Path.GetTempPath(), "ashlar-sibling-" + Guid.NewGuid().ToString("N"), "out");
+        var sibling = root + "-evil" + Path.DirectorySeparatorChar + "x.cs";
+        sibling.Should().StartWith(root, "the attack is a path that shares the root's characters");
+        var snap = new WorldSnapshot(0, new Dictionary<string, object?> { ["OutputRoot"] = root });
+        var call = new ToolCall("t", JsonDocument.Parse(JsonSerializer.Serialize(new Dictionary<string, string> { ["output"] = sibling })).RootElement);
+
+        p.Approve(call, snap, out var reason).Should().BeFalse();
+        reason.Should().Contain("escapes sandbox");
+    }
+
+    [Fact]
     public void Approve_rejects_null_output_value_as_invalid_path()
     {
         var p = new OutputPathSandboxed();
         var snap = new WorldSnapshot(0, new Dictionary<string, object?> { ["OutputRoot"] = Path.GetTempPath() });
         var call = new ToolCall("t", JsonDocument.Parse("""{"output":null}""").RootElement);
         p.Approve(call, snap, out var reason).Should().BeFalse();
+        reason.Should().Be("Invalid output path");
+    }
+
+    [Theory]
+    [InlineData("""{"output":5}""")]
+    [InlineData("""{"output":true}""")]
+    [InlineData("""{"output":["/tmp/x"]}""")]
+    [InlineData("""{"output":{"path":"/tmp/x"}}""")]
+    public void Approve_refuses_a_non_string_output_instead_of_throwing(string arguments)
+    {
+        // GetString() on a non-string JSON value throws. It used to run outside the try, so the
+        // exception left Approve (and PolicyEngine.Approve) instead of a refusal coming back.
+        var p = new OutputPathSandboxed();
+        var snap = new WorldSnapshot(0, new Dictionary<string, object?> { ["OutputRoot"] = Path.GetTempPath() });
+        var call = new ToolCall("t", JsonDocument.Parse(arguments).RootElement);
+
+        var approved = true;
+        var reason = "";
+        var approve = () => { approved = p.Approve(call, snap, out reason); };
+
+        approve.Should().NotThrow();
+        approved.Should().BeFalse();
         reason.Should().Be("Invalid output path");
     }
 

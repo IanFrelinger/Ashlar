@@ -201,6 +201,38 @@ public sealed class MediatedWritePathTests : IDisposable
     public void Refuse_RejectsGovernanceAndEscapes(string target)
         => MediatedWritePath.Refuse(_root, target).Should().NotBeNull();
 
+    /// <summary>
+    /// The containment leg is <c>PathContainment.IsStrictlyWithin</c> with an ordinal comparison:
+    /// the root itself is not a write target however it is spelled (a trailing separator included),
+    /// a sibling that merely shares the root's name is an escape, and a spelling that differs from
+    /// the root only by letter case is refused on every platform rather than judged.
+    /// </summary>
+    [Theory]
+    [InlineData(".")]
+    [InlineData("./")]
+    [InlineData("a/..")]
+    [InlineData("a/../")]
+    public void Refuse_TreatsTheRootItselfAsAnEscape(string target)
+        => MediatedWritePath.Refuse(_root, target).Should().Contain("escapes the project root");
+
+    [Fact]
+    public void Refuse_TreatsASiblingThatSharesTheRootsNameAsAnEscape()
+    {
+        var sibling = "../" + Path.GetFileName(_root) + "-evil/x.cs";
+        Path.GetFullPath(Path.Combine(_root, sibling)).Should().StartWith(_root, "the sibling must share the root's characters");
+
+        MediatedWritePath.Refuse(_root, sibling).Should().Contain("escapes the project root");
+    }
+
+    [Fact]
+    public void Refuse_TreatsACaseVariantOfTheRootAsAnEscapeOnEveryPlatform()
+    {
+        var name = Path.GetFileName(_root);
+        name.ToUpperInvariant().Should().NotBe(name, "the variant must differ from the root ordinally");
+
+        MediatedWritePath.Refuse(_root, "../" + name.ToUpperInvariant() + "/x.cs").Should().Contain("escapes the project root");
+    }
+
     [Fact]
     public void Refuse_Allowlist_RejectsOutside_AdmitsInside_AndHonoursEveryEntry()
     {
