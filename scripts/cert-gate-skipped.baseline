@@ -1,0 +1,15 @@
+# How many cert-gate tests are SKIPPED on a clean run: the TRX <Counters> total minus executed.
+#
+# scripts/cert-gate-skip-guard.sh (run by scripts/run-cert-gate.sh, i.e. by the required cert-gate
+# check) refuses a run whose count differs from this number in EITHER direction:
+#   - more skipped than this: a merge-blocking test stopped running and dotnet test still exited 0.
+#     If that is deliberate, raise this number in the same change so the decision is reviewed.
+#   - fewer skipped than this: lower it, so slack cannot quietly absorb a later skip.
+#
+# Measured 2026-09-30: 1288 total, 1288 executed, 0 skipped - in the devtest container and in the
+# cert-gate logs of ten CI runs (master and pull_request) from 2026-09-29/30. No test in the
+# cert-gate selection declares a Skip, and xunit 2.x has no runtime skip.
+#
+# It is its own committed file, not a number derived from the run or read from a generated
+# artifact, because a baseline that is regenerated ratchets against itself and enforces nothing.
+0

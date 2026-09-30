@@ -36,10 +36,13 @@ dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
 TEST_EXIT=$?
 set -e
 
+# Both guards run whatever the tests returned: dotnet test exits 0 when the filter matches nothing
+# (zero-test guard) and when tests are skipped (skip guard), so its exit status alone proves neither.
 bash scripts/cert-gate-zero-test-guard.sh "${TRX}"
+bash scripts/cert-gate-skip-guard.sh "${TRX}"
 
-if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-  bash scripts/cert-gate-summary.sh "${TRX}"
-fi
+# The job summary is written by the workflow's own `if: always()` step
+# (.github/workflows/cert-gate.yml), which also covers a failed run. It used to be written here as
+# well, which put the same table in the CI job summary twice.
 
 exit "${TEST_EXIT}"
