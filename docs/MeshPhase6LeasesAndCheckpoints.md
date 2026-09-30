@@ -49,7 +49,8 @@ See **`docs/Configuration.md`**.
 
 ## Tests
 
-- `Ashlar.Tests.Infrastructure` → `Tests/Fleet/MeshTaskPlacementServiceTests.cs`, `MeshTaskExecutionServiceTests.cs`
+- `Ashlar.Tests.Infrastructure` → `Tests/Fleet/MeshTaskPlacementServiceTests.cs`
+- `Ashlar.Commercial.Tests.Fleet` → `MeshTaskExecutionServiceTests.cs` (moved there in #151; corrected 2026-09-30)
 
 ## Revision history
 

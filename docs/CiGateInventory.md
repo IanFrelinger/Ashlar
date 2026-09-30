@@ -28,8 +28,9 @@ Native readiness's `ci verify` also calls root `validate`, which discovers, buil
 commercial ones** (corrected 2026-09-13; run 34737292726 logs `Found 22 test project(s)` and
 `Tests: 5245/5245`). `ci/test-ownership.tsv` carries 23 registered test projects; the sweep reaches 22 of them, the difference being the `__BrickName__` scaffolding template, which `ValidationServiceAdapter` excludes by design (`templates` directory and `__Placeholder__` token). The discovered count is not pinned by anything and has drifted with the tree (26 on 2026-08-31, 23 on 2026-09-12, 22 on 2026-09-13), so it is an observation per run, not a floor. Among them are three projects the ownership registry recorded as UNOWNED until
 that correction: `Ashlar.Analyzers.Tests`, `Ashlar.Ingress.AwsSns.Tests` and
-`Ashlar.Ingress.DynamoDb.Tests`. The sweep emits no per-project counts, and a project that selects
-zero tests still passes, so this is a lane and not a receipt. The three commercial suites — Fleet and
+`Ashlar.Ingress.DynamoDb.Tests`. The sweep emits no per-project counts; since 2026-09-30 an unfiltered
+sweep fails a project that executes zero tests (`ValidationServiceAdapter.ZeroExecutionError`), but
+that floor is one test, so this is still a lane and not a receipt. The three commercial suites — Fleet and
 MeshDirector on net8.0, Fleet.Host on net10.0 — are the only ones with a receipt check. Its
 post-sweep receipt check and uploads are described in [Commercial CI coverage](CommercialCiCoverage.md).
 This indirect route reaches projects outside the solution and workflow path literals. Because the

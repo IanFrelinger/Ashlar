@@ -38,7 +38,7 @@ Local cert-gate on integration tip (`9baf34a9`):
 
 ```
 Test Run Successful. Total tests: 19, Passed: 19
-cert-gate executed 19 tests (expected>=19, derived from --list-tests).
+cert-gate reported 19 tests (expected>=19, derived from --list-tests).
 ```
 
 Dogfood on integration: `HonestCursorGeneration_Admits_WithZeroEscapeRate` PASS, `BuggyCursorGeneration_Rejects` PASS.
@@ -646,7 +646,7 @@ redundant guard is exactly what a careful proposer writes.
 
 2. **Composition seam check is TYPE-level only.** The seam validator checks producer/consumer type compatibility (e.g. `string` vs `int`) but not semantic mismatches where types align (e.g. file path vs URL, both `string`). Graph-mutation teeth only partially compensate for this gap.
 
-3. **cert-gate expected count is derived at runtime.** The zero-test guard compares executed count against `dotnet test --list-tests` on the cert-gate filter (see `scripts/cert-gate-config.sh`). If the filter or test discovery breaks, the guard fails closed.
+3. **cert-gate expected count is derived at runtime.** The zero-test guard compares the TRX `total` (which counts skipped tests) against `dotnet test --list-tests` on the cert-gate filter (see `scripts/cert-gate-config.sh`), and `scripts/cert-gate-skip-guard.sh` pins `total - executed` to the committed `scripts/cert-gate-skipped.baseline`, so a newly skipped certification test is a reviewed diff rather than a silent pass. If the filter or test discovery breaks, the guards fail closed.
 
 4. **Session containment is opt-in and covers compilation + execution; the host keeps
    orchestration, mutant compilation, and judgment.** With `BuildCandidateInSession=true`,
