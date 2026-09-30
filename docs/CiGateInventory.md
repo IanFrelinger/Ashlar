@@ -32,7 +32,10 @@ that correction: `Ashlar.Analyzers.Tests`, `Ashlar.Ingress.AwsSns.Tests` and
 zero tests still passes, so this is a lane and not a receipt. The three commercial suites — Fleet and
 MeshDirector on net8.0, Fleet.Host on net10.0 — are the only ones with a receipt check. Its
 post-sweep receipt check and uploads are described in [Commercial CI coverage](CommercialCiCoverage.md).
-This indirect route reaches projects outside the solution and workflow path literals.
+This indirect route reaches projects outside the solution and workflow path literals. Because the
+lanes that run it are diff-conditional, the readiness path lists cover the sweep's whole build
+closure rather than the test directories alone; `ReadinessClosureConventionTests` recomputes that
+closure from the tree with the same discovery predicate.
 
 ### Checks that are safe to require (always report on PRs)
 
@@ -109,7 +112,7 @@ Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `f
 | `shell-lint.yml` | Shell lint / `shell-lint` | **every PR** (no paths) — **required** | dispatch — always reports; cheap parse/lint check |
 | `docs-link-check.yml` | Docs Link Check / `lychee (README + docs)` | **every PR** (no paths) — **required** | push, dispatch — always reports; ~30s lychee run |
 | `layer-boundary.yml` | layer-boundary / `verify` | every PR (`paths: "**"`, types opened/synchronize/reopened/edited) | — |
-| `full-platform-readiness-gate.yml` | Full Platform Readiness Gate / `changes`, platform lanes, `Readiness summary` | **every PR** (no paths; types opened/synchronize/reopened/ready_for_review) — `changes` job runs the heavy lanes only when a core path is in the diff (Dockerfiles, setup/install scripts, spine sources, CLI + CLI tests, `commercial/**`, Orchestration/Kernel test projects, the kernel suite's own dependency closure (`Ashlar.Manifest`, `Ashlar.Policies.Dev`, `Ashlar.Certification.Contracts`, `Ashlar.Analyzers`), StableSdkHostSample); otherwise `Readiness summary` passes in ~1 min — **required** (`Readiness summary`). Production images (`docker-all-images`) never build on PRs. | push `master`/`main`/`cursor/**` (same path list), **weekly schedule**, dispatch |
+| `full-platform-readiness-gate.yml` | Full Platform Readiness Gate / `changes`, platform lanes, `Readiness summary` | **every PR** (no paths; types opened/synchronize/reopened/ready_for_review) — `changes` job runs the heavy lanes only when a core path is in the diff (Dockerfiles, setup/install scripts, the CLI, `commercial/**`, StableSdkHostSample, the shared root build inputs, and the whole build closure of every test project `validate` discovers: each project directory in their transitive ProjectReference closure, the nested `Directory.Build.props` and `.editorconfig` that closure imports implicitly, and every path outside its own directories that its items (of any type but package, framework and similar identities), HintPaths and imports name - `src/Ashlar.Compat/**`, `samples/templates/brick/**`, `samples/physical-atom-cert/**`; `ReadinessClosureConventionTests` recomputes that closure in cert-gate and fails naming anything neither list covers); otherwise `Readiness summary` passes in ~1 min — **required** (`Readiness summary`). Production images (`docker-all-images`) never build on PRs. | push `master`/`main`/`cursor/**` (same path list), **weekly schedule**, dispatch |
 | `uat-gate.yml` | UAT / `uat (tiers 0-2, 4-10)`, `uat cross-platform (tiers 8, 9)` | **every PR** (no paths — deliberate, see file header) | push `master`, dispatch |
 | `application-gate.yml` | Application Gate / `application-gate` | paths: `application/**`, VirtualProduction tests, `scripts/application-gate*.sh`, `scripts/prod-dry-run.sh`, `Makefile`, … | dispatch |
 | `dependency-boundary.yml` | dependency-boundary / `verify` | paths: `**/*.csproj`, `commercial/**`, `application/**`, `src/**`, `LICENSING.md`, boundary scripts | push, dispatch |
