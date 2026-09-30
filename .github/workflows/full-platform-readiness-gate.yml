@@ -614,6 +614,10 @@ jobs:
     # required context and failing on a skip would deadlock any PR that touches no core path - so the
     # green tick alone cannot tell them apart. Anything that wants to CLAIM platform verification for
     # a SHA (a release sign-off, a runbook step) must read this, not the check conclusion.
+    # Job outputs are visible only to later jobs in this run, and the step summary is not exposed
+    # through the Checks API (output.summary is null on this check run). The "Readiness verdict"
+    # annotation emitted below IS readable from outside the run; that is what
+    # scripts/release/readiness-verdict-for-sha.sh reads.
     outputs:
       verdict: ${{ steps.summary.outputs.verdict }}
       lanes_ran: ${{ steps.summary.outputs.lanes_ran }}
@@ -703,5 +707,16 @@ jobs:
             echo "lanes_ran=${LANES_RAN}"
             echo "lanes_skipped=${LANES_SKIPPED}"
           } >> "$GITHUB_OUTPUT"
+
+          # The one copy of the verdict anything outside this run can read through the API: an
+          # annotation on this check run (GET /repos/{owner}/{repo}/check-runs/{id}/annotations).
+          # The reader matches the title and parses the message field by field, so change neither
+          # without scripts/release/readiness-verdict-for-sha.py (its MESSAGE pattern) and
+          # tests/scripts/readiness-verdict.test.sh, which round-trips this exact line through the
+          # release sign-off. Emitted before the exit, like the outputs above, so a failing run
+          # publishes "failed" instead of nothing. At most five notices come from this step (four
+          # skipped lanes plus this one), well inside GitHub's annotation caps; an annotation over a
+          # cap is dropped silently, and the reader would then refuse the run as missing-annotation.
+          echo "::notice title=Readiness verdict::verdict=${VERDICT} lanes_ran=${LANES_RAN} lanes_skipped=${LANES_SKIPPED}"
 
           exit $OVERALL

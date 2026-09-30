@@ -12,6 +12,10 @@
 # workflow, not copied - through every lane-result combination and checks the verdict, the exit code,
 # and, for the case that motivated it, that the headline no longer claims a pass.
 #
+# The verdict leaves the run only as a check-run annotation, so every case also checks the one
+# "Readiness verdict" annotation line the step prints, and two cases hand that line to the release
+# sign-off (scripts/release/readiness-verdict-for-sha.sh) to prove writer and reader agree.
+#
 # Run:  bash tests/scripts/readiness-verdict.test.sh
 # Pure bash + python: no network, no dotnet, no container.
 
@@ -36,7 +40,7 @@ if [[ -z "${PY_BIN}" ]]; then
 fi
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=10
+EXPECTED_ASSERTIONS=18
 
 PASS=0
 FAIL=0
@@ -94,53 +98,77 @@ if [[ "${EXTRACT_RC}" -ne 0 ]]; then
 fi
 ok "the step text can be extracted from the workflow and fully de-templated"
 
-# Run the step with one set of lane results. Echoes "<exit>|<verdict>|<headline>".
+# The verdict annotation: the ONLY copy of the verdict readable from outside the run (job outputs
+# stay inside it; the step summary is not exposed by the Checks API). GitHub turns this workflow
+# command into an annotation titled "Readiness verdict" on the check run, and
+# scripts/release/readiness-verdict-for-sha.sh matches that title and parses the message.
+ANNOTATION_PREFIX="::notice title=Readiness verdict::"
+
+# Run the step with one set of lane results. Echoes "<exit>|<verdict>|<annotation>|<headline>".
+# <annotation> is the one verdict annotation line the step printed, or "COUNT=<n>" when it printed
+# some other number of them - zero and two are both wrong, and must not look like the right line.
 run_case() {
   local changes="$1" heavy="$2" native="$3" container="$4" cli="$5" dall="$6"
-  local sum="${TMP}/summary.md" outf="${TMP}/output.txt"
-  : > "${sum}"; : > "${outf}"
-  local code verdict headline
+  local sum="${TMP}/summary.md" outf="${TMP}/output.txt" stdout="${TMP}/stdout.txt"
+  : > "${sum}"; : > "${outf}"; : > "${stdout}"
+  local code verdict headline annotation count
   CHANGES_RESULT="${changes}" RUN_HEAVY="${heavy}" NATIVE="${native}" \
   CONTAINER="${container}" DOCKER_CLI="${cli}" DOCKER_ALL="${dall}" \
   GITHUB_STEP_SUMMARY="${sum}" GITHUB_OUTPUT="${outf}" \
-    bash "${TMP}/step.sh" >/dev/null 2>&1
+    bash "${TMP}/step.sh" >"${stdout}" 2>&1
   code=$?
   verdict="$(sed -n 's/^verdict=//p' "${outf}" | tail -1)"
   headline="$(grep -m1 '^\*\*Result:' "${sum}" || true)"
-  printf '%s|%s|%s' "${code}" "${verdict}" "${headline}"
+  count="$(grep -cF "${ANNOTATION_PREFIX}" "${stdout}")"
+  if [[ "${count}" == "1" ]]; then
+    annotation="$(grep -F "${ANNOTATION_PREFIX}" "${stdout}")"
+  else
+    annotation="COUNT=${count}"
+  fi
+  printf '%s|%s|%s|%s' "${code}" "${verdict}" "${annotation}" "${headline}"
 }
 
+# expect <label> <verdict> <exit> <lanes ran> <lanes skipped> <run_case output>
+# Two assertions: the verdict and exit code, then the annotation that carries them out of the run.
 expect() {
-  local label="$1" want_verdict="$2" want_rc="$3" got="$4"
+  local label="$1" want_verdict="$2" want_rc="$3" want_ran="$4" want_skipped="$5" got="$6"
   local code="${got%%|*}" rest="${got#*|}"
   local verdict="${rest%%|*}"
+  rest="${rest#*|}"
+  local annotation="${rest%%|*}"
   if [[ "${verdict}" == "${want_verdict}" && "${code}" == "${want_rc}" ]]; then
     ok "${label} -> ${want_verdict}, exit ${want_rc}"
   else
     bad "${label} -> ${want_verdict}, exit ${want_rc}" "got verdict '${verdict}', exit ${code}"
   fi
+  local want_annotation="${ANNOTATION_PREFIX}verdict=${want_verdict} lanes_ran=${want_ran} lanes_skipped=${want_skipped}"
+  if [[ "${annotation}" == "${want_annotation}" ]]; then
+    ok "${label} -> publishes exactly one '${want_annotation#::notice title=}'"
+  else
+    bad "${label} -> publishes exactly one verdict annotation" "want '${want_annotation}', got '${annotation}'"
+  fi
 }
 
 echo "== a green tick means different things, and the verdict has to say which =="
-expect "all four lane groups succeeded" verified 0 \
+expect "all four lane groups succeeded" verified 0 4 0 \
   "$(run_case success true success success success success)"
 
-expect "some lanes ran, some were skipped" partial 0 \
+expect "some lanes ran, some were skipped" partial 0 2 2 \
   "$(run_case success true success success skipped skipped)"
 
-expect "every lane was skipped" not-verified 0 \
+expect "every lane was skipped" not-verified 0 0 4 \
   "$(run_case success false skipped skipped skipped skipped)"
 
 echo "== a failure is still a failure, and still blocks =="
-expect "one lane failed" failed 1 \
+expect "one lane failed" failed 1 3 0 \
   "$(run_case success true failure success success success)"
 
-expect "one lane was cancelled" failed 1 \
+expect "one lane was cancelled" failed 1 3 0 \
   "$(run_case success true cancelled success success success)"
 
 # A broken change detector means the lanes were skipped for the WRONG reason, so the skip decision
 # cannot be trusted and the gate must go red rather than report not-verified.
-expect "the change detector itself failed" failed 1 \
+expect "the change detector itself failed" failed 1 0 4 \
   "$(run_case failure false skipped skipped skipped skipped)"
 
 echo "== the regression this file exists to prevent =="
@@ -165,6 +193,66 @@ GOT="$(run_case success true failure success success success)"
 VERDICT="${GOT#*|}"; VERDICT="${VERDICT%%|*}"
 [[ -n "${VERDICT}" ]] && ok "a failing run writes its verdict to GITHUB_OUTPUT before exiting" \
   || bad "a failing run writes its verdict to GITHUB_OUTPUT before exiting" "verdict was empty"
+
+# The writer and the reader are two files that must agree on a title and a message format. Checking
+# each against its own copy of the format would let them drift apart together, so the line the REAL
+# step prints is turned into the annotation GitHub would make of it and handed to the REAL reader.
+echo "== the line the step prints is the line the release sign-off accepts =="
+SIGNOFF="${ROOT}/scripts/release/readiness-verdict-for-sha.sh"
+RT_SHA="fedcba9876543210fedcba9876543210fedcba98"
+
+# round_trip <run_case output>: run the reader on a one-run fixture carrying that annotation, with
+# the check conclusion the step's exit code implies. Echoes "<exit>|<reader's last line>".
+round_trip() {
+  local got="$1"
+  local code="${got%%|*}" rest="${got#*|}"
+  rest="${rest#*|}"
+  local annotation="${rest%%|*}" conclusion=success
+  [[ "${code}" == "0" ]] || conclusion=failure
+  "${PY_BIN}" - "${TMP}/round-trip.json" "${RT_SHA}" "${conclusion}" "${annotation}" <<'PY'
+import io, json, sys
+out, sha, conclusion, line = sys.argv[1:5]
+# "::notice title=<title>::<message>" -> {"title": <title>, "message": <message>}. Anything that is
+# not that shape yields an empty title, which the reader must then refuse.
+command, _, message = line[2:].partition("::") if line.startswith("::") else ("", "", "")
+props = dict(p.split("=", 1) for p in command.partition(" ")[2].split(",") if "=" in p)
+doc = {
+    "check_runs": [{
+        "id": 1, "name": "Readiness summary", "status": "completed", "conclusion": conclusion,
+        "head_sha": sha, "started_at": "2026-09-30T0100Z", "app": {"slug": "github-actions"},
+        "details_url": "https://github.com/o/r/actions/runs/2/job/1"}],
+    "annotations": {"1": [{"annotation_level": command.partition(" ")[0], "title": props.get("title", ""),
+                           "message": message}]},
+    "workflow_runs": [{"id": 2, "event": "push", "status": "completed", "head_sha": sha,
+                       "path": ".github/workflows/full-platform-readiness-gate.yml"}],
+}
+with io.open(out, "w", encoding="utf-8", newline="\n") as fh:
+    json.dump(doc, fh)
+PY
+  local rc last
+  READINESS_VERDICT_FIXTURE="${TMP}/round-trip.json" bash "${SIGNOFF}" "${RT_SHA}" >"${TMP}/signoff.txt" 2>&1
+  rc=$?
+  last="$(tail -n 1 "${TMP}/signoff.txt" | tr -d '\r')"
+  printf '%s|%s' "${rc}" "${last}"
+}
+
+# Exit 3, not 0: the reader is fed a fixture here, and a fixture is never evidence, so even a
+# VERIFIED reading of one must not pass a `... && git tag` (scripts/release/readiness-verdict-for-sha.sh).
+GOT="$(round_trip "$(run_case success true success success success success)")"
+WANT="3|readiness-verdict-for-sha: ${RT_SHA} VERIFIED [offline fixture - not evidence]"
+if [[ "${GOT}" == "${WANT}" ]]; then
+  ok "an all-passed run's annotation is read by the sign-off as VERIFIED"
+else
+  bad "an all-passed run's annotation is read by the sign-off as VERIFIED" "want '${WANT}', got '${GOT}'"
+fi
+
+GOT="$(round_trip "$(run_case success true failure success success success)")"
+WANT="1|readiness-verdict-for-sha: ${RT_SHA} REFUSED (failed) [offline fixture - not evidence]"
+if [[ "${GOT}" == "${WANT}" ]]; then
+  ok "a failed run's annotation is read by the sign-off as REFUSED (failed)"
+else
+  bad "a failed run's annotation is read by the sign-off as REFUSED (failed)" "want '${WANT}', got '${GOT}'"
+fi
 
 echo
 echo "passed: ${PASS}   failed: ${FAIL}"
