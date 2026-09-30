@@ -142,8 +142,9 @@ none, so CI is the first compiler) · **[agent / human / CI]** who performs it.
 > (runs 34687917934 and 34737292726). No CI behaviour changed. Note also that
 > `TestOwnershipConventionTests` never reads the `expires` column of a non-`UNOWNED` row, so flipping a
 > row removes its dated pressure entirely and replaces it with nothing machine-enforced. The live debt
-> those three rows now carry is routing: none appears in either readiness path list, so a PR touching
-> only them still runs none of their tests.
+> those three rows carried was routing: none appeared in either readiness path list, so a PR touching
+> only them ran none of their tests. That closed on 2026-09-30: all three are in both lists, with the
+> rest of the discovered suites' build closure.
 
 ---
 

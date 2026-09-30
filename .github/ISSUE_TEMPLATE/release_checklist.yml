@@ -18,9 +18,18 @@ body:
     attributes:
       label: GitHub / nuget.org (one-time or per repo)
       options:
-        - label: Trusted Publishing registered for `release.yml` (and `release-nuget.yml` if NuGet-only OIDC) — see `docs/PUBLISHING.md`
+        - label: Trusted Publishing registered on nuget.org for workflow file `reusable-release-nuget.yml` — the REUSABLE workflow that runs `NuGet/login`, not `release.yml` or `release-nuget.yml`; a policy on a caller does not match (`docs/PUBLISHING.md`). `NUGET_USER` is the nuget.org profile name of whoever created the policy
         - label: Repo variables set (`NUGET_PUBLISH_MODE`, optional staging/post-push/SBOM) — `docs/GitHubRepoVariables.md`
         - label: Secrets present (`NUGET_USER` for OIDC, `NUGET_API_KEY` if apikey mode, optional `NUGET_STAGING_API_KEY`, `RELEASE_NOTIFICATION_WEBHOOK_URL`)
+  - type: checkboxes
+    id: before_tag
+    attributes:
+      label: Before you tag (docs/RELEASE_RUNBOOK.md steps 4-9)
+      options:
+        - label: "Step 4: VERSION, ci/published-version and consumer-template's AshlarConsumerPackageVersion bumped together on the release commit"
+        - label: "Steps 5-7: consumer trust rows rewritten, published-version docs bumped, PublicAPI Unshipped promoted to Shipped"
+        - label: "Step 8: rehearsed with a prerelease (release-nuget.yml, X.Y.Z-rc1) and the whole post-push chain went green"
+        - label: "Step 9: bash scripts/release/readiness-verdict-for-sha.sh <sha> printed VERIFIED and exited 0 for the exact commit being tagged"
   - type: checkboxes
     id: ship
     attributes:

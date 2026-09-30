@@ -17,7 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- **An unfiltered `ashlar validate` / `ashlar ci verify` fails a discovered test project that executes zero tests** - including an all-skipped, all-Stress or all-DockerOptional project. The failure is an evidence error, so no test count is invented; the same result reaches `POST /validate` and the director's RunValidation option. A caller-supplied filter that selects nothing still passes. A test project made only of `[NotOnCiFact]` / `[OptInFact]` tests needs one fact that runs without the dependency.
+- **cert-gate refuses a newly skipped certification test.** The TRX `total` counts skips, so the existing floor let one through; `scripts/cert-gate-skip-guard.sh` pins `total - executed` to `scripts/cert-gate-skipped.baseline`, which fails in both directions. `cert-gate-summary.sh` no longer exits 0 on a missing TRX.
+- **A pinned `dotnet test --filter` that selects nothing fails its lane.** `scripts/ci/zero-test-guard.sh` follows 91 invocations; `scripts/ci/verify-zero-test-guard-wiring.py` (required `shell-lint`) refuses one without a guard. security-gate Tier B, application-gate Tier C and compat-gate Tier A had each been passing on zero tests.
+- **`Readiness summary` says whether any platform ran** - `verified`, `partial`, `not-verified` or `failed` - instead of printing ALL PLATFORMS PASSED when every lane was skipped, and publishes it as a `Readiness verdict` annotation. `scripts/release/readiness-verdict-for-sha.sh <sha>` reads it and exits 0 only for a VERIFIED read from GitHub; the release runbook requires it before tagging (step 9).
+- **The readiness trigger covers the whole build closure of the suites it runs.** The routing gap left open in 0.2.0 (see the 0.2.0 notes) is closed: 41 directories added across #684 and this change, and `ReadinessClosureConventionTests` (cert-gate) fails naming any closure directory either path list misses. Files read through MSBuild property functions are not traced.
+
+### Fixed
+
+- Records that named the wrong runner or gate: `ci/test-ownership.tsv`, the SPEC-006 conformance paragraph, the May readiness sign-off sheets (each PASS now annotated with its evidence), two docs that placed `MeshTaskExecutionServiceTests` wrongly, and the release checklist, which pointed nuget.org Trusted Publishing at `release.yml` instead of `reusable-release-nuget.yml`.
 
 ## [0.2.0] - 2026-09-29
 
