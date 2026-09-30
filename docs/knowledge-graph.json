@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 153,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 731,
-    "declared_facts": 4399,
+    "test_files_declaring_facts": 733,
+    "declared_facts": 4403,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -3770,6 +3770,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.BackgroundAgents/SelfExtend/PolicyLoaderColdStartConcurrencyTests.cs",
+      "project": "Ashlar.Tests.BackgroundAgents",
+      "namespace": "Ashlar.Tests.BackgroundAgents.SelfExtend",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.BackgroundAgents/SelfExtend/SelfExtendAdmissionBridgeTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.SelfExtend",
@@ -7253,6 +7260,13 @@
       "project": "Ashlar.Tests.Kernel",
       "namespace": "Ashlar.Tests.Kernel",
       "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Kernel/YamlDeserializerNotSharedConventionTests.cs",
+      "project": "Ashlar.Tests.Kernel",
+      "namespace": "Ashlar.Tests.Kernel",
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
