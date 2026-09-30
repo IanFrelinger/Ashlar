@@ -258,9 +258,10 @@ Rules:
   `src/Ashlar.Tests.Kernel/**` - so editing `GateStore` or `AdmissionGate` re-runs the 412 cases
   that guard them. It did not before. A diff that touches none of those entries still skips the
   lanes, which is the design; it is not evidence about this rule either way. And the sweep emits no
-  per-project count, while a project that selects zero tests still passes
-  (`ValidationServiceAdapter.cs:248`), so a green sweep does not by itself prove these facts
-  executed. [corrected 2026-09-29; routing 2026-09-30]
+  per-project count. Since 2026-09-30 an unfiltered sweep fails any discovered project that
+  executes zero tests (`ValidationServiceAdapter.ZeroExecutionError`), but that floor is one
+  executed test, not 412, so a green sweep still does not by itself prove these facts executed.
+  [corrected 2026-09-29; routing 2026-09-30; zero-execution floor 2026-09-30]
 
   *Residuals, recorded rather than papered over. Every anchor this rule rests on is a file in the
   state root, and each residual below is demonstrated by a fact in `GateSignatureResidualTests`
