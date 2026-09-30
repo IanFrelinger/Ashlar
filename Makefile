@@ -68,9 +68,12 @@ prod-dry-run-agent-server:
 # one `ashlar ci verify` runs, and it sat at 120s over 480s nets until that check existed.
 test-prod-style:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
+	rm -f test-results/test-prod-style/test-prod-style.trx
 	ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --no-build \
 	  --filter "Category=ProdStyle&FullyQualifiedName!~ForgeEndpointsTests&FullyQualifiedName!~FrameworkVirtualProdDemosTests" \
+	  --logger "trx;LogFileName=test-prod-style.trx" --results-directory test-results/test-prod-style \
 	  --blame-hang-timeout 720s --blame-hang-dump-type none
+	bash scripts/ci/zero-test-guard.sh test-results/test-prod-style/test-prod-style.trx
 
 # Runs test-prod-style then the full LocalDevCore test slice (Domain + Infrastructure + CLI harness).
 # ProdStyle runs once in test-prod-style; the second pass excludes Category=ProdStyle.
@@ -194,12 +197,17 @@ meai-pipeline-gate:
 kernel-gate:
 	dotnet build Ashlar.Runtime.sln -v minimal
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
+	rm -f test-results/kernel-gate/kernel-gate-hosting.trx test-results/kernel-gate/kernel-gate-pipeline.trx
 	ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --no-build \
 	  --filter "FullyQualifiedName~KernelPhaseResolutionTests|FullyQualifiedName~HostingDeploymentProfileTests|FullyQualifiedName~HostingE2ESmokeTests" \
+	  --logger "trx;LogFileName=kernel-gate-hosting.trx" --results-directory test-results/kernel-gate \
 	  --blame-hang-timeout 180s --blame-hang-dump-type none
+	bash scripts/ci/zero-test-guard.sh test-results/kernel-gate/kernel-gate-hosting.trx
 	ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --no-build \
 	  --filter "FullyQualifiedName~PipelineTemplateValidatorTests|FullyQualifiedName~PipelineLifecycleE2ETests" \
+	  --logger "trx;LogFileName=kernel-gate-pipeline.trx" --results-directory test-results/kernel-gate \
 	  --blame-hang-timeout 180s --blame-hang-dump-type none
+	bash scripts/ci/zero-test-guard.sh test-results/kernel-gate/kernel-gate-pipeline.trx
 	$(MAKE) meai-pipeline-gate
 	@if [ "$${KERNEL_GATE_PRODSTYLE:-0}" = "1" ]; then $(MAKE) test-prod-style; fi
 	@if [ "$${KERNEL_GATE_MESH:-0}" = "1" ]; then $(MAKE) mesh-lab-verify; fi
@@ -433,60 +441,96 @@ ashlar-ready-gate:
 validate-safe:
 	@bash scripts/validate-safe.sh
 
+# Every dogfood target runs each target framework as its OWN invocation with its own TRX, then
+# scripts/ci/zero-test-guard.sh over both. One invocation without -f runs both frameworks and
+# the second overwrites the first's TRX, so a framework that matched nothing would be invisible.
 # Dogfood Block 1: verify observation pipeline watches Ashlar's own dev workflow
 dogfood-block1:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock1Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block1-net8.0.trx test-results/dogfood/dogfood-block1-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock1Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block1-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock1Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block1-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block1-net8.0.trx test-results/dogfood/dogfood-block1-net10.0.trx
 
 # Dogfood Block 2: verify static analyzer runs against Block 1 (Observation) code
 dogfood-block2:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock2Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block2-net8.0.trx test-results/dogfood/dogfood-block2-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock2Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block2-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock2Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block2-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block2-net8.0.trx test-results/dogfood/dogfood-block2-net10.0.trx
 
 # Dogfood Block 3: adaptation engine decomposes/recompiles Ashlar brick
 dogfood-block3:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock3Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block3-net8.0.trx test-results/dogfood/dogfood-block3-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock3Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block3-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock3Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block3-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block3-net8.0.trx test-results/dogfood/dogfood-block3-net10.0.trx
 
 # Dogfood Block 4: promote Ashlar fix via inheritance
 dogfood-block4:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock4Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block4-net8.0.trx test-results/dogfood/dogfood-block4-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock4Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block4-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock4Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block4-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block4-net8.0.trx test-results/dogfood/dogfood-block4-net10.0.trx
 
 # Dogfood Block 5: autonomy controls on Ashlar dev workflow
 dogfood-block5:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock5Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block5-net8.0.trx test-results/dogfood/dogfood-block5-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock5Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block5-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock5Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block5-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block5-net8.0.trx test-results/dogfood/dogfood-block5-net10.0.trx
 
 # Dogfood Block 6: SelfContextAssembler answers 24h question
 dogfood-block6:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock6Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block6-net8.0.trx test-results/dogfood/dogfood-block6-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock6Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block6-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock6Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block6-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block6-net8.0.trx test-results/dogfood/dogfood-block6-net10.0.trx
 
 # Dogfood Block 7: Composition engine composes for Ashlar problem
 dogfood-block7:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock7Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block7-net8.0.trx test-results/dogfood/dogfood-block7-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock7Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block7-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock7Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block7-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block7-net8.0.trx test-results/dogfood/dogfood-block7-net10.0.trx
 
 # Dogfood Block 8: Parallel test matrix against Ashlar tests
 dogfood-block8:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock8Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block8-net8.0.trx test-results/dogfood/dogfood-block8-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock8Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block8-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock8Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block8-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block8-net8.0.trx test-results/dogfood/dogfood-block8-net10.0.trx
 
 # Phase D: Composition-driven testing (Block 7–8)
 dogfood-block8-composed:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock8ComposedTests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block8-composed-net8.0.trx test-results/dogfood/dogfood-block8-composed-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock8ComposedTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block8-composed-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock8ComposedTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block8-composed-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block8-composed-net8.0.trx test-results/dogfood/dogfood-block8-composed-net10.0.trx
 
 # Dogfood Block 9: Instance mesh discover/advertise
 dogfood-block9:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock9Tests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block9-net8.0.trx test-results/dogfood/dogfood-block9-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock9Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block9-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock9Tests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block9-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block9-net8.0.trx test-results/dogfood/dogfood-block9-net10.0.trx
 
 # Phase E: Local IPC mesh - two instances share capability
 dogfood-block9-ipc:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodBlock9LocalIpcTests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-block9-ipc-net8.0.trx test-results/dogfood/dogfood-block9-ipc-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodBlock9LocalIpcTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block9-ipc-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodBlock9LocalIpcTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-block9-ipc-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-block9-ipc-net8.0.trx test-results/dogfood/dogfood-block9-ipc-net10.0.trx
 
 # Dogfood Blocks 1–6 (Phase C validation)
 dogfood-phase-c:
@@ -506,12 +550,18 @@ dogfood-phase-de:
 # Dogfood Phase F: closed-loop improve on Ashlar
 dogfood-closedloop:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodClosedLoopTests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-closedloop-net8.0.trx test-results/dogfood/dogfood-closedloop-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodClosedLoopTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-closedloop-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodClosedLoopTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-closedloop-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-closedloop-net8.0.trx test-results/dogfood/dogfood-closedloop-net10.0.trx
 
 # Phase F: Continuous self-improvement loop (changelog, test failure store)
 dogfood-phasef:
 	dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
-	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj --filter "FullyQualifiedName~DogfoodPhaseFTests" --no-build -v minimal
+	rm -f test-results/dogfood/dogfood-phasef-net8.0.trx test-results/dogfood/dogfood-phasef-net10.0.trx
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 --filter "FullyQualifiedName~DogfoodPhaseFTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-phasef-net8.0.trx" --results-directory test-results/dogfood
+	dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter "FullyQualifiedName~DogfoodPhaseFTests" --no-build -v minimal --logger "trx;LogFileName=dogfood-phasef-net10.0.trx" --results-directory test-results/dogfood
+	bash scripts/ci/zero-test-guard.sh test-results/dogfood/dogfood-phasef-net8.0.trx test-results/dogfood/dogfood-phasef-net10.0.trx
 
 # All dogfood blocks (1–9) + Phase F closed-loop + Phase F
 dogfood-all:

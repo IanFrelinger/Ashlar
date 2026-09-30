@@ -60,6 +60,7 @@ jobs:
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=gate-pipelines-net8.trx" \
             --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/gate-pipelines-net8.trx
 
       - name: Pipeline tests (net10)
         shell: bash
@@ -70,6 +71,7 @@ jobs:
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=gate-pipelines-net10.trx" \
             --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/gate-pipelines-net10.trx
 
       - name: Host DI smoke
         shell: bash
@@ -80,6 +82,7 @@ jobs:
             --logger "console;verbosity=minimal" \
             --logger "trx;LogFileName=gate-host-di.trx" \
             --results-directory test-results
+          bash scripts/ci/zero-test-guard.sh test-results/gate-host-di.trx
 
       - name: CLI operational checks
         shell: bash

@@ -7,6 +7,8 @@ cd "$ROOT"
 
 CLI="application/src/Ashlar.CLI/Ashlar.CLI.csproj"
 INFRA="src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+TRX_DIR="test-results/ship-gate-tier-b"
+rm -rf "$TRX_DIR"
 
 echo "== Ship Tier B: build CLI + infrastructure tests =="
 dotnet build "$CLI" -v minimal
@@ -18,7 +20,9 @@ make test-prod-style
 echo "== Ship Tier B: framework smoke =="
 ASHLAR_ALLOW_MOCK=1 dotnet test "$INFRA" -f net8.0 --no-build \
   --filter "FullyQualifiedName~BaseFrameworkSmokeTests" \
+  --logger "trx;LogFileName=framework-smoke.trx" --results-directory "$TRX_DIR" \
   --blame-hang-timeout 60s --blame-hang-dump-type none
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/framework-smoke.trx"
 
 echo "== Ship Tier B: doctor --json =="
 set +e

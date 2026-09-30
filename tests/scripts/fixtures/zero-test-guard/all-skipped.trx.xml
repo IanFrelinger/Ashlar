@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="904bdb6f-3e2f-43ff-9476-b28ae9b8b958" name="@acec04bf5e74 2026-09-30 16:10:27" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-30T16:10:27.7225888+00:00" queuing="2026-09-30T16:10:27.7225888+00:00" start="2026-09-30T16:10:26.7128385+00:00" finish="2026-09-30T16:10:27.7269242+00:00" />
+  <TestSettings name="default" id="63c772b9-e275-4c2e-ad27-6ada13e51b17">
+    <Deployment runDeploymentRoot="_acec04bf5e74_2026-09-30_16_10_27" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b9bcb743-4f51-4060-a2e8-b8aa7a565c84" testId="762fc3db-2023-a867-6803-eb4cfd6444e2" testName="Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture" computerName="acec04bf5e74" duration="00:00:00.0010000" startTime="2026-09-30T16:10:27.6319008+00:00" endTime="2026-09-30T16:10:27.6334971+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b9bcb743-4f51-4060-a2e8-b8aa7a565c84">
+      <Output>
+        <ErrorInfo>
+          <Message>Run locally to regenerate damage-to-health-pipeline-batch.json</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture" storage="/repo/src/ashlar.tests.infrastructure/bin/debug/net8.0/ashlar.tests.infrastructure.dll" id="762fc3db-2023-a867-6803-eb4cfd6444e2">
+      <Execution id="b9bcb743-4f51-4060-a2e8-b8aa7a565c84" />
+      <TestMethod codeBase="/repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests" name="WriteDamageHealthBatchFixture" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="762fc3db-2023-a867-6803-eb4cfd6444e2" executionId="b9bcb743-4f51-4060-a2e8-b8aa7a565c84" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="0" passed="0" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.0+05679a7ab5 (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.14]   Discovering: Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:00.55]   Discovered:  Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:00.57]   Starting:    Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:00.59]       Run locally to regenerate damage-to-health-pipeline-batch.json
+[xUnit.net 00:00:00.60]   Finished:    Ashlar.Tests.Infrastructure
+Test 'Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture' was skipped in the test run.
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="acec04bf5e74" outcome="Warning" timestamp="2026-09-30T16:10:27.6348070+00:00">
+        <Text>[xUnit.net 00:00:00.59]     Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture [SKIP]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

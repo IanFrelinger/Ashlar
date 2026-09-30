@@ -7,6 +7,8 @@ cd "$ROOT"
 
 CLI="application/src/Ashlar.CLI/Ashlar.CLI.csproj"
 INFRA_TESTS="src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+TRX_DIR="test-results/ship-gate-tier-a"
+rm -rf "$TRX_DIR"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "python3 is required for JSON assertions in ship-gate-tier-a" >&2
@@ -22,7 +24,9 @@ echo "== Ship Tier A: host DI smoke =="
 dotnet build "$INFRA_TESTS" -f net8.0 -v minimal
 ASHLAR_ALLOW_MOCK=1 dotnet test "$INFRA_TESTS" -f net8.0 --no-build \
   --filter "FullyQualifiedName~HostingE2ESmokeTests.AddAshlar_RegistersObservationPipeline_ByDefault|FullyQualifiedName~PipelineServiceCollectionExtensionsTests.AddAshlar_RegistersPipelineCompositionLayerByDefault" \
+  --logger "trx;LogFileName=host-di-smoke.trx" --results-directory "$TRX_DIR" \
   --blame-hang-timeout 180s --blame-hang-dump-type none
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/host-di-smoke.trx"
 
 TMP="$(mktemp -d)"
 export TMP
