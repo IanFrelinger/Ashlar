@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 731,
-    "declared_facts": 4391,
+    "declared_facts": 4399,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2849,7 +2849,7 @@
       "file": "application/src/Ashlar.Tests.CLI/Tests/Formatting/ValidationResultRenderingTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Formatting",
-      "declared_facts": 1,
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
@@ -6853,7 +6853,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Validation/ValidationServiceAdapterGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Validation",
-      "declared_facts": 20,
+      "declared_facts": 27,
       "in_cert_gate_filter": false
     },
     {
