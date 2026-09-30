@@ -610,6 +610,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, native-platform, container-platform, docker-cli-image, docker-all-images]
     if: always()
+    # `verdict` distinguishes "every platform passed" from "no platform ran". Both exit 0 - this is a
+    # required context and failing on a skip would deadlock any PR that touches no core path - so the
+    # green tick alone cannot tell them apart. Anything that wants to CLAIM platform verification for
+    # a SHA (a release sign-off, a runbook step) must read this, not the check conclusion.
+    outputs:
+      verdict: ${{ steps.summary.outputs.verdict }}
+      lanes_ran: ${{ steps.summary.outputs.lanes_ran }}
+      lanes_skipped: ${{ steps.summary.outputs.lanes_skipped }}
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -617,6 +625,7 @@ jobs:
           path: all-artifacts
 
       - name: Summarize results
+        id: summary
         shell: bash
         run: |
           echo "## Full Platform Readiness Gate" >> "$GITHUB_STEP_SUMMARY"
@@ -638,11 +647,17 @@ jobs:
             echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
+          # A skipped lane is not a failure, but it is not evidence either. Counting both is what lets
+          # the verdict below separate "passed" from "never ran".
+          LANES_RAN=0
+          LANES_SKIPPED=0
+
           for job_status in "${{ needs.native-platform.result }}" "${{ needs.container-platform.result }}" "${{ needs.docker-cli-image.result }}" "${{ needs.docker-all-images.result }}"; do
             case "$job_status" in
-              success) ;;
+              success) LANES_RAN=$((LANES_RAN + 1)) ;;
               skipped)
-                echo "::notice::Job result was skipped (heavy lane not required for this event/diff); counted as a pass."
+                LANES_SKIPPED=$((LANES_SKIPPED + 1))
+                echo "::notice::Job result was skipped (heavy lane not required for this event/diff); not a failure, and not evidence."
                 ;;
               *)
                 # failure or cancelled
@@ -661,10 +676,32 @@ jobs:
           echo "| Docker API/quickstart/agent-server | ${{ needs.docker-all-images.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "$OVERALL" -eq 0 ]]; then
-            echo "**Result: ALL PLATFORMS PASSED**" >> "$GITHUB_STEP_SUMMARY"
-          else
+          if [[ "$OVERALL" -ne 0 ]]; then
+            VERDICT=failed
             echo "**Result: ONE OR MORE PLATFORMS FAILED**" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$LANES_RAN" -eq 0 ]]; then
+            # Green, and it proves nothing about any platform. Say so.
+            VERDICT=not-verified
+            echo "**Result: NOT VERIFIED — every platform lane was skipped, so no platform was exercised" \
+                 "on this commit.** This is a pass because nothing in the diff reaches the readiness" \
+                 "paths, not because the platforms were checked. Do not cite this run as platform" \
+                 "evidence for a release." >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$LANES_SKIPPED" -gt 0 ]]; then
+            VERDICT=partial
+            echo "**Result: PASSED — ${LANES_RAN} of $((LANES_RAN + LANES_SKIPPED)) lane groups ran;" \
+                 "${LANES_SKIPPED} skipped.** Only what ran is evidence." >> "$GITHUB_STEP_SUMMARY"
+          else
+            VERDICT=verified
+            echo "**Result: ALL PLATFORMS PASSED**" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          echo "Verdict: \`${VERDICT}\` (${LANES_RAN} lane group(s) ran, ${LANES_SKIPPED} skipped)." >> "$GITHUB_STEP_SUMMARY"
+
+          # Written BEFORE the exit so a failing run still publishes its verdict.
+          {
+            echo "verdict=${VERDICT}"
+            echo "lanes_ran=${LANES_RAN}"
+            echo "lanes_skipped=${LANES_SKIPPED}"
+          } >> "$GITHUB_OUTPUT"
 
           exit $OVERALL
