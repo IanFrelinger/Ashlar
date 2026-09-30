@@ -1,5 +1,3 @@
-#pragma warning disable RS0016 // Profile ports ship via Unshipped incrementally; suppress until batched.
-
 namespace Ashlar.Core.Domain.Bricks.Ports;
 
 /// <summary>Grounding and destination for a generative draft.</summary>
