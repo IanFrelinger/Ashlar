@@ -3,7 +3,7 @@
 Workflows in this directory are **manual-first** to reduce duplicate CI load, surprise
 minute costs, and branch-noise on `cursor/**` and other integration branches. The full,
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
-the summary of the 61 files (counted 2026-09-13) is:
+the summary of the 62 files (counted 2026-09-29) is:
 
 - **20 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
   `full-platform-readiness-gate`, `layer-boundary`, `shell-lint`, `uat-gate`; `layer-boundary`
