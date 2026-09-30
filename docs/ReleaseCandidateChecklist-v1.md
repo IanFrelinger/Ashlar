@@ -17,6 +17,12 @@ Use this checklist to move from "locally passing" to "release-ready with evidenc
   - [ ] ubuntu-latest
   - [ ] windows-latest
   - [ ] macos-latest
+
+  These matrices (`production-readiness-gate-v1`, `environment-setup-gate-v1`) still use floating
+  `-latest` labels, so the label alone does not say what was tested: record the `Image:` line of each
+  job's "Set up job" step next to its tick. On 2026-09-30 they resolved to `ubuntu-24.04`,
+  `windows-2025-vs2026` and `macos-26-arm64`; from 2026-10-19 GitHub starts moving `ubuntu-latest` to
+  Ubuntu 26.04 (actions/runner-images#14748).
 - [ ] Confirm uploaded artifacts include:
   - [ ] test TRX files
   - [ ] `gate-validate.log`
