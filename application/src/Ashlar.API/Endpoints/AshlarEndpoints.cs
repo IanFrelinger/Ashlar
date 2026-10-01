@@ -483,8 +483,6 @@ public static class AshlarEndpoints
         try
         {
             var result = await orchestrator.OrchestrateAsync(request.Task, cancellationToken);
-            var auditCount = Math.Clamp(request.AuditCount <= 0 ? 25 : request.AuditCount, 1, 200);
-            var recentAudit = auditLog?.GetRecent(auditCount) ?? [];
             var summary = BuildOrchestrationSummary(result);
             await copilotTaskStore.StoreAsync(new CopilotTaskRecord
             {
@@ -504,6 +502,8 @@ public static class AshlarEndpoints
                 tenantId,
                 taskId,
                 result.Success);
+            var auditCount = Math.Clamp(request.AuditCount <= 0 ? 25 : request.AuditCount, 1, 200);
+            var recentAudit = auditLog?.GetRecent(auditCount) ?? [];
             return Results.Ok(new CopilotTaskResponse(
                 taskId,
                 tenantId,
