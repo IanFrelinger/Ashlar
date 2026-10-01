@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-ISSUE_NUMBER=696
+ISSUE_NUMBER=695
 COUNT=${1:-10}
 
 gh issue view "$ISSUE_NUMBER" --json comments \

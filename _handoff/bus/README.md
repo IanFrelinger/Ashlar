@@ -2,7 +2,7 @@
 
 ## Live Channel
 
-**Issue**: https://github.com/IanFrelinger/Ashlar/issues/696
+**Issue**: https://github.com/IanFrelinger/Ashlar/issues/695
 
 The agent-bus is a GitHub issue used for durable coordination between Grok Bot and Claude Code during Ashlar release work.
 

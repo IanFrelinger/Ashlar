@@ -10,7 +10,7 @@ When this command is invoked:
 
 1. **Fetch recent comments** from the agent-bus issue using `gh`:
    ```bash
-   gh issue view 696 --json comments --jq '.comments[-10:] | .[] | "[\(.author.login)] \(.createdAt)\n\(.body)\n"'
+   gh issue view 695 --json comments --jq '.comments[-10:] | .[] | "[\(.author.login)] \(.createdAt)\n\(.body)\n"'
    ```
    
 2. **Parse and summarize**:
@@ -38,7 +38,7 @@ When this command is invoked:
    
 5. **Post reply** (if user confirms):
    ```bash
-   gh issue comment 696 --body "<reply-text>"
+   gh issue comment 695 --body "<reply-text>"
    ```
 
 ## Protocol Reference
