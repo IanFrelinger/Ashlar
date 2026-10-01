@@ -79,10 +79,10 @@ Keep CLI parity marked as resolved; prioritize documentation examples that map e
 - Default `FixGenerator` paths are rule-based; cloud LLM usage in improve is optional and configuration-dependent.
 
 ### Gap
-- **Resolved.** When `ASHLAR_TRUST_ENABLED=1`, `ImproveCommand` registers `SanitizingProviderFactory` in its CLI-local service collection so cloud-backed fix generation uses the same sanitization path as hosting when Trust is on.
+- **Resolved.** When `ASHLAR_TRUST_ENABLED=1`, `ImproveCommand` registers the kernel's trust composition (`AddTrustServices`, which supplies the PII content filter, the taxonomy and the sanitization audit log) in its CLI-local service collection and wraps `ProviderFactory` in `SanitizingProviderFactory`, so cloud-backed fix generation uses the same sanitization path as hosting when Trust is on. Until the fail-closed change (`CHANGELOG.md`, Unreleased) the wiring had no effect: improve registered `CloudSanitizationProxy` by type alone, DI built it with no content filter, and the proxy passed every prompt through. A proxy with no filter now blocks every non-air-gapped prompt instead.
 
 ### Recommendation
-- Add or extend a CLI test that asserts the improve DI graph resolves a sanitizing factory when `ASHLAR_TRUST_ENABLED=1` and a cloud provider is configured (if not already present).
+- **Done.** `application/src/Ashlar.Tests.CLI/Tests/Commands/ImproveCommandTrustWiringTests.cs` builds the provider registration improve uses. With trust enabled, both provider ports resolve to the one `SanitizingProviderFactory` and its proxy has a content filter (a clean prompt passes; a prompt carrying an email address is blocked for PII). With trust disabled, no sanitizer is registered. The test resolves the registration directly; it does not configure a cloud provider.
 
 ---
 

@@ -82,7 +82,7 @@ Containers: the API and CLI images set `ASHLAR_STATE_DIR=/data/state` (owned by 
 
 | Variable / config key | Description | Default |
 |-----------------------|-------------|---------|
-| `Ashlar__Api__EnableSwagger` | Serve `/swagger` (UI) and `/swagger/v1/swagger.json`. The document enumerates every mapped route and schema, so it is off outside `Development` unless set | `true` in `Development`, else `false` |
+| `Ashlar__Api__EnableSwagger` | Serve `/swagger` (UI) and `/swagger/v1/swagger.json`. The document enumerates every mapped route and schema, so it is off outside `Development` unless set. The commercial Fleet.Host honours the same key with the same default. `application/src/Ashlar.API/appsettings.Testing.json` sets it to `true` and the API, quickstart and fleet-host images all ship that file, so `ASPNETCORE_ENVIRONMENT=Testing` serves Swagger too (`docs/DEPLOYMENT.md`) | `true` in `Development`, else `false` |
 
 `GET /health` (liveness, constant 200) and `GET /ready` (readiness: 503 while the host is starting or shutting down, 200 in between) are always mapped, unauthenticated, and outside `/api`.
 

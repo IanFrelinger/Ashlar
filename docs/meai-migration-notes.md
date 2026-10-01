@@ -110,7 +110,7 @@ Agents / ToolCallingAgent / Orchestration
 | `DataExfiltrationPolicy` | `src/Ashlar.BackgroundAgents/Security/DataExfiltrationPolicy.cs` | Tool-call policy: blocks LLM/search when sensitivity forbids |
 | `SupportDiagnosticsExporter` | `application/src/Ashlar.API/Security/` | Redacts sensitive **config** keys (not LLM prompts) |
 
-**Behavior today (CloudSanitizationProxy):** air-gapped → pass-through; else PII detected → **block**; filterable PII → **redact**; taxonomy may further constrain. Not yet policy-pack-driven per destination target (Phase 2 must make this policy-driven: redact / block / pass by target).
+**Behavior today (CloudSanitizationProxy):** air-gapped → pass-through; else no content filter configured → **block**; PII detected → **block**; filterable PII → **redact**. The taxonomy is accepted but not consulted. Not yet policy-pack-driven per destination target (Phase 2 must make this policy-driven: redact / block / pass by target).
 
 **Noise:** `SanitizeXmlName`, `SanitizeIdentifier`, Unity `SanitizeClassName` — unrelated to LLM egress.
 
