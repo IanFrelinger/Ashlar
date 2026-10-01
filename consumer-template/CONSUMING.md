@@ -4,7 +4,7 @@ Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host 
 
 **Package version:** `0.2.0` — the current nuget.org release (`ci/published-version`). Repo `VERSION` may already read ahead of a release that has not been published; do not treat it as the public pin.
 
-**On nuget.org since v0.1.1 (2026-09-01); current pin is v0.2.0 (2026-09-29).** The full `Ashlar.*` graph (including `Ashlar.CLI`, `Ashlar.Authoring`, `Ashlar.Hosting.Bundle`) restores from plain nuget.org — no staging feed needed. The living proof is [github.com/IanFrelinger/ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager), whose CI restores from nuget.org and nothing else. A staging feed (below) remains an option for pre-release testing; inside a checkout, a `ProjectReference` into `src/` (as in `samples/hello-brick/`) needs no feed at all.
+**On nuget.org since v0.1.1 (2026-09-01); current pin is v0.2.0 (2026-10-01).** The full `Ashlar.*` graph (including `Ashlar.CLI`, `Ashlar.Authoring`, `Ashlar.Hosting.Bundle`) restores from plain nuget.org — no staging feed needed. The living proof is [github.com/IanFrelinger/ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager), whose CI restores from nuget.org and nothing else. A staging feed (below) remains an option for pre-release testing; inside a checkout, a `ProjectReference` into `src/` (as in `samples/hello-brick/`) needs no feed at all.
 
 ## Package pins (`0.2.0`)
 

@@ -1,7 +1,1 @@
 #nullable enable
-Ashlar.Abstractions.Paths.PathContainment
-static Ashlar.Abstractions.Paths.PathContainment.IsStrictlyWithin(string? candidate, string? root) -> bool
-static Ashlar.Abstractions.Paths.PathContainment.IsStrictlyWithin(string? candidate, string? root, System.StringComparison comparison) -> bool
-static Ashlar.Abstractions.Paths.PathContainment.IsWithin(string? candidate, string? root) -> bool
-static Ashlar.Abstractions.Paths.PathContainment.IsWithin(string? candidate, string? root, System.StringComparison comparison) -> bool
-static Ashlar.Abstractions.Paths.PathContainment.PlatformComparison.get -> System.StringComparison
