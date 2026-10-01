@@ -7,7 +7,7 @@
 #   3. Dry-run — `ashlar doctor --fix --dry-run --json` + `ashlar bootstrap apply --dry-run --json` + smoke tests
 #
 # Native runners: ubuntu, macOS, Windows
-# Container runners: Ubuntu, Alpine, Debian (Docker on ubuntu-latest)
+# Container runners: Ubuntu, Alpine, Debian (Docker on ubuntu-24.04)
 #
 # Trigger policy (see .github/workflows/README.md, docs/CiGateInventory.md):
 #   - pull_request: UNFILTERED on purpose. The `changes` job decides in-workflow whether any

@@ -43,7 +43,7 @@ The analyzers' RS0036 (missing nullable annotation in the API file) and RS0037 (
 
 #### Release step: promote Unshipped -> Shipped on tag
 
-**This has happened.** `v0.1.0`, `v0.1.1` and `v0.1.2` are tagged and published, and the promotion ran: the reviewed surface now lives in `PublicAPI.Shipped.txt` (399 lines in `Ashlar.Abstractions`, 465 in `Ashlar.Brick.Contracts`, 31 in `Ashlar.Client`, 9 in `Ashlar.Sdk`, 5 in `Ashlar.Authoring`) and every `PublicAPI.Unshipped.txt` is back to the bare `#nullable enable` header.
+**This has happened.** `v0.1.0`, `v0.1.1` and `v0.1.2` are tagged and published, and the promotion ran: the reviewed surface now lives in `PublicAPI.Shipped.txt` (399 lines in `Ashlar.Abstractions`, 612 in `Ashlar.Brick.Contracts`, 31 in `Ashlar.Client`, 9 in `Ashlar.Sdk`, 5 in `Ashlar.Authoring`), and the promotion left every `PublicAPI.Unshipped.txt` at the bare `#nullable enable` header. Of `Ashlar.Brick.Contracts`' 612, 147 are the generative-profile ports (see "Code-brick authoring surface"), recorded straight into `Shipped.txt` because those types had shipped, untracked, since `v0.1.0`. Since then, `Ashlar.Abstractions`' `Unshipped.txt` has gained six lines (the `Ashlar.Abstractions.Paths.PathContainment` helper), which are promised at the next tag.
 
 So `Shipped.txt` is now a **promise already made**, not an empty file waiting for one. Read the paragraph above accordingly: additions go to `Unshipped.txt` and are promised at the next tag; a change to a line already in `Shipped.txt` is a break against published packages and needs the process in "Breaking change process" below.
 
@@ -74,6 +74,8 @@ The `ashlar new brick` code-brick path references `Ashlar.Authoring` and exposes
 - `Ashlar.Core.Domain.Execution.BrickOutput`
 - `Ashlar.Core.Domain.Bricks.ImplementationType`
 - `Ashlar.Core.Domain.Execution.IExecutionContext`
+
+`Ashlar.Brick.Contracts` also ships the generative-profile ports in `Ashlar.Core.Domain.Bricks.Ports`: `AgentProfile`, `AgentProfileCapabilities`, `GenerationTunables`, `BrickConstraintManifest`, `GenerationRequest`, `GeneratedArtifact`, `IArtifactDrafter`, `IDeterministicDrafter`, `ISandboxProvider`, `IDeploymentTarget`, `DeploymentApplyResult`, `IAcceptanceEvaluator`, `IAcceptanceGatedDeploymentTarget`, `DefaultAcceptanceEvaluator`, `AcceptanceDecision`, `AcceptanceContext`, `AcceptanceResult`, `DeploymentSmokeResult`. They have been public, unchanged, since `v0.1.0` and are stable-tier. A file-wide `#pragma warning disable RS0016` in each of their five source files used to keep them out of public-API tracking, so nothing enforced that promise; they are now in `PublicAPI.Shipped.txt`. In this repository, `DiagnosticSuppressionConventionTests` (cert-gate) fails any suppression of RS0016, RS0017, RS0026 or RS0027, and any CS0618 or ASHLAREXP001 disable that does not name the symbol it is for with a reason, other than two reviewed project-wide opt-ins and eight grandfathered pragmas. The check is lexical; its row in `ci/cert-gate-assertions.md` lists what it does not see.
 
 ### Experimental
 
