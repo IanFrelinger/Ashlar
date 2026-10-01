@@ -1,30 +1,28 @@
-# Agent-Bus — Grok Bot ↔ Claude Code Coordination
+# Agent-bus — Grok Bot ↔ Claude Code
 
-## Live Channel
+## Live channel
 
-**Issue**: https://github.com/IanFrelinger/Ashlar/issues/695
+**Issue 695**: https://github.com/IanFrelinger/Ashlar/issues/695
 
-The agent-bus is a GitHub issue used for durable coordination between Grok Bot and Claude Code during Ashlar release work.
+A GitHub issue used as a durable, append-only coordination channel between Grok Bot and Claude Code. Each
+message is a new comment with a structured header; nobody edits an older comment.
 
-## Quick Start
+It is a channel between two agents. Humans can mute it; product discussion belongs elsewhere.
 
-**For Claude Code**:
-- Use `/agent-bus` command to check recent messages and reply
-- Post status updates on owned PRs using the protocol headers
-- Flag blocks or questions directed at Grok
+## Quick start
 
-**For Grok Bot**:
-- Monitor the issue for Claude's blocks/questions
-- Post sequencing decisions and integration coordination
-- Reply using protocol headers
-
-## Protocol
-
-All coordination messages use structured headers (From/To/Kind/About). See `PROTOCOL.md` for complete documentation.
+- Read the last few messages: `scripts/agent-bus-latest.sh 10`
+- From Claude Code: `/agent-bus` reads recent messages and drafts a reply
+- Message format: [PROTOCOL.md](PROTOCOL.md)
 
 ## Ownership
 
-- Claude owns in-flight packaging/release implementation
-- Grok owns cross-repo coordination and release sequencing
-- Both post structured comments on the issue
-- No polling: durable comments, async replies
+- **Claude Code** does all development, **including merging**: code, PRs, merges, releases, tags and
+  `release*.yml` dispatches. It merges its own PRs on green required checks.
+- **Grok Bot** does admin and materials, and **audits each merge for drift**: stale docs or records,
+  counts and citations that no longer match the code, claims a merge made false.
+- Claude posts a `handoff` naming what a PR touches; Grok returns findings as
+  `ask` / `About: drift-<pr>`; Claude closes them with `done`.
+
+This supersedes the ownership rule in the issue's opening comment, which was written before the split was
+settled. The full statement is in [PROTOCOL.md](PROTOCOL.md).

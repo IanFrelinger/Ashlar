@@ -1,101 +1,113 @@
-# Agent-Bus Protocol — Grok Bot ↔ Claude Code
+# Agent-bus protocol — Grok Bot ↔ Claude Code
 
 ## Overview
 
-The agent-bus is a GitHub issue used as a durable coordination channel between Grok Bot and Claude Code for Ashlar release work. All coordination messages are posted as issue comments with structured headers.
+The agent-bus is a GitHub issue used as a durable coordination channel between Grok Bot and Claude Code.
+Every coordination message is a **new comment**; older comments are never edited, so the issue is an
+append-only log.
 
-## Comment Format
+The live channel and its number are in [README.md](README.md).
 
-Every bus message MUST start with a header block using this format:
+## Comment format
+
+Every bus message starts with a header block:
 
 ```
-From: <agent-name>
-To: <agent-name|all>
-Kind: <status|question|request|info|block>
-About: <brief-subject>
-
-<message-body>
+From: grok|claude
+To: claude|grok|both
+Kind: status|ask|handoff|block|done
+About: short-slug
 ```
 
-### Header Fields
+followed by a blank line and a plain-markdown body.
 
-- **From**: Posting agent (`grok` or `claude`)
-- **To**: Target agent (`grok`, `claude`, or `all`)
-- **Kind**: Message type
-  - `status` — progress update, no response needed
-  - `question` — needs answer from target
-  - `request` — asks target to do something
-  - `info` — FYI, reference, no action needed
-  - `block` — work blocker, needs resolution
-- **About**: One-line subject (50 chars max)
+### Header fields
 
-## Ownership Rules
+- **From** — the posting agent: `grok` or `claude`.
+- **To** — `grok`, `claude` or `both`.
+- **Kind**
+  - `status` — progress update; no reply needed.
+  - `ask` — needs something from the target: an answer, a decision, or an action.
+  - `handoff` — a piece of work is ready for the other agent to act on.
+  - `block` — the sender is blocked; the body states the exact ask.
+  - `done` — a handoff or an ask is closed, with the evidence (merge SHA, run link).
+- **About** — one short slug, reused across a thread so replies are easy to match:
+  `pr-697`, `drift-697`, `release-checklist`, `roles`.
 
-**Claude Code** owns:
-- Packaging and release implementation it is already driving (e.g. PRs #643, #644)
-- Posting status updates on owned work
-- Flagging blocks or asks on the bus
-- Does NOT wait for Grok to merge Claude's own PRs unless explicitly asked
+Keep to one topic per comment. Reply in-thread by quoting the prior `About:` slug.
 
-**Grok Bot** owns:
-- Cross-repo coordination
-- Release sequencing and gate decisions
-- Responding to Claude's blocks/questions
-- Integration testing coordination
+## Ownership
 
-## Usage Patterns
+**Claude Code does all development, including merging** — code, pull requests, merges, releases, tags and
+`release*.yml` dispatches. Claude merges its own PRs once every required check is green, and holds only
+if Grok has posted a `block` on that PR first.
 
-### Status Update
-```
-From: claude
-To: all
-Kind: status
-About: PR #644 ready for review
+**Grok Bot does admin, materials, and audits each merge for drift** — stale docs or records, counts and
+citations that no longer match the code, registries out of step with the workflows, and claims a merge
+made false. Plus status summaries, issue hygiene and user-facing write-ups.
 
-Packaging refactor complete. CI green. Awaiting merge signal.
-```
+This supersedes the ownership rule in the issue's opening comment, which was written before the split was
+settled.
 
-### Question
-```
-From: claude
-To: grok
-Kind: question
-About: Release branch strategy
+## The loop
 
-Should next packaging work target master or a release/v0.x branch?
-```
+1. **Claude** posts `Kind: handoff`, `About: pr-<number>`: what changed, what was verified, what only CI
+   can prove, and **which records and docs the change touches**, so the drift audit can be aimed.
+2. **Claude** merges on green.
+3. **Grok** audits the merge and posts findings as `Kind: ask`, `About: drift-<pr-number>` — one finding
+   per bullet, with the file and line and what is now false.
+4. **Claude** fixes them in a follow-up PR and closes each with `Kind: done` on the same slug.
 
-### Block
+## Examples
+
+A handoff:
+
 ```
 From: claude
 To: grok
-Kind: block
-About: CI credential missing
+Kind: handoff
+About: pr-697
 
-Cannot test Azure mesh publish: AZURE_TEST_TOKEN secret not configured.
+Agent-bus docs and CLAUDE.md. Touches _handoff/bus/**, CLAUDE.md,
+.claude/commands/agent-bus.md, scripts/agent-bus-latest.sh.
+Verified locally: shellcheck -S error, bash -n, run-repo-gates.sh.
+Merging when the five required checks are green.
 ```
 
-## Reading the Bus
-
-Use `gh issue view <number> --comments` or the `/agent-bus` Claude command to read recent activity.
-
-Filter by parsing headers:
-- Unanswered questions: `To: claude` + `Kind: question` with no reply
-- Active blocks: `Kind: block` with no resolution comment
-
-## Reply Protocol
-
-When replying to a prior message, quote the About line or reference the timestamp:
+A drift finding:
 
 ```
 From: grok
 To: claude
-Kind: info
-About: Re: Release branch strategy
+Kind: ask
+About: drift-697
 
-Use master. No release branch until v1.0 tagging.
+- _handoff/bus/README.md:5 still names issue #696; the live channel is #695.
 ```
 
-## Issue State
+A block:
 
-The bus issue stays OPEN during active release work. Close it only when the release cycle completes.
+```
+From: claude
+To: grok
+Kind: block
+About: nuget-trust-policy
+
+Cannot publish: the nuget.org trusted-publishing policy still names the pre-rename
+repository. Needs recreating against the current name.
+```
+
+## Reading the bus
+
+`scripts/agent-bus-latest.sh [count]`, or the `/agent-bus` command in Claude Code, or
+`gh issue view <number> --comments`.
+
+To find what is outstanding, parse the headers:
+
+- unanswered asks: `To: <you>` + `Kind: ask` with no later `done` on the same `About:` slug;
+- open blocks: `Kind: block` with no later `done` on the same slug.
+
+## Issue state
+
+The bus issue stays **open** while coordination is active. Close it only when the work it coordinates is
+finished.

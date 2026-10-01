@@ -1,61 +1,54 @@
-# /agent-bus — Check and Reply to Agent-Bus
+# /agent-bus — read the agent-bus and reply
 
 ## Purpose
 
-Read recent messages from the agent-bus coordination issue (Grok Bot ↔ Claude Code) and draft/post a reply.
+Read recent messages on the agent-bus coordination issue (Grok Bot ↔ Claude Code), say what is
+outstanding, and post a reply.
 
-## Instructions
+The channel is issue **695**; see `_handoff/bus/README.md`. The message format is in
+`_handoff/bus/PROTOCOL.md`.
 
-When this command is invoked:
+## Steps
 
-1. **Fetch recent comments** from the agent-bus issue using `gh`:
+1. **Fetch** the recent comments:
+
    ```bash
-   gh issue view 695 --json comments --jq '.comments[-10:] | .[] | "[\(.author.login)] \(.createdAt)\n\(.body)\n"'
-   ```
-   
-2. **Parse and summarize**:
-   - Look for messages with `To: claude` in the header
-   - Identify unanswered questions (`Kind: question`)
-   - Identify active blocks (`Kind: block`)
-   - Note any `Kind: request` items directed at Claude
-   
-3. **Present summary** to the user:
-   - Show the last 5-10 comments (or use `scripts/agent-bus-latest.sh 10` if available)
-   - Highlight items needing Claude's attention
-   - List unanswered questions and unresolved blocks
-   
-4. **Draft reply** (if needed):
-   - Ask user what to reply or draft based on context
-   - Format reply with protocol headers:
-     ```
-     From: claude
-     To: <grok|all>
-     Kind: <status|info|request>
-     About: <subject>
-     
-     <body>
-     ```
-   
-5. **Post reply** (if user confirms):
-   ```bash
-   gh issue comment 695 --body "<reply-text>"
+   bash scripts/agent-bus-latest.sh 10
    ```
 
-## Protocol Reference
+2. **Work out what is outstanding.** Parse the header block of each comment:
+   - **asks for you** — `To: claude` (or `both`) with `Kind: ask`, and no later `Kind: done` from you on
+     the same `About:` slug;
+   - **open blocks** — `Kind: block` with no later `done` on the same slug;
+   - **handoffs** — `Kind: handoff` addressed to you that you have not answered;
+   - **drift findings** — `About: drift-<pr>`, which are fixes for you to make in a follow-up PR.
 
-See `_handoff/bus/PROTOCOL.md` for complete protocol documentation.
+3. **Report** to the user: the last few messages in one line each, then the outstanding items. Say
+   plainly if there is nothing outstanding.
 
-## Quick Checks
+4. **Draft a reply** when there is something to answer. Use the protocol header:
 
-- **Unanswered to Claude**: Comments with `To: claude` that have no subsequent reply from Claude
-- **Active blocks**: `Kind: block` messages with no resolution follow-up
-- **Recent status**: Latest `Kind: status` from Grok about sequencing or gates
+   ```
+   From: claude
+   To: grok
+   Kind: status|ask|handoff|block|done
+   About: <slug — reuse the slug you are replying to>
+   ```
 
-## Example Usage
+   Reuse the `About:` slug of the message you are answering so the thread stays matchable.
 
-User types: `/agent-bus`
+5. **Post it.** Posting is an outward-facing action: show the user the draft and get a yes first, unless
+   they have already told you to post without asking.
 
-Claude responds with:
-- Summary of last 10 comments
-- "You have 2 unanswered questions from Grok"
-- Draft reply if action is clear, or ask user what to say
+   ```bash
+   gh issue comment 695 --body-file <path>
+   ```
+
+   Write the body to a file rather than passing it inline — the headers and markdown survive intact.
+
+## Notes
+
+- Never edit an older comment; always add a new one.
+- One topic per comment.
+- Claude does all development, including merges. Grok audits merges for drift and handles admin. Do not
+  ask Grok to merge, and do not wait for Grok before committing your own work.
