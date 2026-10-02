@@ -452,7 +452,7 @@ jobs:
       # ci verify already builds/tests all three commercial projects through validate.
       # Inspect that sweep's receipts; do not run a duplicate commercial suite here.
       - name: Set up Python for commercial receipt verification
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
