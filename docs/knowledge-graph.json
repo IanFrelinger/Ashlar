@@ -755,7 +755,8 @@
         "Ashlar.Core.Application",
         "Ashlar.Framework.Sdk",
         "Ashlar.Infrastructure",
-        "Ashlar.Sdk"
+        "Ashlar.Sdk",
+        "Ashlar.Tests.Application"
       ]
     },
     {

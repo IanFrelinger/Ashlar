@@ -17,7 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- **`Ashlar.CLI` references its test projects only on request.** Unless a build passed
+  `-p:IncludeTestProjectReferences=false`, the CLI compiled `Ashlar.Tests.Domain`,
+  `Ashlar.Tests.Application` and `Ashlar.Tests.Infrastructure` (and through them, on net10.0,
+  `Ashlar.API` with its MCP, A2A and AWS ingress projects) into every build, pack and publish. The
+  references are now opt-in with `-p:IncludeTestProjectReferences=true`. NuGet packages do not
+  change, because the release pipeline already passed `false`; source builds and the CLI container
+  image no longer carry the test assemblies.
 
 ## [0.2.0] - 2026-10-01
 
