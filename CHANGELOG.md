@@ -71,6 +71,41 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   (`docs/SdkCompatibilityPolicy.md`), so this entry is the record of the new surface. The parity and
   the fail-closed rules are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
 
+- **`Ashlar.Abstractions.Security.Egress`: a report-only egress guard, its decision log, and a pinned
+  inventory of every outbound path.** `IEgressGuard.Evaluate(EgressRequest)` decides whether the
+  current label may be written to a destination and returns an `EgressDecision`. It classifies the
+  destination by a table derived from the built-in `DataSensitivityLevels` flags: loopback,
+  `localhost`, a `unix` or `npipe` socket and a declared `host:` name are inside the host boundary
+  (`SystemHigh`), a model is an external model (`Internal`), web search is `Confidential`, a network
+  export is `Internal`, and an unknown destination fails closed to `Public`. The current label is the
+  high-water mark of the ambient `EgressSubject` frame, or `SystemHigh` when there is none, and the
+  decision is `ReferenceMonitor.CanWrite(current, destination)`. Every decision goes to the
+  `Ashlar-Egress` EventSource and to each `EgressDecisionLog` subscriber, except one made on a
+  thread that is already publishing a record (an egress that a sink or listener itself causes): that
+  decision is returned to its caller and counted, but not published, so the pipeline cannot recurse.
+  A record names the destination by scheme, host and port only, never its path, query or userinfo,
+  and it never carries the payload or the headers. `EgressGuard` never throws: a fault is recorded
+  with `Fault` set and `Access` left at `NoDecision`. `EgressHttp` builds HTTP clients and handlers
+  that evaluate every request without reading or buffering its content and return the inner response
+  unchanged; on the netstandard2.0 asset, which .NET 5–7 apps resolve, only `SendAsync` is evaluated
+  and a synchronous `Send` is not (`docs/EgressInventory.md` records it as a PR 4 prerequisite).
+  `AddAshlarEgressGuard` (`Ashlar.Infrastructure.Egress`) registers the guard, subscribes an `ILogger`
+  sink that writes each decision at Debug under the `Ashlar.Egress` category, and puts the guard
+  handler on every `IHttpClientFactory` client in the container with one `ConfigureHttpClientDefaults`
+  call. `docs/EgressInventory.md` lists every path by which a request or data leaves an Ashlar
+  process, each with an `EG-` id, and `ci/egress-inventory.tsv` pins every outbound site the source
+  scan sees, by file and marker.
+
+  Report-only, with no behaviour change: nothing refuses, and nothing is routed yet. No existing call
+  site changed and no production composition calls `AddAshlarEgressGuard`, so no shipped host
+  evaluates anything; the TSV marks each site that a later change routes `Unrouted`. Because nothing
+  produces a label yet, every decision about a destination outside the host reads as a refusal
+  (`SystemHighData`); that is the report, not an enforcement. The new public API is recorded in
+  `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, so it is not yet shipped. These are
+  classification-style controls inside the runtime, not an accredited cross-domain solution. The
+  convention test that holds the inventory and the behavioural tests of the guard, the HTTP handler
+  and the factory defaults are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
+
 ### Changed
 
 - **`Ashlar.CLI` references its test projects only on request.** Unless a build passed
