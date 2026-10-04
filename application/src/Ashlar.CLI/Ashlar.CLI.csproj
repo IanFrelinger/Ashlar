@@ -75,7 +75,11 @@
     <EmbeddedResource Include="../../../samples/templates/brick/**/*" LogicalName="Ashlar.CLI.Templates.Brick/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(IncludeTestProjectReferences)' != 'false'">
+  <!-- Opt-in only: -p:IncludeTestProjectReferences=true. No CLI source uses a type from these
+       projects, and the CLI commands that run their tests build them first (ci verify, dogfood,
+       validate). On by default, they compiled Tests.Infrastructure into every CLI build, pack and
+       publish, and on net10.0 the API, MCP, A2A and AWS ingress projects behind it. -->
+  <ItemGroup Condition="'$(IncludeTestProjectReferences)' == 'true'">
     <!-- Test projects for runtime discovery (excluding CLI to avoid circular dependency) -->
     <ProjectReference Include="../../../src/Ashlar.Tests.Domain/Ashlar.Tests.Domain.csproj" />
     <ProjectReference Include="../../../src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj" />

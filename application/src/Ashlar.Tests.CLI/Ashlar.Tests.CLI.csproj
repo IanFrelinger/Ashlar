@@ -29,6 +29,9 @@
     <ProjectReference Include="../../../src/Ashlar.Sdk/Ashlar.Sdk.csproj" />
     <ProjectReference Include="../../../src/Ashlar.Framework.Sdk/Ashlar.Framework.Sdk.csproj" />
     <ProjectReference Include="../../../src/Ashlar.Authoring/Ashlar.Authoring.csproj" />
+    <!-- TestHelpers (AgentCommandTests, AnalyzeCommandTests) used to arrive through the CLI's
+         test-project references, which are now opt-in. -->
+    <ProjectReference Include="../../../src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj" />
   </ItemGroup>
 
   <!-- Without this the file never reaches bin\ and xunit reads whatever stale copy
