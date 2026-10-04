@@ -336,8 +336,8 @@ stand until a later PR or the owner changes them.
   No production composition calls `AddAshlarEgressGuard` yet, so outside the tests nothing subscribes that sink.
 - **No subject means `SystemHigh`** (#709). With no active `EgressSubject` frame, the current label is `SystemHigh`
   with basis `no-subject`. This follows the owner's §7 rule: when a label is missing, treat it as `SystemHigh`. So a
-  destination inside the host boundary is allowed, and every other one is refused with `SystemHighData` (reported,
-  not enforced).
+  destination inside the host boundary is allowed, and every other one is decided as refused with `SystemHighData`.
+  The decision is only recorded: in 3a and 3b the guard never blocks a send.
 - **A clearance with no level is `Public`** (#707's mapping table, not its list of owner decisions).
   `TryToClearance` maps no level to `Public`, and `TrustTierOrder.CallerLabel` maps a blank or unknown caller to
   `Public`. Data with no level is `SystemHigh`, as §2.1 and the PR 2 row of §5 require.
@@ -401,8 +401,8 @@ answered yet, and none blocked a merged PR. They are lettered so they do not col
 - **C. The scope of caveats** (related to §8 Q1). Treating caveats like compartments is sound for eligibility
   markings such as `NOFORN` and `NOWEB`. It cannot express originator-controlled markings such as `ORCON`, and REL TO
   needs a different encoding. Whether the four level flags become caveats (see the PR 2 decision above) is a related
-  question. #707 placed it with §8 Q2 (whether tokens are registered in a policy pack; #707 calls it the
-  caveat-registry question), to be settled before PR 3. It was not decided before 3a merged, so it is now due before
+  question. #707 placed it with §8 Q2 (compartment names: free-form tokens or registered in a policy pack; #707
+  calls it the caveat-registry question, though §8 Q2 asks about compartments), to be settled before PR 3. It was not decided before 3a merged, so it is now due before
   3b or PR 4.
 
 - **D. Redacting refusal details.** A read refusal's `Detail` names the data's level and compartments to whoever

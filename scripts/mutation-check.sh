@@ -206,6 +206,23 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
+# Checked before the work dir exists, so a --work-dir inside --repo cannot report the script's own files.
+# The commonest protocol slip is a new killing test that was never committed: the clone at HEAD does
+# not have it and the check reports SURVIVED. So any uncommitted or untracked change is named, not only
+# one in FILE.
+if [[ "${REF}" == "HEAD" ]]; then
+  SRC_STATUS="$(git -C "${REPO}" status --porcelain --untracked-files=all 2>/dev/null)"
+  if [[ -n "${SRC_STATUS}" ]]; then
+    SRC_DIRTY=1
+    echo "mutation-check: warning: ${REPO} has uncommitted changes. They are NOT part of ${SHA}," >&2
+    echo "               the commit that is mutated and tested, so a new or edited test among them" >&2
+    echo "               does not run. Commit first. Not part of the run:" >&2
+    head -n 20 <<<"${SRC_STATUS}" | sed 's/^/                 /' >&2
+    N_DIRTY="$(wc -l <<<"${SRC_STATUS}")"
+    if [[ "${N_DIRTY}" -gt 20 ]]; then echo "                 ... and $((N_DIRTY - 20)) more" >&2; fi
+  fi
+fi
+
 if [[ -z "${WORK}" ]]; then
   WORK="$(mktemp -d "${TMPDIR:-/tmp}/mutation-check.XXXXXX")" || invalid bad-args "mktemp -d failed"
 elif [[ -e "${WORK}" ]]; then
@@ -233,22 +250,6 @@ if [[ -n "${NEW_FILE}" ]]; then
   cp -- "${NEW_FILE}" "${WORK}/new.txt" || invalid bad-args "cannot copy --new-file ${NEW_FILE} into ${WORK}"
 else
   printf '%s' "${NEW}" > "${WORK}/new.txt" || invalid bad-args "cannot write the --new text into ${WORK}"
-fi
-
-# The commonest protocol slip is a new killing test that was never committed: the clone at HEAD does
-# not have it and the check reports SURVIVED. So any uncommitted or untracked change is named, not only
-# one in FILE.
-if [[ "${REF}" == "HEAD" ]]; then
-  SRC_STATUS="$(git -C "${REPO}" status --porcelain --untracked-files=all 2>/dev/null)"
-  if [[ -n "${SRC_STATUS}" ]]; then
-    SRC_DIRTY=1
-    echo "mutation-check: warning: ${REPO} has uncommitted changes. They are NOT part of ${SHA}," >&2
-    echo "               the commit that is mutated and tested, so a new or edited test among them" >&2
-    echo "               does not run. Commit first. Not part of the run:" >&2
-    head -n 20 <<<"${SRC_STATUS}" | sed 's/^/                 /' >&2
-    N_DIRTY="$(wc -l <<<"${SRC_STATUS}")"
-    if [[ "${N_DIRTY}" -gt 20 ]]; then echo "                 ... and $((N_DIRTY - 20)) more" >&2; fi
-  fi
 fi
 
 # --- 1. clone at REF ---------------------------------------------------------------------------

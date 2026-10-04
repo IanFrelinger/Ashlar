@@ -28,7 +28,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCRIPT="${ROOT}/scripts/mutation-check.sh"
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=66
+EXPECTED_ASSERTIONS=68
 
 PASS=0
 FAIL=0
@@ -135,6 +135,7 @@ case "${STUB_MODE}" in
   green-fails)   if [[ "${phase}" == green ]]; then fail_line 1 6 7 Fixture; exit 1; fi ;;
   green-abort)   if [[ "${phase}" == green ]]; then pass_line 7 Fixture; exit 1; fi ;;
   green-skipped) if [[ "${phase}" == green ]]; then none_line Skipped 7; exit 0; fi ;;
+  green-fail-exit0) if [[ "${phase}" == green ]]; then fail_line 1 6 7 Fixture; exit 0; fi ;;
   more-green)    if [[ "${phase}" == green ]]; then pass_line 8 Fixture; exit 0; fi ;;
   two-dlls)      if [[ "${state}" == marker ]]; then fail_line 2 5 7 Fixture; pass_line 3 Other; exit 1; fi
                  pass_line 7 Fixture; pass_line 3 Other; exit 0 ;;
@@ -376,6 +377,9 @@ expect_last "a green run that passed every test but exited non-zero is INVALID" 
 mc green-skipped 'a - b' --file src/calc.cs --old 'a + b' --new 'a - b' --id gs
 expect_last "a green run that executed no test (all skipped) is INVALID" 2 \
   "mutation gs: INVALID red=failed:2/7 green=passed:0/7 ref=${SHA2} reason=green-not-passing${OVR}"
+mc green-fail-exit0 'a - b' --file src/calc.cs --old 'a + b' --new 'a - b' --id gfe
+expect_last "a green run with a failed test that still exited 0 is INVALID" 2 \
+  "mutation gfe: INVALID red=failed:2/7 green=passed:6/7 ref=${SHA2} reason=green-not-passing${OVR}"
 
 echo "== uncommitted work in --repo is named, because it is not what gets tested =="
 mkdir -p "${FIX}/tests" && echo '// a new killing test, not committed yet' > "${FIX}/tests/NewTests.cs"
@@ -392,6 +396,13 @@ git -C "${FIX}" checkout -q -- src/calc.cs
 if [[ -n "$(git -C "${FIX}" status --porcelain)" ]]; then
   echo "FAIL - could not restore the fixture after the uncommitted-work case."
   exit 1
+fi
+mc normal 'a - b' --file src/calc.cs --old 'a + b' --new 'a - b' --id inrepo --work-dir "${FIX}/mcwork"
+if [[ "${RC}" == 0 ]] && ! grep -qF "uncommitted changes" <<<"${OUT}" && [[ -z "$(git -C "${FIX}" status --porcelain)" ]]; then
+  ok "a --work-dir inside a clean --repo is not reported as uncommitted work, and is removed"
+else
+  bad "a --work-dir inside a clean --repo is not reported as uncommitted work, and is removed" \
+    "exit ${RC}; last line '${LAST}'; fixture status [$(git -C "${FIX}" status --porcelain | tr '\n' '|')]"
 fi
 
 echo "== arguments =="

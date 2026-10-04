@@ -292,8 +292,9 @@ shift "${#head[@]}"
 # The network the caller named (empty for none) and whether a run publishes ports. `docker run`
 # stops reading options at the image, so this scan does too. Options that take no value are
 # listed; any other option is taken to have one, in the same word (--opt=v, -p8080:80) or the next.
-# So a no-value option missing from the list can only make the scan run on past the image into the
-# container's command line; it can never stop the scan early and miss a real option.
+# A no-value option missing from the list is the scan's blind spot: it swallows the next word as its
+# value. Past the image that is harmless, but directly before -p it eats the -p, the scan stops at the
+# port spec, and the run gets --network host with its ports discarded. Keep the list current.
 network=""
 publishes=0
 args=("$@")
