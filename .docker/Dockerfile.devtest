@@ -13,12 +13,33 @@
 #
 # CI does the right thing already (actions/setup-dotnet installs 10.0.x AND 8.0.x); this image is
 # how the container scripts reach the same state. Build it with scripts/ensure-devtest-image.sh.
+#
+# WHERE THE 8.0 RUNTIME COMES FROM. Microsoft's own ASP.NET Core 8 runtime image, by a multi-stage
+# COPY of its two shared frameworks (Microsoft.NETCore.App and Microsoft.AspNetCore.App). This used
+# to run dot.net/v1/dotnet-install.sh, which downloads from builds.dotnet.microsoft.com; an
+# environment that can pull from mcr.microsoft.com but not reach that host (a Claude Code cloud
+# session's egress policy is one) could not build the image at all. Pulling the image needs only the
+# registry, which the base image needs anyway. The -noble tag is the same Ubuntu 24.04 as the base,
+# so the runtime's native dependencies (ICU, OpenSSL) are the OS versions Microsoft ships it on, and
+# both tags are multi-arch, so an arm64 host gets arm64 bits from both stages. The end state is
+# unchanged: SDK 10, the real 8.0 runtime, and jq. host/fxr is not copied: the dotnet muxer always
+# loads the newest hostfxr, which is the SDK's 10.x, and that resolves net8.0 apps onto the 8.0
+# frameworks copied here.
+#
+# Nothing environment-specific is baked in: no CA certificate, no proxy. A build or run behind a
+# proxy passes those in at the call (build args, -e, a read-only mount); see
+# .claude/hooks/session-start.sh for the cloud-session form.
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-noble AS aspnet8
+
 FROM mcr.microsoft.com/devcontainers/dotnet:10.0-noble
 
-RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
- && bash /tmp/dotnet-install.sh --channel 8.0 --runtime aspnetcore \
-      --install-dir /usr/share/dotnet --no-path \
- && rm -f /tmp/dotnet-install.sh \
+# A directory COPY copies the directory's CONTENTS, so each framework names its own destination;
+# the 8.0.x version folder lands beside the base image's 10.0.x one.
+COPY --from=aspnet8 /usr/share/dotnet/shared/Microsoft.NETCore.App/ /usr/share/dotnet/shared/Microsoft.NETCore.App/
+COPY --from=aspnet8 /usr/share/dotnet/shared/Microsoft.AspNetCore.App/ /usr/share/dotnet/shared/Microsoft.AspNetCore.App/
+
+RUN dotnet --list-runtimes \
+ && dotnet --list-runtimes | grep -q '^Microsoft\.NETCore\.App 8\.' \
  && dotnet --list-runtimes | grep -q '^Microsoft\.AspNetCore\.App 8\.'
 
 # jq, for asserting on --format-json output from scenario scripts.

@@ -105,6 +105,35 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   classification-style controls inside the runtime, not an accredited cross-domain solution. The
   convention test that holds the inventory and the behavioural tests of the guard, the HTTP handler
   and the factory defaults are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
+- **A Claude Code cloud session sets docker up by itself.** A new SessionStart hook,
+  `.claude/hooks/session-start.sh` (registered in `.claude/settings.json`), runs only when
+  `CLAUDE_CODE_REMOTE=true`: it starts `dockerd` if it is not running, writes a session-local
+  `docker` wrapper that gives containers the host network, the session's proxy and its CA bundle,
+  and builds the devtest image if it is missing. A run that publishes ports, or names a network
+  other than host, is left on its own network with no proxy, because host networking would discard
+  its published ports. On a developer machine or in CI the hook exits at once and does nothing.
+  `tests/scripts/session-start-hook.test.sh` tests it with fakes in `shell-lint`, which now also
+  runs `bash -n` and `shellcheck` over `.claude/hooks/`.
+
+- **`scripts/mutation-check.sh` runs the steps of a mutation check that follow the commit.** In a
+  clone of a committed SHA (`--ref`, default `HEAD`) it replaces `--old` with `--new` (or
+  `--old-file`/`--new-file` for multi-line text) exactly once and refuses 0 or 2+ occurrences, prints
+  the diff as proof, runs the tests in the devtest container (red) and lists the ones that failed,
+  restores with `git checkout`, requires an empty `git status --porcelain`, runs them again (green),
+  and ends on one line such as
+  `mutation hwm-join-dropped: KILLED red=failed:16/120 green=passed:120/120 ref=<sha>`. Exit 0 is
+  KILLED, 1 is SURVIVED, and 2 is INVALID, which covers anything that would otherwise be misread: a
+  red run that failed with no test summary (a build error is not a kill), a red run whose exit code
+  and counts disagree, a red run that executed no test (none selected, or every one skipped, is not a
+  survivor), a restore that left the tree dirty, or a green run that did not pass. Only a dotnet
+  summary line at column 0, for an assembly the run announced, is counted. `--file` is a literal path
+  to a regular file and a symlink is refused, so the source repository is never written to and a
+  worktree works as `--repo`. With `--ref HEAD` it names every uncommitted or untracked change in
+  `--repo`, since none of them is tested. A run made by the `ASHLAR_MUTATION_RUNNER` override says so
+  and its summary line ends in `runner=override`. `tests/scripts/mutation-check.test.sh` drives every
+  verdict through a stub runner, and the container path through a fake `scripts/test-in-container.sh`
+  committed in its fixture, with no container and no dotnet; `shell-lint` runs it as a discovered
+  repo gate.
 
 ### Changed
 
@@ -115,6 +144,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   references are now opt-in with `-p:IncludeTestProjectReferences=true`. NuGet packages do not
   change, because the release pipeline already passed `false`; source builds and the CLI container
   image no longer carry the test assemblies.
+- **The devtest image takes the ASP.NET Core 8 runtime from Microsoft's runtime image.**
+  `.docker/Dockerfile.devtest` used to run `dotnet-install.sh`, which downloads from
+  `builds.dotnet.microsoft.com`, so the image could not be built where only the container registry
+  is reachable. It now copies the two 8.0 shared frameworks out of
+  `mcr.microsoft.com/dotnet/aspnet:8.0-noble` in a multi-stage build; the result is the same SDK 10,
+  real 8.0 runtime and `jq`, and nothing environment-specific (no CA, no proxy) is baked in.
 
 ### Removed
 

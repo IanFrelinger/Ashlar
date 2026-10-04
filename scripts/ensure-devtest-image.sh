@@ -3,7 +3,8 @@
 #
 # The container scripts need a .NET 10 SDK *and* the real ASP.NET Core 8 runtime; see
 # .docker/Dockerfile.devtest for why rolling forward is not a substitute. Docker layer-caches
-# the build, so the first call costs a runtime download and every later call is instant.
+# the build, so the first call costs pulling the base images (the SDK 10 devcontainer and
+# Microsoft's ASP.NET Core 8 runtime image) and every later call is instant.
 #
 # Usage:  IMAGE="$(bash scripts/ensure-devtest-image.sh)"
 #         docker run --rm "$IMAGE" ...
@@ -33,7 +34,7 @@ fi
 
 if [[ "$need_build" == "1" ]]; then
   # Progress goes to stderr so the tag on stdout stays machine-readable.
-  echo "ensure-devtest-image: building $IMAGE (first build downloads the ASP.NET Core 8 runtime)..." >&2
+  echo "ensure-devtest-image: building $IMAGE (first build pulls the SDK 10 and ASP.NET Core 8 runtime images)..." >&2
   docker build -t "$IMAGE" -f "${ROOT}/.docker/Dockerfile.devtest" "${ROOT}/.docker" >&2
 fi
 

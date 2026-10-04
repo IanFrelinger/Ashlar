@@ -26,10 +26,13 @@ Read automatically by Claude Code at the start of every session in this reposito
   `scripts/release/readiness-verdict-for-sha.sh` reads it.
 - **A check that was never observed failing is not evidence.** Mutation-check every behavioural change:
   commit first, apply the mutation, prove it applied, watch the specific assertion go red with real
-  counts, restore, prove `git status --porcelain` is empty, re-run green.
+  counts, restore, prove `git status --porcelain` is empty, re-run green. Once you have committed,
+  `scripts/mutation-check.sh` runs the apply, red, restore, porcelain and green steps in a clone of that
+  commit, lists the red run's failing tests, and prints the verdict with the counts.
 
 Releases: `docs/RELEASE_RUNBOOK.md`. Product history and what is already done: `CONTINUITY.md`.
 Release-readiness convergence: `_handoff/readiness/README.md`.
+Security labels workstream (status, owner decisions, open questions): `docs/specs/SPEC-007-security-labels-and-reference-monitor.md`.
 
 ## Multi-agent coordination (agent-bus)
 
