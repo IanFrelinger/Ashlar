@@ -122,12 +122,11 @@ public sealed partial class EgressGuardConventionTests
 
     /// <summary>
     /// Non-vacuity floors, examined occurrences counting guarded and unguarded together so converting sites
-    /// never trips them. Measured in the devtest container at master 40852ac with this test added, before the
-    /// guard files land: 2,111 production .cs files scanned and 143 occurrences examined (http.new 13,
-    /// http.param 22, http.register 12, sdk.client 9, socket 2, process 51, door 11, telemetry 2, store 14,
-    /// chat.register 7, banned 0). The guard core adds 3 (<c>EgressHttp.cs</c>). Set far enough below to
-    /// survive ordinary deletions; a scan that stops reading the tree falls through them. Re-measure and
-    /// restate at the PR commit.
+    /// never trips them. Measured in the devtest container on the SPEC-007 PR 3a commit (edf585a): 2,128
+    /// production .cs files scanned and 146 occurrences examined (http.new 16, of which 3 are the guard's own
+    /// in <c>EgressHttp.cs</c>; http.param 22, http.register 12, sdk.client 9, socket 2, process 51, door 11,
+    /// telemetry 2, store 14, chat.register 7, banned 0). Set far enough below to survive ordinary deletions;
+    /// a scan that stops reading the tree falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
     private const int ScannedFilesFloor = 1000;
 
