@@ -1,0 +1,955 @@
+using System.Text.RegularExpressions;
+
+namespace Ashlar.Tests.Infrastructure.Tests.Certification;
+
+/// <summary>
+/// The population walk and the classifier behind <see cref="EgressGuardConventionTests"/>. Text-level on
+/// purpose, like every scan in the required check: no Roslyn, no build. See the type remarks on the main
+/// part for what each marker and rule means and what the scan cannot see.
+/// </summary>
+public sealed partial class EgressGuardConventionTests
+{
+    /// <summary>The trees that ship. Roots that do not exist in this checkout are skipped, not failed.</summary>
+    private static readonly string[] ProductionRoots =
+        ["src", "application", "applications", "commercial", "products", "tools", "consumer-template"];
+
+    /// <summary>
+    /// Excluded BY NAME, and on purpose: <c>spikes/</c> and <c>samples/</c> are not shipped and are outside
+    /// Ashlar.sln, the same reason <c>DiagnosticSuppressionConventionTests</c> gives for the FirstFlight spike
+    /// (a recorded run, not a shipped artifact). They are not production roots, and
+    /// <see cref="F7_the_walk_reaches_shipped_code_and_skips_test_projects"/> asserts nothing under them is scanned.
+    /// </summary>
+    private static readonly string[] UnshippedRoots = ["spikes", "samples"];
+
+    /// <summary>The TSV's <c>marker</c> column. Named "marker", not "family", so it is not confused with the runtime <c>EgressFamilies</c>.</summary>
+    internal static class Marker
+    {
+        public const string HttpNew = "http.new";
+        public const string HttpParam = "http.param";
+        public const string HttpRegister = "http.register";
+        public const string SdkClient = "sdk.client";
+        public const string Socket = "socket";
+        public const string Process = "process";
+        public const string Door = "door";
+        public const string Telemetry = "telemetry";
+        public const string Store = "store";
+        public const string ChatRegister = "chat.register";
+
+        /// <summary>Never allowed, never pinned (F4). Counted so a control can prove the scan sees it.</summary>
+        public const string Banned = "banned";
+
+        /// <summary>The markers a TSV row may name. <see cref="Banned"/> is deliberately absent.</summary>
+        public static readonly string[] Pinnable =
+            [HttpNew, HttpParam, HttpRegister, SdkClient, Socket, Process, Door, Telemetry, Store, ChatRegister];
+    }
+
+    /// <summary>How an occurrence is guarded. The TSV's <c>guarded_by</c> column spells the non-None values.</summary>
+    internal enum GuardKind
+    {
+        None = 0,
+
+        /// <summary>G2: built by <c>EgressHttp.CreateClient</c>/<c>Wrap</c>, or handed one (sdk.client, G2-file).</summary>
+        Wrapped,
+
+        /// <summary>G3: a guard call precedes it in the same block or an enclosing one.</summary>
+        Precedes,
+
+        /// <summary>An <c>AddHttpClient</c> whose member also calls <c>AddAshlarEgressGuard(</c>.</summary>
+        Factory,
+    }
+
+    /// <summary>One examined token: where it is, which marker it is, and whether a rule guards it.</summary>
+    internal sealed record Occurrence(string Path, string Marker, int Line, int Offset, string Token, GuardKind Guard)
+    {
+        public bool Guarded => Guard != GuardKind.None;
+
+        public string Where => Path + ":" + Line;
+
+        public override string ToString() =>
+            $"{Where}  {Marker}  {Token}  [{(Guarded ? "guarded: " + Guard : "UNGUARDED")}]";
+    }
+
+    /// <summary>The guard kind a marker's guarded occurrences must carry; <see cref="GuardKind.None"/> when it has no guarded form.</summary>
+    private static GuardKind ExpectedGuardKind(string marker) => marker switch
+    {
+        Marker.HttpNew or Marker.SdkClient => GuardKind.Wrapped,
+        Marker.HttpRegister => GuardKind.Factory,
+        Marker.Socket or Marker.Process or Marker.Door or Marker.Telemetry => GuardKind.Precedes,
+        _ => GuardKind.None,
+    };
+
+    /// <summary>Everything one walk of the production tree yields. Computed once per test run.</summary>
+    private sealed record TreeScan(
+        string Root,
+        List<string> Files,
+        List<Occurrence> Occurrences,
+        List<(string Path, int Line, bool BindsHandler)> HttpDefaultsBindings,
+        List<(string Path, int Line, string Id)> SiteIdLiterals)
+    {
+        public int ExaminedOccurrences => Occurrences.Count;
+
+        public static TreeScan Load(string root)
+        {
+            var files = new List<string>();
+            foreach (var top in ProductionRoots)
+            {
+                var dir = Path.Combine(root, top);
+                if (Directory.Exists(dir) && !IsPruned(dir))
+                    Collect(root, dir, files);
+            }
+
+            files.Sort(StringComparer.Ordinal);
+
+            var occurrences = new List<Occurrence>();
+            var bindings = new List<(string, int, bool)>();
+            var siteIds = new List<(string, int, string)>();
+            foreach (var relative in files)
+            {
+                var model = new SourceModel(relative, File.ReadAllText(Path.Combine(root, relative)));
+                occurrences.AddRange(Scanner.Classify(model));
+                bindings.AddRange(Scanner.HttpDefaultsBindings(model));
+                siteIds.AddRange(Scanner.SiteIdLiterals(model));
+            }
+
+            return new TreeScan(root, files, occurrences, bindings, siteIds);
+        }
+
+        private static void Collect(string root, string directory, List<string> files)
+        {
+            foreach (var file in Directory.EnumerateFiles(directory, "*.cs"))
+                files.Add(Path.GetRelativePath(root, file).Replace('\\', '/'));
+
+            foreach (var child in Directory.EnumerateDirectories(directory))
+            {
+                if (!IsPruned(child))
+                    Collect(root, child, files);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Build output, agent scratch space and every dot-directory; any directory holding a <c>.git</c> file or
+    /// directory (a worktree or nested clone, which would otherwise be scanned twice on a developer machine);
+    /// and a TEST PROJECT, identified by its csproj (see <see cref="IsTestProjectRoot"/>), never by its name.
+    /// </summary>
+    private static bool IsPruned(string directory)
+    {
+        var name = Path.GetFileName(directory);
+        if (name is "bin" or "obj" or ".claude" || name.StartsWith('.'))
+            return true;
+
+        var git = Path.Combine(directory, ".git");
+        if (File.Exists(git) || Directory.Exists(git))
+            return true;
+
+        return IsTestProjectRoot(directory);
+    }
+
+    /// <summary>
+    /// A test project root: a csproj that says <c>&lt;IsTestProject&gt;true&lt;</c> or references
+    /// <c>Microsoft.NET.Test.Sdk</c>, exactly as <c>UnstableHashKeyConventionTests.IsTestProjectRoot</c> decides
+    /// it. Never by name: a name rule once hid 59 production files from a gate, and a substring filter in this
+    /// test's own design pass dropped <c>RemoteExecutionPlatform.cs</c> (it lives under <c>Testing/</c>).
+    /// <c>Ashlar.Agents.TestKit</c> says <c>&lt;IsTestProject&gt;false&lt;</c> and is shipped, so it is scanned.
+    /// </summary>
+    internal static bool IsTestProjectRoot(string directory)
+    {
+        foreach (var csproj in Directory.EnumerateFiles(directory, "*.csproj"))
+        {
+            var text = File.ReadAllText(csproj);
+            if (text.Contains("<IsTestProject>true<", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("Microsoft.NET.Test.Sdk", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>A brace pair in the cleaned text, its parent, and whether it is a namespace or type body.</summary>
+    private sealed record Block(int Open, int Close, int Parent, bool IsTypeBody, int HeaderStart);
+
+    /// <summary>
+    /// One source file, cleaned (comments and literal contents blanked, offsets kept), with its block tree.
+    /// Every marker runs on <see cref="Code"/>, never on <see cref="Raw"/>.
+    /// </summary>
+    private sealed class SourceModel
+    {
+        private static readonly Regex FileScopedNamespace = new(
+            @"(?m)^[ \t]*namespace\s+@?[A-Za-z_][A-Za-z0-9_.]*\s*;", RegexOptions.CultureInvariant);
+
+        private readonly int[] _lineStarts;
+
+        public SourceModel(string path, string raw)
+        {
+            Path = path;
+            Raw = raw;
+            Literals = new Dictionary<int, string>();
+            Code = Scanner.Clean(raw, Literals);
+            _lineStarts = LineStarts(Code);
+            Blocks = BuildBlocks(Code);
+            RootIsCode = !FileScopedNamespace.IsMatch(Code);
+        }
+
+        public string Path { get; }
+
+        public string Raw { get; }
+
+        public string Code { get; }
+
+        /// <summary>Each literal's original text, by the offset of its first character (Clean records them).</summary>
+        public Dictionary<int, string> Literals { get; }
+
+        /// <summary>In order of their opening brace, so the last one containing an offset is the innermost.</summary>
+        public List<Block> Blocks { get; }
+
+        /// <summary>
+        /// True unless the file declares a file-scoped namespace. The file root then holds top-level statements
+        /// (a top-level program) or only usings and type declarations, so treating it as code is safe: no
+        /// statement can sit at the root of a file that is not a top-level program.
+        /// </summary>
+        public bool RootIsCode { get; }
+
+        public int LineOf(int offset)
+        {
+            var index = Array.BinarySearch(_lineStarts, offset);
+            return index >= 0 ? index + 1 : ~index;
+        }
+
+        /// <summary>The innermost block containing <paramref name="offset"/>, or -1 for the file root.</summary>
+        public int Innermost(int offset)
+        {
+            var best = -1;
+            for (var b = 0; b < Blocks.Count; b++)
+            {
+                var block = Blocks[b];
+                if (block.Open >= offset)
+                    break;
+                if (offset < block.Close)
+                    best = b;
+            }
+
+            return best;
+        }
+
+        /// <summary>Statements can run here: any block but a namespace or type body; the root when <see cref="RootIsCode"/>.</summary>
+        public bool IsCodeBlock(int block) => block < 0 ? RootIsCode : !Blocks[block].IsTypeBody;
+
+        /// <summary>True when <paramref name="ancestor"/> is <paramref name="block"/> or encloses it. The root encloses everything.</summary>
+        public bool IsAncestorOrSelf(int ancestor, int block)
+        {
+            if (ancestor < 0)
+                return true;
+            for (var b = block; b >= 0; b = Blocks[b].Parent)
+            {
+                if (b == ancestor)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The member that holds <paramref name="offset"/>, header included: the outermost enclosing block below a
+        /// type body, from its declaration to its closing brace. An occurrence directly in a type body (a field
+        /// initializer, an expression-bodied member) is its declaration up to the depth-0 ';'. In a top-level
+        /// program, the file is one member.
+        /// </summary>
+        public (int Start, int End) Member(int offset)
+        {
+            var candidate = -1;
+            for (var b = Innermost(offset); b >= 0; b = Blocks[b].Parent)
+            {
+                if (Blocks[b].IsTypeBody)
+                    return candidate >= 0 ? Span(candidate) : (Scanner.StatementStart(Code, offset), Scanner.StatementEnd(Code, offset));
+                candidate = b;
+            }
+
+            if (!RootIsCode)
+                return candidate >= 0 ? Span(candidate) : (Scanner.StatementStart(Code, offset), Scanner.StatementEnd(Code, offset));
+            return (0, Code.Length);
+        }
+
+        private (int Start, int End) Span(int block) => (Blocks[block].HeaderStart, Math.Min(Blocks[block].Close + 1, Code.Length));
+
+        private static int[] LineStarts(string code)
+        {
+            var starts = new List<int> { 0 };
+            for (var k = 0; k < code.Length; k++)
+            {
+                if (code[k] == '\n')
+                    starts.Add(k + 1);
+            }
+
+            return [.. starts];
+        }
+
+        private static List<Block> BuildBlocks(string code)
+        {
+            var blocks = new List<Block>();
+            var open = new Stack<int>();
+            for (var k = 0; k < code.Length; k++)
+            {
+                if (code[k] == '{')
+                {
+                    var headerStart = Scanner.StatementStart(code, k);
+                    blocks.Add(new Block(k, code.Length, open.Count > 0 ? open.Peek() : -1, IsTypeHeader(code[headerStart..k]), headerStart));
+                    open.Push(blocks.Count - 1);
+                }
+                else if (code[k] == '}' && open.Count > 0)
+                {
+                    var index = open.Pop();
+                    blocks[index] = blocks[index] with { Close = k };
+                }
+            }
+
+            return blocks;
+        }
+
+        private static readonly HashSet<string> TypeKeywords = new(StringComparer.Ordinal)
+        {
+            "class", "struct", "interface", "enum", "record", "namespace",
+        };
+
+        private static readonly HashSet<string> Modifiers = new(StringComparer.Ordinal)
+        {
+            "public", "private", "protected", "internal", "static", "sealed", "abstract", "partial", "readonly",
+            "ref", "unsafe", "new", "file", "extern", "required", "virtual", "override",
+        };
+
+        /// <summary>
+        /// A namespace or type body: after attributes and modifiers, the header's first word is a type or
+        /// namespace keyword. Positional on purpose, so <c>foreach (var record in records)</c> and
+        /// <c>where T : class</c> are code. Preprocessor lines are dropped first (<c>#region Private class helpers</c>).
+        /// </summary>
+        private static bool IsTypeHeader(string header)
+        {
+            var text = string.Join('\n', header.Split('\n').Where(l => !l.TrimStart().StartsWith('#')));
+            var k = 0;
+            while (true)
+            {
+                while (k < text.Length && char.IsWhiteSpace(text[k]))
+                    k++;
+                if (k >= text.Length)
+                    return false;
+                if (text[k] == '[')
+                {
+                    var depth = 0;
+                    for (; k < text.Length; k++)
+                    {
+                        if (text[k] == '[')
+                        {
+                            depth++;
+                        }
+                        else if (text[k] == ']' && --depth == 0)
+                        {
+                            k++;
+                            break;
+                        }
+                    }
+
+                    continue;
+                }
+
+                var start = k;
+                while (k < text.Length && (char.IsLetterOrDigit(text[k]) || text[k] == '_'))
+                    k++;
+                if (k == start)
+                    return false;
+                var word = text[start..k];
+                if (TypeKeywords.Contains(word))
+                    return true;
+                if (!Modifiers.Contains(word))
+                    return false;
+            }
+        }
+    }
+
+    /// <summary>The classifier: markers, G2, G2-file, G3 and the Factory rule, over one <see cref="SourceModel"/>.</summary>
+    private static class Scanner
+    {
+        private const RegexOptions Rx = RegexOptions.CultureInvariant;
+
+        /// <summary>Optional <c>global::System.Net.Http.</c> qualifier.</summary>
+        private const string HttpNs = @"(?:global::)?(?:System\s*\.\s*Net\s*\.\s*Http\s*\.\s*)?";
+
+        /// <summary>Optional <c>global::System.Diagnostics.</c> qualifier.</summary>
+        private const string DiagnosticsNs = @"(?:global::)?(?:System\s*\.\s*Diagnostics\s*\.\s*)?";
+
+        /// <summary>Optional <c>global::System.Net.Sockets.</c> / <c>.WebSockets.</c> qualifier.</summary>
+        private const string SocketsNs = @"(?:global::)?(?:System\s*\.\s*Net\s*\.\s*(?:Sockets|WebSockets)\s*\.\s*)?";
+
+        /// <summary>Any dotted qualifier (<c>Amazon.BedrockRuntime.</c>, <c>ModelContextProtocol.Client.</c>).</summary>
+        private const string AnyNs = @"(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*";
+
+        /// <summary>http.new: a raw client, handler or invoker. "then ( or {" — an initializer on the next line counts.</summary>
+        internal static readonly Regex RawHttpConstruction = new(
+            @"\bnew\s+" + HttpNs + @"(?:HttpClient|HttpClientHandler|SocketsHttpHandler|WinHttpHandler)\s*[({]"
+            + @"|\bnew\s+" + HttpNs + @"HttpMessageInvoker\s*\(",
+            Rx);
+
+        /// <summary>http.new, target-typed: <c>HttpClient[?] id = new(</c>. Group 1 is the <c>new</c>.</summary>
+        private static readonly Regex TargetTypedHttpConstruction = new(
+            @"\b" + HttpNs + @"(?:HttpClient|HttpClientHandler|SocketsHttpHandler|WinHttpHandler|HttpMessageInvoker)\s*\??\s+@?[A-Za-z_][A-Za-z0-9_]*\s*=\s*(new)\s*\(",
+            Rx);
+
+        /// <summary>http.new, guarded form: the sanctioned constructors. Each is one guarded (Wrapped) occurrence.</summary>
+        private static readonly Regex EgressHttpFactoryCall = new(@"\bEgressHttp\s*\.\s*(?:CreateClient|Wrap)\s*\(", Rx);
+
+        /// <summary>http.param: <c>HttpClient[?] id</c> right after a '(' or ',' (attributes and this/in/ref/out allowed). Group 1 is the type name.</summary>
+        private static readonly Regex HttpClientParameter = new(
+            @"(?<=[(,]\s*(?:\[[^\[\]]*\]\s*)*(?:(?:this|in|ref|out|params|scoped)\s+)?)" + HttpNs
+            + @"(HttpClient)\s*\??\s+@?[A-Za-z_][A-Za-z0-9_]*\s*(?=[,)=])",
+            Rx);
+
+        /// <summary>Words before a '(' that make the parenthesis a statement, not a parameter list.</summary>
+        private static readonly HashSet<string> NotAParameterList = new(StringComparer.Ordinal)
+        {
+            "using", "for", "foreach", "fixed", "lock", "while", "if", "switch", "catch", "return", "await",
+            "typeof", "nameof", "sizeof", "default", "when", "is",
+        };
+
+        private static readonly Regex HttpClientRegistration = new(@"\.\s*AddHttpClient\s*[(<]", Rx);
+
+        private static readonly Regex AddAshlarEgressGuardCall = new(@"\bAddAshlarEgressGuard\s*\(", Rx);
+
+        private static readonly Regex SdkClient = new(
+            @"\bGrpcChannel\s*\.\s*ForAddress\s*\("
+            + @"|\bnew\s+" + AnyNs + @"(?:HttpClientTransport|SseClientTransport|A2AClient|A2ACardResolver)\s*\("
+            + @"|\bMcpClient\s*\.\s*CreateAsync\s*\("
+            + @"|\bnew\s+" + AnyNs + @"Amazon[A-Za-z0-9_]*Client\s*\("
+            + @"|\.\s*AsIChatClient\s*\(",
+            Rx);
+
+        private static readonly Regex McpTransportConstruction = new(@"\bnew\s+" + AnyNs + @"(?:HttpClientTransport|SseClientTransport)\s*\(", Rx);
+
+        private static readonly Regex PassesHandlerOrClient = new(
+            @"\bEgressHttp\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(|\bHttpHandler\s*=(?![=>])|\bHttpClient\s*=(?![=>])", Rx);
+
+        private static readonly Regex SocketPrimitive = new(
+            @"\bnew\s+" + SocketsNs + @"(?:UdpClient|TcpClient|Socket|ClientWebSocket)\s*\("
+            + @"|\b(?:System\s*\.\s*Net\s*\.\s*)?Dns\s*\.\s*(?:GetHostAddresses|GetHostEntry)(?:Async)?\s*\(",
+            Rx);
+
+        private static readonly Regex ProcessPrimitive = new(
+            @"\bnew\s+" + DiagnosticsNs + @"ProcessStartInfo\s*[({]"
+            + @"|\bProcess\s*\.\s*Start\s*\("
+            + @"|\bnew\s+" + DiagnosticsNs + @"Process\s*[({]",
+            Rx);
+
+        private static readonly Regex DoorPrimitive = new(
+            @"\bMeshStore\s*\.\s*Publish\s*\(|\bExtensionPackaging\s*\.\s*Pack\s*\(|\bResults\s*\.\s*(?:Stream|File)\s*\(", Rx);
+
+        /// <summary>
+        /// Door members: methods that write data out of the process with no primitive this scan can see, so
+        /// their BODY must hold a guard call (in the body block itself, not a nested one).
+        /// </summary>
+        internal static readonly (string Type, string Member)[] DoorMembers =
+        [
+            ("NativeBundle", "StageApp"),
+            ("SneakernetTransport", "ExportAsync"),
+            ("FileBasedSharedAdaptationStore", "BroadcastAsync"),
+        ];
+
+        private static readonly Regex TelemetryExporter = new(@"\.\s*AddOtlpExporter\s*\(", Rx);
+
+        private static readonly Regex StoreClient = new(@"\bnew\s+" + AnyNs + @"(?:NpgsqlConnection|DockerClientConfiguration)\s*\(", Rx);
+
+        internal static readonly Regex ChatRegistration = new(
+            @"\.\s*(?:AddKeyedChatClient|AddChatClient|AddEmbeddingGenerator|AddKeyedEmbeddingGenerator)\s*[(<]"
+            + @"|\bnew\s+" + AnyNs + @"(?:OllamaHttpChatClient|LlamaSharpChatClient)\s*\(",
+            Rx);
+
+        private static readonly Regex BannedRegistration = new(
+            @"\b(?:Try)?Add[A-Za-z0-9_]*\s*<\s*" + HttpNs + @"HttpClient\s*>|\btypeof\s*\(\s*" + HttpNs + @"HttpClient\s*\)", Rx);
+
+        /// <summary>The guard call G3 recognises: <c>….Evaluate(new EgressRequest(</c>.</summary>
+        internal static readonly Regex GuardCall = new(@"\.\s*Evaluate\s*\(\s*new\s+" + AnyNs + @"EgressRequest\s*\(", Rx);
+
+        private static readonly Regex SiteIdLiteral = new(@"^@?""EG-[A-Z]+-\d+""$", Rx);
+
+        private static readonly Regex Whitespace = new(@"\s+", Rx);
+
+        public static List<Occurrence> Classify(SourceModel m)
+        {
+            var code = m.Code;
+            var found = new List<Occurrence>();
+            void Add(string marker, int offset, int length, GuardKind guard) =>
+                found.Add(new Occurrence(m.Path, marker, m.LineOf(offset), offset, Whitespace.Replace(code.Substring(offset, length), " ").Trim(), guard));
+
+            var guards = GuardCall.Matches(code).Select(g => g.Index).ToList();
+            var factoryCalls = EgressHttpFactoryCall.Matches(code)
+                .Select(c => (At: c.Index, Open: c.Index + c.Length - 1, Close: ClosingParen(code, c.Index + c.Length - 1), Length: c.Length))
+                .ToList();
+
+            // ── http.new ─────────────────────────────────────────────────────────────────────────────
+            foreach (var call in factoryCalls)
+                Add(Marker.HttpNew, call.At, call.Length, GuardKind.Wrapped);
+
+            var raw = RawHttpConstruction.Matches(code).Select(r => (At: r.Index, r.Length))
+                .Concat(TargetTypedHttpConstruction.Matches(code).Select(r => (At: r.Groups[1].Index, Length: r.Index + r.Length - r.Groups[1].Index)));
+            var unguardedHttpNew = 0;
+            foreach (var (at, length) in raw)
+            {
+                var wrapped = factoryCalls.Any(c => c.Open < at && at < c.Close) || StoredInALocalWrappedLater(m, at, factoryCalls);
+                if (!wrapped)
+                    unguardedHttpNew++;
+                Add(Marker.HttpNew, at, length, wrapped ? GuardKind.Wrapped : GuardKind.None);
+            }
+
+            // ── http.param ───────────────────────────────────────────────────────────────────────────
+            foreach (Match p in HttpClientParameter.Matches(code))
+            {
+                if (IsParameterList(code, p.Index))
+                    Add(Marker.HttpParam, p.Groups[1].Index, p.Index + p.Length - p.Groups[1].Index, GuardKind.None);
+            }
+
+            // ── http.register: Factory when the same member calls AddAshlarEgressGuard( ──────────────
+            foreach (Match r in HttpClientRegistration.Matches(code))
+            {
+                var (start, end) = m.Member(r.Index);
+                var install = AddAshlarEgressGuardCall.Match(code, start);
+                Add(Marker.HttpRegister, r.Index, r.Length, install.Success && install.Index < end ? GuardKind.Factory : GuardKind.None);
+            }
+
+            // ── sdk.client: G2-file ──────────────────────────────────────────────────────────────────
+            var transportsPass = McpTransportConstruction.Matches(code)
+                .Select(t => PassesAClient(code, t.Index, t.Index + t.Length - 1))
+                .ToList();
+            foreach (Match s in SdkClient.Matches(code))
+            {
+                var open = s.Index + s.Length - 1;
+                var passes = s.Value.Contains("McpClient", StringComparison.Ordinal)
+                    ? transportsPass.Count > 0 && transportsPass.All(x => x)
+                    : PassesAClient(code, s.Index, open);
+                Add(Marker.SdkClient, s.Index, s.Length, passes && unguardedHttpNew == 0 ? GuardKind.Wrapped : GuardKind.None);
+            }
+
+            // ── G3 markers ───────────────────────────────────────────────────────────────────────────
+            foreach (var (marker, pattern) in new[]
+                     {
+                         (Marker.Socket, SocketPrimitive), (Marker.Process, ProcessPrimitive),
+                         (Marker.Door, DoorPrimitive), (Marker.Telemetry, TelemetryExporter),
+                     })
+            {
+                foreach (Match g in pattern.Matches(code))
+                    Add(marker, g.Index, g.Length, Precedes(m, guards, g.Index) ? GuardKind.Precedes : GuardKind.None);
+            }
+
+            foreach (var (type, member) in DoorMembers)
+            {
+                foreach (var (at, length, body) in MemberDeclarations(m, type, member))
+                {
+                    var guarded = body >= 0 && guards.Any(g => m.Innermost(g) == body);
+                    Add(Marker.Door, at, length, guarded ? GuardKind.Precedes : GuardKind.None);
+                }
+            }
+
+            // ── store, chat.register, banned: no guarded form ────────────────────────────────────────
+            foreach (Match s in StoreClient.Matches(code))
+                Add(Marker.Store, s.Index, s.Length, GuardKind.None);
+            foreach (Match c in ChatRegistration.Matches(code))
+                Add(Marker.ChatRegister, c.Index, c.Length, GuardKind.None);
+            foreach (Match b in BannedRegistration.Matches(code))
+                Add(Marker.Banned, b.Index, b.Length, GuardKind.None);
+
+            found.Sort((a, b) => a.Offset != b.Offset ? a.Offset.CompareTo(b.Offset) : string.CompareOrdinal(a.Marker, b.Marker));
+            return found;
+        }
+
+        /// <summary>Production uses of the F4 binding call: where, and whether its argument region builds the guard handler.</summary>
+        public static IEnumerable<(string Path, int Line, bool BindsHandler)> HttpDefaultsBindings(SourceModel m)
+        {
+            var binding = new Regex(TokenPattern(HttpDefaultsBindingToken), Rx);
+            var handler = new Regex(TokenPattern(HttpDefaultsHandlerToken), Rx);
+            foreach (Match b in binding.Matches(m.Code))
+            {
+                var region = HttpDefaultsBindingToken.EndsWith('(')
+                    ? m.Code[(b.Index + b.Length)..ClosingParen(m.Code, b.Index + b.Length - 1)]
+                    : m.Code;
+                yield return (m.Path, m.LineOf(b.Index), handler.IsMatch(region));
+            }
+        }
+
+        /// <summary>Every <c>"EG-…"</c> literal, read from the RAW text Clean recorded (Clean blanks literal contents).</summary>
+        public static IEnumerable<(string Path, int Line, string Id)> SiteIdLiterals(SourceModel m) =>
+            m.Literals
+                .Where(l => SiteIdLiteral.IsMatch(l.Value))
+                .OrderBy(l => l.Key)
+                .Select(l => (m.Path, m.LineOf(l.Key), l.Value.TrimStart('@').Trim('"')));
+
+        /// <summary>A token constant spelled as a regex that tolerates whitespace around '.' and before '('.</summary>
+        internal static string TokenPattern(string token)
+        {
+            var parts = token.TrimEnd('(').Split('.');
+            var body = string.Join(@"\s*\.\s*", parts.Select(Regex.Escape));
+            return (char.IsLetter(token[0]) ? @"\b" : string.Empty) + body + (token.EndsWith('(') ? @"\s*\(" : string.Empty);
+        }
+
+        /// <summary>
+        /// G2-file, the per-call half: the argument region passes a client or handler — an <c>EgressHttp.</c>
+        /// call, an <c>HttpHandler =</c> or <c>HttpClient =</c> property — or has enough depth-0 arguments to
+        /// carry one (A2A: 2, <c>HttpClientTransport</c>: 3). The caller adds "and the file has no unguarded http.new".
+        /// </summary>
+        private static bool PassesAClient(string code, int at, int open)
+        {
+            var close = ClosingParen(code, open);
+            var region = code[(open + 1)..close];
+            if (PassesHandlerOrClient.IsMatch(region))
+                return true;
+
+            var head = code[at..open];
+            if (head.Contains("A2AClient", StringComparison.Ordinal) || head.Contains("A2ACardResolver", StringComparison.Ordinal))
+                return ArgumentCount(code, open + 1) >= 2;
+            if (head.Contains("HttpClientTransport", StringComparison.Ordinal))
+                return ArgumentCount(code, open + 1) >= 3;
+            return false;
+        }
+
+        /// <summary>
+        /// G3: a guard call at a LOWER offset whose innermost block is the primitive's block or encloses it, and
+        /// is not a namespace or type body (the root counts only in a top-level program). A guard in a sibling
+        /// member, a field initializer, a nested if, or after the primitive never counts.
+        /// </summary>
+        internal static bool Precedes(SourceModel m, List<int> guards, int primitive)
+        {
+            var block = m.Innermost(primitive);
+            foreach (var g in guards)
+            {
+                if (g >= primitive)
+                    break;
+                var guardBlock = m.Innermost(g);
+                if (m.IsCodeBlock(guardBlock) && m.IsAncestorOrSelf(guardBlock, block))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// G2, the local half: the construction is assigned to a local (<c>var h = new …</c> or <c>h = new …</c>)
+        /// in a code block, and a LATER <c>EgressHttp.Wrap(</c>/<c>CreateClient(</c> in that block or one it
+        /// encloses names the local in its argument region. A field is not a local, so a static handler cannot be
+        /// laundered by a wrap in some method.
+        /// </summary>
+        private static bool StoredInALocalWrappedLater(SourceModel m, int at, List<(int At, int Open, int Close, int Length)> factoryCalls)
+        {
+            var name = AssignedName(m.Code, at);
+            if (name is null)
+                return false;
+            var block = m.Innermost(at);
+            if (!m.IsCodeBlock(block))
+                return false;
+            var local = new Regex(@"(?<![A-Za-z0-9_.])" + Regex.Escape(name) + @"(?![A-Za-z0-9_])", Rx);
+            return factoryCalls.Any(c => c.At > at
+                && m.IsAncestorOrSelf(block, m.Innermost(c.At))
+                && local.IsMatch(m.Code[(c.Open + 1)..c.Close]));
+        }
+
+        /// <summary>The identifier a construction is assigned to (<c>x = new …</c>), or null for any other context.</summary>
+        private static string? AssignedName(string code, int at)
+        {
+            var j = at - 1;
+            while (j >= 0 && char.IsWhiteSpace(code[j]))
+                j--;
+            if (j < 1 || code[j] != '=' || "=!<>+-*/%&|^?".Contains(code[j - 1], StringComparison.Ordinal))
+                return null;
+            j--;
+            while (j >= 0 && char.IsWhiteSpace(code[j]))
+                j--;
+            var end = j + 1;
+            while (j >= 0 && (char.IsLetterOrDigit(code[j]) || code[j] == '_'))
+                j--;
+            var name = code[(j + 1)..end];
+            return name.Length > 0 && !char.IsDigit(name[0]) ? name : null;
+        }
+
+        /// <summary>The '(' that opens the list holding <paramref name="at"/> is a declaration's, not a statement's.</summary>
+        private static bool IsParameterList(string code, int at)
+        {
+            var depth = 0;
+            var j = at - 1;
+            for (; j >= 0; j--)
+            {
+                var ch = code[j];
+                if (ch is ')' or ']' or '}')
+                {
+                    depth++;
+                }
+                else if (ch is '(' or '[' or '{')
+                {
+                    if (depth == 0)
+                        break;
+                    depth--;
+                }
+            }
+
+            if (j < 0 || code[j] != '(')
+                return false;
+            j--;
+            while (j >= 0 && char.IsWhiteSpace(code[j]))
+                j--;
+            var end = j + 1;
+            while (j >= 0 && (char.IsLetterOrDigit(code[j]) || code[j] == '_'))
+                j--;
+            return !NotAParameterList.Contains(code[(j + 1)..end]);
+        }
+
+        /// <summary>
+        /// Declarations of <paramref name="member"/> inside a type body whose header declares <paramref name="type"/>:
+        /// the name's offset and length, and the body block (-1 for an expression body, which cannot hold a G3 guard).
+        /// </summary>
+        private static IEnumerable<(int At, int Length, int Body)> MemberDeclarations(SourceModel m, string type, string member)
+        {
+            var code = m.Code;
+            var typeHeader = new Regex(@"\b(?:class|struct|record|interface)\s+" + Regex.Escape(type) + @"\b", Rx);
+            var name = new Regex(@"\b" + Regex.Escape(member) + @"\s*(?:<[^<>()]*>)?\s*\(", Rx);
+            foreach (Match n in name.Matches(code))
+            {
+                var j = n.Index - 1;
+                while (j >= 0 && char.IsWhiteSpace(code[j]))
+                    j--;
+                if (j < 0 || !(char.IsLetterOrDigit(code[j]) || code[j] is '_' or '>' or ']' or '?'))
+                    continue;
+
+                var close = ClosingParen(code, n.Index + n.Length - 1);
+                var k = close + 1;
+                while (k < code.Length && char.IsWhiteSpace(code[k]))
+                    k++;
+                var block = k < code.Length && code[k] == '{';
+                var arrow = k + 1 < code.Length && code[k] == '=' && code[k + 1] == '>';
+                if (!block && !arrow)
+                    continue;
+
+                var owner = m.Innermost(n.Index);
+                if (owner < 0 || !m.Blocks[owner].IsTypeBody
+                    || !typeHeader.IsMatch(code[m.Blocks[owner].HeaderStart..m.Blocks[owner].Open]))
+                {
+                    continue;
+                }
+
+                yield return (n.Index, member.Length, block ? m.Blocks.FindIndex(b => b.Open == k) : -1);
+            }
+        }
+
+        /// <summary>After the previous ';', '{' or '}': where the statement or declaration holding <paramref name="at"/> starts.</summary>
+        internal static int StatementStart(string code, int at)
+        {
+            var j = at - 1;
+            while (j >= 0 && code[j] is not (';' or '{' or '}'))
+                j--;
+            return j + 1;
+        }
+
+        /// <summary>Just past the depth-0 ';' that ends the statement holding <paramref name="at"/>, or at a bracket it never opened.</summary>
+        internal static int StatementEnd(string code, int at)
+        {
+            var depth = 0;
+            for (var k = at; k < code.Length; k++)
+            {
+                var ch = code[k];
+                if (ch is '(' or '[' or '{')
+                {
+                    depth++;
+                }
+                else if (ch is ')' or ']' or '}')
+                {
+                    if (depth == 0)
+                        return k;
+                    depth--;
+                }
+                else if (ch == ';' && depth == 0)
+                {
+                    return k + 1;
+                }
+            }
+
+            return code.Length;
+        }
+
+        /// <summary>The index of the ')' closing the '(' at <paramref name="open"/>, or the end of the code.</summary>
+        internal static int ClosingParen(string code, int open)
+        {
+            var depth = 0;
+            for (var k = open; k < code.Length; k++)
+            {
+                if (code[k] == '(')
+                {
+                    depth++;
+                }
+                else if (code[k] == ')')
+                {
+                    depth--;
+                    if (depth == 0)
+                        return k;
+                }
+            }
+
+            return code.Length;
+        }
+
+        /// <summary>Depth-0 arguments from <paramref name="open"/> (just past the paren) to its match, as <c>GateRecordReadFunnelConventionTests.ArgumentCount</c>.</summary>
+        internal static int ArgumentCount(string code, int open)
+        {
+            var depth = 0;
+            var commas = 0;
+            var any = false;
+            for (var i = open; i < code.Length; i++)
+            {
+                var c = code[i];
+                if (c == '(')
+                {
+                    depth++;
+                }
+                else if (c == ')')
+                {
+                    if (depth == 0)
+                        return any ? commas + 1 : 0;
+                    depth--;
+                }
+                else if (c == ',' && depth == 0)
+                {
+                    commas++;
+                }
+                else if (!char.IsWhiteSpace(c))
+                {
+                    any = true;
+                }
+            }
+
+            return any ? commas + 1 : 0;
+        }
+
+        // ── Copied VERBATIM from PathContainmentConventionTests.Scanner.Clean and .Blank. Do not edit one ──
+        // ── without the other: two scans that disagree about what a comment is disagree about everything. ──
+
+        /// <summary>
+        /// Blanks comments and the CONTENTS of string and char literals (delimiters and newlines kept,
+        /// so offsets and line numbers survive), and records each literal's original text by the
+        /// offset of its first character.
+        /// </summary>
+        internal static string Clean(string text, Dictionary<int, string> literals)
+        {
+            var buffer = text.ToCharArray();
+            var n = text.Length;
+            var i = 0;
+            while (i < n)
+            {
+                var c = text[i];
+                var next = i + 1 < n ? text[i + 1] : '\0';
+
+                if (c == '/' && next == '/')
+                {
+                    var end = text.IndexOf('\n', i);
+                    end = end < 0 ? n : end;
+                    Blank(buffer, i, end);
+                    i = end;
+                    continue;
+                }
+
+                if (c == '/' && next == '*')
+                {
+                    var close = text.IndexOf("*/", i + 2, StringComparison.Ordinal);
+                    var end = close < 0 ? n : close + 2;
+                    Blank(buffer, i, end);
+                    i = end;
+                    continue;
+                }
+
+                if (c == '\'')
+                {
+                    var k = i + 1;
+                    while (k < n && text[k] != '\'' && text[k] != '\n')
+                        k += text[k] == '\\' ? 2 : 1;
+                    var end = Math.Min(k + 1, n);
+                    literals[i] = text[i..end];
+                    Blank(buffer, i + 1, end - 1);
+                    i = end;
+                    continue;
+                }
+
+                if (c == '"' || (c is '@' or '$' && next is '"' or '@' or '$'))
+                {
+                    var j = i;
+                    var verbatim = false;
+                    while (j < n && text[j] is '@' or '$')
+                    {
+                        verbatim |= text[j] == '@';
+                        j++;
+                    }
+
+                    if (j >= n || text[j] != '"')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    var q = j;
+                    while (q < n && text[q] == '"')
+                        q++;
+                    var quotes = q - j;
+                    if (quotes >= 3)
+                    {
+                        // Raw string literal: closed by the same run of quotes.
+                        var close = text.IndexOf(new string('"', quotes), q, StringComparison.Ordinal);
+                        var rawEnd = close < 0 ? n : close + quotes;
+                        literals[i] = text[i..rawEnd];
+                        Blank(buffer, q, close < 0 ? n : close);
+                        i = rawEnd;
+                        continue;
+                    }
+
+                    var k = j + 1;
+                    while (k < n)
+                    {
+                        var ch = text[k];
+                        if (verbatim)
+                        {
+                            if (ch == '"' && k + 1 < n && text[k + 1] == '"')
+                            {
+                                k += 2;
+                                continue;
+                            }
+
+                            if (ch == '"')
+                                break;
+                        }
+                        else
+                        {
+                            if (ch == '\\')
+                            {
+                                k += 2;
+                                continue;
+                            }
+
+                            if (ch is '"' or '\n')
+                                break;
+                        }
+
+                        k++;
+                    }
+
+                    var stringEnd = Math.Min(k + 1, n);
+                    literals[i] = text[i..stringEnd];
+                    Blank(buffer, j + 1, stringEnd - 1);
+                    i = stringEnd;
+                    continue;
+                }
+
+                i++;
+            }
+
+            return new string(buffer);
+        }
+
+        private static void Blank(char[] buffer, int from, int to)
+        {
+            for (var k = from; k < to && k < buffer.Length; k++)
+            {
+                if (buffer[k] != '\n')
+                    buffer[k] = ' ';
+            }
+        }
+    }
+}
