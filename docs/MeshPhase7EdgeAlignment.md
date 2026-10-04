@@ -52,7 +52,7 @@ The CLI exits **0** when the HTTP status is success (2xx), **1** otherwise (netw
 
 ## Edge / mobile
 
-- **Ashlar.Lite / MAUI:** Use your HTTP client of choice against **`{director}/api/mesh/*`**, sending **`X-Ashlar-Correlation-Id`** (Phase 3), **`X-Ashlar-Mesh-Token`** on mutating mesh calls (Phase 2), and **`X-Ashlar-Api-Key`** if the hub requires it.
+- **Thin clients / MAUI** (`Ashlar.Client`; the `Ashlar.Lite` wrapper was parked 2026-10-03): Use your HTTP client of choice against **`{director}/api/mesh/*`**, sending **`X-Ashlar-Correlation-Id`** (Phase 3), **`X-Ashlar-Mesh-Token`** on mutating mesh calls (Phase 2), and **`X-Ashlar-Api-Key`** if the hub requires it.
 - **Headless CI:** Same as CLI — script **`dotnet run --project commercial/src/Ashlar.Commercial.MeshDirector -- director ...`** or `curl` with the same headers.
 
 ## Limitations

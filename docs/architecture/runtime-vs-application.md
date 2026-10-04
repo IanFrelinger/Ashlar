@@ -1,6 +1,6 @@
 # Runtime vs application boundary
 
-This monorepo keeps **kernel/runtime libraries** under `src/` and **open application surfaces** under `application/src/` (CLI, HTTP API). The commercial fleet-governance tier (Fleet, MeshDirector) lives under **`commercial/`**. Extractable product scaffolds live in-repo under **`products/`** until they split (see [`product-split.md`](product-split.md)). The former plural `applications/` layer and game vertical moved out in the 2026-08-31 native-responsibility slim (archive branch `archive/verticals-2026-08-31`). After extraction, those products consume published packages from their own repositories. The same split matters when you consume Ashlar as **NuGet packages** from another repository.
+This monorepo keeps **kernel/runtime libraries** under `src/` and **open application surfaces** under `application/src/` (CLI, HTTP API). The commercial fleet-governance tier (Fleet, MeshDirector) lives under **`commercial/`**. The extractable product scaffolds that lived under `products/` were parked on the `archive/parked-2026-10-03` branch on 2026-10-03 (see [`product-split.md`](product-split.md)). The former plural `applications/` layer and game vertical moved out in the 2026-08-31 native-responsibility slim (archive branch `archive/verticals-2026-08-31`). After extraction, those products consume published packages from their own repositories. The same split matters when you consume Ashlar as **NuGet packages** from another repository.
 
 ## Layout in this repository
 
@@ -8,7 +8,6 @@ This monorepo keeps **kernel/runtime libraries** under `src/` and **open applica
 |----------|------|
 | `src/` | Execution kernel: abstractions, core, hosting library, infrastructure, orchestration, runtime, agents, transport/protocol adapters (gRPC, MCP, A2A), ingress adapters, and tests for the kernel graph |
 | `application/src/` | Open product hosts: `Ashlar.API`, `Ashlar.CLI`, plus `Ashlar.Tests.CLI` |
-| `products/` | Extractable product scaffolds (workstation, cluster, cloud, native). Future own repos. See [`product-split.md`](product-split.md). |
 | `commercial/` | Commercial fleet-governance tier: Fleet, MeshDirector, and their tests |
 
 ## Runtime layer (NuGet / embeddable graph)
@@ -45,7 +44,7 @@ Version all packages from the same release (same `PackageVersion` when packing).
 
 ## Application layer
 
-Product-specific deployables and descriptors stay under **`application/src/`** (CLI/API) and **`products/`** (extractable workstation/cluster/cloud/native) in this repo. If you maintain a **separate** product repository, keep private integrations, bespoke DTOs, and composition overrides there and reference the runtime packages above. The kernel must never take a `ProjectReference` to `products/`. Non-test kernel projects must not reference `application/` (`Ashlar.Tests.Infrastructure` hosts `Ashlar.API` in-process).
+Product-specific deployables and descriptors stay under **`application/src/`** (CLI/API) in this repo. If you maintain a **separate** product repository, keep private integrations, bespoke DTOs, and composition overrides there and reference the runtime packages above. The kernel must never take a `ProjectReference` to `products/`. Non-test kernel projects must not reference `application/` (`Ashlar.Tests.Infrastructure` hosts `Ashlar.API` in-process).
 
 ## Solution files
 
@@ -53,8 +52,7 @@ Product-specific deployables and descriptors stay under **`application/src/`** (
 |------|---------|
 | `Ashlar.Runtime.sln` | Runtime kernel graph for CI and publishing libraries (and `Ashlar.Runtime.Bundle`). |
 | `application/Ashlar.Application.sln` | Open `application/src/*` only (`Ashlar.API`, `Ashlar.CLI`, `Ashlar.Tests.CLI`); it no longer pulls the commercial GameDomain projects. |
-| `products/Ashlar.Products.sln` | Extractable product scaffolds (workstation, cluster, cloud, native) plus the kernel projects those scaffolds reference in-monorepo. |
-| `Ashlar.sln` | Full monorepo: kernel, clients, infrastructure tests, `Ashlar.Runtime.Bundle`, ingress projects, `application/` hosts, plus commercial MeshDirector and Fleet/MeshDirector tests. It does **not** include `products/`, samples, spikes, tools, or the removed Game Director / GameDomain vertical. Application code is built via **`dotnet build application/Ashlar.Application.sln`** when you only need the CLI/API hosts. |
+| `Ashlar.sln` | Full monorepo: kernel, clients, infrastructure tests, `Ashlar.Runtime.Bundle`, ingress projects, `application/` hosts, plus commercial MeshDirector and Fleet/MeshDirector tests. It does **not** include samples, spikes, tools, or the removed Game Director / GameDomain vertical. Application code is built via **`dotnet build application/Ashlar.Application.sln`** when you only need the CLI/API hosts. |
 
 Build application layer:
 

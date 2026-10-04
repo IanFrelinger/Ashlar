@@ -71,7 +71,6 @@ touch — those rows are the ones that were quietly wrong before.
 | `src/**/Mesh/**`, `src/**/Fleet/**`, `deploy/compose/docker-compose.mesh*` | *(nothing path-specific)* | `composition-mesh-gate`, `mesh-lab-gate` | `make composition-mesh-gate` |
 | Trust / certification / security policy | `security-gate` (for the `Trust/**`, `Certification/**` and `Manifest/**` paths it lists) | `test-trust-multi-env` | `make security-gate` |
 | Distribution / CLI packaging | `distribution-matrix-gate` | `ship-gate` | `make ship-gate` |
-| `products/**` | `products-gate`, `dependency-boundary` | — | — |
 | `commercial/**` | `dependency-boundary`, `layer-boundary` | — | — |
 | `docs/**` only | `lychee (README + docs)` (required), `docs-link-check` | — | — |
 | Release tag | *(none — these never run on a PR)* | `rc-gate`, `production-readiness-gate-v1`, `runtime-release-gate` (push / schedule / manual) | — |

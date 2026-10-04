@@ -8,16 +8,16 @@
     "AstMutationEngineTests"
   ],
   "counts": {
-    "projects": 61,
+    "projects": 60,
     "projects_shipped_to_nuget": 22,
-    "projects_declaring_ispackable_true": 19,
+    "projects_declaring_ispackable_true": 18,
     "config_variables": 173,
     "operator_facing_config_variables": 153,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 743,
     "declared_facts": 4495,
-    "workflows": 62
+    "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -484,23 +484,6 @@
       ],
       "references": [
         "Ashlar.Ingress.DynamoDb"
-      ]
-    },
-    {
-      "name": "Ashlar.Lite",
-      "path": "src/Ashlar.Lite/Ashlar.Lite.csproj",
-      "layer": "src",
-      "is_packable_explicit": true,
-      "ships_to_nuget": false,
-      "target_frameworks": [
-        "net10.0",
-        "net8.0"
-      ],
-      "references": [
-        "Ashlar.Abstractions",
-        "Ashlar.Client",
-        "Ashlar.Core.Application",
-        "Ashlar.Core.Domain"
       ]
     },
     {
@@ -1335,7 +1318,6 @@
     {
       "name": "ASHLAR_DEPLOYMENT_PROFILE",
       "declared_in": [
-        "(unowned)",
         "Ashlar.Hosting",
         "Ashlar.Mcp.Client",
         "Ashlar.Mcp.Server",
@@ -8179,15 +8161,6 @@
       "file": ".github/workflows/production-readiness-gate-v1.yml",
       "name": "Production Readiness Gate v1",
       "triggers": [
-        "push",
-        "workflow_dispatch"
-      ]
-    },
-    {
-      "file": ".github/workflows/products-gate.yml",
-      "name": "products-gate",
-      "triggers": [
-        "pull_request",
         "push",
         "workflow_dispatch"
       ]

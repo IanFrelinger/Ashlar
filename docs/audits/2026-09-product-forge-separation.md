@@ -694,7 +694,7 @@ For Forge distributions, an **embedded option** is possible:
    - Mesh verification scripts → `Forge/scripts/verify/`
 2. Move product docs:
    - `docs/product-fleet/` → `Forge/docs/operational/`
-   - `docs/demos/README.md` → `Forge/examples/demos/README.md`
+   - docs/demos/README.md (parked 2026-10-03 on `archive/parked-2026-10-03`) → `Forge/examples/demos/README.md`
    - Create `Forge/docs/GettingStarted.md`
    - Create `Forge/docs/OperatorGuide.md` (from Runtime Studio OPERATOR.md)
 3. Update references in Forge README
