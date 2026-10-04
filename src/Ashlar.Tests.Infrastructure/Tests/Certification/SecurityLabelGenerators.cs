@@ -25,12 +25,16 @@ internal static class SecurityLabelGenerators
     /// <summary>Every defined level, <see cref="SecurityLevel.Public"/> (0) to <see cref="SecurityLevel.TopSecret"/> (4).</summary>
     public static readonly Gen<SecurityLevel> Level = Gen.Int[0, 4].Select(i => (SecurityLevel)i);
 
-    /// <summary>Zero to three compartments from a four-token alphabet, duplicates allowed.</summary>
+    /// <summary>
+    /// Zero to three compartments from a six-token alphabet, duplicates allowed. <c>A-1</c> and <c>A_</c> sort
+    /// differently under ordinal and culture comparison (ordinal: <c>A-1</c> &lt; <c>ALPHA</c> &lt; <c>A_</c>), so the
+    /// Union, Intersect and Missing walks meet tokens on which a non-ordinal comparison would go wrong.
+    /// </summary>
     public static readonly Gen<string[]> Compartments =
-        Gen.OneOfConst("ALPHA", "BRAVO", "CHARLIE", "DELTA").Array[0, 3];
+        Gen.OneOfConst("ALPHA", "BRAVO", "CHARLIE", "DELTA", "A-1", "A_").Array[0, 3];
 
-    /// <summary>Zero to two caveats from a three-token alphabet, duplicates allowed.</summary>
-    public static readonly Gen<string[]> Caveats = Gen.OneOfConst("NOWEB", "NOFORN", "ORCON").Array[0, 2];
+    /// <summary>Zero to two caveats from a five-token alphabet, duplicates allowed, with the same ordinal traps.</summary>
+    public static readonly Gen<string[]> Caveats = Gen.OneOfConst("NOWEB", "NOFORN", "ORCON", "N-1", "N_").Array[0, 2];
 
     /// <summary>A label over the small alphabets, or <see cref="SecurityLabel.SystemHigh"/>.</summary>
     public static readonly Gen<SecurityLabel> Label = WithSystemHigh(

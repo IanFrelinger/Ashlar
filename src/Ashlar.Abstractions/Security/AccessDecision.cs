@@ -46,8 +46,11 @@ public readonly struct AccessDecision : IEquatable<AccessDecision>
     /// caveats (tokens comma-separated, in canonical order). Empty for an allowed decision.
     /// </summary>
     /// <remarks>
-    /// The wording is for people and may change; do not parse it. <see cref="Reason"/> is the stable,
-    /// machine-readable part.
+    /// <para>The wording is for people and may change; do not parse it. <see cref="Reason"/> is the stable,
+    /// machine-readable part.</para>
+    /// <para>A read refusal names the data's level and the compartments and caveats the subject is not cleared for,
+    /// which can be sensitive in themselves. The detail (and <see cref="ToString"/>) is for audit logs and operators;
+    /// do not hand it to the refused subject.</para>
     /// </remarks>
     public string Detail => _detail ?? NoDecisionDetail;
 

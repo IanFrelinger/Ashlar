@@ -223,32 +223,55 @@ public sealed class HighWaterMarkTests
     }
 
     [Fact]
-    public async Task ConcurrentObservations_AreNeverLost()
+    public void ConcurrentObservations_AreNeverLost()
     {
-        // A lost join would leave the mark below what was read and permit a write down. Each round races many
-        // observations of distinct caveats; every caveat must survive, and the mark must still refuse a write to a
-        // destination missing any one of them.
-        var caveats = Enumerable.Range(0, 64).Select(i => "K" + i.ToString("D2", CultureInfo.InvariantCulture)).ToArray();
+        // A lost join would leave the mark below what was read and permit a write down. Dedicated threads wait at a
+        // countdown gate so they really start together, then each observes many distinct caveats in a tight loop;
+        // every caveat must survive. A read-join-write without compare-and-swap loses some on any multi-core run.
+        const int PerThread = 250;
+        var threadCount = Math.Max(4, Environment.ProcessorCount);
+        var mark = new HighWaterMark(L("Secret"));
+        using var ready = new CountdownEvent(threadCount);
+        using var go = new ManualResetEventSlim(false);
+        var failures = new System.Collections.Concurrent.ConcurrentQueue<Exception>();
 
-        for (var round = 0; round < 20; round++)
-        {
-            var mark = new HighWaterMark(L("Secret"));
-            using var start = new ManualResetEventSlim(false);
-            var observers = caveats
-                .Select(caveat => Task.Run(() =>
+        var threads = Enumerable.Range(0, threadCount)
+            .Select(t => new Thread(() =>
+            {
+                try
                 {
-                    start.Wait();
-                    mark.Observe(new SecurityLabel(SecurityLevel.Confidential, caveats: [caveat]));
-                }))
-                .ToArray();
+                    ready.Signal();
+                    go.Wait();
+                    for (var i = 0; i < PerThread; i++)
+                        mark.Observe(new SecurityLabel(SecurityLevel.Confidential, caveats: [Caveat(t, i)]));
+                }
+                catch (Exception ex)
+                {
+                    failures.Enqueue(ex);
+                }
+            })
+            { IsBackground = true })
+            .ToArray();
 
-            start.Set();
-            await Task.WhenAll(observers);
+        foreach (var thread in threads)
+            thread.Start();
+        ready.Wait();
+        go.Set();
+        foreach (var thread in threads)
+            thread.Join();
 
-            mark.Current.Should().Be(new SecurityLabel(SecurityLevel.Secret, caveats: caveats), "round {0}", round);
-            mark.CanWriteTo(new SecurityLabel(SecurityLevel.Secret, caveats: caveats.Skip(1))).Reason
-                .Should().Be(AccessDenialReason.MissingCaveat);
-        }
+        failures.Should().BeEmpty();
+        var expected = Enumerable.Range(0, threadCount)
+            .SelectMany(t => Enumerable.Range(0, PerThread).Select(i => Caveat(t, i)))
+            .ToArray();
+        mark.Current.Level.Should().Be(SecurityLevel.Secret);
+        mark.Current.Caveats.Should().HaveCount(expected.Length, "no observation may be lost");
+        mark.Current.Caveats.Should().BeEquivalentTo(expected);
+        mark.CanWriteTo(new SecurityLabel(SecurityLevel.Secret, caveats: expected.Skip(1))).Reason
+            .Should().Be(AccessDenialReason.MissingCaveat);
+
+        static string Caveat(int thread, int index) =>
+            "T" + thread.ToString("D2", CultureInfo.InvariantCulture) + "-" + index.ToString("D3", CultureInfo.InvariantCulture);
     }
 
     [Fact]

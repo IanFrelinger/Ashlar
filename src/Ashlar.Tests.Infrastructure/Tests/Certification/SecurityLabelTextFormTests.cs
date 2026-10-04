@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text.Json;
 using Ashlar.Abstractions.Security;
 using FluentAssertions;
@@ -60,6 +61,8 @@ public sealed class SecurityLabelTextFormTests
         null,
         "",
         " ",
+        "Secret//C:ALPHA, ,BRAVO",
+        "Secret//K: ",
         "secret",
         "SECRET",
         "Unclassified",
@@ -506,6 +509,7 @@ public sealed class SecurityLabelTextFormTests
     [InlineData("\"\"")]
     [InlineData("4")]
     [InlineData("true")]
+    [InlineData("null")]
     [InlineData("[\"Secret\"]")]
     [InlineData("{\"Level\":4,\"Compartments\":[],\"Caveats\":[],\"IsSystemHigh\":true}")]
     public void Json_RefusesAnythingButCanonicalText(string json)
@@ -515,6 +519,49 @@ public sealed class SecurityLabelTextFormTests
         Action read = () => JsonSerializer.Deserialize<SecurityLabel>(json);
 
         read.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Json_RefusesANullLabelEitherWay()
+    {
+        // A null label is neither SystemHigh nor refused unless the converter sees it; a caller coalescing it to a
+        // default would otherwise pick the side for it.
+        Action readProperty = () => JsonSerializer.Deserialize<LabelledValue>("{\"Label\":null}");
+        Action writeRoot = () => JsonSerializer.Serialize<SecurityLabel>(null!);
+        Action writeProperty = () => JsonSerializer.Serialize(new LabelledValue { Label = null! });
+
+        readProperty.Should().Throw<JsonException>();
+        writeRoot.Should().Throw<JsonException>();
+        writeProperty.Should().Throw<JsonException>();
+    }
+
+    // ---- TypeConverter ----
+
+    [Theory]
+    [MemberData(nameof(SpecExamples))]
+    public void TypeConverter_ConvertsCanonicalTextBothWays(string text)
+    {
+        // Reflection-based serializers and configuration binders go through TypeDescriptor, not System.Text.Json.
+        var converter = TypeDescriptor.GetConverter(typeof(SecurityLabel));
+
+        converter.CanConvertFrom(typeof(string)).Should().BeTrue();
+        converter.CanConvertTo(typeof(string)).Should().BeTrue();
+        converter.ConvertFromInvariantString(text).Should().Be(SpecExample(text));
+        converter.ConvertToInvariantString(SpecExample(text)).Should().Be(text);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("secret")]
+    [InlineData("Secret//C:BRAVO,ALPHA")]
+    [InlineData("TopSecret ")]
+    public void TypeConverter_RefusesNonCanonicalText(string text)
+    {
+        var converter = TypeDescriptor.GetConverter(typeof(SecurityLabel));
+
+        Action convert = () => converter.ConvertFromInvariantString(text);
+
+        convert.Should().Throw<FormatException>();
     }
 
     private sealed class LabelledValue

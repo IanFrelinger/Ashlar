@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -28,13 +30,15 @@ namespace Ashlar.Abstractions.Security;
 /// <see cref="SystemHigh"/> clearance may read. A clearance or a write destination fails closed the other way;
 /// see <see cref="ParseOrSystemHigh"/>.</para>
 /// <para><b>Serialisation.</b> The canonical text is the only wire form: System.Text.Json writes a label as that
-/// string and refuses to read anything else, so <see cref="SystemHigh"/> cannot come back as a lower label. Never
-/// rebuild a label field by field (SystemHigh would become TopSecret), and never filter or bridge on
-/// <see cref="Level"/> alone.</para>
+/// string and refuses to read anything else, JSON <c>null</c> included, so <see cref="SystemHigh"/> cannot come back
+/// as a lower label; a TypeConverter does the same for reflection-based serializers and binders. Never rebuild a
+/// label field by field (SystemHigh would become TopSecret), and never filter or bridge on <see cref="Level"/>
+/// alone.</para>
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited
 /// cross-domain solution.</para>
 /// </remarks>
 [JsonConverter(typeof(SecurityLabelJsonConverter))]
+[TypeConverter(typeof(SecurityLabelTypeConverter))]
 public sealed class SecurityLabel : IEquatable<SecurityLabel>
 {
     private const string SystemHighText = "SystemHigh";
@@ -42,7 +46,7 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     private const string CaveatsPrefix = "//K:";
     private const int MaxTokenLength = 64;
 
-    // Declared before the static label properties, so they are initialised first.
+    // Parsing tables.
     private static readonly string[] SegmentSeparator = { "//" };
     private static readonly char[] TokenSeparator = { ',' };
 
@@ -298,7 +302,7 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
         const int MaxQuoted = 80;
         var builder = new StringBuilder("'");
         for (var i = 0; i < text.Length && i < MaxQuoted; i++)
-            builder.Append(char.IsControl(text[i]) ? '?' : text[i]);
+            builder.Append(IsUnsafeInMessage(text[i]) ? '?' : text[i]);
         if (text.Length > MaxQuoted)
             builder.Append("...");
         return builder.Append('\'').ToString();
@@ -382,8 +386,32 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
 
     private static bool IsUpperAlphanumeric(char c) => c is (>= 'A' and <= 'Z') or (>= '0' and <= '9');
 
-    private static bool IsSubset(string[] subset, string[] superset) =>
-        subset.Length <= superset.Length && Missing(subset, superset).Length == 0;
+    // Non-allocating: Dominates runs on every decision.
+    private static bool IsSubset(string[] subset, string[] superset)
+    {
+        if (subset.Length > superset.Length)
+            return false;
+
+        var j = 0;
+        foreach (var token in subset)
+        {
+            while (j < superset.Length && string.CompareOrdinal(superset[j], token) < 0)
+                j++;
+            if (j == superset.Length || !string.Equals(superset[j], token, StringComparison.Ordinal))
+                return false;
+            j++;
+        }
+
+        return true;
+    }
+
+    // Control, format (bidi overrides, zero-width) and line/paragraph separators would let caller text reshape a message.
+    private static bool IsUnsafeInMessage(char c) =>
+        char.IsControl(c)
+        || CharUnicodeInfo.GetUnicodeCategory(c) is UnicodeCategory.Format
+            or UnicodeCategory.LineSeparator
+            or UnicodeCategory.ParagraphSeparator
+            or UnicodeCategory.Surrogate;
 
     private static string[] Union(string[] a, string[] b)
     {

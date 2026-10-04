@@ -29,6 +29,8 @@ Ashlar.Abstractions.Security.SecurityLabel.Join(Ashlar.Abstractions.Security.Sec
 Ashlar.Abstractions.Security.SecurityLabel.Level.get -> Ashlar.Abstractions.Security.SecurityLevel
 Ashlar.Abstractions.Security.SecurityLabel.Meet(Ashlar.Abstractions.Security.SecurityLabel! other) -> Ashlar.Abstractions.Security.SecurityLabel!
 Ashlar.Abstractions.Security.SecurityLabel.SecurityLabel(Ashlar.Abstractions.Security.SecurityLevel level, System.Collections.Generic.IEnumerable<string!>? compartments = null, System.Collections.Generic.IEnumerable<string!>? caveats = null) -> void
+Ashlar.Abstractions.Security.SecurityLabelJsonConverter
+Ashlar.Abstractions.Security.SecurityLabelJsonConverter.SecurityLabelJsonConverter() -> void
 Ashlar.Abstractions.Security.SecurityLevel
 Ashlar.Abstractions.Security.SecurityLevel.Confidential = 2 -> Ashlar.Abstractions.Security.SecurityLevel
 Ashlar.Abstractions.Security.SecurityLevel.Internal = 1 -> Ashlar.Abstractions.Security.SecurityLevel
@@ -41,6 +43,9 @@ override Ashlar.Abstractions.Security.AccessDecision.ToString() -> string!
 override Ashlar.Abstractions.Security.SecurityLabel.Equals(object? obj) -> bool
 override Ashlar.Abstractions.Security.SecurityLabel.GetHashCode() -> int
 override Ashlar.Abstractions.Security.SecurityLabel.ToString() -> string!
+override Ashlar.Abstractions.Security.SecurityLabelJsonConverter.HandleNull.get -> bool
+override Ashlar.Abstractions.Security.SecurityLabelJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> Ashlar.Abstractions.Security.SecurityLabel!
+override Ashlar.Abstractions.Security.SecurityLabelJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, Ashlar.Abstractions.Security.SecurityLabel! value, System.Text.Json.JsonSerializerOptions! options) -> void
 static Ashlar.Abstractions.Security.AccessDecision.operator !=(Ashlar.Abstractions.Security.AccessDecision left, Ashlar.Abstractions.Security.AccessDecision right) -> bool
 static Ashlar.Abstractions.Security.AccessDecision.operator ==(Ashlar.Abstractions.Security.AccessDecision left, Ashlar.Abstractions.Security.AccessDecision right) -> bool
 static Ashlar.Abstractions.Security.ReferenceMonitor.CanRead(Ashlar.Abstractions.Security.SecurityLabel! clearance, Ashlar.Abstractions.Security.SecurityLabel! data) -> Ashlar.Abstractions.Security.AccessDecision

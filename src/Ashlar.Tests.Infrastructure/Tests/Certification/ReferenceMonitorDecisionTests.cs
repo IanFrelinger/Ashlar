@@ -389,6 +389,17 @@ public sealed class ReferenceMonitorDecisionTests
     }
 
     [Fact]
+    public void AccessDenialReason_ValuesArePinned_AndOnlyAppended()
+    {
+        // Stored reasons keep their meaning only if values never move; a new reason also needs an arm in
+        // AccessDecision.ToString, or it prints as "Unknown".
+        Enum.GetValues<AccessDenialReason>().Select(r => (int)r).Should().Equal(0, 1, 2, 3, 4, 5);
+        Enum.GetNames<AccessDenialReason>().Should().Equal(
+            "None", "LevelTooLow", "MissingCompartment", "MissingCaveat", "SystemHighData", "NoDecision");
+        default(AccessDecision).ToString().Should().Contain("(NoDecision)");
+    }
+
+    [Fact]
     public void AccessDecision_IdenticalRefusals_AreEqual()
     {
         // Two separate calls, so the two Detail strings are distinct instances with the same text.

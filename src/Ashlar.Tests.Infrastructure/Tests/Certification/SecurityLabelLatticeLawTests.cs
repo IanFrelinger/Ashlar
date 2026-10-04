@@ -281,6 +281,26 @@ public sealed class SecurityLabelLatticeLawTests
     }
 
     [Fact]
+    public void Operations_RefuseANullOperand_EvenOnTheShortCircuitedExtremes()
+    {
+        // SystemHigh and Public short-circuit Dominates, Join and Meet, so the null guard is the only thing standing
+        // between a null operand and a silent answer.
+        foreach (var receiver in new[] { SecurityLabel.SystemHigh, SecurityLabel.Public })
+        {
+            Action dominates = () => _ = receiver.Dominates(null!);
+            Action join = () => _ = receiver.Join(null!);
+            Action meet = () => _ = receiver.Meet(null!);
+
+            dominates.Should().ThrowExactly<ArgumentNullException>().WithParameterName("other");
+            join.Should().ThrowExactly<ArgumentNullException>().WithParameterName("other");
+            meet.Should().ThrowExactly<ArgumentNullException>().WithParameterName("other");
+        }
+
+        Action staticJoin = () => _ = SecurityLabel.Join((IEnumerable<SecurityLabel>)null!);
+        staticJoin.Should().ThrowExactly<ArgumentNullException>().WithParameterName("labels");
+    }
+
+    [Fact]
     public void StaticJoin_RefusesANullElementWhereverItSits()
     {
         Gen.Select(SecurityLabelGenerators.Label.Array[0, 3], SecurityLabelGenerators.Label.Array[0, 3])
