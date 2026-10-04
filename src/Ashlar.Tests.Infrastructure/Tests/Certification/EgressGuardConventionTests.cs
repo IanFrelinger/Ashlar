@@ -34,9 +34,15 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///   <c>SocketsHttpHandler</c>, <c>WinHttpHandler</c> then '(' or '{' (multi-line); <c>new HttpMessageInvoker(</c>;
 ///   target-typed <c>HttpClient[?] id = new(</c> (and the handler types). Guarded forms, counted too:
 ///   <c>EgressHttp.CreateClient(</c> and <c>EgressHttp.Wrap(</c> are each one Wrapped occurrence; a raw
-///   construction inside their argument region, or stored in a local that a LATER one names (G2), is Wrapped.</item>
-///   <item><c>http.param</c>: <c>HttpClient[?] id</c> as a constructor, method, local-function or lambda
-///   parameter. A field is not a parameter. No guarded form.</item>
+///   construction inside their argument region is Wrapped, and so is one that initializes a DECLARED local
+///   (<c>var h = new …</c>, <c>SocketsHttpHandler h = new() …</c>) whose every later mention in its block is inside
+///   such a region or configures it (<c>h.Prop = …</c>), at least one being inside (G2). A field, a property,
+///   <c>this.x</c> or an initializer member is never laundered, and returning the local or handing it anywhere
+///   else (an SDK's <c>HttpHandler =</c> included) leaves it unguarded.</item>
+///   <item><c>http.param</c>: <c>HttpClient[?] id</c> as a constructor, method, local-function, delegate or
+///   primary-constructor parameter. Not a parameter: a field, an out argument of a call
+///   (<c>TryGetValue(k, out HttpClient? c)</c>), a deconstruction or tuple element, a lambda's parameter, a
+///   <c>using (HttpClient c = …)</c> local. No guarded form.</item>
 ///   <item><c>http.register</c>: <c>.AddHttpClient(</c>/<c>.AddHttpClient&lt;</c>; Factory when the same member
 ///   (header included; a top-level program is one member) calls <c>AddAshlarEgressGuard(</c>.</item>
 ///   <item><c>sdk.client</c>: <c>GrpcChannel.ForAddress(</c>, <c>new HttpClientTransport(</c>,
@@ -65,9 +71,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>G3</b>, the explicit route: a guard call <c>….Evaluate(new EgressRequest(</c> counts for a
 /// primitive when it sits at a LOWER offset, its innermost enclosing block is the primitive's block or an
 /// ancestor of it, and that block is not a namespace or type body (the file root counts only in a top-level
-/// program). A guard in a sibling member, in a field initializer, inside a nested <c>if</c>, or after the
-/// primitive never counts: the laundering lesson of <c>UnstableHashKeyConventionTests</c>, where one override
-/// exempted an unrelated call below it.</para>
+/// program). A guard in a sibling member, in a field initializer, inside a braced nested block (an if, loop,
+/// lambda or local function with its own braces), or after the primitive never counts: the laundering lesson of
+/// <c>UnstableHashKeyConventionTests</c>, where one override exempted an unrelated call below it. Blocks are
+/// brace pairs only, so a guard with no braces of its own counts for its enclosing block (see below).</para>
 ///
 /// <para><b>Pins.</b> One TSV row per observed (path, marker): <c>path marker total guarded guarded_by
 /// unguarded_reason ids note</c>, header lines starting with '#', as <c>ci/certifier-boundary-inventory.tsv</c>.
@@ -94,9 +101,12 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// aliases (<c>using H = System.Net.Http.HttpClient</c>), constructions inside interpolation holes (Clean
 /// blanks them), and reflection; an executable chosen by a caller of a process funnel
 /// (<c>TimedProcess.RunAsync("curl", …)</c>); and order: G3 is TEXTUAL order, not temporal, so a lambda can
-/// defer the send past the guard (OTLP's decision at registration is intentional). Package-level
-/// classification is deferred: a new network SDK is caught only once its constructor is taught here. Each
-/// known miss is a pinned control in F9, so the change that teaches the scan must flip it.</para>
+/// defer the send past the guard (OTLP's decision at registration is intentional). G3 also cannot see
+/// whether a guard RUNS: a guard with no braces of its own counts for its enclosing block, which covers the body
+/// of an unbraced <c>if</c>, <c>else</c> or loop, a sibling <c>switch</c> case, and an expression-bodied lambda or
+/// local function that is never invoked. Package-level classification is deferred: a new network SDK is caught
+/// only once its constructor is taught here. Each known miss is a pinned control in F9, so the change that
+/// teaches the scan must flip it.</para>
 ///
 /// <para><b>Not in 3a.</b> F4's clause "<c>AddAshlar</c> calls <c>AddAshlarEgressGuard</c>"; F5's
 /// <c>EgressGuardChatClient</c> ordering assertion; the 3b reasons and their F3 checks (Factory: the receiving
@@ -131,6 +141,16 @@ public sealed partial class EgressGuardConventionTests
     private const int ScannedFilesFloor = 1000;
 
     private const int ExaminedOccurrencesFloor = 60;
+
+    /// <summary>
+    /// F8's non-vacuity floor: the <c>| EG-… |</c> rows <c>ReadDocs</c> parses from <c>docs/EgressInventory.md</c>.
+    /// Measured at 67 on the SPEC-007 PR 3a commit: 59 are named by TSV rows, and the other 8 have an
+    /// <c>Unscanned:</c> route, which no TSV row has to name. Set at about 45% of that, the margin of the two
+    /// floors above. A docs edit that breaks every table (backticked or linked id cells, a <c>| :-- |</c>
+    /// separator, no leading pipes, an emptied file) parses zero rows, and without this floor F8 would then check
+    /// every TSV id and site literal against nothing.
+    /// </summary>
+    private const int DocsRowsFloor = 30;
 
     private const string MeaiRegistrationFile = "src/Ashlar.AI.Pipeline/MeaiPipelineServiceCollectionExtensions.cs";
 
@@ -500,7 +520,8 @@ public sealed partial class EgressGuardConventionTests
     /// <summary>
     /// F8, the inventory is written down: every TSV id and every <c>"EG-…"</c> literal in production code is a
     /// row of <c>docs/EgressInventory.md</c>, and every docs row whose route is not <c>Unscanned:*</c> is named
-    /// by at least one TSV row.
+    /// by at least one TSV row. At least <see cref="DocsRowsFloor"/> rows must parse, or both directions would
+    /// pass against an empty document.
     /// </summary>
     [Fact]
     public void F8_every_id_is_a_written_row_and_every_scanned_row_is_pinned()
@@ -508,6 +529,14 @@ public sealed partial class EgressGuardConventionTests
         var scan = Tree.Value;
         var pins = Pins.Value;
         var (docs, problems) = ReadDocs(scan.Root);
+        _output.WriteLine($"DocsRows={docs.Count} (floor {DocsRowsFloor})");
+
+        if (docs.Count < DocsRowsFloor)
+        {
+            problems.Add($"{DocsRelativePath}: {docs.Count} '| EG-… |' table rows parsed, floor {DocsRowsFloor}. Check the id "
+                + "cells (a bare EG-… id, no backticks or link), the separator row ('| --- |', three dashes) and the leading "
+                + "pipes; with no rows every check below is vacuous");
+        }
 
         if (docs.Count > 0)
         {

@@ -173,6 +173,35 @@ public sealed partial class EgressGuardConventionTests
                 public static HttpClient Client() => EgressHttp.CreateClient(Handler, EgressFamilies.Http, "EG-HTTP-05");
             }
             """, "http.new 2/1"),
+        ["unguarded: a field assigned in a constructor and wrapped there is not a local; the raw handler reaches gRPC"] = new("""
+            public sealed class Channels
+            {
+                private readonly SocketsHttpHandler _raw;
+                private readonly HttpClient _client;
+
+                public Channels()
+                {
+                    _raw = new SocketsHttpHandler();
+                    _client = EgressHttp.CreateClient(_raw, EgressFamilies.Grpc, "EG-XPT-03");
+                }
+
+                public GrpcChannel Open(Uri endpoint) => GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions { HttpHandler = _raw });
+            }
+            """, "http.new 2/1; sdk.client 1/0"),
+        ["unguarded: a handler local returned raw after a wrap names it (DefaultGrpcChannelFactory.BuildHandler slip)"] = new("""
+            private HttpMessageHandler BuildHandler(GrpcTransportOptions options)
+            {
+                var handler = new HttpClientHandler();
+                var guarded = EgressHttp.Wrap(handler, EgressFamilies.Grpc, "EG-XPT-03");
+                _logger.LogDebug("built {Handler}", guarded);
+                return handler;
+            }
+            """, "http.new 2/1"),
+        ["unguarded: a handler local handed to an SDK beside its wrap"] = new("""
+            var handler = new SocketsHttpHandler();
+            var client = EgressHttp.CreateClient(handler, EgressFamilies.Grpc, "EG-XPT-03");
+            var channel = GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions { HttpHandler = handler });
+            """, "http.new 2/1; sdk.client 1/0"),
         ["unguarded: an A2A client while its file still builds a raw HttpClient (A2AAgentTransport.cs:81, :168)"] = new("""
             var client = new A2AClient(baseUrl, GetHttpClient(baseUrl));
             private HttpClient GetHttpClient(Uri baseUrl) => _clients.GetOrAdd(baseUrl.Authority, _ => new HttpClient());
@@ -210,7 +239,7 @@ public sealed partial class EgressGuardConventionTests
             };
             using var proc = System.Diagnostics.Process.Start(psi);
             """, "process 2/0"),
-        ["unguarded: an optional HttpClient parameter is still a parameter (CloudAvailabilityResolver.cs:28)"] = new("""
+        ["unguarded: an optional HttpClient parameter is still a parameter (CloudAvailabilityResolver.cs:29)"] = new("""
             public CloudAvailabilityResolver(IConfiguration configuration, HttpClient? httpClient = null, bool enableNetworkProbe = false)
             {
                 _httpClient = httpClient;
@@ -270,6 +299,11 @@ public sealed partial class EgressGuardConventionTests
                     handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
                 return EgressHttp.Wrap(handler, EgressFamilies.Grpc, "EG-XPT-03");
             }
+            """, "http.new 2/2"),
+        ["guarded: a typed handler local, configured by member assignment, then wrapped (MeshAutoPullService, 3b)"] = new("""
+            SocketsHttpHandler handler = new() { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
+            handler.SslOptions.RemoteCertificateValidationCallback = ValidatePeer;
+            return EgressHttp.Wrap(handler, EgressFamilies.MeshPull, "EG-MESH-04");
             """, "http.new 2/2"),
         ["guarded: factory.CreateClient is not a construction"] = new("""
             var named = factory.CreateClient("x");
@@ -366,7 +400,103 @@ public sealed partial class EgressGuardConventionTests
             builder.Services.AddOpenTelemetry().WithMetrics(m => m.AddOtlpExporter());
             """, "telemetry 1/1"),
 
-        // ── known misses: pinned with a seen companion token, so the change that teaches the scan flips them ──
+        // ── http.param: a declaration's parameter counts; nothing else that spells "HttpClient name" does ──
+        ["not a parameter: an out argument, TryGetValue(k, out HttpClient? c) (A2AAgentTransport's client cache)"] = new("""
+            private HttpClient GetHttpClient(Uri baseUrl, HttpClient fallback)
+            {
+                if (_httpClients.TryGetValue(baseUrl.Authority, out HttpClient? client))
+                    return client;
+                return fallback;
+            }
+            """, "http.param 1/0"),
+        ["not a parameter: a tuple deconstruction"] = new("""
+            public void Use(HttpClient seen)
+            {
+                (HttpClient client, string name) = Build();
+                _ = client.GetAsync(name);
+            }
+            """, "http.param 1/0"),
+        ["not a parameter: a tuple-typed field"] = new("""
+            public sealed class Pool(HttpClient seen)
+            {
+                private readonly List<(HttpClient Client, string Name)> _clients = [(seen, "default")];
+            }
+            """, "http.param 1/0"),
+        ["not a parameter: a typed lambda's parameter list"] = new("""
+            public void Use(HttpClient seen)
+            {
+                Func<HttpClient, Task<HttpResponseMessage>> probe = (HttpClient c) => c.GetAsync("/health");
+            }
+            """, "http.param 1/0"),
+        ["a parameter: an out parameter of a declared method"] = new("""
+            public bool TryGetClient(string key, [NotNullWhen(true)] out HttpClient? client)
+            {
+                client = null;
+                return false;
+            }
+            """, "http.param 1/0"),
+        ["a parameter: an explicit interface implementation's (ISnsSignatureVerifier)"] = new("""
+            public sealed class Verifier : ISnsSignatureVerifier
+            {
+                Task<bool> ISnsSignatureVerifier.VerifyAsync(SnsEnvelope envelope, HttpClient httpClient, CancellationToken ct) => Task.FromResult(true);
+            }
+            """, "http.param 1/0"),
+        ["a parameter: a constructor with no modifier"] = new("""
+            public sealed class Probe
+            {
+                private readonly HttpClient _http;
+
+                Probe(HttpClient http) => _http = http;
+            }
+            """, "http.param 1/0"),
+        ["a parameter: a method returning a tuple counts its parameter, not the tuple's element"] = new("""
+            private static (HttpClient Client, int Retries) Configure(HttpClient http, int retries) => (http, retries);
+            """, "http.param 1/0"),
+
+        // ── known misses: pinned as the scan reads them today (a seen companion token, or the guarded count it
+        // ── wrongly grants), so the change that teaches the scan flips them ──
+        ["known miss: a guard in an unbraced if body counts though it may not run"] = new("""
+            public void Run(ProcessStartInfo psi, IEgressGuard guard, bool audit)
+            {
+                if (audit) _ = guard.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", "host:dotnet"));
+                using var p = Process.Start(psi);
+            }
+            """, "process 1/1"),
+        ["known miss: a guard in an unbraced loop body counts though the loop may not run"] = new("""
+            public void Run(ProcessStartInfo psi, IEgressGuard guard, string[] feeds)
+            {
+                foreach (var feed in feeds) _ = guard.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", feed));
+                using var p = Process.Start(psi);
+            }
+            """, "process 1/1"),
+        ["known miss: a guard in a sibling switch case counts for another case"] = new("""
+            public void Run(ProcessStartInfo psi, IEgressGuard guard, int mode)
+            {
+                switch (mode)
+                {
+                    case 1:
+                        _ = guard.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", "host:dotnet"));
+                        break;
+                    case 2:
+                        Process.Start(psi);
+                        break;
+                }
+            }
+            """, "process 1/1"),
+        ["known miss: a guard in an expression-bodied local function that is never called"] = new("""
+            public void Run(ProcessStartInfo psi, IEgressGuard guard)
+            {
+                void Never() => _ = guard.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", "host:dotnet"));
+                using var p = Process.Start(psi);
+            }
+            """, "process 1/1"),
+        ["known miss: a guard in an expression-bodied lambda that is never invoked"] = new("""
+            public void Run(ProcessStartInfo psi, IEgressGuard guard)
+            {
+                Func<EgressDecision> later = () => guard.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", "host:dotnet"));
+                using var p = Process.Start(psi);
+            }
+            """, "process 1/1"),
         ["known miss: a using alias hides the type"] = new("""
             using H = System.Net.Http.HttpClient;
             var hidden = new H();

@@ -44,7 +44,7 @@ src/Ashlar.Agents.TestKit/StubHttpMessageHandler.cs	http.new	1	0	-	Exempt:TestDo
 src/Ashlar.BackgroundAgents.HostRunners/SelfExtendAdmissionBridge.cs	door	2	0	-	Unrouted	EG-MESH-01	auto-share Pack and Publish (:285, :286)
 src/Ashlar.BackgroundAgents/Autonomy/OllamaProposalSource.cs	http.param	1	0	-	Unrouted	EG-MDL-11	experimental proposer takes an injected client; 3b: explicit guard in ProposeAsync
 src/Ashlar.BackgroundAgents/WebSearch/BingWebSearchProvider.cs	http.param	1	0	-	Unrouted	EG-WEB-01	Bing provider takes a caller's client; 3b: explicit guard in SearchAsync
-src/Ashlar.Client/AshlarClient.cs	http.param	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client; covered by the handler when the consumer also calls AddAshlar
+src/Ashlar.Client/AshlarClient.cs	http.param	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client; 3b: covered by the handler when the consumer also calls AddAshlar
 src/Ashlar.Client/ServiceCollectionExtensions.cs	http.register	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client registration (:20)
 src/Ashlar.Hosting/AshlarKernelRegistrar.Phases.cs	http.register	1	0	-	Unrouted	EG-EXE-04	named client AshlarExecution (:777)
 src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs	http.register	1	0	-	Unrouted	EG-EXE-01,EG-EXE-02,EG-EXE-03,EG-HTTP-01,EG-HTTP-02	AddAshlar's IHttpClientFactory (:123): the default client behind remote bricks, the peer executor and workflow webhooks
@@ -77,7 +77,7 @@ src/Ashlar.Infrastructure/Testing/Docker/DockerService.cs	store	1	0	-	Exempt:Loc
 src/Ashlar.Infrastructure/Testing/ExecutionPlatform/DockerExecutionPlatform.cs	store	1	0	-	Exempt:LocalDaemon	EG-STORE-03	docker execution platform on the local daemon
 src/Ashlar.Infrastructure/Testing/ExecutionPlatform/RemoteExecutionPlatform.cs	http.param	1	0	-	Unrouted	EG-EXE-04	takes the AshlarExecution named client
 src/Ashlar.Infrastructure/Trust/CloudAvailabilityResolver.cs	http.new	1	0	-	Unrouted	EG-MDL-12	fallback probe client to api.openai.com (:97)
-src/Ashlar.Infrastructure/Trust/CloudAvailabilityResolver.cs	http.param	1	0	-	Exempt:TestSeam	EG-MDL-12	constructor-injectable probe client is a test seam (:28)
+src/Ashlar.Infrastructure/Trust/CloudAvailabilityResolver.cs	http.param	1	0	-	Exempt:TestSeam	EG-MDL-12	constructor-injectable probe client is a test seam (:29)
 src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs	process	2	0	-	Unrouted	EG-PROC-02	dotnet build (:525) and dotnet test (:759) restore from NuGet
 src/Ashlar.Ingress.AwsSns/ISnsSignatureVerifier.cs	http.param	1	0	-	Unrouted	EG-HTTP-03	verifier contract takes the signing-cert client
 src/Ashlar.Ingress.AwsSns/SnsRsaSignatureVerifier.cs	http.param	1	0	-	Unrouted	EG-HTTP-03	fetches the SNS signing certificate on the caller's client

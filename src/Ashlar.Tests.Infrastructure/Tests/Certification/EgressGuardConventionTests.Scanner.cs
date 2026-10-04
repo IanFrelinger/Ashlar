@@ -397,13 +397,16 @@ public sealed partial class EgressGuardConventionTests
         /// <summary>http.new, guarded form: the sanctioned constructors. Each is one guarded (Wrapped) occurrence.</summary>
         private static readonly Regex EgressHttpFactoryCall = new(@"\bEgressHttp\s*\.\s*(?:CreateClient|Wrap)\s*\(", Rx);
 
-        /// <summary>http.param: <c>HttpClient[?] id</c> right after a '(' or ',' (attributes and this/in/ref/out allowed). Group 1 is the type name.</summary>
+        /// <summary>
+        /// http.param candidates: <c>HttpClient[?] id</c> right after a '(' or ',' (attributes and this/in/ref/out
+        /// allowed). Group 1 is the type name. Only a declaration's list counts; <see cref="IsParameterList"/> decides.
+        /// </summary>
         private static readonly Regex HttpClientParameter = new(
             @"(?<=[(,]\s*(?:\[[^\[\]]*\]\s*)*(?:(?:this|in|ref|out|params|scoped)\s+)?)" + HttpNs
             + @"(HttpClient)\s*\??\s+@?[A-Za-z_][A-Za-z0-9_]*\s*(?=[,)=])",
             Rx);
 
-        /// <summary>Words before a '(' that make the parenthesis a statement, not a parameter list.</summary>
+        /// <summary>Words before a '(' that make the parenthesis a statement or an operator, not a parameter list or a tuple type.</summary>
         private static readonly HashSet<string> NotAParameterList = new(StringComparer.Ordinal)
         {
             "using", "for", "foreach", "fixed", "lock", "while", "if", "switch", "catch", "return", "await",
@@ -501,7 +504,7 @@ public sealed partial class EgressGuardConventionTests
             // ── http.param ───────────────────────────────────────────────────────────────────────────
             foreach (Match p in HttpClientParameter.Matches(code))
             {
-                if (IsParameterList(code, p.Index))
+                if (IsParameterList(m, p.Index))
                     Add(Marker.HttpParam, p.Groups[1].Index, p.Index + p.Length - p.Groups[1].Index, GuardKind.None);
             }
 
@@ -610,7 +613,11 @@ public sealed partial class EgressGuardConventionTests
         /// <summary>
         /// G3: a guard call at a LOWER offset whose innermost block is the primitive's block or encloses it, and
         /// is not a namespace or type body (the root counts only in a top-level program). A guard in a sibling
-        /// member, a field initializer, a nested if, or after the primitive never counts.
+        /// member, a field initializer, a braced nested block (an if, loop, lambda or local function with its own
+        /// braces), or after the primitive never counts. Blocks are brace pairs and nothing else, so a guard with
+        /// no braces of its own counts for its enclosing block even when it may never run: the body of an
+        /// unbraced if, else or loop, a sibling switch case, an expression-bodied lambda or local function.
+        /// Those are pinned as known misses in F9.
         /// </summary>
         internal static bool Precedes(SourceModel m, List<int> guards, int primitive)
         {
@@ -628,49 +635,252 @@ public sealed partial class EgressGuardConventionTests
         }
 
         /// <summary>
-        /// G2, the local half: the construction is assigned to a local (<c>var h = new …</c> or <c>h = new …</c>)
-        /// in a code block, and a LATER <c>EgressHttp.Wrap(</c>/<c>CreateClient(</c> in that block or one it
-        /// encloses names the local in its argument region. A field is not a local, so a static handler cannot be
-        /// laundered by a wrap in some method.
+        /// G2, the local half. The construction must initialize a DECLARED LOCAL in a code block:
+        /// <c>var h = new …</c> or <c>SocketsHttpHandler h = new() { … }</c>, with <c>var</c> or a type before the
+        /// name (<see cref="DeclaredLocalName"/>). A field, a property, <c>this.x</c>, an object-initializer member,
+        /// a field assigned in a constructor (<c>_raw = new …</c>) or any other bare <c>x = new …</c> is not a
+        /// declaration, so no wrap anywhere launders it. Then every LATER mention of the local, up to the end of
+        /// its block, must sit inside an <c>EgressHttp.Wrap(</c>/<c>CreateClient(</c> argument region or configure
+        /// it (<c>h.Prop = …</c>, <c>h.A.B = …</c>), and at least one must be inside such a region. Any other mention
+        /// keeps the raw handler reachable and the construction unguarded: returning it, passing it to an SDK
+        /// (<c>HttpHandler = h</c>, which also fails that sdk.client through G2-file), calling a method on it, or
+        /// reassigning it.
         /// </summary>
         private static bool StoredInALocalWrappedLater(SourceModel m, int at, List<(int At, int Open, int Close, int Length)> factoryCalls)
         {
-            var name = AssignedName(m.Code, at);
+            var code = m.Code;
+            var name = DeclaredLocalName(code, at);
             if (name is null)
                 return false;
             var block = m.Innermost(at);
             if (!m.IsCodeBlock(block))
                 return false;
-            var local = new Regex(@"(?<![A-Za-z0-9_.])" + Regex.Escape(name) + @"(?![A-Za-z0-9_])", Rx);
-            return factoryCalls.Any(c => c.At > at
-                && m.IsAncestorOrSelf(block, m.Innermost(c.At))
-                && local.IsMatch(m.Code[(c.Open + 1)..c.Close]));
+
+            var scopeEnd = block < 0 ? code.Length : m.Blocks[block].Close;
+            var mention = new Regex(@"(?<![A-Za-z0-9_.])" + Regex.Escape(name) + @"(?![A-Za-z0-9_])", Rx);
+            var wrapped = false;
+            for (var u = mention.Match(code, StatementEnd(code, at)); u.Success && u.Index < scopeEnd; u = u.NextMatch())
+            {
+                if (factoryCalls.Any(c => c.Open < u.Index && u.Index < c.Close))
+                    wrapped = true;
+                else if (!ConfiguresTheLocal.Match(code, u.Index + u.Length).Success)
+                    return false;
+            }
+
+            return wrapped;
         }
 
-        /// <summary>The identifier a construction is assigned to (<c>x = new …</c>), or null for any other context.</summary>
-        private static string? AssignedName(string code, int at)
+        /// <summary>Right after a mention of the local: a member assignment, <c>.Prop = </c> or <c>.A.B = </c> (not '==' or '=>').</summary>
+        private static readonly Regex ConfiguresTheLocal = new(@"\G\s*(?:\.\s*[A-Za-z_][A-Za-z0-9_]*\s*)+=(?![=>])", Rx);
+
+        /// <summary>
+        /// The local a construction initializes: a plain '=' before it, a name before that, and before the name a
+        /// type (<see cref="EndsAType"/>: <c>var</c>, <c>HttpClientHandler</c>, <c>SocketsHttpHandler?</c>). Null for
+        /// a bare <c>x = new …</c> after a ';', '{' or '}' (a field or property assigned in a constructor),
+        /// <c>this.x = new …</c>, <c>Prop = new …</c> in an object initializer (after '{' or ','), a compound
+        /// assignment, <c>if (c) x = new …</c>, <c>else x = new …</c> and <c>=> x = new …</c>.
+        /// </summary>
+        private static string? DeclaredLocalName(string code, int at)
         {
-            var j = at - 1;
-            while (j >= 0 && char.IsWhiteSpace(code[j]))
-                j--;
+            var j = SkipSpaceBack(code, at - 1);
             if (j < 1 || code[j] != '=' || "=!<>+-*/%&|^?".Contains(code[j - 1], StringComparison.Ordinal))
                 return null;
-            j--;
-            while (j >= 0 && char.IsWhiteSpace(code[j]))
-                j--;
-            var end = j + 1;
-            while (j >= 0 && (char.IsLetterOrDigit(code[j]) || code[j] == '_'))
-                j--;
-            var name = code[(j + 1)..end];
-            return name.Length > 0 && !char.IsDigit(name[0]) ? name : null;
+            j = SkipSpaceBack(code, j - 1);
+            var name = ReadNameBack(code, ref j);
+            return name is not null && j >= 0 && EndsAType(code, j) ? name : null;
         }
 
-        /// <summary>The '(' that opens the list holding <paramref name="at"/> is a declaration's, not a statement's.</summary>
-        private static bool IsParameterList(string code, int at)
+        /// <summary>
+        /// The '(' that opens the list holding <paramref name="at"/> is a DECLARATION's: a constructor, method,
+        /// local function, delegate, operator or primary constructor. A name precedes the '(' (its type arguments
+        /// skipped, and an explicit interface qualifier <c>IFoo.Bar(</c> allowed), the name is not a keyword, and
+        /// before it sits a return type or modifier (<see cref="EndsAType"/>); or, for a constructor with no
+        /// modifier, a ';', '{' or '}' inside a type body with the list followed by its body ('{', '=>' or ':').
+        /// Not a declaration, so not counted: an invocation's arguments (<c>TryGetValue(k, out HttpClient? c)</c>,
+        /// the name after '.', '=', '(', ',' or an expression keyword such as <c>return</c>), a deconstruction or a
+        /// tuple type (<c>(HttpClient a, string b) = …</c>, <c>List&lt;(HttpClient C, string N)&gt;</c>: no name
+        /// before the '('), a lambda's parameter list (no name, or <c>async</c>/<c>static</c>), and a statement's
+        /// parenthesis (<c>using (HttpClient c = new …)</c>).
+        /// </summary>
+        private static bool IsParameterList(SourceModel m, int at)
+        {
+            var code = m.Code;
+            var open = OpeningParenthesis(code, at);
+            if (open < 0)
+                return false;
+
+            var j = SkipSpaceBack(code, open - 1);
+            var name = ReadNameBack(code, ref j);
+            if (name is null || NotAMemberName.Contains(name))
+                return false;
+
+            var qualified = false;
+            while (j >= 0 && code[j] == '.')
+            {
+                qualified = true;
+                j = SkipSpaceBack(code, j - 1);
+                if (ReadNameBack(code, ref j) is null)
+                    return false;
+            }
+
+            if (j < 0)
+                return false;
+            if (code[j] is ';' or '{' or '}')
+            {
+                var owner = m.Innermost(open);
+                return !qualified && owner >= 0 && m.Blocks[owner].IsTypeBody && FollowedByABody(code, ClosingParen(code, open));
+            }
+
+            return EndsAType(code, j);
+        }
+
+        /// <summary>Words that cannot name a declared method or constructor: statement heads, modifiers, keywords.</summary>
+        private static readonly HashSet<string> NotAMemberName = new(NotAParameterList.Concat(new[]
+            {
+                "public", "private", "protected", "internal", "static", "readonly", "sealed", "abstract", "virtual",
+                "override", "extern", "unsafe", "async", "new", "const", "volatile", "this", "base", "throw", "else",
+                "in", "out", "ref", "params", "scoped", "var", "and", "or", "not", "as", "do", "case", "yield", "goto",
+            }), StringComparer.Ordinal);
+
+        /// <summary>Words that, right before a name, make it an expression (an invocation, a pattern, an assignment), not a declaration.</summary>
+        private static readonly HashSet<string> NotATypeWord = new(StringComparer.Ordinal)
+        {
+            "return", "await", "new", "else", "do", "throw", "case", "in", "is", "as", "out", "ref", "when", "and",
+            "or", "not", "async", "yield", "goto", "select", "where",
+        };
+
+        /// <summary>
+        /// The character at <paramref name="k"/> (not whitespace) ends a type or a modifier, so the name after it is
+        /// being declared: an identifier that is not an expression keyword (<c>void</c>, <c>Task</c>,
+        /// <c>public</c>, <c>var</c>), a generic type's '>', a nullable type's '?' written against its type, an
+        /// array type's or attribute's ']', or a tuple type's ')'. A cast's ')' and a statement head's ')'
+        /// (<c>if (x) h = …</c>) are not, and neither is '=>'.
+        /// </summary>
+        private static bool EndsAType(string code, int k)
+        {
+            var c = code[k];
+            if (IsIdentifierChar(c))
+            {
+                var end = k + 1;
+                while (k >= 0 && IsIdentifierChar(code[k]))
+                    k--;
+                return !NotATypeWord.Contains(code[(k + 1)..end]);
+            }
+
+            return c switch
+            {
+                ']' => true,
+                '?' => k >= 1 && (IsIdentifierChar(code[k - 1]) || code[k - 1] is '>' or ']'),
+                '>' => TypeArgumentsStart(code, k) >= 0,
+                ')' => IsTupleType(code, k),
+                _ => false,
+            };
+        }
+
+        /// <summary>
+        /// The identifier ending at <paramref name="j"/>, type arguments before it skipped (<c>Get&lt;T&gt;</c>);
+        /// <paramref name="j"/> moves to the first non-space before it. Null when no identifier is there.
+        /// </summary>
+        private static string? ReadNameBack(string code, ref int j)
+        {
+            if (j >= 0 && code[j] == '>')
+            {
+                j = TypeArgumentsStart(code, j);
+                if (j < 0)
+                    return null;
+            }
+
+            var end = j + 1;
+            while (j >= 0 && IsIdentifierChar(code[j]))
+                j--;
+            var word = code[(j + 1)..end];
+            j = SkipSpaceBack(code, j);
+            return word.Length > 0 && !char.IsDigit(word[0]) ? word : null;
+        }
+
+        /// <summary>
+        /// <paramref name="j"/> is a '>': the index of the generic name's last character before its matching '&lt;',
+        /// or -1 when it is not a type-argument list ('=>', a comparison, a shift).
+        /// </summary>
+        private static int TypeArgumentsStart(string code, int j)
+        {
+            if (j >= 1 && code[j - 1] == '=')
+                return -1;
+            var depth = 0;
+            for (; j >= 0; j--)
+            {
+                var c = code[j];
+                if (c == '>')
+                {
+                    depth++;
+                }
+                else if (c == '<')
+                {
+                    if (--depth == 0)
+                    {
+                        var k = SkipSpaceBack(code, j - 1);
+                        return k >= 0 && IsIdentifierChar(code[k]) ? k : -1;
+                    }
+                }
+                else if (!(IsIdentifierChar(c) || char.IsWhiteSpace(c) || c is ',' or '.' or '?' or '[' or ']' or '(' or ')' or ':'))
+                {
+                    return -1;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// <paramref name="close"/> is a ')' that ends a tuple type: its list has a depth-0 ',' (a cast never does)
+        /// and no statement keyword opens it (<c>for (int i = 0, j = 0; …)</c>).
+        /// </summary>
+        private static bool IsTupleType(string code, int close)
         {
             var depth = 0;
-            var j = at - 1;
-            for (; j >= 0; j--)
+            var open = -1;
+            for (var k = close; k >= 0; k--)
+            {
+                if (code[k] == ')')
+                {
+                    depth++;
+                }
+                else if (code[k] == '(' && --depth == 0)
+                {
+                    open = k;
+                    break;
+                }
+            }
+
+            if (open < 0)
+                return false;
+            var w = SkipSpaceBack(code, open - 1);
+            var end = w + 1;
+            while (w >= 0 && IsIdentifierChar(code[w]))
+                w--;
+            if (NotAParameterList.Contains(code[(w + 1)..end]))
+                return false;
+
+            depth = 0;
+            for (var k = open + 1; k < close; k++)
+            {
+                var c = code[k];
+                if (c is '(' or '[' or '<')
+                    depth++;
+                else if (c is ')' or ']' or '>')
+                    depth--;
+                else if (c == ',' && depth == 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>The '(' that opens the bracket holding <paramref name="at"/>, or -1 when that bracket is '[' or '{' or there is none.</summary>
+        private static int OpeningParenthesis(string code, int at)
+        {
+            var depth = 0;
+            for (var j = at - 1; j >= 0; j--)
             {
                 var ch = code[j];
                 if (ch is ')' or ']' or '}')
@@ -680,20 +890,30 @@ public sealed partial class EgressGuardConventionTests
                 else if (ch is '(' or '[' or '{')
                 {
                     if (depth == 0)
-                        break;
+                        return ch == '(' ? j : -1;
                     depth--;
                 }
             }
 
-            if (j < 0 || code[j] != '(')
-                return false;
-            j--;
+            return -1;
+        }
+
+        /// <summary>After the ')' at <paramref name="close"/>: a declaration's body or constructor initializer ('{', '=>' or ':').</summary>
+        private static bool FollowedByABody(string code, int close)
+        {
+            var k = close + 1;
+            while (k < code.Length && char.IsWhiteSpace(code[k]))
+                k++;
+            return k < code.Length && (code[k] is '{' or ':' || (code[k] == '=' && k + 1 < code.Length && code[k + 1] == '>'));
+        }
+
+        private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+        private static int SkipSpaceBack(string code, int j)
+        {
             while (j >= 0 && char.IsWhiteSpace(code[j]))
                 j--;
-            var end = j + 1;
-            while (j >= 0 && (char.IsLetterOrDigit(code[j]) || code[j] == '_'))
-                j--;
-            return !NotAParameterList.Contains(code[(j + 1)..end]);
+            return j;
         }
 
         /// <summary>
