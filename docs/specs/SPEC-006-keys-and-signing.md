@@ -603,9 +603,20 @@ gap tracked rather than deniable. Currently unmet:
   `CertificationRecordSigner.Verify`) before any signature is examined. Conformance tests:
   `SchemaVersionFloorTests.DowngradedRecord_IsRefused_UnderTheFloor` and
   `LegitimateV2Record_StillVerifies_UnderTheFloor`.
-  **The default floor is 0**, so nothing refuses yet — S-2 keeps the default permissive, and
-  raising the floor is a separate, deliberate step once records have migrated. The MUST is
-  therefore *satisfiable*, not yet *enforced*.
+  At implementation **the default floor was 0**, so nothing refused — S-2 kept the default
+  permissive, and raising the floor was left as a separate, deliberate step once records had
+  migrated. The MUST was then *satisfiable*, not yet *enforced*.
+
+  *Corrected 2026-10-04: the default floor is no longer 0.* `CertificationVerifyOptions.Default`
+  and `CertificationVerifyOptions.Strict` both set `MinimumSchemaVersion =
+  CertificationRecordData.TrustLoopSchemaVersion` (2) and `RequireEd25519Signature = true`, and
+  both tiers use `Default` when given no options. A legacy-lane record (null schema version,
+  counted as 0) is therefore refused — `CertificationTrustVerifier` reports
+  `schema-version-below-floor` — unless the caller names `CertificationVerifyOptions.Legacy`,
+  which is `new()` with floor 0. The preset values are pinned by
+  `SchemaVersionFloorTests.Presets_PinEveryStrictnessField`. The change shipped as a breaking
+  change in 0.2.0 (`CHANGELOG.md`); `docs/certification-evidence.md` limitations 7 and 8 date it
+  2026-09-06.
 - **S-1, applied to a downgraded certification-record schema.** S-1 covers a `sig` that
   fails verification. For *certification records* the *payload lane itself* is chosen by an
   attacker-supplied field (`if (record.SchemaVersion is null)`), and the legacy lane covers no
