@@ -1,1 +1,52 @@
 #nullable enable
+Ashlar.Abstractions.Security.AccessDecision
+Ashlar.Abstractions.Security.AccessDecision.AccessDecision() -> void
+Ashlar.Abstractions.Security.AccessDecision.Allowed.get -> bool
+Ashlar.Abstractions.Security.AccessDecision.Detail.get -> string!
+Ashlar.Abstractions.Security.AccessDecision.Equals(Ashlar.Abstractions.Security.AccessDecision other) -> bool
+Ashlar.Abstractions.Security.AccessDecision.Reason.get -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.AccessDenialReason.LevelTooLow = 1 -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.AccessDenialReason.MissingCaveat = 3 -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.AccessDenialReason.MissingCompartment = 2 -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.AccessDenialReason.None = 0 -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.AccessDenialReason.SystemHighData = 4 -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.HighWaterMark
+Ashlar.Abstractions.Security.HighWaterMark.CanWriteTo(Ashlar.Abstractions.Security.SecurityLabel! destination) -> Ashlar.Abstractions.Security.AccessDecision
+Ashlar.Abstractions.Security.HighWaterMark.Current.get -> Ashlar.Abstractions.Security.SecurityLabel!
+Ashlar.Abstractions.Security.HighWaterMark.HighWaterMark() -> void
+Ashlar.Abstractions.Security.HighWaterMark.HighWaterMark(Ashlar.Abstractions.Security.SecurityLabel! floor) -> void
+Ashlar.Abstractions.Security.HighWaterMark.Observe(Ashlar.Abstractions.Security.SecurityLabel! label) -> void
+Ashlar.Abstractions.Security.ReferenceMonitor
+Ashlar.Abstractions.Security.SecurityLabel
+Ashlar.Abstractions.Security.SecurityLabel.Caveats.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ashlar.Abstractions.Security.SecurityLabel.Compartments.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ashlar.Abstractions.Security.SecurityLabel.Dominates(Ashlar.Abstractions.Security.SecurityLabel! other) -> bool
+Ashlar.Abstractions.Security.SecurityLabel.Equals(Ashlar.Abstractions.Security.SecurityLabel? other) -> bool
+Ashlar.Abstractions.Security.SecurityLabel.IsSystemHigh.get -> bool
+Ashlar.Abstractions.Security.SecurityLabel.Join(Ashlar.Abstractions.Security.SecurityLabel! other) -> Ashlar.Abstractions.Security.SecurityLabel!
+Ashlar.Abstractions.Security.SecurityLabel.Level.get -> Ashlar.Abstractions.Security.SecurityLevel
+Ashlar.Abstractions.Security.SecurityLabel.Meet(Ashlar.Abstractions.Security.SecurityLabel! other) -> Ashlar.Abstractions.Security.SecurityLabel!
+Ashlar.Abstractions.Security.SecurityLabel.SecurityLabel(Ashlar.Abstractions.Security.SecurityLevel level, System.Collections.Generic.IEnumerable<string!>? compartments = null, System.Collections.Generic.IEnumerable<string!>? caveats = null) -> void
+Ashlar.Abstractions.Security.SecurityLevel
+Ashlar.Abstractions.Security.SecurityLevel.Confidential = 2 -> Ashlar.Abstractions.Security.SecurityLevel
+Ashlar.Abstractions.Security.SecurityLevel.Internal = 1 -> Ashlar.Abstractions.Security.SecurityLevel
+Ashlar.Abstractions.Security.SecurityLevel.Public = 0 -> Ashlar.Abstractions.Security.SecurityLevel
+Ashlar.Abstractions.Security.SecurityLevel.Secret = 3 -> Ashlar.Abstractions.Security.SecurityLevel
+Ashlar.Abstractions.Security.SecurityLevel.TopSecret = 4 -> Ashlar.Abstractions.Security.SecurityLevel
+override Ashlar.Abstractions.Security.AccessDecision.Equals(object? obj) -> bool
+override Ashlar.Abstractions.Security.AccessDecision.GetHashCode() -> int
+override Ashlar.Abstractions.Security.AccessDecision.ToString() -> string!
+override Ashlar.Abstractions.Security.SecurityLabel.Equals(object? obj) -> bool
+override Ashlar.Abstractions.Security.SecurityLabel.GetHashCode() -> int
+override Ashlar.Abstractions.Security.SecurityLabel.ToString() -> string!
+static Ashlar.Abstractions.Security.AccessDecision.operator !=(Ashlar.Abstractions.Security.AccessDecision left, Ashlar.Abstractions.Security.AccessDecision right) -> bool
+static Ashlar.Abstractions.Security.AccessDecision.operator ==(Ashlar.Abstractions.Security.AccessDecision left, Ashlar.Abstractions.Security.AccessDecision right) -> bool
+static Ashlar.Abstractions.Security.ReferenceMonitor.CanRead(Ashlar.Abstractions.Security.SecurityLabel! clearance, Ashlar.Abstractions.Security.SecurityLabel! data) -> Ashlar.Abstractions.Security.AccessDecision
+static Ashlar.Abstractions.Security.ReferenceMonitor.CanWrite(Ashlar.Abstractions.Security.SecurityLabel! current, Ashlar.Abstractions.Security.SecurityLabel! destination) -> Ashlar.Abstractions.Security.AccessDecision
+static Ashlar.Abstractions.Security.SecurityLabel.IsValidToken(string? token) -> bool
+static Ashlar.Abstractions.Security.SecurityLabel.Join(System.Collections.Generic.IEnumerable<Ashlar.Abstractions.Security.SecurityLabel!>! labels) -> Ashlar.Abstractions.Security.SecurityLabel!
+static Ashlar.Abstractions.Security.SecurityLabel.ParseOrSystemHigh(string? text) -> Ashlar.Abstractions.Security.SecurityLabel!
+static Ashlar.Abstractions.Security.SecurityLabel.Public.get -> Ashlar.Abstractions.Security.SecurityLabel!
+static Ashlar.Abstractions.Security.SecurityLabel.SystemHigh.get -> Ashlar.Abstractions.Security.SecurityLabel!
+static Ashlar.Abstractions.Security.SecurityLabel.TryParse(string? text, out Ashlar.Abstractions.Security.SecurityLabel! label) -> bool
