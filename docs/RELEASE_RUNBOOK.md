@@ -78,7 +78,7 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
    supported release line**. Leave statements scoped to a past release ("on `0.1.2` and earlier")
    alone — they stay true.
 
-7. **Promote the public API**: review each stable-tier project's `PublicAPI.Unshipped.txt`, move its lines into `PublicAPI.Shipped.txt`, commit on the release commit (`docs/SdkCompatibilityPolicy.md`, "Release step"). After the tag those lines are the promise.
+7. **Promote the public API**: review the `PublicAPI.Unshipped.txt` of every project that carries PublicAPI files (the stable tier plus `Ashlar.Abstractions`), move its lines into `PublicAPI.Shipped.txt`, commit on the release commit (`docs/SdkCompatibilityPolicy.md`, "Release step"). After the tag those lines are the promise.
 8. **Rehearse the publish with a prerelease before tagging.** Dispatch `release-nuget.yml` with
    version `X.Y.Z-rc1` from the release commit. Both guards accept it -
    `assert_dispatch_version_allowed` permits a prerelease of the canonical version, and

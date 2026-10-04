@@ -55,7 +55,7 @@ So `Shipped.txt` is now a **promise already made**, not an empty file waiting fo
 
 When tagging `v0.1.0` (and every release after it), as part of "Before you tag" in `docs/RELEASE_RUNBOOK.md`:
 
-1. Review `PublicAPI.Unshipped.txt` in each stable-tier project. Anything that should not be promised gets made `internal` (or `[Experimental]`) **before** the tag.
+1. Review `PublicAPI.Unshipped.txt` in every project that carries PublicAPI files (the stable tier plus `Ashlar.Abstractions`). Anything that should not be promised gets made `internal` (or `[Experimental]`) **before** the tag.
 2. Move every line except the `#nullable enable` header from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`; leave `Unshipped.txt` with the header only.
 3. Commit as `chore(api): promote unshipped public API to shipped for vX.Y.Z` on the release commit.
 
@@ -135,7 +135,8 @@ gap rather than implied as coverage.
 
 #### A naming hazard, recorded rather than fixed
 
-Three substrate packages are named as if they were optional developer tooling and are not:
+Two substrate packages, and one assembly the release does not publish as a package, are named as if
+they were optional developer tooling and are not:
 
 | Package | Actually required by |
 |---|---|
@@ -143,10 +144,17 @@ Three substrate packages are named as if they were optional developer tooling an
 | `Ashlar.Tools.Dev` | `Ashlar.Hosting`, `Ashlar.Mcp.Server.Host` |
 | `Ashlar.Policies.Dev` | `Ashlar.Runtime.Bundle`, `Ashlar.CLI` |
 
-They cannot be unpublished — `Ashlar.Hosting.Bundle` is a Stable-tier package and reaches two of them
-transitively, so removing them from the feed breaks restore for the tier that carries the strongest
-promise. Renaming them is a breaking change and belongs to a major. Recorded here so that a consumer
-reading `.Dev` on nuget.org does not conclude it is optional.
+The two `Ashlar.Tools.*` packages cannot be unpublished — `Ashlar.Hosting.Bundle` is a Stable-tier
+package and reaches both transitively, so removing them from the feed breaks restore for the tier that
+carries the strongest promise. Renaming them is a breaking change and belongs to a major. Recorded here
+so that a consumer reading `.Dev` on nuget.org does not conclude it is optional.
+
+`Ashlar.Policies.Dev` is not on nuget.org. No release pack step names it: `reusable-release-nuget.yml`
+packs the `Ashlar.Hosting` graph (`scripts/pack-ashlar-hosting-graph.sh`), which does not reference it,
+plus `Ashlar.Client`, `Ashlar.Sdk`, `Ashlar.Authoring` and the `Ashlar.CLI` tool. `Ashlar.Runtime.Bundle`
+is packed only by `scripts/pack-ashlar-runtime-graph.sh`, which no workflow runs, and is not published
+either. The assembly reaches users inside the `Ashlar.CLI` tool package, which embeds its project
+references.
 
 This is also worth stating plainly for the Stable tier: **its promise covers the API you call, not
 the dependency graph beneath it.** `Ashlar.Hosting.Bundle` declares no surface of its own and pulls a
