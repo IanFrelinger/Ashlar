@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ashlar.Abstractions.Security;
 using FluentAssertions;
 using Xunit;
@@ -219,6 +220,35 @@ public sealed class HighWaterMarkTests
         _ = mark.CanWriteTo(SecurityLabel.SystemHigh);
 
         mark.Current.Should().Be(before, "deciding a write is not reading");
+    }
+
+    [Fact]
+    public async Task ConcurrentObservations_AreNeverLost()
+    {
+        // A lost join would leave the mark below what was read and permit a write down. Each round races many
+        // observations of distinct caveats; every caveat must survive, and the mark must still refuse a write to a
+        // destination missing any one of them.
+        var caveats = Enumerable.Range(0, 64).Select(i => "K" + i.ToString("D2", CultureInfo.InvariantCulture)).ToArray();
+
+        for (var round = 0; round < 20; round++)
+        {
+            var mark = new HighWaterMark(L("Secret"));
+            using var start = new ManualResetEventSlim(false);
+            var observers = caveats
+                .Select(caveat => Task.Run(() =>
+                {
+                    start.Wait();
+                    mark.Observe(new SecurityLabel(SecurityLevel.Confidential, caveats: [caveat]));
+                }))
+                .ToArray();
+
+            start.Set();
+            await Task.WhenAll(observers);
+
+            mark.Current.Should().Be(new SecurityLabel(SecurityLevel.Secret, caveats: caveats), "round {0}", round);
+            mark.CanWriteTo(new SecurityLabel(SecurityLevel.Secret, caveats: caveats.Skip(1))).Reason
+                .Should().Be(AccessDenialReason.MissingCaveat);
+        }
     }
 
     [Fact]

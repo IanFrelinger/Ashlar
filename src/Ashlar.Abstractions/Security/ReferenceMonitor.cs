@@ -10,6 +10,8 @@ namespace Ashlar.Abstractions.Security;
 /// than one rule fails, the reason reported is the first of <see cref="AccessDenialReason.SystemHighData"/>,
 /// <see cref="AccessDenialReason.LevelTooLow"/>, <see cref="AccessDenialReason.MissingCompartment"/> and
 /// <see cref="AccessDenialReason.MissingCaveat"/>.</para>
+/// <para>This is the decision function, not the mediation point: it decides only when it is called. Complete
+/// mediation is the job of the code that routes every read and write through it.</para>
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited cross-domain
 /// solution.</para>
 /// </remarks>

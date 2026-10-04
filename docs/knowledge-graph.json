@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 748,
-    "declared_facts": 4597,
+    "declared_facts": 4598,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5114,7 +5114,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/HighWaterMarkTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 14,
+      "declared_facts": 15,
       "in_cert_gate_filter": true
     },
     {

@@ -9,6 +9,7 @@ Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.AccessDenialReason.LevelTooLow = 1 -> Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.AccessDenialReason.MissingCaveat = 3 -> Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.AccessDenialReason.MissingCompartment = 2 -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.AccessDenialReason.NoDecision = 5 -> Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.AccessDenialReason.None = 0 -> Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.AccessDenialReason.SystemHighData = 4 -> Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.HighWaterMark

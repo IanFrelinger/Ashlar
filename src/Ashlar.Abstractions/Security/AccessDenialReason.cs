@@ -1,18 +1,20 @@
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>
-/// Why the <see cref="ReferenceMonitor"/> refused an access. Every refusal the reference monitor makes names one.
+/// Why an access was refused. Every refusal names one; <see cref="None"/> means allowed.
 /// </summary>
 /// <remarks>
-/// When more than one rule fails, the reason reported is the first in this order:
+/// <para>When more than one rule fails, the reference monitor reports the first in this order:
 /// <see cref="SystemHighData"/>, <see cref="LevelTooLow"/>, <see cref="MissingCompartment"/>,
-/// <see cref="MissingCaveat"/>.
+/// <see cref="MissingCaveat"/>.</para>
+/// <para>The numeric values are stable and new reasons are only appended, so a stored value keeps its
+/// meaning.</para>
 /// </remarks>
 public enum AccessDenialReason
 {
     /// <summary>
-    /// No refusal reason. An allowed decision carries it, and so does <c>default(AccessDecision)</c>, which is
-    /// refused. Test <see cref="AccessDecision.Allowed"/>, never <c>Reason == None</c>.
+    /// Not refused. Only an allowed decision carries it: <c>Reason == None</c> holds exactly when
+    /// <see cref="AccessDecision.Allowed"/> is <see langword="true"/>.
     /// </summary>
     None = 0,
 
@@ -38,4 +40,10 @@ public enum AccessDenialReason
     /// take it.
     /// </summary>
     SystemHighData = 4,
+
+    /// <summary>
+    /// No decision was made: what <c>default(AccessDecision)</c> reports, for example from an uninitialised
+    /// field. It is a refusal, so an unset decision never reads as a grant.
+    /// </summary>
+    NoDecision = 5,
 }

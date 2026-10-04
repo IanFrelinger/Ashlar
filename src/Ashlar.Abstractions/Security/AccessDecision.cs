@@ -5,23 +5,25 @@ namespace Ashlar.Abstractions.Security;
 /// </summary>
 /// <remarks>
 /// <para>Refusals are explained, never silent. A refused decision carries a <see cref="Reason"/> and a
-/// <see cref="Detail"/> that names the offending level, compartment or caveat.</para>
+/// <see cref="Detail"/> that names the offending level, compartment or caveat. <see cref="Reason"/> is
+/// <see cref="AccessDenialReason.None"/> exactly when <see cref="Allowed"/> is <see langword="true"/>.</para>
 /// <para><b>The default value fails closed.</b> <c>default(AccessDecision)</c> is not a decision anyone made,
-/// so it reports <see cref="Allowed"/> as <see langword="false"/>, with <see cref="Reason"/> set to
-/// <see cref="AccessDenialReason.None"/> and a <see cref="Detail"/> that says no decision was made. Decisions are
-/// made only inside Ashlar.Abstractions, by the reference monitor. Test <see cref="Allowed"/>, never
-/// <c>Reason == None</c>.</para>
+/// so it reports <see cref="Allowed"/> as <see langword="false"/>, <see cref="Reason"/> as
+/// <see cref="AccessDenialReason.NoDecision"/> and a <see cref="Detail"/> that says no decision was made.</para>
+/// <para>Decisions are constructed only inside Ashlar.Abstractions (and the assemblies it grants internals to),
+/// and every refusal must name a reason and a detail.</para>
 /// </remarks>
 public readonly struct AccessDecision : IEquatable<AccessDecision>
 {
     private const string NoDecisionDetail = "no decision was made (default AccessDecision), so access is refused";
 
+    private readonly AccessDenialReason _reason;
     private readonly string? _detail;
 
     private AccessDecision(bool allowed, AccessDenialReason reason, string detail)
     {
         Allowed = allowed;
-        Reason = reason;
+        _reason = reason;
         _detail = detail;
     }
 
@@ -32,20 +34,34 @@ public readonly struct AccessDecision : IEquatable<AccessDecision>
     public bool Allowed { get; }
 
     /// <summary>
-    /// Why the access was refused, or <see cref="AccessDenialReason.None"/> when it was allowed (or when this is
-    /// <c>default(AccessDecision)</c>, which is refused).
+    /// Why the access was refused: the first failing rule in the order <see cref="AccessDenialReason.SystemHighData"/>,
+    /// <see cref="AccessDenialReason.LevelTooLow"/>, <see cref="AccessDenialReason.MissingCompartment"/>,
+    /// <see cref="AccessDenialReason.MissingCaveat"/>; <see cref="AccessDenialReason.NoDecision"/> for
+    /// <c>default(AccessDecision)</c>; <see cref="AccessDenialReason.None"/> only when allowed.
     /// </summary>
-    public AccessDenialReason Reason { get; }
+    public AccessDenialReason Reason => _detail is null ? AccessDenialReason.NoDecision : _reason;
 
     /// <summary>
     /// A sentence a person can read that explains a refusal and names the offending level, compartments or
     /// caveats (tokens comma-separated, in canonical order). Empty for an allowed decision.
     /// </summary>
+    /// <remarks>
+    /// The wording is for people and may change; do not parse it. <see cref="Reason"/> is the stable,
+    /// machine-readable part.
+    /// </remarks>
     public string Detail => _detail ?? NoDecisionDetail;
 
     internal static AccessDecision Allow() => new(allowed: true, AccessDenialReason.None, string.Empty);
 
-    internal static AccessDecision Deny(AccessDenialReason reason, string detail) => new(allowed: false, reason, detail);
+    internal static AccessDecision Deny(AccessDenialReason reason, string detail)
+    {
+        if (reason is AccessDenialReason.None or AccessDenialReason.NoDecision)
+            throw new ArgumentOutOfRangeException(nameof(reason), "A refusal needs a reason other than None or NoDecision.");
+        if (string.IsNullOrEmpty(detail))
+            throw new ArgumentException("A refusal needs a detail a person can read.", nameof(detail));
+
+        return new(allowed: false, reason, detail);
+    }
 
     /// <inheritdoc />
     public bool Equals(AccessDecision other) =>
@@ -86,6 +102,7 @@ public readonly struct AccessDecision : IEquatable<AccessDecision>
         AccessDenialReason.MissingCompartment => "MissingCompartment",
         AccessDenialReason.MissingCaveat => "MissingCaveat",
         AccessDenialReason.SystemHighData => "SystemHighData",
+        AccessDenialReason.NoDecision => "NoDecision",
         _ => "Unknown",
     };
 }

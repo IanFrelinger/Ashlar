@@ -28,7 +28,9 @@ namespace Ashlar.Abstractions.Security;
 /// <see cref="SystemHigh"/> clearance may read. A clearance or a write destination fails closed the other way;
 /// see <see cref="ParseOrSystemHigh"/>.</para>
 /// <para><b>Serialisation.</b> The canonical text is the only wire form: System.Text.Json writes a label as that
-/// string and refuses to read anything else, so <see cref="SystemHigh"/> cannot come back as a lower label.</para>
+/// string and refuses to read anything else, so <see cref="SystemHigh"/> cannot come back as a lower label. Never
+/// rebuild a label field by field (SystemHigh would become TopSecret), and never filter or bridge on
+/// <see cref="Level"/> alone.</para>
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited
 /// cross-domain solution.</para>
 /// </remarks>
@@ -89,6 +91,10 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     /// The top element. It dominates every label, only it dominates itself, and joining anything with it gives
     /// it. Unlabelled or unparseable data is treated as this label.
     /// </summary>
+    /// <remarks>
+    /// It is the most restrictive label on the data side and the most permissive on the receiving side: a
+    /// SystemHigh clearance reads everything and a SystemHigh destination receives everything.
+    /// </remarks>
     public static SecurityLabel SystemHigh { get; } =
         new(SecurityLevel.TopSecret, Array.Empty<string>(), Array.Empty<string>(), isSystemHigh: true);
 
@@ -169,7 +175,8 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     /// <summary>
     /// The join of every label in <paramref name="labels"/>: the label of something derived from all of them.
     /// The join of no labels is <see cref="Public"/>, the bottom, so an unlabelled source must be included as
-    /// <see cref="SystemHigh"/>, never left out: leaving it out lowers the result.
+    /// <see cref="SystemHigh"/>, never left out: leaving it out lowers the result. Use this only when the inputs
+    /// are known to be complete; output whose inputs are unknown is <see cref="SystemHigh"/>.
     /// </summary>
     /// <param name="labels">The labels to join.</param>
     /// <exception cref="ArgumentException"><paramref name="labels"/> contains a null element.</exception>

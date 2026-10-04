@@ -372,9 +372,10 @@ public sealed class ReferenceMonitorDecisionTests
         var decision = default(AccessDecision);
 
         decision.Allowed.Should().BeFalse("default(AccessDecision) is not a decision anyone made");
-        decision.Reason.Should().Be(AccessDenialReason.None);
+        decision.Reason.Should().Be(
+            AccessDenialReason.NoDecision, "a refusal always names a reason, and None is reserved for allowed");
         decision.Detail.Should().NotBeNullOrWhiteSpace("even the decision nobody made explains why it refuses");
-        decision.ToString().Should().StartWith("refused (None)");
+        decision.ToString().Should().StartWith("refused (NoDecision)");
 
         var allowed = ReferenceMonitor.CanRead(L("Secret"), L("Secret"));
         (decision == allowed).Should().BeFalse("only the reference monitor produces an allowed decision");
