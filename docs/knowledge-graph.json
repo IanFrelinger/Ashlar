@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 153,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 743,
-    "declared_facts": 4495,
+    "test_files_declaring_facts": 748,
+    "declared_facts": 4597,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5111,6 +5111,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/HighWaterMarkTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 14,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/IlImportFenceAdversarialTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5265,6 +5272,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/ReferenceMonitorDecisionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 26,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/RollbackGateExemptionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5304,6 +5318,27 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 1,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/SecurityLabelLatticeLawTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 29,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/SecurityLabelLevelParityTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 7,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/SecurityLabelTextFormTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 26,
       "in_cert_gate_filter": true
     },
     {
