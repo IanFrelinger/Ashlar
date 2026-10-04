@@ -46,7 +46,7 @@ jobs:
       name: github-pages
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # The page is served from a project subpath (/Ashlar/), not a domain root, so every asset
       # reference in site/ must be relative. Absolute ones resolve against ianfrelinger.github.io
