@@ -17,6 +17,30 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added
+
+- **`Ashlar.Abstractions.Security`: Bell-LaPadula security labels and reference-monitor decisions.**
+  `SecurityLevel` orders `Public < Internal < Confidential < Secret < TopSecret`, with the names and
+  values of the primitive `DataSensitivityLevels`. `SecurityLabel` adds a set of compartments and a
+  set of caveats to a level and forms a lattice under `Dominates`, `Join` and `Meet`, with `Public` at
+  the bottom and a distinguished `SystemHigh` at the top. It has one canonical text form
+  (`Secret//C:ALPHA,BRAVO//K:NOWEB`), `TryParse` accepts only that form, and on a refusal both
+  `TryParse` and `ParseOrSystemHigh` give `SystemHigh`. That fails closed for a label on data, which
+  only a `SystemHigh` clearance may read; a clearance or write destination that cannot be parsed must
+  fall back to `Public` instead, and that is the caller's decision. JSON and TypeDescriptor carry a
+  label only as its canonical string and refuse anything else, `null` included. `ReferenceMonitor`
+  makes the two Bell-LaPadula decisions, `CanRead` (no read up) and `CanWrite` (no write down). Every
+  refusal is an `AccessDecision` carrying an `AccessDenialReason` and a detail that names the offending
+  level, compartments or caveats, and `default(AccessDecision)` is a refusal (`NoDecision`), not an
+  allow. `HighWaterMark` is a session's running join of the labels it has read, joined atomically
+  under concurrent `Observe` calls, and a write is judged against it.
+
+  Additive, with no behaviour change: nothing in the runtime calls these types yet. The new public API
+  is recorded in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, so it is not yet shipped. These
+  are classification-style controls inside the runtime, not an accredited cross-domain solution. The
+  lattice laws, the text form, the level parity, the monitor's decisions and the high-water mark are
+  cert-gate tests, listed in `ci/cert-gate-assertions.md`.
+
 ### Changed
 
 - **`Ashlar.CLI` references its test projects only on request.** Unless a build passed
