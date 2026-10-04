@@ -41,6 +41,31 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   lattice laws, the text form, the level parity, the monitor's decisions and the high-water mark are
   cert-gate tests, listed in `ci/cert-gate-assertions.md`.
 
+- **Security-label bridges for the two existing sensitivity vocabularies.** `TrustTierOrder.RecordLabel`
+  and `TrustTierOrder.CallerLabel` (`Ashlar.AI.Pipeline.Rag`) map a RAG trust tier onto a
+  `SecurityLabel`, resolving the name through `TryRank` exactly as `RecordRank` and `CallerRank` do, so
+  `secret`, `top-secret` and `" Secret "` keep their level rather than failing to parse as label text;
+  a blank or unknown record is `SystemHigh` and a blank or unknown caller is `Public`.
+  `DataSensitivityLabelBridge.ToDataLabel` and `TryToClearance` (`Ashlar.BackgroundAgents.DataSensitivity`)
+  map an `IDataSensitivityLevel` by its `SensitivityValue` alone, never by its name, and fail closed per
+  role. As data, no level or a value above 4 is `SystemHigh` and a value below 0 is `Public`; as a
+  clearance, no level is `Public`, a value above 4 is narrowed to `TopSecret` (never `SystemHigh`) and a
+  value below 0 is refused, because no label lies below `Public`. Both map the level only: every label
+  they return has no compartments and no caveats, and the level flags (`AllowsExternalLLM`,
+  `AllowsWebSearch`, `RequiresLocalOnly`, `AllowsNetworkExports`) are not carried. Whether the flags
+  become caveats is left to a later change.
+
+  Additive, with no behaviour change: nothing calls the bridges or the reference monitor, and
+  `TrustTierOrder.IsAllowed`, `VectorDataRagService`'s search filter and re-index downgrade check,
+  `DataSensitivityRegistry.CanAccess`, `RagSensitivity` and `DataSensitivityFallbacks` decide exactly
+  as before. Over the bridged labels `ReferenceMonitor.CanRead` agrees with those decisions on every
+  labelled pair. The one intended difference is an unlabelled record or unlabelled data: the bridges
+  make it `SystemHigh`, which a `TopSecret` clearance may not read, where the legacy rules treat it as
+  `TopSecret` and serve it to a `TopSecret` caller. That difference is pinned on both sides and is not
+  wired in. Both projects are substrate-tier packages with no `PublicAPI` files
+  (`docs/SdkCompatibilityPolicy.md`), so this entry is the record of the new surface. The parity and
+  the fail-closed rules are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
+
 ### Changed
 
 - **`Ashlar.CLI` references its test projects only on request.** Unless a build passed

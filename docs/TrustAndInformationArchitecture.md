@@ -25,6 +25,8 @@ This spec refactors the Trust & Information Architecture to **maximize reuse** o
   - `restricted` → **Confidential** or **Secret** (AllowsExternalLLM = false)
 - **`DataSensitivityLevels`** — no changes; use for classification output
 
+**Bridge to security labels (SPEC-007, outside this spec).** `DataSensitivityLabelBridge` maps a level onto an `Ashlar.Abstractions.Security.SecurityLabel` by `SensitivityValue` alone, level only (the flags `AllowsExternalLLM`, `AllowsWebSearch`, `RequiresLocalOnly` and `AllowsNetworkExports` are not carried): `ToDataLabel` for data (no level → `SystemHigh`), `TryToClearance` for an agent's clearance (no level → `Public`). `TrustTierOrder.RecordLabel` / `CallerLabel` do the same for the RAG tier names. Nothing decides through either yet: `IDataSensitivityRegistry.CanAccess` and `TrustTierOrder.IsAllowed` still decide, so everything in this section is unchanged by it. The mapping rules are listed in `ci/cert-gate-assertions.md`.
+
 ### New: Data Taxonomy (Only Addition)
 
 Add a **data taxonomy** that assigns a default sensitivity level *name* to each observed data type. This is a mapping layer, not a replacement for `IDataSensitivityRegistry`.
