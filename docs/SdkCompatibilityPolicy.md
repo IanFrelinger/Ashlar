@@ -104,7 +104,7 @@ frozen, and this tier does not pretend otherwise. What they promise is different
 > silently is not.**
 
 **Why not simply promote them.** `Ashlar.Core.Application` declares 474 public types,
-`Ashlar.Infrastructure` 390, `Ashlar.Orchestration` 198 and `Ashlar.BackgroundAgents` 126 (counted as
+`Ashlar.Infrastructure` 390, `Ashlar.Orchestration` 198 and `Ashlar.BackgroundAgents` 128 (counted as
 public type declarations in each project's sources). Freezing that at 0.2.0 would end meaningful refactoring, and it would be a promise made over a
 surface nobody yet maps accurately — an IL analysis run against this tree in September proposed 52
 `Ashlar.Infrastructure` types as unreferenced and the compiler rejected 9 of them, one of which had
