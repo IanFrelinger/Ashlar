@@ -36,9 +36,13 @@ namespace Ashlar.BackgroundAgents.DataSensitivity;
 /// label it returns has no compartments and no caveats, and two levels that differ only in their flags map to equal
 /// labels. Whether the flags become caveats (a no-web caveat, say) is for a later change to decide. Until then a
 /// consumer that needs a flag reads it from the level, not from the label.</para>
-/// <para><b>Resolving a name.</b> Resolve it with the registry's own resolver,
-/// <see cref="IDataSensitivityRegistry.GetByName"/>, and pass the result straight in, <see langword="null"/>
-/// included: an unknown name then gives no level, which is SystemHigh as data and Public as a clearance. Never
+/// <para><b>Resolving a name</b> depends on the role, as the legacy resolvers do. A DATA label name: resolve it with
+/// <see cref="IDataSensitivityRegistry.GetByName"/> and pass the result straight in, <see langword="null"/> included,
+/// so an unknown name gives no level, which is SystemHigh. A CLEARANCE name: resolve it with
+/// <see cref="DataSensitivityFallbacks.ResolveClearance"/> (the registry's floor for an unknown name) and then call
+/// <see cref="TryToClearance"/>; when the floor is a custom level below Public the bridge refuses it, so the result is
+/// never wider than the legacy rule. Passing <see cref="IDataSensitivityRegistry.GetByName"/>'s
+/// <see langword="null"/> for a clearance would floor to Public, which is wider than a floor below Public. Never
 /// parse a level name as label text with <see cref="SecurityLabel.TryParse"/> or
 /// <see cref="SecurityLabel.ParseOrSystemHigh"/>: they accept only the exact-case canonical spelling, so names the
 /// registry accepts, such as <c>secret</c> or <c>top-secret</c>, would become SystemHigh. And do not resolve a data

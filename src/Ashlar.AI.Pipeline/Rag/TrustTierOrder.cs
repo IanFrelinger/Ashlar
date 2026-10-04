@@ -21,7 +21,7 @@ namespace Ashlar.AI.Pipeline.Rag;
 /// to everyone; an unknown name ranked as TopSecret, so a typo'd caller clearance saw everything.</para>
 /// <para><b>Bridge to <see cref="SecurityLabel"/>.</b> <see cref="RecordLabel"/> and
 /// <see cref="CallerLabel"/> map a tier onto the SPEC-007 label model, level only, with the same
-/// two fallback directions, except that an unlabelled record becomes
+/// two fallback directions, except that an unlabelled or unrecognised record becomes
 /// <see cref="SecurityLabel.SystemHigh"/> rather than TopSecret. Nothing decides through them yet:
 /// <see cref="IsAllowed"/>, the RAG search filter and the re-index downgrade check still compare
 /// ranks, so the bridge changes no behaviour.</para>
@@ -44,6 +44,16 @@ public static class TrustTierOrder
     public const string BasisUnrecognised = "unrecognised";
 
     private static readonly string[] CanonicalNames = { "Public", "Internal", "Confidential", "Secret", "TopSecret" };
+
+    // The bare label of each rank, shared: labels are immutable, and the search filter may call the bridge per record.
+    private static readonly SecurityLabel[] LabelsByRank =
+    {
+        SecurityLabel.Public,
+        new(SecurityLevel.Internal),
+        new(SecurityLevel.Confidential),
+        new(SecurityLevel.Secret),
+        new(SecurityLevel.TopSecret),
+    };
 
     private static readonly Dictionary<string, int> Ranks = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -98,7 +108,7 @@ public static class TrustTierOrder
     /// </remarks>
     /// <param name="recordTier">The record's stored or proposed tier name; null or blank means unlabelled.</param>
     public static SecurityLabel RecordLabel(string? recordTier) =>
-        TryRank(recordTier, out var rank) ? new SecurityLabel((SecurityLevel)rank) : SecurityLabel.SystemHigh;
+        TryRank(recordTier, out var rank) ? LabelsByRank[rank] : SecurityLabel.SystemHigh;
 
     /// <summary>
     /// The <see cref="SecurityLabel"/> of a CALLER clearance: a known tier is the label at its level, and
@@ -115,7 +125,7 @@ public static class TrustTierOrder
     /// </remarks>
     /// <param name="callerTier">The caller's maximum tier; null, blank or unknown means the floor.</param>
     public static SecurityLabel CallerLabel(string? callerTier) =>
-        TryRank(callerTier, out var rank) ? new SecurityLabel((SecurityLevel)rank) : SecurityLabel.Public;
+        TryRank(callerTier, out var rank) ? LabelsByRank[rank] : SecurityLabel.Public;
 
     /// <summary>
     /// The clearance actually applied for <paramref name="callerTier"/>, in canonical spelling, and

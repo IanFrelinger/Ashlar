@@ -65,7 +65,7 @@ public sealed class TrustTierLabelBridgeTests
         "TopSecret//K:NOWEB",
         "Top Secret",
         "top_secret",
-        "​Secret",
+        "\u200BSecret",
     };
 
     /// <summary>Every tier name in the matrices: the known spellings with their rank, and the unknown names with none.</summary>
@@ -441,8 +441,8 @@ public sealed class TrustTierLabelBridgeTests
         (6, Gen.Select(
                 Gen.OneOfConst("Public", "Internal", "Confidential", "Secret", "TopSecret", "top-secret")
                     .SelectMany(name => Gen.Bool.Array[name.Length].Select(upper => RandomCase(name, upper))),
-                Gen.OneOfConst("", "", " ", "  ", "\t", "\r\n", " ", " ", "​", "_", "-", "x"),
-                Gen.OneOfConst("", "", " ", "  ", "\t", "\r\n", " ", " ", "​", "_", "-", "s"),
+                Gen.OneOfConst("", "", " ", "  ", "\t", "\r\n", "\u00A0", "\u2003", "\u200B", "_", "-", "x"),
+                Gen.OneOfConst("", "", " ", "  ", "\t", "\r\n", "\u00A0", "\u2003", "\u200B", "_", "-", "s"),
                 (name, prefix, suffix) => prefix + name + suffix)
             .Select(name => (string?)name)),
         (2, Gen.OneOfConst(UnknownNames)),
@@ -468,6 +468,8 @@ public sealed class TrustTierLabelBridgeTests
             spellings.Add((Alternate(name), rank));
             spellings.Add((" " + name + " ", rank));
             spellings.Add(("\t" + name.ToLowerInvariant() + "\r\n", rank));
+            // Trim removes Unicode white space too: no-break space and em space pad a known name.
+            spellings.Add(("\u00A0" + name + "\u2003", rank));
         }
 
         spellings.Add(("top-secret", TopRank));

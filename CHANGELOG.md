@@ -58,11 +58,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   Additive, with no behaviour change: nothing calls the bridges or the reference monitor, and
   `TrustTierOrder.IsAllowed`, `VectorDataRagService`'s search filter and re-index downgrade check,
   `DataSensitivityRegistry.CanAccess`, `RagSensitivity` and `DataSensitivityFallbacks` decide exactly
-  as before. Over the bridged labels `ReferenceMonitor.CanRead` agrees with those decisions on every
-  labelled pair. The one intended difference is an unlabelled record or unlabelled data: the bridges
-  make it `SystemHigh`, which a `TopSecret` clearance may not read, where the legacy rules treat it as
-  `TopSecret` and serve it to a `TopSecret` caller. That difference is pinned on both sides and is not
-  wired in. Both projects are substrate-tier packages with no `PublicAPI` files
+  as before. Over the bridged labels `ReferenceMonitor.CanRead` agrees with `IsAllowed` on every known
+  tier and with `CanAccess` on every pair of values in 0 to 4, and is never wider anywhere. Outside 0
+  to 4 it is deliberately narrower: data above 4 is `SystemHigh`, so even a custom level above 4 cannot
+  read data at its own level, and a clearance below 0 is refused. Within range, the one intended
+  difference is an unlabelled or unrecognised record, or unlabelled data: the bridges make it
+  `SystemHigh`, which a `TopSecret` clearance may not read, where the legacy rules resolve it to the
+  highest known level (`TopSecret` for the primitives) and serve it to a caller at that level. Both
+  differences are pinned on both sides and are not wired in. A clearance name resolves through
+  `ResolveClearance` before `TryToClearance`, so a registry floor below `Public` is refused rather than
+  widened to `Public`. Both projects are substrate-tier packages with no `PublicAPI` files
   (`docs/SdkCompatibilityPolicy.md`), so this entry is the record of the new surface. The parity and
   the fail-closed rules are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
 

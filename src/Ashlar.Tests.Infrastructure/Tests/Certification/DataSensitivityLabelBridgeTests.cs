@@ -392,6 +392,30 @@ public sealed class DataSensitivityLabelBridgeTests
     }
 
     [Fact]
+    public void AClearanceName_ResolvedThroughTheLegacyFloor_IsNeverWider_WhenAFloorBelowPublicIsRegistered()
+    {
+        // A clearance name goes through ResolveClearance (the registry's floor for an unknown name), not GetByName:
+        // when a custom level below Public is registered, that floor is refused by the bridge, so the subject reads
+        // nothing, where GetByName's null would floor to Public and read Public data the legacy rule refuses.
+        var registry = new DataSensitivityRegistry();
+        registry.Register(new ConfigurableSensitivityLevel("Anonymous", "Anonymous", -1, false, false, true, false, "below Public"));
+
+        foreach (var name in new string?[] { null, "", "   ", "NoSuchLevel" })
+        {
+            var legacyFloor = registry.ResolveClearance(name);
+            legacyFloor.SensitivityValue.Should().Be(-1, "the registry's floor is the level below Public");
+            registry.CanAccess(legacyFloor, DataSensitivityLevels.Public).Should().BeFalse("legacy refuses Public data below the floor");
+
+            legacyFloor.TryToClearance(out var clearance).Should().BeFalse("the documented recipe refuses a floor below Public");
+            clearance.Should().BeNull();
+
+            // The shortcut the docs warn against: a null level floors to Public, which is wider here.
+            registry.GetByName(name).TryToClearance(out var shortcut).Should().BeTrue();
+            ReferenceMonitor.CanRead(shortcut!, DataSensitivityLevels.Public.ToDataLabel()).Allowed.Should().BeTrue();
+        }
+    }
+
+    [Fact]
     public void AnOmittedClearance_FloorsToPublic()
     {
         var registry = new DataSensitivityRegistry();
