@@ -32,12 +32,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: bash -n over scripts/**/*.sh
+      - name: bash -n over scripts/, tests/ and .claude/hooks/ *.sh
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' files < <(find scripts tests -type f -name '*.sh' -print0 | sort -z)
-          echo "Syntax-checking ${#files[@]} shell scripts under scripts/"
+          # .claude/hooks holds the cloud-session SessionStart hook; a parse error there breaks docker
+          # setup in every cloud session and nothing else would notice.
+          mapfile -d '' files < <(find scripts tests .claude/hooks -type f -name '*.sh' -print0 | sort -z)
+          echo "Syntax-checking ${#files[@]} shell scripts under scripts/, tests/ and .claude/hooks/"
           rc=0
           for f in "${files[@]}"; do
             if ! bash -n "$f"; then
@@ -47,7 +49,7 @@ jobs:
           done
           exit "$rc"
 
-      - name: shellcheck -S error over scripts/**/*.sh
+      - name: shellcheck -S error over scripts/ and .claude/hooks/ *.sh
         shell: bash
         run: |
           set -euo pipefail
@@ -59,7 +61,7 @@ jobs:
           shellcheck --version
           # -S error keeps this quiet: only parse/semantic errors fail the lane,
           # style and warning findings do not.
-          find scripts -type f -name '*.sh' -print0 | sort -z | xargs -0 shellcheck -S error
+          find scripts .claude/hooks -type f -name '*.sh' -print0 | sort -z | xargs -0 shellcheck -S error
 
       # PyYAML deliberately NOT optional. A check that skips itself when a dependency is missing is
       # the same "healthy by never running" failure it exists to catch; the script exits non-zero
