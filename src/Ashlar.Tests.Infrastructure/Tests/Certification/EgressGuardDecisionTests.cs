@@ -603,9 +603,23 @@ public sealed class EgressGuardDecisionTests
         AssertRedacted(decision.Destination);
     }
 
+    /// <summary>
+    /// A URL-shaped name gives <c>scheme://host[:port]</c> when its authority can be read without guessing, and
+    /// <c>scheme://&lt;unparsed&gt;</c> when it cannot: an <c>@</c> after the authority and before any query or
+    /// fragment, a host <see cref="Uri.CheckHostName"/> calls Unknown, or a port that is not all digits. The
+    /// <c>bad host</c> row recorded <c>tcp://bad host</c> before R10; a host with a space is not a host, so the
+    /// authority is no longer guessed at.
+    /// </summary>
     [Theory]
     [InlineData("https://twin-user:pa55word@host.example/PATHMARK?x=QUERYTOKEN#FRAGMARK", "https://host.example")]
-    [InlineData("tcp://twin-user:pa55word@bad host/PATHMARK?QUERYTOKEN#FRAGMARK", "tcp://bad host")]
+    [InlineData("https://u:p@h/p?q", "https://h")]
+    [InlineData("tcp://twin-user:pa55word@bad host/PATHMARK?QUERYTOKEN#FRAGMARK", "tcp://<unparsed>")]
+    [InlineData("tcp://bad host:7000", "tcp://<unparsed>")]
+    [InlineData("tcp://twin-user:pa55word@good.example:99999/PATHMARK", "tcp://good.example:99999")]
+    [InlineData("tcp://good.example:7x/PATHMARK", "tcp://<unparsed>")]
+    [InlineData("ftp://user:p/ss@host/x", "ftp://<unparsed>")]
+    [InlineData("amqp://svc:1234/x@broker", "amqp://<unparsed>")]
+    [InlineData("https://search.example/PATHMARK?q=QUERYTOKEN@mail.example", "https://search.example")]
     [InlineData("aws-bedrock", "aws-bedrock")]
     [InlineData("host:dotnet", "host:dotnet")]
     [InlineData("", "unknown")]
@@ -615,6 +629,57 @@ public sealed class EgressGuardDecisionTests
 
         decision.Destination.Should().Be(expected);
         AssertRedacted(decision.Destination);
+    }
+
+    /// <summary>
+    /// R10. A credential that holds an unencoded <c>/</c>, <c>?</c>, <c>#</c> or <c>\</c> ends the authority early,
+    /// so its head reads as <c>host[:port]</c>; before the fix that head reached the record. No piece of the
+    /// credential may reach <see cref="EgressDecision.Destination"/> or any field of the event, and the record is
+    /// outside the host boundary. <c>sequence</c> and <c>at</c> are a counter and a clock, which carry no caller text
+    /// and could hold a digit run by chance, so they are the only fields not searched; the site has no digits.
+    /// </summary>
+    [Theory]
+    [InlineData("ftp://twin-user:pa55/w0rdmark@host.example/x", "ftp://<unparsed>", "twin-user|pa55|w0rdmark")]
+    [InlineData("s3://AKIATWINKEYMARK:wJalrTWINMARK/K7MDENG/bPxRfiCYTWINKEY@bucket", "s3://<unparsed>", "AKIATWINKEYMARK|wJalrTWINMARK|K7MDENG|bPxRfiCYTWINKEY")]
+    [InlineData("amqp://twin-user:pa55?w0rdmark@broker:5672", "amqp://<unparsed>", "twin-user|pa55|w0rdmark")]
+    [InlineData("amqp://twin-user:pa55#w0rdmark@broker:5672", "amqp://<unparsed>", "twin-user|pa55|w0rdmark")]
+    [InlineData(@"amqp://twin-user:pa55\w0rdmark@broker:5672", "amqp://<unparsed>", "twin-user|pa55|w0rdmark")]
+    [InlineData(@"http://twin-user:4321\w0rdmark@host.example/", "http://<unparsed>", "twin-user|4321|w0rdmark")]
+    [InlineData("amqp://twin-user:4321/w0rdmark@broker", "amqp://<unparsed>", "twin-user|4321|w0rdmark")]
+    [InlineData("tcp://twin-user:pa55/w0rdmark@127.0.0.1:7000", "tcp://<unparsed>", "twin-user|pa55|w0rdmark")]
+    [InlineData("tcp://twin-user:pa55w0rdmark@bad host:7000/x", "tcp://<unparsed>", "twin-user|pa55w0rdmark")]
+    [InlineData("https://twin-user:pa55w0rdmark@host.example/PATHMARK?QUERYTOKEN", "https://host.example", "twin-user|pa55w0rdmark|PATHMARK|QUERYTOKEN")]
+    public void A_credential_holding_a_delimiter_reaches_no_record_field(string name, string expected, string credential)
+    {
+        var pieces = credential.Split('|');
+
+        // Make sure the source exists before the listener, so the listener is told about it at construction.
+        Guard.Evaluate(new EgressRequest(EgressFamilies.Http, NewSite(), new Uri(Remote)));
+
+        var site = NewSiteWithoutDigits();
+        using var listener = new EgressListener();
+        var decision = Guard.Evaluate(new EgressRequest(EgressFamilies.Http, site, name));
+
+        decision.Fault.Should().BeNull();
+        decision.Destination.Should().Be(expected);
+        decision.Destination.Should().NotContainAny(pieces);
+        AssertRedacted(decision.Destination);
+        decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport, "none of these names is inside the host boundary");
+
+        var written = listener.Events.Where(e => e.EventId == 1 && Field(e, "site") as string == site).ToList();
+        written.Should().ContainSingle("each decision is written once");
+        var e = written[0];
+        Field(e, "destination").Should().Be(expected);
+        var names = e.PayloadNames!;
+        var payload = e.Payload!;
+        names.Should().HaveCount(payload.Count).And.Contain("destination").And.Contain("detail");
+        for (var i = 0; i < payload.Count; i++)
+        {
+            if (names[i] is "sequence" or "at")
+                continue;
+            Convert.ToString(payload[i], CultureInfo.InvariantCulture).Should().NotContainAny(
+                pieces, "the {0} field must carry no piece of the credential in {1}", names[i], name);
+        }
     }
 
     [Fact]
@@ -843,6 +908,10 @@ public sealed class EgressGuardDecisionTests
 
     /// <summary>A site string no other test uses, so records published process-wide can be told apart.</summary>
     private static string NewSite() => "twin:decision:" + Guid.NewGuid().ToString("N");
+
+    /// <summary><see cref="NewSite"/> with each digit mapped to a letter, for a test that searches records for digits.</summary>
+    private static string NewSiteWithoutDigits() =>
+        "twin:decision:" + new string(Guid.NewGuid().ToString("N").Select(c => c is >= '0' and <= '9' ? (char)('g' + (c - '0')) : c).ToArray());
 
     private static EgressDecision Decide(string family, string uri) =>
         Guard.Evaluate(new EgressRequest(family, NewSite(), new Uri(uri)));

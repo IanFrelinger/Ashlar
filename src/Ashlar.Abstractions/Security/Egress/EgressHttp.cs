@@ -1,12 +1,17 @@
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
-/// Builds HTTP clients and handlers whose every request is evaluated by the egress guard.
+/// Builds HTTP clients and handlers whose requests are evaluated by the egress guard.
 /// </summary>
 /// <remarks>
-/// <para>Each request through these is evaluated exactly once, before it is sent, and then sent unchanged: the
-/// guard handler never reads the request content, never touches a header, and returns the inner response
-/// instance. In SPEC-007 PR 3 the decision is recorded and nothing is refused.</para>
+/// <para>Every <c>SendAsync</c> through these (and, on net8.0 and later, every <c>Send</c>) is evaluated exactly
+/// once, before the request is sent, and the request is then sent unchanged: the guard handler never reads the
+/// request content, never touches a header, and returns the inner response instance. In SPEC-007 PR 3 the decision
+/// is recorded and nothing is refused.</para>
+/// <para><b>Not covered on the netstandard2.0 asset.</b> On the netstandard2.0 asset, which .NET 5-7 apps resolve,
+/// the synchronous <c>HttpMessageHandler.Send</c> cannot be overridden. A synchronous <c>HttpClient.Send</c> or
+/// <c>HttpMessageInvoker.Send</c> is therefore not evaluated there; only <c>SendAsync</c> is covered. This gap must
+/// be closed before SPEC-007 PR 4 enforces.</para>
 /// <para>A <see langword="null"/> guard means <see cref="EgressGuard.ProcessDefault"/>, resolved at each send.</para>
 /// <para>The family and site are checked here, when the client is built, so a send never fails on them.</para>
 /// <para>Of the <c>CreateClient</c> overloads only the one with the most parameters has an optional parameter, as

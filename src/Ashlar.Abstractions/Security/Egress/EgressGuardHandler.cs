@@ -1,14 +1,21 @@
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
-/// The HTTP adapter: a <see cref="DelegatingHandler"/> that evaluates every request it sends with the egress guard,
-/// then sends it unchanged.
+/// The HTTP adapter: a <see cref="DelegatingHandler"/> that evaluates the requests it sends with the egress guard,
+/// then sends them unchanged. The remarks say which sends are covered on which asset.
 /// </summary>
 /// <remarks>
-/// <para><b>Report-only guarantees.</b> It evaluates exactly once per send, before handing the request on. It never
-/// reads or buffers <see cref="HttpRequestMessage.Content"/>, never reads, adds or changes a header, and returns the
-/// inner handler's response instance unchanged. A guard that throws (a custom <see cref="IEgressGuard"/> may) is
-/// swallowed and counted, so it never reaches the caller; an exception from the inner handler is not caught.</para>
+/// <para><b>Report-only guarantees.</b> It evaluates every <c>SendAsync</c> (and, on net8.0 and later, every
+/// <c>Send</c>) exactly once, before handing the request on. It never reads or buffers
+/// <see cref="HttpRequestMessage.Content"/>, never reads, adds or changes a header, and returns the inner handler's
+/// response instance unchanged. A guard that throws (a custom <see cref="IEgressGuard"/> may) is swallowed and
+/// counted, so it never reaches the caller; an exception from the inner handler is not caught.</para>
+/// <para><b>Not covered on the netstandard2.0 asset.</b> That asset, which .NET 5-7 apps resolve, cannot override the
+/// synchronous <c>HttpMessageHandler.Send</c>: netstandard2.0 has no such member. A synchronous
+/// <c>HttpClient.Send</c> or <c>HttpMessageInvoker.Send</c> therefore reaches the inherited
+/// <c>DelegatingHandler.Send</c>, which forwards to the inner handler without calling <c>SendAsync</c>, and is not
+/// evaluated there. Only <c>SendAsync</c> is covered on that asset. This gap must be closed before SPEC-007 PR 4
+/// enforces.</para>
 /// <para>The decision records the request URI's scheme, host and port only, or <c>unknown</c> when the request has
 /// no URI. A <see langword="null"/> guard means <see cref="EgressGuard.ProcessDefault"/>, read at each send.</para>
 /// </remarks>

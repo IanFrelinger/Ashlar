@@ -42,6 +42,9 @@ internal static class EgressDestinations
     private const string SchemeSeparator = "://";
     private const string Truncated = "...";
 
+    /// <summary>The authority recorded for a URL-shaped name whose authority cannot be read without guessing.</summary>
+    private const string UnparsedAuthority = "<unparsed>";
+
     private static readonly SecurityLabel InternalLabel = new(SecurityLevel.Internal);
     private static readonly SecurityLabel ConfidentialLabel = new(SecurityLevel.Confidential);
 
@@ -199,19 +202,23 @@ internal static class EgressDestinations
         // a userinfo, path or query into a record.
         var separator = name.IndexOf(SchemeSeparator, StringComparison.Ordinal);
         if (separator > 0 && Uri.CheckSchemeName(name.Substring(0, separator)))
-        {
-            return Uri.TryCreate(name, UriKind.Absolute, out var parsed)
-                ? DescribeUri(parsed, out insideHost)
-                : RedactUnparsedUrl(name, separator);
-        }
+            return DescribeUrlName(name, separator, out insideHost);
 
         return Bound(name);
     }
 
-    // A "scheme://..." name that System.Uri rejects: keep the scheme and the authority after any userinfo, and
-    // drop everything from the first '/', '\', '?' or '#' after the authority starts.
-    private static string RedactUnparsedUrl(string name, int separator)
+    // A "scheme://..." name. Its authority ends at the first '/', '\', '?' or '#', as System.Uri reads it, and RFC 3986
+    // requires those characters percent-encoded in a userinfo. A credential that holds one unencoded therefore splits:
+    // its head reads as host[:port] and its tail, '@' included, as path ("s3://KEY:abc/def@bucket" reads as host KEY
+    // and port "abc"). So nothing is guessed. An '@' after the authority and before any '?' or '#' records
+    // scheme://<unparsed>. Otherwise System.Uri parses the name; a name it rejects keeps host[:port] only when the
+    // host passes Uri.CheckHostName and the port is all digits, and records scheme://<unparsed> when not. Only a name
+    // System.Uri parses can be inside the host boundary; any other fails closed to its family's class.
+    // Not caught: a credential whose text before an unencoded '?' or '#' is a valid host:port ("amqp://svc:1234?x@b").
+    // That is a valid URL whose query or fragment holds an '@', and it is read as one.
+    private static string DescribeUrlName(string name, int separator, out bool insideHost)
     {
+        insideHost = false;
         var start = separator + SchemeSeparator.Length;
         var end = start;
         var hostStart = start;
@@ -222,8 +229,79 @@ internal static class EgressDestinations
             end++;
         }
 
+        if (HasUserInfoMarkerAfter(name, end))
+            return UnparsedUrl(name, separator);
+
+        if (Uri.TryCreate(name, UriKind.Absolute, out var parsed))
+            return DescribeUri(parsed, out insideHost);
+
+        if (!IsHostAndPort(name, hostStart, end))
+            return UnparsedUrl(name, separator);
+
         var builder = new StringBuilder(separator + SchemeSeparator.Length + (end - hostStart));
         builder.Append(name, 0, separator).Append(SchemeSeparator).Append(name, hostStart, end - hostStart);
+        return Bound(builder.ToString());
+    }
+
+    // An '@' between the end of the authority and the first '?' or '#' (the path) means the authority may be the
+    // head of a credential.
+    private static bool HasUserInfoMarkerAfter(string name, int authorityEnd)
+    {
+        for (var i = authorityEnd; i < name.Length && name[i] is not ('?' or '#'); i++)
+        {
+            if (name[i] == '@')
+                return true;
+        }
+
+        return false;
+    }
+
+    // host[:port], where host passes Uri.CheckHostName (an IPv6 literal in brackets) and port is one or more ASCII
+    // digits.
+    private static bool IsHostAndPort(string name, int start, int end)
+    {
+        var hostEnd = end;
+        if (start < end && name[start] == '[')
+        {
+            hostEnd = start;
+            while (hostEnd < end && name[hostEnd] != ']')
+                hostEnd++;
+            if (hostEnd == end)
+                return false;
+            hostEnd++;
+        }
+        else
+        {
+            for (var i = start; i < end; i++)
+            {
+                if (name[i] == ':')
+                {
+                    hostEnd = i;
+                    break;
+                }
+            }
+        }
+
+        if (Uri.CheckHostName(name.Substring(start, hostEnd - start)) == UriHostNameType.Unknown)
+            return false;
+        if (hostEnd == end)
+            return true;
+        if (name[hostEnd] != ':' || hostEnd + 1 == end)
+            return false;
+
+        for (var i = hostEnd + 1; i < end; i++)
+        {
+            if (name[i] is < '0' or > '9')
+                return false;
+        }
+
+        return true;
+    }
+
+    private static string UnparsedUrl(string name, int separator)
+    {
+        var builder = new StringBuilder(separator + SchemeSeparator.Length + UnparsedAuthority.Length);
+        builder.Append(name, 0, separator).Append(SchemeSeparator).Append(UnparsedAuthority);
         return Bound(builder.ToString());
     }
 
