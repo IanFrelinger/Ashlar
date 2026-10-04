@@ -80,11 +80,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   export is `Internal`, and an unknown destination fails closed to `Public`. The current label is the
   high-water mark of the ambient `EgressSubject` frame, or `SystemHigh` when there is none, and the
   decision is `ReferenceMonitor.CanWrite(current, destination)`. Every decision goes to the
-  `Ashlar-Egress` EventSource and to each `EgressDecisionLog` subscriber. A record names the
-  destination by scheme, host and port only, never its path, query or userinfo, and it never carries
-  the payload or the headers. `EgressGuard` never throws: a fault is recorded with `Fault` set and
-  `Access` left at `NoDecision`. `EgressHttp` builds HTTP clients and handlers that evaluate every
-  request without reading or buffering its content and return the inner response unchanged.
+  `Ashlar-Egress` EventSource and to each `EgressDecisionLog` subscriber, except one made on a
+  thread that is already publishing a record (an egress that a sink or listener itself causes): that
+  decision is returned to its caller and counted, but not published, so the pipeline cannot recurse.
+  A record names the destination by scheme, host and port only, never its path, query or userinfo,
+  and it never carries the payload or the headers. `EgressGuard` never throws: a fault is recorded
+  with `Fault` set and `Access` left at `NoDecision`. `EgressHttp` builds HTTP clients and handlers
+  that evaluate every request without reading or buffering its content and return the inner response
+  unchanged; on the netstandard2.0 asset, which .NET 5–7 apps resolve, only `SendAsync` is evaluated
+  and a synchronous `Send` is not (`docs/EgressInventory.md` records it as a PR 4 prerequisite).
   `AddAshlarEgressGuard` (`Ashlar.Infrastructure.Egress`) registers the guard, subscribes an `ILogger`
   sink that writes each decision at Debug under the `Ashlar.Egress` category, and puts the guard
   handler on every `IHttpClientFactory` client in the container with one `ConfigureHttpClientDefaults`
