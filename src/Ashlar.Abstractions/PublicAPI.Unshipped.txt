@@ -12,6 +12,46 @@ Ashlar.Abstractions.Security.AccessDenialReason.MissingCompartment = 2 -> Ashlar
 Ashlar.Abstractions.Security.AccessDenialReason.NoDecision = 5 -> Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.AccessDenialReason.None = 0 -> Ashlar.Abstractions.Security.AccessDenialReason
 Ashlar.Abstractions.Security.AccessDenialReason.SystemHighData = 4 -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.Egress.EgressDecision
+Ashlar.Abstractions.Security.Egress.EgressDecision.Access.get -> Ashlar.Abstractions.Security.AccessDecision
+Ashlar.Abstractions.Security.Egress.EgressDecision.At.get -> System.DateTimeOffset
+Ashlar.Abstractions.Security.Egress.EgressDecision.Current.get -> Ashlar.Abstractions.Security.SecurityLabel!
+Ashlar.Abstractions.Security.Egress.EgressDecision.CurrentBasis.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.Destination.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.DestinationBasis.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.DestinationClass.get -> Ashlar.Abstractions.Security.Egress.EgressDestinationClass
+Ashlar.Abstractions.Security.Egress.EgressDecision.DestinationLabel.get -> Ashlar.Abstractions.Security.SecurityLabel!
+Ashlar.Abstractions.Security.Egress.EgressDecision.Family.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.Fault.get -> string?
+Ashlar.Abstractions.Security.Egress.EgressDecision.Mode.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.Profile.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.ProfileEnforcesByDefault.get -> bool
+Ashlar.Abstractions.Security.Egress.EgressDecision.Sequence.get -> long
+Ashlar.Abstractions.Security.Egress.EgressDecision.Site.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecisionLog
+Ashlar.Abstractions.Security.Egress.EgressDestinationClass
+Ashlar.Abstractions.Security.Egress.EgressDestinationClass.ExternalModel = 2 -> Ashlar.Abstractions.Security.Egress.EgressDestinationClass
+Ashlar.Abstractions.Security.Egress.EgressDestinationClass.Host = 1 -> Ashlar.Abstractions.Security.Egress.EgressDestinationClass
+Ashlar.Abstractions.Security.Egress.EgressDestinationClass.NetworkExport = 4 -> Ashlar.Abstractions.Security.Egress.EgressDestinationClass
+Ashlar.Abstractions.Security.Egress.EgressDestinationClass.Unknown = 0 -> Ashlar.Abstractions.Security.Egress.EgressDestinationClass
+Ashlar.Abstractions.Security.Egress.EgressDestinationClass.WebSearch = 3 -> Ashlar.Abstractions.Security.Egress.EgressDestinationClass
+Ashlar.Abstractions.Security.Egress.EgressFamilies
+Ashlar.Abstractions.Security.Egress.EgressGuard
+Ashlar.Abstractions.Security.Egress.EgressGuard.EgressGuard(string? deploymentProfile = null) -> void
+Ashlar.Abstractions.Security.Egress.EgressGuard.Evaluate(Ashlar.Abstractions.Security.Egress.EgressRequest! request) -> Ashlar.Abstractions.Security.Egress.EgressDecision!
+Ashlar.Abstractions.Security.Egress.EgressHttp
+Ashlar.Abstractions.Security.Egress.EgressRequest
+Ashlar.Abstractions.Security.Egress.EgressRequest.Destination.get -> System.Uri?
+Ashlar.Abstractions.Security.Egress.EgressRequest.DestinationName.get -> string?
+Ashlar.Abstractions.Security.Egress.EgressRequest.EgressRequest(string! family, string! site, System.Uri! destination) -> void
+Ashlar.Abstractions.Security.Egress.EgressRequest.EgressRequest(string! family, string! site, string! destinationName) -> void
+Ashlar.Abstractions.Security.Egress.EgressRequest.Family.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressRequest.Site.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressSubject
+Ashlar.Abstractions.Security.Egress.IEgressDecisionSink
+Ashlar.Abstractions.Security.Egress.IEgressDecisionSink.Record(Ashlar.Abstractions.Security.Egress.EgressDecision! decision) -> void
+Ashlar.Abstractions.Security.Egress.IEgressGuard
+Ashlar.Abstractions.Security.Egress.IEgressGuard.Evaluate(Ashlar.Abstractions.Security.Egress.EgressRequest! request) -> Ashlar.Abstractions.Security.Egress.EgressDecision!
 Ashlar.Abstractions.Security.HighWaterMark
 Ashlar.Abstractions.Security.HighWaterMark.CanWriteTo(Ashlar.Abstractions.Security.SecurityLabel! destination) -> Ashlar.Abstractions.Security.AccessDecision
 Ashlar.Abstractions.Security.HighWaterMark.Current.get -> Ashlar.Abstractions.Security.SecurityLabel!
@@ -37,6 +77,21 @@ Ashlar.Abstractions.Security.SecurityLevel.Internal = 1 -> Ashlar.Abstractions.S
 Ashlar.Abstractions.Security.SecurityLevel.Public = 0 -> Ashlar.Abstractions.Security.SecurityLevel
 Ashlar.Abstractions.Security.SecurityLevel.Secret = 3 -> Ashlar.Abstractions.Security.SecurityLevel
 Ashlar.Abstractions.Security.SecurityLevel.TopSecret = 4 -> Ashlar.Abstractions.Security.SecurityLevel
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.A2A = "a2a" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.FileExport = "file.export" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.Grpc = "grpc" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.Http = "http" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.HttpFactory = "http.factory" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.Mcp = "mcp" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.MeshDiscovery = "mesh.discovery" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.MeshPublish = "mesh.publish" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.MeshPull = "mesh.pull" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.MeshServe = "mesh.serve" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.ModelLegacy = "model.legacy" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.ModelMeai = "model.meai" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.Process = "process" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.Telemetry = "telemetry" -> string!
+const Ashlar.Abstractions.Security.Egress.EgressFamilies.WebSearch = "web-search" -> string!
 override Ashlar.Abstractions.Security.AccessDecision.Equals(object? obj) -> bool
 override Ashlar.Abstractions.Security.AccessDecision.GetHashCode() -> int
 override Ashlar.Abstractions.Security.AccessDecision.ToString() -> string!
@@ -48,6 +103,14 @@ override Ashlar.Abstractions.Security.SecurityLabelJsonConverter.Read(ref System
 override Ashlar.Abstractions.Security.SecurityLabelJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, Ashlar.Abstractions.Security.SecurityLabel! value, System.Text.Json.JsonSerializerOptions! options) -> void
 static Ashlar.Abstractions.Security.AccessDecision.operator !=(Ashlar.Abstractions.Security.AccessDecision left, Ashlar.Abstractions.Security.AccessDecision right) -> bool
 static Ashlar.Abstractions.Security.AccessDecision.operator ==(Ashlar.Abstractions.Security.AccessDecision left, Ashlar.Abstractions.Security.AccessDecision right) -> bool
+static Ashlar.Abstractions.Security.Egress.EgressDecisionLog.Subscribe(Ashlar.Abstractions.Security.Egress.IEgressDecisionSink! sink) -> System.IDisposable!
+static Ashlar.Abstractions.Security.Egress.EgressGuard.ProcessDefault.get -> Ashlar.Abstractions.Security.Egress.EgressGuard!
+static Ashlar.Abstractions.Security.Egress.EgressHttp.CreateClient(System.Net.Http.HttpMessageHandler! inner, string! family, string! site, Ashlar.Abstractions.Security.Egress.IEgressGuard? guard = null) -> System.Net.Http.HttpClient!
+static Ashlar.Abstractions.Security.Egress.EgressHttp.CreateClient(string! family, string! site) -> System.Net.Http.HttpClient!
+static Ashlar.Abstractions.Security.Egress.EgressHttp.CreateClient(string! family, string! site, Ashlar.Abstractions.Security.Egress.IEgressGuard? guard) -> System.Net.Http.HttpClient!
+static Ashlar.Abstractions.Security.Egress.EgressHttp.CreateDelegatingHandler(string! family, string! site, Ashlar.Abstractions.Security.Egress.IEgressGuard? guard = null) -> System.Net.Http.DelegatingHandler!
+static Ashlar.Abstractions.Security.Egress.EgressHttp.Wrap(System.Net.Http.HttpMessageHandler! inner, string! family, string! site, Ashlar.Abstractions.Security.Egress.IEgressGuard? guard = null) -> System.Net.Http.HttpMessageHandler!
+static Ashlar.Abstractions.Security.Egress.EgressSubject.Enter(string! subjectId, Ashlar.Abstractions.Security.HighWaterMark! mark) -> System.IDisposable!
 static Ashlar.Abstractions.Security.ReferenceMonitor.CanRead(Ashlar.Abstractions.Security.SecurityLabel! clearance, Ashlar.Abstractions.Security.SecurityLabel! data) -> Ashlar.Abstractions.Security.AccessDecision
 static Ashlar.Abstractions.Security.ReferenceMonitor.CanWrite(Ashlar.Abstractions.Security.SecurityLabel! current, Ashlar.Abstractions.Security.SecurityLabel! destination) -> Ashlar.Abstractions.Security.AccessDecision
 static Ashlar.Abstractions.Security.SecurityLabel.IsValidToken(string? token) -> bool
