@@ -106,7 +106,7 @@ Common changes:
 | **Daemon in CI** | Black-box: timed daemon with/without `--disable-observation` (`RuntimeStudioBlackBoxSmokeTests`). |
 | **Passive + forge** | `ForgeToolsTests` (propose/check/**forge.build**/**forge.test**) + `ForgeMediatedWritesPolicy` + `ProposalsBackgroundAgentCommandTests` (`build`, `test`, `apply --verify-build` / `--verify-test`). |
 | **Operator UX** | **[OPERATOR.md](./OPERATOR.md)** — env vars, CLI one-liners for observations / objectives / proposals / mode / daemon. |
-| **HTTP client demos** | **`docs/demos/README.md`**, **`Ashlar.Demos.sln`** — Console, Blazor, Avalonia (`net8.0`, Linux-friendly). |
+| **HTTP client demos** | Parked 2026-10-03 on `archive/parked-2026-10-03` (were `docs/demos/`, `Ashlar.Demos.sln`). `FrameworkVirtualProdDemosTests` still covers the `GET /api/status` + `AshlarClient` path they used. |
 | **Performance** | `CliRunner` cross-process mutex + `CONTRIBUTING.md` guidance; smoke blame-hang 180s on Cross-Platform Tests. |
 
 Contributing note: avoid parallel full `dotnet build` on one clone (see `CONTRIBUTING.md` — `*.deps.json` locks).

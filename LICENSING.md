@@ -70,7 +70,6 @@ Rationale: this tier protects two moats at once — an extensible SDK and a sing
 | OPEN | `src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj` |
 | OPEN | `src/Ashlar.Runtime/Ashlar.Runtime.csproj` |
 | OPEN | `src/Ashlar.Runtime.Bundle/Ashlar.Runtime.Bundle.csproj` |
-| OPEN | `src/Ashlar.Lite/Ashlar.Lite.csproj` |
 | OPEN | `application/src/Ashlar.CLI/Ashlar.CLI.csproj` |
 | OPEN | `application/src/Ashlar.API/Ashlar.API.csproj` |
 | OPEN | `src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj` (includes open `MeshLab` worker executor) |
@@ -119,7 +118,6 @@ Rationale: this tier protects two moats at once — an extensible SDK and a sing
 | OPEN | `tools/**`, `spikes/**` — repo tools and evidence spikes, same rule |
 | OPEN | Release Manager — graduated commercial → open 2026-08-31 (covenant 2), **extracted 2026-09-01** to [github.com/IanFrelinger/ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager) as the minimal SDK reference and first out-of-tree nuget.org consumer |
 | OPEN | `apps/runtime-studio/` — single-node planner/worker agent-set config + docs; **graduated commercial → open 2026-08-31** (covenant 2). Single-node operator tooling belongs open by the headline rule; the open `setup all` lane already seeds from its config |
-| OPEN | `products/**` — extractable product scaffolds (workstation, cluster, cloud, native). Consume the open kernel; never referenced by `src/`. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md). |
 
 Open mesh **primitives** (local discovery, capability advertisement, trust middleware) remain under `src/Ashlar.Core.Application/Mesh/**` and `src/Ashlar.Infrastructure/Mesh/**`. Mesh-lab **workers** poll the commercial fleet director via open `src/Ashlar.Infrastructure/MeshLab/**`.
 
@@ -204,7 +202,7 @@ non-production test environments, solely to evaluate Ashlar. You may not deploy 
 production, offer it as a service, or redistribute it (in source or binary form) without a
 separate written agreement. Forking this repository on GitHub, and modifying your fork,
 for the evaluation uses permitted above is not redistribution for purposes of this
-paragraph. The open core under `src/`, `application/`, `products/`,
+paragraph. The open core under `src/`, `application/`,
 `apps/runtime-studio/`, `samples/`, `tools/`, `docs/`, and `spikes/` is Apache-2.0
 and unaffected by this paragraph.
 

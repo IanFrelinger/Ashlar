@@ -88,8 +88,8 @@ services.AddAshlar(opts =>
 
 Run Ashlar with no cloud connectivity. `AirGapped` is the slim profile (no
 trust, agents, or observation). For an IDE / workstation daemon that still
-needs local trust and agents, use `SecureWorkstation` instead (or
-`products/ashlar-workstation` `AddAshlarWorkstation()`).
+needs local trust and agents, use `SecureWorkstation` instead, with trust
+turned on.
 
 ```csharp
 services.AddAshlarProfile(AshlarDeploymentProfile.AirGapped, opts =>
@@ -103,7 +103,6 @@ services.AddAshlarProfile(AshlarDeploymentProfile.SecureWorkstation, opts =>
 {
     opts.TrustEnabled = true; // required: the profile registers trust services but does not enable them
 });
-// Or: services.AddAshlarWorkstation(); // re-asserts SecureWorkstation + TrustEnabled after configure
 ```
 
 ## CI Validation

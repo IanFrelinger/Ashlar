@@ -89,7 +89,7 @@ For layer-by-layer detail see [`docs/Architecture.md`](docs/Architecture.md); fo
 
 - **Not a hosted SaaS or chatbot.** You run it (CLI, API, container, or embedded in your app); nothing is sent to a Ashlar-operated service.
 - **Not cloud-dependent.** Cloud providers are opt-in execution targets, not requirements. Air-gapped and local-only deployments are first-class.
-- **Not a drop-in IDE plugin by itself.** Ashlar is a runtime and orchestration layer. The extractable workstation product (`products/ashlar-workstation`, `SecureWorkstation` profile) plus `extensions/ashlar-vscode/` is the IDE path — not `ASHLAR_DEPLOYMENT_PROFILE=air-gapped`. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md).
+- **Not a drop-in IDE plugin by itself.** Ashlar is a runtime and orchestration layer. `extensions/ashlar-vscode/` against a host on the `SecureWorkstation` profile is the IDE path — not `ASHLAR_DEPLOYMENT_PROFILE=air-gapped`. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md).
 - **Local-first by default.** Production network exposure requires auth + TLS; the shipped defaults are HTTP-only with no auth for local use (see the [Quick Start note](#quick-start-5-minutes)).
 
 ## Subsystem map
@@ -387,26 +387,24 @@ The canonical repo map is [`docs/ProjectTiers.md`](docs/ProjectTiers.md). Use it
 Ashlar/                           # the repo/clone directory (github.com/IanFrelinger/Ashlar)
 ├── src/                          # kernel spine, runtime, distribution/SDK, transport (gRPC, MCP, A2A), ingress, tests
 ├── application/src/              # Ashlar.CLI, Ashlar.API hosts + Ashlar.Tests.CLI (open)
-├── products/                     # extractable product scaffolds (workstation, cluster, cloud, native)
 ├── apps/                         # runtime-studio config (extraction scheduled; release-manager extracted 2026-09-01)
 ├── commercial/                   # Fleet, MeshDirector + tests (not Apache-2.0; LICENSING.md)
-├── docs/                         # architecture, operations, mesh, release, SDK, demos/, samples/, runbooks
+├── docs/                         # architecture, operations, mesh, release, SDK, samples/, runbooks
 ├── samples/                      # hello-brick, brick template, certified-brick-reuse, approval-workflow, autonomy-objectives, aws-sns lambda
 ├── spikes/                       # autonomy first-flight, portability spike (evidence, not product)
 ├── tools/                        # certify/export brick, devlog publisher
 ├── deploy/                       # compose/ stacks and k8s/ manifests
 ├── infra/                        # terraform
-├── extensions/                   # ashlar-vscode (→ ashlar-workstation product)
+├── extensions/                   # ashlar-vscode (VS Code / Cursor client for the API)
 ├── consumer-template/            # nuget.config + Directory.Packages.props + host/ reference host for external consumers
 ├── config/                       # trust policy packs
 ├── scripts/                      # setup, install, CI, release helpers
 ├── .devcontainer/
 ├── .docker/
 ├── .github/
-├── Ashlar.sln                      # everything open + 3 commercial projects (63 projects; does not include products/)
+├── Ashlar.sln                      # everything open + 3 commercial projects (61 projects)
 ├── Ashlar.Kernel.sln               # kernel libraries + kernel tests (no CLI/API)
 ├── Ashlar.Runtime.sln              # embeddable runtime graph (no application/)
-├── Ashlar.Demos.sln                # docs/demos/* clients
 ├── Ashlar.Core.slnf                # Tier 0 spine + CLI/API hosts
 ├── Ashlar.LocalDevCore.slnf        # fast local CLI + core test slice
 ├── Ashlar.PrimeTime.slnf           # ProdStyle test gate (seven open test assemblies)
@@ -422,8 +420,6 @@ Ashlar/                           # the repo/clone directory (github.com/IanFrel
 | Kernel libraries only | `Ashlar.Kernel.sln` / `Ashlar.Runtime.sln` | Kernel.sln adds kernel test projects; Runtime.sln is the NuGet-publishable graph. |
 | ProdStyle test gate | `Ashlar.PrimeTime.slnf` (`make test-prime-time`) | Seven open `Ashlar.Tests.*` assemblies. |
 | Hosts as the application gate builds them | `application/Ashlar.Application.sln` | `Ashlar.API`, `Ashlar.CLI`, `Ashlar.Tests.CLI` — open only. |
-| Extractable product scaffolds | `products/Ashlar.Products.sln` | Workstation, cluster, cloud, native. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md). |
-| Demos | `Ashlar.Demos.sln` | Avalonia, Blazor, console clients. |
 | Commercial verticals | project paths under `commercial/` | Not in the quickstart; see [`LICENSING.md`](LICENSING.md). |
 
 ## Testing
@@ -443,8 +439,7 @@ bash scripts/run-cert-gate.sh
 # broader local CLI test runner path
 dotnet run --project application/src/Ashlar.CLI -- test local
 
-# extractable product scaffolds (same commands as products-gate)
-dotnet test products/Ashlar.Products.sln
+# distributed envelope / evidence contracts
 dotnet test src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj \
   --filter FullyQualifiedName~DistributedContractTests
 ```

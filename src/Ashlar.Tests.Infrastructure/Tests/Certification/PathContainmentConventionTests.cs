@@ -196,11 +196,12 @@ public sealed class PathContainmentConventionTests
 
         Scanned("src/Ashlar.Core.Application/Testing/UseCases/RunTests/").Should().BeTrue(
             "RunTests is production code in Ashlar.Core.Application, not a test project");
-        Scanned("products/").Should().BeTrue("products/*/src ships C#");
+        Scanned("application/src/Ashlar.CLI/").Should().BeTrue("application/ ships C# beside its test project");
         Scanned("tools/").Should().BeTrue("tools/ ships C#");
         Scanned("src/Ashlar.Tests.Infrastructure/").Should().BeFalse(
             "a project that references {0} is a test project", TestSdkMarker);
-        Scanned("products/tests/").Should().BeFalse("products/tests holds a test project");
+        Scanned("application/src/Ashlar.Tests.CLI/").Should().BeFalse(
+            "application/src/Ashlar.Tests.CLI holds a test project");
     }
 
     public static TheoryData<string> ControlNames()

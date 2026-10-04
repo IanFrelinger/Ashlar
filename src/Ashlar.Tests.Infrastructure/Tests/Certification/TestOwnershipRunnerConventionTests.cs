@@ -28,12 +28,13 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// reaching <c>Expires</c>.</para>
 ///
 /// <para><b>What this does NOT prove, and must never be read as proving.</b> That the named gate
-/// runs THIS project, runs it unfiltered, or runs on a pull request. <c>products-gate</c> resolves
-/// and runs one filtered class of <c>Ashlar.Tests.Contracts</c>; <c>perf-gate-tier-a</c> resolves
-/// to a script and a Make target with no workflow of its own. None of the five rows corrected on
-/// 2026-09-13 would have failed here: three said <c>UNOWNED</c>, a legal sentinel, and two named
-/// gates that exist and are spelled correctly. This catches typos, invented names and
-/// renamed-or-deleted gates — not wrong-but-real names. Say so when quoting it.</para>
+/// runs THIS project, runs it unfiltered, or runs on a pull request. <c>products-gate</c> resolved
+/// and ran one filtered class of <c>Ashlar.Tests.Contracts</c> until it was removed on 2026-10-03;
+/// <c>perf-gate-tier-a</c> resolves to a script and a Make target with no workflow of its own.
+/// None of the five rows corrected on 2026-09-13 would have failed here: three said
+/// <c>UNOWNED</c>, a legal sentinel, and two named gates that exist and are spelled correctly.
+/// This catches typos, invented names and renamed-or-deleted gates — not wrong-but-real names.
+/// Say so when quoting it.</para>
 ///
 /// <para><b>Why the strict parser below is NOT <c>ReadRegistry</c>, and must not be merged with
 /// it.</b> Checks 1 and 2 are assertions about what <c>ReadRegistry</c> silently tolerates. By the

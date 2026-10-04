@@ -2,7 +2,7 @@
 
 This is the canonical repository map for contributors and reviewers. Use it with [`README.md`](../README.md) for orientation and [`DistributionModels.md`](DistributionModels.md) for how each surface is consumed or shipped.
 
-The monorepo tracks the `.csproj` set that `git ls-files "*.csproj"` reports: `src/`, `application/`, extractable product scaffolds under `products/`, the commercial Fleet/MeshDirector tier under `commercial/`, `docs/` (demos + samples), `samples/`, `spikes/`, `tools/`, and the tokenized consumer host under `consumer-template/`. Everything outside `commercial/` is **open (Apache-2.0)**; the `commercial/` projects are commercial (see [`LICENSING.md`](../LICENSING.md) and `make dependency-boundary-gate`). The **runnable open product** is roughly **17 projects** (Tiers **0** and **0b**): kernel libraries plus the two deployable hosts (`Ashlar.CLI`, `Ashlar.API`). Product scaffolds in `products/` are extractable applications, not kernel.
+The monorepo tracks the `.csproj` set that `git ls-files "*.csproj"` reports: `src/`, `application/`, the commercial Fleet/MeshDirector tier under `commercial/`, `docs/` (samples), `samples/`, `spikes/`, `tools/`, and the tokenized consumer host under `consumer-template/`. Everything outside `commercial/` is **open (Apache-2.0)**; the `commercial/` projects are commercial (see [`LICENSING.md`](../LICENSING.md) and `make dependency-boundary-gate`). The **runnable open product** is roughly **17 projects** (Tiers **0** and **0b**): kernel libraries plus the two deployable hosts (`Ashlar.CLI`, `Ashlar.API`).
 
 Tiers depend **inward** only (satellites reference the spine, not the reverse). The **`layer-boundary`** CI gate enforces the `src/` vs `application/` split and **`dependency-boundary`** enforces the open -> commercial reference direction.
 
@@ -47,7 +47,6 @@ The CLI project also references spine-adjacent packs: **`Ashlar.Bricks.Owasp`**,
 | `src/Ashlar.Sdk/Ashlar.Sdk.csproj` | Client SDK registration (`AddAshlarSdk`); slim client for Unity/Unreal/embedded use |
 | `src/Ashlar.Framework.Sdk/Ashlar.Framework.Sdk.csproj` | Framework-facing SDK surface (HTTP client + kernel registration entry points) |
 | `src/Ashlar.Client/Ashlar.Client.csproj` | HTTP client (`IAshlarClient`) |
-| `src/Ashlar.Lite/Ashlar.Lite.csproj` | Reduced surface distribution for edge / air-gapped hosts |
 | `src/Ashlar.Compat/` | Source-only polyfills and the shared `DomainBrick` global-using alias (no `.csproj`; linked by consuming projects) |
 | `src/Ashlar.Hosting.Bundle/Ashlar.Hosting.Bundle.csproj` | Kernel + `Ashlar.Hosting` metapackage |
 | `src/Ashlar.Runtime/Ashlar.Runtime.csproj` | Runtime services, barriers, routing |
@@ -98,25 +97,22 @@ archive branch `archive/verticals-2026-08-31` for extraction to its own reposito
 | Fleet | `commercial/src/Ashlar.Commercial.Fleet.Contracts/Ashlar.Commercial.Fleet.Contracts.csproj`, `commercial/src/Ashlar.Commercial.Fleet.Infrastructure/Ashlar.Commercial.Fleet.Infrastructure.csproj`, `commercial/src/Ashlar.Commercial.Fleet.Api/Ashlar.Commercial.Fleet.Api.csproj`, `commercial/src/Ashlar.Commercial.Fleet.Host/Ashlar.Commercial.Fleet.Host.csproj`, `commercial/src/Ashlar.Commercial.MeshDirector/Ashlar.Commercial.MeshDirector.csproj` |
 | App configs (no `.csproj`) | `apps/runtime-studio` — OPEN (graduated 2026-08-31), extraction scheduled. Release Manager was extracted 2026-09-01 to [github.com/IanFrelinger/ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager); the commercial game/forge configs left with the vertical (archive branch). |
 
-### Tier 3d — extractable product scaffolds (`products/`, open)
+### Tier 3d — product scaffolds and demo clients (parked 2026-10-03)
 
-These are applications that consume the framework. They will move to their own
-repositories. One-way rule: `cloud → cluster → ashlar`; workstation and native
-depend only on ashlar. See [`architecture/product-split.md`](architecture/product-split.md).
+The extractable product scaffolds under `products/` (workstation, cluster, cloud and
+native, their tests, `products/Ashlar.Products.sln` and the `products-gate` workflow),
+the three HTTP demo clients under `docs/demos/` (`Ashlar.Demos.sln`) and the
+`Ashlar.Lite` registration helper were removed from master on 2026-10-03: nothing on
+the certified-change path used them. They are preserved on the archive branch
+`archive/parked-2026-10-03`. To bring one back, restore its paths from that branch
+(for example `git checkout archive/parked-2026-10-03 -- products/`) together with its
+rows here and in `ci/test-ownership.tsv`. The placement rule in
+[`architecture/product-split.md`](architecture/product-split.md) still applies.
 
-| Project | Role |
-|---------|------|
-| `products/ashlar-workstation/src/Ashlar.Workstation/Ashlar.Workstation.csproj` | Offline IDE daemon composition (`SecureWorkstation` + trust; not the `AirGapped` profile) |
-| `products/ashlar-cluster/src/Ashlar.Cluster/Ashlar.Cluster.csproj` | Cluster engine scaffold (`ITaskScheduler`) |
-| `products/ashlar-cloud/src/Ashlar.Cloud/Ashlar.Cloud.csproj` | Hosted control-plane stubs (orgs, quotas, billing); no kernel `ProjectReference` |
-| `products/ashlar-native/src/Ashlar.Native/Ashlar.Native.csproj` | WASM / out-of-process native host (`INativeExecutionHost`) |
-| `products/tests/Ashlar.Tests.Products/Ashlar.Tests.Products.csproj` | Product-scaffold tests (`products/Ashlar.Products.sln`) |
-
-### Tier 3c — demos, samples, tools, spikes (open)
+### Tier 3c — samples, tools, spikes (open)
 
 | Area | Projects / paths |
 |------|------------------|
-| Demos (`Ashlar.Demos.sln`) | `docs/demos/Ashlar.Demos.Avalonia/Ashlar.Demos.Avalonia.csproj`, `docs/demos/Ashlar.Demos.BlazorWeb/Ashlar.Demos.BlazorWeb.csproj`, `docs/demos/Ashlar.Demos.ConsoleClient/Ashlar.Demos.ConsoleClient.csproj` |
 | Docs samples (distribution proofs) | `docs/samples/StableSdkHostSample/StableSdkHostSample.csproj`, `docs/samples/StableSdkHostSample/package-consumer/StableSdkHostSample.Package.csproj`, `docs/samples/NugetOrgRestoreVerify/Ashlar.NugetOrgRestoreVerify.csproj`, `docs/samples/NugetOrgRestoreHostingOnly/Ashlar.NugetOrgRestoreHostingOnly.csproj` |
 | Certification package samples | `docs/samples/CertificationPresetProbe/CertificationPresetProbe.csproj` (package inspection), `docs/samples/CertificationTrustConsumer/CertificationTrustConsumer.csproj` (packaged verifier checks) |
 | Samples (`samples/`, see [`samples/README.md`](../samples/README.md)) | `samples/hello-brick/HelloBrick/HelloBrick.csproj`, `samples/hello-brick/HelloBrick.Tests/HelloBrick.Tests.csproj`, `samples/templates/brick/__BrickName__Brick/__BrickName__Brick.csproj`, `samples/templates/brick/__BrickName__Brick.Tests/__BrickName__Brick.Tests.csproj` (token template copied by `ashlar new brick`), `samples/certified-brick-reuse/Ashlar.Certified.DamageResolver/Ashlar.Certified.DamageResolver.csproj`, `samples/certified-brick-reuse/ProjectB/ProjectB.csproj` |
@@ -163,8 +159,6 @@ The root holds several entry points; a bare `dotnet build` fails with MSB1011, s
 | `Ashlar.LocalDevCore.slnf` | The CLI dev loop with core tests (`make restore-core` / `make build-core` / `make test-framework-prod-first`) | `Ashlar.CLI`, `Ashlar.Tests.Domain`, `Ashlar.Tests.Infrastructure` |
 | `Ashlar.Runtime.sln` | Publishing the embeddable kernel graph (no `application/`) | Runtime libraries + `Ashlar.Tests.AI.Pipeline` (19 projects) |
 | `application/Ashlar.Application.sln` | Application-gate style builds of the open hosts | `Ashlar.API`, `Ashlar.CLI`, `Ashlar.Tests.CLI` (open only) |
-| `products/Ashlar.Products.sln` | Extractable product scaffolds | Workstation, cluster, cloud, native, their tests, plus kernel projects pulled in for in-monorepo builds (23 projects) |
-| `Ashlar.Demos.sln` | The three demo clients | `docs/demos/*` |
 | `Ashlar.sln` | Everything the CI matrix builds on Linux | `src/` (except `Ashlar.Hosting.Bundle` and the `copy-assemblies` helper) plus `application/`. It also includes the commercial `Ashlar.Commercial.MeshDirector` project and the Fleet/MeshDirector test projects; samples, spikes, tools, and the Fleet src/host projects are built from their own paths |
 
 ## Minimal clone-to-run core
@@ -179,7 +173,7 @@ That graph includes `Ashlar.CLI`, core domain/infrastructure tests, and related 
 
 ## `Ashlar.Core.slnf`
 
-**`Ashlar.Core.slnf`** at the repo root lists the original **Tier 0** spine libraries plus the **Tier 0b** hosts so a first compile builds the spine and hosts without distribution bundles, transport, demos, or test projects (spine-adjacent projects such as `Ashlar.Certification.Contracts`, `Ashlar.AI.Pipeline` and `Ashlar.Analyzers` restore transitively):
+**`Ashlar.Core.slnf`** at the repo root lists the original **Tier 0** spine libraries plus the **Tier 0b** hosts so a first compile builds the spine and hosts without distribution bundles, transport, or test projects (spine-adjacent projects such as `Ashlar.Certification.Contracts`, `Ashlar.AI.Pipeline` and `Ashlar.Analyzers` restore transitively):
 
 ```bash
 dotnet build Ashlar.Core.slnf
@@ -191,6 +185,6 @@ Pack references pulled transitively by the CLI (`Ashlar.Bricks.Owasp`, `Ashlar.P
 
 - **`README.md`** — Project Layout tree
 - **`docs/architecture/runtime-vs-application.md`** — runtime vs application boundary
-- **`docs/architecture/product-split.md`** — framework vs extractable product trees
+- **`docs/architecture/product-split.md`** — framework vs product placement rule
 - **`docs/architecture/ProtocolIntegration-MCP-A2A.md`** — MCP + A2A adapter projects
 - **`docs/DistributionModels.md`** — consumption and CI gates per distribution path

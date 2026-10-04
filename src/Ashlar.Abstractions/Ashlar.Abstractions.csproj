@@ -35,6 +35,5 @@
     <InternalsVisibleTo Include="Ashlar.Mcp.Server" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A.Server" />
-    <InternalsVisibleTo Include="Ashlar.Tests.Products" />
   </ItemGroup>
 </Project>

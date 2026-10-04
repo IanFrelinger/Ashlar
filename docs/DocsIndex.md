@@ -7,7 +7,7 @@ Documentation index for the Ashlar platform. Start here to find what you need.
 1. `docs/TesterQuickstart.md` — **the one lane for a first run**: clone → `dotnet build Ashlar.Kernel.sln` → `ashlar doctor` → run the API on loopback, submit one task, read its audit trail → run the certification gate. No Docker, no API keys, verified paths only.
 2. `README.md` — the front door: what Ashlar is (auditable workflows, certified artifacts, your infrastructure), the trust loop / certification section, and the Try / Develop / Deploy lanes (container-first; native paths are escape hatches).
 3. `docs/GettingStarted.md` — the longer tour after the quickstart: startup lanes, first pipeline, CLI commands, provider setup, testing.
-4. `docs/ProjectTiers.md` — **canonical repo map** by project tier: kernel, hosts, distribution, transport/protocols, extractable `products/` scaffolds, commercial satellites, and tests. Placement rule: [`docs/architecture/product-split.md`](architecture/product-split.md).
+4. `docs/ProjectTiers.md` — **canonical repo map** by project tier: kernel, hosts, distribution, transport/protocols, commercial satellites, and tests, plus what was parked and where. Placement rule: [`docs/architecture/product-split.md`](architecture/product-split.md).
 5. `docs/IntegratorGuide.md` — embedding Ashlar in your own host: SDK packages, brick/agent registration, trust configuration, compatibility matrix.
 6. `consumer-template/CONSUMING.md` — `nuget.config` + `Directory.Packages.props` template. The `Ashlar.*` graph has been on nuget.org since v0.1.1; pin `ci/published-version`. A staging feed remains optional for pre-release testing.
 7. `docs/DistributionModels.md` — how to **consume and ship** Ashlar (NuGet, HTTP, CLI, compose, mesh) and the **distribution-matrix** CI workflow.
@@ -61,7 +61,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `.github/workflows/onboarding-quickstart-gate.yml` — runs first-run onboarding commands in native + container lanes.
 - `.github/workflows/container-image-gate.yml` — container image buildability and smoke-run gate.
 - `.github/workflows/distribution-matrix-gate.yml` — **parallel** gates: NuGet local-pack consumer, CLI image + subcommand help smoke, API image + `curl` `/health` + `/api/status`, `Ashlar.Client` in-process test, pack-graph alignment (plus **weekly** schedule).
-- `docs/CiGateInventory.md` — one-row-per-workflow trigger map (57 files, including `products-gate`) and the enforced branch-protection state (five required checks: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`).
+- `docs/CiGateInventory.md` — one-row-per-workflow trigger map (61 files) and the enforced branch-protection state (five required checks: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`).
 - `.github/workflows/release.yml` — **one entry**: tag `v*.*.*` → GHCR (`nexo-cli`, `nexo-api`) + NuGet; run summary with pin lines.
 - `.github/workflows/container-image-publish.yml` — GHCR on **main** path-filtered pushes + manual (tags use `release.yml` only).
 - `.github/workflows/release-nuget.yml` — **NuGet-only** manual dispatch; after push to nuget.org, **Verify NuGet consumer** (same reusable job as **release.yml**).

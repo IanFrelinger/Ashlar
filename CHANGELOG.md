@@ -27,6 +27,22 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   change, because the release pipeline already passed `false`; source builds and the CLI container
   image no longer carry the test assemblies.
 
+### Removed
+
+- **The product scaffolds, the HTTP demo clients and `Ashlar.Lite` are parked.** Removed from
+  master: `products/` (the workstation, cluster, cloud and native scaffolds, `Ashlar.Tests.Products`
+  and `products/Ashlar.Products.sln`) with its `products-gate` workflow; the three `docs/demos/`
+  clients with `Ashlar.Demos.sln` and `make build-demos`; and `src/Ashlar.Lite`. Nothing on the
+  certified-change path referenced them. They are preserved on the `archive/parked-2026-10-03`
+  branch, and `docs/ProjectTiers.md` says how to restore one.
+
+  No published package goes away and no public API changes. `Ashlar.Lite` was never on nuget.org;
+  its one method, `AddAshlarLite(url)`, called `AddAshlarClient(url)` from `Ashlar.Client`, which
+  stays. `AddAshlarWorkstation()` lived in the workstation scaffold, so the docs now spell out what
+  it did: `AddAshlarProfile(AshlarDeploymentProfile.SecureWorkstation, o => o.TrustEnabled = true)`.
+  `DistributedContractTests` still run, unfiltered, with the rest of `Ashlar.Tests.Contracts` in
+  the readiness lanes.
+
 ## [0.2.0] - 2026-10-01
 
 ### Breaking
