@@ -5,6 +5,28 @@ This file is the complete resume point. A fresh Claude Code session pointed at t
 read this first; everything below is self-contained. The GitHub remote is the source of truth —
 nothing of value lived only on the wiped machine except the operator signing key (see §6).
 
+> **Status corrections (2026-10-04).** The sections below are the 2026-08-24 snapshot, left as
+> written. Three of their statements are no longer true of `master`:
+>
+> - **§3 is merged, not WIP.** `ashlar export aws|azure` is registered in
+>   `application/src/Ashlar.CLI/Commands/ExportCommand.cs` and staged by `CloudBundle.cs` in the
+>   same folder (e2e: `export-aws-stages-bundle` / `export-azure-stages-bundle` in
+>   `scripts/e2e-loop.sh`). Both findings listed there are fixed: `deploy-azure.sh` writes the
+>   registry password to a 0600 temp spec passed to `az container create --file`, and
+>   `deploy-aws.sh` escapes the request with `json_escape` (refusing control characters) before it
+>   enters the task-definition JSON.
+> - **§4 (mesh slice 5) is done, not "NOT started".** `MeshStore.Resolve`/`Publish` are in
+>   `src/Ashlar.Manifest/Packaging/MeshStore.cs`; `PkgCommand.PublishAsync` and `ashlar pkg share`
+>   both publish through it (`application/src/Ashlar.CLI/Commands/PkgCommand.cs`); opt-in
+>   auto-share (`autoShare` parameter, else `ASHLAR_MESH_AUTOSHARE=1`) is in
+>   `src/Ashlar.BackgroundAgents.HostRunners/SelfExtendAdmissionBridge.cs`; the two-node
+>   co-production e2e is the "pkg mesh 2" block of `scripts/e2e-loop.sh`.
+> - **There is no GUI on `master`.** "CLI and GUI" in §1 is the product goal; the GUI half
+>   (Studio v0, §5) is still roadmap. No `.csproj` references a desktop UI framework, and the old
+>   Avalonia/Blazor demo clients are parked on `archive/parked-2026-10-03`. The non-CLI surfaces
+>   are the browser portal Ashlar.API serves (`application/src/Ashlar.API/wwwroot/index.html`) and
+>   the VS Code extension in `extensions/ashlar-vscode`.
+
 ---
 
 ## 1. What this product is
