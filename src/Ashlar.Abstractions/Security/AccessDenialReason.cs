@@ -1,7 +1,7 @@
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>
-/// Why the <see cref="ReferenceMonitor"/> refused an access. Every refusal names one.
+/// Why the <see cref="ReferenceMonitor"/> refused an access. Every refusal the reference monitor makes names one.
 /// </summary>
 /// <remarks>
 /// When more than one rule fails, the reason reported is the first in this order:
@@ -10,7 +10,10 @@ namespace Ashlar.Abstractions.Security;
 /// </remarks>
 public enum AccessDenialReason
 {
-    /// <summary>Not refused.</summary>
+    /// <summary>
+    /// No refusal reason. An allowed decision carries it, and so does <c>default(AccessDecision)</c>, which is
+    /// refused. Test <see cref="AccessDecision.Allowed"/>, never <c>Reason == None</c>.
+    /// </summary>
     None = 0,
 
     /// <summary>
@@ -30,8 +33,9 @@ public enum AccessDenialReason
     MissingCaveat = 3,
 
     /// <summary>
-    /// The data is <see cref="SecurityLabel.SystemHigh"/> (unlabelled or unparseable, so treated as the top
-    /// element), and only a <see cref="SecurityLabel.SystemHigh"/> receiver may take it.
+    /// The data (for a write, the subject's current label) is <see cref="SecurityLabel.SystemHigh"/>, for example
+    /// because it was unlabelled or unparseable, and only a <see cref="SecurityLabel.SystemHigh"/> receiver may
+    /// take it.
     /// </summary>
     SystemHighData = 4,
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ashlar.Abstractions.Security;
 using FluentAssertions;
 using Xunit;
@@ -417,11 +418,16 @@ public sealed class SecurityLabelTextFormTests
     [Fact]
     public void Equality_IsFalseAgainstNullAndOtherTypes()
     {
-        var label = new SecurityLabel(SecurityLevel.Secret);
+        // A fresh label per call: the compiler treats x.Equals(null) as a null test and would mark a shared local
+        // maybe-null afterwards.
+        static SecurityLabel Secret() => new(SecurityLevel.Secret);
 
-        label.Equals((SecurityLabel?)null).Should().BeFalse();
-        label.Equals((object?)null).Should().BeFalse();
-        label.Equals("Secret").Should().BeFalse("a label is not equal to its own text");
+        Secret().Equals((SecurityLabel?)null).Should().BeFalse();
+        Secret().Equals((object?)null).Should().BeFalse();
+        Secret().Equals("Secret").Should().BeFalse("a label is not equal to its own text");
+        (Secret() == null).Should().BeFalse();
+        (null == Secret()).Should().BeFalse();
+        (Secret() != null).Should().BeTrue();
     }
 
     // ---- Immutability ----
@@ -465,6 +471,55 @@ public sealed class SecurityLabelTextFormTests
         clear.Should().Throw<NotSupportedException>();
 
         tokens[0].Should().Be(first);
+    }
+
+    // ---- JSON ----
+
+    [Theory]
+    [MemberData(nameof(SpecExamples))]
+    public void Json_WritesTheCanonicalTextAndReadsItBack(string text)
+    {
+        var label = SpecExample(text);
+
+        var json = JsonSerializer.Serialize(label);
+
+        json.Should().Be("\"" + text + "\"");
+        JsonSerializer.Deserialize<SecurityLabel>(json).Should().Be(label);
+    }
+
+    [Fact]
+    public void Json_KeepsSystemHighAsTheTopInsideAnObject()
+    {
+        // A structural projection could not rebuild SystemHigh through the public constructor, so it would come
+        // back as a lower label. The canonical string cannot.
+        var json = JsonSerializer.Serialize(new LabelledValue { Label = SecurityLabel.SystemHigh });
+
+        json.Should().Be("{\"Label\":\"SystemHigh\"}");
+        var read = JsonSerializer.Deserialize<LabelledValue>(json);
+        read.Should().NotBeNull();
+        read!.Label.IsSystemHigh.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("\"secret\"")]
+    [InlineData("\"Secret//C:BRAVO,ALPHA\"")]
+    [InlineData("\"\"")]
+    [InlineData("4")]
+    [InlineData("true")]
+    [InlineData("[\"Secret\"]")]
+    [InlineData("{\"Level\":4,\"Compartments\":[],\"Caveats\":[],\"IsSystemHigh\":true}")]
+    public void Json_RefusesAnythingButCanonicalText(string json)
+    {
+        // No guess either way: a converter cannot tell a label on data (fails closed to SystemHigh) from a
+        // clearance or destination (fails closed to Public), so it refuses.
+        Action read = () => JsonSerializer.Deserialize<SecurityLabel>(json);
+
+        read.Should().Throw<JsonException>();
+    }
+
+    private sealed class LabelledValue
+    {
+        public SecurityLabel Label { get; set; } = SecurityLabel.Public;
     }
 
     /// <summary>Each spec example's label, built by the constructor rather than parsed.</summary>

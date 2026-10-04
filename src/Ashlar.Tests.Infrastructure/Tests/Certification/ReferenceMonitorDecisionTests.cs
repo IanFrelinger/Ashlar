@@ -321,7 +321,7 @@ public sealed class ReferenceMonitorDecisionTests
     [InlineData(
         "TopSecret",
         "SystemHigh",
-        "the data is SystemHigh (unlabelled or unparseable), which only a SystemHigh clearance may read")]
+        "the data is SystemHigh (for example unlabelled or unparseable), which only a SystemHigh clearance may read")]
     public void CanRead_Detail_IsTheSentenceAPersonReads(string clearance, string data, string expected)
     {
         ReferenceMonitor.CanRead(L(clearance), L(data)).Detail.Should().Be(expected);
@@ -334,7 +334,7 @@ public sealed class ReferenceMonitorDecisionTests
     [InlineData(
         "SystemHigh",
         "TopSecret",
-        "the subject has read SystemHigh data, which only a SystemHigh destination may receive")]
+        "the subject's current label is SystemHigh, which only a SystemHigh destination may receive")]
     public void CanWrite_Detail_IsTheSentenceAPersonReads(string current, string destination, string expected)
     {
         // A write refusal names the destination, never a clearance: the reader has to know which side

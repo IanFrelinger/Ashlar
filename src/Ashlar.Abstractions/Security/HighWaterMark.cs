@@ -8,7 +8,9 @@ namespace Ashlar.Abstractions.Security;
 /// <para>The mark only rises. <see cref="Observe"/> joins a label in and nothing here lowers it; moving data
 /// down is the job of a trusted downgrade, not of this type.</para>
 /// <para>This type is not thread-safe. A session that reads on several threads must serialise calls to
-/// <see cref="Observe"/>, or keep one mark per thread and join them.</para>
+/// <see cref="Observe"/> and <see cref="CanWriteTo"/>, or keep one mark per thread and join them. An
+/// unsynchronised <see cref="Observe"/> can be lost, leaving the mark below what was read and permitting a write
+/// down.</para>
 /// </remarks>
 public sealed class HighWaterMark
 {

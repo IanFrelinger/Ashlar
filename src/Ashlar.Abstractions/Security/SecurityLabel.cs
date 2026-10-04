@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Ashlar.Abstractions.Security;
 
@@ -22,12 +23,16 @@ namespace Ashlar.Abstractions.Security;
 /// <para><b>Text form.</b> <see cref="ToString"/> prints the one canonical form of a label, and
 /// <see cref="TryParse"/> accepts exactly the canonical forms (see <see cref="TryParse"/>), so text and labels
 /// correspond one to one.</para>
-/// <para><b>Fail closed.</b> Unlabelled data, an unknown level name and a label that does not parse are all
-/// treated as <see cref="SystemHigh"/> (<see cref="ParseOrSystemHigh"/>), which only a
-/// <see cref="SystemHigh"/> clearance may read.</para>
+/// <para><b>Fail closed.</b> Unlabelled <b>data</b>, an unknown level name and a data label that does not parse
+/// are all treated as <see cref="SystemHigh"/> (<see cref="ParseOrSystemHigh"/>), which only a
+/// <see cref="SystemHigh"/> clearance may read. A clearance or a write destination fails closed the other way;
+/// see <see cref="ParseOrSystemHigh"/>.</para>
+/// <para><b>Serialisation.</b> The canonical text is the only wire form: System.Text.Json writes a label as that
+/// string and refuses to read anything else, so <see cref="SystemHigh"/> cannot come back as a lower label.</para>
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited
 /// cross-domain solution.</para>
 /// </remarks>
+[JsonConverter(typeof(SecurityLabelJsonConverter))]
 public sealed class SecurityLabel : IEquatable<SecurityLabel>
 {
     private const string SystemHighText = "SystemHigh";
@@ -102,10 +107,6 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     /// <summary><see langword="true"/> only for <see cref="SystemHigh"/>, the top element.</summary>
     public bool IsSystemHigh { get; }
 
-    internal string[] CompartmentTokens => _compartments;
-
-    internal string[] CaveatTokens => _caveats;
-
     /// <summary>
     /// <see langword="true"/> when this label dominates <paramref name="other"/> (<c>other &lt;= this</c>): its
     /// level is at least <paramref name="other"/>'s and it carries every compartment and caveat
@@ -167,7 +168,8 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
 
     /// <summary>
     /// The join of every label in <paramref name="labels"/>: the label of something derived from all of them.
-    /// The join of no labels is <see cref="Public"/>, the bottom.
+    /// The join of no labels is <see cref="Public"/>, the bottom, so an unlabelled source must be included as
+    /// <see cref="SystemHigh"/>, never left out: leaving it out lowers the result.
     /// </summary>
     /// <param name="labels">The labels to join.</param>
     /// <exception cref="ArgumentException"><paramref name="labels"/> contains a null element.</exception>
@@ -219,8 +221,11 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     /// token, segments in the order <c>C</c> then <c>K</c>, and tokens in ascending ordinal order with no
     /// duplicates. Every accepted string is therefore exactly what <see cref="ToString"/> prints for the label it
     /// parses to.</para>
-    /// <para>On failure <paramref name="label"/> is set to <see cref="SystemHigh"/>, so a caller that ignores the
-    /// return value still fails closed.</para>
+    /// <para>On failure <paramref name="label"/> is set to <see cref="SystemHigh"/>. That fails closed only for a
+    /// label on data (or on a write source, such as a high-water-mark floor). A caller parsing a clearance or a
+    /// write destination must check the return value and fall back to <see cref="Public"/>, because a
+    /// <see cref="SystemHigh"/> clearance reads everything and a <see cref="SystemHigh"/> destination receives
+    /// everything.</para>
     /// </remarks>
     /// <param name="text">The text to parse.</param>
     /// <param name="label">The parsed label, or <see cref="SystemHigh"/> when the text is not canonical.</param>
@@ -263,6 +268,35 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     /// <inheritdoc />
     public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(_canonical);
 
+    /// <summary>Value equality, the same as <see cref="Equals(SecurityLabel)"/>; never a reference comparison.</summary>
+    public static bool operator ==(SecurityLabel? left, SecurityLabel? right) =>
+        left is null ? right is null : left.Equals(right);
+
+    /// <summary>Value inequality, the negation of <c>==</c>.</summary>
+    public static bool operator !=(SecurityLabel? left, SecurityLabel? right) => !(left == right);
+
+    // What `source` carries that `receiver` lacks, sorted (ordinal). The backing arrays stay private to this type.
+    internal static string[] MissingCompartments(SecurityLabel source, SecurityLabel receiver) =>
+        Missing(source._compartments, receiver._compartments);
+
+    internal static string[] MissingCaveats(SecurityLabel source, SecurityLabel receiver) =>
+        Missing(source._caveats, receiver._caveats);
+
+    // Quotes caller-supplied text for an exception message: bounded length, control characters replaced.
+    internal static string Quote(string? text)
+    {
+        if (text is null)
+            return "(null)";
+
+        const int MaxQuoted = 80;
+        var builder = new StringBuilder("'");
+        for (var i = 0; i < text.Length && i < MaxQuoted; i++)
+            builder.Append(char.IsControl(text[i]) ? '?' : text[i]);
+        if (text.Length > MaxQuoted)
+            builder.Append("...");
+        return builder.Append('\'').ToString();
+    }
+
     internal static string LevelName(SecurityLevel level) => level switch
     {
         SecurityLevel.Public => "Public",
@@ -274,7 +308,7 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     };
 
     // The tokens of `required` that `held` lacks, in order. Both arrays are sorted (ordinal) and duplicate-free.
-    internal static string[] Missing(string[] required, string[] held)
+    private static string[] Missing(string[] required, string[] held)
     {
         var missing = new List<string>();
         var j = 0;
@@ -317,8 +351,8 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
             if (!IsValidToken(token))
             {
                 throw new ArgumentException(
-                    "Invalid security label token '" + (token ?? "(null)")
-                    + "': a token is 1 to 64 uppercase ASCII letters, digits, '_' or '-', starting with a letter or digit.",
+                    "Invalid security label token " + Quote(token)
+                    + ": a token is 1 to 64 uppercase ASCII letters, digits, '_' or '-', starting with an uppercase letter or digit.",
                     paramName);
             }
 

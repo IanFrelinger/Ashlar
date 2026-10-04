@@ -8,8 +8,9 @@ namespace Ashlar.Abstractions.Security;
 /// <see cref="Detail"/> that names the offending level, compartment or caveat.</para>
 /// <para><b>The default value fails closed.</b> <c>default(AccessDecision)</c> is not a decision anyone made,
 /// so it reports <see cref="Allowed"/> as <see langword="false"/>, with <see cref="Reason"/> set to
-/// <see cref="AccessDenialReason.None"/> and a <see cref="Detail"/> that says no decision was made. Only the
-/// reference monitor produces an allowed decision.</para>
+/// <see cref="AccessDenialReason.None"/> and a <see cref="Detail"/> that says no decision was made. Decisions are
+/// made only inside Ashlar.Abstractions, by the reference monitor. Test <see cref="Allowed"/>, never
+/// <c>Reason == None</c>.</para>
 /// </remarks>
 public readonly struct AccessDecision : IEquatable<AccessDecision>
 {

@@ -57,8 +57,8 @@ public static class ReferenceMonitor
             return AccessDecision.Deny(
                 AccessDenialReason.SystemHighData,
                 isRead
-                    ? "the data is SystemHigh (unlabelled or unparseable), which only a SystemHigh clearance may read"
-                    : "the subject has read SystemHigh data, which only a SystemHigh destination may receive");
+                    ? "the data is SystemHigh (for example unlabelled or unparseable), which only a SystemHigh clearance may read"
+                    : "the subject's current label is SystemHigh, which only a SystemHigh destination may receive");
         }
 
         if (source.Level > receiver.Level)
@@ -69,7 +69,7 @@ public static class ReferenceMonitor
                 + (isRead ? "data" : "current") + " level " + SecurityLabel.LevelName(source.Level));
         }
 
-        var missingCompartments = SecurityLabel.Missing(source.CompartmentTokens, receiver.CompartmentTokens);
+        var missingCompartments = SecurityLabel.MissingCompartments(source, receiver);
         if (missingCompartments.Length > 0)
         {
             return AccessDecision.Deny(
@@ -77,7 +77,7 @@ public static class ReferenceMonitor
                 receiverName + " lacks compartment(s): " + SecurityLabel.JoinTokens(missingCompartments));
         }
 
-        var missingCaveats = SecurityLabel.Missing(source.CaveatTokens, receiver.CaveatTokens);
+        var missingCaveats = SecurityLabel.MissingCaveats(source, receiver);
         if (missingCaveats.Length > 0)
         {
             return AccessDecision.Deny(
