@@ -30,6 +30,7 @@ Read automatically by Claude Code at the start of every session in this reposito
 
 Releases: `docs/RELEASE_RUNBOOK.md`. Product history and what is already done: `CONTINUITY.md`.
 Release-readiness convergence: `_handoff/readiness/README.md`.
+Security labels workstream (status, owner decisions, open questions): `docs/specs/SPEC-007-security-labels-and-reference-monitor.md`.
 
 ## Multi-agent coordination (agent-bus)
 
