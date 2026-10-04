@@ -6,7 +6,8 @@ read this first; everything below is self-contained. The GitHub remote is the so
 nothing of value lived only on the wiped machine except the operator signing key (see §6).
 
 > **Status corrections (2026-10-04).** The sections below are the 2026-08-24 snapshot, left as
-> written. Three of their statements are no longer true of `master`:
+> written. The three statements below are no longer true of `master`; each was checked against the
+> code. This is not a full audit, so other statements may be stale too.
 >
 > - **§3 is merged, not WIP.** `ashlar export aws|azure` is registered in
 >   `application/src/Ashlar.CLI/Commands/ExportCommand.cs` and staged by `CloudBundle.cs` in the
@@ -21,11 +22,12 @@ nothing of value lived only on the wiped machine except the operator signing key
 >   auto-share (`autoShare` parameter, else `ASHLAR_MESH_AUTOSHARE=1`) is in
 >   `src/Ashlar.BackgroundAgents.HostRunners/SelfExtendAdmissionBridge.cs`; the two-node
 >   co-production e2e is the "pkg mesh 2" block of `scripts/e2e-loop.sh`.
-> - **There is no GUI on `master`.** "CLI and GUI" in §1 is the product goal; the GUI half
->   (Studio v0, §5) is still roadmap. No `.csproj` references a desktop UI framework, and the old
->   Avalonia/Blazor demo clients are parked on `archive/parked-2026-10-03`. The non-CLI surfaces
->   are the browser portal Ashlar.API serves (`application/src/Ashlar.API/wwwroot/index.html`) and
->   the VS Code extension in `extensions/ashlar-vscode`.
+> - **There is no desktop GUI on `master`.** "CLI and GUI" in §1 is the product goal, and the GUI
+>   half that §5 plans (Studio v0) has not been built. No `.csproj` references a desktop UI
+>   framework, and the old Avalonia/Blazor demo clients are parked on `archive/parked-2026-10-03`.
+>   The graphical surfaces that do ship are the browser portal Ashlar.API serves
+>   (`application/src/Ashlar.API/wwwroot/index.html`) and the chat view of the VS Code extension
+>   in `extensions/ashlar-vscode`.
 
 ---
 

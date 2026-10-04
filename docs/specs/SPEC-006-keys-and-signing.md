@@ -611,12 +611,17 @@ gap tracked rather than deniable. Currently unmet:
   and `CertificationVerifyOptions.Strict` both set `MinimumSchemaVersion =
   CertificationRecordData.TrustLoopSchemaVersion` (2) and `RequireEd25519Signature = true`, and
   both tiers use `Default` when given no options. A legacy-lane record (null schema version,
-  counted as 0) is therefore refused — `CertificationTrustVerifier` reports
-  `schema-version-below-floor` — unless the caller names `CertificationVerifyOptions.Legacy`,
-  which is `new()` with floor 0. The preset values are pinned by
-  `SchemaVersionFloorTests.Presets_PinEveryStrictnessField`. The change shipped as a breaking
-  change in 0.2.0 (`CHANGELOG.md`); `docs/certification-evidence.md` limitations 7 and 8 date it
-  2026-09-06.
+  counted as 0) is therefore refused under either preset — for an admitted PASS record
+  `CertificationTrustVerifier` reports `schema-version-below-floor`, and
+  `CertificationRecordSigner.Verify` returns false — unless the caller passes options with a
+  lower floor. `CertificationVerifyOptions.Legacy` (`new()`, floor 0) is the only preset with
+  one; `MinimumSchemaVersion` is a public `init`, so a caller can also build such options
+  itself, and the one production site that builds options outside the presets
+  (`CertificationTrustPolicy.Apply`) copies its basis preset's floor.
+  `SchemaVersionFloorTests.Presets_PinEveryStrictnessField` pins a floor of at least
+  `TrustLoopSchemaVersion` and a required Ed25519 signature on both `Default` and `Strict`, and
+  floor 0 on `Legacy`. The change shipped as a breaking change in 0.2.0 (`CHANGELOG.md`);
+  `docs/certification-evidence.md` limitations 7 and 8 date it 2026-09-06.
 - **S-1, applied to a downgraded certification-record schema.** S-1 covers a `sig` that
   fails verification. For *certification records* the *payload lane itself* is chosen by an
   attacker-supplied field (`if (record.SchemaVersion is null)`), and the legacy lane covers no

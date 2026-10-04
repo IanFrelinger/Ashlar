@@ -190,7 +190,7 @@ bool ShouldObserve(string category, string sourceId, string? projectPath = null)
 - Registered by `AddTrustServices`, but nothing outside tests calls `IsAirGappedAsync`: not at startup and not before cloud calls
 - Its result is not injected anywhere: no code sets `IsAirGapped = true` in an execution context or `OutgoingContext` from it
 
-**Sanitization when air-gapped:** `SanitizingProviderFactory` (`src/Ashlar.BackgroundAgents/Trust/SanitizingProviderFactory.cs`) does not read the execution context. `ExecuteLLMAsync` sets `OutgoingContext.IsAirGapped = false`, and the vision and video methods leave it at its default, `false`. Every call through it is therefore judged as cloud egress, and an allowed call is always dispatched to the inner factory. When a direct caller of `CloudSanitizationProxy` passes `IsAirGapped = true`, the proxy allows the prompt with no filtering and no audit entry. There is no classification step.
+**Sanitization when air-gapped:** `SanitizingProviderFactory` (`src/Ashlar.BackgroundAgents/Trust/SanitizingProviderFactory.cs`) does not read the execution context. `ExecuteLLMAsync` sets `OutgoingContext.IsAirGapped = false`, and the vision and video methods leave it at its default, `false`. Every LLM, vision and video call through it is therefore judged as cloud egress, and an allowed one is always dispatched to the inner factory; `IsProviderAvailable` and `EnsureOllamaReachableAsync` go straight to the inner factory without the proxy. When a direct caller of `CloudSanitizationProxy` passes `IsAirGapped = true`, the proxy allows the prompt with no filtering and no audit entry. There is no classification step.
 
 ---
 
