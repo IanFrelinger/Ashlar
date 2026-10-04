@@ -37,7 +37,7 @@ The **Route (3b)** column below uses these routes. Except for `Exempt:` and `Uns
 | Route | Meaning |
 |---|---|
 | `Handler(factory)` | An `IHttpClientFactory` client. `AddAshlarEgressGuard` puts the guard handler on every factory client through one `ConfigureHttpClientDefaults` call. 3b calls it in every member that calls `AddHttpClient`. |
-| `Handler(raw)` | A client the code builds itself. 3b builds it with `EgressHttp.CreateClient` or `EgressHttp.Wrap`, so the guard handler sees every request. |
+| `Handler(raw)` | A client the code builds itself. 3b builds it with `EgressHttp.CreateClient` or `EgressHttp.Wrap`, so the guard handler sees every `SendAsync` (and, on net8.0 and later, every `Send`). |
 | `Governance` | A MEAI chat target. 3b adds `EgressGuardChatClient` as the outermost middleware in `UseAshlarGovernance`. |
 | `Explicit` | 3b makes the member call `guard.Evaluate(new EgressRequest(…))` before the primitive, in the same block or an enclosing one. |
 | `Exempt:<reason>` | Listed and pinned, not routed. The reasons are a closed list: `LocalOnly`, `Operator`, `Inbound`, `DataStore`, `LocalDaemon`, `ConsumerSdk`, `TestDouble`, `TestSeam`. They are final, so the TSV already carries them in 3a. |

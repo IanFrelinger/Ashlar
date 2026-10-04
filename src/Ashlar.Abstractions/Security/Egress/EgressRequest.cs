@@ -8,7 +8,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// port of a URI are ever recorded; userinfo, path, query and fragment never reach a decision record.</para>
 /// <para>A name that starts with <c>host:</c> (for example <c>host:dotnet</c>) declares a destination inside
 /// the host boundary. A name shaped like a URL (<c>scheme://…</c>) is read as a URI and redacted the same
-/// way.</para>
+/// way; when its authority cannot be read without guessing, it is recorded as <c>scheme://&lt;unparsed&gt;</c>.</para>
 /// </remarks>
 public sealed class EgressRequest
 {

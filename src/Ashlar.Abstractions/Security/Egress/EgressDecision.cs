@@ -64,7 +64,8 @@ public sealed class EgressDecision
     public string Site { get; }
 
     /// <summary>
-    /// The destination: <c>scheme://host[:port]</c> for a URI, otherwise the request's name. Never a userinfo,
+    /// The destination: <c>scheme://host[:port]</c> for a URI, otherwise the request's name (a URL-shaped name
+    /// whose authority cannot be read without guessing is <c>scheme://&lt;unparsed&gt;</c>). Never a userinfo,
     /// path, query or fragment.
     /// </summary>
     public string Destination { get; }
