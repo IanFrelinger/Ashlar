@@ -15,8 +15,8 @@ public static class AshlarGovernanceChatClientBuilderExtensions
     /// </summary>
     /// <remarks>
     /// EgressGuard (<see cref="EgressGuardChatClient"/>, SPEC-007) is report-only: it records one egress decision per
-    /// call for the target's destination (<c>MeaiEgressDestination</c>) and never refuses. It is outermost, so an
-    /// attempt that PolicyGate denies is still recorded.
+    /// call for the target's destination (<c>MeaiEgressDestination</c>; none for the in-process <c>local:onnx</c>) and
+    /// never refuses. It is outermost, so an attempt that PolicyGate denies is still recorded.
     /// </remarks>
     public static ChatClientBuilder UseAshlarGovernance(this ChatClientBuilder builder, string targetKey)
     {

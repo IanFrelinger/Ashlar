@@ -149,7 +149,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   Report-only: nothing refuses, and each change below adds a decision record, not a refusal.
   - `AddAshlar` calls `AddAshlarEgressGuard` after its own `AddHttpClient`, so every `AddAshlar`
     container (the API, the CLI host and its daemon, Fleet.Host, the MCP and gRPC server hosts,
-    `AddAshlarFramework` and the consumer template's host) puts `EgressGuardHandler` outermost on
+    `AddAshlarFramework` and the consumer template's host) puts `EgressGuardHandler` in front of every
+    handler the client's own configuration adds (only the factory's logging scope handler sits outside it), on
     every `IHttpClientFactory` client, the host's own and third-party clients included, and the OTLP
     exporters' clients when an endpoint is set. Those containers also gain the guard's registrations:
     a marker, `IEgressGuard` (`EgressGuard.ProcessDefault`, added with TryAdd), the decision logger

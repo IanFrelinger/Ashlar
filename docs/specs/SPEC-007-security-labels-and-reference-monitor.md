@@ -41,9 +41,12 @@ The status line above and the starting prompt are the owner's, as written; the s
   every other Ashlar member that registers a factory client install (the consumer SDK's `AddAshlarClient` is exempt,
   and Fleet.Host covers the commercial Fleet registration); MEAI targets go through `EgressGuardChatClient`, the
   outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It is still report-only.
-- **A gap carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`): the `netstandard2.0` asset of
+- **Gaps carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`). The `netstandard2.0` asset of
   `Ashlar.Abstractions` does not evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` goes out
-  unevaluated. It has to be closed before the guard enforces.
+  unevaluated. It has to be closed before the guard enforces. PR 3b adds two more (`docs/EgressInventory.md`):
+  redirects that the primary handler follows are not evaluated, and a few records can read Host for a remote peer
+  (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client, EG-MESH-07/08 with a
+  `//127.0.0.1/…` path).
 
 ---
 
