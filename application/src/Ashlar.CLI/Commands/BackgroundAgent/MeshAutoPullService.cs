@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.CLI.Packaging;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
@@ -68,7 +69,9 @@ public sealed class MeshAutoPullService : BackgroundService
             handler.SslOptions.RemoteCertificateValidationCallback =
                 (_, cert, _, _) => MeshTls.ChainsToCa(MeshTls.AsCert2(cert), caBundle);
         }
-        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
+        var http = EgressHttp.CreateClient(handler, EgressFamilies.MeshPull, "EG-MESH-04");
+        http.Timeout = TimeSpan.FromSeconds(15);
+        return http;
     }
 
     /// <summary>Cap on packages fetched from one peer per tick, so a peer serving a huge index cannot

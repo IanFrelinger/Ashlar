@@ -111,7 +111,9 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             options.CaCertPath.Should().Be(caPem);
 
             var buildHandler = typeof(DefaultGrpcChannelFactory).GetMethod("BuildHandler", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-            var httpHandler = (HttpClientHandler)buildHandler.Invoke(factory, null)!;
+            var guarded = (DelegatingHandler)buildHandler.Invoke(factory, null)!;
+            guarded.GetType().FullName.Should().Be("Ashlar.Abstractions.Security.Egress.EgressGuardHandler", "SPEC-007: the channel handler is wrapped by the egress guard");
+            var httpHandler = (HttpClientHandler)guarded.InnerHandler!;
             httpHandler.ServerCertificateCustomValidationCallback.Should().NotBeNull();
             httpHandler.ServerCertificateCustomValidationCallback!(null!, null, null, System.Net.Security.SslPolicyErrors.None)
                 .Should().BeFalse();
@@ -145,7 +147,7 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             factory.GetOrCreate("http://127.0.0.1:9").Should().NotBeNull();
 
             var buildHandler = typeof(DefaultGrpcChannelFactory).GetMethod("BuildHandler", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-            var httpHandler = (HttpClientHandler)buildHandler.Invoke(factory, null)!;
+            var httpHandler = (HttpClientHandler)((DelegatingHandler)buildHandler.Invoke(factory, null)!).InnerHandler!;
             var serverCertificate = new X509Certificate2(caPem);
             httpHandler.ServerCertificateCustomValidationCallback!(
                     null!,

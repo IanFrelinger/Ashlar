@@ -4,6 +4,7 @@ using A2A;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ashlar.Abstractions.Barriers;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Abstractions.Transport;
 
 namespace Ashlar.Transport.A2A;
@@ -165,7 +166,7 @@ public sealed class A2AAgentTransport : IAgentTransport
         // Secrets come from the environment at client-creation time, never from bound config.
         return _httpClients.GetOrAdd(baseUrl.GetLeftPart(UriPartial.Authority), _ =>
         {
-            var client = new HttpClient();
+            var client = EgressHttp.CreateClient(EgressFamilies.A2A, "EG-XPT-01");
             var match = _options.Value.Endpoints.FirstOrDefault(e =>
                 !string.IsNullOrWhiteSpace(e.UrlPrefix) &&
                 baseUrl.AbsoluteUri.StartsWith(e.UrlPrefix, StringComparison.OrdinalIgnoreCase));

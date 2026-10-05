@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.BackgroundAgents.Registry;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
 using Ashlar.Infrastructure.Execution;
@@ -189,7 +190,7 @@ public static class IdeEndpoints
             ?? "http://127.0.0.1:11434";
         try
         {
-            var http = services.GetService<IHttpClientFactory>()?.CreateClient() ?? new HttpClient();
+            var http = services.GetService<IHttpClientFactory>()?.CreateClient() ?? EgressHttp.CreateClient(EgressFamilies.Http, "EG-MDL-14");
             using var response = await http.GetAsync($"{ollamaBase.TrimEnd('/')}/api/tags", cancellationToken)
                 .ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
