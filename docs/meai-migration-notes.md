@@ -281,7 +281,7 @@ No `Startup.cs`. Feature flags are **Options + env**, not Microsoft.FeatureManag
 
 ```
 UseAshlarGovernance() →
-  PolicyGate → Sanitizing → Auditing → [UseFunctionInvocation()] → provider IChatClient
+  EgressGuard (report-only) → PolicyGate → Sanitizing → Auditing → [UseFunctionInvocation()] → provider IChatClient
 ```
 
 Router (Phase 3) sits **outside** per-target stacks and is itself wrapped in Auditing.
