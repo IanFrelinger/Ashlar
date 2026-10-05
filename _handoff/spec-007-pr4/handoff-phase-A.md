@@ -1,24 +1,18 @@
 # spec-007-pr4 handoff: end of phase A, start of phase B
 
-*Written 2026-10-05 at 20:15 UTC (updated 20:55 UTC), at the end of phase A. Start the next thread with the prompt in §9, or with `/start-phase spec-007-pr4`.*
+*Written 2026-10-05 at 20:15 UTC, final update 21:45 UTC, at the end of phase A. Start the next thread with the prompt in §9, or with `/start-phase spec-007-pr4`.*
 
 ## 0. How we work: one thread per phase
 
-This workstream runs one phase per thread (`_handoff/phases/README.md`):
+This workstream runs one phase per thread (`_handoff/phases/README.md`, on master since #714):
 - end each phase with `/handoff spec-007-pr4 <phase>`;
 - start each phase with `/start-phase spec-007-pr4`.
 
-The handoff is published to `claude/spec-007-pr4-workspace`, sent to the owner, and the owner is notified. Push every in-flight branch to GitHub before writing the handoff.
-
-**The procedure itself is PR #714.** If #714 is not merged when you start, the commands, template and scripts are on branch `claude/phase-handoff-procedure`. Read `.claude/commands/start-phase.md` there, or follow §9 directly. Fetch this file with:
-
-```bash
-git show origin/claude/spec-007-pr4-workspace:_handoff/spec-007-pr4/handoff.md
-```
+The handoff is published to `claude/spec-007-pr4-workspace`, sent to the owner, and the owner is notified. Push every in-flight branch to GitHub before writing the handoff. Fetch it with `bash scripts/handoff-fetch.sh --workstream spec-007-pr4`.
 
 ## 1. Where things stand
 
-**Master: `79e988c31`** (#713). No code merged during phase A after #713.
+**Master: `5ff00a4af`** (#714).
 
 | PR | What | Merge commit |
 |---|---|---|
@@ -29,31 +23,26 @@ git show origin/claude/spec-007-pr4-workspace:_handoff/spec-007-pr4/handoff.md
 | #711 | PR 3b: every listed outbound site routed to the guard, report-only | `8ec674d2a` |
 | #712 | drift-711: the 3b merge SHA in SPEC-007 | `9abb491d3` |
 | #713 | The eight PR 4 owner decisions and the PR 4 plan, in SPEC-007 (phase A) | `79e988c31` |
+| #715 | drift-713: SPEC-007 names the 3a defects 4.10 fixes and the question Q5 answers; open question B's flip is PR 5 (phase A) | `ce9885e2f` |
+| #714 | The phase/handoff procedure: CLAUDE.md section, `/handoff`, `/start-phase`, template, `scripts/handoff-{publish,fetch}.sh`, a 45-assertion test (phase A) | `5ff00a4af` |
 
-**Open PRs from phase A.** The phase A thread is still driving both and will merge them on green. Check their state when you start. If either is still open, take it over: merge on five green required checks, then post `done` on #695.
-
-| PR | What | Branch | State at handoff |
-|---|---|---|---|
-| #714 | The phase/handoff procedure: CLAUDE.md section, `/handoff`, `/start-phase`, template, `scripts/handoff-{publish,fetch}.sh` and a 42-assertion test | `claude/phase-handoff-procedure` @ `221df799d` | `cert-gate`, `build-core`, `lychee` green. `shell-lint` and `Readiness summary` **never got a runner** (see below). Its one re-run is spent. `handoff pr-714` posted on #695 |
-| #715 | drift-713: names the 3a defects 4.10 fixes and the question Q5 answers, and says open question B's flip is PR 5 | `claude/drift-713-spec007-refs` @ `7699e0f27` | `cert-gate`, `lychee` green. `build-core`, `shell-lint` and `Readiness summary` never got a runner. Its one re-run is not yet used. Docs only; repo gates 25/25 locally. `handoff pr-715` posted on #695 |
-
-**CI blocker at 20:55Z: GitHub hosted runners.** Since about 19:32Z, many jobs in this repository end with "The job was not acquired by Runner of type hosted even after multiple attempts" after waiting 15 minutes, without running a step. The repository is public, so this is not an Actions-minutes limit. The plan:
-- once runners pick up jobs again, re-run #715's failed jobs once, then merge it;
-- then bring #714 up to date with master, which `strict` requires anyway. That push starts a fresh CI run, so #714 needs no second re-run;
-- then merge #714.
-
-The phase A thread does this if it is still running. Otherwise the phase B thread does it first. Comment on #714 explains it.
+**No PRs are open from this workstream.**
 
 **Readiness.**
 - The last readiness verdict on master is `verified`, for `8ec674d2a` (#711, confirmed by Grok).
-- #712 and #713 were docs only, so the readiness gate did not run on them.
-- Master's scheduled Runtime Portability Gate on `79e988c31` (19:32Z) shows `failure`. Two jobs were cancelled with "The job was not acquired by Runner of type hosted even after multiple attempts". That is runner capacity, not code, and the check is not a required one.
+- #712 to #715 are docs and tooling, so the readiness lanes were skipped.
+- Phase B's first code merge gives the next real verdict.
+
+**CI incident this phase.** From about 19:32Z to about 21:15Z, GitHub's hosted runners failed to pick up many jobs: "The job was not acquired by Runner of type hosted even after multiple attempts", after a 15-minute wait, with no step run. The repository is public, so this was not an Actions-minutes limit.
+- It hit #714, #715 and master's scheduled Runtime Portability Gate. That gate's run on `79e988c31` still shows `failure` for that reason. It is not a required check.
+- The fix was one re-run (for #715), and for #714 a fresh head after merging master in.
+- If it recurs, check the annotation before treating a red check as a code failure.
 
 **Agent-bus (#695).**
-- `drift-713` (Grok, 17:18Z) is answered by #715. Post `Kind: done`, `About: drift-713` with #715's merge SHA, and say why B names PR 5 rather than 4.11: the design's D38 says so, and PR 4 enforces egress only.
-- `handoff pr-714` and `handoff pr-715` are posted; both `done`s are pending.
-- Grok is holding Dependabot #689–#693.
-- Grok is standing by for the 4.4, 4.1, 4.6 and 4.2 handoffs.
+- `done` is posted for drift-713/pr-715 and for pr-714/drift-714.
+- Grok's drift-714 note (fetch should warn when it falls back to a local branch) is fixed in #714.
+- Nothing is open for Claude.
+- Grok is holding Dependabot #689–#693, and is standing by for the 4.4, 4.1, 4.6 and 4.2 handoffs.
 
 **Phase A exit criteria are met.**
 - The four lane branches are pushed: 4.4 `5f56b8ff4`, 4.1 `1e3e645d2`, 4.6 `a501c2b26`, 4.2 `25301b79a`.
@@ -111,7 +100,7 @@ The phase A thread does this if it is still running. Otherwise the phase B threa
 
 | Phase | Scope | Ends when |
 |---|---|---|
-| A (done) | PR 4 design; the eight owner decisions (#713); wave A built and adversarially checked (4.4, 4.1, 4.6, 4.2); the procedure PR (#714); drift-713 (#715) | Lane branches pushed and their findings recorded (met) |
+| A (done) | PR 4 design; the eight owner decisions (#713); wave A built and adversarially checked (4.4, 4.1, 4.6, 4.2); the procedure (#714); drift-713 (#715) | Lane branches pushed and their findings recorded (met); #714 and #715 merged |
 | **B (next)** | Finish wave A: fix the check findings below, then integrate, verify, mutation-check, PR, hand off and merge, in the order 4.4 → 4.1 → 4.6 → 4.2 | All four merged; `done` posted on #695 for each; Grok's drift asks on them fixed or queued in the handoff; master readiness `verified` for the last merge (or the reason it is not) |
 | C | Build and merge 4.3 (redirects), 4.5 (producers, report-only) and 4.10 (AG and SW hygiene) | All three merged |
 | D | 4.7 (refusal surface on the routes), then 4.8 (catch-alls and trust-boundary exits) | Both merged |
@@ -184,6 +173,7 @@ The phase A thread does this if it is still running. Otherwise the phase B threa
   - fold the CHANGELOG entry into the existing Added entry.
 
 **Every lane, after master moves:**
+- the lanes are based on `79e988c`, and master is now `5ff00a4af`. #715 rewrote SPEC-007's 4.10 plan line, the PR 4 (Q5) row and open question B, next to where each lane added its "(this PR)" line, so expect a conflict there. #714 touched only `CLAUDE.md`, `_handoff/phases/`, `.claude/commands/` and the handoff scripts;
 - merge master in and recount:
   - the `ci/cert-gate-assertions.md` Certification count paragraph (each lane counted alone on `79e988c`);
   - row 64's TSV sums;
@@ -262,7 +252,7 @@ Parallelism: fix the four lanes in parallel workflows (2–3 workflows, 2 agents
 
 ## 8. Ways of working the owner has endorsed
 
-- **One phase per thread**, ending with `/handoff`. This becomes a CLAUDE.md rule when #714 merges.
+- **One phase per thread**, ending with `/handoff` (a CLAUDE.md rule since #714).
 - **Lanes and checks:** build PRs in parallel lanes, each followed by an adversarial check. Integrate, verify against a base, mutation-check, then run a final review whose findings must survive refutation.
 - **Asking the owner:** use AskUserQuestion, recommended option first, only for real decisions: policy, security posture, compatibility, or anything the spec reserves to the owner. Otherwise take the fail-closed design default and record it.
 - **PR bodies** give real counts, say what was not observed failing, and quote each mutation's verbatim `mutation-check.sh` summary.
@@ -270,4 +260,4 @@ Parallelism: fix the four lanes in parallel workflows (2–3 workflows, 2 agents
 
 ## 9. Starting prompt for the next phase
 
-> Execute **phase B** of spec-007-pr4. Run `/start-phase spec-007-pr4`, or read this handoff in full, starting with §0. If #714 is not merged yet, the command is on branch `claude/phase-handoff-procedure`. Phase B finishes PR 4's wave A: for 4.4 → 4.1 → 4.6 → 4.2 in that order, fix the check findings listed in §4 (details in `waveA-findings.md` on `claude/spec-007-pr4-workspace`), squash, merge master in, recount the records, verify, mutation-check, open the PR, hand it off on #695 and merge on green. Phase B ends when all four are merged with `done` posted, Grok's drift asks are fixed or queued, and master's readiness verdict after the last merge is `verified`. First check whether #714 and #715 merged; if not, finish them. Build and test only through `scripts/test-in-container.sh`. If anything the owner has not decided blocks you, ask instead of choosing. When the phase is done, run `/handoff spec-007-pr4 B` and notify me.
+> Execute **phase B** of spec-007-pr4. Run `/start-phase spec-007-pr4`, or read this handoff in full, starting with §0. Phase B finishes PR 4's wave A: for 4.4 → 4.1 → 4.6 → 4.2 in that order, fix the check findings listed in §4 (details in `waveA-findings.md` on `claude/spec-007-pr4-workspace`), squash, merge master in, recount the records, verify, mutation-check, open the PR, hand it off on #695 and merge on green. Phase B ends when all four are merged with `done` posted, Grok's drift asks are fixed or queued, and master's readiness verdict after the last merge is `verified`. Build and test only through `scripts/test-in-container.sh`. If anything the owner has not decided blocks you, ask instead of choosing. When the phase is done, run `/handoff spec-007-pr4 B` and notify me.
