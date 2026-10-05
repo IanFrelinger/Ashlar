@@ -13,6 +13,13 @@ public static class MeshLabServiceCollectionExtensions
     /// <summary>
     /// Virtual mesh lab: optional background worker that completes assigned tasks via the director HTTP API.
     /// </summary>
+    /// <remarks>
+    /// When the worker is enabled, calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after
+    /// the worker client (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an
+    /// <c>IEgressGuard</c> (TryAdd), <see cref="EgressDecisionLoggerSubscription"/> and the
+    /// <c>EgressDecisionLoggerActivator</c> hosted service, unless an earlier <c>AddAshlarEgressGuard</c> call on this
+    /// collection already added them. When it is disabled, none of them is added.
+    /// </remarks>
     public static IServiceCollection AddAshlarMeshLabWorkerExecutor(
         this IServiceCollection services,
         IConfiguration configuration)

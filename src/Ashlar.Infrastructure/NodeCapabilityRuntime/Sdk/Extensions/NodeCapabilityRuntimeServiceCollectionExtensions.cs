@@ -41,6 +41,12 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
     }
 
     /// <summary>Adds node capability runtime windows.</summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the NCR Ollama backend client
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddNodeCapabilityRuntimeWindows(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -49,6 +55,12 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
     }
 
     /// <summary>Adds node capability runtime mac o s.</summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the NCR Ollama backend client
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddNodeCapabilityRuntimeMacOS(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -57,6 +69,12 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
     }
 
     /// <summary>Adds node capability runtime linux.</summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the NCR Ollama backend client
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddNodeCapabilityRuntimeLinux(
         this IServiceCollection services,
         IConfiguration configuration)
