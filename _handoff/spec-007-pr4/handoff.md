@@ -1,6 +1,28 @@
 # Ashlar handoff: SPEC-007 (security labels and the egress guard)
 
-*Written 2026-10-05, 19:20 UTC, at the end of a long Claude Code cloud session. Start the next session with the prompt in §9.*
+*Written 2026-10-05, at the end of phase A. Start the next thread with the prompt in §9.*
+
+## 0. How we work: one thread per phase (the owner's rule, 2026-10-05)
+
+- **Each thread runs exactly one phase** from the phase map in §4, then stops.
+- **When the phase is done, the thread writes the next handoff before it ends.** It is a new `handoff.md` with these sections:
+  - §0 this protocol, unchanged;
+  - §1 where things stand, with the merged PRs and SHAs;
+  - §2 what to read;
+  - §3 the decisions;
+  - §4 the phase map with live status, and the next phase spelled out;
+  - §5 how to finish a lane;
+  - §6 environment facts, including anything learned this phase;
+  - §7 queued work;
+  - §8 ways of working;
+  - §9 the starting prompt for the next phase.
+- **Save it in three places:**
+  - the thread's scratchpad;
+  - the storage branch `claude/spec-007-pr4-workspace`: as `_handoff/spec-007-pr4/handoff.md`, plus a dated copy `handoff-phase-<X>.md` for history;
+  - the owner, via SendUserFile.
+- **Push every in-flight branch to GitHub before writing the handoff.** The cloud container's scratchpad does not survive the thread.
+- **Notify the owner** with a push notification when the handoff is ready.
+- **If a phase cannot finish,** because it is blocked on an owner decision or on red CI it cannot fix, the handoff says exactly what is blocking. The next phase does not start until that is resolved.
 
 ## 1. Where things stand
 
@@ -71,6 +93,18 @@ Why PR 4 is split: no production code enters an `EgressSubject` frame. Turning e
 
 **Merge order:** 4.4 → 4.1 → 4.6 → 4.2, then 4.3, 4.5 and 4.10, then 4.7 → 4.8 → 4.9, and 4.11 last.
 
+**Phase map.** Each phase is one thread, and ends with a handoff.
+
+| Phase | Scope | Ends when |
+|---|---|---|
+| A (done) | PR 4 design, the eight owner decisions (#713), and wave A built and checked (4.4, 4.1, 4.6, 4.2) | The lane branches are pushed and their check findings recorded here |
+| **B (next)** | Finish wave A: fix the check findings, then integrate, verify, mutation-check, open a PR, hand off and merge each of 4.4 → 4.1 → 4.6 → 4.2 | All four merged, `done` posted on #695, and Grok's drift asks for them answered or queued |
+| C | Build and merge 4.3 (redirects), 4.5 (producers, report-only) and 4.10 (AG/SW hygiene) | All three merged |
+| D | Build and merge 4.7 (refusal surface on the routes), then 4.8 (catch-alls and trust-boundary exits) | Both merged |
+| E | Build and merge 4.9 (the explicit sites, operator verbs and child processes) | Merged |
+| F | Build and merge 4.11, the switch, with `EgressEnforcementLeakTests` (the §5 done-when); update SPEC-007 so PR 4 reads Merged | Merged, and master readiness `verified` |
+| G | The security follow-ups (gRPC open relay, Fleet download, the `mcp:` deny-list) and the dead MEAI allow-list; then PR 5 design | Owner's choice |
+
 **Lane clones were in the old container's scratchpad, and they are gone.** The pushed branches are the only copies. When a branch has several commits, squash it before the PR (the repo convention is one squash-merge per PR).
 
 ## 5. How to finish a built lane
@@ -138,4 +172,13 @@ Why PR 4 is split: no production code enters an `EgressSubject` frame. Turning e
 
 ## 9. Starting prompt for the next session
 
-> Read `handoff.md` (attached, or `_handoff/spec-007-pr4/` on branch `claude/spec-007-pr4-workspace`), then `CLAUDE.md` and `docs/specs/SPEC-007-security-labels-and-reference-monitor.md`. Fetch `claude/spec-007-pr4-workspace` and read `_handoff/spec-007-pr4/DESIGN-4-final.md` §4, §3.B and the owner answers at its end. Then continue SPEC-007 PR 4. Finish the four built lanes (branches `claude/spec-007-pr4-4.4-frames`, `-4.1-records`, `-4.6-mode` and `-4.2-syncsend`): adversarially check each, merge master into it, verify in the container, mutation-check, open its PR, hand it off on #695 and merge on green, in the order 4.4 → 4.1 → 4.6 → 4.2. Then build 4.3, 4.5 and 4.10 in parallel lanes per `LANE-RULES.md`. Build and test only through `scripts/test-in-container.sh`. If anything the owner has not decided blocks you, ask instead of choosing.
+> Execute **phase B** of SPEC-007 PR 4. Read `handoff.md` (attached, or `_handoff/spec-007-pr4/handoff.md` on branch `claude/spec-007-pr4-workspace`) in full, starting with §0: one phase per thread, ending with the next handoff. Then read `CLAUDE.md`, `docs/specs/SPEC-007-security-labels-and-reference-monitor.md`, and `_handoff/spec-007-pr4/DESIGN-4-final.md` §4, §3.B and the owner answers at its end.
+>
+> Phase B is to finish wave A: branches `claude/spec-007-pr4-4.4-frames`, `-4.1-records`, `-4.6-mode` and `-4.2-syncsend`. For each, in the order 4.4 → 4.1 → 4.6 → 4.2:
+> 1. Fix the check findings listed in §4.
+> 2. Squash, merge master into it, and regenerate the knowledge graph.
+> 3. Verify in the container: the cert-gate, the touched projects and the repo gates.
+> 4. Mutation-check every behavioural change.
+> 5. Open the PR from its `pr-4.x-body.md`, hand it off on #695, and merge on green.
+>
+> Build and test only through `scripts/test-in-container.sh`. If anything the owner has not decided blocks you, ask instead of choosing. When phase B is done, write the phase C handoff per §0, and notify me.
