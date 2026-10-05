@@ -96,15 +96,23 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   process, each with an `EG-` id, and `ci/egress-inventory.tsv` pins every outbound site the source
   scan sees, by file and marker.
 
-  Report-only, with no behaviour change: nothing refuses, and nothing is routed yet. No existing call
-  site changed and no production composition calls `AddAshlarEgressGuard`, so no shipped host
-  evaluates anything; the TSV marks each site that a later change routes `Unrouted`. Because nothing
-  produces a label yet, every decision about a destination outside the host reads as a refusal
-  (`SystemHighData`); that is the report, not an enforcement. The new public API is recorded in
-  `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, so it is not yet shipped. These are
-  classification-style controls inside the runtime, not an accredited cross-domain solution. The
-  convention test that holds the inventory and the behavioural tests of the guard, the HTTP handler
-  and the factory defaults are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
+  Every listed outbound site that is not exempt is routed through the guard, report-only: nothing
+  refuses, and the only new effect on a request is the decision recorded for it. HTTP clients go
+  through `EgressHttp` or the factory handler (`AddAshlar`, and every other Ashlar member that registers
+  a factory client, calls `AddAshlarEgressGuard` after the registration; the consumer SDK's
+  `AddAshlarClient` is exempt, and the commercial Fleet registration is covered by Fleet.Host), MEAI chat
+  targets through `EgressGuardChatClient`, and the mesh, file-export, process, socket, telemetry, web
+  search and experimental Ollama proposer sites through an explicit `Evaluate` before the primitive.
+  Each decision goes to the `Ashlar-Egress` EventSource, and
+  to the Debug log under `Ashlar.Egress` wherever a logger subscription exists; no shipped
+  `appsettings` turns that category on. What routing adds to a container and to a chat client's type
+  is under `### Changed`. Because nothing produces a label yet, every decision about a destination
+  outside the host reads as a refusal (`SystemHighData`); that is the report, not an enforcement. The
+  new public API of `Ashlar.Abstractions` is recorded in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`,
+  so it is not yet shipped. These are classification-style controls inside the runtime, not an
+  accredited cross-domain solution. The convention test that holds the inventory and its routes, the
+  behavioural tests of the guard, the HTTP handler and the factory defaults, and the route twins in
+  `Tests/Certification`, are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
 - **A Claude Code cloud session sets docker up by itself.** A new SessionStart hook,
   `.claude/hooks/session-start.sh` (registered in `.claude/settings.json`), runs only when
   `CLAUDE_CODE_REMOTE=true`: it starts `dockerd` if it is not running, writes a session-local
@@ -136,6 +144,40 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   repo gate.
 
 ### Changed
+
+- **Every Ashlar host now reports its outbound requests to the egress guard (SPEC-007 PR 3b).**
+  Report-only: nothing refuses, and each change below adds a decision record, not a refusal.
+  - `AddAshlar` calls `AddAshlarEgressGuard` after its own `AddHttpClient`, so every `AddAshlar`
+    container (the API, the CLI host and its daemon, Fleet.Host, the MCP and gRPC server hosts,
+    `AddAshlarFramework` and the consumer template's host) puts `EgressGuardHandler` outermost on
+    every `IHttpClientFactory` client, the host's own and third-party clients included, and the OTLP
+    exporters' clients when an endpoint is set. Those containers also gain the guard's registrations:
+    a marker, `IEgressGuard` (`EgressGuard.ProcessDefault`, added with TryAdd), the decision logger
+    subscription, the `EgressDecisionLoggerActivator` hosted service (it does nothing but subscribe)
+    and one `IConfigureOptions<HttpClientFactoryOptions>`. Each send costs one `Evaluate`, and each
+    handler-chain build one `IEgressGuard` resolve. The primary handler, `BaseAddress`, `Timeout`,
+    default headers, handler lifetime and disposal are unchanged.
+  - `AddRunPodCapabilityRouting`, `AddNodeCapabilityRuntimeWindows`, `AddNodeCapabilityRuntimeMacOS`,
+    `AddNodeCapabilityRuntimeLinux`, `AddModelArtifactCatalog` and, when the worker is enabled,
+    `AddAshlarMeshLabWorkerExecutor` call it after their own registrations too. A container that calls
+    one of them without `AddAshlar` now also gets `AddLogging`, the hosted activator and `IEgressGuard`;
+    it already had `IHttpClientFactory` from its own `AddHttpClient`. With the MeshLab worker disabled
+    nothing changes.
+  - Every keyed MEAI chat client's outermost type is now `EgressGuardChatClient`, a new public sealed
+    type in `Ashlar.AI.Pipeline`, which has no PublicAPI baseline. `GetType()`, `is` checks and
+    `GetService(typeof(DelegatingChatClient))` now see it first. It records one decision per call
+    (`local:onnx`, in process, records none),
+    synchronously and before PolicyGate's audit record, with a destination fixed when the keyed client
+    is built, and it swallows an exception from a host `IEgressGuard`.
+  - `NativeBundle.StageApp` (public, in the `Ashlar.CLI` tool package) takes a third parameter, `site`,
+    the decision's site. Its two callers, `NativeBundle.Stage` and `CloudBundle.Stage`, pass
+    `EG-FILE-01` and `EG-FILE-02`.
+  - `Ashlar.Commercial.MeshDirector` references `Ashlar.Abstractions` for `EgressHttp`. Its net8.0
+    output gains `Ashlar.Abstractions.dll` and app-local `System.Text.Json` and `System.IO.Pipelines`
+    10.0.12 (`System.Text.Encodings.Web` 10.0.12 was already there), so its JSON request bodies and
+    pretty-printed output now run on System.Text.Json 10 instead of the shared framework's 8.
+    `MeshDirectorJsonOutputCharacterizationTests`, committed before the reference, shows both
+    byte-identical.
 
 - **`Ashlar.CLI` references its test projects only on request.** Unless a build passed
   `-p:IncludeTestProjectReferences=false`, the CLI compiled `Ashlar.Tests.Domain`,

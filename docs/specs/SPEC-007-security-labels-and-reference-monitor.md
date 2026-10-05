@@ -8,7 +8,7 @@ in §8 rather than guessing.
 
 Master at the time of writing: `0960774` (#704 and #705 merged).
 
-## Status (2026-10-04)
+## Status (2026-10-05)
 
 *Added when the spec was committed. Everything else is the owner's text of 2026-10-03, with these additions, each
 marked: test names next to the §2 MUSTs (labelled **Enforced by**, as §7 asks), a status column in §5, the sections
@@ -19,7 +19,7 @@ The status line above and the starting prompt are the owner's, as written; the s
 |---|---|---|
 | 1: the label lattice and reference-monitor decisions (§4) | Merged | #706, `0f9642ec2` |
 | 2: bridge the existing labels | Merged | #707, `f1f2cff48` |
-| 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. 3a is merged; 3b (routing) is in progress | 3a: #709, `c257aa684` |
+| 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #PR3B_NUMBER |
 | 4 to 8 | Not started | |
 
 - **PR 1** added `Ashlar.Abstractions.Security` in `src/Ashlar.Abstractions/Security/`, with 367 cert-gate tests. The
@@ -33,6 +33,14 @@ The status line above and the starting prompt are the owner's, as written; the s
   `ci/egress-inventory.tsv` (84 rows, 51 of them `Unrouted` until 3b), and added `EgressGuardConventionTests`, which
   fails when an outbound path appears that the inventory does not list. 3a routes nothing: no production composition
   calls `AddAshlarEgressGuard`.
+- **PR 3b** routed the 51 rows 3a pinned `Unrouted` and removed that reason, which the convention test now rejects:
+  10 are `Factory`, 4 `Upstream:<path>` and 4 `Governance`, and the other 33 are guarded (`Wrapped`, `Precedes`, or
+  `Factory` for the 8 registrations; the MeshDiscovery listener beside its guarded beacon stays `Exempt:Inbound`).
+  The MCP client's `EgressHttp` client
+  adds one row, so the TSV pins 85. HTTP clients go through `EgressHttp` or the factory handler, which `AddAshlar` and
+  every other Ashlar member that registers a factory client install (the consumer SDK's `AddAshlarClient` is exempt,
+  and Fleet.Host covers the commercial Fleet registration); MEAI targets go through `EgressGuardChatClient`, the
+  outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It is still report-only.
 - **A gap carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`): the `netstandard2.0` asset of
   `Ashlar.Abstractions` does not evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` goes out
   unevaluated. It has to be closed before the guard enforces.
@@ -260,10 +268,10 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 
 ## 5. After PR 1 (in order; each one small, each one merged before the next starts)
 
-| PR | What | Done when | Status (2026-10-04, added) |
+| PR | What | Done when | Status (added 2026-10-04, updated 2026-10-05) |
 |---|---|---|---|
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
-| 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b (routing) in progress |
+| 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #PR3B_NUMBER (routes every listed non-exempt site, report-only) |
 | 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Not started |
 | 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | Not started |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
@@ -313,7 +321,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 
 ## Decisions log (added 2026-10-04)
 
-The owner's decisions only, each with the PR it applied to: the ones #707 and #709 list under "Owner decisions
+The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
 applied". None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
 were not the owner's are in the next section.
 
@@ -323,6 +331,8 @@ were not the owner's are in the next section.
 | 2026-10-04 | PR 2 (#707) | **Only the level is carried.** A bridged label has no compartments and no caveats, and the four level flags (`AllowsExternalLLM`, `AllowsWebSearch`, `RequiresLocalOnly`, `AllowsNetworkExports`) do not become caveats. This is a documented gap; open question C says where it goes next. |
 | 2026-10-04 | PR 3 (3a, #709) | **The guard covers every factory client (PR 3 design question 1, answer A; not §8 Q1).** The egress handler sits on every `IHttpClientFactory` client, including clients the host registers, and each decision carries the site `factory:<client name>`. |
 | 2026-10-04 | PR 3 | **PR 3 is split.** 3a adds the guard, the written inventory and the convention test, and routes nothing. 3b routes every listed site through the guard. |
+| 2026-10-05 | PR 3 (3b) | **The MeshDirector client is routed (3b question Q-A, answer A).** `Ashlar.Commercial.MeshDirector` takes a ProjectReference to `Ashlar.Abstractions` and builds its client with `EgressHttp`, behind a characterization test committed first, which must show the JSON request bodies and printed output byte-identical. |
+| 2026-10-05 | PR 3 (3b) | **Open question C is deferred to PR 4 (3b question Q-B, answer A).** 3b merges with C open. |
 
 ## Design as merged (added 2026-10-04)
 
@@ -333,7 +343,9 @@ stand until a later PR or the owner changes them.
   writes it to the `Ashlar-Egress` EventSource and to every subscribed `IEgressDecisionSink`. The Debug log line is
   not the guard's: `AddAshlarEgressGuard` subscribes an `ILogger` sink that logs each decision at Debug under the
   `Ashlar.Egress` category (`EventId` 7300), so those lines stay hidden unless an operator turns that category on.
-  No production composition calls `AddAshlarEgressGuard` yet, so outside the tests nothing subscribes that sink.
+  Since PR 3b, `AddAshlar` and every Ashlar registration member that adds a factory client call
+  `AddAshlarEgressGuard`, except the consumer SDK's `AddAshlarClient` and the commercial Fleet registration, which
+  Fleet.Host covers; so every Ashlar host subscribes that sink, when it starts or when it first builds a factory client.
 - **No subject means `SystemHigh`** (#709). With no active `EgressSubject` frame, the current label is `SystemHigh`
   with basis `no-subject`. This follows the owner's §7 rule: when a label is missing, treat it as `SystemHigh`. So a
   destination inside the host boundary is allowed, and every other one is decided as refused with `SystemHighData`.
@@ -402,8 +414,8 @@ answered yet, and none blocked a merged PR. They are lettered so they do not col
   markings such as `NOFORN` and `NOWEB`. It cannot express originator-controlled markings such as `ORCON`, and REL TO
   needs a different encoding. Whether the four level flags become caveats (see the PR 2 decision above) is a related
   question. #707 placed it with §8 Q2 (compartment names: free-form tokens or registered in a policy pack; #707
-  calls it the caveat-registry question, though §8 Q2 asks about compartments), to be settled before PR 3. It was not decided before 3a merged, so it is now due before
-  3b or PR 4.
+  calls it the caveat-registry question, though §8 Q2 asks about compartments), to be settled before PR 3. It was not decided before 3a or 3b merged:
+  on 2026-10-05 the owner let 3b merge with it open, so it is now due before PR 4.
 
 - **D. Redacting refusal details.** A read refusal's `Detail` names the data's level and compartments to whoever
   receives it. The XML docs now say `Detail` is for audit and operators only. Should PR 3 or PR 4 give the refused

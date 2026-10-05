@@ -16,6 +16,12 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
     /// Registers <see cref="IModelArtifactCatalogService"/> and the default Ollama <c>/api/tags</c> source.
     /// Call <see cref="AddDockerOllamaModelArtifactCatalogSource"/> from desktop host registrations when Docker discovery is desired.
     /// </summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the three catalog clients
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddModelArtifactCatalog(
         this IServiceCollection services,
         IConfiguration configuration)
