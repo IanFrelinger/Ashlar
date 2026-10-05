@@ -25,8 +25,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.VirtualProduction;
 /// <see cref="IHttpClientFactory"/> is one <c>factory:ashlar-sns-signing</c> decision. A test-only client default
 /// puts a stub primary handler (a new one per handler build) under it, so nothing leaves the process.</para>
 /// <para><b>Idempotent.</b> The host's descriptor list holds one guard marker, one hosted activator and one
-/// <see cref="IEgressGuard"/>, <see cref="EgressGuard.ProcessDefault"/>: the Program.cs call after <c>AddAshlar</c>
-/// hit the marker and registered nothing.</para>
+/// <see cref="IEgressGuard"/>, the guard <c>AddAshlar</c> composed (SPEC-007 PR 4.6): the Program.cs call after
+/// <c>AddAshlar</c> hit the marker and registered nothing.</para>
 /// <para><b>EG-TEL-01.</b> The guard is evaluated once, when the host registers OTLP export, with the endpoint as a
 /// name; the record keeps scheme, host and port and drops userinfo, path and query. No subject frame flows on the
 /// thread that runs Program.cs, so the decision is found by its site and its unique destination host. When the
@@ -61,7 +61,8 @@ public sealed class EgressApiHostProdStyleTests
             .Should().ContainSingle();
         descriptors.Where(d => !d.IsKeyedService && d.ServiceType == typeof(IEgressGuard))
             .Should().ContainSingle()
-            .Which.ImplementationInstance.Should().BeSameAs(EgressGuard.ProcessDefault);
+            .Which.ImplementationInstance.Should().BeOfType<EgressGuard>()
+            .And.NotBeSameAs(EgressGuard.ProcessDefault, "from SPEC-007 PR 4.6 AddAshlar binds the guard it composed");
     }
 
     [Fact(Timeout = TestTimeouts.HostTouching)]

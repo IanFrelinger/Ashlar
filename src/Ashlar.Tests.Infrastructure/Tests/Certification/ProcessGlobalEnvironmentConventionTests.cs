@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Ashlar.Core.Application.Paths;
 using Xunit;
@@ -36,6 +37,16 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// serialize — by freezing the three definitions that do not set
 /// <c>DisableParallelization</c>.</para>
 ///
+/// <para><b>The process egress state is a process-global write too</b> (SPEC-007 PR 4.6, design §2.10). The
+/// strictest deployment profile <c>AddAshlar</c> notes wins for the rest of the process, and the egress-mode
+/// override is read once, so a test that composes AirGapped or SecureWorkstation, raises the mode through the
+/// hosting option, or calls the reset seam writes state that outlives it, exactly as an environment variable does.
+/// Those files must serialize like any other writer, and
+/// <see cref="No_file_that_leaves_egress_state_behind_skips_the_reset_seam"/> requires each one that composes such a
+/// profile, raises the mode or names the override variable to restore through the seam. The scan is textual: a
+/// profile reached only through a variable (a host built under <c>ASHLAR_DEPLOYMENT_PROFILE=airgapped</c>) is a
+/// variable write, and is caught as one only where the file writes the variable itself.</para>
+///
 /// <para>Hermetic: pure file reads, no build, no network, no SDK, and the same structural pruning
 /// as <see cref="TestOwnershipConventionTests"/>, because a nested git worktree holds a second
 /// copy of every file here and counting those turned a required check on master red on
@@ -67,6 +78,27 @@ public sealed class ProcessGlobalEnvironmentConventionTests
     private static readonly string CollectionDefinitionMarker = "[Coll" + "ectionDefinition(";
 
     private const string SerializingMarker = "DisableParallelization";
+
+    /// <summary><c>AddAshlar</c>, which <c>AddAshlarProfile</c> also contains. It counts only together with an
+    /// enforcing profile or a mode assignment, which are concatenated, so naming it in prose here is harmless.</summary>
+    private static readonly string ComposeMarker = "AddAsh" + "lar";
+
+    /// <summary>The two profiles that would enforce once the switch lands, as a test names them.</summary>
+    private static readonly string[] EnforcingProfileMarkers =
+    [
+        "AshlarDeploymentProfile." + "AirGapped",
+        "AshlarDeploymentProfile." + "SecureWorkstation",
+    ];
+
+    /// <summary>An assignment to <c>AshlarHostingOptions.EgressMode</c>, which raises the mode for the process.</summary>
+    private static readonly Regex HostingModeAssignment = new(@"\bEgress" + @"Mode\s*=(?!=)", RegexOptions.CultureInvariant);
+
+    /// <summary>The egress-mode override variable, read once per process.</summary>
+    private static readonly string ModeVariableMarker = "ASHLAR_EGRESS" + "_MODE";
+
+    /// <summary>The reset seam in <c>Ashlar.Abstractions</c>, and the test helper that wraps it (its name plus
+    /// <c>Scope</c>). Concatenated, so this file is not itself a user of the seam.</summary>
+    private static readonly string SeamMarker = "EgressProcess" + "State";
 
     /// <summary>
     /// Test files known on 2026-09-11 to write a process-global environment variable without
@@ -181,8 +213,58 @@ public sealed class ProcessGlobalEnvironmentConventionTests
     }
 
     /// <summary>
-    /// Repo-root-relative paths of files that declare tests, write a process-global environment
-    /// variable, and carry no <c>[Collection]</c> attribute.
+    /// Every file that composes AirGapped or SecureWorkstation, raises the egress mode through the hosting option,
+    /// or names the override variable leaves process egress state behind unless it restores it, and restoring is
+    /// only possible through the reset seam (SPEC-007 PR 4.6, design §2.10).
+    /// </summary>
+    [Fact]
+    public void No_file_that_leaves_egress_state_behind_skips_the_reset_seam()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+
+        var leaking = TestSources(root)
+            .Where(source => FactMarkers.Any(m => source.Text.Contains(m, StringComparison.Ordinal)))
+            .Where(source => LeavesEgressState(source.Text) && !source.Text.Contains(SeamMarker, StringComparison.Ordinal))
+            .Select(source => source.Path)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToList();
+
+        leaking.Should().BeEmpty(
+            "the strictest profile AddAshlar notes wins for the rest of the process and the egress-mode override is "
+            + "read once, so a test that composes AirGapped or SecureWorkstation, raises the mode or sets the override "
+            + "leaves enforcement state to every later test. Snapshot it with {0}Scope in the constructor and "
+            + "dispose that in Dispose, in the EnvironmentVariables collection. Leaking: {1}",
+            SeamMarker,
+            string.Join(", ", leaking));
+    }
+
+    /// <summary>
+    /// A process-global write: an environment variable, or the process egress state (a profile that would enforce
+    /// composed through <c>AddAshlar</c>, the mode raised through the hosting option, or any use of the reset seam).
+    /// </summary>
+    private static bool WritesProcessGlobalState(string text) =>
+        text.Contains(EnvironmentWrite, StringComparison.Ordinal)
+        || ComposesEnforcingProfile(text)
+        || RaisesTheMode(text)
+        || text.Contains(SeamMarker, StringComparison.Ordinal);
+
+    /// <summary>What must be restored through the seam: an enforcing profile, a raised mode, or the override variable.</summary>
+    private static bool LeavesEgressState(string text) =>
+        ComposesEnforcingProfile(text)
+        || RaisesTheMode(text)
+        || text.Contains(ModeVariableMarker, StringComparison.Ordinal);
+
+    private static bool ComposesEnforcingProfile(string text) =>
+        text.Contains(ComposeMarker, StringComparison.Ordinal)
+        && EnforcingProfileMarkers.Any(m => text.Contains(m, StringComparison.Ordinal));
+
+    private static bool RaisesTheMode(string text) =>
+        text.Contains(ComposeMarker, StringComparison.Ordinal) && HostingModeAssignment.IsMatch(text);
+
+    /// <summary>
+    /// Repo-root-relative paths of files that declare tests, write process-global state (an environment variable,
+    /// or the process egress state), and carry no <c>[Collection]</c> attribute.
     /// </summary>
     private static IEnumerable<string> UnserializedEnvironmentWriters(string root)
     {
@@ -190,7 +272,7 @@ public sealed class ProcessGlobalEnvironmentConventionTests
 
         foreach (var (path, text) in TestSources(root))
         {
-            if (!text.Contains(EnvironmentWrite, StringComparison.Ordinal))
+            if (!WritesProcessGlobalState(text))
                 continue;
 
             // A helper with no facts of its own is not scheduled into a collection, so a

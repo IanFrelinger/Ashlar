@@ -18,6 +18,17 @@ public sealed class AshlarHostingOptions
     public AshlarDeploymentProfile? DeploymentProfile { get; set; }
 
     /// <summary>
+    /// Raises the egress guard's mode to <c>enforce</c> for the whole process (SPEC-007 PR 4). It can only raise
+    /// the mode: <c>enforce</c> (trimmed, any case) raises it, and so does any other non-blank value, which fails
+    /// closed; <c>report</c> and <see langword="null"/> change nothing, so a lower mode comes only from the
+    /// <c>ASHLAR_EGRESS_MODE</c> environment variable. Ashlar never binds this from <c>IConfiguration</c>, so an
+    /// appsettings file or a command-line argument cannot set it.
+    /// <para>Not yet a supported setting: until SPEC-007 PR 4.7 no route acts on the mode, so an <c>enforce</c>
+    /// decision record says what would have been refused, not that a send stopped.</para>
+    /// </summary>
+    public string? EgressMode { get; set; }
+
+    /// <summary>
     /// Path to the configuration file (default: ~/.ashlar/config.json).
     /// </summary>
     public string? ConfigPath { get; set; }

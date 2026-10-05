@@ -1,8 +1,8 @@
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
-/// The report-only egress guard: classifies the destination, reads the subject's current label, applies the star
-/// property, and publishes the record.
+/// The egress guard: resolves the mode, classifies the destination, reads the subject's current label, applies the
+/// star property, and publishes the record.
 /// </summary>
 /// <remarks>
 /// <para><b>Destination.</b> The first matching rule wins. A <c>unix</c> or <c>npipe</c> URI, a host that is
@@ -17,18 +17,24 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para><b>Decision.</b> <see cref="ReferenceMonitor.CanWrite"/>(current, destination label). With no subject,
 /// destinations inside the host boundary are allowed and every other one is refused with
 /// <see cref="AccessDenialReason.SystemHighData"/>.</para>
-/// <para><b>Report-only.</b> <see cref="Evaluate"/> never throws, never refuses and never blocks: it only records.
-/// It does not consult or change any other policy. If evaluating throws, the record carries
-/// <see cref="EgressDecision.Fault"/> (the exception's type name only) and <c>default(AccessDecision)</c>, and is
-/// still published.</para>
+/// <para><b>Mode.</b> Resolved first, in its own step, by one resolver (SPEC-007 PR 4.6). A guard built with a
+/// profile takes its profile and its override from its constructor only and never reads the environment. A guard
+/// built without one (<see cref="ProcessDefault"/>) reads the profile at every decision, preferring the one
+/// <c>AddAshlar</c> noted, and takes its override from its constructor, else from <c>ASHLAR_EGRESS_MODE</c> as the
+/// process read it once (raised to <c>enforce</c> if <c>AddAshlar</c> was asked to). Until SPEC-007 PR 4.11 every
+/// profile defaults to <c>report</c>. If resolving the mode throws, the mode is <c>enforce</c> with the basis
+/// <c>fault</c>: it fails closed.</para>
+/// <para><b>Nothing refuses yet.</b> <see cref="Evaluate"/> never throws, never refuses and never blocks: it only
+/// records, and until SPEC-007 PR 4.7 no route acts on <see cref="EgressDecision.Refused"/>. It does not consult or
+/// change any other policy. If classifying throws, the record carries <see cref="EgressDecision.Fault"/> (the
+/// exception's type name only) and <c>default(AccessDecision)</c>, and is still published.</para>
 /// <para>Every instance decides by the same rules and publishes to the same <see cref="EgressDecisionLog"/>; an
-/// instance differs only in the deployment profile it reports.</para>
+/// instance differs only in the deployment profile and the mode override it starts from.</para>
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited cross-domain
 /// solution.</para>
 /// </remarks>
 public sealed class EgressGuard : IEgressGuard
 {
-    internal const string ReportMode = "report";
     internal const string DeploymentProfileVariable = "ASHLAR_DEPLOYMENT_PROFILE";
     internal const string FaultedDestinationBasis = "not classified: the evaluation faulted";
     internal const string FaultedCurrentBasis = "not resolved: the evaluation faulted";
@@ -36,21 +42,29 @@ public sealed class EgressGuard : IEgressGuard
     private static long _sequence;
 
     private readonly string? _deploymentProfile;
+    private readonly string? _egressMode;
 
     /// <summary>
     /// Creates a guard.
     /// </summary>
-    /// <param name="deploymentProfile">The deployment profile to report, for example <c>air-gapped</c>. When
+    /// <param name="deploymentProfile">The deployment profile to decide under, for example <c>air-gapped</c>. When
     /// <see langword="null"/>, <c>ASHLAR_DEPLOYMENT_PROFILE</c> is read at every decision, preferring the profile
-    /// <c>AddAshlar</c> resolved in this process, exactly as the remote-protocol option validators read it.</param>
-    public EgressGuard(string? deploymentProfile = null)
+    /// <c>AddAshlar</c> resolved in this process, exactly as the remote-protocol option validators read it. A profile
+    /// that is not one of the six fails closed to <c>enforce</c>.</param>
+    /// <param name="egressMode">The mode override: <c>report</c> or <c>enforce</c> (trimmed, any case); any other
+    /// non-blank value fails closed to <c>enforce</c>. When <see langword="null"/>, a guard with a
+    /// <paramref name="deploymentProfile"/> has no override and never reads the environment, and a guard without one
+    /// uses the process override (<c>ASHLAR_EGRESS_MODE</c>, read once). Not yet a supported setting: until SPEC-007
+    /// PR 4.7 nothing acts on the mode.</param>
+    public EgressGuard(string? deploymentProfile = null, string? egressMode = null)
     {
         _deploymentProfile = deploymentProfile;
+        _egressMode = egressMode;
     }
 
     /// <summary>
     /// The guard used wherever none is given: it reads the deployment profile from the environment at every
-    /// decision.
+    /// decision, and the mode override once per process.
     /// </summary>
     public static EgressGuard ProcessDefault { get; } = new();
 
@@ -59,6 +73,22 @@ public sealed class EgressGuard : IEgressGuard
     {
         var sequence = Interlocked.Increment(ref _sequence);
         var at = DateTimeOffset.UtcNow;
+
+        // The mode first, in a step of its own, so a fault while resolving it fails closed to enforce rather than
+        // leaving a placeholder that would fail open (SPEC-007 §7).
+        var mode = EgressEnforcement.EnforceMode;
+        var modeBasis = EgressEnforcement.FaultBasis;
+        try
+        {
+            (mode, modeBasis) = ResolveMode();
+        }
+#pragma warning disable CA1031 // Evaluate never throws by contract: a mode that cannot be resolved is enforce, basis fault.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            mode = EgressEnforcement.EnforceMode;
+            modeBasis = EgressEnforcement.FaultBasis;
+        }
 
         // Fail-closed placeholders. A stage that faults leaves its fields as they are here: the destination at the
         // bottom (Public), the current label at the top (SystemHigh), and no decision.
@@ -100,10 +130,22 @@ public sealed class EgressGuard : IEgressGuard
             access = default;
         }
 
+        string reference;
+        try
+        {
+            reference = EgressEnforcement.NewReference();
+        }
+#pragma warning disable CA1031 // Evaluate never throws by contract: a reference that cannot be drawn is recorded as unavailable.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            reference = EgressEnforcement.UnavailableReference;
+        }
+
         var decision = new EgressDecision(
             sequence,
             at,
-            ReportMode,
+            mode,
             family,
             site,
             destination,
@@ -115,10 +157,34 @@ public sealed class EgressGuard : IEgressGuard
             access,
             profile,
             enforces,
-            fault);
+            fault,
+            modeBasis,
+            reference);
 
         EgressDecisionLog.Publish(decision);
         return decision;
+    }
+
+    // A guard built with a profile decides from its constructor alone and never reads the environment (SPEC-007
+    // PR 4.6, default D4). Otherwise the profile is read now, as ResolveProfile reads it, and the override is the
+    // constructor's, else the process latch's; a mode other than plain report is announced on stderr once.
+    private (string Mode, string ModeBasis) ResolveMode()
+    {
+        EgressEnforcement.ModeResolutionProbe?.Invoke();
+
+        if (_deploymentProfile is not null)
+            return EgressEnforcement.ResolveMode(_deploymentProfile, _egressMode);
+
+        var profile = AshlarDeploymentProfileEnvironment.Effective(Environment.GetEnvironmentVariable(DeploymentProfileVariable));
+        var modeOverride = _egressMode ?? EgressEnforcement.ProcessOverride();
+        var resolved = EgressEnforcement.ResolveMode(profile, modeOverride);
+        EgressEnforcement.AnnounceOnce(
+            resolved.Mode,
+            resolved.ModeBasis,
+            EgressDestinations.Bound(profile),
+            profileDefaulted: string.IsNullOrWhiteSpace(profile),
+            overrideUnrecognised: EgressEnforcement.ParseOverride(modeOverride) == EgressEnforcement.OverrideKind.Unrecognised);
+        return resolved;
     }
 
     // A configured profile is reported as given. Otherwise the environment is read now, through the same effective

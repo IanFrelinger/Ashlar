@@ -65,6 +65,12 @@ The status line above and the starting prompt are the owner's, as written; the s
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
 
+  - **4.6 (this PR)**, mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
+    `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once
+    per process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every
+    profile still defaults to `report`. The strictest profile noted in the process wins, `AddAshlar` binds its own
+    guard in place of `ProcessDefault`, and tests restore that state through a reset seam. Nothing refuses yet.
+
 ---
 
 ## 1. Why

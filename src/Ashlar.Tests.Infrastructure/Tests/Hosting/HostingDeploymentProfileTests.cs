@@ -22,8 +22,14 @@ namespace Ashlar.Tests.Infrastructure.Tests.Hosting;
 [Trait("Category", "E2E")]
 [Trait("Category", "ProdStyle")]
 [Collection("EnvironmentVariables")]
-public sealed class HostingDeploymentProfileTests
+public sealed class HostingDeploymentProfileTests : IDisposable
 {
+    // SPEC-007 PR 4.6: composing AirGapped or SecureWorkstation notes a profile no later AddAshlar lowers, so each
+    // test restores the process egress state (the noted profile and the mode latch) through the reset seam.
+    private readonly EgressProcessStateScope _egressState = new();
+
+    public void Dispose() => _egressState.Dispose();
+
     [Theory(Timeout = TestTimeouts.E2E)]
     [InlineData(AshlarDeploymentProfile.Full)]
     [InlineData(AshlarDeploymentProfile.Server)]

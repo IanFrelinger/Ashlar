@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
 using Ashlar.Abstractions.Routing;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Abstractions.Transport;
 using Ashlar.BackgroundAgents;
 using Ashlar.BackgroundAgents.Trust;
@@ -97,7 +98,7 @@ public static partial class AshlarServiceCollectionExtensions
     /// <c>ASHLAR_OBSERVATION_FAIL_OPEN</c>, <c>ASHLAR_EPHEMERAL</c>,
     /// <c>ASHLAR_EPHEMERAL_MODELS</c>, <c>ASHLAR_EPHEMERAL_DB</c>,
     /// <c>ASHLAR_TRUST_ENABLED</c>, <c>ASHLAR_LOAD_PREFERENCE</c>,
-    /// <c>ASHLAR_EXECUTION_REMOTE_URL</c>.
+    /// <c>ASHLAR_EXECUTION_REMOTE_URL</c>, <c>ASHLAR_EGRESS_MODE</c> (read once per process).
     /// </para>
     /// </summary>
     public static IServiceCollection AddAshlar(
@@ -107,8 +108,8 @@ public static partial class AshlarServiceCollectionExtensions
         var options = new AshlarHostingOptions();
         configure?.Invoke(options);
         ResolveStrictMode(options);
-        var deploymentProfile = ResolveDeploymentProfile(options);
-        AshlarDeploymentProfileEnvironment.NoteResolved(deploymentProfile switch
+        var deploymentProfile = ResolveDeploymentProfile(options, out var profileDefaulted);
+        var canonicalProfile = deploymentProfile switch
         {
             AshlarDeploymentProfile.AirGapped => "air-gapped",
             AshlarDeploymentProfile.SecureWorkstation => "secure-workstation",
@@ -116,15 +117,21 @@ public static partial class AshlarServiceCollectionExtensions
             AshlarDeploymentProfile.Edge => "edge",
             AshlarDeploymentProfile.Server => "server",
             _ => "full"
-        });
+        };
+        // The strictest profile noted in the process wins (SPEC-007 PR 4, D5).
+        AshlarDeploymentProfileEnvironment.NoteResolved(canonicalProfile);
+        // SPEC-007 PR 4.6: ASHLAR_EGRESS_MODE is read once per process (here, or at the first decision of a process
+        // that never runs AddAshlar), and AshlarHostingOptions.EgressMode can only raise it.
+        var egressOverride = EgressEnforcement.NoteHostingOption(options.EgressMode);
         var modules = GetModuleSelection(deploymentProfile);
 
         services.AddSingleton(options.StrictMode);
 
         services.AddHttpClient();
-        // SPEC-007: the report-only egress guard handler on every IHttpClientFactory client in this container,
-        // the host's own included (owner decision Q1 = A). Idempotent, so the kernel members below that call it add nothing.
+        // SPEC-007: the egress guard handler on every IHttpClientFactory client in this container, the host's own
+        // included (owner decision Q1 = A). Idempotent, so the kernel members below that call it add nothing.
         services.AddAshlarEgressGuard();
+        BindComposedEgressGuard(services, canonicalProfile, profileDefaulted, egressOverride, options.EgressMode);
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .Build();

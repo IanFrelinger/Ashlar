@@ -180,6 +180,40 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     `MeshDirectorJsonOutputCharacterizationTests`, committed before the reference, shows both
     byte-identical.
 
+- **The egress guard resolves a mode (SPEC-007 PR 4.6). Every profile still reports, and nothing
+  refuses.** Mode plumbing only: no route acts on the mode until PR 4.7, and AirGapped and
+  SecureWorkstation keep reporting until the switch (PR 4.11), so an `enforce` record says what would
+  have been refused, not that a send stopped.
+  - `EgressDecision` gains `ModeBasis` (what decided `Mode`: `profile:<profile>`, `override`,
+    `override-ignored`, `profile:unrecognised` or `fault`), `Refused` (`Mode` is `enforce` and `Access`
+    does not allow the egress) and `Ref` (a random 64-bit reference, 16 hex digits). `Mode` is now
+    `report` or `enforce`. The `Ashlar-Egress` event 1 appends `modeBasis`, `refused` and `ref` after
+    `fault`; no field is renamed or reordered.
+  - `EgressGuard`'s constructor takes a second optional parameter, `egressMode`. A guard built with a
+    profile takes its override from the constructor only and never reads the environment.
+    `EgressGuard.ProcessDefault` reads its override from `ASHLAR_EGRESS_MODE` once per process (at
+    `AddAshlar`, or at its first decision), so a later change to the variable does nothing. `report`
+    and `enforce` are honoured on every profile; any other value, a profile that is none of the six,
+    and a fault while resolving the mode fail closed to `enforce`. The new
+    `AshlarHostingOptions.EgressMode` can only raise the mode, and is never bound from configuration.
+    Neither setting is supported yet.
+  - **`AddAshlar` registers its own guard.** `IEgressGuard` in an `AddAshlar` container is now a guard
+    built with the profile that `AddAshlar` resolved and the process's mode override, in place of
+    `EgressGuard.ProcessDefault`. Only a `ProcessDefault` registration is replaced, including one an
+    `AddAshlarEgressGuard` call made before `AddAshlar`; a host's own guard is kept. `AddAshlar` also
+    adds one hosted service, which logs the mode line at start (`Ashlar.Egress`, event 7302
+    `EgressMode`), and a process whose mode is not plain `report` writes that line to standard error
+    once.
+  - **Behaviour change: the strictest deployment profile noted in a process wins.** Once `AddAshlar`
+    has resolved AirGapped, a later `AddAshlar` with another profile no longer lowers what the
+    remote-protocol validators and `ProcessDefault` read; SecureWorkstation is replaced only by
+    AirGapped. Among the other profiles the last one still wins.
+  - `Ashlar.Abstractions` grants `InternalsVisibleTo` to `Ashlar.AI.Pipeline`, for the refusal surface
+    in PR 4.7. The new public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`.
+    `EgressModeResolutionTests` and `EgressModeProcessBindingTests` pin the mode table and the two
+    bindings in cert-gate, and `ProcessGlobalEnvironmentConventionTests` now treats composing
+    AirGapped or SecureWorkstation, raising the mode and the reset seam as process-global writes.
+
 - **`Ashlar.CLI` references its test projects only on request.** Unless a build passed
   `-p:IncludeTestProjectReferences=false`, the CLI compiled `Ashlar.Tests.Domain`,
   `Ashlar.Tests.Application` and `Ashlar.Tests.Infrastructure` (and through them, on net10.0,

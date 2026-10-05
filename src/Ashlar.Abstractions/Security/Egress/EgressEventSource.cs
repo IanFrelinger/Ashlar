@@ -11,7 +11,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// one-shots). Turn it on with <c>dotnet-trace collect --providers Ashlar-Egress</c> or an
 /// <see cref="EventListener"/>.</para>
 /// <para>Every field is a string or a bool. The provider name, the event id and name, and the field names and
-/// order are a public contract that operators script against: append fields, never reorder or rename them.</para>
+/// order are a public contract that operators script against: append fields, never reorder or rename them.
+/// SPEC-007 PR 4.6 appended <c>modeBasis</c>, <c>refused</c> and <c>ref</c> after <c>fault</c>.</para>
 /// </remarks>
 [EventSource(Name = SourceName)]
 internal sealed class EgressEventSource : EventSource
@@ -50,7 +51,10 @@ internal sealed class EgressEventSource : EventSource
             access.Detail,
             decision.Profile,
             decision.ProfileEnforcesByDefault,
-            decision.Fault ?? string.Empty);
+            decision.Fault ?? string.Empty,
+            decision.ModeBasis,
+            decision.Refused,
+            decision.Ref);
     }
 
     [Event(DecisionEventId, Level = EventLevel.Informational)]
@@ -71,7 +75,10 @@ internal sealed class EgressEventSource : EventSource
         string detail,
         string profile,
         bool profileEnforcesByDefault,
-        string fault)
+        string fault,
+        string modeBasis,
+        bool refused,
+        string @ref)
     {
         WriteEvent(
             DecisionEventId,
@@ -91,7 +98,10 @@ internal sealed class EgressEventSource : EventSource
             detail,
             profile,
             profileEnforcesByDefault,
-            fault);
+            fault,
+            modeBasis,
+            refused,
+            @ref);
     }
 
     private static string ReasonName(AccessDenialReason reason) => reason switch
