@@ -181,8 +181,9 @@ public sealed partial class EgressGuardConventionTests
     /// <summary>
     /// Non-vacuity floors, examined occurrences counting guarded and unguarded together so converting sites
     /// never trips them. Measured in the devtest container on the SPEC-007 PR 3a commit (edf585a): 2,128
-    /// production .cs files scanned and 146 occurrences examined. PR 3b adds the two MEAI guard files and moves
-    /// the count to 2,130 files and 148 occurrences (http.new 18, of which 3 are the guard's own in
+    /// production .cs files scanned and 146 occurrences examined. PR 3b adds the two MEAI guard files (2,130
+    /// files) and two http.new occurrences, the MCP transport's EgressHttp client and a second construction in
+    /// the gRPC channel handler, so 148 occurrences (http.new 18, of which 3 are the guard's own in
     /// <c>EgressHttp.cs</c>; http.param 22, http.register 12, sdk.client 9, socket 2, process 51, door 11,
     /// telemetry 2, store 14, chat.register 7, banned 0). Set far enough below to survive ordinary deletions;
     /// a scan that stops reading the tree falls through them. Re-measure and restate when a PR moves them.
