@@ -3,6 +3,7 @@ using Ashlar.Core.Application.Execution.Ports;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.Ephemeral.Ports;
 using Ashlar.Core.Application.Resilience.Ports;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Domain;
 using Ashlar.Infrastructure.Execution.Ollama;
 using Ashlar.Infrastructure.Resilience;
@@ -57,7 +58,7 @@ public class ProviderFactory : IProviderFactory
     private OllamaProvider? _ollamaProvider;
     private string? _ollamaProviderBaseUrl;
     private HttpClient? _ollamaHttpClient;
-    private static readonly HttpClient Http = new();
+    private static readonly HttpClient Http = EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-03");
 
     // --- Provider catalogue ---
 
@@ -810,10 +811,8 @@ public class ProviderFactory : IProviderFactory
                 ? configuredTimeout
                 : 300;
 
-            var httpClient = new HttpClient
-            {
-                Timeout = TimeSpan.FromSeconds(timeoutSeconds)
-            };
+            var httpClient = EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-07");
+            httpClient.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
             if (_ollamaHttpClient is not null)
             {

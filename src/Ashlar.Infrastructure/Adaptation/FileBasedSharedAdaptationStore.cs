@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Adaptation.Models;
 using Ashlar.Core.Application.Adaptation.Ports;
 using Ashlar.Core.Application.Analysis.Ports;
@@ -52,6 +53,8 @@ public sealed class FileBasedSharedAdaptationStore : ISharedAdaptationBroadcaste
         var sourcePeerId = entry.SourcePeerId ?? _sourcePeerId;
 
         var dir = Path.Combine(_basePath, entry.Id);
+        // SPEC-007 EG-MESH-07, report-only: the promoted source leaves through the directory peers sync.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-07", "file:" + _basePath));
         Directory.CreateDirectory(dir);
 
         var metaPath = Path.Combine(dir, "meta.json");

@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 153,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 755,
-    "declared_facts": 4702,
+    "test_files_declaring_facts": 766,
+    "declared_facts": 4756,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2676,6 +2676,20 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/EgressCliRawClientTwinTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/EgressCliSiteTwinTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/ForgeRelatedCommandTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
@@ -2953,6 +2967,13 @@
       "project": "Ashlar.Ingress.DynamoDb.Tests",
       "namespace": "Ashlar.Ingress.DynamoDb.Tests",
       "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Mcp.Client.Tests/McpEgressTwinTests.cs",
+      "project": "Ashlar.Mcp.Client.Tests",
+      "namespace": "Ashlar.Mcp.Client.Tests",
+      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {
@@ -3485,6 +3506,13 @@
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.DataSensitivity",
       "declared_facts": 11,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.BackgroundAgents/EgressAgentSiteTwinTests.cs",
+      "project": "Ashlar.Tests.BackgroundAgents",
+      "namespace": "Ashlar.Tests.BackgroundAgents",
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {
@@ -5035,6 +5063,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressExplicitSiteTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 11,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressFactoryDefaultsTwinTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5042,7 +5077,21 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardChatClientTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 14,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.Controls.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 1,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.Routes.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 1,
@@ -5067,6 +5116,20 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 17,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressKernelFactoryTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 2,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRawClientTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 3,
       "in_cert_gate_filter": true
     },
     {
@@ -7016,6 +7079,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/EgressApiHostProdStyleTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.VirtualProduction",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/FrameworkVirtualProdDemosTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.VirtualProduction",
@@ -7895,6 +7965,13 @@
       "project": "Ashlar.Transport.A2A.Tests",
       "namespace": "Ashlar.Transport.A2A.Tests",
       "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Transport.A2A.Tests/A2AEgressTwinTests.cs",
+      "project": "Ashlar.Transport.A2A.Tests",
+      "namespace": "Ashlar.Transport.A2A.Tests",
+      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {

@@ -51,10 +51,16 @@ public sealed partial class EgressGuardConventionTests
         /// <summary>G2: built by <c>EgressHttp.CreateClient</c>/<c>Wrap</c>, or handed one (sdk.client, G2-file).</summary>
         Wrapped,
 
-        /// <summary>G3: a guard call precedes it in the same block or an enclosing one.</summary>
+        /// <summary>
+        /// G3: a guard call precedes it in the same block or an enclosing one; or, for http.param, the stored
+        /// client is sent only after one (the stored-client rule, <c>Scanner.StoredClientPrecedes</c>).
+        /// </summary>
         Precedes,
 
-        /// <summary>An <c>AddHttpClient</c> whose member also calls <c>AddAshlarEgressGuard(</c>.</summary>
+        /// <summary>
+        /// D1: an <c>AddHttpClient</c> followed, at a higher offset and as a statement of the same innermost code
+        /// block (the file root of a top-level program counts), by a non-declaration <c>AddAshlarEgressGuard(</c>.
+        /// </summary>
         Factory,
     }
 
@@ -74,55 +80,239 @@ public sealed partial class EgressGuardConventionTests
     {
         Marker.HttpNew or Marker.SdkClient => GuardKind.Wrapped,
         Marker.HttpRegister => GuardKind.Factory,
-        Marker.Socket or Marker.Process or Marker.Door or Marker.Telemetry => GuardKind.Precedes,
+        Marker.Socket or Marker.Process or Marker.Door or Marker.Telemetry or Marker.HttpParam => GuardKind.Precedes,
         _ => GuardKind.None,
     };
 
-    /// <summary>Everything one walk of the production tree yields. Computed once per test run.</summary>
-    private sealed record TreeScan(
-        string Root,
-        List<string> Files,
-        List<Occurrence> Occurrences,
-        List<(string Path, int Line, bool BindsHandler)> HttpDefaultsBindings,
-        List<(string Path, int Line, string Id)> SiteIdLiterals)
+    /// <summary>One production csproj of the scanned population: whether it is an executable or a test project, and its direct ProjectReferences.</summary>
+    private sealed record ProjectInfo(string Path, bool IsExe, bool IsTest, List<string> References);
+
+    /// <summary>
+    /// Everything one walk of the production tree yields, computed once per test run (<see cref="Load"/>) or from
+    /// in-memory sources for a route control (<see cref="FromSources"/>). It keeps the CLEANED code of every file;
+    /// a <see cref="SourceModel"/> (blocks, line starts) is rebuilt on demand and cached only for the files a route
+    /// check reads. Word mentions are indexed by name on first use, which is the supply-site index (by type name)
+    /// and the invocation index (by method name) the Factory and Upstream routes read.
+    /// </summary>
+    private sealed class TreeScan
     {
+        private readonly Func<string, string> _read;
+        private readonly Dictionary<string, string> _code;
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SourceModel> _models = new(StringComparer.Ordinal);
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, List<(string Path, int Offset)>> _mentions = new(StringComparer.Ordinal);
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, HashSet<string>> _closures = new(StringComparer.Ordinal);
+        private List<string>? _governance;
+
+        private TreeScan(
+            string root,
+            List<string> files,
+            Func<string, string> read,
+            Dictionary<string, ProjectInfo> projects)
+        {
+            Root = root;
+            Files = files;
+            _read = read;
+            Projects = projects;
+            _code = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var relative in files)
+            {
+                var model = new SourceModel(relative, read(relative));
+                _code[relative] = model.Code;
+                Occurrences.AddRange(Scanner.Classify(model));
+                HttpDefaultsBindings.AddRange(Scanner.HttpDefaultsBindings(model));
+                SiteIdLiterals.AddRange(Scanner.SiteIdLiterals(model));
+                var (declarations, calls) = Scanner.GuardInstalls(model);
+                GuardDeclarations.AddRange(declarations.Select(d => (relative, model.LineOf(d))));
+                GuardCalls.AddRange(calls.Select(c => (relative, model.LineOf(c))));
+                RailProblems.AddRange(Scanner.RailProblems(model, calls));
+                FactoryImplementations.AddRange(Scanner.FactoryImplementations(model));
+            }
+        }
+
+        public string Root { get; }
+
+        public List<string> Files { get; }
+
+        public List<Occurrence> Occurrences { get; } = [];
+
+        public List<(string Path, int Line, bool BindsHandler)> HttpDefaultsBindings { get; } = [];
+
+        public List<(string Path, int Line, string Id)> SiteIdLiterals { get; } = [];
+
+        /// <summary>Declarations of <c>AddAshlarEgressGuard(</c>: a match preceded by a type (F4 B).</summary>
+        public List<(string Path, int Line)> GuardDeclarations { get; } = [];
+
+        /// <summary>Every other <c>AddAshlarEgressGuard(</c> match: a call.</summary>
+        public List<(string Path, int Line)> GuardCalls { get; } = [];
+
+        /// <summary>F4 (E): each call that covers no registration under D1.</summary>
+        public List<string> RailProblems { get; } = [];
+
+        /// <summary>F4 (D): each production type implementing, or direct registration of, IHttpClientFactory.</summary>
+        public List<string> FactoryImplementations { get; } = [];
+
+        /// <summary>The production csproj files of the population, by repo-relative path.</summary>
+        public Dictionary<string, ProjectInfo> Projects { get; }
+
         public int ExaminedOccurrences => Occurrences.Count;
+
+        /// <summary>The full F5 list, computed once per scan: Governance (F3) reads it for every governed row.</summary>
+        public List<string> Governance => _governance ??= GovernanceProblems(this);
 
         public static TreeScan Load(string root)
         {
             var files = new List<string>();
+            var csprojs = new List<string>();
             foreach (var top in ProductionRoots)
             {
                 var dir = Path.Combine(root, top);
                 if (Directory.Exists(dir) && !IsPruned(dir))
-                    Collect(root, dir, files);
+                    Collect(root, dir, files, csprojs);
             }
 
             files.Sort(StringComparer.Ordinal);
-
-            var occurrences = new List<Occurrence>();
-            var bindings = new List<(string, int, bool)>();
-            var siteIds = new List<(string, int, string)>();
-            foreach (var relative in files)
-            {
-                var model = new SourceModel(relative, File.ReadAllText(Path.Combine(root, relative)));
-                occurrences.AddRange(Scanner.Classify(model));
-                bindings.AddRange(Scanner.HttpDefaultsBindings(model));
-                siteIds.AddRange(Scanner.SiteIdLiterals(model));
-            }
-
-            return new TreeScan(root, files, occurrences, bindings, siteIds);
+            var projects = csprojs.ToDictionary(
+                p => p,
+                p => ParseProject(p, File.ReadAllText(Path.Combine(root, p))),
+                StringComparer.Ordinal);
+            return new TreeScan(root, files, relative => File.ReadAllText(Path.Combine(root, relative)), projects);
         }
 
-        private static void Collect(string root, string directory, List<string> files)
+        /// <summary>A scan of in-memory sources and csproj texts, for the route controls. Every file is production.</summary>
+        public static TreeScan FromSources(IReadOnlyDictionary<string, string> files, IReadOnlyDictionary<string, string> csprojs)
+        {
+            var list = files.Keys.OrderBy(f => f, StringComparer.Ordinal).ToList();
+            var projects = csprojs.ToDictionary(p => p.Key, p => ParseProject(p.Key, p.Value), StringComparer.Ordinal);
+            return new TreeScan(string.Empty, list, relative => files[relative], projects);
+        }
+
+        /// <summary>The cleaned code of a scanned file, or null when the file is not in the population.</summary>
+        public string? Code(string path) => _code.TryGetValue(path, out var code) ? code : null;
+
+        /// <summary>The model of a scanned file, built on first use, or null when the file is not in the population.</summary>
+        public SourceModel? Model(string path) =>
+            _code.ContainsKey(path) ? _models.GetOrAdd(path, p => new SourceModel(p, _read(p))) : null;
+
+        /// <summary>Every word-boundary mention of <paramref name="word"/> in cleaned production code, in file then offset order.</summary>
+        public IReadOnlyList<(string Path, int Offset)> Mentions(string word) =>
+            _mentions.GetOrAdd(word, w =>
+            {
+                var rx = new Regex(@"(?<![A-Za-z0-9_])" + Regex.Escape(w) + @"(?![A-Za-z0-9_])", RegexOptions.CultureInvariant);
+                var found = new List<(string, int)>();
+                foreach (var path in Files)
+                {
+                    var code = _code[path];
+                    if (!code.Contains(w, StringComparison.Ordinal))
+                        continue;
+                    foreach (Match m in rx.Matches(code))
+                        found.Add((path, m.Index));
+                }
+
+                return found;
+            });
+
+        /// <summary>The nearest csproj at or above the file's directory, or null.</summary>
+        public string? ProjectOf(string path)
+        {
+            var dir = path.Contains('/', StringComparison.Ordinal) ? path[..path.LastIndexOf('/')] : string.Empty;
+            while (true)
+            {
+                var prefix = dir.Length == 0 ? string.Empty : dir + "/";
+                var here = Projects.Keys
+                    .Where(p => p.StartsWith(prefix, StringComparison.Ordinal) && !p[prefix.Length..].Contains('/', StringComparison.Ordinal))
+                    .OrderBy(p => p, StringComparer.Ordinal)
+                    .FirstOrDefault();
+                if (here is not null)
+                    return here;
+                if (dir.Length == 0)
+                    return null;
+                dir = dir.Contains('/', StringComparison.Ordinal) ? dir[..dir.LastIndexOf('/')] : string.Empty;
+            }
+        }
+
+        /// <summary>Every project <paramref name="project"/> reaches through ProjectReference, transitively, itself excluded.</summary>
+        public HashSet<string> Closure(string project) =>
+            _closures.GetOrAdd(project, start =>
+            {
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                var stack = new Stack<string>();
+                stack.Push(start);
+                while (stack.Count > 0)
+                {
+                    var current = stack.Pop();
+                    if (!Projects.TryGetValue(current, out var info))
+                        continue;
+                    foreach (var reference in info.References)
+                    {
+                        if (seen.Add(reference))
+                            stack.Push(reference);
+                    }
+                }
+
+                seen.Remove(start);
+                return seen;
+            });
+
+        private static readonly Regex ProjectReference = new(
+            @"<ProjectReference\b[^>]*?\bInclude\s*=\s*""([^""]+)""", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+        private static readonly Regex ExeSdk = new(@"<Project\b[^>]*\bSdk\s*=\s*""[^""]*\.(?:Web|Worker)""", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+        private static readonly Regex ExeOutputType = new(@"<OutputType>\s*(?:Exe|WinExe)\s*</OutputType>", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+        /// <summary>
+        /// IsExe: an Sdk ending <c>.Web</c> or <c>.Worker</c>, or OutputType Exe/WinExe. IsTest: the csproj rule of
+        /// <see cref="IsTestProjectRoot"/>. References: each ProjectReference Include, resolved against the csproj's
+        /// directory to a repo-relative path. Conditions are ignored, so the closure over-approximates, which only
+        /// makes the Upstream checks stricter.
+        /// </summary>
+        private static ProjectInfo ParseProject(string path, string text)
+        {
+            var dir = path.Contains('/', StringComparison.Ordinal) ? path[..path.LastIndexOf('/')] : string.Empty;
+            var references = ProjectReference.Matches(text)
+                .Select(m => ResolveRelative(dir, m.Groups[1].Value))
+                .Where(r => r is not null)
+                .Select(r => r!)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            var isTest = text.Contains("<IsTestProject>true<", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("Microsoft.NET.Test.Sdk", StringComparison.Ordinal);
+            return new ProjectInfo(path, ExeSdk.IsMatch(text) || ExeOutputType.IsMatch(text), isTest, references);
+        }
+
+        private static string? ResolveRelative(string dir, string include)
+        {
+            var parts = new List<string>(dir.Length == 0 ? [] : dir.Split('/'));
+            foreach (var segment in include.Replace('\\', '/').Split('/'))
+            {
+                if (segment.Length == 0 || segment == ".")
+                    continue;
+                if (segment == "..")
+                {
+                    if (parts.Count == 0)
+                        return null;
+                    parts.RemoveAt(parts.Count - 1);
+                }
+                else
+                {
+                    parts.Add(segment);
+                }
+            }
+
+            return string.Join('/', parts);
+        }
+
+        private static void Collect(string root, string directory, List<string> files, List<string> csprojs)
         {
             foreach (var file in Directory.EnumerateFiles(directory, "*.cs"))
                 files.Add(Path.GetRelativePath(root, file).Replace('\\', '/'));
+            foreach (var csproj in Directory.EnumerateFiles(directory, "*.csproj"))
+                csprojs.Add(Path.GetRelativePath(root, csproj).Replace('\\', '/'));
 
             foreach (var child in Directory.EnumerateDirectories(directory))
             {
                 if (!IsPruned(child))
-                    Collect(root, child, files);
+                    Collect(root, child, files, csprojs);
             }
         }
     }
@@ -366,7 +556,7 @@ public sealed partial class EgressGuardConventionTests
         }
     }
 
-    /// <summary>The classifier: markers, G2, G2-file, G3 and the Factory rule, over one <see cref="SourceModel"/>.</summary>
+    /// <summary>The classifier: markers, G2, G2-file, G3, the stored-client rule and D1, over one <see cref="SourceModel"/>.</summary>
     private static class Scanner
     {
         private const RegexOptions Rx = RegexOptions.CultureInvariant;
@@ -401,7 +591,7 @@ public sealed partial class EgressGuardConventionTests
         /// http.param candidates: <c>HttpClient[?] id</c> right after a '(' or ',' (attributes and this/in/ref/out
         /// allowed). Group 1 is the type name. Only a declaration's list counts; <see cref="IsParameterList"/> decides.
         /// </summary>
-        private static readonly Regex HttpClientParameter = new(
+        internal static readonly Regex HttpClientParameter = new(
             @"(?<=[(,]\s*(?:\[[^\[\]]*\]\s*)*(?:(?:this|in|ref|out|params|scoped)\s+)?)" + HttpNs
             + @"(HttpClient)\s*\??\s+@?[A-Za-z_][A-Za-z0-9_]*\s*(?=[,)=])",
             Rx);
@@ -413,7 +603,7 @@ public sealed partial class EgressGuardConventionTests
             "typeof", "nameof", "sizeof", "default", "when", "is",
         };
 
-        private static readonly Regex HttpClientRegistration = new(@"\.\s*AddHttpClient\s*[(<]", Rx);
+        internal static readonly Regex HttpClientRegistration = new(@"\.\s*AddHttpClient\s*[(<]", Rx);
 
         private static readonly Regex AddAshlarEgressGuardCall = new(@"\bAddAshlarEgressGuard\s*\(", Rx);
 
@@ -464,8 +654,15 @@ public sealed partial class EgressGuardConventionTests
             + @"|\bnew\s+" + AnyNs + @"(?:OllamaHttpChatClient|LlamaSharpChatClient)\s*\(",
             Rx);
 
+        /// <summary>
+        /// banned: registering or resolving a bare <c>HttpClient</c> — <c>[Try]Add…&lt;HttpClient&gt;</c>,
+        /// <c>typeof(HttpClient)</c>, <c>Get[Required][Keyed]Service[s]&lt;HttpClient&gt;</c> — which hands out a
+        /// client no factory default ever touches.
+        /// </summary>
         private static readonly Regex BannedRegistration = new(
-            @"\b(?:Try)?Add[A-Za-z0-9_]*\s*<\s*" + HttpNs + @"HttpClient\s*>|\btypeof\s*\(\s*" + HttpNs + @"HttpClient\s*\)", Rx);
+            @"\b(?:Try)?Add[A-Za-z0-9_]*\s*<\s*" + HttpNs + @"HttpClient\s*>|\btypeof\s*\(\s*" + HttpNs + @"HttpClient\s*\)"
+            + @"|\bGet(?:Required)?(?:Keyed)?Services?\s*<\s*" + HttpNs + @"HttpClient\s*>",
+            Rx);
 
         /// <summary>The guard call G3 recognises: <c>….Evaluate(new EgressRequest(</c>.</summary>
         internal static readonly Regex GuardCall = new(@"\.\s*Evaluate\s*\(\s*new\s+" + AnyNs + @"EgressRequest\s*\(", Rx);
@@ -501,20 +698,20 @@ public sealed partial class EgressGuardConventionTests
                 Add(Marker.HttpNew, at, length, wrapped ? GuardKind.Wrapped : GuardKind.None);
             }
 
-            // ── http.param ───────────────────────────────────────────────────────────────────────────
+            // ── http.param: Precedes through the stored-client rule ─────────────────────────────────
             foreach (Match p in HttpClientParameter.Matches(code))
             {
                 if (IsParameterList(m, p.Index))
-                    Add(Marker.HttpParam, p.Groups[1].Index, p.Index + p.Length - p.Groups[1].Index, GuardKind.None);
+                {
+                    var at = p.Groups[1].Index;
+                    Add(Marker.HttpParam, at, p.Index + p.Length - at, StoredClientPrecedes(m, at, guards) ? GuardKind.Precedes : GuardKind.None);
+                }
             }
 
-            // ── http.register: Factory when the same member calls AddAshlarEgressGuard( ──────────────
+            // ── http.register: Factory under D1, a later install call in the registration's own block ─
+            var installs = GuardInstalls(m).Calls;
             foreach (Match r in HttpClientRegistration.Matches(code))
-            {
-                var (start, end) = m.Member(r.Index);
-                var install = AddAshlarEgressGuardCall.Match(code, start);
-                Add(Marker.HttpRegister, r.Index, r.Length, install.Success && install.Index < end ? GuardKind.Factory : GuardKind.None);
-            }
+                Add(Marker.HttpRegister, r.Index, r.Length, InstalledAfter(m, installs, r.Index) ? GuardKind.Factory : GuardKind.None);
 
             // ── sdk.client: G2-file ──────────────────────────────────────────────────────────────────
             var transportsPass = McpTransportConstruction.Matches(code)
@@ -559,6 +756,424 @@ public sealed partial class EgressGuardConventionTests
 
             found.Sort((a, b) => a.Offset != b.Offset ? a.Offset.CompareTo(b.Offset) : string.CompareOrdinal(a.Marker, b.Marker));
             return found;
+        }
+
+        // ── AddAshlarEgressGuard: declarations, calls, D1 and the rail ──────────────────────────────────────
+
+        /// <summary>
+        /// Every <c>AddAshlarEgressGuard(</c> match, split: a DECLARATION is preceded by a type
+        /// (<see cref="EndsAType"/>: <c>IServiceCollection AddAshlarEgressGuard(</c>); every other match is a call
+        /// (<c>services.AddAshlarEgressGuard(</c>, <c>return AddAshlarEgressGuard(s)</c>).
+        /// </summary>
+        public static (List<int> Declarations, List<int> Calls) GuardInstalls(SourceModel m)
+        {
+            var declarations = new List<int>();
+            var calls = new List<int>();
+            foreach (Match g in AddAshlarEgressGuardCall.Matches(m.Code))
+            {
+                var j = SkipSpaceBack(m.Code, g.Index - 1);
+                (j >= 0 && EndsAType(m.Code, j) ? declarations : calls).Add(g.Index);
+            }
+
+            return (declarations, calls);
+        }
+
+        /// <summary>
+        /// D1: a call lies at a higher offset than the registration, its innermost block IS the registration's
+        /// innermost block, and that block is a code block (the root of a top-level program counts). Not an
+        /// enclosing block: a call there also runs on paths that register no client. Not before: above an
+        /// unbraced early return it installs the guard on the disabled path. An early return BETWEEN the two is a
+        /// known miss (F9).
+        /// </summary>
+        public static bool InstalledAfter(SourceModel m, List<int> installs, int registration)
+        {
+            var block = m.Innermost(registration);
+            return m.IsCodeBlock(block) && installs.Any(g => g > registration && m.Innermost(g) == block);
+        }
+
+        /// <summary>F4 (E), the D1 rail: every call must cover a registration at a lower offset in its own code block.</summary>
+        public static IEnumerable<string> RailProblems(SourceModel m, List<int> calls)
+        {
+            var registrations = HttpClientRegistration.Matches(m.Code).Select(r => r.Index).ToList();
+            foreach (var call in calls)
+            {
+                var block = m.Innermost(call);
+                if (!m.IsCodeBlock(block) || !registrations.Any(r => r < call && m.Innermost(r) == block))
+                {
+                    yield return $"{m.Path}:{m.LineOf(call)}: AddAshlarEgressGuard( covers no AddHttpClient; call it after a "
+                        + "registration, as a statement of that registration's own block (D1)";
+                }
+            }
+        }
+
+        private static readonly Regex FactoryRegistration = new(
+            @"\b(?:Try)?Add[A-Za-z0-9_]*\s*<\s*" + HttpNs + @"IHttpClientFactory\b|\btypeof\s*\(\s*" + HttpNs + @"IHttpClientFactory\s*\)"
+            + @"|\bServiceDescriptor\s*\.\s*(?:Keyed)?(?:Singleton|Scoped|Transient)\s*<\s*" + HttpNs + @"IHttpClientFactory\b",
+            Rx);
+
+        private static readonly Regex ImplementsFactory = new(@":[^{]*\b" + HttpNs + @"IHttpClientFactory\b", Rx);
+
+        /// <summary>
+        /// F4 (D): a production type whose base list names <c>IHttpClientFactory</c>, or a direct registration of it
+        /// (<c>Add…&lt;IHttpClientFactory…&gt;</c>, <c>typeof(IHttpClientFactory)</c>, which covers
+        /// <c>new ServiceDescriptor(typeof(IHttpClientFactory), …)</c>, and
+        /// <c>ServiceDescriptor.[Keyed]{Singleton|Scoped|Transient}&lt;IHttpClientFactory…&gt;</c>, as in
+        /// <c>services.Replace(…)</c> or <c>TryAddEnumerable(…)</c>). A custom factory is the one way an
+        /// IHttpClientFactory-typed receiver can hand out a client the defaults never touched. A registration whose
+        /// service type the text does not name (<c>AddSingleton(sp =&gt; (IHttpClientFactory)x)</c>, a descriptor built
+        /// from a <c>Type</c> variable) is a stated blind spot.
+        /// </summary>
+        public static IEnumerable<string> FactoryImplementations(SourceModel m)
+        {
+            foreach (var block in m.Blocks.Where(b => b.IsTypeBody))
+            {
+                var header = m.Code[block.HeaderStart..block.Open];
+                if (TypeHeader.IsMatch(header) && ImplementsFactory.IsMatch(header))
+                    yield return $"{m.Path}:{m.LineOf(block.HeaderStart + header.Length - header.TrimStart().Length)}: a production type implements IHttpClientFactory";
+            }
+
+            foreach (Match r in FactoryRegistration.Matches(m.Code))
+                yield return $"{m.Path}:{m.LineOf(r.Index)}: '{Whitespace.Replace(r.Value, " ")}' registers IHttpClientFactory directly";
+        }
+
+        // ── http.param: the stored-client rule ──────────────────────────────────────────────────────────────
+
+        /// <summary>A type declaration's keyword and name, in a block header.</summary>
+        internal static readonly Regex TypeHeader = new(
+            @"\b(?<kw>class|struct|record|interface)\s+(?:(?:class|struct)\s+)?(?<name>[A-Za-z_][A-Za-z0-9_]*)", Rx);
+
+        /// <summary>The type whose body holds a declaration: its body block, name, keyword and modifiers.</summary>
+        internal sealed record TypeInfo(int Body, string Name, string Keyword, bool Sealed, bool Partial);
+
+        /// <summary>
+        /// The nearest enclosing type body of <paramref name="offset"/> (a class, struct, record or interface, not a
+        /// namespace), or null when a namespace body or the file root comes first (a primary constructor's list).
+        /// </summary>
+        internal static TypeInfo? EnclosingType(SourceModel m, int offset)
+        {
+            for (var b = m.Innermost(offset); b >= 0; b = m.Blocks[b].Parent)
+            {
+                if (m.Blocks[b].IsTypeBody)
+                    return TypeOfBody(m, b);
+            }
+
+            return null;
+        }
+
+        /// <summary>The type declared by the type body <paramref name="body"/>, or null when its header declares a namespace.</summary>
+        internal static TypeInfo? TypeOfBody(SourceModel m, int body)
+        {
+            var header = m.Code[m.Blocks[body].HeaderStart..m.Blocks[body].Open];
+            var t = TypeHeader.Match(header);
+            return t.Success
+                ? new TypeInfo(body, t.Groups["name"].Value, t.Groups["kw"].Value,
+                    Regex.IsMatch(header, @"\b(?:sealed|static)\b"), Regex.IsMatch(header, @"\bpartial\b"))
+                : null;
+        }
+
+        /// <summary>The parameter name after an http.param type token (<c>HttpClient? name</c>).</summary>
+        internal static string? ParameterName(string code, int typeAt)
+        {
+            var n = ParameterNameAfterType.Match(code, typeAt);
+            return n.Success ? n.Groups[1].Value : null;
+        }
+
+        private static readonly Regex ParameterNameAfterType = new(
+            @"\G(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*HttpClient\s*\??\s+@?([A-Za-z_][A-Za-z0-9_]*)", Rx);
+
+        /// <summary>
+        /// The end (exclusive) of the body of the declaration whose parameter list closes at <paramref name="close"/>,
+        /// constructor initializer and generic constraints included: a block's closing brace, or an expression
+        /// body's depth-0 ';'. -1 when the declaration has no body (an interface or abstract member, a delegate).
+        /// </summary>
+        internal static int DeclarationBodyEnd(SourceModel m, int close)
+        {
+            var code = m.Code;
+            var depth = 0;
+            for (var k = close + 1; k < code.Length; k++)
+            {
+                var c = code[k];
+                if (c is '(' or '[')
+                {
+                    depth++;
+                }
+                else if (c is ')' or ']')
+                {
+                    depth--;
+                }
+                else if (depth == 0 && c == ';')
+                {
+                    return -1;
+                }
+                else if (depth == 0 && c == '{')
+                {
+                    var block = m.Blocks.FindIndex(b => b.Open == k);
+                    return block < 0 ? -1 : Math.Min(m.Blocks[block].Close + 1, code.Length);
+                }
+                else if (depth == 0 && c == '=' && k + 1 < code.Length && code[k + 1] == '>')
+                {
+                    return StatementEnd(code, k);
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>A mention preceded (spaces skipped) by <c>nameof(</c>.</summary>
+        internal static bool InNameof(string code, int at)
+        {
+            var j = SkipSpaceBack(code, at - 1);
+            if (j < 0 || code[j] != '(')
+                return false;
+            j = SkipSpaceBack(code, j - 1);
+            return j >= 5 && code.AsSpan(j - 5, 6).SequenceEqual("nameof") && (j < 6 || !IsIdentifierChar(code[j - 6]));
+        }
+
+        private static readonly Regex ConfigurationAccess = new(
+            @"\G\s*\.\s*(?:DefaultRequestHeaders\b|(?:Timeout|BaseAddress|DefaultRequestVersion|DefaultVersionPolicy|MaxResponseContentBufferSize)\s*=(?![=>]))",
+            Rx);
+
+        private static readonly Regex ClosesRightAway = new(@"\G\s*\)", Rx);
+
+        private static readonly Regex EndsTheAssignment = new(@"\G\s*(?:;|\?\?\s*throw\b)", Rx);
+
+        /// <summary>
+        /// The stored-client rule: an http.param parameter x of declaration D in type T is guarded (Precedes) when
+        /// (a) T is not partial and D is not a record's primary constructor (<see cref="IsRecordPrimaryConstructor"/>:
+        /// the compiler copies x into a public property no mention shows); (b) every mention of x from the close of
+        /// D's parameter list to the end of D's body, constructor initializer included, is inside <c>nameof(</c>, the
+        /// sole argument of <c>ThrowIfNull(</c>, the right-hand side of <c>h = x</c> or <c>h = x ?? throw …</c> where h
+        /// (or <c>this.h</c>) is a field or property declared private in T, a configuration access
+        /// (<c>x.DefaultRequestHeaders…</c>, or an assignment to <c>x.Timeout</c>, <c>.BaseAddress</c>,
+        /// <c>.DefaultRequestVersion</c>, <c>.DefaultVersionPolicy</c>, <c>.MaxResponseContentBufferSize</c>), or
+        /// G3-preceded by a guard call; (c) every other mention of each holder h in the file (<c>this.h</c> and
+        /// <c>.h</c> included), apart from its declaration and D's assignment, is a configuration access or
+        /// G3-preceded; and (d) at least one mention of x or of a holder is G3-preceded.
+        /// Anything else — a send from a sibling member, the guard after the send, a protected holder, x handed to
+        /// another object or to <c>base(x)</c>/<c>this(x)</c>, a holder exposed by a property,
+        /// <c>_h ?? EgressHttp…</c> — leaves it unguarded. A known miss, pinned in F9: (c) accepts EVERY G3-preceded
+        /// mention of a holder, not only a send, so a mention that copies the client into another member
+        /// (<c>_other = _http;</c> after a guard) passes, and <c>_other</c> can then be sent unguarded anywhere.
+        /// </summary>
+        internal static bool StoredClientPrecedes(SourceModel m, int typeAt, List<int> guards)
+        {
+            var code = m.Code;
+            var name = ParameterName(code, typeAt);
+            var open = OpeningParenthesis(code, typeAt);
+            if (name is null || open < 0)
+                return false;
+            var type = EnclosingType(m, open);
+            if (type is null || type.Partial || type.Keyword == "interface" || IsRecordPrimaryConstructor(code, open))
+                return false;
+            var close = ClosingParen(code, open);
+            var bodyEnd = DeclarationBodyEnd(m, close);
+            if (bodyEnd < 0)
+                return false;
+
+            var preceded = false;
+            var holders = new Dictionary<string, (int Declaration, HashSet<int> Assignments)>(StringComparer.Ordinal);
+            var mention = WordMention(name, allowMemberAccess: false);
+            for (var u = mention.Match(code, close); u.Success && u.Index < bodyEnd; u = u.NextMatch())
+            {
+                if (InNameof(code, u.Index) || IsSoleThrowIfNullArgument(code, u.Index, u.Length)
+                    || ConfigurationAccess.Match(code, u.Index + u.Length).Success)
+                {
+                    continue;
+                }
+
+                if (StoredInPrivateHolder(m, type, u.Index, u.Length, out var holder, out var holderAt, out var declaration))
+                {
+                    if (!holders.TryGetValue(holder, out var seen))
+                        holders[holder] = seen = (declaration, new HashSet<int>());
+                    seen.Assignments.Add(holderAt);
+                    continue;
+                }
+
+                if (!Precedes(m, guards, u.Index))
+                    return false;
+                preceded = true;
+            }
+
+            foreach (var (holder, (declaration, assignments)) in holders)
+            {
+                foreach (Match h in WordMention(holder, allowMemberAccess: true).Matches(code))
+                {
+                    if (h.Index == declaration || assignments.Contains(h.Index) || ConfigurationAccess.Match(code, h.Index + h.Length).Success)
+                        continue;
+                    if (!Precedes(m, guards, h.Index))
+                        return false;
+                    preceded = true;
+                }
+            }
+
+            return preceded;
+        }
+
+        /// <summary>
+        /// The parameter list opening at <paramref name="open"/> is a record's primary constructor
+        /// (<c>record [class|struct] R[&lt;…&gt;](</c>), whose every parameter is also a compiler-generated public
+        /// property (init-only, or settable in a record struct): a copy of the client that no holder rule sees,
+        /// replaceable by <c>with { P = … }</c>.
+        /// </summary>
+        internal static bool IsRecordPrimaryConstructor(string code, int open)
+        {
+            var j = SkipSpaceBack(code, open - 1);
+            if (ReadNameBack(code, ref j) is null)
+                return false;
+            var keyword = ReadNameBack(code, ref j);
+            if (keyword is "class" or "struct")
+                keyword = ReadNameBack(code, ref j);
+            return keyword == "record";
+        }
+
+        /// <summary>A word mention; with <paramref name="allowMemberAccess"/>, <c>.h</c> and <c>this.h</c> count too.</summary>
+        internal static Regex WordMention(string name, bool allowMemberAccess) =>
+            new((allowMemberAccess ? @"(?<![A-Za-z0-9_])" : @"(?<![A-Za-z0-9_.])") + "@?" + Regex.Escape(name) + @"(?![A-Za-z0-9_])", Rx);
+
+        private static bool IsSoleThrowIfNullArgument(string code, int at, int length)
+        {
+            var j = SkipSpaceBack(code, at - 1);
+            if (j < 0 || code[j] != '(' || !ClosesRightAway.Match(code, at + length).Success)
+                return false;
+            j = SkipSpaceBack(code, j - 1);
+            var end = j + 1;
+            while (j >= 0 && IsIdentifierChar(code[j]))
+                j--;
+            return code[(j + 1)..end] == "ThrowIfNull";
+        }
+
+        /// <summary>
+        /// The mention at <paramref name="at"/> is the whole right-hand side of a statement <c>h = x;</c> or
+        /// <c>h = x ?? throw …;</c>, where h (or <c>this.h</c>) is declared private (explicitly, or with no access
+        /// modifier) directly in <paramref name="type"/>'s body. Out: h, the offset of h in the assignment, and the
+        /// offset of h's name in its declaration.
+        /// </summary>
+        private static bool StoredInPrivateHolder(SourceModel m, TypeInfo type, int at, int length, out string holder, out int holderAt, out int declaration)
+        {
+            holder = string.Empty;
+            holderAt = declaration = -1;
+            var code = m.Code;
+            if (!EndsTheAssignment.Match(code, at + length).Success)
+                return false;
+            var j = SkipSpaceBack(code, at - 1);
+            if (j < 1 || code[j] != '=' || "=!<>+-*/%&|^?".Contains(code[j - 1], StringComparison.Ordinal))
+                return false;
+            j = SkipSpaceBack(code, j - 1);
+            var end = j + 1;
+            while (j >= 0 && IsIdentifierChar(code[j]))
+                j--;
+            var name = code[(j + 1)..end];
+            if (name.Length == 0 || char.IsDigit(name[0]))
+                return false;
+            holderAt = j + 1;
+            var k = SkipSpaceBack(code, j);
+            if (k >= 0 && code[k] == '.')
+            {
+                k = SkipSpaceBack(code, k - 1);
+                if (k < 3 || code.Substring(k - 3, 4) != "this" || (k >= 4 && IsIdentifierChar(code[k - 4])))
+                    return false;
+                k = SkipSpaceBack(code, k - 4);
+            }
+
+            if (!(k < 0 || code[k] is ';' or '{' or '}' || (code[k] == '>' && k >= 1 && code[k - 1] == '=')))
+                return false;
+
+            declaration = PrivateMemberDeclaration(m, type, name);
+            holder = name;
+            return declaration >= 0;
+        }
+
+        /// <summary>
+        /// The offset of <paramref name="name"/>'s declaration as a field or property directly in the type body (a
+        /// type before it; ';', '=', '{' or '=>' after it), when its modifiers make it private: <c>private</c> and not
+        /// <c>protected</c>, or no access modifier at all. -1 otherwise.
+        /// </summary>
+        internal static int PrivateMemberDeclaration(SourceModel m, TypeInfo type, string name)
+        {
+            var code = m.Code;
+            var body = m.Blocks[type.Body];
+            var after = new Regex(@"\G\s*(?:;|=|\{)", Rx);
+            for (var d = WordMention(name, allowMemberAccess: false).Match(code, body.Open); d.Success && d.Index < body.Close; d = d.NextMatch())
+            {
+                if (m.Innermost(d.Index) != type.Body || !after.Match(code, d.Index + d.Length).Success)
+                    continue;
+                var j = SkipSpaceBack(code, d.Index - 1);
+                if (j < 0 || !EndsAType(code, j))
+                    continue;
+                var modifiers = code[StatementStart(code, d.Index)..d.Index];
+                var isPrivate = Regex.IsMatch(modifiers, @"\bprivate\b") && !Regex.IsMatch(modifiers, @"\bprotected\b");
+                var noAccess = !Regex.IsMatch(modifiers, @"\b(?:public|protected|internal|private)\b");
+                return isPrivate || noAccess ? d.Index : -1;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// The depth-0 arguments of the list opened at <paramref name="open"/>, as [start, end) spans. Brackets,
+        /// braces and generic type-argument lists (a '&lt;' right after a name whose '&gt;' closes before any operator)
+        /// nest, so <c>new Dictionary&lt;string, int&gt;()</c> is one argument.
+        /// </summary>
+        internal static List<(int Start, int End)> SplitArguments(string code, int open)
+        {
+            var spans = new List<(int, int)>();
+            var depth = 0;
+            var start = open + 1;
+            for (var k = open + 1; k < code.Length; k++)
+            {
+                var c = code[k];
+                if (c is '(' or '[' or '{')
+                {
+                    depth++;
+                }
+                else if (c is ')' or ']' or '}')
+                {
+                    if (depth == 0)
+                    {
+                        if (code[start..k].Trim().Length > 0 || spans.Count > 0)
+                            spans.Add((start, k));
+                        return spans;
+                    }
+
+                    depth--;
+                }
+                else if (c == '<' && IsIdentifierChar(code[SkipSpaceBack(code, k - 1)]) && TypeArgumentsEnd(code, k) > 0)
+                {
+                    k = TypeArgumentsEnd(code, k);
+                }
+                else if (c == ',' && depth == 0)
+                {
+                    spans.Add((start, k));
+                    start = k + 1;
+                }
+            }
+
+            return spans;
+        }
+
+        /// <summary>The '&gt;' closing a type-argument list opened at <paramref name="lt"/>, or -1 when it is an operator.</summary>
+        private static int TypeArgumentsEnd(string code, int lt)
+        {
+            var depth = 0;
+            for (var k = lt; k < code.Length; k++)
+            {
+                var c = code[k];
+                if (c == '<')
+                {
+                    depth++;
+                }
+                else if (c == '>')
+                {
+                    if (--depth == 0)
+                        return k;
+                }
+                else if (!(IsIdentifierChar(c) || char.IsWhiteSpace(c) || c is ',' or '.' or '?' or '[' or ']' or '(' or ')' or ':'))
+                {
+                    return -1;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>Production uses of the F4 binding call: where, and whether its argument region builds the guard handler.</summary>
@@ -617,7 +1232,7 @@ public sealed partial class EgressGuardConventionTests
         /// braces), or after the primitive never counts. Blocks are brace pairs and nothing else, so a guard with
         /// no braces of its own counts for its enclosing block even when it may never run: the body of an
         /// unbraced if, else or loop, a sibling switch case, an expression-bodied lambda or local function.
-        /// Those are pinned as known misses in F9.
+        /// All but the else body are pinned as known misses in F9; the else body is the same rule as the if.
         /// </summary>
         internal static bool Precedes(SourceModel m, List<int> guards, int primitive)
         {
@@ -743,7 +1358,7 @@ public sealed partial class EgressGuardConventionTests
             }), StringComparer.Ordinal);
 
         /// <summary>Words that, right before a name, make it an expression (an invocation, a pattern, an assignment), not a declaration.</summary>
-        private static readonly HashSet<string> NotATypeWord = new(StringComparer.Ordinal)
+        internal static readonly HashSet<string> NotATypeWord = new(StringComparer.Ordinal)
         {
             "return", "await", "new", "else", "do", "throw", "case", "in", "is", "as", "out", "ref", "when", "and",
             "or", "not", "async", "yield", "goto", "select", "where",
@@ -756,7 +1371,7 @@ public sealed partial class EgressGuardConventionTests
         /// array type's or attribute's ']', or a tuple type's ')'. A cast's ')' and a statement head's ')'
         /// (<c>if (x) h = …</c>) are not, and neither is '=>'.
         /// </summary>
-        private static bool EndsAType(string code, int k)
+        internal static bool EndsAType(string code, int k)
         {
             var c = code[k];
             if (IsIdentifierChar(c))
@@ -781,7 +1396,7 @@ public sealed partial class EgressGuardConventionTests
         /// The identifier ending at <paramref name="j"/>, type arguments before it skipped (<c>Get&lt;T&gt;</c>);
         /// <paramref name="j"/> moves to the first non-space before it. Null when no identifier is there.
         /// </summary>
-        private static string? ReadNameBack(string code, ref int j)
+        internal static string? ReadNameBack(string code, ref int j)
         {
             if (j >= 0 && code[j] == '>')
             {
@@ -877,7 +1492,7 @@ public sealed partial class EgressGuardConventionTests
         }
 
         /// <summary>The '(' that opens the bracket holding <paramref name="at"/>, or -1 when that bracket is '[' or '{' or there is none.</summary>
-        private static int OpeningParenthesis(string code, int at)
+        internal static int OpeningParenthesis(string code, int at)
         {
             var depth = 0;
             for (var j = at - 1; j >= 0; j--)
@@ -907,9 +1522,27 @@ public sealed partial class EgressGuardConventionTests
             return k < code.Length && (code[k] is '{' or ':' || (code[k] == '=' && k + 1 < code.Length && code[k + 1] == '>'));
         }
 
-        private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+        internal static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
 
-        private static int SkipSpaceBack(string code, int j)
+        internal static int SkipSpaceForward(string code, int k)
+        {
+            while (k < code.Length && char.IsWhiteSpace(code[k]))
+                k++;
+            return k;
+        }
+
+        /// <summary>
+        /// The '.' at <paramref name="dot"/> qualifies a DECLARED name, not a member access: an explicit interface
+        /// implementation <c>Task&lt;bool&gt; IVerifier.VerifyAsync(</c>, where a type sits before the qualifier.
+        /// </summary>
+        internal static bool IsQualifiedDeclaration(string code, int dot)
+        {
+            var k = SkipSpaceBack(code, dot - 1);
+            var qualifier = ReadNameBack(code, ref k);
+            return qualifier is not null and not "this" and not "base" && k >= 0 && EndsAType(code, k);
+        }
+
+        internal static int SkipSpaceBack(string code, int j)
         {
             while (j >= 0 && char.IsWhiteSpace(code[j]))
                 j--;

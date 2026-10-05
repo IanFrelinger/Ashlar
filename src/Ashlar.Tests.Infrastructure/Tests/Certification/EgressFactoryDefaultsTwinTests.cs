@@ -29,8 +29,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>Isolation.</b> The decision log is process-wide and other classes make decisions in parallel, so every
 /// assertion filters by a destination host unique to the test. Hermetic: a stub primary handler answers every send,
 /// so nothing leaves the process.</para>
-/// <para>The twin that an <c>AddAshlar</c> kernel provider records a decision belongs to SPEC-007 PR 3b, which wires
-/// <c>AddAshlarEgressGuard</c> into <c>AddAshlar</c>.</para>
+/// <para>The twin that an <c>AddAshlar</c> kernel provider records a decision is
+/// <see cref="EgressKernelFactoryTwinTests"/>: SPEC-007 PR 3b wired <c>AddAshlarEgressGuard</c> into <c>AddAshlar</c>
+/// and into every kernel member that registers a factory client.</para>
 /// </remarks>
 [Trait("Category", "Certification")]
 public sealed class EgressFactoryDefaultsTwinTests

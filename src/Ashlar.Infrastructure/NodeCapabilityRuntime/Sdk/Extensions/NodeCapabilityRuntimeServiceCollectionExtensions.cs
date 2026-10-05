@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.Execution.Agentic;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Backends;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Lifecycle;
@@ -40,6 +41,12 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
     }
 
     /// <summary>Adds node capability runtime windows.</summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the NCR Ollama backend client
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddNodeCapabilityRuntimeWindows(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -48,6 +55,12 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
     }
 
     /// <summary>Adds node capability runtime mac o s.</summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the NCR Ollama backend client
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddNodeCapabilityRuntimeMacOS(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -56,6 +69,12 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
     }
 
     /// <summary>Adds node capability runtime linux.</summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the NCR Ollama backend client
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddNodeCapabilityRuntimeLinux(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -119,6 +138,8 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
             var options = sp.GetRequiredService<IOptions<OllamaBackendOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
         });
+        // SPEC-007: report-only guard handler on the NCR Ollama backend client (idempotent).
+        services.AddAshlarEgressGuard();
 
         services.RemoveAll<IModelServingBackend>();
         services.AddSingleton<IModelServingBackend>(sp =>

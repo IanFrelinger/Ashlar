@@ -15,6 +15,7 @@ using Ashlar.Commercial.Fleet.Api;
 using Ashlar.Contracts;
 using Ashlar.Core.Application.Middleware.Ports;
 using Ashlar.Hosting;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Ingress.AwsSns;
 using Ashlar.Ingress.DynamoDb;
 using Ashlar.Runtime;
@@ -124,6 +125,10 @@ builder.Services.AddAshlar(options =>
         builder.Configuration.GetValue("Ashlar:RegisterBackgroundAgentHostedService", defaultValue: true);
     options.DisableObservationPipeline = disableObservationPipeline;
 });
+// SPEC-007: AddAshlar has already installed the report-only egress guard on every IHttpClientFactory client in this
+// host, including the Fleet.Infrastructure clients registered below, whose project cannot reach Ashlar.Infrastructure.
+// This call is idempotent and adds nothing; it states the coverage here.
+builder.Services.AddAshlarEgressGuard();
 
 builder.Services.AddAshlarCommercialFleetDirector(
     builder.Configuration,

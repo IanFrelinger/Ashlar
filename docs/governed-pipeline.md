@@ -18,6 +18,7 @@ When enabled, Hosting Phase 13b registers keyed/routed clients and Phase 13 uses
 
 Per-target clients use `UseAshlarGovernance(targetKey)`:
 
+0. **EgressGuard** (report-only: records one egress decision per call, none for the in-process `local:onnx`; never refuses)
 1. **PolicyGate** — allow/deny target (local allowed; cloud deny unless allow-listed)
 2. **Sanitizing** — PII/secret disposition per target (`Pass` local; `BlockOnSecretRedactOnPii` cloud)
 3. **Auditing** — counts/categories/latency only; never content

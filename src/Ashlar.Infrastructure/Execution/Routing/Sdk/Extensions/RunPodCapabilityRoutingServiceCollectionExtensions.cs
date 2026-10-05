@@ -9,6 +9,7 @@ using Ashlar.Core.Application.Mesh.Models;
 using Ashlar.Core.Application.Mesh.Ports;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
 using Ashlar.Infrastructure.Adaptation;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.Mesh;
 
 namespace Ashlar.Infrastructure.Execution.Routing.Sdk.Extensions;
@@ -18,6 +19,12 @@ namespace Ashlar.Infrastructure.Execution.Routing.Sdk.Extensions;
 public static class RunPodCapabilityRoutingServiceCollectionExtensions
 {
     /// <summary>Adds run pod capability routing.</summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the typed RunPod client
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddRunPodCapabilityRouting(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -48,6 +55,8 @@ public static class RunPodCapabilityRoutingServiceCollectionExtensions
                 : options.BaseUrl.TrimEnd('/');
             client.BaseAddress = new Uri(baseUrl + "/", UriKind.Absolute);
         });
+        // SPEC-007: report-only guard handler on the RunPod client and the default client below (idempotent).
+        services.AddAshlarEgressGuard();
 
         services.TryAddSingleton<ILocalQueueDepthProvider, EnvironmentQueueDepthProvider>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, NCRCapabilityPoller>());
