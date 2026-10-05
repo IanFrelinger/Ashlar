@@ -43,7 +43,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///   primary-constructor parameter. Not a parameter: a field, an out argument of a call
 ///   (<c>TryGetValue(k, out HttpClient? c)</c>), a deconstruction or tuple element, a lambda's parameter, a
 ///   <c>using (HttpClient c = …)</c> local. Guarded (Precedes) by the stored-client rule: in a type that is not
-///   partial, the parameter is only named, null-checked, configured, stored into a private field or property, or
+///   partial, and never in a record's primary constructor (the compiler copies the parameter into a public
+///   property), the parameter is only named, null-checked, configured, stored into a private field or property, or
 ///   sent after a G3 guard; every other mention of that holder is a configuration or G3-preceded; and at least one
 ///   send is G3-preceded (Bing, the experimental Ollama proposer).</item>
 ///   <item><c>http.register</c>: <c>.AddHttpClient(</c>/<c>.AddHttpClient&lt;</c>; Factory under D1: a non-declaration
@@ -101,9 +102,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// never reassigned in the caller and proven the same way), or the type is a typed client of a Factory-classified
 /// <c>AddHttpClient&lt;…, T&gt;</c>.
 /// <b>Upstream:&lt;path&gt;</b>: an http.param supplied only from the named file, which builds no unguarded client,
-/// exposes no client field, is not partial, and is itself grounded (a Wrapped http.new, or another routed http.param
-/// row); or an http.register in a project that cannot reach Ashlar.Infrastructure, composed by the named executable
-/// program, which calls <c>AddAshlarEgressGuard</c>, as every executable composing that project must.
+/// exposes no client field, property, indexer or explicit interface property, is not partial, and is itself
+/// grounded (a Wrapped http.new, or another routed http.param row); or an http.register in a project that cannot
+/// reach Ashlar.Infrastructure, composed by the named executable program, which calls <c>AddAshlarEgressGuard</c>,
+/// as every executable composing that project must.
 /// <b>Governance</b>: one of the four MEAI pairs (<see cref="GovernedPairs"/>), only while F5 is green. <c>ids</c>
 /// are <c>EG-…</c> rows of <c>docs/EgressInventory.md</c>. F1, F2 and F3 print the full observed inventory in TSV
 /// form when they fail, keeping each pinned row's reason, ids and note: paste it over the data rows and review each
@@ -133,9 +135,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// (<c>_other = _http;</c> after a guard) passes while <c>_other</c> is sent unguarded elsewhere. An early return
 /// between a registration and its guard. An Upstream supplier passing a static client defined in another file; an
 /// Upstream file that hands its client out through a non-private method, or through a <c>Func&lt;…&gt;</c>,
-/// <c>Lazy&lt;…&gt;</c>, array or tuple member (the Fields clause reads only <c>HttpClient name</c> fields and
-/// properties); and an <c>IHttpClientFactory</c>-typed receiver backed by a custom implementation, which only
-/// F4 (D) catches.</para>
+/// <c>Lazy&lt;…&gt;</c>, array or tuple member (the Fields clause reads <c>HttpClient</c> fields, properties,
+/// indexers and explicit interface properties, not methods or wrapper types); and an <c>IHttpClientFactory</c>-typed
+/// receiver backed by a custom implementation, which only F4 (D) catches.</para>
 /// <para><b>Stated only</b>, with no control. HTTP clients built inside third-party SDKs (the AWS SDK, the MCP
 /// SDK's own default client); inbound server responses (not scanned: <c>Unscanned:Inbound</c>); a guard in an
 /// unbraced <c>else</c> body (the rule the pinned <c>if</c> shows); the stored-client copy made from the parameter
@@ -145,22 +147,30 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// own (a brace-less lambda, an unbraced <c>if</c>), which D1 counts for the block around it as G3 does; a host
 /// outside the repository that composes a factory consumer with no Ashlar member that installs the guard
 /// (<c>AddAshlarFederatedBrickMesh</c> alone); a reflection or target-typed <c>new(…)</c> supplier outside a
-/// declaration (an argument, a <c>return</c>) and a bare call through <c>using static</c> from another file, which
-/// the Factory route does not list as supply sites (it does report a method group, <c>CreateInstance&lt;T&gt;</c>,
-/// <c>typeof(T)</c> and an empty-argument generic registration, each with a failing route control); an
-/// <c>IHttpClientFactory</c> receiver resolved by name over the whole file, so an untyped lambda parameter or a
-/// deconstructed local that reuses the name of a typed one elsewhere in the file passes
-/// (<c>RouteContext.ReceiverIsHttpClientFactory</c>). And a limit of the records, not of the scan: every factory
-/// client records the family <c>http.factory</c> (NetworkExport), the model calls EG-MDL-09/10/13/14 included.</para>
+/// declaration (an argument, a <c>return</c>, an expression-bodied <c>T P =&gt; new(…)</c>) and a bare call through
+/// <c>using static</c> from another file, which the Factory route does not list as supply sites (it does report a
+/// method group, <c>CreateInstance&lt;T&gt;</c>, <c>typeof(T)</c> and an empty-argument generic registration, each
+/// with a failing route control); an explicit interface method that returns the client from an Upstream file (the
+/// method shape the pinned non-private method shows); an <c>IHttpClientFactory</c> receiver resolved by name over
+/// the whole file, so an untyped lambda parameter or a deconstructed local that reuses the name of a typed one
+/// elsewhere in the file passes (<c>RouteContext.ReceiverIsHttpClientFactory</c>). For F4 (D) and F5: a registration
+/// of <c>IHttpClientFactory</c> or of a raw <c>IChatClient</c> whose service type the text does not name
+/// (<c>AddSingleton(sp =&gt; (IChatClient)x)</c>, a descriptor built from a <c>Type</c> variable). And a limit of the
+/// records, not of the scan: every factory client records the family <c>http.factory</c> (NetworkExport), the model
+/// calls EG-MDL-09/10/13/14 included.</para>
 ///
 /// <para><b>Routes.</b> Factory and Upstream reason about a CLOSED world: every supply site of a receiving member
-/// is a production file in this scan, found by name (<c>new T(</c>, <c>T x = new(</c>, <c>: this(</c> in T's
-/// body, a primary constructor's type included, <c>.N(</c>, a bare <c>N(</c> in the declaring file, or in any file
-/// for a non-private method of a type that is neither sealed nor static), and every spelling the scan cannot follow
-/// (<c>CreateInstance&lt;T&gt;</c>, <c>typeof(T)</c>, an empty-argument generic registration of T, a method group
-/// of N) fails the route instead of being assumed away. That premise holds only for non-partial receiving types, and for a constructor only in a
-/// sealed one (a derived type's <c>base(…)</c> is a supply site the scan does not list), which the routes require.
-/// A row's route and a member's proof are memoised, and a cycle fails.</para>
+/// is a production file in this scan, found by name (<c>new T(</c>, <c>T x = new(</c>, an auto-property initializer
+/// <c>T P { … } = new(</c>, <c>: this(</c> in T's body, a primary constructor's type included, <c>.N(</c>, a bare
+/// <c>N(</c> in the declaring file, or in any file for a non-private method of a type that is neither sealed nor
+/// static), and every spelling the scan cannot follow (<c>CreateInstance&lt;T&gt;</c>, <c>typeof(T)</c>, an
+/// empty-argument generic registration of T, a method group of N) fails the route instead of being assumed away.
+/// That premise holds only for non-partial receiving types, and for a constructor only in a sealed one (a derived
+/// type's <c>base(…)</c> is a supply site the scan does not list), which the routes require. A positional record's
+/// primary constructor fails both routes: its parameter is also a public property, which <c>x with { P = … }</c>
+/// or an object initializer replaces where no supply site shows it. "Never reassigned" (a local under F-call (ii), a
+/// forwarded parameter under (iv)) also rules out a deconstruction into it (<c>(v, _) = …</c>, a tuple swap). A row's
+/// route and a member's proof are memoised, and a cycle fails.</para>
 ///
 /// <para>Hermetic: pure file reads. Each fact names the file:line of every offending occurrence.</para>
 /// </summary>
@@ -662,10 +672,17 @@ public sealed partial class EgressGuardConventionTests
     private static readonly Regex EmptyArgumentTryAddSingleton = new(
         @"\bTryAddSingleton\s*<[^<>;(){}]*>\s*\(\s*\)", RegexOptions.CultureInvariant);
 
-    /// <summary>A raw IChatClient registration: <c>[Try]Add[Keyed]{Singleton|Scoped|Transient}&lt;IChatClient…</c> or <c>(typeof(IChatClient)…</c>, or a ServiceDescriptor naming it.</summary>
+    /// <summary>
+    /// A raw IChatClient registration: <c>[Try]Add[Keyed]{Singleton|Scoped|Transient}&lt;IChatClient…</c> or
+    /// <c>(typeof(IChatClient)…</c>; <c>ServiceDescriptor.[Keyed]{Singleton|Scoped|Transient|Describe}</c> with
+    /// IChatClient before its ';'; or <c>new ServiceDescriptor(typeof(IChatClient), …)</c> (as in
+    /// <c>services.Add(…)</c>). A registration whose service type the text does not name
+    /// (<c>AddSingleton(sp =&gt; (IChatClient)x)</c>, a descriptor built from a <c>Type</c> variable) is a stated blind spot.
+    /// </summary>
     private static readonly Regex RawChatClientRegistration = new(
         @"\b(?:Try)?Add(?:Keyed)?(?:Singleton|Scoped|Transient)\s*(?:<\s*(?:global::)?(?:Microsoft\.Extensions\.AI\.)?IChatClient\b|\(\s*typeof\s*\(\s*(?:global::)?(?:Microsoft\.Extensions\.AI\.)?IChatClient\s*\))"
-        + @"|ServiceDescriptor\.(?:Keyed)?(?:Singleton|Scoped|Transient|Describe)\b[^;]*IChatClient",
+        + @"|ServiceDescriptor\.(?:Keyed)?(?:Singleton|Scoped|Transient|Describe)\b[^;]*IChatClient"
+        + @"|\bnew\s+(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*ServiceDescriptor\s*\(\s*typeof\s*\(\s*(?:global::)?(?:Microsoft\.Extensions\.AI\.)?IChatClient\s*\)",
         RegexOptions.CultureInvariant);
 
     private static readonly Regex Whitespace = new(@"\s+", RegexOptions.CultureInvariant);

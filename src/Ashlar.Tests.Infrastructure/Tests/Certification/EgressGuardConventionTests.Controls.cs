@@ -131,7 +131,7 @@ public sealed partial class EgressGuardConventionTests
         ["unguarded: an AWS SDK client (SmsIngressDynamoDbServiceCollectionExtensions.cs:12)"] = new("""
             services.AddSingleton<IAmazonDynamoDB>(_ => new AmazonDynamoDBClient());
             """, "sdk.client 1/0"),
-        ["unguarded: a Process with a ProcessStartInfo initializer counts twice (WorkflowCommand.cs:336)"] = new("""
+        ["unguarded: a Process with a ProcessStartInfo initializer counts twice (WorkflowCommand.cs:337)"] = new("""
             using var process = new Process
             {
                 StartInfo = new ProcessStartInfo("ollama") { ArgumentList = { "pull", model } },
@@ -259,14 +259,14 @@ public sealed partial class EgressGuardConventionTests
         ["unguarded: a DNS lookup"] = new("""
             var addresses = await Dns.GetHostAddressesAsync(host, ct);
             """, "socket 1/0"),
-        ["unguarded: a namespace-qualified ProcessStartInfo and Start (ProviderFactory.cs:704-716)"] = new("""
+        ["unguarded: a namespace-qualified ProcessStartInfo and Start (ProviderFactory.cs:705-717)"] = new("""
             var psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "ffmpeg",
             };
             using var proc = System.Diagnostics.Process.Start(psi);
             """, "process 2/0"),
-        ["unguarded: an optional HttpClient parameter is still a parameter (CloudAvailabilityResolver.cs:29)"] = new("""
+        ["unguarded: an optional HttpClient parameter is still a parameter (CloudAvailabilityResolver.cs:30)"] = new("""
             public CloudAvailabilityResolver(IConfiguration configuration, HttpClient? httpClient = null, bool enableNetworkProbe = false)
             {
                 _httpClient = httpClient;
@@ -742,6 +742,19 @@ public sealed partial class EgressGuardConventionTests
                 }
             }
             """, "http.param 1/0"),
+        ["unguarded: a nested positional record's parameter is also its public property, so a guarded send in its body proves nothing"] = new("""
+            public sealed class Mesh
+            {
+                private sealed record Peer(HttpClient Client, Uri Uri)
+                {
+                    public async Task<string> PullAsync()
+                    {
+                        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", Uri));
+                        return await Client.GetStringAsync(Uri);
+                    }
+                }
+            }
+            """, "http.param 1/0"),
         ["unguarded: _h ?? EgressHttp… (CloudAvailabilityResolver)"] = new("""
             public sealed class CloudAvailabilityResolver
             {
@@ -802,6 +815,16 @@ public sealed partial class EgressGuardConventionTests
         ["fails F4 (D): registering IHttpClientFactory directly, typeof(IHttpClientFactory)"] = new("""
             services.AddHttpClient("x");
             services.AddSingleton(typeof(IHttpClientFactory), typeof(PooledHttpClientFactory));
+            services.AddAshlarEgressGuard();
+            """, "http.register 1/1", "F4R"),
+        ["fails F4 (D): replacing IHttpClientFactory, Replace(ServiceDescriptor.Singleton<IHttpClientFactory>(…))"] = new("""
+            services.AddHttpClient("x");
+            services.Replace(ServiceDescriptor.Singleton<IHttpClientFactory>(sp => new PooledHttpClientFactory()));
+            services.AddAshlarEgressGuard();
+            """, "http.register 1/1", "F4R"),
+        ["fails F4 (D): registering IHttpClientFactory directly, TryAddEnumerable(ServiceDescriptor.Singleton<IHttpClientFactory, X>())"] = new("""
+            services.AddHttpClient("x");
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpClientFactory, PackageHttpClientFactory>());
             services.AddAshlarEgressGuard();
             """, "http.register 1/1", "F4R"),
 

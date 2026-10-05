@@ -52,7 +52,8 @@ public sealed partial class EgressGuardConventionTests
         bool IsPrivate,
         bool IsExtension,
         int ListClose,
-        int BodyEnd)
+        int BodyEnd,
+        bool PositionalRecord)
     {
         public string Key => Path + "@" + Offset;
 
@@ -75,6 +76,8 @@ public sealed partial class EgressGuardConventionTests
         private static readonly Regex OpenAfter = new(@"\G\s*(?:<[^<>()]*>)?\s*\(", RegexOptions.CultureInvariant);
         private static readonly Regex TargetTypedAfter = new(
             @"\G\s*(?:<[^<>()]*>)?\s*\??\s+@?[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s*\(", RegexOptions.CultureInvariant);
+        private static readonly Regex PropertyInitializerAfter = new(
+            @"\G\s*(?:<[^<>()]*>)?\s*\??\s+@?[A-Za-z_][A-Za-z0-9_]*\s*\{(?:[^{}]|\{[^{}]*\})*\}\s*=\s*new\s*\(", RegexOptions.CultureInvariant);
         private static readonly Regex CreateInstanceBefore = new(@"\bCreateInstance\s*<\s*(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*$", RegexOptions.CultureInvariant);
         private static readonly Regex TypeofBefore = new(@"\btypeof\s*\(\s*(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*$", RegexOptions.CultureInvariant);
         private static readonly Regex CloseAngleAfter = new(@"\G\s*>", RegexOptions.CultureInvariant);
@@ -97,6 +100,10 @@ public sealed partial class EgressGuardConventionTests
         private static readonly Regex Return = new(@"\breturn\b", RegexOptions.CultureInvariant);
         private static readonly Regex HttpClientMember = new(
             @"(?<![A-Za-z0-9_.])(?:global::)?(?:System\s*\.\s*Net\s*\.\s*Http\s*\.\s*)?HttpClient\s*\??\s+@?([A-Za-z_][A-Za-z0-9_]*)\s*(?=;|=|\{)",
+            RegexOptions.CultureInvariant);
+        private static readonly Regex QualifiedOrIndexerClientMember = new(
+            @"(?<![A-Za-z0-9_.])(?:global::)?(?:System\s*\.\s*Net\s*\.\s*Http\s*\.\s*)?HttpClient\s*\??\s+"
+            + @"(?:(?<qualified>(?:@?[A-Za-z_][A-Za-z0-9_]*\s*(?:<[^<>;{}()]*>)?\s*\.\s*)+@?[A-Za-z_][A-Za-z0-9_]*)\s*(?=\{|=>)|this\s*\[)",
             RegexOptions.CultureInvariant);
 
         /// <summary>Words that, before a name, never make it a declaration's type.</summary>
@@ -217,6 +224,8 @@ public sealed partial class EgressGuardConventionTests
                 problems.Add($"{r.TypeName} is not sealed: a derived type's base(…) call would be a supply site the scan cannot list");
             if (r.Partial)
                 problems.Add($"{r.TypeName} is partial: another part could supply it from a file the scan does not tie to it");
+            if (r.PositionalRecord)
+                problems.Add(PositionalRecordProblem(r));
 
             var (sites, unknown, typed) = SupplySites(r);
             problems.AddRange(unknown);
@@ -245,6 +254,15 @@ public sealed partial class EgressGuardConventionTests
         }
 
         private string Where(Site site) => $"{site.Path}:{scan.Model(site.Path)!.LineOf(site.Offset)}";
+
+        /// <summary>
+        /// A positional record's parameter is also a compiler-generated public property (init-only, or settable in a
+        /// record struct), so <c>x with { P = raw }</c> and an object initializer after <c>new T(…)</c> replace the
+        /// client at places no supply site lists.
+        /// </summary>
+        private static string PositionalRecordProblem(Receiver r) =>
+            $"{r.TypeName} is a positional record: '{r.Param}' is also a public property, so a 'with' expression or an "
+            + "object initializer can replace the client where no supply site shows it";
 
         /// <summary>Why the argument a site passes for the receiver's parameter is not a factory client; null when it is.</summary>
         private string? SiteProblem(Receiver r, Site site)
@@ -284,7 +302,8 @@ public sealed partial class EgressGuardConventionTests
         /// enclosing one, as <c>var|HttpClient v = (i)|(iii)</c> and never reassigned; (iii) a call to a same-file
         /// private method of a non-partial type returning HttpClient, whose every return is (i) or such a local;
         /// (iv) the enclosing member's own HttpClient parameter, never reassigned anywhere in that member's body
-        /// (<see cref="Reassignment"/>, as (ii) requires of a local) and proven the same way. Null when it is one.
+        /// (<see cref="ReassignedAt"/>, a deconstruction into it included, as (ii) requires of a local) and proven the
+        /// same way. Null when it is one.
         /// </summary>
         private string? FactoryEvidence(SourceModel m, int site, int start, int end)
         {
@@ -314,9 +333,9 @@ public sealed partial class EgressGuardConventionTests
                 var parameter = EnclosingParameter(m, site, id.Groups[1].Value);
                 if (parameter is not null)
                 {
-                    var reassigned = Reassignment(id.Groups[1].Value).Match(code, parameter.ListClose + 1);
-                    if (reassigned.Success && reassigned.Index < parameter.BodyEnd)
-                        return $"'{text}' is {parameter.Name}'s own parameter, reassigned at {m.Path}:{m.LineOf(reassigned.Index)}, so it may not be the factory client";
+                    var reassigned = ReassignedAt(code, id.Groups[1].Value, parameter.ListClose + 1, parameter.BodyEnd);
+                    if (reassigned >= 0)
+                        return $"'{text}' is {parameter.Name}'s own parameter, reassigned at {m.Path}:{m.LineOf(reassigned)}, so it may not be the factory client";
 
                     var route = CallRoute(parameter);
                     return route.Count == 0
@@ -480,19 +499,70 @@ public sealed partial class EgressGuardConventionTests
 
             var block = m.Innermost(best.Index);
             var scopeEnd = block < 0 ? code.Length : m.Blocks[block].Close;
-            var reassigned = Reassignment(v).Match(code, stop);
-            return reassigned.Success && reassigned.Index < scopeEnd
-                ? $"the local '{v}' is reassigned at {m.Path}:{m.LineOf(reassigned.Index)}, so it may not be the factory client"
+            var reassigned = ReassignedAt(code, v, stop, scopeEnd);
+            return reassigned >= 0
+                ? $"the local '{v}' is reassigned at {m.Path}:{m.LineOf(reassigned)}, so it may not be the factory client"
                 : string.Empty;
         }
 
         /// <summary>
-        /// A reassignment of the local or parameter <paramref name="v"/>: <c>v =</c>, <c>v ??=</c>, <c>ref v</c> or
-        /// <c>out v</c>. Configuring it (<c>v.BaseAddress = …</c>) and comparing it (<c>v ==</c>) are not.
+        /// The offset of the first reassignment of the local or parameter <paramref name="v"/> in [start, end), or -1:
+        /// <c>v =</c>, <c>v ??=</c>, <c>ref v</c>, <c>out v</c>, or <c>v</c> as a whole element of a parenthesised
+        /// left-hand side that is not a declaration (<see cref="IsDeconstructionTarget"/>: <c>(v, _) = …</c>, a tuple
+        /// swap <c>(a, v) = (v, a)</c>). Configuring it (<c>v.BaseAddress = …</c>) and comparing it (<c>v ==</c>) are not.
         /// </summary>
-        private static Regex Reassignment(string v) => new(
-            @"(?<![A-Za-z0-9_.@])@?" + Regex.Escape(v) + @"\s*(?:\?\?)?=(?![=>])|\b(?:ref|out)\s+@?" + Regex.Escape(v) + @"(?![A-Za-z0-9_])",
-            RegexOptions.CultureInvariant);
+        private static int ReassignedAt(string code, string v, int start, int end)
+        {
+            var simple = new Regex(
+                @"(?<![A-Za-z0-9_.@])@?" + Regex.Escape(v) + @"\s*(?:\?\?)?=(?![=>])|\b(?:ref|out)\s+@?" + Regex.Escape(v) + @"(?![A-Za-z0-9_])",
+                RegexOptions.CultureInvariant).Match(code, start);
+            var first = simple.Success && simple.Index < end ? simple.Index : -1;
+            for (var u = Scanner.WordMention(v, allowMemberAccess: false).Match(code, start); u.Success && u.Index < end; u = u.NextMatch())
+            {
+                if (first >= 0 && u.Index >= first)
+                    break;
+                if (IsDeconstructionTarget(code, u.Index, u.Length))
+                    return u.Index;
+            }
+
+            return first;
+        }
+
+        /// <summary>
+        /// The mention [at, at + length) is a whole depth-0 element of a parenthesised list that is followed by an
+        /// assignment '=' (not '==', not '=>'), directly or through enclosing lists it is itself a whole element of
+        /// (<c>((a, v), b) = …</c>). A list after a type or a name (<c>var (a, v) =</c>, a call <c>F(v)</c>) is a
+        /// declaration or an invocation, not a deconstruction into v.
+        /// </summary>
+        private static bool IsDeconstructionTarget(string code, int at, int length)
+        {
+            var (start, end) = (at, at + length);
+            while (true)
+            {
+                var open = Scanner.OpeningParenthesis(code, start);
+                if (open < 0)
+                    return false;
+                var close = Scanner.ClosingParen(code, open);
+                if (close < end)
+                    return false;
+                var element = Scanner.SplitArguments(code, open).FindIndex(a => a.Start <= start && end <= a.End);
+                if (element < 0)
+                    return false;
+                var (s, e) = Scanner.SplitArguments(code, open)[element];
+                if (code[s..e].Trim() != code[start..end])
+                    return false;
+                var before = Scanner.SkipSpaceBack(code, open - 1);
+                if (before >= 0 && Scanner.EndsAType(code, before))
+                    return false;
+
+                var next = Scanner.SkipSpaceForward(code, close + 1);
+                if (next < code.Length && code[next] == '=')
+                    return next + 1 >= code.Length || code[next + 1] is not ('=' or '>');
+                if (next >= code.Length || code[next] is not (',' or ')'))
+                    return false;
+                (start, end) = (open, close + 1);
+            }
+        }
 
         /// <summary>(iv): the innermost receiving member around the site whose HttpClient parameter is named <paramref name="v"/>.</summary>
         private Receiver? EnclosingParameter(SourceModel m, int site, string v)
@@ -513,8 +583,9 @@ public sealed partial class EgressGuardConventionTests
         // ── Supply sites ───────────────────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// S(R) on cleaned production code. A constructor: <c>new [ns.]T(</c>, <c>T[?] id = new(</c>, and <c>: this(</c>
-        /// inside T's body, a primary constructor's type included (<see cref="PrimaryConstructorType"/>). A method N:
+        /// S(R) on cleaned production code. A constructor: <c>new [ns.]T(</c>, <c>T[?] id = new(</c>, an auto-property
+        /// initializer <c>T[?] P { … } = new(</c>, and <c>: this(</c> inside T's body, a primary constructor's type
+        /// included (<see cref="PrimaryConstructorType"/>). A method N:
         /// <c>.N(</c>/<c>.N&lt;…&gt;(</c> anywhere, plus a bare <c>N(</c> in the declaring file (and in any file when N
         /// is not private and T is neither sealed nor static, where a derived type calls it bare), <c>nameof(</c>
         /// excluded; a private method of a non-partial type only in its declaring file. Unknown
@@ -543,6 +614,10 @@ public sealed partial class EgressGuardConventionTests
                     else if (TargetTypedAfter.Match(code, after) is { Success: true } target && !NewBefore.IsMatch(before))
                     {
                         sites.Add(new Site(path, at, target.Index + target.Length - 1, "T x = new(…)"));
+                    }
+                    else if (PropertyInitializerAfter.Match(code, after) is { Success: true } initializer && !NewBefore.IsMatch(before))
+                    {
+                        sites.Add(new Site(path, at, initializer.Index + initializer.Length - 1, "T P { … } = new(…)"));
                     }
                     else if (CreateInstanceBefore.IsMatch(before) && CloseAngleAfter.Match(code, after).Success)
                     {
@@ -632,6 +707,8 @@ public sealed partial class EgressGuardConventionTests
                     problems.Add($"{o.Where}: {r.TypeName} is not sealed: a derived type's base(…) call would be a supply site the scan cannot list");
                 if (r.Partial)
                     problems.Add($"{o.Where}: {r.TypeName} is partial");
+                if (r.PositionalRecord)
+                    problems.Add($"{o.Where}: {PositionalRecordProblem(r)}");
 
                 var (sites, unknown, typed) = SupplySites(r);
                 problems.AddRange(unknown.Select(u => $"{o.Where}: {u}"));
@@ -683,10 +760,14 @@ public sealed partial class EgressGuardConventionTests
         }
 
         /// <summary>
-        /// Every non-private HttpClient field or property (<c>HttpClient[?] name</c> then ';', '=' or '{'), and every
-        /// partial type, in the named file. Known misses, each pinned as a route control: a non-private method that
-        /// returns the client, and a non-private <c>Func&lt;HttpClient&gt;</c>, <c>Lazy&lt;HttpClient&gt;</c>, array or
-        /// tuple member that holds it. Another file can take the client through either.
+        /// Every non-private HttpClient field or property (<c>HttpClient[?] name</c> then ';', '=' or '{'), every
+        /// non-private HttpClient indexer (<c>HttpClient[?] this[</c>), every HttpClient property that is an explicit
+        /// interface implementation (<c>HttpClient[?] IX.Name</c> then '{' or '=&gt;', public through its interface
+        /// whatever its modifiers), and every partial type, in the named file. Known misses, each pinned as a route
+        /// control: a non-private method that returns the client, and a non-private <c>Func&lt;HttpClient&gt;</c>,
+        /// <c>Lazy&lt;HttpClient&gt;</c>, array or tuple member that holds it. Another file can take the client through
+        /// either. An explicit interface METHOD that returns it is the pinned method's shape, stated in the class
+        /// remarks with no control of its own.
         /// </summary>
         private static IEnumerable<string> ExposedClients(SourceModel m)
         {
@@ -707,6 +788,22 @@ public sealed partial class EgressGuardConventionTests
                     continue;
                 if (!IsPrivateHeader(code[Scanner.StatementStart(code, f.Index)..f.Index]))
                     yield return $"{m.Path}:{m.LineOf(f.Index)}: the HttpClient member '{f.Groups[1].Value}' is not private; another file could take the client";
+            }
+
+            foreach (Match f in QualifiedOrIndexerClientMember.Matches(code))
+            {
+                var owner = m.Innermost(f.Index);
+                if (owner < 0 || !m.Blocks[owner].IsTypeBody || Scanner.OpeningParenthesis(code, f.Index) >= 0)
+                    continue;
+                if (f.Groups["qualified"].Success)
+                {
+                    yield return $"{m.Path}:{m.LineOf(f.Index)}: the HttpClient member '{Collapse(f.Groups["qualified"].Value)}' is an explicit "
+                        + "interface implementation, public through its interface; another file could take the client";
+                }
+                else if (!IsPrivateHeader(code[Scanner.StatementStart(code, f.Index)..f.Index]))
+                {
+                    yield return $"{m.Path}:{m.LineOf(f.Index)}: the HttpClient indexer is not private; another file could take the client";
+                }
             }
         }
 
@@ -781,7 +878,8 @@ public sealed partial class EgressGuardConventionTests
                 return new Receiver(m.Path, typeAt, param, position, httpParams, member, IsConstructor: true, member,
                     Type: PrimaryConstructorType(m, open, member),
                     Sealed: Regex.IsMatch(header, @"\bsealed\b"), Partial: Regex.IsMatch(header, @"\bpartial\b"),
-                    IsPrivate: false, isExtension, close, Scanner.DeclarationBodyEnd(m, close));
+                    IsPrivate: false, isExtension, close, Scanner.DeclarationBodyEnd(m, close),
+                    PositionalRecord: Scanner.IsRecordPrimaryConstructor(code, open));
             }
 
             var type = Scanner.EnclosingType(m, open);
@@ -792,7 +890,7 @@ public sealed partial class EgressGuardConventionTests
             return new Receiver(m.Path, typeAt, param, position, httpParams, member,
                 IsConstructor: !qualified && !isLocal && type is not null && member == type.Name,
                 type?.Name ?? string.Empty, type, type?.Sealed ?? false, type?.Partial ?? false, isPrivate, isExtension,
-                close, Scanner.DeclarationBodyEnd(m, close));
+                close, Scanner.DeclarationBodyEnd(m, close), PositionalRecord: false);
         }
 
         /// <summary>
@@ -1725,6 +1823,101 @@ public sealed partial class EgressGuardConventionTests
                     """)),
             Row(ConsumerFile, Marker.HttpParam, 1, 0, FactoryReason),
             Expect: "src/Lib/ByType.cs:5: unknown supplier typeof(Consumer)"),
+        ["Factory fails: a target-typed new(…) in an auto-property initializer"] = new(
+            Sources(
+                (ConsumerFile, ConsumerSource),
+                (FactorySupplierFile, FactorySupplierSource),
+                ("src/Lib/Defaults.cs", """
+                    namespace Lib;
+
+                    public static class Defaults
+                    {
+                        public static Consumer Default { get; } = new("d", Shared.Client);
+                    }
+                    """)),
+            Row(ConsumerFile, Marker.HttpParam, 1, 0, FactoryReason),
+            Expect: "src/Lib/Defaults.cs:5 (T P { … } = new(…)): 'Shared.Client' is not r.CreateClient"),
+        ["Factory fails: a forwarded parameter is reassigned by a deconstruction inside its member"] = new(
+            Sources(("src/Lib/Worker.cs", """
+                namespace Lib;
+
+                public sealed class Worker
+                {
+                    private readonly IHttpClientFactory _httpClientFactory;
+
+                    public Worker(IHttpClientFactory httpClientFactory) => _httpClientFactory = httpClientFactory;
+
+                    public async Task<int> RunAsync(CancellationToken ct)
+                    {
+                        var director = CreateDirectorClient("https://director.invalid/");
+                        var tasks = await ListAsync(director, ct);
+                        return await ExecuteAsync(director, tasks, ct) ? 1 : 0;
+                    }
+
+                    private async Task<bool> ExecuteAsync(HttpClient director, string tasks, CancellationToken ct)
+                    {
+                        if (!await PatchAsync(director, tasks, ct))
+                            return false;
+                        (director, _) = (Shared.Client, 0);
+                        return await PatchAsync(director, "done", ct);
+                    }
+
+                    private static async Task<bool> PatchAsync(HttpClient director, string body, CancellationToken ct)
+                    {
+                        using var response = await director.PostAsync("api/tasks", new StringContent(body), ct);
+                        return response.IsSuccessStatusCode;
+                    }
+
+                    private static async Task<string> ListAsync(HttpClient director, CancellationToken ct) => await director.GetStringAsync("api/tasks", ct);
+
+                    private HttpClient CreateDirectorClient(string baseUrl)
+                    {
+                        var client = _httpClientFactory.CreateClient("worker");
+                        client.BaseAddress = new Uri(baseUrl);
+                        return client;
+                    }
+                }
+                """)),
+            Row("src/Lib/Worker.cs", Marker.HttpParam, 3, 0, FactoryReason),
+            Expect: "'director' is Worker.ExecuteAsync's own parameter, reassigned at src/Lib/Worker.cs:20"),
+        ["Factory fails: the local is reassigned by a tuple swap"] = new(
+            Sources(
+                (ConsumerFile, ConsumerSource),
+                ("src/Lib/Reg.cs", """
+                    namespace Lib;
+
+                    public static class Reg
+                    {
+                        public static Consumer Build(IHttpClientFactory factory)
+                        {
+                            var client = factory.CreateClient("x");
+                            var spare = Shared.Client;
+                            (client, spare) = (spare, client);
+                            return new Consumer("a", client);
+                        }
+                    }
+                    """)),
+            Row(ConsumerFile, Marker.HttpParam, 1, 0, FactoryReason),
+            Expect: "the local 'client' is reassigned at src/Lib/Reg.cs:9"),
+        ["Factory fails: a positional record receiver, whose public property a 'with' expression replaces"] = new(
+            Sources(
+                ("src/Lib/PeerEndpoint.cs", """
+                    namespace Lib;
+
+                    public sealed record PeerEndpoint(HttpClient Client, Uri Base);
+                    """),
+                ("src/Lib/PeerReg.cs", """
+                    namespace Lib;
+
+                    public static class PeerReg
+                    {
+                        public static PeerEndpoint Build(IHttpClientFactory factory) => new PeerEndpoint(factory.CreateClient("peer"), new Uri("https://peer.invalid/"));
+
+                        public static PeerEndpoint Swap(PeerEndpoint endpoint) => endpoint with { Client = Shared.Client };
+                    }
+                    """)),
+            Row("src/Lib/PeerEndpoint.cs", Marker.HttpParam, 1, 0, FactoryReason),
+            Expect: "PeerEndpoint is a positional record: 'Client' is also a public property"),
 
         // ── Factory (typed) ─────────────────────────────────────────────────────────────────────────────────
         ["Factory typed holds: a typed client of a Factory-classified registration (RunPod)"] = new(
@@ -1906,6 +2099,50 @@ public sealed partial class EgressGuardConventionTests
                     StringComparison.Ordinal))),
             Row(OllamaProviderFile, Marker.HttpParam, 1, 0, UpstreamPrefix + ProviderFactoryFile),
             Expect: "the HttpClient member 'Client' is not private"),
+        ["Upstream fails: another file supplies through a target-typed new(…) in an auto-property initializer"] = new(
+            Sources(
+                (OllamaProviderFile, OllamaProviderSource),
+                (ProviderFactoryFile, ProviderFactorySource),
+                ("src/Lib/Defaults.cs", """
+                    namespace Lib;
+
+                    public static class Defaults
+                    {
+                        public static OllamaProvider Local { get; } = new(EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-07"), "http://localhost:11434");
+                    }
+                    """)),
+            Row(OllamaProviderFile, Marker.HttpParam, 1, 0, UpstreamPrefix + ProviderFactoryFile),
+            Expect: "src/Lib/Defaults.cs:5 (T P { … } = new(…)) supplies OllamaProvider constructor outside src/Lib/ProviderFactory.cs"),
+        ["Upstream fails: the named file hands its client out through an explicit interface implementation"] = new(
+            Sources(
+                (OllamaProviderFile, OllamaProviderSource),
+                (ProviderFactoryFile, ProviderFactorySource
+                    .Replace("public class ProviderFactory", "public class ProviderFactory : IOllamaClientSource", StringComparison.Ordinal)
+                    .Replace(
+                        "    private OllamaProvider? _ollama;",
+                        "    private OllamaProvider? _ollama;\n\n    HttpClient? IOllamaClientSource.Client { get => _ollamaHttpClient; set => _ollamaHttpClient = value; }",
+                        StringComparison.Ordinal))),
+            Row(OllamaProviderFile, Marker.HttpParam, 1, 0, UpstreamPrefix + ProviderFactoryFile),
+            Expect: "the HttpClient member 'IOllamaClientSource.Client' is an explicit interface implementation"),
+        ["Upstream fails: the named file hands its client out through a public indexer"] = new(
+            Sources(
+                (OllamaProviderFile, OllamaProviderSource),
+                (ProviderFactoryFile, ProviderFactorySource.Replace(
+                    "    private OllamaProvider? _ollama;",
+                    "    private OllamaProvider? _ollama;\n\n    public HttpClient? this[string name] => _ollamaHttpClient;",
+                    StringComparison.Ordinal))),
+            Row(OllamaProviderFile, Marker.HttpParam, 1, 0, UpstreamPrefix + ProviderFactoryFile),
+            Expect: "the HttpClient indexer is not private"),
+        ["Upstream fails: a positional record receiver"] = new(
+            Sources(
+                (OllamaProviderFile, """
+                    namespace Lib;
+
+                    public sealed record OllamaProvider(HttpClient Http, string BaseUrl);
+                    """),
+                (ProviderFactoryFile, ProviderFactorySource)),
+            Row(OllamaProviderFile, Marker.HttpParam, 1, 0, UpstreamPrefix + ProviderFactoryFile),
+            Expect: "OllamaProvider is a positional record: 'Http' is also a public property"),
 
         // ── Upstream (http.register) ────────────────────────────────────────────────────────────────────────
         ["Upstream holds: a registration in a project that cannot reach Infrastructure, composed by Fleet.Host"] = new(
@@ -2051,6 +2288,18 @@ public sealed partial class EgressGuardConventionTests
                 """)),
             GovernedTsv,
             Expect: "src/Lib/RawChat.cs:6: 'ServiceDescriptor.Singleton(typeof(IChatClient' registers a raw IChatClient"),
+        ["Governance fails while F5 is red: a raw IChatClient registration, new ServiceDescriptor(typeof(IChatClient), …)"] = new(
+            GovernedSources(("src/Lib/RawChat.cs", """
+                namespace Lib;
+
+                public static class RawChat
+                {
+                    public static void AddRawChat(IServiceCollection services) =>
+                        services.Add(new ServiceDescriptor(typeof(IChatClient), sp => new EchoChatClient(), ServiceLifetime.Singleton));
+                }
+                """)),
+            GovernedTsv,
+            Expect: "src/Lib/RawChat.cs:6: 'new ServiceDescriptor(typeof(IChatClient)' registers a raw IChatClient"),
         ["Governance fails while F5 is red: new EgressGuardChatClient( outside the governance file"] = new(
             GovernedSources(("src/Lib/SideDoor.cs", """
                 namespace Lib;
