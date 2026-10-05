@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Client;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.Mcp.Client;
 
@@ -322,7 +323,13 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
             };
         }
 
-        var transport = new HttpClientTransport(transportOptions, _loggerFactory);
+        // The same client the two-argument constructor builds (new HttpClient(), owned by the transport), with the
+        // egress guard in front of it.
+        var transport = new HttpClientTransport(
+            transportOptions,
+            EgressHttp.CreateClient(EgressFamilies.Mcp, "EG-XPT-06"),
+            _loggerFactory,
+            ownsHttpClient: true);
         return await McpClient.CreateAsync(transport, clientOptions: null, loggerFactory: _loggerFactory, cancellationToken: ct)
             .ConfigureAwait(false);
     }

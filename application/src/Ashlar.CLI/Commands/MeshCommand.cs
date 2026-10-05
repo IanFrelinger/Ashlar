@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Adaptation.Ports;
 using Ashlar.Core.Application.Mesh;
 using Ashlar.Core.Application.Mesh.Models;
@@ -368,7 +369,8 @@ public sealed class MeshCommand : Command
             return 1;
         }
 
-        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120)) };
+        var client = EgressHttp.CreateClient(EgressFamilies.Http, "EG-HTTP-06");
+        client.Timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120));
         try
         {
             using var resp = await client.GetAsync(uri).ConfigureAwait(false);

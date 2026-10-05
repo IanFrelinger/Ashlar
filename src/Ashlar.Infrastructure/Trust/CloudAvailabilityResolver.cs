@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Trust.Ports;
 
 namespace Ashlar.Infrastructure.Trust;
@@ -94,7 +95,7 @@ public sealed class CloudAvailabilityResolver : ICloudAvailabilityResolver
     private async Task<bool> ProbeCloudUnreachableAsync(CancellationToken ct)
     {
         var ownsClient = _httpClient == null;
-        var client = _httpClient ?? new HttpClient();
+        var client = _httpClient ?? EgressHttp.CreateClient(EgressFamilies.Http, "EG-MDL-12");
         try
         {
             client.Timeout = TimeSpan.FromSeconds(3);

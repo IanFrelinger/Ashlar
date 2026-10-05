@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
+using Ashlar.Abstractions.Security.Egress;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -69,10 +70,13 @@ public sealed class DefaultGrpcChannelFactory : IGrpcChannelFactory
         });
     }
 
-    private HttpMessageHandler BuildHandler()
-    {
-        var handler = new HttpClientHandler();
+    // The guard handler goes in front of the configured HttpClientHandler. Grpc.Net.Client finds the handler type
+    // through DelegatingHandler.InnerHandler, so the channel still sees an HttpClientHandler.
+    private HttpMessageHandler BuildHandler() =>
+        EgressHttp.Wrap(ConfigureHandler(new HttpClientHandler()), EgressFamilies.Grpc, "EG-XPT-03");
 
+    private HttpClientHandler ConfigureHandler(HttpClientHandler handler)
+    {
         if (_options.AllowInsecure)
         {
             // Development-only insecure mode: allow unencrypted HTTP/2 and bypass cert validation.
