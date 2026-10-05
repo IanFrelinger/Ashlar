@@ -27,8 +27,9 @@ namespace Ashlar.Tests.BackgroundAgents;
 /// to, by scheme, host and port: a localhost daemon is Host, any other is ExternalModel, and the request still reaches
 /// the daemon's <c>/api/generate</c>.</para>
 /// <para><b>Isolation.</b> Each case enters its own <see cref="EgressSubject"/> frame and keeps only decisions whose
-/// basis is that frame; both guards run before their member's first <c>await</c>. No network: the proposer's client
-/// sends to a stub handler, and the mesh store is a temporary directory passed explicitly (never the operator's).</para>
+/// basis is that frame. The frame is an <c>AsyncLocal</c>, so it would reach a guard placed after an <c>await</c> too.
+/// No network: the proposer's client sends to a stub handler, and the mesh store is a temporary directory passed
+/// explicitly (never the operator's).</para>
 /// </remarks>
 public sealed class EgressAgentSiteTwinTests : IDisposable
 {
