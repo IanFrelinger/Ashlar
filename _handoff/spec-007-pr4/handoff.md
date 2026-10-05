@@ -1,6 +1,6 @@
 # spec-007-pr4 handoff: end of phase A, start of phase B
 
-*Written 2026-10-05 around 20:30 UTC, at the end of phase A. Start the next thread with the prompt in §9, or with `/start-phase spec-007-pr4`.*
+*Written 2026-10-05 at 20:15 UTC (updated 20:55 UTC), at the end of phase A. Start the next thread with the prompt in §9, or with `/start-phase spec-007-pr4`.*
 
 ## 0. How we work: one thread per phase
 
@@ -34,10 +34,15 @@ git show origin/claude/spec-007-pr4-workspace:_handoff/spec-007-pr4/handoff.md
 
 | PR | What | Branch | State at handoff |
 |---|---|---|---|
-| #714 | The phase/handoff procedure: CLAUDE.md section, `/handoff`, `/start-phase`, template, `scripts/handoff-{publish,fetch}.sh` and a 42-assertion test | `claude/phase-handoff-procedure` @ `221df799d` | CI running; build-core green. `handoff pr-714` posted on #695 |
-| #715 | drift-713: names the 3a defects 4.10 fixes and the question Q5 answers, and says open question B's flip is PR 5 | `claude/drift-713-spec007-refs` @ `7699e0f27` | CI queued. Docs only; repo gates 25/25 locally. `handoff`/`done` not yet posted |
+| #714 | The phase/handoff procedure: CLAUDE.md section, `/handoff`, `/start-phase`, template, `scripts/handoff-{publish,fetch}.sh` and a 42-assertion test | `claude/phase-handoff-procedure` @ `221df799d` | `cert-gate`, `build-core`, `lychee` green. `shell-lint` and `Readiness summary` **never got a runner** (see below). Its one re-run is spent. `handoff pr-714` posted on #695 |
+| #715 | drift-713: names the 3a defects 4.10 fixes and the question Q5 answers, and says open question B's flip is PR 5 | `claude/drift-713-spec007-refs` @ `7699e0f27` | `cert-gate`, `lychee` green. `build-core`, `shell-lint` and `Readiness summary` never got a runner. Its one re-run is not yet used. Docs only; repo gates 25/25 locally. `handoff pr-715` posted on #695 |
 
-Merges are serial with `strict` on, so whichever merges second must be brought up to date first (update-branch, then re-run CI).
+**CI blocker at 20:55Z: GitHub hosted runners.** Since about 19:32Z, many jobs in this repository end with "The job was not acquired by Runner of type hosted even after multiple attempts" after waiting 15 minutes, without running a step. The repository is public, so this is not an Actions-minutes limit. The plan:
+- once runners pick up jobs again, re-run #715's failed jobs once, then merge it;
+- then bring #714 up to date with master, which `strict` requires anyway. That push starts a fresh CI run, so #714 needs no second re-run;
+- then merge #714.
+
+The phase A thread does this if it is still running. Otherwise the phase B thread does it first. Comment on #714 explains it.
 
 **Readiness.**
 - The last readiness verdict on master is `verified`, for `8ec674d2a` (#711, confirmed by Grok).
@@ -46,7 +51,7 @@ Merges are serial with `strict` on, so whichever merges second must be brought u
 
 **Agent-bus (#695).**
 - `drift-713` (Grok, 17:18Z) is answered by #715. Post `Kind: done`, `About: drift-713` with #715's merge SHA, and say why B names PR 5 rather than 4.11: the design's D38 says so, and PR 4 enforces egress only.
-- `handoff pr-714` is posted; its `done` is pending.
+- `handoff pr-714` and `handoff pr-715` are posted; both `done`s are pending.
 - Grok is holding Dependabot #689–#693.
 - Grok is standing by for the 4.4, 4.1, 4.6 and 4.2 handoffs.
 
