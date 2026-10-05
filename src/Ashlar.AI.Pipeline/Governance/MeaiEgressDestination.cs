@@ -20,10 +20,15 @@ namespace Ashlar.AI.Pipeline.Governance;
 /// <item><term><c>local:onnx</c></term><description>none: LLamaSharp runs in process, so nothing is
 /// evaluated.</description></item>
 /// <item><term>any other key</term><description>the name <c>meai:&lt;key&gt;</c>, site
-/// <c>meai:&lt;key&gt;</c>.</description></item>
+/// <c>meai:&lt;key&gt;</c>, with every <c>/</c> and <c>\</c> in the key percent-encoded (<c>%2F</c>, <c>%5C</c>):
+/// the key <c>//127.0.0.1</c> is recorded as <c>meai:%2F%2F127.0.0.1</c>.</description></item>
 /// </list>
 /// <para>Never throws: it runs while a keyed client is built, and a failure there would stop the client being built. A
-/// failure gives the name <c>meai:&lt;key&gt;</c>, which classifies as an external model (fails closed).</para>
+/// failure gives the same <c>meai:&lt;key&gt;</c> name.</para>
+/// <para>A <c>meai:&lt;key&gt;</c> name holds no <c>/</c> or <c>\</c>. So it has no URI authority, which needs two
+/// slashes after the scheme (System.Uri reads <c>\</c> as <c>/</c> there), and it holds no <c>://</c>, which is the
+/// only way the egress classifier reads a name as a URL. It is never classified by a host: the default guard records
+/// it as an external model (Internal) whatever the key.</para>
 /// </remarks>
 internal static class MeaiEgressDestination
 {
@@ -87,12 +92,19 @@ internal static class MeaiEgressDestination
     }
 
     // An AWS region name is ASCII letters, digits and '-'. Anything else ('#', '/', '?', '@') could move the host of the
-    // composed URI, so it is recorded by name instead, which classifies as an external model (fails closed).
+    // composed URI, so the fixed name aws-bedrock is recorded instead, which classifies as an external model.
     private static bool IsRegionName(string? region) =>
         !string.IsNullOrEmpty(region) && region.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
 
-    private static EgressRequest Named(string targetKey) =>
-        new(EgressFamilies.ModelMeai, KeyPrefix + targetKey, KeyPrefix + targetKey);
+    // A key's '/' and '\' are percent-encoded: "meai://127.0.0.1" would read as a URI whose host is the loopback
+    // address, and classify as Host. Plain string replacement, so this cannot throw.
+    private static EgressRequest Named(string targetKey)
+    {
+        var name = KeyPrefix + targetKey
+            .Replace("/", "%2F", StringComparison.Ordinal)
+            .Replace("\\", "%5C", StringComparison.Ordinal);
+        return new EgressRequest(EgressFamilies.ModelMeai, name, name);
+    }
 
     // GetService, not GetRequiredService: AddAshlarGovernedChatClient works without AddAshlarMeaiPipeline, so the options
     // may not be registered. The resolver accepts null.

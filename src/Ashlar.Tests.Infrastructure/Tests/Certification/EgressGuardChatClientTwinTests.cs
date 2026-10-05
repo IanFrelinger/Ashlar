@@ -27,9 +27,11 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para>Isolation: each provider gets a recording <see cref="IEgressGuard"/> that delegates to
 /// <see cref="EgressGuard.ProcessDefault"/>, so classification is the real one and only this provider's decisions are
 /// counted. Where the twin must prove the fallback is <see cref="EgressGuard.ProcessDefault"/> itself, it reads the
-/// process-wide <see cref="EgressDecisionLog"/>, filtered by a unique <c>egress-twin-&lt;guid&gt;</c> host. The class
-/// clears <c>ASHLAR_OLLAMA_BASE_URL</c>, which outranks the configured URL, so it is serialized with the other
-/// environment writers.</para>
+/// process-wide <see cref="EgressDecisionLog"/>, filtered by a unique <c>egress-twin-&lt;guid&gt;</c> host.</para>
+/// <para>The class sets and clears <c>ASHLAR_OLLAMA_BASE_URL</c> and <c>OLLAMA_BASE_URL</c>, each through an
+/// <see cref="EnvironmentVariableScope"/> that restores it, so it runs in the serial <c>EnvironmentVariables</c>
+/// collection (<c>DisableParallelization</c>), as <see cref="ProcessGlobalEnvironmentConventionTests"/> requires of an
+/// environment writer.</para>
 /// </remarks>
 [Trait("Category", "Certification")]
 [Collection("EnvironmentVariables")]
@@ -127,6 +129,57 @@ public sealed class EgressGuardChatClientTwinTests
         decision.Destination.Should().Be(url);
         decision.DestinationClass.Should().Be(expected);
         decision.Access.Allowed.Should().Be(allowed);
+    }
+
+    /// <summary>
+    /// The recorded destination follows <see cref="OllamaEndpointResolver"/>'s precedence, environment included, and is
+    /// the authority the default <see cref="OllamaHttpChatClient"/> dials: <c>ASHLAR_OLLAMA_BASE_URL</c> outranks the
+    /// configured URL, and the legacy <c>OLLAMA_BASE_URL</c> (what the compose stacks set) outranks the default.
+    /// </summary>
+    [Theory]
+    [InlineData(MeaiPipelineOptions.OllamaBaseUrlEnvVar, true)]
+    [InlineData(MeaiPipelineOptions.LegacyOllamaBaseUrlEnvVar, false)]
+    public async Task LocalOllama_RecordsTheEnvironmentUrl_ThatTheDefaultClientDials(string variable, bool configureUrl)
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var configured = configureUrl ? $"http://egress-twin-{id}.localhost:11434" : null;
+        var fromEnvironment = $"http://egress-twin-{id}.example:11434";
+        using var unsetAshlar = EnvironmentVariableScope.Unset(MeaiPipelineOptions.OllamaBaseUrlEnvVar);
+        using var unsetLegacy = EnvironmentVariableScope.Unset(MeaiPipelineOptions.LegacyOllamaBaseUrlEnvVar);
+        using var set = new EnvironmentVariableScope(variable, fromEnvironment);
+
+        var guard = new RecordingGuard();
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(guard);
+        services.AddAshlarMeaiPipeline(
+            configure: o => o.OllamaBaseUrl = configured,
+            ollamaInnerFactory: _ => new FakeChatClient("ollama"),
+            onnxInnerFactory: _ => new FakeChatClient());
+        using (var provider = services.BuildServiceProvider())
+        {
+            var client = provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama);
+            (await client.GetResponseAsync("hello")).Text.Should().Be("ollama");
+        }
+
+        var decision = guard.Decisions.Should().ContainSingle().Which;
+        decision.Site.Should().Be("EG-MDL-01");
+        decision.Destination.Should().Be(fromEnvironment, "{0} outranks {1}", variable, configured ?? "the default");
+        decision.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel);
+        decision.Access.Allowed.Should().BeFalse();
+
+        // The default inner client, built and never called: its base address is what the guard layer reports.
+        var real = new ServiceCollection();
+        real.AddAshlarMeaiPipeline(
+            configure: o => o.OllamaBaseUrl = configured,
+            onnxInnerFactory: _ => new FakeChatClient());
+        using var realProvider = real.BuildServiceProvider();
+        var dialling = realProvider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama);
+        var recorded = dialling.Should().BeOfType<EgressGuardChatClient>().Which.Request?.Destination;
+        var dialled = dialling.GetService<ChatClientMetadata>()?.ProviderUri;
+        recorded.Should().NotBeNull();
+        dialled.Should().NotBeNull();
+        dialled!.GetLeftPart(UriPartial.Authority).Should().Be(fromEnvironment);
+        recorded!.GetLeftPart(UriPartial.Authority).Should().Be(dialled.GetLeftPart(UriPartial.Authority));
     }
 
     [Fact]
@@ -241,6 +294,38 @@ public sealed class EgressGuardChatClientTwinTests
         (await named.GetResponseAsync("hello")).Text.Should().Be("named");
     }
 
+    /// <summary>
+    /// A key's slashes are escaped in its <c>meai:&lt;key&gt;</c> name, so a key cannot pass the target off as the host:
+    /// <c>meai://127.0.0.1</c> would be read as a URL whose host is the loopback address (Host, SystemHigh). PolicyGate
+    /// knows no trust tier for such a key and denies the call, after the guard layer has recorded it.
+    /// </summary>
+    [Theory]
+    [InlineData("//127.0.0.1", "meai:%2F%2F127.0.0.1")]
+    [InlineData(@"\\127.0.0.1", "meai:%5C%5C127.0.0.1")]
+    [InlineData("//localhost:11434/api", "meai:%2F%2Flocalhost:11434%2Fapi")]
+    public void AKeyWithSlashes_IsRecordedByItsEscapedName_NeverAsTheHost(string key, string expected)
+    {
+        var guard = new RecordingGuard();
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(guard);
+        services.AddAshlarGovernedChatClient(key, _ => new FakeChatClient("named"));
+
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredKeyedService<IChatClient>(key);
+        Action call = () => _ = client.GetResponseAsync("hello");
+        call.Should().Throw<PolicyViolationException>("PolicyGate knows no trust tier for '{0}'", key)
+            .Which.Code.Should().Be("target_denied");
+
+        var decision = guard.Decisions.Should().ContainSingle("the guard layer records the attempt before PolicyGate").Which;
+        decision.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel, "key '{0}' must not name the host", key);
+        decision.DestinationLabel.Should().NotBe(SecurityLabel.SystemHigh, "key '{0}' must not name the host", key);
+        decision.DestinationLabel.Should().Be(new SecurityLabel(SecurityLevel.Internal));
+        decision.Site.Should().Be(expected);
+        decision.Destination.Should().Be(expected);
+        if (Uri.TryCreate(expected, UriKind.Absolute, out var parsed))
+            parsed.Authority.Should().BeEmpty("the name '{0}' must not parse with a URI authority", expected);
+    }
+
     [Fact]
     public void EveryKeyedTarget_IsOutermostEgressGuard_WithItsSite()
     {
@@ -271,22 +356,26 @@ public sealed class EgressGuardChatClientTwinTests
     [Fact]
     public async Task AThrowingCustomGuard_NeverReachesTheCaller_OnGetResponseAsync()
     {
-        using var provider = OllamaWithGuard(new ThrowingGuard());
+        var guard = new ThrowingGuard();
+        using var provider = OllamaWithGuard(guard);
         var client = provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama);
 
         (await client.GetResponseAsync("hello")).Text.Should().Be("ollama");
+        guard.Calls.Should().Be(1, "the registered guard is the one evaluated, and its fault is swallowed");
     }
 
     [Fact]
     public async Task AThrowingCustomGuard_NeverReachesTheCaller_OnStreaming()
     {
-        using var provider = OllamaWithGuard(new ThrowingGuard());
+        var guard = new ThrowingGuard();
+        using var provider = OllamaWithGuard(guard);
         var client = provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama);
 
         var text = string.Empty;
         await foreach (var update in client.GetStreamingResponseAsync("hello"))
             text += update.Text;
         text.Should().Be("ollama");
+        guard.Calls.Should().Be(1, "the registered guard is the one evaluated, and its fault is swallowed");
     }
 
     [Theory]
@@ -361,8 +450,15 @@ public sealed class EgressGuardChatClientTwinTests
 
     private sealed class ThrowingGuard : IEgressGuard
     {
-        public EgressDecision Evaluate(EgressRequest request) =>
+        private int _calls;
+
+        public int Calls => Volatile.Read(ref _calls);
+
+        public EgressDecision Evaluate(EgressRequest request)
+        {
+            Interlocked.Increment(ref _calls);
             throw new InvalidOperationException("custom guard fault");
+        }
     }
 
     private sealed class HostRecorder : IEgressDecisionSink
