@@ -9,6 +9,7 @@ using Ashlar.Core.Application.Mesh.Models;
 using Ashlar.Core.Application.Mesh.Ports;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
 using Ashlar.Infrastructure.Adaptation;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.Mesh;
 
 namespace Ashlar.Infrastructure.Execution.Routing.Sdk.Extensions;
@@ -48,6 +49,8 @@ public static class RunPodCapabilityRoutingServiceCollectionExtensions
                 : options.BaseUrl.TrimEnd('/');
             client.BaseAddress = new Uri(baseUrl + "/", UriKind.Absolute);
         });
+        // SPEC-007: report-only guard handler on the RunPod client and the default client below (idempotent).
+        services.AddAshlarEgressGuard();
 
         services.TryAddSingleton<ILocalQueueDepthProvider, EnvironmentQueueDepthProvider>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, NCRCapabilityPoller>());

@@ -21,6 +21,7 @@ using Ashlar.Core.Application.Trust.Ports;
 using Ashlar.Core.Application.Validation.UseCases.RunValidation;
 using Ashlar.Infrastructure;
 using Ashlar.Infrastructure.Copilot;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.Ephemeral;
 using Ashlar.Infrastructure.Execution.LoadPolicy;
@@ -121,6 +122,9 @@ public static partial class AshlarServiceCollectionExtensions
         services.AddSingleton(options.StrictMode);
 
         services.AddHttpClient();
+        // SPEC-007: the report-only egress guard handler on every IHttpClientFactory client in this container,
+        // the host's own included (owner decision Q1 = A). Idempotent, so the kernel members below that call it add nothing.
+        services.AddAshlarEgressGuard();
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .Build();

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Ashlar.Core.Application.ModelArtifacts.Ports;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.ModelArtifacts;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Backends;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Sdk.Extensions;
@@ -47,6 +48,8 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
             client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/", global::System.UriKind.Absolute);
             client.Timeout = opts.RequestTimeout <= TimeSpan.Zero ? TimeSpan.FromSeconds(60) : opts.RequestTimeout;
         });
+        // SPEC-007: report-only guard handler on the three catalog clients above (idempotent).
+        services.AddAshlarEgressGuard();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IModelArtifactCatalogSource, OllamaTagsModelArtifactCatalogSource>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IModelArtifactCatalogSource, OllamaRemoteLibraryModelArtifactCatalogSource>());

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.Execution.Agentic;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Backends;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Lifecycle;
@@ -119,6 +120,8 @@ public static class NodeCapabilityRuntimeServiceCollectionExtensions
             var options = sp.GetRequiredService<IOptions<OllamaBackendOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
         });
+        // SPEC-007: report-only guard handler on the NCR Ollama backend client (idempotent).
+        services.AddAshlarEgressGuard();
 
         services.RemoveAll<IModelServingBackend>();
         services.AddSingleton<IModelServingBackend>(sp =>
