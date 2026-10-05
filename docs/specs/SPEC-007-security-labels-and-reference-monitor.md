@@ -65,6 +65,11 @@ The status line above and the starting prompt are the owner's, as written; the s
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
 
+  - **4.4** (this PR): frame semantics. A decision joins every live `EgressSubject` frame and a disposed frame's mark
+    reaches the frames around it; `EgressSubject.Observe` raises every live frame; a `BeginRead` scope that ends
+    unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run with no subject. Report-only,
+    and no production code enters a frame yet.
+
 ---
 
 ## 1. Why

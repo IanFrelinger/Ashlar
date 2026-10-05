@@ -21,7 +21,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <see cref="DataSensitivityLabelBridge.ToDataLabel"/>; that with no subject every non-host destination is refused
 /// with <see cref="AccessDenialReason.SystemHighData"/> and the host boundary is allowed; that an
 /// <see cref="EgressSubject"/> frame lowers the current label, flows across <c>await</c>, and is restored on
-/// <c>Dispose</c>, nested frames included; that a record never carries a userinfo, path, query or fragment; that a
+/// <c>Dispose</c>, and that a nested frame decides at the join of every live frame (SPEC-007 PR 4.4; the rest of
+/// frame semantics is in <see cref="EgressSubjectNestingTests"/>); that a record never carries a userinfo, path, query or fragment; that a
 /// fault is a record with <see cref="EgressDecision.Fault"/> and <c>default(AccessDecision)</c>, never a throw; that an
 /// explicit profile is reported and sets <see cref="EgressDecision.ProfileEnforcesByDefault"/> without changing the
 /// decision; and that every record reaches each subscriber and the event source.</para>
@@ -356,10 +357,12 @@ public sealed class EgressGuardDecisionTests
             {
                 await Task.Delay(1);
 
+                // SPEC-007 PR 4.4 flipped this block. It pinned "inner Public decides Public", which let a fresh
+                // frame declassify what the enclosing subject had read; a nested frame now joins every live frame.
                 var inner = Decide("not-a-family", Remote);
-                inner.CurrentBasis.Should().Be(SubjectPrefix + "agent-inner");
-                inner.Current.Should().Be(SecurityLabel.Public);
-                inner.Access.Allowed.Should().BeTrue("a Public subject may write to the Public bottom: {0}", inner.Access);
+                inner.CurrentBasis.Should().Be(SubjectPrefix + "agent-inner", "the basis names the innermost subject");
+                inner.Current.Should().Be(InternalLabel, "a nested frame never decides below a frame it was entered inside");
+                inner.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow, "the enclosing Internal data may not be written down to Public");
             }
 
             await Task.Yield();

@@ -113,6 +113,21 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   accredited cross-domain solution. The convention test that holds the inventory and its routes, the
   behavioural tests of the guard, the HTTP handler and the factory defaults, and the route twins in
   `Tests/Certification`, are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
+- **Egress subject frames nest monotonically, and reads are scoped (SPEC-007 PR 4.4).** A decision's
+  current label is now the join of the high-water marks of every live `EgressSubject` frame on the
+  flow, not only the innermost one's, so a frame entered inside another can never decide below it;
+  the record's basis still names the innermost subject. Disposing a frame observes its mark into every
+  enclosing live frame. The new `EgressSubject.Observe(SecurityLabel)` joins a label into every live
+  frame at once, only raises, and does nothing with no frame. The new `EgressSubject.BeginRead()`
+  returns a `ReadScope` for one read: disposed after `Complete()`, it observes the join of what was
+  passed to `Report` (a `Public` report reads nothing), or `SystemHigh` if nothing was reported;
+  disposed without `Complete()`, as when the read throws, it observes `SystemHigh` whatever was
+  reported. `Observe` never satisfies a read scope. `AgentBus.PublishAsync` now starts every
+  subscriber with no egress subject (an internal `EgressSubject.Detach()`), so a subscriber's egress
+  is no longer decided at the publisher's mark. Still report-only, and no production code enters a
+  frame or begins a read yet, so no recorded decision changes; the agent producers come in PR 4.5.
+  The new public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, and the behaviour is
+  pinned by cert-gate tests listed in `ci/cert-gate-assertions.md`.
 - **A Claude Code cloud session sets docker up by itself.** A new SessionStart hook,
   `.claude/hooks/session-start.sh` (registered in `.claude/settings.json`), runs only when
   `CLAUDE_CODE_REMOTE=true`: it starts `dockerd` if it is not running, writes a session-local

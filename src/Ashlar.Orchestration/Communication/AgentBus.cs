@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Ashlar.Orchestration.Communication.Models;
 
@@ -59,21 +60,26 @@ public sealed class AgentBus : IAgentBus
             _messageHistory.TryDequeue(out _);
         }
 
-        // Notify subscribers
+        // Notify subscribers. Each handler is another component's work, so it must not be decided at the
+        // publisher's mark: the dispatch tasks start detached, with no egress subject (SystemHigh), and keep it
+        // after the publisher's flow is restored (SPEC-007 PR 4, D18).
         var subscriptions = GetMatchingSubscriptions(message);
-        foreach (var subscription in subscriptions)
+        using (EgressSubject.Detach())
         {
-            _ = Task.Run(async () =>
+            foreach (var subscription in subscriptions)
             {
-                try
+                _ = Task.Run(async () =>
                 {
-                    await subscription.Handler(message, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error handling message {MessageId} in subscription", message.MessageId);
-                }
-            }, cancellationToken);
+                    try
+                    {
+                        await subscription.Handler(message, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error handling message {MessageId} in subscription", message.MessageId);
+                    }
+                }, cancellationToken);
+            }
         }
 
         return Task.CompletedTask;
