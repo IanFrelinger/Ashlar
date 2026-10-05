@@ -19,7 +19,7 @@ The status line above and the starting prompt are the owner's, as written; the s
 |---|---|---|
 | 1: the label lattice and reference-monitor decisions (§4) | Merged | #706, `0f9642ec2` |
 | 2: bridge the existing labels | Merged | #707, `f1f2cff48` |
-| 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #PR3B_NUMBER, `PR3B_MERGE_SHA` |
+| 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #PR3B_NUMBER |
 | 4 to 8 | Not started | |
 
 - **PR 1** added `Ashlar.Abstractions.Security` in `src/Ashlar.Abstractions/Security/`, with 367 cert-gate tests. The
@@ -34,10 +34,12 @@ The status line above and the starting prompt are the owner's, as written; the s
   fails when an outbound path appears that the inventory does not list. 3a routes nothing: no production composition
   calls `AddAshlarEgressGuard`.
 - **PR 3b** routed the 51 rows 3a pinned `Unrouted` and removed that reason, which the convention test now rejects:
-  10 are `Factory`, 4 `Upstream:<path>` and 4 `Governance`, and the other 33 are guarded (`Wrapped` or `Precedes`;
-  the MeshDiscovery listener beside its guarded beacon stays `Exempt:Inbound`). The MCP client's `EgressHttp` client
+  10 are `Factory`, 4 `Upstream:<path>` and 4 `Governance`, and the other 33 are guarded (`Wrapped`, `Precedes`, or
+  `Factory` for the 8 registrations; the MeshDiscovery listener beside its guarded beacon stays `Exempt:Inbound`).
+  The MCP client's `EgressHttp` client
   adds one row, so the TSV pins 85. HTTP clients go through `EgressHttp` or the factory handler, which `AddAshlar` and
-  every other member that registers a factory client install; MEAI targets go through `EgressGuardChatClient`, the
+  every other Ashlar member that registers a factory client install (the consumer SDK's `AddAshlarClient` is exempt,
+  and Fleet.Host covers the commercial Fleet registration); MEAI targets go through `EgressGuardChatClient`, the
   outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It is still report-only.
 - **A gap carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`): the `netstandard2.0` asset of
   `Ashlar.Abstractions` does not evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` goes out
@@ -269,7 +271,7 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 | PR | What | Done when | Status (added 2026-10-04, updated 2026-10-05) |
 |---|---|---|---|
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
-| 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #PR3B_NUMBER, `PR3B_MERGE_SHA` (routes every listed non-exempt site, report-only) |
+| 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #PR3B_NUMBER (routes every listed non-exempt site, report-only) |
 | 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Not started |
 | 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | Not started |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
@@ -341,8 +343,9 @@ stand until a later PR or the owner changes them.
   writes it to the `Ashlar-Egress` EventSource and to every subscribed `IEgressDecisionSink`. The Debug log line is
   not the guard's: `AddAshlarEgressGuard` subscribes an `ILogger` sink that logs each decision at Debug under the
   `Ashlar.Egress` category (`EventId` 7300), so those lines stay hidden unless an operator turns that category on.
-  Since PR 3b, `AddAshlar` and every registration member that adds a factory client call `AddAshlarEgressGuard`, so
-  every Ashlar host subscribes that sink, when it starts or when it first builds a factory client.
+  Since PR 3b, `AddAshlar` and every Ashlar registration member that adds a factory client call
+  `AddAshlarEgressGuard`, except the consumer SDK's `AddAshlarClient` and the commercial Fleet registration, which
+  Fleet.Host covers; so every Ashlar host subscribes that sink, when it starts or when it first builds a factory client.
 - **No subject means `SystemHigh`** (#709). With no active `EgressSubject` frame, the current label is `SystemHigh`
   with basis `no-subject`. This follows the owner's §7 rule: when a label is missing, treat it as `SystemHigh`. So a
   destination inside the host boundary is allowed, and every other one is decided as refused with `SystemHighData`.
