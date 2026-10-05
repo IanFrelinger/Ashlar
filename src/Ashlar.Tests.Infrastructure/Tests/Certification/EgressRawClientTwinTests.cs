@@ -3,6 +3,7 @@ using System.Reflection;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.Ollama;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Ashlar.Transport.Grpc;
 using FluentAssertions;
 using Grpc.Core;
@@ -21,11 +22,15 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// port nothing listens on, so the send fails with the connection refused, as it does without the guard, and
 /// asserts the decision the guard recorded before the inner handler ran. The decision log is process-wide, so each
 /// sink keeps only its own site and the refused destination, and asserts at least one decision rather than exactly
-/// one: another test may drive the same product client at the same refused port concurrently.</para>
+/// one: the count must not depend on whatever else in the process sends to the same port.</para>
+/// <para>Where the route turned an object initializer into property assignments (SPEC-007 PR 3b, R8), the twin
+/// also pins the preserved value it can reach: the Ollama client's 300 s default timeout. The class sits in the
+/// non-parallel <c>EnvironmentVariables</c> collection because that case unsets <c>OLLAMA_TIMEOUT_SECONDS</c>.</para>
 /// <para>The A2A (EG-XPT-01) and MCP (EG-XPT-06) twins live in their own suites: on net8.0, the cert-gate framework,
 /// this project reaches Ashlar.Transport.A2A and Ashlar.Mcp.Client only through Ashlar.API, which ships on net10.0 only.</para>
 /// </remarks>
 [Trait("Category", "Certification")]
+[Collection("EnvironmentVariables")]
 public sealed class EgressRawClientTwinTests
 {
     private const string Refused = "http://127.0.0.1:1";
@@ -44,12 +49,18 @@ public sealed class EgressRawClientTwinTests
     [Fact]
     public async Task ProviderFactory_ollama_client_records_EG_MDL_07()
     {
+        using var defaultTimeout = EnvironmentVariableScope.Unset("OLLAMA_TIMEOUT_SECONDS");
         using var sink = SiteSink.Subscribe("EG-MDL-07");
         var factory = new ProviderFactory(NullLogger<ProviderFactory>.Instance);
         await factory.OllamaWarmup;
         var provider = (OllamaProvider)typeof(ProviderFactory)
             .GetMethod("GetOrCreateOllamaProvider", BindingFlags.NonPublic | BindingFlags.Instance)!
             .Invoke(factory, [Refused])!;
+        var client = (HttpClient)typeof(ProviderFactory)
+            .GetField("_ollamaHttpClient", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(factory)!;
+
+        client.Timeout.Should().Be(TimeSpan.FromSeconds(300), "the route keeps the default Ollama timeout (R8)");
 
         var health = await provider.CheckHealthAsync(CancellationToken.None);
 
