@@ -283,7 +283,8 @@ public sealed partial class EgressGuardConventionTests
         /// declared in the file; (ii) a local declared earlier in the same member, in the site's block or an
         /// enclosing one, as <c>var|HttpClient v = (i)|(iii)</c> and never reassigned; (iii) a call to a same-file
         /// private method of a non-partial type returning HttpClient, whose every return is (i) or such a local;
-        /// (iv) the enclosing member's own HttpClient parameter, proven the same way. Null when it is one.
+        /// (iv) the enclosing member's own HttpClient parameter, never reassigned anywhere in that member's body
+        /// (<see cref="Reassignment"/>, as (ii) requires of a local) and proven the same way. Null when it is one.
         /// </summary>
         private string? FactoryEvidence(SourceModel m, int site, int start, int end)
         {
@@ -313,6 +314,10 @@ public sealed partial class EgressGuardConventionTests
                 var parameter = EnclosingParameter(m, site, id.Groups[1].Value);
                 if (parameter is not null)
                 {
+                    var reassigned = Reassignment(id.Groups[1].Value).Match(code, parameter.ListClose + 1);
+                    if (reassigned.Success && reassigned.Index < parameter.BodyEnd)
+                        return $"'{text}' is {parameter.Name}'s own parameter, reassigned at {m.Path}:{m.LineOf(reassigned.Index)}, so it may not be the factory client";
+
                     var route = CallRoute(parameter);
                     return route.Count == 0
                         ? null
@@ -341,6 +346,10 @@ public sealed partial class EgressGuardConventionTests
         /// <summary>
         /// Every declaration of <paramref name="name"/> in the file — a parameter (attributes allowed), a field, a typed
         /// or var local — is IHttpClientFactory-typed, or a var initialized by <c>….Get[Required]Service&lt;IHttpClientFactory&gt;()</c>.
+        /// A stated blind spot, with no control: the check reads the whole file and ignores scope, and it sees only the
+        /// declarations its regex can type. An untyped lambda parameter (<c>factory =&gt; factory.CreateClient()</c>) or a
+        /// deconstructed local (<c>var (factory, _) = Pick();</c>) that reuses the name of an IHttpClientFactory
+        /// declaration elsewhere in the file is accepted as a factory receiver. No real row has that shape.
         /// </summary>
         private static bool ReceiverIsHttpClientFactory(SourceModel m, string name)
         {
@@ -471,13 +480,19 @@ public sealed partial class EgressGuardConventionTests
 
             var block = m.Innermost(best.Index);
             var scopeEnd = block < 0 ? code.Length : m.Blocks[block].Close;
-            var reassigned = new Regex(
-                @"(?<![A-Za-z0-9_.@])@?" + Regex.Escape(v) + @"\s*(?:\?\?)?=(?![=>])|\b(?:ref|out)\s+@?" + Regex.Escape(v) + @"(?![A-Za-z0-9_])",
-                RegexOptions.CultureInvariant).Match(code, stop);
+            var reassigned = Reassignment(v).Match(code, stop);
             return reassigned.Success && reassigned.Index < scopeEnd
                 ? $"the local '{v}' is reassigned at {m.Path}:{m.LineOf(reassigned.Index)}, so it may not be the factory client"
                 : string.Empty;
         }
+
+        /// <summary>
+        /// A reassignment of the local or parameter <paramref name="v"/>: <c>v =</c>, <c>v ??=</c>, <c>ref v</c> or
+        /// <c>out v</c>. Configuring it (<c>v.BaseAddress = …</c>) and comparing it (<c>v ==</c>) are not.
+        /// </summary>
+        private static Regex Reassignment(string v) => new(
+            @"(?<![A-Za-z0-9_.@])@?" + Regex.Escape(v) + @"\s*(?:\?\?)?=(?![=>])|\b(?:ref|out)\s+@?" + Regex.Escape(v) + @"(?![A-Za-z0-9_])",
+            RegexOptions.CultureInvariant);
 
         /// <summary>(iv): the innermost receiving member around the site whose HttpClient parameter is named <paramref name="v"/>.</summary>
         private Receiver? EnclosingParameter(SourceModel m, int site, string v)
@@ -499,9 +514,10 @@ public sealed partial class EgressGuardConventionTests
 
         /// <summary>
         /// S(R) on cleaned production code. A constructor: <c>new [ns.]T(</c>, <c>T[?] id = new(</c>, and <c>: this(</c>
-        /// inside T. A method N: <c>.N(</c>/<c>.N&lt;…&gt;(</c> anywhere, plus a bare <c>N(</c> in the declaring file
-        /// (and in any file when N is not private and T is neither sealed nor static, where a derived type calls it
-        /// bare), <c>nameof(</c> excluded; a private method of a non-partial type only in its declaring file. Unknown
+        /// inside T's body, a primary constructor's type included (<see cref="PrimaryConstructorType"/>). A method N:
+        /// <c>.N(</c>/<c>.N&lt;…&gt;(</c> anywhere, plus a bare <c>N(</c> in the declaring file (and in any file when N
+        /// is not private and T is neither sealed nor static, where a derived type calls it bare), <c>nameof(</c>
+        /// excluded; a private method of a non-partial type only in its declaring file. Unknown
         /// suppliers (named, with file:line): <c>CreateInstance&lt;T&gt;</c>, <c>typeof(T)</c>, an empty-argument generic
         /// registration of T, a method group of N. Typed: each <c>.AddHttpClient&lt;…T&gt;(</c> and whether D1 made it Factory.
         /// </summary>
@@ -666,7 +682,12 @@ public sealed partial class EgressGuardConventionTests
             return problems;
         }
 
-        /// <summary>Every non-private HttpClient field or property, and every partial type, in the named file.</summary>
+        /// <summary>
+        /// Every non-private HttpClient field or property (<c>HttpClient[?] name</c> then ';', '=' or '{'), and every
+        /// partial type, in the named file. Known misses, each pinned as a route control: a non-private method that
+        /// returns the client, and a non-private <c>Func&lt;HttpClient&gt;</c>, <c>Lazy&lt;HttpClient&gt;</c>, array or
+        /// tuple member that holds it. Another file can take the client through either.
+        /// </summary>
         private static IEnumerable<string> ExposedClients(SourceModel m)
         {
             var code = m.Code;
@@ -757,7 +778,8 @@ public sealed partial class EgressGuardConventionTests
             if (previous is "class" or "struct" or "record")
             {
                 var header = code[Scanner.StatementStart(code, open)..open];
-                return new Receiver(m.Path, typeAt, param, position, httpParams, member, IsConstructor: true, member, Type: null,
+                return new Receiver(m.Path, typeAt, param, position, httpParams, member, IsConstructor: true, member,
+                    Type: PrimaryConstructorType(m, open, member),
                     Sealed: Regex.IsMatch(header, @"\bsealed\b"), Partial: Regex.IsMatch(header, @"\bpartial\b"),
                     IsPrivate: false, isExtension, close, Scanner.DeclarationBodyEnd(m, close));
             }
@@ -771,6 +793,19 @@ public sealed partial class EgressGuardConventionTests
                 IsConstructor: !qualified && !isLocal && type is not null && member == type.Name,
                 type?.Name ?? string.Empty, type, type?.Sealed ?? false, type?.Partial ?? false, isPrivate, isExtension,
                 close, Scanner.DeclarationBodyEnd(m, close));
+        }
+
+        /// <summary>
+        /// The type whose primary-constructor parameter list opens at <paramref name="open"/>: the type body whose
+        /// header holds that list. Every other constructor of such a type must chain through <c>: this(…)</c>, so
+        /// <see cref="SupplySites"/> reads those initializers in this body. Null when the type has no body
+        /// (<c>record R(HttpClient C);</c>), and so no other constructor.
+        /// </summary>
+        private static Scanner.TypeInfo? PrimaryConstructorType(SourceModel m, int open, string name)
+        {
+            var body = m.Blocks.FindIndex(b => b.IsTypeBody && b.HeaderStart <= open && open < b.Open);
+            var type = body < 0 ? null : Scanner.TypeOfBody(m, body);
+            return type?.Name == name ? type : null;
         }
 
         /// <summary>Declared <c>private</c> and not <c>protected</c>, or with no access modifier at all.</summary>
@@ -1178,6 +1213,10 @@ public sealed partial class EgressGuardConventionTests
     private static string GovernedTsv => string.Join('\n',
         Row(OllamaChatClientFile, Marker.HttpNew, 1, 0, GovernanceReason),
         Row(MeaiRegistrationFile, Marker.ChatRegister, 6, 0, GovernanceReason));
+
+    /// <summary>The governed MEAI fixture, on which F5 is green, plus <paramref name="extra"/> production files.</summary>
+    private static Dictionary<string, string> GovernedSources(params (string Path, string Source)[] extra) =>
+        Sources([(OllamaChatClientFile, OllamaChatClientSource), (MeaiRegistrationFile, GovernedMeaiSource), (GovernanceFile, GovernanceSource), .. extra]);
 
     private const string ProbeFile = "src/Lib/Probe.cs";
 
@@ -1604,6 +1643,88 @@ public sealed partial class EgressGuardConventionTests
                     """)),
             Row("src/Lib/SenderBase.cs", Marker.HttpParam, 1, 0, FactoryReason),
             Expect: "src/Lib/RawSender.cs:5 (N(…)): 'new HttpClient()' is not r.CreateClient"),
+        ["Factory fails: a forwarded parameter is reassigned inside its member"] = new(
+            Sources(("src/Lib/Worker.cs", """
+                namespace Lib;
+
+                public sealed class Worker
+                {
+                    private readonly IHttpClientFactory _httpClientFactory;
+
+                    public Worker(IHttpClientFactory httpClientFactory) => _httpClientFactory = httpClientFactory;
+
+                    public async Task<int> RunAsync(CancellationToken ct)
+                    {
+                        var director = CreateDirectorClient("https://director.invalid/");
+                        var tasks = await ListAsync(director, ct);
+                        return await ExecuteAsync(director, tasks, ct) ? 1 : 0;
+                    }
+
+                    private async Task<bool> ExecuteAsync(HttpClient director, string tasks, CancellationToken ct)
+                    {
+                        if (!await PatchAsync(director, tasks, ct))
+                            return false;
+                        director = Shared.Client;
+                        return await PatchAsync(director, "done", ct);
+                    }
+
+                    private static async Task<bool> PatchAsync(HttpClient director, string body, CancellationToken ct)
+                    {
+                        using var response = await director.PostAsync("api/tasks", new StringContent(body), ct);
+                        return response.IsSuccessStatusCode;
+                    }
+
+                    private static async Task<string> ListAsync(HttpClient director, CancellationToken ct) => await director.GetStringAsync("api/tasks", ct);
+
+                    private HttpClient CreateDirectorClient(string baseUrl)
+                    {
+                        var client = _httpClientFactory.CreateClient("worker");
+                        client.BaseAddress = new Uri(baseUrl);
+                        return client;
+                    }
+                }
+                """)),
+            Row("src/Lib/Worker.cs", Marker.HttpParam, 3, 0, FactoryReason),
+            Expect: "'director' is Worker.ExecuteAsync's own parameter, reassigned at src/Lib/Worker.cs:20"),
+        ["Factory fails: a primary-constructor type with a : this(raw) initializer"] = new(
+            Sources(
+                ("src/Lib/Primary.cs", """
+                    namespace Lib;
+
+                    public sealed class Primary(HttpClient http)
+                    {
+                        public Primary()
+                            : this(Shared.Client)
+                        {
+                        }
+
+                        public Task<string> GetAsync() => http.GetStringAsync("/x");
+                    }
+                    """),
+                ("src/Lib/PrimaryReg.cs", """
+                    namespace Lib;
+
+                    public static class PrimaryReg
+                    {
+                        public static Primary Build(IHttpClientFactory factory) => new Primary(factory.CreateClient("primary"));
+                    }
+                    """)),
+            Row("src/Lib/Primary.cs", Marker.HttpParam, 1, 0, FactoryReason),
+            Expect: "src/Lib/Primary.cs:6 (: this(…)): 'Shared.Client' is not r.CreateClient"),
+        ["Factory fails: typeof(T), activation by type"] = new(
+            Sources(
+                (ConsumerFile, ConsumerSource),
+                (FactorySupplierFile, FactorySupplierSource),
+                ("src/Lib/ByType.cs", """
+                    namespace Lib;
+
+                    public static class ByType
+                    {
+                        public static IServiceCollection AddConsumer(this IServiceCollection services) => services.AddSingleton(typeof(Consumer));
+                    }
+                    """)),
+            Row(ConsumerFile, Marker.HttpParam, 1, 0, FactoryReason),
+            Expect: "src/Lib/ByType.cs:5: unknown supplier typeof(Consumer)"),
 
         // ── Factory (typed) ─────────────────────────────────────────────────────────────────────────────────
         ["Factory typed holds: a typed client of a Factory-classified registration (RunPod)"] = new(
@@ -1893,6 +2014,55 @@ public sealed partial class EgressGuardConventionTests
             GovernedTsv,
             Expect: "'IBedrockChatClientFactory' outside"),
 
+        // ── F5's own clauses, through a Governance row ──────────────────────────────────────────────────────
+        ["Governance fails while F5 is red: a raw IChatClient registration, AddSingleton<IChatClient>"] = new(
+            GovernedSources(("src/Lib/RawChat.cs", """
+                namespace Lib;
+
+                public static class RawChat
+                {
+                    public static IServiceCollection AddRawChat(this IServiceCollection services) =>
+                        services.AddSingleton<IChatClient>(sp => new EchoChatClient());
+                }
+                """)),
+            GovernedTsv,
+            Expect: "src/Lib/RawChat.cs:6: 'AddSingleton<IChatClient' registers a raw IChatClient"),
+        ["Governance fails while F5 is red: a raw IChatClient registration, AddKeyedSingleton(typeof(IChatClient), …)"] = new(
+            GovernedSources(("src/Lib/RawChat.cs", """
+                namespace Lib;
+
+                public static class RawChat
+                {
+                    public static IServiceCollection AddRawChat(this IServiceCollection services) =>
+                        services.AddKeyedSingleton(typeof(IChatClient), "raw", (sp, key) => new EchoChatClient());
+                }
+                """)),
+            GovernedTsv,
+            Expect: "src/Lib/RawChat.cs:6: 'AddKeyedSingleton(typeof(IChatClient)' registers a raw IChatClient"),
+        ["Governance fails while F5 is red: a raw IChatClient registration, ServiceDescriptor.Singleton(typeof(IChatClient), …)"] = new(
+            GovernedSources(("src/Lib/RawChat.cs", """
+                namespace Lib;
+
+                public static class RawChat
+                {
+                    public static void AddRawChat(IServiceCollection services) =>
+                        services.TryAdd(ServiceDescriptor.Singleton(typeof(IChatClient), sp => new EchoChatClient()));
+                }
+                """)),
+            GovernedTsv,
+            Expect: "src/Lib/RawChat.cs:6: 'ServiceDescriptor.Singleton(typeof(IChatClient' registers a raw IChatClient"),
+        ["Governance fails while F5 is red: new EgressGuardChatClient( outside the governance file"] = new(
+            GovernedSources(("src/Lib/SideDoor.cs", """
+                namespace Lib;
+
+                public static class SideDoor
+                {
+                    public static IChatClient Wrap(IChatClient inner) => new EgressGuardChatClient(inner, null, null);
+                }
+                """)),
+            GovernedTsv,
+            Expect: "src/Lib/SideDoor.cs:5: 'new EgressGuardChatClient(' outside src/Ashlar.AI.Pipeline/Governance/AshlarGovernanceChatClientBuilderExtensions.cs"),
+
         // ── Reason checks ───────────────────────────────────────────────────────────────────────────────────
         ["Reason fails: ConsumerSdk outside src/Ashlar.Client/"] = new(
             Sources((ProbeFile, ProbeSource)),
@@ -2023,6 +2193,70 @@ public sealed partial class EgressGuardConventionTests
                     }
                     """)),
             Row(ConsumerFile, Marker.HttpParam, 1, 0, FactoryReason),
+            Expect: null),
+        ["known miss: an Upstream file hands its client out through a non-private method (the Fields clause reads fields and properties)"] = new(
+            Sources(
+                (OllamaProviderFile, OllamaProviderSource),
+                (ProviderFactoryFile, """
+                    namespace Lib;
+
+                    public class ProviderFactory
+                    {
+                        private static readonly HttpClient Http = EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-03");
+                        private HttpClient? _ollamaHttpClient;
+                        private OllamaProvider? _ollama;
+
+                        public Task<string> ProbeAsync() => Http.GetStringAsync("https://example.invalid/");
+
+                        public HttpClient? CurrentClient() => _ollamaHttpClient;
+
+                        public OllamaProvider GetOrCreate(string baseUrl)
+                        {
+                            var httpClient = EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-07");
+                            httpClient.Timeout = TimeSpan.FromSeconds(30);
+                            _ollamaHttpClient?.Dispose();
+                            _ollamaHttpClient = httpClient;
+                            _ollama = new OllamaProvider(httpClient, baseUrl);
+                            return _ollama;
+                        }
+                    }
+                    """)),
+            Row(OllamaProviderFile, Marker.HttpParam, 1, 0, UpstreamPrefix + ProviderFactoryFile),
+            Expect: null),
+        ["known miss: an Upstream file hands its client out through a Func, Lazy, array or tuple member (the Fields clause reads HttpClient name)"] = new(
+            Sources(
+                (OllamaProviderFile, OllamaProviderSource),
+                (ProviderFactoryFile, """
+                    namespace Lib;
+
+                    public class ProviderFactory
+                    {
+                        private static readonly HttpClient Http = EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-03");
+                        private HttpClient? _ollamaHttpClient;
+                        private OllamaProvider? _ollama;
+
+                        public Func<HttpClient?> ClientGetter => () => _ollamaHttpClient;
+
+                        public Lazy<HttpClient> LazyClient { get; } = new(() => Http);
+
+                        public HttpClient?[] Clients => [_ollamaHttpClient];
+
+                        public (HttpClient? Client, string Name) Named => (_ollamaHttpClient, "ollama");
+
+                        public Task<string> ProbeAsync() => Http.GetStringAsync("https://example.invalid/");
+
+                        public OllamaProvider GetOrCreate(string baseUrl)
+                        {
+                            var httpClient = EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-07");
+                            httpClient.Timeout = TimeSpan.FromSeconds(30);
+                            _ollamaHttpClient?.Dispose();
+                            _ollamaHttpClient = httpClient;
+                            _ollama = new OllamaProvider(httpClient, baseUrl);
+                            return _ollama;
+                        }
+                    }
+                    """)),
+            Row(OllamaProviderFile, Marker.HttpParam, 1, 0, UpstreamPrefix + ProviderFactoryFile),
             Expect: null),
     };
 }

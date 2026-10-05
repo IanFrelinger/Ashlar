@@ -57,6 +57,10 @@ public sealed partial class EgressGuardConventionTests
             case "F4F":
                 Scanner.FactoryImplementations(model).Should().NotBeEmpty("control '{0}' must trip F4 (D): a custom IHttpClientFactory", name);
                 break;
+            case "F4R":
+                Scanner.FactoryImplementations(model).Should().Contain(p => p.Contains("registers IHttpClientFactory directly", StringComparison.Ordinal),
+                    "control '{0}' must trip F4 (D)'s registration half: IHttpClientFactory registered directly, with no implementing type in sight", name);
+                break;
             case "F4G":
                 Scanner.RailProblems(model, Scanner.GuardInstalls(model).Calls).Should().NotBeEmpty(
                     "control '{0}' must trip F4 (E), the D1 rail: an AddAshlarEgressGuard( call that covers no registration", name);
@@ -790,6 +794,16 @@ public sealed partial class EgressGuardConventionTests
                 public HttpClient CreateClient(string name) => EgressHttp.CreateClient(EgressFamilies.Http, "EG-HTTP-05");
             }
             """, "http.new 1/1", "F4F"),
+        ["fails F4 (D): registering IHttpClientFactory directly, Add…<IHttpClientFactory, X>()"] = new("""
+            services.AddHttpClient("x");
+            services.AddSingleton<IHttpClientFactory, PooledHttpClientFactory>();
+            services.AddAshlarEgressGuard();
+            """, "http.register 1/1", "F4R"),
+        ["fails F4 (D): registering IHttpClientFactory directly, typeof(IHttpClientFactory)"] = new("""
+            services.AddHttpClient("x");
+            services.AddSingleton(typeof(IHttpClientFactory), typeof(PooledHttpClientFactory));
+            services.AddAshlarEgressGuard();
+            """, "http.register 1/1", "F4R"),
 
         // ── F5: governance order and key equality ───────────────────────────────────────────────────────────
         ["fails F5 order: EgressGuardChatClient after PolicyGate"] = new("""
@@ -915,6 +929,23 @@ public sealed partial class EgressGuardConventionTests
             var guarded = EgressHttp.Wrap(Keep(handler), EgressFamilies.Grpc, "EG-XPT-03");
             var channel = GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions { HttpHandler = _kept });
             """, "http.new 2/2; sdk.client 1/1"),
+        ["known miss: a G3-preceded holder mention that copies the stored client into another member, sent unguarded elsewhere"] = new("""
+            public sealed class Sender
+            {
+                private readonly HttpClient _http;
+                private HttpClient? _other;
+
+                public Sender(HttpClient http) => _http = http;
+
+                public void Init(Uri uri)
+                {
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", uri));
+                    _other = _http;
+                }
+
+                public Task<string> SendAsync() => _other!.GetStringAsync("/x");
+            }
+            """, "http.param 1/1"),
         ["known miss: a guard inside a conditional expression"] = new("""
             public async Task AnnounceLoopAsync(bool announcing, byte[] payload, IPEndPoint endpoint)
             {
