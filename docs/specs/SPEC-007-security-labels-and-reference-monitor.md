@@ -20,7 +20,8 @@ The status line above and the starting prompt are the owner's, as written; the s
 | 1: the label lattice and reference-monitor decisions (§4) | Merged | #706, `0f9642ec2` |
 | 2: bridge the existing labels | Merged | #707, `f1f2cff48` |
 | 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #711, `8ec674d2a` |
-| 4 to 8 | Not started | |
+| 4: the guard enforces | Designed. The owner answered its eight questions on 2026-10-05 (decisions log). It ships as PRs 4.1 to 4.11 | |
+| 5 to 8 | Not started | |
 
 - **PR 1** added `Ashlar.Abstractions.Security` in `src/Ashlar.Abstractions/Security/`, with 367 cert-gate tests. The
   four §4.4 mutations went red (16, 19, 11 and 49 of 367) and back to green. The §4.6 checklist is left as written;
@@ -47,6 +48,22 @@ The status line above and the starting prompt are the owner's, as written; the s
   redirects that the primary handler follows are not evaluated, and a few records can read Host for a remote peer
   (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client, EG-MESH-07/08 with a
   `//127.0.0.1/…` path).
+- **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
+  enforcement on alone would therefore make `AirGapped` and `SecureWorkstation` host-only: every decision is made at
+  `SystemHigh`, and the leak test would pass without a label causing the refusal. PR 4 ships as eleven small PRs, in
+  this order:
+  - 4.1 the records that can read Host;
+  - 4.2 the synchronous `Send` gap;
+  - 4.3 redirects;
+  - 4.4 frame semantics: monotone nesting, `Observe`, read scopes;
+  - 4.5 subject producers at the agent runners, report-only;
+  - 4.6 mode plumbing, with every profile still reporting;
+  - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
+  - 4.9 the explicit sites, the operator verbs and child processes;
+  - 4.10 `AirGapped` and `SecureWorkstation` hygiene (3a defects 3 and 5);
+  - 4.11 the switch, which carries the §5 leak test.
+
+  The owner's answers are in the decisions log. Open questions C and D are answered there.
 
 ---
 
@@ -275,7 +292,7 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 |---|---|---|---|
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
 | 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #711, `8ec674d2a` (routes every listed non-exempt site, report-only) |
-| 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Not started |
+| 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Designed; ships as PRs 4.1 to 4.11 (see the status) |
 | 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | Not started |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
 | 7 | **Provisioned resources inherit labels.** Databases, containers and local models an agent spins up carry its label and compartments, register themselves, and are torn down with the compartment. Teardown gets a receipt. | Tearing down a compartment leaves no resource behind and records the wipe | Not started |
@@ -325,7 +342,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied". None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
+applied", and the eight PR 4 answers of 2026-10-05. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
 were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
@@ -336,6 +353,14 @@ were not the owner's are in the next section.
 | 2026-10-04 | PR 3 | **PR 3 is split.** 3a adds the guard, the written inventory and the convention test, and routes nothing. 3b routes every listed site through the guard. |
 | 2026-10-05 | PR 3 (3b) | **The MeshDirector client is routed (3b question Q-A, answer A).** `Ashlar.Commercial.MeshDirector` takes a ProjectReference to `Ashlar.Abstractions` and builds its client with `EgressHttp`, behind a characterization test committed first, which must show the JSON request bodies and printed output byte-identical. |
 | 2026-10-05 | PR 3 (3b) | **Open question C is deferred to PR 4 (3b question Q-B, answer A).** 3b merges with C open. |
+| 2026-10-05 | PR 4 (Q1) | **`AirGapped` and `SecureWorkstation` enforce when the switch (4.11) merges.** On `SecureWorkstation` only, a break-glass `ASHLAR_EGRESS_MODE=report` returns to report-only. It is read once at startup, logged at Warning and stamped on every decision. `AirGapped` ignores every override. |
+| 2026-10-05 | PR 4 (Q2) | **A subject's label comes from the runner.** The code that builds an agent's inputs enters a frame at the floor it can vouch for. A runner may declare a floor below `SystemHigh` only for inputs it built and can vouch for. Every tool result is observed: a labelled RAG hit counts at its tier, and an unreported read counts as `SystemHigh`. Self-extend declares `SystemHigh`. |
+| 2026-10-05 | PR 4 (Q3) | **Child processes that run code an agent can write are not Host.** That covers `dotnet` build, test, run, pack and publish, `forge test`, the regression runner and the instance spawner. They are recorded as process exports. Docker counts as Host only with `--network=none`. On `AirGapped` and `SecureWorkstation` they are refused unless they run in the network-off docker sandbox. |
+| 2026-10-05 | PR 4 (Q4) | **Before PR 6, an operator may move files off an `AirGapped` or `SecureWorkstation` host, and nothing else.** `pkg export --out`, `export` and `mesh export` run in report mode, recorded as an operator verb. `pkg publish` and `pkg share` are refused, because the mesh store can be a network mount. Everything an agent can reach is enforced. |
+| 2026-10-05 | PR 4 (Q5) | **Every factory client is enforced, the host's own included.** This answers the question 3a left to PR 4. On `SecureWorkstation` and on opt-in profiles, a host may list named clients as report-only through `Configure<EgressGuardOptions>`. `AirGapped` ignores the list, and naming one of Ashlar's own clients fails boot. |
+| 2026-10-05 | PR 4 (Q6) | **Inbound surfaces stay on loopback on `AirGapped` and `SecureWorkstation` until PR 5 mediates responses.** On `SecureWorkstation`, MCP over HTTP fails boot; stdio stays. On both profiles the API's listeners and mesh serve must bind loopback, or boot fails. |
+| 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
+| 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
 
 ## Design as merged (added 2026-10-04)
 
@@ -384,8 +409,8 @@ while the API is in `PublicAPI.Unshipped.txt`.
 
 ## Open questions raised since §8 (added 2026-10-04)
 
-§8's six questions are still open. #706 raised the ones below, and #707 carried them forward unchanged. None is
-answered yet, and none blocked a merged PR. They are lettered so they do not collide with §8's numbers.
+§8's six questions are still open. #706 raised the ones below, and #707 carried them forward unchanged. C and D were
+answered on 2026-10-05 for PR 4; A, B and E are still open, and none blocked a merged PR. They are lettered so they do not collide with §8's numbers.
 
 - **A. A receiver-side fail-closed helper, and the shape of `TryParse`.** `SystemHigh` is the safe fallback for
   data. For a clearance or a write destination it is the most permissive value: a `SystemHigh` clearance reads
@@ -418,11 +443,14 @@ answered yet, and none blocked a merged PR. They are lettered so they do not col
   needs a different encoding. Whether the four level flags become caveats (see the PR 2 decision above) is a related
   question. #707 placed it with §8 Q2 (compartment names: free-form tokens or registered in a policy pack; #707
   calls it the caveat-registry question, though §8 Q2 asks about compartments), to be settled before PR 3. It was not decided before 3a or 3b merged:
-  on 2026-10-05 the owner let 3b merge with it open, so it is now due before PR 4.
+  on 2026-10-05 the owner let 3b merge with it open, so it is now due before PR 4. **Answered 2026-10-05 (PR 4 Q8):
+  v1 labels carry the level only; see the decisions log.**
 
 - **D. Redacting refusal details.** A read refusal's `Detail` names the data's level and compartments to whoever
   receives it. The XML docs now say `Detail` is for audit and operators only. Should PR 3 or PR 4 give the refused
-  subject a redacted explanation instead?
+  subject a redacted explanation instead? **Answered 2026-10-05 (PR 4 Q7): the refused subject gets the reason
+  category, site, family, destination class and a random reference; `Detail` stays with operators. See the decisions
+  log.**
 
 - **E. The SPEC-007 number clash.** `docs/specs/SPEC-006-keys-and-signing.md` (line 551, §5) cites "SPEC-007's
   honest sentence" for the certificate claim. That is a different SPEC-007, and no file for it is checked in. Should
