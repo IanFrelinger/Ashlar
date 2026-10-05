@@ -148,7 +148,7 @@ public sealed class GovernanceMiddlewareTests
     }
 
     [Fact]
-    public void Governance_composition_order_is_policy_then_sanitize_then_audit()
+    public void Governance_composition_order_is_egress_then_policy_then_sanitize_then_audit()
     {
         var services = new ServiceCollection();
         services.RegisterGovernanceDefaults();
@@ -158,10 +158,11 @@ public sealed class GovernanceMiddlewareTests
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama);
 
-        client.Should().BeOfType<PolicyGateChatClient>();
+        client.Should().BeOfType<EgressGuardChatClient>();
 
         var types = WalkInnerClients(client).Select(c => c.GetType()).ToList();
         types.Should().Equal(
+            typeof(EgressGuardChatClient),
             typeof(PolicyGateChatClient),
             typeof(SanitizingChatClient),
             typeof(AuditingChatClient),
@@ -195,7 +196,7 @@ public sealed class GovernanceMiddlewareTests
         foreach (var key in new[] { MeaiTargetKeys.LocalOllama, MeaiTargetKeys.LocalOnnx })
         {
             var client = provider.GetRequiredKeyedService<IChatClient>(key);
-            client.Should().BeOfType<PolicyGateChatClient>();
+            client.Should().BeOfType<EgressGuardChatClient>();
             client.Should().NotBeOfType<OllamaHttpChatClient>();
             client.Should().NotBeOfType<LlamaSharpChatClient>();
             client.Should().NotBeOfType<FakeChatClient>();
