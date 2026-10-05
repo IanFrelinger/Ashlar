@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
@@ -26,20 +27,26 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>What is pinned.</b> <c>ProcessCommandRunner</c> (EG-PROC-03) names its destination from the executable
 /// and, for docker and docker-compose, from <c>DOCKER_HOST</c>, then a non-default <c>DOCKER_CONTEXT</c>, then the
 /// local daemon; a live run records exactly one decision. <c>SneakernetTransport.ExportAsync</c> (EG-MESH-08)
-/// records the file it actually writes, after the <c>.nxpkg</c> rewrite. <c>FileBasedSharedAdaptationStore.BroadcastAsync</c>
-/// (EG-MESH-07) records the shared directory. <c>ValidationServiceAdapter</c> (EG-PROC-02) reads its destination off
-/// the argv the real start-info builders produce: <c>dotnet build</c> restores (<c>nuget-feeds</c>) and
-/// <c>dotnet test --no-build</c> does not (<c>host:dotnet</c>). The Tools.Dev runner (EG-PROC-01), reached through
-/// <c>DotnetBuildTool</c> and <c>DotnetTestTool</c>, records the same split. <c>BingWebSearchProvider</c> (EG-WEB-01)
-/// records scheme, host and port only, as <c>WebSearch</c>, while the query still reaches the wire. The last theory
-/// classifies every destination shape this lane passes, so a change in the classifier shows up here first.</para>
+/// records the file it actually writes, after the <c>.nxpkg</c> rewrite, and decides before that file exists.
+/// <c>FileBasedSharedAdaptationStore.BroadcastAsync</c> (EG-MESH-07) records the shared directory.
+/// <c>ValidationServiceAdapter</c> (EG-PROC-02) reads its destination off the argv the real start-info builders
+/// produce: <c>dotnet build</c> restores (<c>nuget-feeds</c>) and <c>dotnet test --no-build</c> does not
+/// (<c>host:dotnet</c>), and both of its call sites record that destination when they run. The Tools.Dev runner
+/// (EG-PROC-01), reached through <c>DotnetBuildTool</c> and <c>DotnetTestTool</c>, records the same split.
+/// <c>BingWebSearchProvider</c> (EG-WEB-01) records scheme, host and port only, as <c>WebSearch</c>, while the query
+/// still reaches the wire. The last theory classifies every destination shape this lane passes, so a change in the
+/// classifier shows up here first.</para>
 /// <para><b>Process-global state.</b> The decision log is process-wide and other classes decide in parallel, so each
 /// case enters its own <see cref="EgressSubject"/> frame (<c>egress-twin-&lt;guid&gt;</c>) and keeps only decisions
-/// whose basis is that frame. Every guard here runs before the member's first <c>await</c>, so the frame reaches it.
+/// whose basis is that frame. The frame is an <c>AsyncLocal</c>, so it flows across <c>await</c>s and reaches a guard
+/// that runs after one, as Sneakernet's does after <c>await _sync.PullAsync</c>. Sinks are called synchronously inside
+/// <c>Evaluate</c>, so a sink can also look at the file system at the moment of the decision: that is how the
+/// Sneakernet case shows the guard comes before the write.
 /// No environment variable is written: <c>ProcessCommandRunner.Destination</c> takes the two docker variables as
-/// arguments. Three cases start a real <c>dotnet</c>: <c>dotnet --version</c>, and the build and test tools in an
-/// empty temporary directory, where they fail fast with no project to build and restore nothing. No case reaches the
-/// network: Bing's client sends to a stub handler.</para>
+/// arguments. Three cases start a real <c>dotnet</c>, five processes in all: <c>dotnet --version</c>; the build and
+/// test tools in an empty temporary directory; and the validate adapter's build and test on a project file that does
+/// not exist. Each fails fast and restores nothing. The adapter's two runners are private, so that case reaches them
+/// by reflection. No case reaches the network: Bing's client sends to a stub handler.</para>
 /// <para>EG-TEL-01 is not here: it is decided in the API host's <c>Program.cs</c>, and its twin lives in
 /// <c>Tests/VirtualProduction</c> on net10.0.</para>
 /// </remarks>
@@ -90,7 +97,7 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessCommandRunner_RunAsync_records_exactly_one_process_decision_before_the_process_starts()
+    public async Task ProcessCommandRunner_RunAsync_records_exactly_one_process_decision()
     {
         using var observed = Observe();
 
@@ -115,7 +122,7 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
         var target = Path.Combine(_dir, "mesh-export");
         var expected = Path.ChangeExtension(target, ".nxpkg");
         var transport = new SneakernetTransport(new EmptySync());
-        using var observed = Observe();
+        using var observed = Observe(writtenYet: () => File.Exists(expected));
 
         await transport.ExportAsync(target);
 
@@ -125,6 +132,7 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
         decision.Family.Should().Be(EgressFamilies.FileExport);
         decision.Destination.Should().Be("file:" + expected);
         decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport);
+        observed.Sink.WrittenAtDecision.Should().Equal(new[] { false }, "the guard decides before the export file is written");
     }
 
     [Fact]
@@ -175,6 +183,25 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
             .Should().Be("host:dotnet", "validate's dotnet test always passes --no-build, so nothing is restored");
         ValidationServiceAdapter.RestoreDestination(ValidationServiceAdapter.CreateDotnetTestStartInfo(csproj, "net8.0", "Category=Unit", true))
             .Should().Be("host:dotnet");
+    }
+
+    [Fact]
+    public async Task ValidationServiceAdapter_build_and_test_call_sites_each_record_their_restore_destination()
+    {
+        // The case above pins the helper; this one pins the two call sites that pass it their start info. The project
+        // file does not exist, so each dotnet invocation fails fast (MSB1009) and nothing is built, tested or restored.
+        var csproj = Path.Combine(_dir, "Missing.Tests.csproj");
+        using var observed = Observe();
+
+        var buildExit = await AdapterRunner<int>("RunDotnetBuildProjectAsync", csproj, CancellationToken.None);
+        var testRun = await AdapterRunner<ValidationServiceAdapter.DotnetTestRun>(
+            "RunDotnetTestForValidateAsync", csproj, null, null, false, CancellationToken.None);
+
+        buildExit.Should().NotBe(0, "there is no project to build");
+        testRun.ExitCode.Should().NotBe(0, "there is no project to test");
+        observed.Sink.Seen.Select(d => (d.Site, d.Family, d.Destination, d.DestinationClass)).Should().Equal(
+            ("EG-PROC-02", EgressFamilies.Process, "nuget-feeds", EgressDestinationClass.NetworkExport),
+            ("EG-PROC-02", EgressFamilies.Process, "host:dotnet", EgressDestinationClass.Host));
     }
 
     [Fact]
@@ -271,11 +298,14 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
     // Helpers
     // ---------------------------------------------------------------------------------------------------------
 
-    /// <summary>Subscribes a sink and enters a fresh subject frame; disposing leaves the frame and unsubscribes.</summary>
-    private static Observation Observe()
+    /// <summary>
+    /// Subscribes a sink and enters a fresh subject frame; disposing leaves the frame and unsubscribes. When
+    /// <paramref name="writtenYet"/> is given, the sink calls it at each decision, inside <c>Evaluate</c>.
+    /// </summary>
+    private static Observation Observe(Func<bool>? writtenYet = null)
     {
         var id = "egress-twin-" + Guid.NewGuid().ToString("N");
-        var sink = new SubjectSink("subject:" + id);
+        var sink = new SubjectSink("subject:" + id, writtenYet);
         var subscription = EgressDecisionLog.Subscribe(sink);
         var frame = EgressSubject.Enter(id, new HighWaterMark());
         return new Observation(sink, frame, subscription);
@@ -292,17 +322,32 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
         }
     }
 
-    private sealed class SubjectSink(string basis) : IEgressDecisionSink
+    private sealed class SubjectSink(string basis, Func<bool>? writtenYet) : IEgressDecisionSink
     {
         private readonly ConcurrentQueue<EgressDecision> _seen = new();
+        private readonly ConcurrentQueue<bool> _writtenAtDecision = new();
 
         public IReadOnlyList<EgressDecision> Seen => _seen.ToArray();
 
+        /// <summary>What the probe saw at each kept decision, in order; empty when there is no probe.</summary>
+        public IReadOnlyList<bool> WrittenAtDecision => _writtenAtDecision.ToArray();
+
         public void Record(EgressDecision decision)
         {
-            if (string.Equals(decision.CurrentBasis, basis, StringComparison.Ordinal))
-                _seen.Enqueue(decision);
+            if (!string.Equals(decision.CurrentBasis, basis, StringComparison.Ordinal))
+                return;
+            if (writtenYet is not null)
+                _writtenAtDecision.Enqueue(writtenYet());
+            _seen.Enqueue(decision);
         }
+    }
+
+    /// <summary>Runs one of the validate adapter's private static dotnet runners, which hold the EG-PROC-02 guards.</summary>
+    private static Task<T> AdapterRunner<T>(string name, params object?[] args)
+    {
+        var runner = typeof(ValidationServiceAdapter).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic);
+        runner.Should().NotBeNull("ValidationServiceAdapter.{0} is where an EG-PROC-02 guard sits", name);
+        return (Task<T>)runner!.Invoke(null, args)!;
     }
 
     private static SharedAdaptationEntry Entry(string path = "src/Fix.cs") => new()

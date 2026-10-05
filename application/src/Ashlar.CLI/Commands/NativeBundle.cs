@@ -83,6 +83,7 @@ public static class NativeBundle
     /// </summary>
     public static List<string> StageApp(string projectDir, string bundleDir, string site)
     {
+        ArgumentNullException.ThrowIfNull(site); // the member's own contract, so the report-only guard below never throws
         // SPEC-007, report-only: the project tree leaves through the bundle (EG-FILE-01 native, EG-FILE-02 cloud).
         _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, "file:" + bundleDir));
         var appDir = Path.Combine(bundleDir, "app");
