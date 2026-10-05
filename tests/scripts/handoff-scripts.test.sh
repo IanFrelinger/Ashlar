@@ -17,7 +17,7 @@ PUB="${ROOT}/scripts/handoff-publish.sh"
 FETCH="${ROOT}/scripts/handoff-fetch.sh"
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=42
+EXPECTED_ASSERTIONS=45
 
 PASS=0
 FAIL=0
@@ -124,6 +124,11 @@ bash "$FETCH" --repo "$T/work" --workstream "$WS" --out "$T/got.md" 2>/dev/null;
 expect_eq "--out exits 0" "$rc" "0"
 expect_eq "--out writes the file" "$(cat "$T/got.md")" "phase C handoff"
 expect_has "--list names the phase files and attachments" "$(bash "$FETCH" --repo "$T/work" --workstream "$WS" --list 2>/dev/null | tr '\n' ' ')" "DESIGN.md handoff-phase-A.md handoff-phase-B.md handoff-phase-C.md handoff.md"
+expect_eq "a fetch from the remote prints no warning" "$(bash "$FETCH" --repo "$T/work" --workstream "$WS" 2>&1 >/dev/null)" ""
+# $T/fresh holds a local storage branch at phase D that was never pushed; the remote is at phase C.
+out="$(bash "$FETCH" --repo "$T/fresh" --remote no-such-remote --workstream "$WS" 2>/dev/null)"
+expect_eq "with no reachable remote, fetch falls back to the local branch" "$out" "phase D handoff"
+expect_has "and warns that it read the local branch" "$(bash "$FETCH" --repo "$T/fresh" --remote no-such-remote --workstream "$WS" 2>&1 >/dev/null)" "reading the LOCAL branch, which may be stale"
 bash "$FETCH" --repo "$T/work" --workstream no-such-ws >/dev/null 2>&1; rc=$?
 expect_eq "an unknown workstream exits 4" "$rc" "4"
 bash "$FETCH" --repo "$T/work" --workstream "$WS" --phase Z >/dev/null 2>&1; rc=$?

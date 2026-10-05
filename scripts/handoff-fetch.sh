@@ -46,6 +46,8 @@ if git remote get-url "$REMOTE" >/dev/null 2>&1 \
   && git fetch -q "$REMOTE" "refs/heads/${BRANCH}:refs/remotes/${REMOTE}/${BRANCH}" 2>/dev/null; then
   REF="refs/remotes/${REMOTE}/${BRANCH}"
 elif git rev-parse -q --verify "refs/heads/${BRANCH}" >/dev/null; then
+  # Say so: a local branch can be behind the remote one, and the reader would take it for current.
+  echo "handoff-fetch: warning: could not fetch ${BRANCH} from ${REMOTE}; reading the LOCAL branch, which may be stale" >&2
   REF="refs/heads/${BRANCH}"
 else
   die "no storage branch $BRANCH (on $REMOTE or locally)" 4
