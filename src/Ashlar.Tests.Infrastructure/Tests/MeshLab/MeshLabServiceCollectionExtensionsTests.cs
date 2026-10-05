@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Infrastructure.MeshLab;
 using Xunit;
 
@@ -25,6 +26,8 @@ public sealed class MeshLabServiceCollectionExtensionsTests
 
         services.Should().NotContain(d => d.ServiceType == typeof(MeshLabWorkerExecutorClient));
         services.Should().NotContain(d => d.ServiceType == typeof(MeshLabWorkerExecutorBackgroundService));
+        // SPEC-007: the egress guard is installed after the early return, so the disabled path registers none of it.
+        services.Should().NotContain(d => d.ServiceType == typeof(IEgressGuard));
     }
 
     [Fact]

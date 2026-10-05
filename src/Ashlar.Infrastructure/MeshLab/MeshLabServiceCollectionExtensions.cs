@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Ashlar.Infrastructure.Egress;
 
 namespace Ashlar.Infrastructure.MeshLab;
 
@@ -26,6 +27,8 @@ public static class MeshLabServiceCollectionExtensions
             return services;
 
         services.AddHttpClient(MeshLabWorkerExecutorClient.HttpClientName);
+        // SPEC-007: report-only guard handler on the worker client; after the early return, so the disabled path is unchanged.
+        services.AddAshlarEgressGuard();
         services.TryAddSingleton<MeshLabWorkerExecutorClient>();
         services.AddHostedService<MeshLabWorkerExecutorBackgroundService>();
         return services;
