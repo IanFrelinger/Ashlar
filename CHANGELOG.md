@@ -145,6 +145,31 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Changed
 
+- **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
+  Still report-only: nothing refuses. The records below change, and one HTTP client changes behaviour.
+  - **Behaviour change: the default MEAI Ollama client no longer follows redirects.** `OllamaHttpChatClient`
+    built from `MeaiPipelineOptions` (the default `local:ollama` inner client) now turns `AllowAutoRedirect`
+    off. A 3xx from the Ollama endpoint fails the call with an `HttpRequestException` instead of re-sending the
+    conversation to wherever `Location` points, which no egress record named. An Ollama behind a redirecting
+    proxy must be configured with its final URL. A client built with the `HttpClient` constructor is unchanged.
+  - Mesh serve (EG-MESH-03) records the pulling peer as `mesh-peer:<ip>` (`mesh-peer:unknown` with no
+    address), which is never read as a URL, so it is a network export whatever the IP. A loopback peer was
+    recorded as Host, but a local TLS terminator, `ssh -R` or a localhost tunnel delivers every remote puller as
+    loopback.
+  - The MEAI guard layer (EG-MDL-01, EG-MDL-02) records the destination the inner client names,
+    `ChatClientMetadata.ProviderUri`, instead of deriving it from the target key. A custom inner client under
+    `local:ollama` is recorded where it dials, and one that names no URI as `meai:local:ollama`, an external
+    model. `local:onnx` records nothing only when its inner client is the in-process `LlamaSharpChatClient` (a
+    type check), so a custom `local:onnx` client is now recorded. The default registrations record what they did.
+  - A destination name that starts with `file:`, in any case, is a path: it is recorded as written and never
+    read as a URL, and a `file` URI is never Host. An export or shared directory spelled `//127.0.0.1/…` or
+    `//localhost/…` (EG-MESH-07, EG-MESH-08 and every other file site) is recorded as a network export, and its
+    record keeps the path, as every other file site's does.
+  - An Ollama model whose id ends in `-cloud` or `:cloud`, in any case, is recorded as an external model at
+    `https://ollama.com`, because the local daemon relays it there: on the MEAI route, from the call's
+    `ChatOptions.ModelId` or else the inner client's default model, and by `OllamaProvider`, which records one
+    more EG-MDL-07 decision before it sends such a chat.
+
 - **Every Ashlar host now reports its outbound requests to the egress guard (SPEC-007 PR 3b).**
   Report-only: nothing refuses, and each change below adds a decision record, not a refusal.
   - `AddAshlar` calls `AddAshlarEgressGuard` after its own `AddHttpClient`, so every `AddAshlar`
@@ -167,7 +192,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - Every keyed MEAI chat client's outermost type is now `EgressGuardChatClient`, a new public sealed
     type in `Ashlar.AI.Pipeline`, which has no PublicAPI baseline. `GetType()`, `is` checks and
     `GetService(typeof(DelegatingChatClient))` now see it first. It records one decision per call
-    (`local:onnx`, in process, records none),
+    (`local:onnx`, in process, records none; PR 4.1 narrows that to the in-process LLamaSharp client, above),
     synchronously and before PolicyGate's audit record, with a destination fixed when the keyed client
     is built, and it swallows an exception from a host `IEgressGuard`.
   - `NativeBundle.StageApp` (public, in the `Ashlar.CLI` tool package) takes a third parameter, `site`,

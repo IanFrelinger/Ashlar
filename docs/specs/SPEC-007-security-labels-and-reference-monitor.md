@@ -64,6 +64,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.11 the switch, which carries the §5 leak test.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
+- **PR 4.1** (this PR) closes the third gap above, still report-only: mesh serve records `mesh-peer:<ip>`, never Host;
+  the MEAI layer records where the inner client dials, and fails closed to `meai:<key>`; a `file:` destination is
+  never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at `https://ollama.com`; and the default MEAI
+  Ollama client stops following redirects (a behaviour change).
 
 ---
 

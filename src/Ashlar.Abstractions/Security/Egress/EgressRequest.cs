@@ -7,8 +7,10 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para>A request names its destination either as a <see cref="Uri"/> or as a name. Only the scheme, host and
 /// port of a URI are ever recorded; userinfo, path, query and fragment never reach a decision record.</para>
 /// <para>A name that starts with <c>host:</c> (for example <c>host:dotnet</c>) declares a destination inside
-/// the host boundary. A name shaped like a URL (<c>scheme://…</c>) is read as a URI and redacted the same
-/// way; when its authority cannot be read without guessing, it is recorded as <c>scheme://&lt;unparsed&gt;</c>.</para>
+/// the host boundary. A name that starts with <c>file:</c>, in any case, is a file path: it is recorded as written and
+/// is never inside the host boundary, and neither is a <c>file</c> URI. Any other name shaped like a URL
+/// (<c>scheme://…</c>) is read as a URI and redacted the same way; when its authority cannot be read without guessing,
+/// it is recorded as <c>scheme://&lt;unparsed&gt;</c>.</para>
 /// </remarks>
 public sealed class EgressRequest
 {

@@ -16,7 +16,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// </summary>
 /// <remarks>
 /// <para><b>What is pinned.</b> The destination table row by row (loopback v4 and v6, <c>localhost</c>,
-/// <c>*.localhost</c>, <c>unix:</c>, <c>npipe:</c>, <c>host:</c> names, every family, and Unknown giving Public);
+/// <c>*.localhost</c>, <c>unix:</c>, <c>npipe:</c>, <c>host:</c> names, every family, and Unknown giving Public),
+/// and, since PR 4.1, that a <c>file</c> URI or a <c>file:</c> name is never inside the host boundary;
 /// that the table's labels are the ones derived from the built-in <see cref="DataSensitivityLevels"/> flags through
 /// <see cref="DataSensitivityLabelBridge.ToDataLabel"/>; that with no subject every non-host destination is refused
 /// with <see cref="AccessDenialReason.SystemHighData"/> and the host boundary is allowed; that an
@@ -166,6 +167,50 @@ public sealed class EgressGuardDecisionTests
         var decision = Guard.Evaluate(new EgressRequest(family, NewSite(), name));
 
         AssertRow(decision, expected, $"family '{family}' to the name '{name}'");
+    }
+
+    /// <summary>
+    /// SPEC-007 PR 4.1, gap 3: a <c>file</c> URI is never inside the host boundary, whatever its host. A file
+    /// written to <c>//localhost/share</c> or <c>//127.0.0.1/E$</c> leaves through a share, not through the host,
+    /// so it is classified by its family (a network export for both file families).
+    /// </summary>
+    [Theory]
+    [InlineData("file.export", "file://localhost/share/out.nxpkg")]
+    [InlineData("file.export", "file://127.0.0.1/E$/out.nxpkg")]
+    [InlineData("mesh.publish", "file://[::1]/share/published")]
+    [InlineData("mesh.publish", "FILE://LOCALHOST/share")]
+    [InlineData("file.export", "file://ollama.localhost/x")]
+    public void A_file_uri_is_never_inside_the_host_boundary(string family, string uri)
+    {
+        var decision = Guard.Evaluate(new EgressRequest(family, NewSite(), new Uri(uri)));
+
+        AssertRow(decision, EgressDestinationClass.NetworkExport, $"family '{family}' to the file URI {uri}");
+    }
+
+    /// <summary>
+    /// SPEC-007 PR 4.1, gap 3: a name that starts with <c>file:</c> (in any case) is a path. It is never read as a
+    /// URL, so a path spelled <c>//127.0.0.1/…</c> cannot make <c>file:</c> plus that path a URL with a loopback
+    /// host; it is recorded as written, like every other file site's path (<c>file:/home/…</c> always was), and
+    /// classified by its family. So the URL redaction of <see cref="AssertRow"/> does not apply to it; the bound on
+    /// caller text still does.
+    /// </summary>
+    [Theory]
+    [InlineData("file.export", "file://127.0.0.1/E$/out.nxpkg")]
+    [InlineData("mesh.publish", "file://localhost/share")]
+    [InlineData("file.export", "file://[::1]/x/out.nxpkg")]
+    [InlineData("mesh.publish", "FILE://127.0.0.1/share")]
+    [InlineData("file.export", "File:////127.0.0.1/share/out.nxpkg")]
+    [InlineData("file.export", @"file:\\127.0.0.1\share\out.nxpkg")]
+    public void A_file_name_is_a_path_recorded_as_written_and_never_inside_the_host_boundary(string family, string name)
+    {
+        var decision = Guard.Evaluate(new EgressRequest(family, NewSite(), name));
+
+        var what = $"family '{family}' to the name '{name}'";
+        decision.Fault.Should().BeNull(what);
+        decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport, what);
+        decision.DestinationLabel.Should().Be(InternalLabel, what);
+        decision.DestinationBasis.Should().Be(NetworkExportBasis, what);
+        decision.Destination.Should().Be(name, "a file: name is a path, recorded as written like every other file site's");
     }
 
     [Fact]
