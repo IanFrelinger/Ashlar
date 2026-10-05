@@ -98,7 +98,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// http.param fed only from <c>IHttpClientFactory</c> — every supply site passes, in the parameter's position, a
 /// client created by an <c>IHttpClientFactory</c>-typed receiver declared in that file (directly, through a
 /// never-reassigned local, through a same-file private factory method, or through the caller's own parameter,
-/// proven the same way), or the type is a typed client of a Factory-classified <c>AddHttpClient&lt;…, T&gt;</c>.
+/// never reassigned in the caller and proven the same way), or the type is a typed client of a Factory-classified
+/// <c>AddHttpClient&lt;…, T&gt;</c>.
 /// <b>Upstream:&lt;path&gt;</b>: an http.param supplied only from the named file, which builds no unguarded client,
 /// exposes no client field, is not partial, and is itself grounded (a Wrapped http.new, or another routed http.param
 /// row); or an http.register in a project that cannot reach Ashlar.Infrastructure, composed by the named executable
@@ -115,35 +116,49 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// (<c>new HttpClient(new EgressGuardHandler(…))</c> puts the client OUTSIDE that region), and an exemption that
 /// is a fixed folder cannot drift with the implementation.</para>
 ///
-/// <para><b>What it cannot see</b>, stated so nobody mistakes green for proof: HTTP clients built inside
-/// third-party SDKs (the AWS SDK, the MCP SDK's own default client); inbound server responses (not scanned:
-/// <c>Unscanned:Inbound</c>); file egress through no door method (<c>File.Copy</c> to removable media);
-/// aliases (<c>using H = System.Net.Http.HttpClient</c>), constructions inside interpolation holes (Clean
-/// blanks them), and reflection; an executable chosen by a caller of a process funnel
-/// (<c>TimedProcess.RunAsync("curl", …)</c>); and order: G3 is TEXTUAL order, not temporal, so a lambda can
-/// defer the send past the guard (OTLP's decision at registration is intentional). G3 also cannot see
-/// whether a guard RUNS: a guard with no braces of its own counts for its enclosing block, which covers the body
-/// of an unbraced <c>if</c>, <c>else</c> or loop, a sibling <c>switch</c> case, a conditional expression, and an
-/// expression-bodied lambda or local function that is never invoked. The routes add their own: an Upstream
-/// supplier passing a static client defined in another file; a guard installed on a different
-/// <c>IServiceCollection</c> from the one the registration fills; a host outside the repository that composes a
-/// factory consumer with no Ashlar member that installs the guard (<c>AddAshlarFederatedBrickMesh</c> alone);
-/// method-group, reflection and target-typed <c>new(…)</c> suppliers outside a declaration (an argument, a
-/// <c>return</c>), and a bare call through <c>using static</c> from another file, which the Factory route reports
-/// when it can see them and misses when it cannot; an early return between a registration and its guard, and an
-/// install call with no braces of its own (a brace-less lambda, an unbraced <c>if</c>), which D1 counts for the
-/// block around it as G3 does; an <c>IHttpClientFactory</c>-typed receiver backed by a custom
-/// implementation, which only F4 (D) catches; and every factory client records the family <c>http.factory</c>
-/// (NetworkExport), the model calls EG-MDL-09/10/13/14 included. Package-level classification is deferred: a new
-/// network SDK is caught only once its constructor is taught here. Each known miss is a pinned control in F9 or in
-/// the route controls, so the change that teaches the scan must flip it.</para>
+/// <para><b>What it cannot see</b>, stated so nobody mistakes green for proof. Two lists: the misses a control
+/// pins, and the misses that are only written down here.</para>
+/// <para><b>Pinned.</b> Each is a <c>known miss:</c> control in F9 or in the route controls (for textual order,
+/// the <c>guarded:</c> control that puts the primitive in a lambda), which asserts the miss is NOT caught, so the
+/// change that teaches the scan must flip it. An alias (<c>using H = System.Net.Http.HttpClient</c>); a construction inside an
+/// interpolation hole (Clean blanks it); a reflection-built client; a network SDK whose constructor nobody taught
+/// the scan (package-level classification is deferred); an executable chosen by a caller of a process funnel
+/// (<c>TimedProcess.RunAsync("curl", …)</c>); file egress through no door method (<c>File.Copy</c> to removable
+/// media). G3 is TEXTUAL order, not temporal, so a lambda can defer the send past the guard (OTLP's decision at
+/// registration is intentional). G3 cannot see whether a guard RUNS: a guard with no braces of its own counts for
+/// its enclosing block, pinned for the body of an unbraced <c>if</c> and of an unbraced loop, a sibling
+/// <c>switch</c> case, a conditional expression, and an expression-bodied lambda or local function that is never
+/// invoked. A <c>Keep(h)</c> helper inside a Wrap region keeps the raw handler. The stored-client rule counts every
+/// G3-preceded mention of a holder, so a mention that copies the stored client into another member
+/// (<c>_other = _http;</c> after a guard) passes while <c>_other</c> is sent unguarded elsewhere. An early return
+/// between a registration and its guard. An Upstream supplier passing a static client defined in another file; an
+/// Upstream file that hands its client out through a non-private method, or through a <c>Func&lt;…&gt;</c>,
+/// <c>Lazy&lt;…&gt;</c>, array or tuple member (the Fields clause reads only <c>HttpClient name</c> fields and
+/// properties); and an <c>IHttpClientFactory</c>-typed receiver backed by a custom implementation, which only
+/// F4 (D) catches.</para>
+/// <para><b>Stated only</b>, with no control. HTTP clients built inside third-party SDKs (the AWS SDK, the MCP
+/// SDK's own default client); inbound server responses (not scanned: <c>Unscanned:Inbound</c>); a guard in an
+/// unbraced <c>else</c> body (the rule the pinned <c>if</c> shows); the stored-client copy made from the parameter
+/// itself rather than a holder (<c>_shared = x;</c> into a non-private member, or <c>Use(x)</c>, after a guard),
+/// which is the rule the pinned holder copy shows. For the routes: a guard installed on a
+/// different <c>IServiceCollection</c> from the one the registration fills; an install call with no braces of its
+/// own (a brace-less lambda, an unbraced <c>if</c>), which D1 counts for the block around it as G3 does; a host
+/// outside the repository that composes a factory consumer with no Ashlar member that installs the guard
+/// (<c>AddAshlarFederatedBrickMesh</c> alone); a reflection or target-typed <c>new(…)</c> supplier outside a
+/// declaration (an argument, a <c>return</c>) and a bare call through <c>using static</c> from another file, which
+/// the Factory route does not list as supply sites (it does report a method group, <c>CreateInstance&lt;T&gt;</c>,
+/// <c>typeof(T)</c> and an empty-argument generic registration, each with a failing route control); an
+/// <c>IHttpClientFactory</c> receiver resolved by name over the whole file, so an untyped lambda parameter or a
+/// deconstructed local that reuses the name of a typed one elsewhere in the file passes
+/// (<c>RouteContext.ReceiverIsHttpClientFactory</c>). And a limit of the records, not of the scan: every factory
+/// client records the family <c>http.factory</c> (NetworkExport), the model calls EG-MDL-09/10/13/14 included.</para>
 ///
 /// <para><b>Routes.</b> Factory and Upstream reason about a CLOSED world: every supply site of a receiving member
-/// is a production file in this scan, found by name (<c>new T(</c>, <c>T x = new(</c>, <c>: this(</c>,
-/// <c>.N(</c>, a bare <c>N(</c> in the declaring file, or in any file for a non-private method of a type that is
-/// neither sealed nor static), and every spelling the scan cannot follow (<c>CreateInstance&lt;T&gt;</c>,
-/// <c>typeof(T)</c>, an empty-argument generic registration of T, a method group of N) fails the route instead of
-/// being assumed away. That premise holds only for non-partial receiving types, and for a constructor only in a
+/// is a production file in this scan, found by name (<c>new T(</c>, <c>T x = new(</c>, <c>: this(</c> in T's
+/// body, a primary constructor's type included, <c>.N(</c>, a bare <c>N(</c> in the declaring file, or in any file
+/// for a non-private method of a type that is neither sealed nor static), and every spelling the scan cannot follow
+/// (<c>CreateInstance&lt;T&gt;</c>, <c>typeof(T)</c>, an empty-argument generic registration of T, a method group
+/// of N) fails the route instead of being assumed away. That premise holds only for non-partial receiving types, and for a constructor only in a
 /// sealed one (a derived type's <c>base(…)</c> is a supply site the scan does not list), which the routes require.
 /// A row's route and a member's proof are memoised, and a cycle fails.</para>
 ///

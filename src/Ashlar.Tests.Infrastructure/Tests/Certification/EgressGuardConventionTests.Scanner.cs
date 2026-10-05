@@ -846,17 +846,22 @@ public sealed partial class EgressGuardConventionTests
         {
             for (var b = m.Innermost(offset); b >= 0; b = m.Blocks[b].Parent)
             {
-                if (!m.Blocks[b].IsTypeBody)
-                    continue;
-                var header = m.Code[m.Blocks[b].HeaderStart..m.Blocks[b].Open];
-                var t = TypeHeader.Match(header);
-                if (!t.Success)
-                    return null;
-                return new TypeInfo(b, t.Groups["name"].Value, t.Groups["kw"].Value,
-                    Regex.IsMatch(header, @"\b(?:sealed|static)\b"), Regex.IsMatch(header, @"\bpartial\b"));
+                if (m.Blocks[b].IsTypeBody)
+                    return TypeOfBody(m, b);
             }
 
             return null;
+        }
+
+        /// <summary>The type declared by the type body <paramref name="body"/>, or null when its header declares a namespace.</summary>
+        internal static TypeInfo? TypeOfBody(SourceModel m, int body)
+        {
+            var header = m.Code[m.Blocks[body].HeaderStart..m.Blocks[body].Open];
+            var t = TypeHeader.Match(header);
+            return t.Success
+                ? new TypeInfo(body, t.Groups["name"].Value, t.Groups["kw"].Value,
+                    Regex.IsMatch(header, @"\b(?:sealed|static)\b"), Regex.IsMatch(header, @"\bpartial\b"))
+                : null;
         }
 
         /// <summary>The parameter name after an http.param type token (<c>HttpClient? name</c>).</summary>
@@ -937,7 +942,9 @@ public sealed partial class EgressGuardConventionTests
         /// configuration access or G3-preceded; and (d) at least one mention of x or of a holder is G3-preceded.
         /// Anything else — a send from a sibling member, the guard after the send, a protected holder, x handed to
         /// another object or to <c>base(x)</c>/<c>this(x)</c>, a holder exposed by a property,
-        /// <c>_h ?? EgressHttp…</c> — leaves it unguarded.
+        /// <c>_h ?? EgressHttp…</c> — leaves it unguarded. A known miss, pinned in F9: (c) accepts EVERY G3-preceded
+        /// mention of a holder, not only a send, so a mention that copies the client into another member
+        /// (<c>_other = _http;</c> after a guard) passes, and <c>_other</c> can then be sent unguarded anywhere.
         /// </summary>
         internal static bool StoredClientPrecedes(SourceModel m, int typeAt, List<int> guards)
         {
@@ -1199,7 +1206,7 @@ public sealed partial class EgressGuardConventionTests
         /// braces), or after the primitive never counts. Blocks are brace pairs and nothing else, so a guard with
         /// no braces of its own counts for its enclosing block even when it may never run: the body of an
         /// unbraced if, else or loop, a sibling switch case, an expression-bodied lambda or local function.
-        /// Those are pinned as known misses in F9.
+        /// All but the else body are pinned as known misses in F9; the else body is the same rule as the if.
         /// </summary>
         internal static bool Precedes(SourceModel m, List<int> guards, int primitive)
         {
