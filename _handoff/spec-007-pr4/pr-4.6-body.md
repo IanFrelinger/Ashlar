@@ -15,6 +15,14 @@ These are classification-style controls inside the runtime. They are not an accr
 
 No non-test code under `application/` changes, so this is not `[coordinated-integration]`.
 
+**Departures from the design, stated** (each is listed for the integrator too):
+- **The stderr line is not limited to host-less CLI verbs.** It is written once per process by the first `AddAshlar`, or by the first decision of a process-bound guard, whose mode is not plain `report`. The library cannot tell whether a host will start, and CLI verbs run `AddAshlar` through a host they build lazily and never start. A hosted process with the opt-in therefore gets the stderr line and the log line.
+- **D7 applies to explicit-profile guards too.** An unrecognised profile fails closed in the one resolver, whoever passes it. An override of `report` on such a profile is recorded as `override-ignored`.
+- **A test seam in production code.** `EgressEnforcement.ModeResolutionProbe` (internal, `null` in production) lets the fault twin make mode resolution throw, because no input to the pure resolver can fault. The reset seam snapshots and restores it.
+- **The convention gained a fourth fact.** Besides treating the new writes as process-global, `No_file_that_leaves_egress_state_behind_skips_the_reset_seam` enforces §2.10's "restores through the seam".
+- **`AshlarHostingOptions.EgressMode` is a `string?`.** It mirrors the variable and the guard's constructor. Ashlar.Hosting has no PublicAPI baseline, so only the Abstractions API is recorded.
+- **The opt-in is named in `docs/EgressInventory.md` (the mode section §4 asks for) and the CHANGELOG**, both marked "not a supported setting until 4.11". No user-facing configuration doc mentions it.
+
 ## Changes
 
 - **`src/Ashlar.Abstractions/Security/Egress/`**
@@ -90,17 +98,55 @@ All builds and tests ran in the Linux devtest container through `scripts/test-in
 
 | Check | Result |
 |---|---|
-| `Ashlar.Abstractions` (netstandard2.0, net8.0, net10.0), `Ashlar.Hosting` with `Ashlar.AI.Pipeline` | CERTGATE_BUILD |
-| Full cert-gate (`scripts/run-cert-gate.sh`, net8.0) | CERTGATE_NET8 |
-| Touched classes, cert-gate and hosting (17 classes), net8.0 | TARGETED_NET8 |
-| Touched classes, net10.0 | TARGETED_NET10 |
-| `scripts/ci/run-repo-gates.sh` | REPO_GATES |
+| `Ashlar.Abstractions` (netstandard2.0, net8.0, net10.0), `Ashlar.Hosting` with `Ashlar.AI.Pipeline` | 0 errors. `Ashlar.LocalDevCore.slnf` (the `build-core` check) at `a501c2b`: 0 errors, 2 warnings, both the harness's SourceLink "no source control information" warnings |
+| Full cert-gate (`scripts/run-cert-gate.sh`, net8.0) | **2637/2637**, 0 skipped (the skip guard matches the baseline) at `296c745`, whose source tree equals the head's; the later commits are the knowledge graph and the squash. Master had 2542: this adds 63 (`EgressModeResolutionTests`), 31 (`EgressModeProcessBindingTests`) and 1 (the fourth convention fact) |
+| Touched classes, cert-gate and hosting (17 classes), net8.0 | **604/604** at `14c0d2a` (no file under `src/` changes after it) |
+| Touched classes, net10.0 | **609/609** at `296c745` |
+| `scripts/ci/run-repo-gates.sh` | **25/25** at `a501c2b`, the knowledge-graph byte-compare included |
 
 ### Mutation checks
 
-Every row ran `scripts/mutation-check.sh` at `MUT_REF`: it applies the replacement exactly once, runs red, restores, checks that `git status --porcelain` is empty, and runs green. All runs are on net8.0. "red a/b" counts failed of total. Each verbatim summary line and its red test names are below the table.
+Every row ran `scripts/mutation-check.sh` at `78f573e`, the branch's last commit before the squash; its tree is the head's (`f596ff9`), and the clone keeps the commit. Each run: it applies the replacement exactly once, runs red, restores, checks that `git status --porcelain` is empty, and runs green. All runs are on net8.0. "red a/b" counts failed of total. Each verbatim summary line and its red test names are below the table.
 
-MUTATION_TABLE
+| id | mutation | red | what went red |
+|---|---|---|---|
+| m01 | resolver: an `enforce` or unrecognised override resolves to `report` | 34/94 | the table's `enforce` and junk rows; overrides; a blank profile with `enforce`; explicit-guard rows; the classification fault under enforce; event 1; 9 process-binding facts (read-once, latching, the option, D4, Warning, stderr) |
+| m02 | `Evaluate`'s mode-fault fallback becomes `report` | 1/31 | `A_fault_while_resolving_the_mode_fails_closed_to_enforce` |
+| m03 | `NoteResolved` last-wins (every profile equally strict) | 5/31 | 4 `The_strictest_profile_noted_in_the_process_wins` rows, `A_second_AddAshlar_with_no_profile_does_not_lower_an_AirGapped_process` |
+| m04 | the process override re-reads the variable at every decision | 4/31 | `ProcessDefault_reads_the_override_once…`, `A_report_latched_first_is_not_raised…`, `AddAshlar_reads_the_override_once…`, `The_reset_seam_restores…` |
+| m05 | `AddAshlar` does not replace the `ProcessDefault` descriptor | 3/33 | `AddAshlar_binds_its_composed_guard_even_when_AddAshlarEgressGuard_ran_first`, both `EgressKernelFactoryTwinTests` |
+| m06 | `EgressMode = "report"` lowers the composed guard | 1/31 | `The_hosting_option_cannot_lower_the_mode` |
+| m07 | the seam's `Restore` skips the latch | 1/31 | `The_reset_seam_restores_the_noted_profile_and_the_mode_latch` |
+| m08 | `Refused = !Access.Allowed` (ignores the mode) | 5/200 | 3 explicit-guard report rows, `A_classification_fault_under_enforce_is_refused_and_under_report_is_not`, `EgressGuardDecisionTests.The_event_source_writes_each_decision…` |
+| m09 | event 1 writes an empty `ref` | 2/200 | `Event_1_carries_the_mode_basis_refused_and_the_reference`, `The_event_source_writes_each_decision…` |
+| m10 | an explicit-profile guard falls back to the process latch (breaks D4) | 1/31 | `A_guard_built_with_a_profile_never_reads_the_environment` |
+| m11 | `KernelPhaseResolutionTests` (composes AirGapped and SecureWorkstation, writes no variable) loses its `[Collection]` | 1/4 | `No_unlisted_test_file_mutates_the_environment_unserialized` |
+| m12 | `HostingDeploymentProfileTests` drops its seam scope | 1/4 | `No_file_that_leaves_egress_state_behind_skips_the_reset_seam` |
+| m13 | the activator logs nothing | 2/31 | `The_hosted_activator_logs_one_line…`, `An_unrecognised_override_is_logged_at_Warning` |
+| m14 | an unrecognised profile resolves to `report` | 4/231 | `An_unrecognised_profile_fails_closed…`, the explicit `air-gapped-ish` row in both `EgressModeResolutionTests` and `EgressGuardDecisionTests`, `An_unrecognised_profile_variable_fails_closed_to_enforce` |
+| m15 | the startup line goes to stdout | 1/31 | `A_mode_other_than_plain_report_is_written_to_standard_error_once` |
+
+Every row is KILLED, and every green run passed all of its tests. The first m13 run was stopped by the session's 2-hour limit on a background task, before its red run had finished building, and m13 was run again from the start. The summary lines, verbatim:
+
+```
+mutation m01-enforce-override-reports: KILLED red=failed:34/94 green=passed:94/94 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m02-mode-fault-fails-open: KILLED red=failed:1/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m03-profile-last-wins: KILLED red=failed:5/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m04-override-reread: KILLED red=failed:4/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m05-composed-guard-unbound: KILLED red=failed:3/33 green=passed:33/33 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m06-option-lowers: KILLED red=failed:1/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m07-seam-skips-latch: KILLED red=failed:1/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m08-refused-ignores-mode: KILLED red=failed:5/200 green=passed:200/200 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m09-event1-ref-dropped: KILLED red=failed:2/200 green=passed:200/200 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m10-explicit-guard-reads-latch: KILLED red=failed:1/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m11-ag-composer-unserialized: KILLED red=failed:1/4 green=passed:4/4 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m12-seam-skipped: KILLED red=failed:1/4 green=passed:4/4 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m13-startup-line-silent: KILLED red=failed:2/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m14-unrecognised-profile-reports: KILLED red=failed:4/231 green=passed:231/231 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+mutation m15-stderr-line-to-stdout: KILLED red=failed:1/31 green=passed:31/31 ref=78f573e89f5ae73855d3570179b00dc25fec361c
+```
+
+**Not red-at-base.** The 4.6 row does not ask for red-at-base twins, and most of these twins cannot compile at the base: `ModeBasis`, `Refused`, `Ref`, the seam and the two-argument constructor are all new. The mutations stand in for that check. m03, m05, m10 and m11 each restore one piece of the base behaviour (last-wins, the `ProcessDefault` registration, an explicit guard that reads the process state, a convention blind to the new writes), and each one turns its twin red.
 
 ### Testing strategy
 

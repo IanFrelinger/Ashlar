@@ -46,21 +46,58 @@ Under the switch (4.11), every mesh serve on AirGapped or SecureWorkstation is r
 
 ## Testing
 
-All builds and tests ran in the Linux devtest container through `scripts/test-in-container.sh`. Nothing ran on the host.
+All builds and tests ran in the Linux devtest container through `scripts/test-in-container.sh`. Nothing ran on the host. The branch is one commit on master `79e988c` (#713).
 
-TESTING_TABLE
+| Check | Result |
+|---|---|
+| Full cert-gate (`scripts/run-cert-gate.sh`, net8.0) at `4e170e2` | **2589/2589**, 0 skipped (the skip guard matches `scripts/cert-gate-skipped.baseline`; the zero-test guard expected ≥2584 from `--list-tests`) |
+| The five touched cert-gate classes on **net10.0** at `4e170e2` (`EgressGuardDecisionTests`, `EgressExplicitSiteTwinTests`, `EgressGuardChatClientTwinTests`, `EgressRawClientTwinTests`, `EgressGuardConventionTests`) | **448/448** |
+| `EgressGuardConventionTests` (net8.0) at the final head `1e3e645` (a one-line doc change after `4e170e2`) | **194/194**: the TSV pins (85 rows, 149 occurrences, 48 guarded), F5 confinement with the new `InProcessChatClient` helper, F8 ids |
+| `Ashlar.Tests.CLI` (net10.0), filter `EgressCliSiteTwinTests|MeshServe|MeshLanParty`, at `4e170e2` | **36/36** |
+| `Ashlar.Tests.AI.Pipeline`, whole project, at `4e170e2` | **net8.0 107/107**, **net10.0 107/107** (unchanged from master's 107) |
+| `Ashlar.Abstractions` (netstandard2.0, net8.0, net10.0; `TreatWarningsAsErrors`, `AnalysisMode=All`, PublicAPI analyzers) | 0 warnings, 0 errors; no public API change |
+| `scripts/ci/run-repo-gates.sh` at `1e3e645` (after `git add -A` and the knowledge-graph rebuild) | **25/25** |
+
+**Renamed and rewritten tests (the flips, by name).**
+- CLI (`application/src/Ashlar.Tests.CLI/Tests/Commands/EgressCliSiteTwinTests.cs`), red to green as the design names:
+  - `PeerDestination_writes_the_peer_as_a_URL_host` → `PeerDestination_names_the_peer_so_it_is_never_inside_the_host_boundary` (rows now `mesh-peer:…`, plus `::ffff:127.0.0.1`, and each row's decision is a network export);
+  - `A_package_served_to_a_loopback_peer_records_one_Host_decision_and_a_404_records_none` → `…_records_one_NetworkExport_decision_and_a_404_records_none` (`mesh-peer:127.0.0.1`, NetworkExport).
+- Classifier rows in `EgressExplicitSiteTwinTests.Every_destination_shape_the_explicit_sites_pass_is_classified_as_expected`: the six `tcp://` mesh-serve rows are **rewritten** to five `mesh-peer:` rows (the `tcp://::ffff:10.0.0.5` row, which explained the IPv4-mapped mapping for URL parsing, has no counterpart: a `mesh-peer:` name is never parsed). Those rows are green at the base too (a `mesh-peer:` name never parsed as a URL), so they are **not** claimed as red-to-green. The two new `file://` rows in the same theory are red at the base.
+- MEAI (`EgressGuardChatClientTwinTests`): the twins that put `FakeChatClient` (no `ProviderUri`) under `local:ollama` and expected the resolver URL now build the default client's shape over a stub handler (`StubOllama`: `OllamaHttpChatClient` with exactly the base address the default factory gives it), so the resolver-precedence assertions stay (`LocalOllama_IsClassifiedByTheResolvedUrl`, `LocalOllama_RecordsTheEnvironmentUrl_ThatTheDefaultClientDials`, which still compares with the real default client, `Streaming_…`, `ResolutionFaults_…`). `AGovernedTargetWithoutThePipelineOptions_StillResolvesTheOllamaEndpoint` became `LocalOllama_WithACustomInnerClientThatNamesNoUri_FailsClosedToItsKey`; `LocalOnnx_RecordsNoDecision` became `LocalOnnx_WithTheLlamaSharpClient_RecordsNoDecision` (default and host-registered LLamaSharp) and `LocalOnnx_WithACustomInnerClientThatNamesNoUri_FailsClosedToItsKey`. `ResolutionFaults_…` now faults through an inner client whose `GetService` throws (the options are no longer read for `local:ollama`) and keeps a throwing-options case on a Bedrock key. `EveryKeyedTarget_…` uses the default Ollama and LLamaSharp inner clients.
+- `EgressGuardConventionTests.Controls`: one control's label now reads `(OllamaHttpChatClient.cs:166 as it was before 4.1)`; its fixture is unchanged.
 
 ### Red at base
 
-The twins were committed alone first (TWINS_SHA, on master `79e988c`), run, then the change was committed.
+The twins were committed alone first (`1f92e73`, on master `79e988c`; kept on the local branch `wip/4.1-twins`), run, and then the change was committed.
 
-RED_BASE
+| Run at `1f92e73` (base code) | Result | Red, by test |
+|---|---|---|
+| `Ashlar.Tests.Infrastructure` net8.0, the four twin classes | **28 failed / 241** | `A_file_uri_is_never_inside_the_host_boundary` ×5 (Host); `A_file_name_is_a_path_recorded_as_written_and_never_inside_the_host_boundary` ×5 (Host; the `file:\\127.0.0.1\…` row has no `://` and passes at the base, as a fact row); `Every_destination_shape_…` ×2 (the new `file://` rows); `SneakernetTransport_records_a_loopback_spelled_export_path_…` and `FileBasedSharedAdaptationStore_records_a_loopback_spelled_shared_path_…` (recorded `file://127.0.0.1`, Host); `LocalOllama_WithACustomInnerClient_RecordsWhereThatClientDials` (recorded `http://localhost:11434`); `LocalOllama_WithACustomInnerClientThatNamesNoUri_FailsClosedToItsKey`; `LocalOnnx_WithACustomInnerClient_RecordsItsProviderUri` and `LocalOnnx_WithACustomInnerClientThatNamesNoUri_FailsClosedToItsKey` (no decision); `ResolutionFaults_…` (site `EG-MDL-01`, not `meai:local:ollama`); `AnOllamaCloudModel_IsRecordedAsAnExternalModelAtOllamaCom` ×5 and `AnOllamaCloudModel_AsTheDefaultModel_IsRecordedAtOllamaCom` (recorded `http://localhost:11434`); `TheDefaultOllamaClient_DoesNotFollowARedirect` (no exception: the 307 was followed); `OllamaProvider_records_a_cloud_model_…` ×2 (no `ollama.com` decision) |
+| `Ashlar.Tests.CLI` net10.0, `EgressCliSiteTwinTests` | **8 failed / 16** | `PeerDestination_names_the_peer_…` ×7 (`tcp://…`); `A_package_served_to_a_loopback_peer_records_one_NetworkExport_decision_…` (`tcp://127.0.0.1`, Host) |
+
+Green at the base, and kept as guards against an over-broad rule: `ALocalModel_IsRecordedAtTheDaemon` ×6, `LocalOnnx_WithTheLlamaSharpClient_RecordsNoDecision`, the rewritten `mesh-peer:` classifier rows. `TheCloudModelRule_IsTheSameOnBothOllamaRoutes` (13 rows) was added after the base run: it pins that the MEAI and `OllamaProvider` copies of the rule agree.
 
 ### Mutation checks
 
 Every row was run with `scripts/mutation-check.sh` (commit, apply one replacement, prove it applied, red, restore, empty `git status --porcelain`, green) in the container.
 
-MUTATION_TABLE
+All nine at `4e170e2` (the final head `1e3e645` differs by one documentation line). Filter for M2 to M9: the four twin classes on net8.0 (`EgressGuardDecisionTests|EgressExplicitSiteTwinTests|EgressGuardChatClientTwinTests|EgressRawClientTwinTests`); M1: `EgressCliSiteTwinTests` in `Ashlar.Tests.CLI` on net10.0. Each log shows `replaced 1 occurrence`, the diff, and `porcelain=[]` after the restore.
+
+| id | mutation | summary line (verbatim) | what went red |
+|---|---|---|---|
+| M1 | `PeerDestination` back to `tcp://<ip>` / `tcp://[<v6>]` | `mutation m1-mesh-peer-restore-tcp: KILLED red=failed:7/16 green=passed:16/16 ref=4e170e2b197622440f2e160450022455d362eb8f` | `PeerDestination_names_the_peer_…` ×6 (all but `null`); `A_package_served_to_a_loopback_peer_records_one_NetworkExport_decision_…` |
+| M2 | drop rule 1 (the `ProviderUri` pattern can never match) | `mutation m2-meai-drop-provider-uri: KILLED red=failed:21/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `LocalOllama_WithACustomInnerClient_RecordsWhereThatClientDials`, `LocalOnnx_WithACustomInnerClient_RecordsItsProviderUri`, `LocalOllama_IsClassifiedByTheResolvedUrl` ×2, `LocalOllama_RecordsTheEnvironmentUrl_…` ×2, `Streaming_…`, `ResolutionFaults_…`, `EveryKeyedTarget_…`, `ALocalModel_IsRecordedAtTheDaemon` ×6, `AnOllamaCloudModel_IsRecordedAsAnExternalModelAtOllamaCom` ×5, `AnOllamaCloudModel_AsTheDefaultModel_…` |
+| M3 | rule 2 key-only (drop the LLamaSharp type check) | `mutation m3-meai-onnx-key-only: KILLED red=failed:1/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `LocalOnnx_WithACustomInnerClientThatNamesNoUri_FailsClosedToItsKey` |
+| M4 | delete the `file:` name rule in `DescribeName` | `mutation m4-file-name-rule-dropped: KILLED red=failed:9/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `A_file_name_is_a_path_…` ×5, `Every_destination_shape_…` ×2 (the `file://` rows), `SneakernetTransport_records_a_loopback_spelled_export_path_…`, `FileBasedSharedAdaptationStore_records_a_loopback_spelled_shared_path_…` |
+| M5 | `DescribeUri` without the `file` scheme rule | `mutation m5-file-uri-rule-dropped: KILLED red=failed:5/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `A_file_uri_is_never_inside_the_host_boundary` ×5 |
+| M6 | MEAI cloud rule dropped (`IsOllamaCloudModel(null)`) | `mutation m6-meai-cloud-rule-dropped: KILLED red=failed:6/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `AnOllamaCloudModel_IsRecordedAsAnExternalModelAtOllamaCom` ×5, `AnOllamaCloudModel_AsTheDefaultModel_…` |
+| M7 | MEAI cloud rule reads only `options.ModelId` | `mutation m7-meai-default-model-ignored: KILLED red=failed:1/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `AnOllamaCloudModel_AsTheDefaultModel_IsRecordedAtOllamaCom` |
+| M8 | `OllamaProvider` cloud decision dropped | `mutation m8-provider-cloud-rule-dropped: KILLED red=failed:2/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `OllamaProvider_records_a_cloud_model_as_an_external_model_at_ollama_com` ×2 (the cloud rows) |
+| M9 | `AllowAutoRedirect = true` on the default Ollama client | `mutation m9-ollama-follows-redirects: KILLED red=failed:1/254 green=passed:254/254 ref=4e170e2b197622440f2e160450022455d362eb8f` | `TheDefaultOllamaClient_DoesNotFollowARedirect` |
+
+The design's four (restore `tcp://`, drop rule 1, rule 2 key-only, drop the `file:` rule) are M1, M2, M3 and M4; the `file` URI half (M5), the cloud rule on both routes (M6, M8), its default-model branch (M7) and the redirect change (M9) are the other behavioural changes, each checked the same way.
+
+**Not observed red, stated.** The live mesh-serve twin runs over IPv4 loopback only; the IPv6 and IPv4-mapped shapes are pinned by the `PeerDestination` theory. The `ThrowingMetadataChatClient` path of `EgressGuardChatClient`'s default-model read (a `GetService` that throws is swallowed) is exercised by `ResolutionFaults_…` but not mutated.
 
 ### Testing strategy (blast radius)
 

@@ -213,3 +213,239 @@ A mutation that weakens the fail-closed placeholders in PublishNoDecision would 
 - S4's claim that the runtime's request telemetry may count a send twice under an outer HttpMessageInvoker on .NET 5–7, which is stated as 'may' in the hop's remarks and the PR body.
 - Not run locally: build-core, kernel-gate, kernel-coverage-gate and lychee. No links were added, only backticked paths.
 - Agent-bus handoff is not posted (lane rules leave PR and handoff to the integrator). The 'Records' section of the PR body lists the records it touches, for Grok's drift audit.
+
+## 4.4: branch `claude/spec-007-pr4-4.4-frames` @ `5f56b8ff4`
+
+### Lane result
+
+- **Base:** `79e988c` (#713). One squashed commit. The PR body draft is `pr-4.4-body.md`.
+- **What it does:** the chain join (every live frame's mark, with the innermost frame's basis), propagation into enclosing frames on dispose, `EgressSubject.Observe` into every live frame, `EgressSubject.BeginRead`/`ReadScope` (an unreported or thrown scope observes SystemHigh), and an internal `EgressSubject.Detach` at the single AgentBus dispatch point.
+- **Red at base:** the base-compilable twins were committed alone at `cb64de5` on `79e988c`: net8.0 11 of 148 failed, each for the intended reason. The twins that need the new API cannot compile at base.
+- **Green at `5f56b8f`:**
+  - targeted filter: net8.0 161/161 and net10.0 161/161;
+  - full cert-gate (net8.0): 2566/2566, skip guard 0, against the expected 2561 or more;
+  - Ashlar.Tests.Orchestration 302/302 (net8.0 only; the project has no net10.0 target);
+  - Ashlar.Tests.BackgroundAgents `~Egress` 14/14.
+- **Builds:** Ashlar.Abstractions on netstandard2.0, net8.0 and net10.0: 0 warnings, 0 errors. Ashlar.Orchestration: 0 warnings, 0 errors.
+- **Repo gates:** all 25 passed, before and after the squash.
+- **Mutations:** 9 of 9 KILLED through `scripts/mutation-check.sh` at `8a4c295`, which differs from the head only in the knowledge graph:
+  - m1 innermost only, 3/161;
+  - m2 no propagation on dispose, 2/161;
+  - m3 Observe innermost only, 2/161;
+  - m4 Observe satisfies a read scope, 1/161;
+  - m5 an unreported read observes nothing, 4/161;
+  - m6 a thrown read keeps its report, 2/161;
+  - m7 Detach does not detach, 4/161;
+  - m8 AgentBus not detached, 3/161;
+  - m9 the detachment forwards the chain, 3/161.
+
+### Lane deviations (the check judged each reasonable and fail-closed)
+
+- `ReadScope.Complete()` was added, on the TransactionScope pattern: a scope disposed without `Complete()` observes SystemHigh even after a report. This is one public member more than the row lists.
+- "Read nothing" is `ReadScope.Report(SecurityLabel.Public)`. No separate member.
+- A `ReadScope` belongs to whoever begins it; it is not ambient. Only the holder can `Report`, so `Observe` cannot satisfy it by construction. **4.5** must carry RAGTool's label from the labelled-tool marker to `ToolCallingAgent`, which then calls `read.Report(...)` and `read.Complete()`.
+- `InternalsVisibleTo Ashlar.Orchestration` was added to Ashlar.Abstractions.csproj for `Detach`. This is outside D9; see check finding 4.
+- `Detach` is a detachment frame (no mark and no enclosing frame), not a null frame. A dispose from another flow restores nothing there, and m9 shows why the detachment must not forward the chain.
+- The SPEC-007 line is "**4.4** (this PR)" under #713's PR 4 plan bullet. Cert-gate row 64 was revised and the Certification count paragraph moved to 128 `.cs` files and 131 entries.
+
+### Check verdict
+
+Approve with changes: fix finding 1 before merge, or record it explicitly as a known limit. Production behaviour is unchanged:
+- no production code calls `Enter` or `BeginRead`, so every decision stays `no-subject`;
+- the only new production call is `Detach` in AgentBus;
+- the guard still only reports.
+
+The check read all nine mutation logs and found them real. The records match the code: three cert-gate rows, the counts re-counted with `git ls-files`, the knowledge graph's 3 files and 24 facts, the CHANGELOG under Unreleased/Added, and the TSV untouched.
+
+### Check findings
+
+1. **[medium] An ancestor disposed out of order is a write-down.**
+   - **Where:** `src/Ashlar.Abstractions/Security/Egress/EgressSubject.cs:139-151` (`Frame.Resolve` walks ancestors through `Live()`); pinned as intended by `EgressSubjectNestingTests.cs:83-104` (`A_frame_disposed_out_of_order_leaves_the_chain`) and `ci/cert-gate-assertions.md:65`.
+   - **Problem:** inside `Enter("parent", Secret)`, a fire-and-forget `Task.Run` enters `Enter("child", new HighWaterMark())`. While the parent is live, the child decides Secret. Once the parent's `using` ends, the child's chain skips the disposed parent, so it decides Public and is allowed, although its closures may hold Secret data. Without the inner frame the same task would fall back to SystemHigh. This contradicts the class remark at `:24` and D12's aim of closing the declassification hole.
+   - **Fix (phase B, integrator's call: fail closed, as D12 intends):**
+     - keep `Live(chain)` for the innermost frame;
+     - for the ancestors of the innermost live frame, walk `_previous` directly and join every subject frame's mark, live or disposed, stopping at a detachment;
+     - flip `A_frame_disposed_out_of_order_leaves_the_chain` to expect Secret and LevelTooLow;
+     - add the child-task twin;
+     - reword row 65 and the class remarks;
+     - mutation-check it (ancestors walked through `Live`) and watch it go red.
+
+     Today's behaviour is kept only if the owner chooses it. Then it moves out of the pinned properties into a SPEC-007 known limit.
+2. **[low] The rule that a scope observes into the chain it began on is not pinned.**
+   - **Where:** `EgressSubjectReadScopeTests.cs:159-180`; `ReadScope.cs:35`, `:77`.
+   - **Problem:** the only cross-flow twin ends the scope inside `Task.Run`, which inherits the same chain. A mutant that captures nothing at `BeginRead` and calls `EgressSubject.Observe(read)` at Dispose passes every twin, and fails open under `SuppressFlow`, a detachment or a frameless thread. The late-Report rule has a test but no mutation run.
+   - **Fix:** add a twin that ends the scope on a flow without the begin chain (`ExecutionContext.SuppressFlow()` with `Task.Run`, a new Thread, or a `Detach`) and asserts the begin-chain marks rise. Mutation-check that mutant, and a late-report mutant (drop the `_ended` branch in `Report`).
+3. **[low] The guard's class doc is stale.**
+   - **Where:** `src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs:15-16`.
+   - **Problem:** it still says the current label is "the active EgressSubject frame's high-water mark".
+   - **Fix:** say it is the join of every live frame's mark on the flow's chain, with basis `subject:<innermost id>`, or SystemHigh (`no-subject`) with none.
+4. **[low] The new `InternalsVisibleTo Ashlar.Orchestration` is outside D9.**
+   - **Where:** `src/Ashlar.Abstractions/Ashlar.Abstractions.csproj:36`.
+   - **Problem:** the grant exposes every Abstractions internal to Orchestration: `AshlarDeploymentProfileEnvironment.NoteResolved`/`ClearResolved`, the internal `EgressDecision` constructor, `EgressSubject.Frame`, and from 4.6 the mode latch and reset seam. D3, D5 and D41 assume few callers can reach those. The amendment is recorded only in the commit message.
+   - **Fix:** record the D9 amendment in SPEC-007's PR 4 notes. In 4.6, or when 4.4 and 4.6 are integrated, pin the callers of the reset seam and the latch setters with a convention fact.
+5. **[low, design-level; for 4.5] A read scope observes only when it ends.**
+   - **Where:** `ReadScope.cs:77-85`, against design §2.2's producer rule and D19.
+   - **Problem:** a tool that reads and then egresses within the same call has that egress decided at the pre-read mark. This is safe while every production frame is SystemHigh (4.5's self-extend floor). The leak test's Public-floor runner, and any later low-floor runner, are exposed.
+   - **Fix:** in 4.5, record it as a known limit for runners whose floor is below SystemHigh. The stricter alternative (an open, unreported scope counts as SystemHigh for decisions on its chain) is an **owner call**: it changes Scenario B's expected reason from LevelTooLow to SystemHighData.
+
+### Lane open issues
+
+- Fill the PR number into the SPEC-007 "**4.4** (this PR)" line. The other lanes add bullets at the same place, so expect a trivial conflict.
+- The `ci/cert-gate-assertions.md` count paragraph (128 `.cs`, 131 entries) conflicts with every lane that adds Certification files. Recount after each rebase. Regenerate the knowledge graph after `git add`.
+- **For 4.5:**
+  - `ToolCallingAgent` wraps each tool call as `using var read = EgressSubject.BeginRead(); …; read.Complete();`;
+  - a labelled tool calls `read.Report(label)`;
+  - RAGTool's "read nothing" is `Report(SecurityLabel.Public)`;
+  - the scope is disposed on every path (M15);
+  - the floor-pinning convention for production `EgressSubject.Enter` calls (D19) is 4.5's. 4.4 pins only the Detach call site, AgentBus.cs ×1.
+- A HighWaterMark observed directly, not through `EgressSubject.Observe`, after its frame is disposed does not reach the enclosing frames. This is documented in the remarks but not tested.
+- Not run: the CLI egress twins (`application/src/Ashlar.Tests.CLI`, `EgressCliSiteTwinTests`). They use one frame per case, so nesting does not affect them.
+
+## 4.6: branch `claude/spec-007-pr4-4.6-mode` @ `a501c2b26`
+
+### Lane result
+
+- **Base:** `79e988c` (#713). One squashed commit, `a501c2b` (tree `f596ff9`). The pre-squash WIP head `78f573e`, which was the pushed branch before, has the identical tree. The PR body draft is `pr-4.6-body.md`.
+- **What it does:**
+  - one mode resolver with a 6×4 table, adding `ModeBasis`, `Refused` and `Ref` to the decision and appending them to event 1;
+  - three opt-ins: `ASHLAR_EGRESS_MODE` read once, the raise-only `AshlarHostingOptions.EgressMode`, and the `EgressGuard(profile, mode)` constructor;
+  - strictest profile wins (a later `AddAshlar` cannot lower AirGapped);
+  - the reset seam `EgressProcessState`, and the process-global convention extended to it;
+  - the composed guard replaces only `ProcessDefault`;
+  - IVT for AI.Pipeline;
+  - a startup line: Information log event 7302, plus one stderr line when the mode is not plain report.
+
+  Every profile still defaults to report, and nothing reads `Mode`, `ModeBasis` or `Refused`, so nothing refuses.
+- **Evidence:**
+  - Ashlar.Abstractions builds on every TFM with 0 warnings and 0 errors, and Ashlar.Hosting builds with 0 errors.
+  - Targeted run over the 17 touched classes: net8.0 604/604 and net10.0 609/609.
+  - Full cert-gate (net8.0): 2637/2637, skip guard 0. The arithmetic is 2542 + 63 + 31 + 1.
+  - The build-core equivalent (`Ashlar.LocalDevCore.slnf`) succeeded with 0 errors.
+  - Repo gates: 25/25, and the regenerated knowledge graph had no diff.
+- **Mutations:** 15 of 15 KILLED through `scripts/mutation-check.sh` at `78f573e`, which has the same tree as the head. The m13 first attempt was stopped by the 2-hour background limit and re-run. The red counts:
+
+  | Mutation | Red |
+  |---|---|
+  | m01 an enforce override reports | 34/94 |
+  | m02 a mode fault fails open | 1/31 |
+  | m03 the last profile wins | 5/31 |
+  | m04 the override is re-read | 4/31 |
+  | m05 the composed guard is unbound | 3/33 |
+  | m06 the option lowers the mode | 1/31 |
+  | m07 the seam skips the latch | 1/31 |
+  | m08 Refused ignores the mode | 5/200 |
+  | m09 event 1 drops the ref | 2/200 |
+  | m10 the explicit guard reads the latch | 1/31 |
+  | m11 an AG composer is not serialized | 1/4 |
+  | m12 the seam is skipped | 1/4 |
+  | m13 the startup line is silent | 2/31 |
+  | m14 an unrecognised profile reports | 4/231 |
+  | m15 the stderr line goes to stdout | 1/31 |
+
+### Lane deviations
+
+- **The stderr startup line** is written by the first `AddAshlar` (or the first decision of a process-bound guard) whenever the mode is not plain report. It is not limited to host-less CLI verbs, because the library cannot tell whether a host will start.
+- **D7 runs in the single resolver**, so it covers explicit-profile guards too. An unrecognised profile gives enforce with basis `profile:unrecognised`. Because of that, `EgressGuardDecisionTests.An_explicit_profile_is_reported_and_does_not_change_the_decision` gained a mode column, and its air-gapped-ish row now expects enforce.
+- **A test seam was added to production code:** `EgressEnforcement.ModeResolutionProbe`, an internal static that is null in production. It exists because no input can make the pure resolver throw.
+- **The reset seam** is the internal type `EgressProcessState` (Snapshot, Restore, Reset), plus `AshlarDeploymentProfileEnvironment.RestoreResolved`. Tests reach it by reflection through `Helpers/EgressProcessStateScope.cs`.
+- **`ProcessGlobalEnvironmentConventionTests`** treats three more things as process-global writes:
+  - an `AddAshlar` with AirGapped or SecureWorkstation;
+  - an `EgressMode` assignment beside `AddAshlar`;
+  - any use of the seam.
+
+  It also gained a fourth fact, `No_file_that_leaves_egress_state_behind_skips_the_reset_seam`.
+- **`AshlarHostingOptions.EgressMode` is a `string?`.** "enforce" or any other non-blank value raises the mode; "report" or null change nothing. Ashlar.Hosting has no PublicAPI baseline.
+- **The constructor** became `EgressGuard(string? deploymentProfile = null, string? egressMode = null)`, replacing the one-parameter form (it was only in Unshipped), so the change is source-compatible.
+- **The opt-in is named, hedged as unsupported, in `docs/EgressInventory.md`** (which §4's records table requires for 4.6) **and in the CHANGELOG.** No user-facing configuration doc mentions it.
+- **Records beyond the row:**
+  - cert-gate row 56's offender count was corrected from 22 to 20, the real size;
+  - four `docs/EgressInventory.md` line citations were re-derived.
+- **Defaults left to later PRs:** D6 goes to 4.11; D8's event 2 and D11's logging go to 4.7. The basis constants `break-glass`, `host-opt-out` and `operator-verb` are declared but never produced.
+- **The activator** `EgressModeStartupActivator` is internal to Ashlar.Hosting. It logs category `Ashlar.Egress`, event 7302. 7300 is the decision record, and 7301 is reserved for 4.7's EgressRefused.
+
+### Check verdict
+
+PASS with fixes. The row is implemented as designed, and the behaviour that must not change did not change: every profile still reports, and no route reads Mode, ModeBasis or Refused.
+
+The check verified:
+- the 15 mutation definitions are real semantic changes;
+- the counts recount;
+- the knowledge graph rebuilds clean;
+- the EgressInventory citations are right;
+- the offender count fix from 22 to 20 is correct.
+
+Flake risk from the process-global seams is nil today, because the EnvironmentVariables collection is `DisableParallelization` and xUnit 2.9.3 runs it after the parallel collections.
+
+### Check findings
+
+1. **[medium] The composed guard uses this call's profile, not the strictest profile noted in the process.**
+   - **Where:** `src/Ashlar.Hosting/AshlarServiceCollectionExtensions.Egress.cs:37` (`BindComposedEgressGuard`), with `AshlarServiceCollectionExtensions.cs:111-126`; twin `EgressModeProcessBindingTests.A_second_AddAshlar_with_no_profile_does_not_lower_an_AirGapped_process`.
+   - **Problem:** after `AddAshlar(AirGapped)`, a later `new ServiceCollection().AddAshlar()` in the same process notes nothing lower, so D5 holds for `ProcessDefault` and the validators. But that container's own `IEgressGuard` is `new EgressGuard("full", …)`, so its factory clients and MEAI targets decide under Full. The twin asserts only the noted profile and `ProcessDefault`. Two related problems:
+     - A guard composed earlier keeps the override it captured, so a later `AshlarHostingOptions.EgressMode=enforce` does not reach it, although the option's doc says "for the whole process".
+     - A second `AddAshlar` in the same collection replaces `EgressModeStartup` with its own profile, so the startup line can say "profile full" in an AG container.
+
+     It is not exploitable today, because every production `AddAshlar` takes the profile from the same variable. At 4.11, only D6 would backstop it.
+   - **Fix:**
+     - compose with `AshlarDeploymentProfileEnvironment.ResolvedRaw ?? canonicalProfile` after `NoteResolved`, and build the startup line from the same value;
+     - extend the twin to resolve the second container's `IEgressGuard` and assert `Profile == "air-gapped"` and `ModeBasis == "profile:air-gapped"`;
+     - mutation-check it by reverting to `canonicalProfile`.
+
+     This matches 4.6's own open issue for SecureWorkstation, and it closes the issue for both profiles.
+2. **[low] `ProcessDefault` reads the profile twice per decision.**
+   - **Where:** `EgressGuard.cs:171-186` (`ResolveMode`) and `:193-204` (`ResolveProfile`).
+   - **Problem:** a concurrent `AddAshlar` between the two reads can give `ModeBasis profile:full` with `Profile air-gapped`.
+   - **Fix:** read the effective profile once at the top of `Evaluate` and pass it to both. The explicit guard uses `_deploymentProfile`.
+3. **[low] A null-profile guard with a constructor override never sees a raise.**
+   - **Where:** `EgressGuard.cs:178` (`_egressMode ?? EgressEnforcement.ProcessOverride()`); the `AshlarHostingOptions.cs:20-29` doc.
+   - **Problem:** `new EgressGuard(null, "report")` never sees the host raise or a latched `enforce`. The hosting-option doc claims a lower mode comes only from the environment variable.
+   - **Fix:** for a null-profile guard, take the stricter of the constructor override and `ProcessOverride()`. Otherwise correct the doc and add the case to 4.11's D6 twin list.
+4. **[low] Some documented behaviour is untested or never seen red.**
+   - **Where:** `EgressEnforcement.cs:166-173` (`NoteHostingOption`).
+   - **Problem:** nothing covers an unrecognised `AshlarHostingOptions.EgressMode` (for example "junk") raising to enforce. The randomness of `Ref` and `AddAshlar_keeps_a_guard_the_host_registered_before_it` have no mutation.
+   - **Fix:** add a "junk" theory row asserting enforce, basis `override`, and a Warning. Mutation-check three more:
+     - drop the Unrecognised raise;
+     - make `Ref = Sequence.ToString("x16")`;
+     - remove the `ReferenceEquals(ProcessDefault)` condition in `BindComposedEgressGuard`.
+5. **[low] Event 1's payload grew without a version bump.**
+   - **Where:** `EgressEventSource.cs:60`.
+   - **Problem:** event 1 gained three fields, but its Version was not bumped. ETW and TraceEvent consumers key manifests on provider, id and version.
+   - **Fix:** add `Version = 1`, and note in the remarks that appended fields bump it.
+6. **[low; for 4.11] The profile and the mode latch differently.**
+   - **Where:** `EgressGuard.cs:177` and `AshlarDeploymentProfileEnvironment.Effective`.
+   - **Problem:** where `AddAshlar` never ran, `ProcessDefault` re-reads `ASHLAR_DEPLOYMENT_PROFILE` at every decision, so in-process code can lower AG to Full with `SetEnvironmentVariable`. The design accepted the per-decision read.
+   - **Fix:** record it as a 4.11 decision or a known limit. One option: when the variable names AG or SW, `ProcessDefault` notes it through `NoteResolved`.
+7. **[low] Record drift.**
+   - (a) SPEC-007 "4.6 (this PR)" needs the PR number.
+   - (b) Cert-gate row 64 still calls the guard "report-only" with no Mode, ModeBasis, Refused or Ref, and its Tests column omits `EgressModeResolutionTests` and `EgressModeProcessBindingTests`.
+   - (c) The row says the opt-in "stays undocumented until 4.11", yet the CHANGELOG, EgressInventory and AddAshlar's XML doc name `ASHLAR_EGRESS_MODE`, hedged.
+   - (d) 4.11's flip list names `An_explicit_profile_is_reported_and_does_not_change_the_decision`, which now already has an enforce row.
+   - **Fix:**
+     - fill the PR number;
+     - add one sentence and the two classes to row 64;
+     - (c) is the integrator's call: "undocumented until 4.11" is design default D-text, not an owner answer. The recommendation is to keep the EgressInventory section, which §4 requires, and trim the CHANGELOG and XML doc to say a mode field exists without naming the variable;
+     - note in the 4.11 plan that 4.6 split that twin.
+8. **[low] The fault probe is a process-global static.**
+   - **Where:** `EgressEnforcement.cs:95` (`ModeResolutionProbe`).
+   - **Problem:** it fires for every guard. It is safe only while it is set from the DisableParallelization collection.
+   - **Fix:** make it `AsyncLocal<Action?>`, or document the constraint on `EgressProcessStateScope.SetModeResolutionProbe`.
+
+### Lane open issues
+
+- **Expected merge conflicts** with the sibling lanes:
+  - the cert-gate count paragraph (this lane: 125 → 127 `.cs`, 128 → 130 entries);
+  - SPEC-007's "4.6 (this PR)" line;
+  - CHANGELOG Unreleased ### Changed;
+  - `docs/EgressInventory.md`;
+  - the knowledge graph;
+  - `ProcessGlobalEnvironmentConventionTests`.
+- **For 4.7:**
+  - the record property is `EgressDecision.Refused`, while the design's helpers are `Refuses`/`ThrowIfRefused`; define `Refuses` in terms of `Refused`;
+  - the ILogger sink (event 7300) does not yet carry Mode, ModeBasis or Ref; add them with the refusal sink.
+- **For 4.11:** the composed guard carries its own call's profile (closed by check finding 1 if fixed in phase B).
+- **Behaviour change** for Grok's drift audit and the CHANGELOG: after `AddAshlar(AirGapped)`, a later `AddAshlar` with another profile no longer lowers `ForbidsRemoteProtocolEgress` or `DisplayName`, and the MCP and A2A validators stay on AirGapped. Out-of-repo hosts that compose profiles twice in one process will see it.
+- **One more stdout line:** `AddAshlar` adds one hosted service, which logs one Information line in `Ashlar.Egress` when a host starts. A CLI path that starts a host with console logging to stdout outside `--format-json` prints one more line. No test pins that output.
+- **A blind spot in the convention:** `ProcessGlobalEnvironmentConventionTests` cannot see a class that composes AG/SW only through an environment variable read by a helper. This is stated in the class remarks and in row 56.
+- **Not run locally:**
+  - the whole `Ashlar.Tests.Infrastructure` suite outside the cert-gate filter;
+  - `Tests.CLI`, `Tests.AI.Pipeline`, the Mcp and A2A suites;
+  - `make kernel-gate` and `make test-prod-style`.

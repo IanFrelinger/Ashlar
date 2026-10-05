@@ -94,19 +94,44 @@ All builds and tests ran in the Linux devtest container through `scripts/test-in
 
 | Check | Result |
 |---|---|
-| **Red at base.** The twin and its harness alone on the base `79e988c` (`ad90d84`, the final test file; earlier `fb25fc4`, the same result), net8.0 | **5 failed / 2 passed / 7.** For the client and for `Wrap`, the gap is observed directly: "expected `System.NotSupportedException` … (observed: returned 202, 1 inner send(s), 0 decision(s)), but found `<null>`". The shapes show `EgressGuardHandler > HttpClientHandler`, there is no record, and `CreateDelegatingHandler` threw nothing. The harness proof and the ownership test pass at the base, as they should. |
-| The twin (8 facts), `EgressHttpHandlerTwinTests` (the net8.0-asset twin, 17) and `EgressGuardDecisionTests` (137) at the head `HEADSHA` | **net8.0 162/162, net10.0 162/162** |
+| **Red at base.** The twin and its harness alone on the base `79e988c` (scratch commit `b01f57b`, with the final 8-fact test file and the csproj change only), net8.0 | **5 failed / 3 passed / 8.** Two earlier runs, of the 7-fact file before the event-source fact was added (`fb25fc4`, `ad90d84`), gave 5 failed / 2 passed / 7. For the client and for `Wrap`, the gap is observed directly: "expected `System.NotSupportedException` … (observed: returned 202, 1 inner send(s), 0 decision(s)), but found `<null>`". The shapes show `EgressGuardHandler > HttpClientHandler`, there is no record, and `CreateDelegatingHandler` threw nothing. The harness proof, the ownership test and the event-source hygiene test pass at the base, as they should: they pin the harness and behaviour that the base already had. |
+| The twin (8 facts), `EgressHttpHandlerTwinTests` (the net8.0-asset twin, 17) and `EgressGuardDecisionTests` (137) at the head `25301b7` | **net8.0 162/162, net10.0 162/162** |
 | Event-source probe: `EgressGuardDecisionTests` plus the twin, 20 runs per arm, net8.0 | before the fix, 18/20 runs failed (alone, 0/20); with the decision test's listener filtered to its own assembly, 14/20 failed; after the fix, **0/20** failed |
-| `Ashlar.Abstractions` (netstandard2.0, net8.0, net10.0; `TreatWarningsAsErrors`, `AnalysisMode=All`, the PublicAPI analyzers) | 0 warnings, 0 errors |
-| Full cert-gate (`scripts/run-cert-gate.sh`), net8.0 | **CERTGATE_FINAL** |
-| Convention scan (F6, F8) | 2,131 files scanned, 149 occurrences examined (http.new 19), 67 docs rows |
+| `Ashlar.Abstractions` (netstandard2.0, net8.0, net10.0; `TreatWarningsAsErrors`, `AnalysisMode=All`, the PublicAPI analyzers), built at `75a8cce`, whose `src/Ashlar.Abstractions` tree is identical to the head's | 0 warnings, 0 errors |
+| Full cert-gate (`scripts/run-cert-gate.sh`) at `25301b7`, net8.0 | **2550/2550**, 0 skipped (the skip guard matches the baseline). That is 8 more than the 2542 that #711 reported at its head; master since then is docs only. M1's green run, over the same filter at the same commit, also passed 2550/2550. |
+| Convention scan (F6, F8; measured at `b27a52b`, the same production tree) | 2,131 files scanned, 149 occurrences examined (http.new 19), 67 docs rows |
 | `scripts/ci/run-repo-gates.sh` (shellcheck on `PATH`) | **25/25**, the knowledge-graph byte-compare included |
 
 ### Mutation checks
 
 Every row ran through `scripts/mutation-check.sh` on the committed head. Each one: clone the head, apply one replacement, prove it applied, run red, restore, check that `git status --porcelain` is empty, run green. "red a/b" is failed out of total. Every green run passed all of its tests.
 
-MUTATION_TABLE
+All six ran at `25301b7` on net8.0. M1 ran over the full cert-gate filter, because the design asks for the mutation to "go red in cert-gate". M2–M5 ran over the three egress classes (`EgressHttpNetstandard20TwinTests|EgressHttpHandlerTwinTests|EgressGuardDecisionTests`). M6 ran over the twin class alone, because its red needs a process in which nothing has enabled the guard's source first.
+
+| id | mutation | red | green | what went red |
+|---|---|---|---|---|
+| M1 | drop the hop: `Guarded` returns `new EgressGuardHandler(inner, …)` on netstandard2.0 too (the design's mutation) | **4/2550** | 2550/2550 | `A_synchronous_Send_through_CreateClient_…`, `A_synchronous_Send_through_a_Wrap_handler_…`, `Building_a_client_or_handler_publishes_one_NoDecision_record_…`, `Every_client_and_Wrap_handler_puts_the_hop_…` |
+| M2 | invert the factory refusal: `if (!…RuntimeHasSynchronousSend)` | 1/162 | 162/162 | `CreateDelegatingHandler_is_refused_on_a_runtime_with_a_synchronous_Send_…` |
+| M3 | delete the hop's record (`if (RuntimeHasSynchronousSend) …PublishNoDecision(…)`) | 3/162 | 162/162 | `Building_a_client_or_handler_publishes_one_NoDecision_record_…` and both `A_synchronous_Send_…` (their build record) |
+| M4 | the hop's invoker does not own the inner handler (`disposeHandler: false`) | 1/162 | 162/162 | `The_client_and_the_Wrap_handler_still_own_the_inner_handler_through_the_hop` |
+| M5 | the runtime check looks for `"SendSync"` (a synchronous `Send` is never detected) | 4/162 | 162/162 | `CreateDelegatingHandler_is_refused_…`, `Building_a_client_or_handler_publishes_one_NoDecision_record_…`, both `A_synchronous_Send_…` |
+| M6 | the harness skips `InitializeTheGuardsEventSource()` | 1/8 | 8/8 | `With_the_isolated_copy_loaded_the_guards_own_event_source_still_writes_every_decision` |
+
+Verbatim summary lines:
+```
+mutation m1-drop-the-hop: KILLED red=failed:4/2550 green=passed:2550/2550 ref=25301b79a0e04f0d6c7cfeb217172dcb1d11b124
+mutation m2-factory-handler-not-refused: KILLED red=failed:1/162 green=passed:162/162 ref=25301b79a0e04f0d6c7cfeb217172dcb1d11b124
+mutation m3-no-refusal-record: KILLED red=failed:3/162 green=passed:162/162 ref=25301b79a0e04f0d6c7cfeb217172dcb1d11b124
+mutation m4-hop-does-not-own-inner: KILLED red=failed:1/162 green=passed:162/162 ref=25301b79a0e04f0d6c7cfeb217172dcb1d11b124
+mutation m5-sync-send-not-detected: KILLED red=failed:4/162 green=passed:162/162 ref=25301b79a0e04f0d6c7cfeb217172dcb1d11b124
+mutation m6-no-event-source-init: KILLED red=failed:1/8 green=passed:8/8 ref=25301b79a0e04f0d6c7cfeb217172dcb1d11b124
+```
+
+The hop is built through a static `Over(...)` on purpose, so that M1 compiles. If `EgressHttp` held the only `new SynchronousSendRefusedOnNetstandard20Asset(…)`, dropping it would leave an internal class with no instantiation, which is CA1812, an error under `TreatWarningsAsErrors`; the run would then be INVALID, not red.
+
+**Not observed red, stated:**
+- The `false` branch of `RuntimeHasSynchronousSend` (.NET Framework, Mono, Unity) needs a runtime the devtest image does not have; nothing is refused or recorded there by construction.
+- The S4 claim that the runtime's request telemetry may count a send twice under an outer `HttpMessageInvoker` on .NET 5–7 is not tested; it is worded as "may".
 
 ### Testing strategy (blast radius)
 
