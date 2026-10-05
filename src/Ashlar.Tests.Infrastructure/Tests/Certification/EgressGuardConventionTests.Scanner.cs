@@ -807,14 +807,21 @@ public sealed partial class EgressGuardConventionTests
         }
 
         private static readonly Regex FactoryRegistration = new(
-            @"\b(?:Try)?Add[A-Za-z0-9_]*\s*<\s*" + HttpNs + @"IHttpClientFactory\b|\btypeof\s*\(\s*" + HttpNs + @"IHttpClientFactory\s*\)", Rx);
+            @"\b(?:Try)?Add[A-Za-z0-9_]*\s*<\s*" + HttpNs + @"IHttpClientFactory\b|\btypeof\s*\(\s*" + HttpNs + @"IHttpClientFactory\s*\)"
+            + @"|\bServiceDescriptor\s*\.\s*(?:Keyed)?(?:Singleton|Scoped|Transient)\s*<\s*" + HttpNs + @"IHttpClientFactory\b",
+            Rx);
 
         private static readonly Regex ImplementsFactory = new(@":[^{]*\b" + HttpNs + @"IHttpClientFactory\b", Rx);
 
         /// <summary>
         /// F4 (D): a production type whose base list names <c>IHttpClientFactory</c>, or a direct registration of it
-        /// (<c>Add…&lt;IHttpClientFactory…&gt;</c>, <c>typeof(IHttpClientFactory)</c>). A custom factory is the one way
-        /// an IHttpClientFactory-typed receiver can hand out a client the defaults never touched.
+        /// (<c>Add…&lt;IHttpClientFactory…&gt;</c>, <c>typeof(IHttpClientFactory)</c>, which covers
+        /// <c>new ServiceDescriptor(typeof(IHttpClientFactory), …)</c>, and
+        /// <c>ServiceDescriptor.[Keyed]{Singleton|Scoped|Transient}&lt;IHttpClientFactory…&gt;</c>, as in
+        /// <c>services.Replace(…)</c> or <c>TryAddEnumerable(…)</c>). A custom factory is the one way an
+        /// IHttpClientFactory-typed receiver can hand out a client the defaults never touched. A registration whose
+        /// service type the text does not name (<c>AddSingleton(sp =&gt; (IHttpClientFactory)x)</c>, a descriptor built
+        /// from a <c>Type</c> variable) is a stated blind spot.
         /// </summary>
         public static IEnumerable<string> FactoryImplementations(SourceModel m)
         {
@@ -932,14 +939,16 @@ public sealed partial class EgressGuardConventionTests
 
         /// <summary>
         /// The stored-client rule: an http.param parameter x of declaration D in type T is guarded (Precedes) when
-        /// (a) T is not partial; (b) every mention of x from the close of D's parameter list to the end of D's body,
-        /// constructor initializer included, is inside <c>nameof(</c>, the sole argument of <c>ThrowIfNull(</c>, the
-        /// right-hand side of <c>h = x</c> or <c>h = x ?? throw …</c> where h (or <c>this.h</c>) is a field or property
-        /// declared private in T, a configuration access (<c>x.DefaultRequestHeaders…</c>, or an assignment to
-        /// <c>x.Timeout</c>, <c>.BaseAddress</c>, <c>.DefaultRequestVersion</c>, <c>.DefaultVersionPolicy</c>,
-        /// <c>.MaxResponseContentBufferSize</c>), or G3-preceded by a guard call; (c) every other mention of each holder
-        /// h in the file (<c>this.h</c> and <c>.h</c> included), apart from its declaration and D's assignment, is a
-        /// configuration access or G3-preceded; and (d) at least one mention of x or of a holder is G3-preceded.
+        /// (a) T is not partial and D is not a record's primary constructor (<see cref="IsRecordPrimaryConstructor"/>:
+        /// the compiler copies x into a public property no mention shows); (b) every mention of x from the close of
+        /// D's parameter list to the end of D's body, constructor initializer included, is inside <c>nameof(</c>, the
+        /// sole argument of <c>ThrowIfNull(</c>, the right-hand side of <c>h = x</c> or <c>h = x ?? throw …</c> where h
+        /// (or <c>this.h</c>) is a field or property declared private in T, a configuration access
+        /// (<c>x.DefaultRequestHeaders…</c>, or an assignment to <c>x.Timeout</c>, <c>.BaseAddress</c>,
+        /// <c>.DefaultRequestVersion</c>, <c>.DefaultVersionPolicy</c>, <c>.MaxResponseContentBufferSize</c>), or
+        /// G3-preceded by a guard call; (c) every other mention of each holder h in the file (<c>this.h</c> and
+        /// <c>.h</c> included), apart from its declaration and D's assignment, is a configuration access or
+        /// G3-preceded; and (d) at least one mention of x or of a holder is G3-preceded.
         /// Anything else — a send from a sibling member, the guard after the send, a protected holder, x handed to
         /// another object or to <c>base(x)</c>/<c>this(x)</c>, a holder exposed by a property,
         /// <c>_h ?? EgressHttp…</c> — leaves it unguarded. A known miss, pinned in F9: (c) accepts EVERY G3-preceded
@@ -954,7 +963,7 @@ public sealed partial class EgressGuardConventionTests
             if (name is null || open < 0)
                 return false;
             var type = EnclosingType(m, open);
-            if (type is null || type.Partial || type.Keyword == "interface")
+            if (type is null || type.Partial || type.Keyword == "interface" || IsRecordPrimaryConstructor(code, open))
                 return false;
             var close = ClosingParen(code, open);
             var bodyEnd = DeclarationBodyEnd(m, close);
@@ -998,6 +1007,23 @@ public sealed partial class EgressGuardConventionTests
             }
 
             return preceded;
+        }
+
+        /// <summary>
+        /// The parameter list opening at <paramref name="open"/> is a record's primary constructor
+        /// (<c>record [class|struct] R[&lt;…&gt;](</c>), whose every parameter is also a compiler-generated public
+        /// property (init-only, or settable in a record struct): a copy of the client that no holder rule sees,
+        /// replaceable by <c>with { P = … }</c>.
+        /// </summary>
+        internal static bool IsRecordPrimaryConstructor(string code, int open)
+        {
+            var j = SkipSpaceBack(code, open - 1);
+            if (ReadNameBack(code, ref j) is null)
+                return false;
+            var keyword = ReadNameBack(code, ref j);
+            if (keyword is "class" or "struct")
+                keyword = ReadNameBack(code, ref j);
+            return keyword == "record";
         }
 
         /// <summary>A word mention; with <paramref name="allowMemberAccess"/>, <c>.h</c> and <c>this.h</c> count too.</summary>
