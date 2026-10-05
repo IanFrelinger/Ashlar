@@ -17,12 +17,24 @@ public sealed partial class EgressGuardConventionTests
         ["path", "marker", "total", "guarded", "guarded_by", "unguarded_reason", "ids", "note"];
 
     /// <summary>
-    /// The 3a reason set. <c>Unrouted</c> is temporary: "listed, not routed yet; 3b routes it", and 3b deletes
-    /// it from this set. The <c>Exempt:</c> reasons are final. <c>Governance</c>, <c>Factory</c> and
-    /// <c>Upstream:&lt;path&gt;</c> arrive with 3b, together with the F3 checks that verify each of them
-    /// (convention_test.md, F3 bullets 2-4); until then a row that names one fails F3.
+    /// http.param fed only from <c>IHttpClientFactory</c>: every supply site passes a factory client in the
+    /// parameter's position (F-call), or the receiving type is a typed client of a Factory-classified registration
+    /// (F-typed). See <c>RouteContext.CallRoute</c>.
     /// </summary>
-    private const string Unrouted = "Unrouted";
+    private const string FactoryReason = "Factory";
+
+    /// <summary>
+    /// <c>Upstream:&lt;path&gt;</c>: an http.param supplied only by the named file, which is itself routed and
+    /// grounded; or an http.register in a project that cannot reach Ashlar.Infrastructure, composed by the named
+    /// executable's program, which installs the guard. See <c>RouteContext.UpstreamParamProblems</c> and <c>.UpstreamRegisterProblems</c>.
+    /// </summary>
+    private const string UpstreamPrefix = "Upstream:";
+
+    /// <summary>One of <see cref="GovernedPairs"/>, held by F5 (EgressGuardChatClient outermost in UseAshlarGovernance).</summary>
+    private const string GovernanceReason = "Governance";
+
+    /// <summary><c>Exempt:ConsumerSdk</c> is accepted only for files under this folder (the consumer SDK).</summary>
+    private const string ConsumerSdkFolder = "src/Ashlar.Client/";
 
     private static readonly string[] ExemptReasons =
         ["LocalOnly", "Operator", "Inbound", "DataStore", "LocalDaemon", "ConsumerSdk", "TestDouble", "TestSeam"];
@@ -80,23 +92,24 @@ public sealed partial class EgressGuardConventionTests
 
     private static PinFile ReadPins(string root)
     {
+        var path = Path.Combine(root, InventoryRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        return File.Exists(path)
+            ? ParsePins(File.ReadAllLines(path), InventoryRelativePath)
+            : new PinFile([], [$"{InventoryRelativePath} does not exist"]);
+    }
+
+    /// <summary>The TSV's data rows; <paramref name="source"/> names the file in every error. The route controls parse fixtures with it.</summary>
+    private static PinFile ParsePins(string[] lines, string source)
+    {
         var rows = new List<Pin>();
         var errors = new List<string>();
-        var path = Path.Combine(root, InventoryRelativePath.Replace('/', Path.DirectorySeparatorChar));
-        if (!File.Exists(path))
-        {
-            errors.Add($"{InventoryRelativePath} does not exist");
-            return new PinFile(rows, errors);
-        }
-
-        var lines = File.ReadAllLines(path);
         for (var i = 0; i < lines.Length; i++)
         {
-            var line = lines[i];
+            var line = lines[i].TrimEnd('\r');
             if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
                 continue;
 
-            var where = $"{InventoryRelativePath}:{i + 1}";
+            var where = $"{source}:{i + 1}";
             var parts = line.Split('\t');
             if (parts.Length != Columns.Length)
             {
@@ -151,7 +164,7 @@ public sealed partial class EgressGuardConventionTests
 
     /// <summary>
     /// The EG rows of <c>docs/EgressInventory.md</c>. The route is the cell under the header that says
-    /// "route" ("PR 3 route", "Route (3b)"). The inbound-server table has no route column because the document
+    /// "route" ("PR 3 route", "Route"). The inbound-server table has no route column because the document
     /// states, once, that all of its rows are <c>Unscanned:Inbound</c>; so an <c>EG-SRV-</c> row there reads as
     /// that route, and any other row without a route is reported, not guessed.
     /// </summary>

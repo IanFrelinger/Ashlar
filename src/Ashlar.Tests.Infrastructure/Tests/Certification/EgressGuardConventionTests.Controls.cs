@@ -5,7 +5,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
 /// F9: named controls, run through the same classifier as the tree. Each is a real shape from the inventory
-/// (named where it came from), a shape PR 3b will write, or a spelling a careless edit would produce.
+/// (named where it came from), a shape PR 3b wrote, or a spelling a careless edit would produce. The multi-file
+/// route controls (Factory, Upstream, Governance) are in <c>EgressGuardConventionTests.Routes.cs</c>.
 /// </summary>
 public sealed partial class EgressGuardConventionTests
 {
@@ -40,13 +41,35 @@ public sealed partial class EgressGuardConventionTests
                 break;
             case "F3":
                 found.Should().Contain(o => o.Marker == Marker.HttpRegister && !o.Guarded,
-                    "control '{0}' is an AddHttpClient whose member never calls AddAshlarEgressGuard(, so the Factory route F3 checks is not met", name);
+                    "control '{0}' is an AddHttpClient with no AddAshlarEgressGuard( after it in its own block (D1), so F1 counts it unguarded", name);
                 break;
             case "F4":
                 found.Should().Contain(o => o.Marker == Marker.Banned, "control '{0}' must trip F4's banned count", name);
                 break;
+            case "F4A":
+                HostingFactoryProblems(found, model.Path).Should().NotBeEmpty("control '{0}' must trip F4 (A): AddAshlar's registration is not Factory", name);
+                break;
+            case "F4D":
+                var declarations = Scanner.GuardInstalls(model).Declarations.Select(d => (model.Path, model.LineOf(d))).ToList();
+                declarations.Should().ContainSingle("control '{0}' declares AddAshlarEgressGuard( once", name);
+                GuardDeclarationProblems(declarations).Should().NotBeEmpty("control '{0}' must trip F4 (B): AddAshlarEgressGuard( declared outside its one file", name);
+                break;
+            case "F4F":
+                Scanner.FactoryImplementations(model).Should().NotBeEmpty("control '{0}' must trip F4 (D): a custom IHttpClientFactory", name);
+                break;
+            case "F4G":
+                Scanner.RailProblems(model, Scanner.GuardInstalls(model).Calls).Should().NotBeEmpty(
+                    "control '{0}' must trip F4 (E), the D1 rail: an AddAshlarEgressGuard( call that covers no registration", name);
+                break;
             case "F5":
                 ChatGovernance(model).Violations.Should().NotBeEmpty("control '{0}' must trip F5's governed-statement check", name);
+                break;
+            case "F5O":
+                GovernanceOrder(model).Should().NotBeEmpty("control '{0}' must trip F5's governance order", name);
+                break;
+            case "F5H":
+                GovernanceOrder(model).Should().BeEmpty("control '{0}' composes the four layers in order", name);
+                ChatGovernance(model).Violations.Should().BeEmpty("control '{0}' governs its keyed client", name);
                 break;
             default:
                 throw new InvalidOperationException($"control '{name}' names unknown fact '{control.Fact}'");
@@ -65,7 +88,7 @@ public sealed partial class EgressGuardConventionTests
     private static readonly Dictionary<string, Control> Controls = new(StringComparer.Ordinal)
     {
         // ── must count as unguarded ─────────────────────────────────────────────────────────────────────
-        ["unguarded: a static field built target-typed (ProviderFactory.cs:60)"] = new("""
+        ["unguarded: a static field built target-typed (ProviderFactory.cs:60 as it was before 3b)"] = new("""
             public static class ProviderFactory
             {
                 private static readonly HttpClient Http = new();
@@ -80,25 +103,25 @@ public sealed partial class EgressGuardConventionTests
                 };
             }
             """, "http.new 1/0"),
-        ["unguarded: a factory fallback counts exactly once (IdeEndpoints.cs:192)"] = new("""
+        ["unguarded: a factory fallback counts exactly once (IdeEndpoints.cs:192 as it was before 3b)"] = new("""
             var http = services.GetService<IHttpClientFactory>()?.CreateClient() ?? new HttpClient();
             """, "http.new 1/0"),
-        ["unguarded: a raw handler under a raw client counts twice (MeshAutoPullService.cs:56-71)"] = new("""
+        ["unguarded: a raw handler under a raw client counts twice (MeshAutoPullService.cs:56-71 as it was before 3b)"] = new("""
             var handler = new SocketsHttpHandler { AllowAutoRedirect = false };
             return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
             """, "http.new 2/0"),
         ["unguarded: fully qualified with global::"] = new("""
             var client = new global::System.Net.Http.HttpClient();
             """, "http.new 1/0"),
-        ["unguarded: a UDP send with no guard (MeshDiscoveryService.cs:245)"] = new("""
+        ["unguarded: a UDP send with no guard (MeshDiscoveryService.cs:245 as it was before 3b)"] = new("""
             using var sender = new UdpClient();
             await sender.SendAsync(payload, payload.Length, endpoint);
             """, "socket 1/0"),
-        ["unguarded: a gRPC channel over a raw handler in its file (DefaultGrpcChannelFactory.cs:66-74)"] = new("""
+        ["unguarded: a gRPC channel over a raw handler in its file (DefaultGrpcChannelFactory.cs:66-74 as it was before 3b)"] = new("""
             var h = new HttpClientHandler();
             var channel = GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions { HttpHandler = h });
             """, "http.new 1/0; sdk.client 1/0"),
-        ["unguarded: a two-argument MCP transport builds its own client (McpClientConnectionManager.cs:325)"] = new("""
+        ["unguarded: a two-argument MCP transport builds its own client (McpClientConnectionManager.cs:325 as it was before 3b)"] = new("""
             var transport = new HttpClientTransport(transportOptions, _loggerFactory);
             """, "sdk.client 1/0"),
         ["unguarded: an AWS SDK client (SmsIngressDynamoDbServiceCollectionExtensions.cs:12)"] = new("""
@@ -113,10 +136,10 @@ public sealed partial class EgressGuardConventionTests
         ["unguarded: Process.Start of a pushing git"] = new("""
             Process.Start("git", "push");
             """, "process 1/0"),
-        ["unguarded: a mesh publish with no guard (PkgCommand.cs:384)"] = new("""
+        ["unguarded: a mesh publish with no guard (PkgCommand.cs:384 as it was before 3b)"] = new("""
             var dest = MeshStore.Publish(ResolveStore(store), json);
             """, "door 1/0"),
-        ["unguarded: an OTLP exporter with no guard (Ashlar.API/Program.cs:244)"] = new("""
+        ["unguarded: an OTLP exporter with no guard (Ashlar.API/Program.cs:244 as it was before 3b)"] = new("""
             builder.Services.AddOpenTelemetry().WithMetrics(m => m.AddMeter("Ashlar").AddOtlpExporter());
             """, "telemetry 1/0"),
         ["unguarded: a guard call AFTER the primitive"] = new("""
@@ -202,11 +225,11 @@ public sealed partial class EgressGuardConventionTests
             var client = EgressHttp.CreateClient(handler, EgressFamilies.Grpc, "EG-XPT-03");
             var channel = GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions { HttpHandler = handler });
             """, "http.new 2/1; sdk.client 1/0"),
-        ["unguarded: an A2A client while its file still builds a raw HttpClient (A2AAgentTransport.cs:81, :168)"] = new("""
+        ["unguarded: an A2A client while its file still builds a raw HttpClient (A2AAgentTransport.cs:81, :168 as it was before 3b)"] = new("""
             var client = new A2AClient(baseUrl, GetHttpClient(baseUrl));
             private HttpClient GetHttpClient(Uri baseUrl) => _clients.GetOrAdd(baseUrl.Authority, _ => new HttpClient());
             """, "http.new 1/0; sdk.client 1/0"),
-        ["unguarded: a named door member with no guard (SneakernetTransport.ExportAsync)"] = new("""
+        ["unguarded: a named door member with no guard (SneakernetTransport.ExportAsync as it was before 3b)"] = new("""
             public sealed class SneakernetTransport
             {
                 public async Task ExportAsync(string path, CancellationToken ct)
@@ -291,7 +314,7 @@ public sealed partial class EgressGuardConventionTests
         ["guarded: a handler constructed inside EgressHttp.Wrap's arguments"] = new("""
             return EgressHttp.Wrap(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) }, EgressFamilies.Grpc, "EG-XPT-03");
             """, "http.new 2/2"),
-        ["guarded: a handler local that a later Wrap names (DefaultGrpcChannelFactory.BuildHandler, 3b)"] = new("""
+        ["guarded: a handler local that a later Wrap names (simplified BuildHandler)"] = new("""
             private static HttpMessageHandler BuildHandler(GrpcTransportOptions options)
             {
                 var handler = new HttpClientHandler();
@@ -300,7 +323,7 @@ public sealed partial class EgressGuardConventionTests
                 return EgressHttp.Wrap(handler, EgressFamilies.Grpc, "EG-XPT-03");
             }
             """, "http.new 2/2"),
-        ["guarded: a typed handler local, configured by member assignment, then wrapped (MeshAutoPullService, 3b)"] = new("""
+        ["guarded: a typed handler local, configured by member assignment, then wrapped (MeshAutoPullService)"] = new("""
             SocketsHttpHandler handler = new() { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
             handler.SslOptions.RemoteCertificateValidationCallback = ValidatePeer;
             return EgressHttp.Wrap(handler, EgressFamilies.MeshPull, "EG-MESH-04");
@@ -344,7 +367,7 @@ public sealed partial class EgressGuardConventionTests
             var vector = await generator.GenerateAsync(["text"], cancellationToken: ct);
             var client = EgressHttp.CreateClient(EgressFamilies.Http, "EG-HTTP-05");
             """, "http.new 1/1"),
-        ["guarded: a guard call then the primitive in the same member (DotnetRunner, 3b)"] = new("""
+        ["guarded: a guard call then the primitive in the same member (DotnetRunner)"] = new("""
             public static async Task<int> RunAsync(string arguments, IEgressGuard? guard = null)
             {
                 _ = (guard ?? EgressGuard.ProcessDefault).Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-01", "nuget-feeds"));
@@ -364,19 +387,19 @@ public sealed partial class EgressGuardConventionTests
                 });
             }
             """, "door 1/1"),
-        ["guarded: AddHttpClient in a member that installs the guard (RunPod extension, 3b)"] = new("""
+        ["guarded: the guard after the typed AddHttpClient in the same block (RunPod extension)"] = new("""
             public static IServiceCollection AddRunPod(this IServiceCollection services)
             {
-                services.AddAshlarEgressGuard();
                 services.AddHttpClient<IRunPodClient, RunPodHttpClient>((sp, client) => client.BaseAddress = new Uri("https://api.runpod.io"));
+                services.AddAshlarEgressGuard();
                 return services;
             }
             """, "http.register 1/1"),
-        ["guarded: an MCP transport handed an EgressHttp client, and the client created over it (3b)"] = new("""
+        ["guarded: an MCP transport handed an EgressHttp client, and the client created over it"] = new("""
             var transport = new HttpClientTransport(options, EgressHttp.CreateClient(EgressFamilies.Mcp, "EG-XPT-06"), _loggerFactory, ownsHttpClient: true);
             return await McpClient.CreateAsync(transport, clientOptions: null, loggerFactory: _loggerFactory, cancellationToken: ct);
             """, "http.new 1/1; sdk.client 2/2"),
-        ["guarded: an A2A client over an EgressHttp client in the same file (3b)"] = new("""
+        ["guarded: an A2A client over an EgressHttp client in the same file"] = new("""
             var client = new A2AClient(baseUrl, GetHttpClient(baseUrl));
             private HttpClient GetHttpClient(Uri baseUrl) => _clients.GetOrAdd(baseUrl.Authority, _ => EgressHttp.CreateClient(EgressFamilies.A2A, "EG-XPT-01"));
             """, "http.new 1/1; sdk.client 1/1"),
@@ -384,7 +407,7 @@ public sealed partial class EgressGuardConventionTests
             var handler = new HttpClientHandler();
             return GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions { HttpHandler = EgressHttp.Wrap(handler, EgressFamilies.Grpc, "EG-XPT-03") });
             """, "http.new 2/2; sdk.client 1/1"),
-        ["guarded: a named door member whose body holds the guard (NativeBundle.StageApp, 3b)"] = new("""
+        ["guarded: a named door member whose body holds the guard (NativeBundle.StageApp)"] = new("""
             public static class NativeBundle
             {
                 public static void StageApp(string projectDir, string outDir, string site)
@@ -394,7 +417,7 @@ public sealed partial class EgressGuardConventionTests
                 }
             }
             """, "door 1/1"),
-        ["guarded: a guard at the root of a top-level program precedes the exporter (Ashlar.API/Program.cs, 3b)"] = new("""
+        ["guarded: a guard at the root of a top-level program precedes the exporter (Ashlar.API/Program.cs)"] = new("""
             var builder = WebApplication.CreateBuilder(args);
             _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Telemetry, "EG-TEL-01", new Uri(endpoint)));
             builder.Services.AddOpenTelemetry().WithMetrics(m => m.AddOtlpExporter());
@@ -452,6 +475,361 @@ public sealed partial class EgressGuardConventionTests
         ["a parameter: a method returning a tuple counts its parameter, not the tuple's element"] = new("""
             private static (HttpClient Client, int Retries) Configure(HttpClient http, int retries) => (http, retries);
             """, "http.param 1/0"),
+
+        // ── http.register under D1: the guard after the registration, as a statement of its own block ────────
+        ["guarded: the guard after AddHttpClient in the same block"] = new("""
+            public static IServiceCollection AddThing(this IServiceCollection services)
+            {
+                services.AddHttpClient("x");
+                services.AddAshlarEgressGuard();
+                return services;
+            }
+            """, "http.register 1/1"),
+        ["guarded: one guard after three registrations (ModelArtifacts extension)"] = new("""
+            public static IServiceCollection AddCatalogs(this IServiceCollection services)
+            {
+                services.AddHttpClient("ollama-tags");
+                services.AddHttpClient("docker-ollama");
+                services.AddHttpClient("ollama-library", c => c.BaseAddress = new Uri("https://ollama.com/"));
+                services.AddAshlarEgressGuard();
+                return services;
+            }
+            """, "http.register 3/3"),
+        ["guarded: the guard after AddHttpClient in the same nested block (Phase19)"] = new("""
+            private static void RegisterPhase19(IServiceCollection services, string? url)
+            {
+                if (!string.IsNullOrEmpty(url))
+                {
+                    services.AddHttpClient("AshlarExecution", c => c.BaseAddress = new Uri(url));
+                    services.AddAshlarEgressGuard();
+                }
+            }
+            """, "http.register 1/1"),
+        ["guarded: a top-level program calls the guard after AddAshlar, below its AddHttpClient (Ashlar.API/Program.cs)"] = new("""
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddHttpClient("ashlar-sns-signing", c => c.Timeout = TimeSpan.FromSeconds(15));
+            builder.Services.AddAshlar(options =>
+            {
+                options.Profile = "api";
+            });
+            builder.Services.AddAshlarEgressGuard();
+            """, "http.register 1/1"),
+        ["unguarded: the guard before AddHttpClient"] = new("""
+            public static IServiceCollection AddThing(this IServiceCollection services)
+            {
+                services.AddAshlarEgressGuard();
+                services.AddHttpClient("x");
+                return services;
+            }
+            """, "http.register 1/0", "F4G"),
+        ["unguarded: the guard above an unbraced early return (MeshLab, moved)"] = new("""
+            public static IServiceCollection AddMeshLab(this IServiceCollection services, bool enabled)
+            {
+                services.AddAshlarEgressGuard();
+                if (!enabled)
+                    return services;
+                services.AddHttpClient("mesh-lab-worker-executor");
+                return services;
+            }
+            """, "http.register 1/0", "F4G"),
+        ["unguarded: the guard in an enclosing block after a nested AddHttpClient"] = new("""
+            private static void Register(IServiceCollection services, string? url)
+            {
+                if (!string.IsNullOrEmpty(url))
+                {
+                    services.AddHttpClient("AshlarExecution");
+                }
+
+                services.AddAshlarEgressGuard();
+            }
+            """, "http.register 1/0", "F4G"),
+        ["unguarded: the guard in a sibling if-branch"] = new("""
+            private static void Register(IServiceCollection services, bool remote)
+            {
+                if (remote)
+                {
+                    services.AddHttpClient("remote");
+                }
+                else
+                {
+                    services.AddAshlarEgressGuard();
+                }
+            }
+            """, "http.register 1/0", "F3"),
+        ["unguarded: an expression-bodied member chaining the guard fails closed"] = new("""
+            public static class Registration
+            {
+                public static IServiceCollection AddThing(this IServiceCollection services) =>
+                    services.AddHttpClient("x").Services.AddAshlarEgressGuard();
+            }
+            """, "http.register 1/0", "F3"),
+
+        // ── http.param: the stored-client rule ──────────────────────────────────────────────────────────────
+        ["guarded: an injected client stored privately, configured, and sent only after a guard (BingWebSearchProvider)"] = new("""
+            public sealed class BingWebSearchProvider
+            {
+                private readonly HttpClient _httpClient;
+                private readonly string _baseUrl;
+
+                public BingWebSearchProvider(HttpClient httpClient, string subscriptionKey, string? baseUrl = null)
+                {
+                    _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+                    _baseUrl = baseUrl ?? "https://api.bing.microsoft.com/v7.0/search";
+                    _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
+                }
+
+                public async Task<string> SearchAsync(string query, CancellationToken cancellationToken)
+                {
+                    var uri = new Uri($"{_baseUrl}?q={Uri.EscapeDataString(query)}");
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, "EG-WEB-01", uri));
+                    try
+                    {
+                        var response = await _httpClient.GetAsync(uri, cancellationToken);
+                        return await response.Content.ReadAsStringAsync(cancellationToken);
+                    }
+                    catch (HttpRequestException)
+                    {
+                        return string.Empty;
+                    }
+                }
+            }
+            """, "http.param 1/1"),
+        ["guarded: an injected client whose Timeout is set, posted only after a guard (OllamaProposalSource)"] = new("""
+            public sealed class OllamaProposalSource
+            {
+                private readonly HttpClient _http;
+                private readonly OllamaProposalOptions _options;
+
+                public OllamaProposalSource(HttpClient http, OllamaProposalOptions options)
+                {
+                    _http = http ?? throw new ArgumentNullException(nameof(http));
+                    _options = options;
+                    _http.Timeout = _options.Timeout;
+                }
+
+                public async Task<string> ProposeAsync(object body, CancellationToken cancellationToken)
+                {
+                    var url = $"{_options.BaseUrl.TrimEnd('/')}/api/generate";
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, "EG-MDL-11", url));
+                    using var response = await _http.PostAsJsonAsync(url, body, cancellationToken);
+                    return await response.Content.ReadAsStringAsync(cancellationToken);
+                }
+            }
+            """, "http.param 1/1"),
+        ["guarded: a method parameter sent after a guard"] = new("""
+            public static class Fetch
+            {
+                public static async Task<string> FetchAsync(HttpClient http, Uri uri)
+                {
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", uri));
+                    return await http.GetStringAsync(uri);
+                }
+            }
+            """, "http.param 1/1"),
+        ["unguarded: a stored client sent from a sibling member with no guard"] = new("""
+            public sealed class Sender
+            {
+                private readonly HttpClient _http;
+
+                public Sender(HttpClient http) => _http = http;
+
+                public Task<string> SendAsync() => _http.GetStringAsync("/x");
+            }
+            """, "http.param 1/0"),
+        ["unguarded: the guard after the send"] = new("""
+            public sealed class Sender
+            {
+                private readonly HttpClient _http;
+
+                public Sender(HttpClient http) => _http = http;
+
+                public async Task<string> SendAsync(Uri uri)
+                {
+                    var body = await _http.GetStringAsync(uri);
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", uri));
+                    return body;
+                }
+            }
+            """, "http.param 1/0"),
+        ["unguarded: a protected holder"] = new("""
+            public class Sender
+            {
+                protected readonly HttpClient Http;
+
+                public Sender(HttpClient http) => Http = http;
+
+                public async Task<string> SendAsync(Uri uri)
+                {
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", uri));
+                    return await Http.GetStringAsync(uri);
+                }
+            }
+            """, "http.param 1/0"),
+        ["unguarded: the client handed to another object"] = new("""
+            public sealed class Sender
+            {
+                private readonly Inner _inner;
+
+                public Sender(HttpClient http)
+                {
+                    _inner = new Inner(http);
+                }
+
+                public async Task<string> SendAsync(Uri uri)
+                {
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", uri));
+                    return await _inner.GetAsync(uri);
+                }
+            }
+            """, "http.param 1/0"),
+        ["unguarded: the client passed to base(x)"] = new("""
+            public sealed class Sender : SenderBase
+            {
+                public Sender(HttpClient http)
+                    : base(http)
+                {
+                }
+            }
+            """, "http.param 1/0"),
+        ["unguarded: the client passed to this(x)"] = new("""
+            public sealed class Sender
+            {
+                private readonly object _client;
+
+                public Sender(HttpClient http)
+                    : this(http, "default")
+                {
+                }
+
+                private Sender(object client, string name)
+                {
+                    _client = client;
+                    _ = name;
+                }
+            }
+            """, "http.param 1/0"),
+        ["unguarded: a partial type"] = new("""
+            public sealed partial class Sender
+            {
+                private readonly HttpClient _http;
+
+                public Sender(HttpClient http) => _http = http;
+
+                public async Task<string> SendAsync(Uri uri)
+                {
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", uri));
+                    return await _http.GetStringAsync(uri);
+                }
+            }
+            """, "http.param 1/0"),
+        ["unguarded: a holder exposed by a property"] = new("""
+            public sealed class Sender
+            {
+                private readonly HttpClient _http;
+
+                public Sender(HttpClient http) => _http = http;
+
+                public HttpClient Client => _http;
+
+                public async Task<string> SendAsync(Uri uri)
+                {
+                    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Http, "EG-HTTP-05", uri));
+                    return await _http.GetStringAsync(uri);
+                }
+            }
+            """, "http.param 1/0"),
+        ["unguarded: _h ?? EgressHttp… (CloudAvailabilityResolver)"] = new("""
+            public sealed class CloudAvailabilityResolver
+            {
+                private readonly HttpClient? _httpClient;
+
+                public CloudAvailabilityResolver(bool probe = false, HttpClient? httpClient = null)
+                {
+                    _httpClient = httpClient;
+                }
+
+                private async Task<bool> ProbeAsync(CancellationToken ct)
+                {
+                    var client = _httpClient ?? EgressHttp.CreateClient(EgressFamilies.Http, "EG-MDL-12");
+                    using var response = await client.GetAsync("https://api.openai.com/v1/models", ct);
+                    return response.IsSuccessStatusCode;
+                }
+            }
+            """, "http.new 1/1; http.param 1/0"),
+
+        // ── F4 (A), (B), (C), (D) ───────────────────────────────────────────────────────────────────────────
+        ["fails F4: resolving GetRequiredService<HttpClient>()"] = new("""
+            var client = sp.GetRequiredService<HttpClient>();
+            """, "banned 1/0", "F4"),
+        ["fails F4: resolving GetServices<HttpClient>()"] = new("""
+            var clients = sp.GetServices<HttpClient>();
+            """, "banned 1/0", "F4"),
+        ["fails F4 (A): AddAshlar's AddHttpClient with no guard"] = new("""
+            public static IServiceCollection AddAshlar(this IServiceCollection services)
+            {
+                services.AddHttpClient();
+                return services;
+            }
+            """, "http.register 1/0", "F4A"),
+        ["fails F4 (B): a second declaration of AddAshlarEgressGuard"] = new("""
+            public static class MoreExtensions
+            {
+                public static IServiceCollection AddAshlarEgressGuard(this IServiceCollection services) => services;
+
+                public static IServiceCollection AddThing(this IServiceCollection services)
+                {
+                    services.AddHttpClient("x");
+                    services.AddAshlarEgressGuard();
+                    return services;
+                }
+            }
+            """, "http.register 1/1", "F4D"),
+        ["fails F4 (D): a custom IHttpClientFactory"] = new("""
+            public sealed class StaticHttpClientFactory : IHttpClientFactory
+            {
+                public HttpClient CreateClient(string name) => EgressHttp.CreateClient(EgressFamilies.Http, "EG-HTTP-05");
+            }
+            """, "http.new 1/1", "F4F"),
+
+        // ── F5: governance order and key equality ───────────────────────────────────────────────────────────
+        ["fails F5 order: EgressGuardChatClient after PolicyGate"] = new("""
+            services.AddKeyedChatClient("k", f).UseAshlarGovernance("k");
+            builder.Use((inner, sp) => new PolicyGateChatClient(inner, policy, auditor, targetKey));
+            builder.Use((inner, sp) => new EgressGuardChatClient(inner, request, guard));
+            builder.Use((inner, sp) => new SanitizingChatClient(inner, sanitizer, sanitizePolicy, auditor, targetKey));
+            builder.Use((inner, sp) => new AuditingChatClient(inner, auditor, targetKey));
+            """, "chat.register 1/0", "F5O"),
+        ["fails F5 order: no EgressGuardChatClient"] = new("""
+            services.AddKeyedChatClient("k", f).UseAshlarGovernance("k");
+            builder.Use((inner, sp) => new PolicyGateChatClient(inner, policy, auditor, targetKey));
+            builder.Use((inner, sp) => new SanitizingChatClient(inner, sanitizer, sanitizePolicy, auditor, targetKey));
+            builder.Use((inner, sp) => new AuditingChatClient(inner, auditor, targetKey));
+            """, "chat.register 1/0", "F5O"),
+        ["holds F5 order: EgressGuard, PolicyGate, Sanitizing, Auditing in order"] = new("""
+            services.AddKeyedChatClient("k", f).UseAshlarGovernance("k");
+            builder.Use((inner, sp) => new EgressGuardChatClient(inner, request, guard));
+            builder.Use((inner, sp) => new PolicyGateChatClient(inner, policy, auditor, targetKey));
+            builder.Use((inner, sp) => new SanitizingChatClient(inner, sanitizer, sanitizePolicy, auditor, targetKey));
+            builder.Use((inner, sp) => new AuditingChatClient(inner, auditor, targetKey));
+            """, "chat.register 1/0", "F5H"),
+        ["fails F5: a keyed client governed under another key (read from the raw text)"] = new("""
+            services.AddKeyedChatClient("cloud:x", f).UseAshlarGovernance("local:onnx");
+            """, "chat.register 1/0", "F5"),
+
+        // ── gRPC handler shapes ─────────────────────────────────────────────────────────────────────────────
+        ["unguarded: the real BuildHandler shape, a local passed to helpers, then wrapped"] = new("""
+            private HttpMessageHandler BuildHandler()
+            {
+                var handler = new HttpClientHandler();
+                ApplyClientCertificate(handler);
+                ApplyCustomCa(handler);
+                return EgressHttp.Wrap(handler, EgressFamilies.Grpc, "EG-XPT-03");
+            }
+            """, "http.new 2/1"),
+        ["guarded: a helper inside Wrap's arguments (DefaultGrpcChannelFactory.BuildHandler)"] = new("""
+            private HttpMessageHandler BuildHandler() =>
+                EgressHttp.Wrap(ConfigureHandler(new HttpClientHandler()), EgressFamilies.Grpc, "EG-XPT-03");
+            """, "http.new 2/2"),
 
         // ── known misses: pinned as the scan reads them today (a seen companion token, or the guarded count it
         // ── wrongly grants), so the change that teaches the scan flips them ──
@@ -522,5 +900,28 @@ public sealed partial class EgressGuardConventionTests
             var hidden = (HttpClient)Activator.CreateInstance(Type.GetType("System.Net.Http.HttpClient")!)!;
             var seen = new HttpClient();
             """, "http.new 1/0"),
+        ["known miss: an early return between AddHttpClient and the guard"] = new("""
+            public static IServiceCollection AddThing(this IServiceCollection services, bool enabled)
+            {
+                services.AddHttpClient("x");
+                if (!enabled)
+                    return services;
+                services.AddAshlarEgressGuard();
+                return services;
+            }
+            """, "http.register 1/1"),
+        ["known miss: a Keep(h) helper inside the wrap region keeps the raw handler"] = new("""
+            var handler = new HttpClientHandler();
+            var guarded = EgressHttp.Wrap(Keep(handler), EgressFamilies.Grpc, "EG-XPT-03");
+            var channel = GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions { HttpHandler = _kept });
+            """, "http.new 2/2; sdk.client 1/1"),
+        ["known miss: a guard inside a conditional expression"] = new("""
+            public async Task AnnounceLoopAsync(bool announcing, byte[] payload, IPEndPoint endpoint)
+            {
+                _ = announcing ? EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshDiscovery, "EG-MESH-05", "udp://239.7.42.1:7942")) : null;
+                using var sender = new UdpClient();
+                await sender.SendAsync(payload, payload.Length, endpoint);
+            }
+            """, "socket 1/1"),
     };
 }

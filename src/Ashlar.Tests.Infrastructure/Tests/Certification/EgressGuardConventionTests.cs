@@ -8,10 +8,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
 /// Every outbound path from production code is listed in <c>ci/egress-inventory.tsv</c> and
-/// <c>docs/EgressInventory.md</c>, pinned per file and marker, and a new one cannot appear unlisted. SPEC-007
-/// PR 3a ships the egress guard report-only and routes nothing yet, so most rows read <c>Unrouted</c>; PR 3b
-/// routes them through <c>EgressHttp</c>, the factory defaults, governance or an explicit guard call, and
-/// converts every <c>Unrouted</c> row in the same diff.
+/// <c>docs/EgressInventory.md</c>, pinned per file and marker, and a new one cannot appear unlisted. Every listed
+/// site is routed through the egress guard — <c>EgressHttp</c>, the factory defaults, governance or an explicit
+/// guard call — or carries a final <c>Exempt:</c> reason (SPEC-007 PR 3b; the guard is report-only and refuses
+/// nothing until PR 4).
 ///
 /// <para><b>A tripwire, not a proof.</b> The scan is textual (no Roslyn in the required check). It sees the
 /// tokens listed below in production source with comments and literal contents blanked, and nothing else.
@@ -42,9 +42,13 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 ///   <item><c>http.param</c>: <c>HttpClient[?] id</c> as a constructor, method, local-function, delegate or
 ///   primary-constructor parameter. Not a parameter: a field, an out argument of a call
 ///   (<c>TryGetValue(k, out HttpClient? c)</c>), a deconstruction or tuple element, a lambda's parameter, a
-///   <c>using (HttpClient c = …)</c> local. No guarded form.</item>
-///   <item><c>http.register</c>: <c>.AddHttpClient(</c>/<c>.AddHttpClient&lt;</c>; Factory when the same member
-///   (header included; a top-level program is one member) calls <c>AddAshlarEgressGuard(</c>.</item>
+///   <c>using (HttpClient c = …)</c> local. Guarded (Precedes) by the stored-client rule: in a type that is not
+///   partial, the parameter is only named, null-checked, configured, stored into a private field or property, or
+///   sent after a G3 guard; every other mention of that holder is a configuration or G3-preceded; and at least one
+///   send is G3-preceded (Bing, the experimental Ollama proposer).</item>
+///   <item><c>http.register</c>: <c>.AddHttpClient(</c>/<c>.AddHttpClient&lt;</c>; Factory under D1: a non-declaration
+///   <c>AddAshlarEgressGuard(</c> AFTER it, as a statement of the registration's own innermost code block (the file
+///   root of a top-level program counts). Not before it, not in an enclosing or sibling block.</item>
 ///   <item><c>sdk.client</c>: <c>GrpcChannel.ForAddress(</c>, <c>new HttpClientTransport(</c>,
 ///   <c>new SseClientTransport(</c>, <c>McpClient.CreateAsync(</c>, <c>new A2AClient(</c>,
 ///   <c>new A2ACardResolver(</c>, <c>new Amazon…Client(</c>, <c>.AsIChatClient(</c>. G2-file: Wrapped when the
@@ -79,14 +83,30 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>Pins.</b> One TSV row per observed (path, marker): <c>path marker total guarded guarded_by
 /// unguarded_reason ids note</c>, header lines starting with '#', as <c>ci/certifier-boundary-inventory.tsv</c>.
 /// Guarded forms are pinned too, so converting a site never deletes its row and the inventory stays complete.
-/// <c>guarded_by</c> is Wrapped, Precedes, Factory or <c>-</c>. In 3a <c>unguarded_reason</c> is
-/// <c>Unrouted</c>, one of the closed <c>Exempt:</c> set (LocalOnly, Operator, Inbound, DataStore, LocalDaemon,
-/// ConsumerSdk, TestDouble, TestSeam), <c>Exempt:GuardImpl</c> under <c>src/Ashlar.Abstractions/Security/Egress/</c>
-/// only, or <c>-</c> when nothing is unguarded. Governance, Factory and <c>Upstream:&lt;path&gt;</c> are 3b
-/// reasons. A row mixing a routed-later site with an exempt one (the mesh beacon's sender and listener) is
-/// <c>Unrouted</c> until 3b routes the sender. <c>ids</c> are <c>EG-…</c> rows of <c>docs/EgressInventory.md</c>.
-/// F1, F2 and F3 print the full observed inventory in TSV form when they fail, keeping each pinned row's
-/// reason, ids and note: paste it over the data rows and review each <c>?</c>.</para>
+/// <c>guarded_by</c> is Wrapped, Precedes, Factory or <c>-</c>. <c>unguarded_reason</c> is <c>-</c> when nothing
+/// is unguarded, and otherwise one the row's marker allows (F3, <c>ReasonProblems</c>):</para>
+/// <list type="bullet">
+///   <item>http.new: an <c>Exempt:</c> reason; <c>Exempt:GuardImpl</c> only under
+///   <c>src/Ashlar.Abstractions/Security/Egress/</c>; Governance for a governed pair.</item>
+///   <item>http.param: Factory, <c>Upstream:&lt;path&gt;</c>, Governance for a governed pair, or an <c>Exempt:</c> reason.</item>
+///   <item>http.register: <c>Upstream:&lt;path&gt;</c>, or <c>Exempt:ConsumerSdk</c>.</item>
+///   <item>sdk.client: Governance for a governed pair, or an <c>Exempt:</c> reason. chat.register: Governance.</item>
+///   <item>socket, process, door, telemetry, store: an <c>Exempt:</c> reason.</item>
+/// </list>
+/// <para>The <c>Exempt:</c> set is closed and final (LocalOnly, Operator, Inbound, DataStore, LocalDaemon,
+/// ConsumerSdk, TestDouble, TestSeam); ConsumerSdk only under <c>src/Ashlar.Client/</c>. <b>Factory</b>: an
+/// http.param fed only from <c>IHttpClientFactory</c> — every supply site passes, in the parameter's position, a
+/// client created by an <c>IHttpClientFactory</c>-typed receiver declared in that file (directly, through a
+/// never-reassigned local, through a same-file private factory method, or through the caller's own parameter,
+/// proven the same way), or the type is a typed client of a Factory-classified <c>AddHttpClient&lt;…, T&gt;</c>.
+/// <b>Upstream:&lt;path&gt;</b>: an http.param supplied only from the named file, which builds no unguarded client,
+/// exposes no client field, is not partial, and is itself grounded (a Wrapped http.new, or another routed http.param
+/// row); or an http.register in a project that cannot reach Ashlar.Infrastructure, composed by the named executable
+/// program, which calls <c>AddAshlarEgressGuard</c>, as every executable composing that project must.
+/// <b>Governance</b>: one of the four MEAI pairs (<see cref="GovernedPairs"/>), only while F5 is green. <c>ids</c>
+/// are <c>EG-…</c> rows of <c>docs/EgressInventory.md</c>. F1, F2 and F3 print the full observed inventory in TSV
+/// form when they fail, keeping each pinned row's reason, ids and note: paste it over the data rows and review each
+/// <c>?</c>.</para>
 ///
 /// <para><b>The guard's own constructions: option (b).</b> <c>EgressHttp.cs</c> has to build a raw client and
 /// handler to hand anyone a guarded one. Those are pinned as <c>Exempt:GuardImpl</c>, a reason F3 accepts only
@@ -103,16 +123,29 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// (<c>TimedProcess.RunAsync("curl", …)</c>); and order: G3 is TEXTUAL order, not temporal, so a lambda can
 /// defer the send past the guard (OTLP's decision at registration is intentional). G3 also cannot see
 /// whether a guard RUNS: a guard with no braces of its own counts for its enclosing block, which covers the body
-/// of an unbraced <c>if</c>, <c>else</c> or loop, a sibling <c>switch</c> case, and an expression-bodied lambda or
-/// local function that is never invoked. Package-level classification is deferred: a new network SDK is caught
-/// only once its constructor is taught here. Each known miss is a pinned control in F9, so the change that
-/// teaches the scan must flip it.</para>
+/// of an unbraced <c>if</c>, <c>else</c> or loop, a sibling <c>switch</c> case, a conditional expression, and an
+/// expression-bodied lambda or local function that is never invoked. The routes add their own: an Upstream
+/// supplier passing a static client defined in another file; a guard installed on a different
+/// <c>IServiceCollection</c> from the one the registration fills; a host outside the repository that composes a
+/// factory consumer with no Ashlar member that installs the guard (<c>AddAshlarFederatedBrickMesh</c> alone);
+/// method-group, reflection and target-typed <c>new(…)</c> suppliers outside a declaration (an argument, a
+/// <c>return</c>), and a bare call through <c>using static</c> from another file, which the Factory route reports
+/// when it can see them and misses when it cannot; an early return between a registration and its guard, and an
+/// install call with no braces of its own (a brace-less lambda, an unbraced <c>if</c>), which D1 counts for the
+/// block around it as G3 does; an <c>IHttpClientFactory</c>-typed receiver backed by a custom
+/// implementation, which only F4 (D) catches; and every factory client records the family <c>http.factory</c>
+/// (NetworkExport), the model calls EG-MDL-09/10/13/14 included. Package-level classification is deferred: a new
+/// network SDK is caught only once its constructor is taught here. Each known miss is a pinned control in F9 or in
+/// the route controls, so the change that teaches the scan must flip it.</para>
 ///
-/// <para><b>Not in 3a.</b> F4's clause "<c>AddAshlar</c> calls <c>AddAshlarEgressGuard</c>"; F5's
-/// <c>EgressGuardChatClient</c> ordering assertion; the 3b reasons and their F3 checks (Factory: the receiving
-/// type is registered by <c>AddHttpClient&lt;…, T&gt;</c> in a member that installs the guard; Upstream: the
-/// named file exists, its http.new is all guarded and it alone constructs the receiving type; Governance only
-/// for the leaves in <c>OllamaHttpChatClient.cs</c> and <c>AwsBedrockChatClientFactory.cs</c>).</para>
+/// <para><b>Routes.</b> Factory and Upstream reason about a CLOSED world: every supply site of a receiving member
+/// is a production file in this scan, found by name (<c>new T(</c>, <c>T x = new(</c>, <c>: this(</c>,
+/// <c>.N(</c>, a bare <c>N(</c> in the declaring file, or in any file for a non-private method of a type that is
+/// neither sealed nor static), and every spelling the scan cannot follow (<c>CreateInstance&lt;T&gt;</c>,
+/// <c>typeof(T)</c>, an empty-argument generic registration of T, a method group of N) fails the route instead of
+/// being assumed away. That premise holds only for non-partial receiving types, and for a constructor only in a
+/// sealed one (a derived type's <c>base(…)</c> is a supply site the scan does not list), which the routes require.
+/// A row's route and a member's proof are memoised, and a cycle fails.</para>
 ///
 /// <para>Hermetic: pure file reads. Each fact names the file:line of every offending occurrence.</para>
 /// </summary>
@@ -133,8 +166,9 @@ public sealed partial class EgressGuardConventionTests
     /// <summary>
     /// Non-vacuity floors, examined occurrences counting guarded and unguarded together so converting sites
     /// never trips them. Measured in the devtest container on the SPEC-007 PR 3a commit (edf585a): 2,128
-    /// production .cs files scanned and 146 occurrences examined (http.new 16, of which 3 are the guard's own
-    /// in <c>EgressHttp.cs</c>; http.param 22, http.register 12, sdk.client 9, socket 2, process 51, door 11,
+    /// production .cs files scanned and 146 occurrences examined. PR 3b adds the two MEAI guard files and moves
+    /// the count to 2,130 files and 148 occurrences (http.new 18, of which 3 are the guard's own in
+    /// <c>EgressHttp.cs</c>; http.param 22, http.register 12, sdk.client 9, socket 2, process 51, door 11,
     /// telemetry 2, store 14, chat.register 7, banned 0). Set far enough below to survive ordinary deletions;
     /// a scan that stops reading the tree falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
@@ -158,8 +192,43 @@ public sealed partial class EgressGuardConventionTests
 
     private const string BedrockFactoryFile = "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs";
 
+    private const string OllamaChatClientFile = "src/Ashlar.AI.Pipeline/Clients/OllamaHttpChatClient.cs";
+
+    private const string LlamaSharpChatClientFile = "src/Ashlar.AI.Pipeline/Clients/LlamaSharpChatClient.cs";
+
+    /// <summary>F4 (A): AddAshlar's own registration file; every http.register in it must be Factory.</summary>
+    private const string HostingFile = "src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs";
+
+    /// <summary>An http.register whose project reaches this one can call AddAshlarEgressGuard itself, so it may not be Upstream.</summary>
+    private const string InfrastructureProject = "src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj";
+
     /// <summary>The governed keyed chat registrations today: :105 ollama, :110 onnx, :172 AddAshlarGovernedChatClient, :244 each Bedrock tier.</summary>
     private const int KeyedChatClientStatements = 4;
+
+    /// <summary>
+    /// The only (path, marker) pairs that may carry <c>Governance</c>: the MEAI leaves and registrations F5 holds
+    /// under <c>UseAshlarGovernance</c>, whose outermost layer is EgressGuardChatClient.
+    /// </summary>
+    private static readonly (string Path, string Marker)[] GovernedPairs =
+    [
+        (OllamaChatClientFile, Marker.HttpNew),
+        (OllamaChatClientFile, Marker.HttpParam),
+        (BedrockFactoryFile, Marker.SdkClient),
+        (MeaiRegistrationFile, Marker.ChatRegister),
+    ];
+
+    /// <summary>
+    /// F5 confinement: these types occur only in their own file and in <see cref="MeaiRegistrationFile"/>, where each
+    /// mention is an empty-argument TryAddSingleton registration, inside a governed AddKeyedChatClient statement, or
+    /// a leaf construction ChatGovernance accepts.
+    /// </summary>
+    private static readonly (string Type, string File)[] ConfinedChatTypes =
+    [
+        ("OllamaHttpChatClient", OllamaChatClientFile),
+        ("LlamaSharpChatClient", LlamaSharpChatClientFile),
+        ("AwsBedrockChatClientFactory", BedrockFactoryFile),
+        ("IBedrockChatClientFactory", BedrockFactoryFile),
+    ];
 
     /// <summary>The files the guard is made of. Each must be in the scanned population, or pruning broke.</summary>
     private static readonly string[] GuardFiles =
@@ -168,6 +237,8 @@ public sealed partial class EgressGuardConventionTests
         "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
         HttpDefaultsBindingFile,
         GovernanceFile,
+        "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+        "src/Ashlar.AI.Pipeline/Governance/MeaiEgressDestination.cs",
     ];
 
     /// <summary>Each must be scanned and contribute at least one examined occurrence of its marker.</summary>
@@ -227,10 +298,10 @@ public sealed partial class EgressGuardConventionTests
 
         over.Should().BeEmpty(
             "a new outbound path must go through the egress guard and be written down. Route it: build the client "
-            + "with EgressHttp.CreateClient/Wrap, take it from IHttpClientFactory in a member that calls "
-            + "AddAshlarEgressGuard, or call guard.Evaluate(new EgressRequest(family, \"EG-…\", destination)) "
-            + "before the primitive in the same member. Then add its row to docs/EgressInventory.md and pin it in "
-            + "{0}. Over the pin:\n{1}\n{2}",
+            + "with EgressHttp.CreateClient/Wrap, take it from IHttpClientFactory and call AddAshlarEgressGuard after "
+            + "the registration in the same block, or call guard.Evaluate(new EgressRequest(family, \"EG-…\", "
+            + "destination)) before the primitive in the same block or an enclosing one. Then add its row to "
+            + "docs/EgressInventory.md and pin it in {0}. Over the pin:\n{1}\n{2}",
             InventoryRelativePath, string.Join("\n", over), RenderObserved(observed, pins.Rows));
     }
 
@@ -277,7 +348,8 @@ public sealed partial class EgressGuardConventionTests
 
     /// <summary>
     /// F3, routes hold: every row is well formed, its <c>guarded_by</c> is the kind the classifier proved (G2
-    /// for Wrapped, G3 for Precedes, the member rule for Factory), and its reason is in the 3a closed set.
+    /// for Wrapped, G3 or the stored-client rule for Precedes, D1 for Factory), and every row with something
+    /// unguarded carries a reason its marker allows and whose route holds (<see cref="ReasonProblems"/>).
     /// </summary>
     [Fact]
     public void F3_every_row_is_well_formed_and_its_route_is_one_the_scan_can_hold()
@@ -314,12 +386,8 @@ public sealed partial class EgressGuardConventionTests
 
             if (pin.Unguarded == 0 && pin.Reason != "-")
                 problems.Add($"{where}: unguarded_reason '{pin.Reason}' with nothing unguarded; write '-'");
-            if (pin.Unguarded > 0 && !IsAllowedReason(pin.Path, pin.Reason))
-            {
-                problems.Add($"{where}: unguarded_reason '{pin.Reason}' is not {Unrouted}, "
-                    + string.Join(", ", ExemptReasons.Select(r => "Exempt:" + r))
-                    + $", or {GuardImplReason} (only under {GuardImplFolder}). Governance, Factory and Upstream: are 3b reasons");
-            }
+            if (pin.Unguarded > 0)
+                problems.AddRange(ReasonProblems(pin, scan, pins.Rows, observed));
 
             if (pin.IdsText != "-" && pin.Ids.Any(id => !EgId.IsMatch(id)))
                 problems.Add($"{where}: ids '{pin.IdsText}' must be comma-separated EG-… ids, or '-'");
@@ -328,21 +396,21 @@ public sealed partial class EgressGuardConventionTests
         }
 
         problems.Should().BeEmpty(
-            "every row is a reviewed decision: a guarded count the classifier proves, and a reason from the closed "
-            + "set for what is left. Problems:\n{0}\n{1}",
+            "every row is a reviewed decision: a guarded count the classifier proves, and for what is left a reason "
+            + "its marker allows and a route the scan can hold. Problems:\n{0}\n{1}",
             string.Join("\n", problems), RenderObserved(observed.Values.OrderBy(r => r.Path, StringComparer.Ordinal).ThenBy(r => r.Marker, StringComparer.Ordinal), pins.Rows));
     }
 
-    private static bool IsAllowedReason(string path, string reason) =>
-        reason == Unrouted
-        || (reason.StartsWith("Exempt:", StringComparison.Ordinal) && ExemptReasons.Contains(reason["Exempt:".Length..], StringComparer.Ordinal))
-        || (reason == GuardImplReason && path.StartsWith(GuardImplFolder, StringComparison.Ordinal));
-
     /// <summary>
     /// F4, HTTP defaults are bound: <see cref="HttpDefaultsBindingToken"/> occurs exactly once in production, in
-    /// <see cref="HttpDefaultsBindingFile"/>, and builds the guard handler there; and nothing registers a bare
-    /// <c>HttpClient</c> (<c>AddSingleton&lt;HttpClient&gt;</c>, <c>typeof(HttpClient)</c>), which would hand out a
-    /// client no factory default ever touches.
+    /// <see cref="HttpDefaultsBindingFile"/>, and builds the guard handler there; nothing registers or resolves a bare
+    /// <c>HttpClient</c> (<c>AddSingleton&lt;HttpClient&gt;</c>, <c>typeof(HttpClient)</c>,
+    /// <c>GetRequiredService&lt;HttpClient&gt;</c>), which would hand out a client no factory default ever touches;
+    /// and (A) every http.register in <see cref="HostingFile"/> (AddAshlar's own) is Factory; (B)
+    /// <c>AddAshlarEgressGuard(</c> is declared exactly once in production, in <see cref="HttpDefaultsBindingFile"/>;
+    /// (D) no production type implements <c>IHttpClientFactory</c> and nothing registers it directly; (E) every call
+    /// of <c>AddAshlarEgressGuard(</c> covers a registration under D1 (the rail: a call that covers nothing is a call
+    /// in the wrong place).
     /// </summary>
     [Fact]
     public void F4_http_client_defaults_are_bound_once_and_no_bare_HttpClient_is_registered()
@@ -367,62 +435,62 @@ public sealed partial class EgressGuardConventionTests
 
         problems.AddRange(scan.Occurrences.Where(o => o.Marker == Marker.Banned)
             .Select(o => $"{o.Where}: '{o.Token}' registers or resolves a bare HttpClient; take one from IHttpClientFactory"));
+        problems.AddRange(HostingFactoryProblems(scan.Occurrences, HostingFile));
+        problems.AddRange(GuardDeclarationProblems(scan.GuardDeclarations));
+        problems.AddRange(scan.FactoryImplementations.Select(f => "(D) " + f));
+        problems.AddRange(scan.RailProblems.Select(r => "(E) " + r));
 
         problems.Should().BeEmpty(
             "every IHttpClientFactory client gets the guard handler through one ConfigureHttpClientDefaults call, "
-            + "and that only holds if no bare HttpClient is registered beside the factory. Problems:\n{0}",
+            + "installed by AddAshlar and after every other registration, and that only holds if no bare HttpClient and "
+            + "no other IHttpClientFactory is registered beside the factory. Problems:\n{0}",
             string.Join("\n", problems));
     }
 
+    /// <summary>F4 (A): the http.register occurrences of <paramref name="hostingFile"/> number at least one, and all are Factory.</summary>
+    private static IEnumerable<string> HostingFactoryProblems(IEnumerable<Occurrence> occurrences, string hostingFile)
+    {
+        var registrations = occurrences.Where(o => o.Path == hostingFile && o.Marker == Marker.HttpRegister).ToList();
+        if (registrations.Count == 0)
+            yield return $"(A) {hostingFile} has no AddHttpClient; AddAshlar's registration moved, so update {nameof(HostingFile)}";
+        foreach (var r in registrations.Where(r => r.Guard != GuardKind.Factory))
+        {
+            yield return $"(A) {r.Where}: AddAshlar's '{r.Token}' is not Factory; call services.AddAshlarEgressGuard() after it, "
+                + "as a statement of the same block";
+        }
+    }
+
+    /// <summary>F4 (B): <c>AddAshlarEgressGuard(</c> is declared exactly once in production, in <see cref="HttpDefaultsBindingFile"/>.</summary>
+    private static IEnumerable<string> GuardDeclarationProblems(IReadOnlyCollection<(string Path, int Line)> declarations)
+    {
+        if (declarations.Count != 1)
+        {
+            yield return $"(B) AddAshlarEgressGuard( is declared {declarations.Count} times in production, expected once in "
+                + $"{HttpDefaultsBindingFile}: {string.Join(", ", declarations.Select(d => d.Path + ":" + d.Line))}";
+        }
+
+        foreach (var (path, line) in declarations.Where(d => d.Path != HttpDefaultsBindingFile))
+            yield return $"(B) {path}:{line}: AddAshlarEgressGuard( declared outside {HttpDefaultsBindingFile}";
+    }
+
     /// <summary>
-    /// F5, chat is governed (3a): the keyed and default chat and embedding registrations live only in
+    /// F5, chat is governed: the keyed and default chat and embedding registrations live only in
     /// <see cref="MeaiRegistrationFile"/>; each of its <see cref="KeyedChatClientStatements"/>
-    /// <c>AddKeyedChatClient</c> statements carries <c>.UseAshlarGovernance(</c> before its depth-0 ';'; the
-    /// two leaf chat clients are built only for those statements; the Bedrock SDK client and
-    /// <c>.AsIChatClient(</c> live only in <see cref="BedrockFactoryFile"/>; and governance composes
-    /// PolicyGate, then Sanitizing, then Auditing.
+    /// <c>AddKeyedChatClient</c> statements carries <c>.UseAshlarGovernance(</c> before its depth-0 ';', with the
+    /// same key (read from the raw text); the two leaf chat clients are built only for those statements; the
+    /// Bedrock SDK client and <c>.AsIChatClient(</c> live only in <see cref="BedrockFactoryFile"/>; the four leaf
+    /// types are confined (<see cref="ConfinedChatTypes"/>); no raw <c>IChatClient</c> is registered; and
+    /// governance composes EgressGuard, then PolicyGate, then Sanitizing, then Auditing, with
+    /// <c>new EgressGuardChatClient(</c> nowhere else.
     /// </summary>
     [Fact]
     public void F5_every_chat_registration_is_governed()
     {
-        var scan = Tree.Value;
-        var problems = new List<string>();
-
-        foreach (var o in scan.Occurrences.Where(o => o.Marker == Marker.ChatRegister && o.Path != MeaiRegistrationFile))
-            problems.Add($"{o.Where}: '{o.Token}' outside {MeaiRegistrationFile}; register chat targets through AddAshlarMeaiPipeline or AddAshlarGovernedChatClient");
-
-        foreach (var o in scan.Occurrences.Where(o => o.Marker == Marker.SdkClient && o.Path != BedrockFactoryFile
-                     && (o.Token.Contains("AmazonBedrockRuntimeClient", StringComparison.Ordinal) || o.Token.Contains("AsIChatClient", StringComparison.Ordinal))))
-        {
-            problems.Add($"{o.Where}: '{o.Token}' outside {BedrockFactoryFile}");
-        }
-
-        var root = scan.Root;
-        var meai = Load(root, MeaiRegistrationFile);
-        if (meai is null)
-        {
-            problems.Add($"{MeaiRegistrationFile} does not exist");
-        }
-        else
-        {
-            var (statements, violations) = ChatGovernance(meai);
-            problems.AddRange(violations);
-            if (statements != KeyedChatClientStatements)
-            {
-                problems.Add($"{MeaiRegistrationFile}: {statements} AddKeyedChatClient statements, expected {KeyedChatClientStatements}; "
-                    + "a new keyed target is a new egress path: give it .UseAshlarGovernance(, then update the constant and the TSV");
-            }
-        }
-
-        var governance = Load(root, GovernanceFile);
-        if (governance is null)
-            problems.Add($"{GovernanceFile} does not exist");
-        else
-            problems.AddRange(GovernanceOrder(governance));
+        var problems = Tree.Value.Governance;
 
         problems.Should().BeEmpty(
-            "a chat target reaches a model only through UseAshlarGovernance, and the guard's chat adapter (3b) "
-            + "rides on exactly that composition. Problems:\n{0}",
+            "a chat target reaches a model only through UseAshlarGovernance, and EgressGuardChatClient rides on "
+            + "exactly that composition, outermost. Problems:\n{0}",
             string.Join("\n", problems));
     }
 
@@ -572,25 +640,130 @@ public sealed partial class EgressGuardConventionTests
 
     private static readonly Regex DeclaredName = new(@"\b([A-Za-z_][A-Za-z0-9_]*)\s*=(?![=>])", RegexOptions.CultureInvariant);
 
+    private static readonly Regex EgressGuardChatClientConstruction = new(
+        @"\bnew\s+(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*EgressGuardChatClient\s*\(", RegexOptions.CultureInvariant);
+
+    private static readonly Regex EmptyArgumentTryAddSingleton = new(
+        @"\bTryAddSingleton\s*<[^<>;(){}]*>\s*\(\s*\)", RegexOptions.CultureInvariant);
+
+    /// <summary>A raw IChatClient registration: <c>[Try]Add[Keyed]{Singleton|Scoped|Transient}&lt;IChatClient…</c> or <c>(typeof(IChatClient)…</c>, or a ServiceDescriptor naming it.</summary>
+    private static readonly Regex RawChatClientRegistration = new(
+        @"\b(?:Try)?Add(?:Keyed)?(?:Singleton|Scoped|Transient)\s*(?:<\s*(?:global::)?(?:Microsoft\.Extensions\.AI\.)?IChatClient\b|\(\s*typeof\s*\(\s*(?:global::)?(?:Microsoft\.Extensions\.AI\.)?IChatClient\s*\))"
+        + @"|ServiceDescriptor\.(?:Keyed)?(?:Singleton|Scoped|Transient|Describe)\b[^;]*IChatClient",
+        RegexOptions.CultureInvariant);
+
+    private static readonly Regex Whitespace = new(@"\s+", RegexOptions.CultureInvariant);
+
     private static readonly (string Name, Regex Construction)[] GovernanceLayers =
     [
+        ("EgressGuard", new Regex(@"\bnew\s+EgressGuardChatClient\s*\(", RegexOptions.CultureInvariant)),
         ("PolicyGate", new Regex(@"\bnew\s+PolicyGateChatClient\s*\(", RegexOptions.CultureInvariant)),
         ("Sanitizing", new Regex(@"\bnew\s+SanitizingChatClient\s*\(", RegexOptions.CultureInvariant)),
         ("Auditing", new Regex(@"\bnew\s+AuditingChatClient\s*\(", RegexOptions.CultureInvariant)),
     ];
 
-    private static SourceModel? Load(string root, string relative)
+    /// <summary>
+    /// The full F5 list, read from the scan (never from disk), so a route control's fixture is checked exactly as
+    /// the tree is. Governance (F3) is allowed only while this is empty.
+    /// </summary>
+    private static List<string> GovernanceProblems(TreeScan scan)
     {
-        var path = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
-        return File.Exists(path) ? new SourceModel(relative, File.ReadAllText(path)) : null;
+        var problems = new List<string>();
+
+        foreach (var o in scan.Occurrences.Where(o => o.Marker == Marker.ChatRegister && o.Path != MeaiRegistrationFile))
+            problems.Add($"{o.Where}: '{o.Token}' outside {MeaiRegistrationFile}; register chat targets through AddAshlarMeaiPipeline or AddAshlarGovernedChatClient");
+
+        foreach (var o in scan.Occurrences.Where(o => o.Marker == Marker.SdkClient && o.Path != BedrockFactoryFile
+                     && (o.Token.Contains("AmazonBedrockRuntimeClient", StringComparison.Ordinal) || o.Token.Contains("AsIChatClient", StringComparison.Ordinal))))
+        {
+            problems.Add($"{o.Where}: '{o.Token}' outside {BedrockFactoryFile}");
+        }
+
+        var meai = scan.Model(MeaiRegistrationFile);
+        ChatStatements? governed = null;
+        if (meai is null)
+        {
+            problems.Add($"{MeaiRegistrationFile} is not in the scanned population");
+        }
+        else
+        {
+            governed = ChatGovernance(meai);
+            problems.AddRange(governed.Violations);
+            if (governed.Statements != KeyedChatClientStatements)
+            {
+                problems.Add($"{MeaiRegistrationFile}: {governed.Statements} AddKeyedChatClient statements, expected {KeyedChatClientStatements}; "
+                    + "a new keyed target is a new egress path: give it .UseAshlarGovernance(, then update the constant and the TSV");
+            }
+        }
+
+        var governance = scan.Model(GovernanceFile);
+        if (governance is null)
+            problems.Add($"{GovernanceFile} is not in the scanned population");
+        else
+            problems.AddRange(GovernanceOrder(governance));
+
+        foreach (var path in scan.Files.Where(f => f != GovernanceFile && scan.Code(f)!.Contains("EgressGuardChatClient", StringComparison.Ordinal)))
+        {
+            foreach (Match c in EgressGuardChatClientConstruction.Matches(scan.Code(path)!))
+                problems.Add($"{path}:{scan.Model(path)!.LineOf(c.Index)}: 'new EgressGuardChatClient(' outside {GovernanceFile}; the egress layer is composed only by UseAshlarGovernance");
+        }
+
+        problems.AddRange(ConfinementProblems(scan, meai, governed));
+
+        foreach (var path in scan.Files.Where(f => scan.Code(f)!.Contains("IChatClient", StringComparison.Ordinal)))
+        {
+            foreach (Match r in RawChatClientRegistration.Matches(scan.Code(path)!))
+            {
+                problems.Add($"{path}:{scan.Model(path)!.LineOf(r.Index)}: '{Whitespace.Replace(r.Value, " ")}' registers a raw IChatClient; "
+                    + "register chat targets through AddAshlarMeaiPipeline or AddAshlarGovernedChatClient");
+            }
+        }
+
+        return problems;
     }
 
     /// <summary>
-    /// Each <c>AddKeyedChatClient</c> statement up to its depth-0 ';' must carry <c>.UseAshlarGovernance(</c>.
-    /// A leaf chat client must be built inside such a statement, or as the value of a local whose every other
-    /// mention is inside a governed one (the <c>defaultOllama</c>/<c>defaultOnnx</c> delegates at :100-103).
+    /// Confinement, on cleaned code with <c>nameof(</c> excluded: each of <see cref="ConfinedChatTypes"/> occurs only
+    /// in its own file and in <see cref="MeaiRegistrationFile"/>; there, each mention is inside an empty-argument
+    /// <c>TryAddSingleton&lt;…&gt;()</c>, inside a governed AddKeyedChatClient statement, or inside a leaf
+    /// construction ChatGovernance accepts.
     /// </summary>
-    private static (int Statements, List<string> Violations) ChatGovernance(SourceModel m)
+    private static IEnumerable<string> ConfinementProblems(TreeScan scan, SourceModel? meai, ChatStatements? governed)
+    {
+        var accepted = new List<(int Start, int End)>();
+        if (meai is not null && governed is not null)
+        {
+            accepted.AddRange(EmptyArgumentTryAddSingleton.Matches(meai.Code).Select(r => (r.Index, r.Index + r.Length)));
+            accepted.AddRange(governed.Governed);
+            accepted.AddRange(governed.AcceptedLeaves);
+        }
+
+        foreach (var (type, own) in ConfinedChatTypes)
+        {
+            foreach (var (path, at) in scan.Mentions(type))
+            {
+                if (path == own || Scanner.InNameof(scan.Code(path)!, at))
+                    continue;
+                if (path == MeaiRegistrationFile && accepted.Any(a => a.Start <= at && at < a.End))
+                    continue;
+                yield return $"{path}:{scan.Model(path)!.LineOf(at)}: '{type}' outside {own} and the governed registrations in "
+                    + $"{MeaiRegistrationFile}; a leaf chat client reached any other way skips UseAshlarGovernance";
+            }
+        }
+    }
+
+    /// <summary>What ChatGovernance read: the AddKeyedChatClient statements, the violations, the governed spans and the accepted leaf constructions.</summary>
+    private sealed record ChatStatements(int Statements, List<string> Violations, List<(int Start, int End)> Governed, List<(int Start, int End)> AcceptedLeaves);
+
+    /// <summary>
+    /// Each <c>AddKeyedChatClient</c> statement up to its depth-0 ';' must carry <c>.UseAshlarGovernance(</c>, and
+    /// its first argument must equal the governance argument: compared on the RAW text at the same offsets,
+    /// whitespace-normalised, because Clean blanks literal contents (<c>"cloud:x"</c> and <c>"local:onnx"</c> both
+    /// clean to quotes and spaces). A leaf chat client must be built inside such a statement, or as the value of a
+    /// local whose every other mention is inside a governed one (the <c>defaultOllama</c>/<c>defaultOnnx</c>
+    /// delegates at :100-103).
+    /// </summary>
+    private static ChatStatements ChatGovernance(SourceModel m)
     {
         var code = m.Code;
         var violations = new List<string>();
@@ -598,18 +771,37 @@ public sealed partial class EgressGuardConventionTests
         foreach (Match k in KeyedChatClientCall.Matches(code))
         {
             var end = Scanner.StatementEnd(code, k.Index);
-            var governed = UseAshlarGovernanceCall.IsMatch(code[k.Index..end]);
-            statements.Add((Scanner.StatementStart(code, k.Index), end, governed));
-            if (!governed)
+            var governance = UseAshlarGovernanceCall.Match(code, k.Index);
+            var isGoverned = governance.Success && governance.Index + governance.Length <= end;
+            statements.Add((Scanner.StatementStart(code, k.Index), end, isGoverned));
+            if (!isGoverned)
+            {
                 violations.Add($"{m.Path}:{m.LineOf(k.Index)}: AddKeyedChatClient statement has no .UseAshlarGovernance( before its ';'");
+                continue;
+            }
+
+            var open = code.IndexOf('(', k.Index + k.Length - 1);
+            var keyArgument = open < 0 ? new List<(int Start, int End)>() : Scanner.SplitArguments(code, open);
+            var governanceOpen = governance.Index + governance.Length - 1;
+            var key = keyArgument.Count == 0 ? string.Empty : RawText(m, keyArgument[0].Start, keyArgument[0].End);
+            var governedKey = RawText(m, governanceOpen + 1, Scanner.ClosingParen(code, governanceOpen));
+            if (key.Length == 0 || key != governedKey)
+            {
+                violations.Add($"{m.Path}:{m.LineOf(k.Index)}: AddKeyedChatClient key '{key}' is governed as '{governedKey}'; "
+                    + "the policy, sanitizer, audit and egress record would all name another target");
+            }
         }
 
         bool InGoverned(int at) => statements.Any(s => s.Governed && s.Start <= at && at < s.End);
 
+        var acceptedLeaves = new List<(int Start, int End)>();
         foreach (Match leaf in LeafChatConstruction.Matches(code))
         {
             if (InGoverned(leaf.Index))
+            {
+                acceptedLeaves.Add((leaf.Index, leaf.Index + leaf.Length));
                 continue;
+            }
 
             var start = Scanner.StatementStart(code, leaf.Index);
             var end = Scanner.StatementEnd(code, leaf.Index);
@@ -620,13 +812,21 @@ public sealed partial class EgressGuardConventionTests
                     .ToList()
                 : new List<Match>();
             if (uses.Count == 0 || !uses.All(u => InGoverned(u.Index)))
-            {
                 violations.Add($"{m.Path}:{m.LineOf(leaf.Index)}: '{leaf.Value.Trim()}' is not built for a governed AddKeyedChatClient statement");
-            }
+            else
+                acceptedLeaves.Add((leaf.Index, leaf.Index + leaf.Length));
         }
 
-        return (statements.Count, violations);
+        return new ChatStatements(
+            statements.Count,
+            violations,
+            statements.Where(s => s.Governed).Select(s => (s.Start, s.End)).ToList(),
+            acceptedLeaves);
     }
+
+    /// <summary>The raw text between two offsets of the cleaned code, whitespace-normalised.</summary>
+    private static string RawText(SourceModel m, int start, int end) =>
+        Whitespace.Replace(m.Raw[start..Math.Min(end, m.Raw.Length)], " ").Trim();
 
     private static IEnumerable<string> GovernanceOrder(SourceModel m)
     {
@@ -644,7 +844,7 @@ public sealed partial class EgressGuardConventionTests
             if (at[i - 1] >= 0 && at[i] >= 0 && at[i - 1] >= at[i])
             {
                 yield return $"{m.Path}:{m.LineOf(at[i])}: {GovernanceLayers[i].Name} is composed before {GovernanceLayers[i - 1].Name}; "
-                    + "the order is PolicyGate, then Sanitizing, then Auditing (the first Use() is outermost)";
+                    + "the order is EgressGuard, then PolicyGate, then Sanitizing, then Auditing (the first Use() is outermost)";
             }
         }
     }
