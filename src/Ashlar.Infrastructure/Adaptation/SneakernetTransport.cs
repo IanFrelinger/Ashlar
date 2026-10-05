@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Adaptation.Models;
 using Ashlar.Core.Application.Adaptation.Ports;
 
@@ -31,6 +32,8 @@ public sealed class SneakernetTransport : ISneakernetTransport
         if (!path.EndsWith(".nxpkg", StringComparison.OrdinalIgnoreCase))
             path = Path.ChangeExtension(path, ".nxpkg") ?? path + ".nxpkg";
 
+        // SPEC-007 EG-MESH-08, report-only: every shared adaptation leaves in this file, for physical transfer.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, "EG-MESH-08", "file:" + path));
         var dto = new SneakernetExportDto
         {
             Version = 1,

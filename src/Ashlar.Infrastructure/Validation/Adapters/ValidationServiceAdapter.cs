@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Validation.Models;
 using Ashlar.Core.Application.Validation.Ports;
 using Ashlar.Core.Application.Common.Models;
@@ -522,7 +523,10 @@ public class ValidationServiceAdapter : IValidationService
 
     private static async Task<int> RunDotnetBuildProjectAsync(string csprojPath, CancellationToken ct)
     {
-        var p = Process.Start(CreateDotnetBuildStartInfo(csprojPath));
+        var startInfo = CreateDotnetBuildStartInfo(csprojPath);
+        // SPEC-007 EG-PROC-02, report-only: dotnet build restores implicitly, so it reaches the NuGet feeds.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", RestoreDestination(startInfo)));
+        var p = Process.Start(startInfo);
         if (p is null)
             return -1;
 
@@ -756,7 +760,10 @@ public class ValidationServiceAdapter : IValidationService
     private static async Task<DotnetTestRun> RunDotnetTestForValidateAsync(
         string csprojPath, string? framework, string? filter, bool streamOutput, CancellationToken ct)
     {
-        var p = Process.Start(CreateDotnetTestStartInfo(csprojPath, framework, filter, streamOutput));
+        var startInfo = CreateDotnetTestStartInfo(csprojPath, framework, filter, streamOutput);
+        // SPEC-007 EG-PROC-02, report-only: dotnet test --no-build restores nothing, so it stays on the host.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", RestoreDestination(startInfo)));
+        var p = Process.Start(startInfo);
         if (p is null)
             return new DotnetTestRun(-1, string.Empty);
 
@@ -808,6 +815,17 @@ public class ValidationServiceAdapter : IValidationService
             }
         }
     }
+
+    /// <summary>
+    /// The EG-PROC-02 decision's destination, read off the argv that will run: an argument that is exactly
+    /// <c>--no-build</c> or <c>--no-restore</c> means nothing is restored, so <c>host:dotnet</c>; anything else
+    /// restores from the NuGet feeds, <c>nuget-feeds</c>. Only the restore is described: test code still runs with
+    /// the host's network.
+    /// </summary>
+    internal static string RestoreDestination(ProcessStartInfo startInfo) =>
+        startInfo.ArgumentList.Contains("--no-build") || startInfo.ArgumentList.Contains("--no-restore")
+            ? "host:dotnet"
+            : "nuget-feeds";
 
     internal static ProcessStartInfo CreateDotnetBuildStartInfo(string csprojPath)
     {

@@ -17,7 +17,7 @@ public static class EgressFamilies
     /// <summary>A model called through the Microsoft.Extensions.AI pipeline.</summary>
     public const string ModelMeai = "model.meai";
 
-    /// <summary>A model called through the provider factory.</summary>
+    /// <summary>A model called outside the Microsoft.Extensions.AI pipeline (the provider factory, the experimental proposer).</summary>
     public const string ModelLegacy = "model.legacy";
 
     /// <summary>A web search provider.</summary>
