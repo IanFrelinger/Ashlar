@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Ashlar.CLI.Packaging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Manifest.Signing;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
@@ -287,7 +288,7 @@ public sealed class MeshServeService : BackgroundService
         // served and the bytes bounded are the same bytes. ASHLAR_MESH_AUTOSHARE writes admitted
         // packages into this very directory, so "nobody would plant a file here" was never the
         // property this rested on. Issue #488.
-        app.MapGet("/mesh/v1/pkg/{file}", (string file) =>
+        app.MapGet("/mesh/v1/pkg/{file}", (string file, HttpContext http) =>
         {
             if (!MeshWire.IsSafePackageName(file))
             {
@@ -308,12 +309,33 @@ public sealed class MeshServeService : BackgroundService
             {
                 return Results.NotFound();
             }
+            // SPEC-007 EG-MESH-03, report-only: the package bytes go to whoever reached the port.
+            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshServe, "EG-MESH-03", PeerDestination(http.Connection.RemoteIpAddress)));
             // Results.Stream disposes the stream once the response is written; Kestrel streams it
             // under its own connection and data-rate limits.
             return Results.Stream(stream, "application/json");
         });
 
         return app;
+    }
+
+    /// <summary>
+    /// The peer a served package goes to, for the egress decision record: <c>tcp://&lt;remote ip&gt;</c>, an
+    /// IPv4-mapped address written as IPv4 and an IPv6 address in brackets, so the guard reads it as a URL host
+    /// and a loopback peer as inside the host. Never throws; a connection with no remote address is
+    /// <c>tcp://unknown</c>.
+    /// </summary>
+    internal static string PeerDestination(System.Net.IPAddress? ip)
+    {
+        if (ip is null)
+        {
+            return "tcp://unknown";
+        }
+        if (ip.IsIPv4MappedToIPv6)
+        {
+            ip = ip.MapToIPv4();
+        }
+        return ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? $"tcp://[{ip}]" : $"tcp://{ip}";
     }
 
     /// <summary>

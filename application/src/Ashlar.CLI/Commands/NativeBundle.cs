@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Manifest;
 using Ashlar.Manifest.Ledger;
 using Ashlar.Manifest.Signing;
@@ -80,8 +81,10 @@ public static class NativeBundle
     /// is working state, not something to distribute), and lock/temp files. The gates records and
     /// the signed ledger — the governance history the bundle exists to carry — stay.</para>
     /// </summary>
-    public static List<string> StageApp(string projectDir, string bundleDir)
+    public static List<string> StageApp(string projectDir, string bundleDir, string site)
     {
+        // SPEC-007, report-only: the project tree leaves through the bundle (EG-FILE-01 native, EG-FILE-02 cloud).
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, "file:" + bundleDir));
         var appDir = Path.Combine(bundleDir, "app");
         Directory.CreateDirectory(appDir);
         var written = new List<string>();
@@ -129,7 +132,7 @@ public static class NativeBundle
     /// </summary>
     public static IReadOnlyList<string> Stage(string projectDir, string bundleDir, BundleInfo info)
     {
-        var written = StageApp(projectDir, bundleDir);
+        var written = StageApp(projectDir, bundleDir, "EG-FILE-01");
 
         var exe = "ashlar" + (info.Rid.StartsWith("win", StringComparison.Ordinal) ? ".exe" : string.Empty);
         // The launcher must not overclaim: "certified" is only true when a signed ledger attests

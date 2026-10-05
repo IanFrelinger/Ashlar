@@ -34,7 +34,7 @@ public static class CloudBundle
     {
         var image = string.IsNullOrWhiteSpace(runtimeImage) ? RuntimeImage : runtimeImage;
         Directory.CreateDirectory(bundleDir);
-        var written = NativeBundle.StageApp(projectDir, bundleDir);
+        var written = NativeBundle.StageApp(projectDir, bundleDir, "EG-FILE-02");
 
         // The container entrypoint: verify, then run the request passed as container args. A
         // container whose app or ledger was altered exits 65 at startup and never serves a run —
