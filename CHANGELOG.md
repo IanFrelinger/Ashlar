@@ -88,7 +88,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   with `Fault` set and `Access` left at `NoDecision`. `EgressHttp` builds HTTP clients and handlers
   that evaluate every request without reading or buffering its content and return the inner response
   unchanged; on the netstandard2.0 asset, which .NET 5–7 apps resolve, only `SendAsync` is evaluated
-  and a synchronous `Send` is not (`docs/EgressInventory.md` records it as a PR 4 prerequisite).
+  and a synchronous `Send` is refused (SPEC-007 PR 4.2; see **Changed**).
   `AddAshlarEgressGuard` (`Ashlar.Infrastructure.Egress`) registers the guard, subscribes an `ILogger`
   sink that writes each decision at Debug under the `Ashlar.Egress` category, and puts the guard
   handler on every `IHttpClientFactory` client in the container with one `ConfigureHttpClientDefaults`
@@ -145,6 +145,26 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Changed
 
+- **On the netstandard2.0 asset, a synchronous `Send` through `EgressHttp` is refused instead of going
+  out unevaluated (SPEC-007 PR 4.2).** That asset, which .NET 5–7 apps resolve, cannot override
+  `HttpMessageHandler.Send`, so its guard handler never saw a synchronous `HttpClient.Send` or
+  `HttpMessageInvoker.Send`: the runtime's `DelegatingHandler.Send` forwarded it to the inner handler
+  unevaluated. On that asset `EgressHttp.CreateClient` and `EgressHttp.Wrap` now put an internal hop,
+  `SynchronousSendRefusedOnNetstandard20Asset`, between the guard handler and the inner handler. It
+  derives from `HttpMessageHandler` and forwards only `SendAsync` (through an owned
+  `HttpMessageInvoker`), so on a runtime that has a synchronous `Send` that send reaches the runtime's
+  base `HttpMessageHandler.Send`, which throws `NotSupportedException` naming the hop before anything is
+  sent. Building such a client or handler there publishes one `NoDecision` egress record with `Fault`
+  `SynchronousSendUnsupported`, naming its family and site, so the refusal reaches the operator log; and
+  `EgressHttp.CreateDelegatingHandler`, whose inner handler an `IHttpClientFactory` pipeline sets, throws
+  `PlatformNotSupportedException` there. This is in every mode, report included. `SendAsync` is still
+  evaluated exactly once, with the same request, token and response instances, and disposing the client
+  or handler still disposes the inner handler. On .NET Framework, Mono and Unity, which have no
+  synchronous `Send`, nothing is refused or recorded; the only change is the extra hop. The net8.0 and
+  net10.0 assets, which every Ashlar host binds, do not change. `docs/SdkCompatibilityPolicy.md` now says
+  that full egress-guard coverage needs the net8.0 or later asset. `EgressHttpNetstandard20TwinTests`
+  (cert-gate) loads the netstandard2.0 build into an `AssemblyLoadContext` of its own and shows the
+  refusal; the egress inventory pins the hop's `HttpMessageInvoker` as `Exempt:GuardImpl`.
 - **Every Ashlar host now reports its outbound requests to the egress guard (SPEC-007 PR 3b).**
   Report-only: nothing refuses, and each change below adds a decision record, not a refusal.
   - `AddAshlar` calls `AddAshlarEgressGuard` after its own `AddHttpClient`, so every `AddAshlar`

@@ -64,6 +64,9 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.11 the switch, which carries the §5 leak test.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
+  - **4.2** (this PR): on the `netstandard2.0` asset a synchronous `Send` through `EgressHttp` is refused before
+    anything is sent and recorded as a `NoDecision` (`SynchronousSendUnsupported`), the factory handler is refused
+    there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0` or later.
 
 ---
 

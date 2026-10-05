@@ -170,6 +170,12 @@ If an assembly is on nuget.org, it is not in this tier — it is Substrate, and 
 above applies to it. That distinction is the point of the split: "internal" previously covered both
 things a consumer could never see and things they could `dotnet add package`.
 
+## Target frameworks and the egress guard
+
+`Ashlar.Abstractions` ships a `netstandard2.0`, a `net8.0` and a `net10.0` asset. **Full egress-guard coverage needs the `net8.0` or later asset**: there the guard handler that `EgressHttp` builds evaluates every `SendAsync` and every synchronous `Send`. The `netstandard2.0` asset is for .NET Framework, Mono and Unity, which have no synchronous `HttpMessageHandler.Send`; on them it evaluates every send.
+
+A .NET 5, 6 or 7 app also binds the `netstandard2.0` asset, and that asset cannot override the synchronous `Send` those runtimes have. So, there, a synchronous `HttpClient.Send` or `HttpMessageInvoker.Send` through an `EgressHttp` client or handler is **refused** with `NotSupportedException` before anything is sent, and building such a client or handler records one `NoDecision` egress decision saying so; `EgressHttp.CreateDelegatingHandler` throws `PlatformNotSupportedException`; `SendAsync` is evaluated as everywhere else. This is a run-time refusal only: nothing stops such an app building against the asset. .NET 5, 6 and 7 are out of support, and Ashlar does not add an end-of-life target for them. `docs/EgressInventory.md` records the mechanism (SPEC-007 PR 4.2).
+
 ## Breaking change process
 
 1. Prefer additive changes (new types, new optional parameters, new overloads) over modifying existing contracts. Additive changes go into `PublicAPI.Unshipped.txt` in the same PR and may ship in any patch.
