@@ -338,6 +338,133 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
+    public void A_frame_a_callers_exception_filter_enters_stays_on_the_callers_flow_until_the_flow_disposes_it()
+    {
+        // The caller's filter runs in the rethrow's first pass, after RunDetached has put the caller's frame back.
+        // Anything RunDetached did in the second pass, such as a finally block, would run after that filter and could
+        // drop a frame the filter entered, which the flow never disposed.
+        var filterMark = new HighWaterMark(Secret);
+        IDisposable? entered = null;
+
+        using (EgressSubject.Enter("filter-frame-caller", new HighWaterMark(Internal)))
+        {
+            try
+            {
+                RunDetached(() => throw new InvalidOperationException("the work handed off failed"));
+            }
+            catch (InvalidOperationException) when (Entered("filter-frame", filterMark, ref entered))
+            {
+            }
+
+            var inside = Decide(EgressFamilies.ModelMeai);
+            inside.CurrentBasis.Should().Be(
+                SubjectPrefix + "filter-frame", "the flow never disposed the frame its filter entered, so it is still the flow's head");
+            inside.Current.Should().Be(Secret, "the flow decides at that frame's mark, joined with the caller's");
+            inside.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+            EgressSubjectNestingTests.RestorePathLength().Should().Be(2, "the filter's frame, inside the caller's");
+
+            entered!.Dispose();
+            EgressSubjectNestingTests.RestorePathLength().Should().Be(1, "disposing its head takes the flow back to the caller's frame");
+            var back = Decide(EgressFamilies.ModelMeai);
+            back.CurrentBasis.Should().Be(SubjectPrefix + "filter-frame-caller");
+            back.Current.Should().Be(Secret, "the filter's frame observed its mark into the caller's frame when it ended");
+        }
+    }
+
+    [Fact]
+    public async Task A_task_or_callback_the_caller_creates_keeps_the_callers_frame_when_RunDetached_starts_or_triggers_it()
+    {
+        // A Task, a Timer, a cancellation registration and a continuation capture the flow where they are created, not
+        // where they start or fire. So one the caller created and the callback starts or triggers runs in the caller's
+        // frame, and one the callback created runs detached, wherever it is started or triggered.
+        var callerMade = new Dictionary<string, Task<EgressDecision>>();
+        var callbackMade = new Dictionary<string, Task<EgressDecision>>();
+
+        using (EgressSubject.Enter("created-caller", new HighWaterMark(Secret)))
+        {
+            var cold = new Task<EgressDecision>(() => Decide(EgressFamilies.ModelMeai));
+            var (timer, timerSeen) = IdleTimer();
+            using var cancel = new CancellationTokenSource();
+            var registrationSeen = Signal();
+            using var registration = cancel.Token.Register(() => registrationSeen.TrySetResult(Decide(EgressFamilies.ModelMeai)));
+            var antecedent = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var continuation = antecedent.Task.ContinueWith(_ => Decide(EgressFamilies.ModelMeai), TaskScheduler.Default);
+
+            Task<EgressDecision>? cold2 = null;
+            Timer? timer2 = null;
+            Task<EgressDecision>? timer2Seen = null;
+            CancellationTokenSource? cancel2 = null;
+            CancellationTokenRegistration registration2 = default;
+            var registration2Seen = Signal();
+            var antecedent2 = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Task<EgressDecision>? continuation2 = null;
+
+            RunDetached(() =>
+            {
+                // Created by the caller, started or triggered here.
+                cold.Start();
+                timer.Change(0, Timeout.Infinite);
+                cancel.Cancel();
+                antecedent.SetResult();
+
+                // Created here. Task.Run starts at once; the rest are started or triggered by the caller after the
+                // callback returns.
+                callbackMade["Task.Run"] = Task.Run(() => Decide(EgressFamilies.ModelMeai));
+                cold2 = new Task<EgressDecision>(() => Decide(EgressFamilies.ModelMeai));
+                (timer2, timer2Seen) = IdleTimer();
+                cancel2 = new CancellationTokenSource();
+                registration2 = cancel2.Token.Register(() => registration2Seen.TrySetResult(Decide(EgressFamilies.ModelMeai)));
+                continuation2 = antecedent2.Task.ContinueWith(_ => Decide(EgressFamilies.ModelMeai), TaskScheduler.Default);
+            });
+
+            Decide(UnknownFamily).CurrentBasis.Should().Be(SubjectPrefix + "created-caller", "the callback has returned");
+            cold2!.Start();
+            timer2!.Change(0, Timeout.Infinite);
+            cancel2!.Cancel();
+            antecedent2.SetResult();
+
+            callerMade["a cold task"] = cold;
+            callerMade["a timer"] = timerSeen;
+            callerMade["a registration"] = registrationSeen.Task;
+            callerMade["a continuation"] = continuation;
+            callbackMade["a cold task"] = cold2;
+            callbackMade["a timer"] = timer2Seen!;
+            callbackMade["a registration"] = registration2Seen.Task;
+            callbackMade["a continuation"] = continuation2!;
+
+            // Every decision is awaited while the caller's frame is live, so a frame that ended cannot explain what it
+            // shows.
+            foreach (var (what, decided) in callerMade)
+            {
+                var decision = await decided.WaitAsync(Patience);
+                decision.CurrentBasis.Should().Be(
+                    SubjectPrefix + "created-caller",
+                    "{0} the caller created captured the caller's flow, so it keeps the caller's frame although the callback started or triggered it",
+                    what);
+                decision.Current.Should().Be(Secret, "{0} the caller created decides at the caller's mark", what);
+                decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+            }
+
+            foreach (var (what, decided) in callbackMade)
+            {
+                var decision = await decided.WaitAsync(Patience);
+                decision.CurrentBasis.Should().Be(
+                    NoSubject, "{0} the callback created captured the detachment, wherever it was started or triggered", what);
+                decision.Current.Should().Be(SecurityLabel.SystemHigh);
+                decision.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+            }
+
+            timer.Dispose();
+            timer2.Dispose();
+            registration2.Dispose();
+            cancel2.Dispose();
+        }
+
+        callerMade.Should().HaveCount(4);
+        callbackMade.Should().HaveCount(5);
+    }
+
+    [Fact]
     public async Task A_task_started_inside_RunDetached_keeps_no_subject_after_it_returns_and_after_the_callers_frame_ends()
     {
         var returned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -617,6 +744,24 @@ public sealed class EgressSubjectDetachTests
     // A filter that records where it ran and declines, so the exception goes on up the stack.
     private static bool Declined(List<string> order, string step, List<(EgressDecision Decision, int Length)> seen) =>
         !Step(order, step, seen);
+
+    // A filter that enters a frame on the flow it runs on and leaves it open, so the catch it guards is taken.
+    private static bool Entered(string subjectId, HighWaterMark mark, ref IDisposable? entered)
+    {
+        entered = EgressSubject.Enter(subjectId, mark);
+        return true;
+    }
+
+    private static TaskCompletionSource<EgressDecision> Signal() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // A timer created on the calling flow, so it captures that flow, and not yet due: it decides once when it fires.
+    private static (Timer Timer, Task<EgressDecision> Decided) IdleTimer()
+    {
+        var decided = Signal();
+        var timer = new Timer(_ => decided.TrySetResult(Decide(EgressFamilies.ModelMeai)), null, Timeout.Infinite, Timeout.Infinite);
+        return (timer, decided.Task);
+    }
 
     private static bool Observed(SecurityLabel label)
     {
