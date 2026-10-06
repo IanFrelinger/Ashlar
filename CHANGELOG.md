@@ -210,6 +210,26 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `AllowAutoRedirect` false on the existing primary and do not follow. The Bedrock runtime client sets
   `AmazonBedrockRuntimeConfig.AllowAutoRedirect` false; the SDK still owns that HTTP stack, so a redirect it
   followed anyway is not re-evaluated inside the SDK. The default MEAI Ollama client is unchanged from PR 4.1.
+- **AirGapped stays on local execution, and AirGapped and SecureWorkstation inbound listeners must bind loopback (SPEC-007 PR 4.10).**
+  The egress guard is still report-only. Responses on inbound connections are not mediated until PR 5's CanRead
+  at the server seams. What this release enforces at boot and at routing:
+  - On AirGapped, a remote routing reason (overnight, VRAM, compute class, queue depth) runs locally, with the
+    reason `AirGapped: remote execution unavailable; running locally (<reason>)`. An explicit peer-network-only
+    request throws and is not sent to a peer or to RunPod. On Full, an overnight job can still select remote.
+  - `AdaptiveProviderFactory` on AirGapped does not try OpenAI or Azure, for LLM calls or single-image vision.
+    A local resolved provider is tried alone. A non-local resolved name adds neither cloud provider.
+  - Boot refuses, on AirGapped only, a non-empty `BrickHost:RemoteCatalogBaseUrls`,
+    `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true`, and
+    `Ashlar:Meai:Bedrock:Enabled=true`. The same flags still boot on Full.
+  - The ollama.com catalog `Enabled` defaults to false on AirGapped when that key is unset. An explicit value
+    still wins. The Full default stays true.
+  - MCP over HTTP fails boot on SecureWorkstation. Stdio still boots. AirGapped still refuses an enabled MCP
+    server. Hosts select HTTP with `WithAshlarHttpTransport` (it registers the marker, then `WithHttpTransport`).
+  - On AirGapped and SecureWorkstation, API urls (`ASPNETCORE_URLS` and `Kestrel:Endpoints:*:Url`) and mesh serve
+    must bind loopback or boot fails. `127.0.0.1`, `localhost` and `::1` succeed; `0.0.0.0`, `+` and `*` fail.
+    An empty url list is the host default and is allowed. Mesh serve reads optional `ASHLAR_MESH_SERVE_BIND`;
+    unset on these profiles is any-interface and fails boot rather than being rewritten.
+
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes
   behaviour.

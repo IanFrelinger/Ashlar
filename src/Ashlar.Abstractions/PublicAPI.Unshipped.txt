@@ -130,3 +130,13 @@ static Ashlar.Abstractions.Security.SecurityLabel.SystemHigh.get -> Ashlar.Abstr
 static Ashlar.Abstractions.Security.SecurityLabel.TryParse(string? text, out Ashlar.Abstractions.Security.SecurityLabel! label) -> bool
 static Ashlar.Abstractions.Security.SecurityLabel.operator !=(Ashlar.Abstractions.Security.SecurityLabel? left, Ashlar.Abstractions.Security.SecurityLabel? right) -> bool
 static Ashlar.Abstractions.Security.SecurityLabel.operator ==(Ashlar.Abstractions.Security.SecurityLabel? left, Ashlar.Abstractions.Security.SecurityLabel? right) -> bool
+Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions
+Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.AshlarResolvedDeploymentProfileOptions() -> void
+Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.IsAirGapped.get -> bool
+Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.IsSecureWorkstation.get -> bool
+Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.Profile.get -> string!
+Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.Profile.set -> void
+Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.RequiresLoopback.get -> bool
+const Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.AirGapped = "air-gapped" -> string!
+const Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.Full = "full" -> string!
+const Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.SecureWorkstation = "secure-workstation" -> string!

@@ -125,6 +125,8 @@
     <ProjectReference Include="..\Ashlar.Manifest\Ashlar.Manifest.csproj" />
     <ProjectReference Include="..\Ashlar.Bricks.Owasp\Ashlar.Bricks.Owasp.csproj" />
     <ProjectReference Include="..\Ashlar.Hosting\Ashlar.Hosting.csproj" />
+    <!-- SPEC-007 PR 4.10: the cert-gate twin composes MCP HTTP vs stdio. The server multi-targets net8.0. -->
+    <ProjectReference Include="..\Ashlar.Mcp.Server\Ashlar.Mcp.Server.csproj" />
     <ProjectReference Include="..\Ashlar.Ingress.DynamoDb\Ashlar.Ingress.DynamoDb.csproj" />
     <ProjectReference Include="..\Ashlar.Client\Ashlar.Client.csproj" />
   </ItemGroup>

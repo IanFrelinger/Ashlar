@@ -91,7 +91,13 @@ public static class MeaiPipelineServiceCollectionExtensions
 
         configure?.Invoke(options);
         ApplyBedrockAllowListDefaults(options);
-        services.AddSingleton(Options.Create(options));
+        // Options pipeline, not Options.Create: IValidateOptions and a later Configure must see this instance.
+        // The local snapshot above is what RegisterGovernanceDefaults and the Bedrock tier registration capture.
+        services.AddOptions<MeaiPipelineOptions>()
+            .Configure(destination => CopyMeaiPipelineOptions(options, destination))
+            .ValidateOnStart();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<MeaiPipelineOptions>, ValidateAirGappedMeaiBedrockOptions>());
 
         RegisterGovernanceDefaults(services, options);
         RegisterRoutingDefaults(services);
@@ -346,5 +352,16 @@ public static class MeaiPipelineServiceCollectionExtensions
                 options.AllowedCloudTargets.Add(child.Value.Trim());
             }
         }
+    }
+
+    private static void CopyMeaiPipelineOptions(MeaiPipelineOptions source, MeaiPipelineOptions destination)
+    {
+        destination.OllamaBaseUrl = source.OllamaBaseUrl;
+        destination.OllamaModel = source.OllamaModel;
+        destination.LocalModelPath = source.LocalModelPath;
+        destination.LocalContextSize = source.LocalContextSize;
+        destination.LocalMaxTokens = source.LocalMaxTokens;
+        destination.Bedrock = source.Bedrock;
+        destination.AllowedCloudTargets = source.AllowedCloudTargets;
     }
 }
