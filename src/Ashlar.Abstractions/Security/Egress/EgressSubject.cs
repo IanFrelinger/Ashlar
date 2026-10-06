@@ -55,7 +55,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <see cref="HighWaterMark"/> ("Disposed frames still count"). Work keeps the frames of the flow where it captured
 /// the execution context: a <c>Task</c>, a <c>System.Threading.Timer</c>, a cancellation registration or a
 /// continuation where it is created, a <c>Thread</c> or a <c>System.Timers.Timer</c> where it is started. So what is
-/// read by work created before the frame and started or triggered inside it, such as a cold task, or by a thread
+/// read by a <c>Task</c>, <c>System.Threading.Timer</c>, registration or continuation created before the frame and
+/// started or triggered inside it, such as a cold task, or by a thread
 /// created inside it and started after the <c>using</c> block ends, never reaches the frame's mark, and a decision in
 /// the frame can be below what that work read: create and start the work a frame reads through inside its
 /// <c>using</c> block.</para>

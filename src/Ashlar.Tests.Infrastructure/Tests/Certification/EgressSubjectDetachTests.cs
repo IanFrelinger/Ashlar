@@ -213,7 +213,7 @@ public sealed class EgressSubjectDetachTests
     [Fact]
     public void RunDetached_writes_the_flows_frame_only_inside_a_try_that_catches_everything_or_in_that_catch()
     {
-        // An asynchronous abort, such as the one ControlledExecution.Run raises on .NET 8 and later, can arrive between
+        // An asynchronous abort, such as the one ControlledExecution.Run raises on .NET 7 and later, can arrive between
         // any two instructions outside an exception handler. One that arrives inside a try that catches everything goes
         // to that catch, which puts the caller's frame back, and the runtime holds it back while a catch runs. A write of
         // the flow's frame outside both, such as a restore after the try, leaves a window in which the abort leaves
