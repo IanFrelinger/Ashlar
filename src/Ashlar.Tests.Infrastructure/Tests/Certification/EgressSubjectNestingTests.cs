@@ -25,10 +25,16 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// inside it. A parent frame that ends while a fire-and-forget task started inside it still runs counts for every
 /// frame that task enters, then or later, and is still raised by what the task reads, in a frame of its own or with
 /// none, so a sibling task started inside the same parent counts it. Otherwise a parent frame that ends first would
-/// declassify a child task still running inside it, whose closures may hold what the parent read.</para>
-/// <para><b>Unwinding.</b> A flow that disposes its own frames out of order goes back to where in-order <c>using</c>
-/// blocks would have left it, past the enclosing frame it disposed first, so no chain of disposed frames builds up on
-/// it, also across the iterations of an async loop. A task started inside that enclosing frame does not go past it.</para>
+/// declassify a child task still running inside it, whose closures may hold what the parent read. A frame being
+/// disposed counts as live until its mark has reached the frames around it, so a task with no frame of its own never
+/// decides at the enclosing frame without that mark.</para>
+/// <para><b>Unwinding.</b> A flow that disposes its own frames out of order, in any order, goes back to where
+/// in-order <c>using</c> blocks would have left it, past the frames it disposed first, so no chain of disposed frames
+/// builds up on it, also across the iterations of an async loop, and nothing stays reachable from an unwound frame.
+/// Only that flow goes past them. A task started inside such a frame, also one handed a child scope to end, and the
+/// flow that entered a frame another flow disposed (a background task, <c>await Task.Run(parent.Dispose)</c>) stay
+/// inside it, also after ending the frames around it, in every dispose order, and read its mark when they decide, also
+/// what it rose to after it ended.</para>
 /// <para><b>Process-global state.</b> None. Frames live on each test's own async flow, the guard has an explicit
 /// profile and reads no environment variable, and each decision is read from the value <c>Evaluate</c> returns.</para>
 /// <para>Hermetic: no network, no files, no environment.</para>

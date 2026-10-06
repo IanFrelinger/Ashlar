@@ -23,9 +23,11 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// the publisher is inside a frame, and the publisher's own frame is restored when <c>PublishAsync</c> returns.
 /// Under <c>Detach</c> a decision has no subject; a frame entered under it starts a chain of its own whose reads never
 /// reach the caller's frames; disposing it restores the caller's frame on that flow only, exactly, so a task inside a
-/// parent frame that has ended is back inside that parent after it publishes; and a task started under it keeps no
-/// subject after the caller is restored. The convention fact pins every call site of <c>Detach</c> in the
-/// repository's C#, and that the bus starts each subscriber inside the detached block.</para>
+/// parent frame that has ended is back inside that parent after it publishes; a task started under it keeps no
+/// subject after the caller is restored, also when the detachment ends before a frame entered under it that the task
+/// ends; and a flow that disposes its own detachment out of order goes back to the caller's frame, as in-order
+/// <c>using</c> blocks would, in every dispose order and over 50 iterations. The convention fact pins every call site
+/// of <c>Detach</c> in the repository's C#, and that the bus starts each subscriber inside the detached block.</para>
 /// <para><b>Internal surface.</b> This assembly is not in <c>Ashlar.Abstractions</c>' InternalsVisibleTo, so
 /// <c>Detach</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
 /// <para><b>Process-global state.</b> None: frames live on each test's own flow, the guard has an explicit profile,
