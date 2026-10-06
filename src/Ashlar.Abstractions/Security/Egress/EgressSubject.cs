@@ -159,10 +159,13 @@ public static class EgressSubject
             return (current, innermost.Basis);
         }
 
-        // Joins label into the mark of every live subject frame on the chain.
+        // Joins label into the mark of every subject frame on the chain, live or disposed, up to the end of the chain
+        // or a detachment. A disposed frame still counts for the live frames entered inside it (Resolve), so it is
+        // raised too: a task that outlives its parent frame, or a frame disposed after it, still reaches every
+        // sibling task started inside that parent.
         internal static void ObserveInto(Frame? chain, SecurityLabel label)
         {
-            for (var frame = Live(chain); frame?.Mark is not null; frame = Live(frame._previous))
+            for (var frame = chain; frame?.Mark is not null; frame = frame._previous)
                 frame.Mark.Observe(label);
         }
 
@@ -175,9 +178,12 @@ public static class EgressSubject
             if (Mark is not null)
                 ObserveInto(_previous, Mark.Current);
 
-            // Only the flow this frame is current on changes. Anywhere else the frame simply stops counting.
+            // Only the flow this frame is current on changes, and it goes back to exactly the frame it was entered
+            // under, even when that one was disposed meanwhile: a task started inside a parent frame stays inside it
+            // after a frame of its own ends, so a frame it enters later still counts the parent's mark. Anywhere else
+            // the frame simply stops being the innermost one.
             if (ReferenceEquals(Active.Value, this))
-                Active.Value = Live(Mark is null ? _restore : _previous);
+                Active.Value = Mark is null ? _restore : _previous;
         }
     }
 }
