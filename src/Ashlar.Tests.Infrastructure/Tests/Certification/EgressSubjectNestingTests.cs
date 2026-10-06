@@ -29,17 +29,17 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// first would declassify a child task still running inside it, whose closures may hold what the parent read. A frame
 /// being disposed counts as live until its mark has reached the frames around it, so a task with no frame of its own
 /// never decides below that mark, nor names the enclosing frame before it holds the mark.</para>
-/// <para><b>Leaving a frame.</b> A flow leaves a frame only by disposing the frame that is its own innermost one, and
-/// goes back to exactly the frame that one was entered under, disposed or not; disposing a frame anywhere else moves no
-/// flow. So a flow that disposes its own frames out of order stays inside the outer frame it disposed (fail closed): a
-/// frame it enters afterwards joins that frame's mark, in every order of three, and in an async loop the flow's chain
-/// grows by exactly one frame per iteration (lengths pinned), while nothing stays reachable from the inner frame; and
-/// what such a flow reads later raises the outer frame's mark, which is the subject's shared one, so another session of
-/// that subject decides at it. A task started inside a frame disposed first, also one started after an out-of-order
-/// dispose or handed a child scope to end, and the flow that entered a frame another flow disposed (a background task,
-/// <c>await Task.Run(parent.Dispose)</c>) stay inside it, also after ending the frames around it, in every dispose order,
-/// and read its mark when they decide, with no frame of their own or in one they enter, also what it rose to after it
-/// ended.</para>
+/// <para><b>Leaving a frame.</b> A flow leaves a frame only by disposing its head, the flow's own frame (which may be a
+/// disposed one, so not always its innermost live frame), and goes back to exactly the frame that one was entered
+/// under, disposed or not; disposing a frame anywhere else moves no flow. So a flow that disposes its own frames out of
+/// order stays inside the outer frame it disposed (fail closed): a frame it enters afterwards joins that frame's mark,
+/// in every order of three, and in an async loop the flow's chain grows by exactly one frame per iteration (lengths
+/// pinned), while nothing stays reachable from the inner frame; and what such a flow reads later raises the outer
+/// frame's mark, which is the subject's shared one, so another session of that subject decides at it. A task started
+/// inside a frame disposed first, also one started after an out-of-order dispose or handed a child scope to end, and
+/// the flow that entered a frame another flow disposed (a background task, <c>await Task.Run(parent.Dispose)</c>) stay
+/// inside it, also after ending the frames around it, in every dispose order, and read its mark when they decide, with
+/// no frame of their own or in one they enter, also what it rose to after it ended.</para>
 /// <para><b>Process-global state.</b> None. Frames live on each test's own async flow, the guard has an explicit
 /// profile and reads no environment variable, and each decision is read from the value <c>Evaluate</c> returns.</para>
 /// <para>Hermetic: no network, no files, no environment.</para>
@@ -264,7 +264,7 @@ public sealed class EgressSubjectNestingTests
         var decision = await sibling.WaitAsync(Patience);
 
         own.CurrentBasis.Should().Be(
-            NoSubject, "a disposed frame is never the innermost one, so a task with no frame of its own decides with no subject");
+            NoSubject, "a disposed frame is never the innermost live one, so a task with no frame of its own decides with no subject");
         decision.CurrentBasis.Should().Be(SubjectPrefix + "frameless-sibling");
         decision.Current.Should().Be(
             observed, "what the reader observes still raises the parent it was started inside, which the sibling counts");
@@ -281,7 +281,7 @@ public sealed class EgressSubjectNestingTests
 
         RestorePathLength().Should().Be(1, "the flow left only the frame that was its head, so it is still in the outer frame");
         var none = Decide(EgressFamilies.ModelMeai);
-        none.CurrentBasis.Should().Be(NoSubject, "a disposed frame is never the innermost one");
+        none.CurrentBasis.Should().Be(NoSubject, "a disposed frame is never the innermost live one");
         none.Current.Should().Be(SecurityLabel.SystemHigh);
         using (EgressSubject.Enter("stay-after", new HighWaterMark()))
         {
@@ -428,7 +428,7 @@ public sealed class EgressSubjectNestingTests
         });
         var (noFrame, late) = await task.WaitAsync(Patience);
 
-        noFrame.CurrentBasis.Should().Be(NoSubject, "the task's only frames have ended, and a disposed frame is never the innermost one");
+        noFrame.CurrentBasis.Should().Be(NoSubject, "the task's only frames have ended, and a disposed frame is never the innermost live one");
         noFrame.Current.Should().Be(SecurityLabel.SystemHigh);
         late.CurrentBasis.Should().Be(SubjectPrefix + "after-dispose-late");
         late.Current.Should().Be(
@@ -460,7 +460,7 @@ public sealed class EgressSubjectNestingTests
         parentDisposed.SetResult();
         var (noFrame, late) = await task.WaitAsync(Patience);
 
-        noFrame.CurrentBasis.Should().Be(NoSubject, "the task's only frames have ended, and a disposed frame is never the innermost one");
+        noFrame.CurrentBasis.Should().Be(NoSubject, "the task's only frames have ended, and a disposed frame is never the innermost live one");
         late.CurrentBasis.Should().Be(SubjectPrefix + "handed-late");
         late.Current.Should().Be(
             Secret, "the task was started inside the Secret parent and never disposed it, so a frame it enters later still counts it");
@@ -543,7 +543,7 @@ public sealed class EgressSubjectNestingTests
             own.CurrentBasis.Should().Be(SubjectPrefix + "frameless-raised-enclosing");
             own.Current.Should().Be(SecurityLabel.Public, "this flow ended the parent itself, in order, so it is past it");
             noFrame.CurrentBasis.Should().Be(
-                SubjectPrefix + "frameless-raised-enclosing", "a disposed frame is never the innermost one, so the basis names the nearest live frame");
+                SubjectPrefix + "frameless-raised-enclosing", "a disposed frame is never the innermost live one, so the basis names the nearest live frame");
             noFrame.Current.Should().Be(
                 Secret,
                 "the task never disposed the parent, so with no frame of its own it is still inside it and reads what its mark rose to after it ended");
@@ -582,7 +582,7 @@ public sealed class EgressSubjectNestingTests
             var (noFrame, late) = await task.WaitAsync(Patience);
 
             noFrame.CurrentBasis.Should().Be(
-                SubjectPrefix + "raised-enclosing", "a disposed frame is never the innermost one, so the basis names the nearest live frame");
+                SubjectPrefix + "raised-enclosing", "a disposed frame is never the innermost live one, so the basis names the nearest live frame");
             noFrame.Current.Should().Be(
                 Secret,
                 "with no frame of its own the task is still inside the parent it never disposed, and reads what the parent's mark rose to, which the enclosing frame never saw");
@@ -609,7 +609,7 @@ public sealed class EgressSubjectNestingTests
 
             var noFrame = Decide(UnknownFamily);
             noFrame.CurrentBasis.Should().Be(
-                SubjectPrefix + "raised-awaited-enclosing", "a disposed frame is never the innermost one, so the basis names the nearest live frame");
+                SubjectPrefix + "raised-awaited-enclosing", "a disposed frame is never the innermost live one, so the basis names the nearest live frame");
             noFrame.Current.Should().Be(
                 Secret,
                 "ending its own child in order leaves this flow inside the parent, so with no frame of its own it still reads what the parent's mark rose to");

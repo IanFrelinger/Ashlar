@@ -20,20 +20,22 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>Why.</b> <see cref="AgentBus.PublishAsync"/> runs every subscriber's handler through <c>Task.Run</c>, which
 /// captures the publisher's execution context, so before 4.4 a subscriber's egress was decided at the publisher's
 /// mark: another component's sends attributed to, and allowed or refused by, what the publisher had read.</para>
-/// <para><b>What is pinned.</b> A subscriber decides with no subject (<see cref="SecurityLabel.SystemHigh"/>) while
-/// the publisher is inside a frame, and the publisher's own frame is restored when <c>PublishAsync</c> returns, also
-/// for a task inside a parent frame that has ended, which a frame it enters afterwards still counts. While the callback
-/// runs a decision has no subject, and a frame entered inside it starts a chain of its own whose reads never reach the
-/// caller's frames. When the callback returns, or throws, the calling flow is back in exactly the caller's frame. A frame
-/// the callback enters and leaves undisposed is dropped from the calling flow, which decides at its own mark, also after
-/// it disposes that frame. A task started inside keeps no subject for its whole life: after the callback returns, after
-/// the caller's frame ends, and when the frame it was handed ends after the callback returned. No caller holds the
-/// detachment, so none can end it out of order or hand it to a task, and no program on one flow leaves the flow
-/// detached, or below a live frame it entered outside every callback: not the 24 that return from the callback while
-/// frames entered inside it are undisposed and dispose them afterwards, and not any of the 2,092 programs of an
-/// enclosing frame, two more frames and two callbacks, nested or in turn, each checked step by step against a model of
-/// the rule. The convention fact pins every call site of <c>RunDetached</c> in the repository's C#, and that the bus
-/// starts each subscriber inside the callback.</para>
+/// <para><b>What is pinned.</b> A subscriber decides with no subject (<see cref="SecurityLabel.SystemHigh"/>) while the
+/// publisher is inside a frame, and the publisher's own frame is restored when <c>PublishAsync</c> returns, also for a
+/// task inside a parent frame that has ended, which a frame it enters afterwards still counts. While the callback runs
+/// a decision has no subject, and a frame entered inside it starts a chain of its own whose reads never reach the
+/// caller's frames. When the callback returns, or throws, the calling flow is back in exactly the caller's frame, and
+/// when it throws, before any exception filter of the caller runs: the callback's own filters and finally blocks run
+/// detached, and a filter of the caller decides at the caller's mark and what it reads raises the caller's frame, also
+/// around a nested callback. A frame the callback enters and leaves undisposed is dropped from the calling flow, which
+/// decides at its own mark, also after it disposes that frame. A task started inside keeps no subject for its whole
+/// life: after the callback returns, after the caller's frame ends, and when the frame it was handed ends after the
+/// callback returned. No caller holds the detachment, so none can end it out of order or hand it to a task, and no
+/// program on one flow leaves the flow detached, or below a live frame it entered outside every callback: not the 24
+/// that dispose three frames entered inside the callback in every order, 0 to 3 of them before it returns and the rest
+/// after it, and not any of the 2,092 programs of an enclosing frame, up to two more frames and up to two callbacks,
+/// nested or in turn, each checked step by step against a model of the rule. The convention fact pins every call site
+/// of <c>RunDetached</c> in the repository's C#, and that the bus starts each subscriber inside the callback.</para>
 /// <para><b>Internal surface.</b> This assembly is not in <c>Ashlar.Abstractions</c>' InternalsVisibleTo, so
 /// <c>RunDetached</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
 /// <para><b>Process-global state.</b> None: frames live on each test's own flow (the program twin runs each program on
@@ -394,7 +396,7 @@ public sealed class EgressSubjectDetachTests
                 var detached = EgressSubject.Enter("detach-order-detached", detachedMark);
 
                 // Started inside a frame entered under the detachment, and handed that frame to end. The callback returns
-                // while that frame is still its innermost one, so the detachment ends first.
+                // while that frame is still its head, so the detachment ends first.
                 task = Task.Run(async () =>
                 {
                     await release.Task.WaitAsync(Patience);
@@ -443,7 +445,7 @@ public sealed class EgressSubjectDetachTests
             back.Current.Should().Be(Internal, "the caller decides at its own mark: a frame entered under a detachment never reaches the caller");
             back.Access.Allowed.Should().BeTrue("Internal data may go to an Internal model: {0}", back.Access);
 
-            // On the calling flow, after the callback returned: not this flow's innermost frame, so no flow moves.
+            // On the calling flow, after the callback returned: not this flow's head, so no flow moves.
             left!.Dispose();
             EgressSubjectNestingTests.RestorePathLength().Should().Be(1);
             callerMark.Current.Should().Be(Internal, "its mark reaches only the frames it was entered inside, which end at the detachment");

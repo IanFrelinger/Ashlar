@@ -84,12 +84,13 @@ The status line above and the starting prompt are the owner's, as written; the s
   `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
 - **PR 4.4** (#716) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
-  and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own innermost
-  frame, so a flow that disposes frames out of order stays inside the outer one (fail closed, at the costs in the
-  4.5 obligation above); `EgressSubject.Observe` raises every frame on the chain;
+  and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
+  frame (disposed or not), so a flow that disposes frames out of order stays inside the outer one (fail closed, at
+  the costs in the 4.5 obligation above); `EgressSubject.Observe` raises every frame on the chain;
   a `BeginRead` scope that ends unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run
   with no subject, inside a callback run by the internal `EgressSubject.RunDetached`, which puts the publisher's frame
-  back exactly when it returns. Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
+  back exactly when it returns or throws, before any exception filter of the publisher runs. Report-only, and no
+  production code enters a frame yet. **Amended PR 4 design:** its
   `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
   the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
   `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant

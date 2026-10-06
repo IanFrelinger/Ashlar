@@ -511,12 +511,12 @@ public sealed class EgressGuardDecisionTests
         release.SetResult();
         var decision = await child.WaitAsync(TimeSpan.FromSeconds(30));
 
-        decision.CurrentBasis.Should().Be(NoSubject, "a disposed frame is never the innermost one, so a child with no frame of its own fails closed");
+        decision.CurrentBasis.Should().Be(NoSubject, "a disposed frame is never the innermost live one, so a child with no frame of its own fails closed");
         decision.Current.Should().Be(SecurityLabel.SystemHigh);
     }
 
     [Fact]
-    public async Task A_frame_disposed_from_another_flow_stops_counting_on_this_one()
+    public async Task A_frame_disposed_from_another_flow_no_longer_names_this_flows_decisions()
     {
         var scope = EgressSubject.Enter("shared", new HighWaterMark());
         try
@@ -525,7 +525,7 @@ public sealed class EgressGuardDecisionTests
 
             await Task.Run(scope.Dispose).WaitAsync(TimeSpan.FromSeconds(30));
 
-            Decide("not-a-family", Remote).CurrentBasis.Should().Be(NoSubject, "the frame is disposed, so it is no longer the innermost one");
+            Decide("not-a-family", Remote).CurrentBasis.Should().Be(NoSubject, "the frame is disposed, so it is no longer the innermost live one");
         }
         finally
         {
