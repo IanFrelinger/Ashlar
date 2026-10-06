@@ -75,7 +75,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   `meai:<key>`; a `file:` destination is never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at
   `https://ollama.com`; and the default MEAI Ollama client stops following redirects (a behaviour change).
   `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
-- **PR 4.2** (this PR): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
+- **PR 4.2** (#719): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
   a synchronous `Send` through `EgressHttp` is refused with `NotSupportedException` before anything is sent, the
   factory handler is refused there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0`
   or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
