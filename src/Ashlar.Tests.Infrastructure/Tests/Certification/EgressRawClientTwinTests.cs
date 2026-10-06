@@ -37,6 +37,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 public sealed class EgressRawClientTwinTests
 {
     private const string Refused = "http://127.0.0.1:1";
+    private const string Daemon = "http://localhost:11434";
+    private const string OllamaCom = "https://ollama.com";
 
     [Fact]
     public async Task ProviderFactory_static_cloud_client_records_EG_MDL_03()
@@ -77,6 +79,8 @@ public sealed class EgressRawClientTwinTests
     /// <c>https://ollama.com</c>. The handler's own decisions still name the daemon the bytes go to. A local model gets
     /// no such decision. Report-only: the chat is sent either way. The provider runs over an <c>EgressHttp</c> client on
     /// a stub handler, inside a subject frame of its own, so only its decisions are counted and nothing reaches a socket.
+    /// The decisions are asserted in order: the relay decision comes after the tags send and before the chat send,
+    /// which is where PR 4.9 makes it refuse.
     /// </summary>
     [Theory]
     [InlineData("gpt-oss:120b-cloud", true)]
@@ -98,7 +102,7 @@ public sealed class EgressRawClientTwinTests
 
         chat.IsSuccess.Should().BeTrue("report-only: the chat is sent whatever the decision");
         stub.Requests.Should().Equal(new[] { "http://localhost:11434/api/tags", "http://localhost:11434/api/chat" });
-        var relayed = sink.Seen.Where(d => d.Destination == "https://ollama.com").ToList();
+        var relayed = sink.Seen.Where(d => d.Destination == OllamaCom).ToList();
         if (cloud)
         {
             var decision = relayed.Should().ContainSingle("'{0}' runs on ollama.com", model).Which;
@@ -111,35 +115,48 @@ public sealed class EgressRawClientTwinTests
             relayed.Should().BeEmpty("'{0}' runs on the local daemon", model);
         }
 
-        sink.Seen.Where(d => d.Destination == "http://localhost:11434").Should().HaveCount(
-            2, "the handler still records each send to the daemon (tags, then chat)");
+        sink.Seen.Select(d => d.Destination).Should().Equal(
+            cloud ? new[] { Daemon, OllamaCom, Daemon } : new[] { Daemon, Daemon },
+            "the handler records each send to the daemon (tags, then chat), and the relay decision is made before the chat is sent");
     }
 
     /// <summary>
-    /// SPEC-007 PR 4.1 (D34), the resolved-name half of the rule: a config asks for the short name <c>gpt-oss</c>, the
-    /// daemon lists only <c>gpt-oss:120b-cloud</c>, and <c>OllamaProvider</c> resolves the one by its single family
-    /// prefix and sends the chat with the resolved, cloud name. The requested name is not a cloud id, so only the
-    /// resolved name can record the relay: one EG-MDL-07 decision, an external model at <c>https://ollama.com</c>.
+    /// SPEC-007 PR 4.1 (D34), each half of the rule on its own. <c>OllamaProvider</c> resolves the requested name
+    /// against the daemon's list and sends the chat with the resolved name, and the rule fires on either name. In each
+    /// row exactly one of the two is a cloud id, so each row pins one operand:
+    /// <list type="bullet">
+    /// <item><c>gpt-oss</c> resolves by its single family prefix to <c>gpt-oss:120b-cloud</c>: only the resolved name
+    /// is a cloud id.</item>
+    /// <item><c>foo-cloud</c> resolves by the bare-name <c>:latest</c> rule to <c>foo-cloud:latest</c>, which no longer
+    /// ends in <c>-cloud</c>: only the requested name is (the fail-closed half).</item>
+    /// </list>
+    /// Either way there is one EG-MDL-07 decision, an external model at <c>https://ollama.com</c>, made before the chat
+    /// is sent.
     /// </summary>
-    [Fact]
-    public async Task OllamaProvider_records_a_short_name_that_resolves_to_a_cloud_model_at_ollama_com()
+    [Theory]
+    [InlineData("gpt-oss", "gpt-oss:120b-cloud")]
+    [InlineData("foo-cloud", "foo-cloud:latest")]
+    public async Task OllamaProvider_records_the_relay_when_only_the_requested_or_only_the_resolved_name_is_a_cloud_id(
+        string requested, string listed)
     {
         var id = "egress-twin-" + Guid.NewGuid().ToString("N");
         var sink = new FrameSink("subject:" + id);
         using var subscription = EgressDecisionLog.Subscribe(sink);
         using var frame = EgressSubject.Enter(id, new HighWaterMark());
-        var stub = new OllamaStub("gpt-oss:120b-cloud");
+        var stub = new OllamaStub(listed);
         using var http = EgressHttp.CreateClient(stub, EgressFamilies.ModelLegacy, "EG-MDL-07");
         var provider = new OllamaProvider(http, "http://localhost:11434");
 
         (await provider.RefreshModelsAsync()).IsSuccess.Should().BeTrue();
-        OllamaProvider.IsOllamaCloudModel("gpt-oss").Should().BeFalse("the requested name alone is not a cloud id");
-        var chat = await provider.ExecuteChatAsync("gpt-oss", "system", "user", null);
+        OllamaProvider.IsOllamaCloudModel(requested).Should().NotBe(
+            OllamaProvider.IsOllamaCloudModel(listed), "exactly one of '{0}' and '{1}' is a cloud id", requested, listed);
+        var chat = await provider.ExecuteChatAsync(requested, "system", "user", null);
 
         chat.IsSuccess.Should().BeTrue("report-only: the chat is sent whatever the decision");
-        stub.ChatModels.Should().Equal(new[] { "gpt-oss:120b-cloud" }, "the chat carries the resolved name");
-        var decision = sink.Seen.Where(d => d.Destination == "https://ollama.com").Should()
-            .ContainSingle("the resolved model runs on ollama.com").Which;
+        stub.ChatModels.Should().Equal(new[] { listed }, "the chat carries the resolved name");
+        sink.Seen.Select(d => d.Destination).Should().Equal(
+            new[] { Daemon, OllamaCom, Daemon }, "the relay decision is made after the tags send and before the chat send");
+        var decision = sink.Seen.Single(d => d.Destination == OllamaCom);
         decision.Site.Should().Be("EG-MDL-07");
         decision.Family.Should().Be(EgressFamilies.ModelLegacy);
         decision.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel);
