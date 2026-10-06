@@ -113,7 +113,7 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             var buildHandler = typeof(DefaultGrpcChannelFactory).GetMethod("BuildHandler", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
             var guarded = (DelegatingHandler)buildHandler.Invoke(factory, null)!;
             guarded.GetType().FullName.Should().Be("Ashlar.Abstractions.Security.Egress.EgressGuardHandler", "SPEC-007: the channel handler is wrapped by the egress guard");
-            var httpHandler = (HttpClientHandler)guarded.InnerHandler!;
+            var httpHandler = ConfiguredHandlerOf(guarded);
             httpHandler.ServerCertificateCustomValidationCallback.Should().NotBeNull();
             httpHandler.ServerCertificateCustomValidationCallback!(null!, null, null, System.Net.Security.SslPolicyErrors.None)
                 .Should().BeFalse();
@@ -147,7 +147,7 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             factory.GetOrCreate("http://127.0.0.1:9").Should().NotBeNull();
 
             var buildHandler = typeof(DefaultGrpcChannelFactory).GetMethod("BuildHandler", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-            var httpHandler = (HttpClientHandler)((DelegatingHandler)buildHandler.Invoke(factory, null)!).InnerHandler!;
+            var httpHandler = ConfiguredHandlerOf((DelegatingHandler)buildHandler.Invoke(factory, null)!);
             var serverCertificate = new X509Certificate2(caPem);
             httpHandler.ServerCertificateCustomValidationCallback!(
                     null!,
@@ -200,6 +200,31 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             null!);
 
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// The <see cref="HttpClientHandler"/> the factory configured, at the end of the guarded chain. SPEC-007 PR 4.3
+    /// puts the egress redirect follower between the guard handler and it, so the chain is walked to its end, as
+    /// Grpc.Net.Client walks it to find the handler type; the chain's shape and the handler's own redirect setting are
+    /// pinned on the way.
+    /// </summary>
+    private static HttpClientHandler ConfiguredHandlerOf(DelegatingHandler guarded)
+    {
+        var names = new List<string>();
+        HttpMessageHandler current = guarded;
+        while (current is DelegatingHandler delegating && delegating.InnerHandler is { } inner)
+        {
+            names.Add(current.GetType().Name);
+            current = inner;
+        }
+
+        names.Add(current.GetType().Name);
+        names.Should().Equal(
+            new[] { "EgressGuardHandler", "EgressRedirectHandler", nameof(HttpClientHandler) },
+            "SPEC-007 PR 4.3: the redirect follower sits between the guard handler and the configured handler");
+        var handler = current.Should().BeOfType<HttpClientHandler>().Subject;
+        handler.AllowAutoRedirect.Should().BeFalse("SPEC-007 PR 4.3: the follower above it follows redirects instead");
+        return handler;
     }
 
     private static (string certPem, string keyPem, string caPem, string pfxPath) CreateTempCertificates(string dir)

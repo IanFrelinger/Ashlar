@@ -168,7 +168,7 @@ builder.Services.AddSingleton<ITool, RepoFsReadTool>();
 builder.Services.AddSingleton<ITool, RepoFsListTool>();
 
 builder.Services.AddSingleton<IAshlarIngressAccessor, HttpAshlarIngressAccessor>();
-builder.Services.AddHttpClient("ashlar-sns-signing", c => c.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddHttpClient("ashlar-sns-signing", c => c.Timeout = TimeSpan.FromSeconds(15)).NeverFollowRedirects();
 builder.Services.AddSingleton<ISnsSignatureVerifier, SnsRsaSignatureVerifier>();
 builder.Services.AddRateLimiter(static o =>
 {

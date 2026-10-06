@@ -35,10 +35,20 @@ public sealed class AwsBedrockChatClientFactory : IBedrockChatClientFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
 
         // Construct privately — never AddSingleton<IAmazonBedrockRuntime>.
-        IAmazonBedrockRuntime runtime = string.IsNullOrWhiteSpace(_options.Region)
-            ? new AmazonBedrockRuntimeClient()
-            : new AmazonBedrockRuntimeClient(RegionEndpoint.GetBySystemName(_options.Region.Trim()));
-
+        IAmazonBedrockRuntime runtime = new AmazonBedrockRuntimeClient(RuntimeConfig(_options.Region));
         return runtime.AsIChatClient(modelId);
+    }
+
+    /// <summary>
+    /// The runtime client's configuration: the configured region when there is one (otherwise the SDK's own default
+    /// chain), and never following a redirect (SPEC-007 PR 4.3). The SDK owns its HTTP, below every handler Ashlar can
+    /// place, so a redirect it followed would reach a host no decision names.
+    /// </summary>
+    internal static AmazonBedrockRuntimeConfig RuntimeConfig(string? region)
+    {
+        var config = new AmazonBedrockRuntimeConfig { AllowAutoRedirect = false };
+        if (!string.IsNullOrWhiteSpace(region))
+            config.RegionEndpoint = RegionEndpoint.GetBySystemName(region.Trim());
+        return config;
     }
 }

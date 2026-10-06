@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 154,
     "operator_vars_missing_from_configuration_reference": 19,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 772,
-    "declared_facts": 4874,
+    "test_files_declaring_facts": 774,
+    "declared_facts": 4905,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5100,7 +5100,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardChatClientTwinTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 24,
+      "declared_facts": 26,
       "in_cert_gate_filter": true
     },
     {
@@ -5142,7 +5142,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressHttpNetstandard20TwinTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 8,
+      "declared_facts": 9,
       "in_cert_gate_filter": true
     },
     {
@@ -5171,6 +5171,20 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 5,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRedirectDifferentialTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 6,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRedirectTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 21,
       "in_cert_gate_filter": true
     },
     {
@@ -7144,7 +7158,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/EgressApiHostProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.VirtualProduction",
-      "declared_facts": 3,
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {

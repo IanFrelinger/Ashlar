@@ -46,6 +46,7 @@ public sealed class EgressHttpNetstandard20TwinTests
     private const string Netstandard20Framework = ".NETStandard,Version=v2.0";
     private const string GuardHandlerTypeName = "EgressGuardHandler";
     private const string HopTypeName = "SynchronousSendRefusedOnNetstandard20Asset";
+    private const string FollowerTypeName = "EgressRedirectHandler";
     private const string EventSourceName = "Ashlar-Egress";
 
     // ---------------------------------------------------------------------------------------------------------
@@ -134,15 +135,31 @@ public sealed class EgressHttpNetstandard20TwinTests
         var observed = Netstandard20.Run<IReadOnlyDictionary<string, object?>>(nameof(Netstandard20Driver.BuildEveryShape), NewSite());
 
         // The chain is walked through DelegatingHandler.InnerHandler and, at the hop, which is not a DelegatingHandler,
-        // through its internal Inner: the step a handler-chain walker (SPEC-007 PR 4.3's redirect flip) takes there.
-        var overHttpClientHandler = GuardHandlerTypeName + " > " + HopTypeName + " > " + nameof(HttpClientHandler);
-        var overStub = GuardHandlerTypeName + " > " + HopTypeName + " > StubHandler";
+        // through its internal Inner: the step the redirect follower's walker (SPEC-007 PR 4.3) takes there.
+        // SPEC-007 PR 4.3 puts the redirect follower directly above the primary handler, under the hop.
+        var overHttpClientHandler = GuardHandlerTypeName + " > " + HopTypeName + " > " + FollowerTypeName + " > " + nameof(HttpClientHandler);
+        var overStub = GuardHandlerTypeName + " > " + HopTypeName + " > " + FollowerTypeName + " > StubHandler";
         observed["shape.client-process-default"].Should().Be(overHttpClientHandler, "CreateClient(family, site) is the guard over the hop over an HttpClientHandler");
         observed["shape.client-with-guard"].Should().Be(overHttpClientHandler);
         observed["shape.client-over-inner"].Should().Be(overStub);
         observed["shape.wrap"].Should().Be(overStub);
-        observed["inner.client-over-inner"].Should().Be(true, "the hop's Inner is the caller's own handler instance");
+        observed["inner.client-over-inner"].Should().Be(true, "the chain ends at the caller's own handler instance");
         observed["inner.wrap"].Should().Be(true);
+    }
+
+    [Fact]
+    public async Task On_the_netstandard20_asset_the_follower_is_found_through_the_hop_and_follows_a_same_origin_redirect()
+    {
+        var observed = await Netstandard20.RunAsync(nameof(Netstandard20Driver.FollowThroughTheHopAsync), NewSite());
+
+        // SPEC-007 PR 4.3: a handler Wrap built, wrapped again, already has a follower under its hop. The walker that
+        // places the follower steps through the hop's Inner, finds it, and adds no second one.
+        observed["nested.followers"].Should().Be(1, "the walker steps through the hop (observed: {0})", observed["nested.shape"]);
+        observed["follow.status"].Should().Be(200, "the follower under the hop follows a same-origin redirect");
+        ((string[])observed["follow.paths"]!).Should().Equal("/a", "/a2");
+        ((string[])observed["follow.records"]!).Should().Equal(
+            ["fault=- reason=SystemHighData allowed=False destination=https://async.example mode=report profile=full family=http"],
+            "one origin, one decision");
     }
 
     [Fact]
@@ -430,6 +447,30 @@ public static class Netstandard20Driver
         return observed;
     }
 
+    public static async Task<IReadOnlyDictionary<string, object?>> FollowThroughTheHopAsync(string site)
+    {
+        var observed = new Dictionary<string, object?>(StringComparer.Ordinal);
+        var sink = new RecordSink(site);
+        using var subscription = EgressDecisionLog.Subscribe(sink);
+
+        using (var nested = EgressHttp.Wrap(EgressHttp.Wrap(new StubHandler(), EgressFamilies.Grpc, site, Guard), EgressFamilies.Grpc, site, Guard))
+        {
+            observed["nested.shape"] = Shape(nested);
+            observed["nested.followers"] = Chain(nested).Count(h => h.GetType().Name == "EgressRedirectHandler");
+        }
+
+        var stub = new SameOriginRedirectingHandler();
+        using (var client = EgressHttp.CreateClient(stub, EgressFamilies.Http, site, Guard))
+        using (var response = await client.GetAsync(new Uri("https://async.example/a")))
+        {
+            observed["follow.status"] = (int)response.StatusCode;
+            observed["follow.paths"] = stub.Paths;
+        }
+
+        observed["follow.records"] = sink.Take();
+        return observed;
+    }
+
     public static IReadOnlyDictionary<string, object?> DisposeEveryOwner(string site)
     {
         var clientInner = new StubHandler();
@@ -519,12 +560,12 @@ public static class Netstandard20Driver
     /// <summary>
     /// The handlers from <paramref name="outer"/> inward: through <see cref="DelegatingHandler.InnerHandler"/>, and
     /// through the hop's internal <c>Inner</c>, which a walker of the chain needs because the hop is not a
-    /// <see cref="DelegatingHandler"/>. At most four, so a chain that loops still ends.
+    /// <see cref="DelegatingHandler"/>. At most ten, so a chain that loops still ends.
     /// </summary>
     private static List<HttpMessageHandler> Chain(HttpMessageHandler outer)
     {
         var chain = new List<HttpMessageHandler>();
-        for (HttpMessageHandler? handler = outer; handler is not null && chain.Count < 4; handler = Next(handler))
+        for (HttpMessageHandler? handler = outer; handler is not null && chain.Count < 10; handler = Next(handler))
             chain.Add(handler);
         return chain;
     }
@@ -569,6 +610,27 @@ public static class Netstandard20Driver
             while (_seen.TryDequeue(out var line))
                 taken.Add(line);
             return taken.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// A primary of a type the follower knows (it derives from <see cref="HttpClientHandler"/>): <c>/a</c> answers 302 to
+    /// <c>/a2</c> on the same origin, anything else 200. It never sends anything and never follows on its own.
+    /// </summary>
+    private sealed class SameOriginRedirectingHandler : HttpClientHandler
+    {
+        private readonly ConcurrentQueue<string> _paths = new();
+
+        public string[] Paths => _paths.ToArray();
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            _paths.Enqueue(request.RequestUri!.AbsolutePath);
+            var response = request.RequestUri.AbsolutePath == "/a"
+                ? new HttpResponseMessage(HttpStatusCode.Found) { Headers = { Location = new Uri("/a2", UriKind.Relative) } }
+                : new HttpResponseMessage(HttpStatusCode.OK);
+            response.RequestMessage = request;
+            return Task.FromResult(response);
         }
     }
 

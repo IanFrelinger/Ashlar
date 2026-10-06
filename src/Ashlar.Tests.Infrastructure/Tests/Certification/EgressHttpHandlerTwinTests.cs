@@ -15,15 +15,17 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// and <see cref="EgressHttp.CreateDelegatingHandler"/> put in front of a send.
 /// </summary>
 /// <remarks>
-/// <para><b>What is pinned: report-only.</b> Exactly one decision per send, on the async and the sync path, made
-/// before the inner handler runs; the response is the inner handler's own instance; the request reaches the inner
+/// <para><b>What is pinned: report-only.</b> Exactly one decision per send to one authority, on the async and the
+/// sync path, made before the inner handler runs (a send that reaches another authority, through a redirect or a
+/// rewrite, is decided again: <see cref="EgressRedirectTwinTests"/>); the response is the inner handler's own instance; the request reaches the inner
 /// handler as the same instance with the same content instance and the same headers, and its content is never read,
 /// buffered or measured; a guard that throws (or returns nothing) changes nothing the caller sees; an exception from
 /// the inner handler reaches the caller as the same instance; the decision records only the scheme, host and port.
 /// Also pinned: a <see langword="null"/> guard means <see cref="EgressGuard.ProcessDefault"/>, a request without a
 /// URI is recorded as <c>unknown</c>, a <see langword="null"/> request is not a send, the client and wrapped handler
 /// own the inner handler, the factory handler waits for its pipeline to set the inner handler, and the plain client
-/// is built over <see cref="HttpClientHandler"/>, the handler <c>new HttpClient()</c> uses.</para>
+/// is built over <see cref="HttpClientHandler"/>, the handler <c>new HttpClient()</c> uses, with the redirect follower
+/// between the two.</para>
 /// <para><b>Process-global state.</b> The decision log is process-wide and other classes make decisions in
 /// parallel, so each test subscribes a sink that keeps only its own unique site (<see cref="NewSite"/>) and disposes
 /// it. No test touches the network: the inner handler is a stub, and the one client built over a real
@@ -35,6 +37,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 public sealed class EgressHttpHandlerTwinTests
 {
     private const string GuardHandlerTypeName = "EgressGuardHandler";
+    private const string FollowerTypeName = "EgressRedirectHandler";
 
     private static readonly string[] SecretMarkers = ["twin-user", "pa55word", "PATHMARK", "QUERYTOKEN", "FRAGMARK"];
 
@@ -374,16 +377,21 @@ public sealed class EgressHttpHandlerTwinTests
         using var namedGuard = EgressHttp.CreateClient(EgressFamilies.Mcp, site, guard: Guard);
         using var overInner = EgressHttp.CreateClient(new StubHandler(), EgressFamilies.Mcp, site);
 
+        // SPEC-007 PR 4.3: the redirect follower sits between the guard handler and the primary handler.
         foreach (var client in new[] { plain, withGuard, namedGuard })
         {
             var outer = HandlerOf(client);
             outer.GetType().Name.Should().Be(GuardHandlerTypeName);
-            outer.Should().BeAssignableTo<DelegatingHandler>()
-                .Which.InnerHandler.Should().BeOfType<HttpClientHandler>("the handler new HttpClient() uses");
+            var follower = outer.Should().BeAssignableTo<DelegatingHandler>().Which.InnerHandler;
+            follower!.GetType().Name.Should().Be(FollowerTypeName);
+            follower.Should().BeAssignableTo<DelegatingHandler>()
+                .Which.InnerHandler.Should().BeOfType<HttpClientHandler>("the handler new HttpClient() uses")
+                .Which.AllowAutoRedirect.Should().BeFalse("the follower above it follows redirects instead");
         }
 
-        HandlerOf(overInner).Should().BeAssignableTo<DelegatingHandler>()
-            .Which.InnerHandler.Should().BeOfType<StubHandler>();
+        var overInnerFollower = HandlerOf(overInner).Should().BeAssignableTo<DelegatingHandler>().Which.InnerHandler;
+        overInnerFollower!.GetType().Name.Should().Be(FollowerTypeName);
+        overInnerFollower.Should().BeAssignableTo<DelegatingHandler>().Which.InnerHandler.Should().BeOfType<StubHandler>();
     }
 
     [Fact]

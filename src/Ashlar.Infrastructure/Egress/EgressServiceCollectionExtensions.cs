@@ -26,7 +26,15 @@ namespace Ashlar.Infrastructure.Egress;
 /// action to <see cref="HttpClientFactoryOptions.HttpMessageHandlerBuilderActions"/> for every client name through
 /// the defaults builder's own service collection, and reads the name from the handler builder as each client's
 /// handlers are built.</para>
-/// <para><b>Report-only.</b> Nothing here refuses, throws on a send or changes a request. Building a handler resolves
+/// <para><b>Redirects</b> (SPEC-007 PR 4.3). An <see cref="EgressRedirectFilter"/>, registered here, runs after every
+/// client's own configuration: it puts the redirect follower directly above the client's primary handler, turning the
+/// primary's own following off (an <see cref="HttpClientHandler"/> or <see cref="SocketsHttpHandler"/>), so every hop
+/// of a redirect, and every URI a handler between the two rewrites, is decided before it is sent; and it puts the guard
+/// handler back, with a Warning, if the client's configuration removed it. Factory clients follow across origins, as
+/// the runtime does. A client that must not follow at all says so with
+/// <see cref="EgressHttpClientBuilderExtensions.NeverFollowRedirects"/>.</para>
+/// <para><b>Report-only.</b> Nothing here refuses, throws on a send or changes a request; the follower changes the
+/// request as the runtime's own follower would (method, content, <c>Authorization</c>). Building a handler resolves
 /// <see cref="IEgressGuard"/> and activates <see cref="EgressDecisionLoggerSubscription"/>; if either fails, the client
 /// is still built, with <see cref="EgressGuard.ProcessDefault"/>, and the decisions still reach the
 /// <c>Ashlar-Egress</c> event source.</para>
@@ -59,6 +67,7 @@ public static class EgressServiceCollectionExtensions
         services.TryAddSingleton<IEgressGuard>(EgressGuard.ProcessDefault);
         services.TryAddSingleton<EgressDecisionLoggerSubscription>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EgressDecisionLoggerActivator>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, EgressRedirectFilter>());
 
         services.ConfigureHttpClientDefaults(defaults => defaults.Services.ConfigureAll<HttpClientFactoryOptions>(
             options => options.HttpMessageHandlerBuilderActions.Add(handlers => handlers.AdditionalHandlers.Insert(
@@ -73,7 +82,7 @@ public static class EgressServiceCollectionExtensions
 
     // Runs each time a factory client's handlers are built. Nothing here may stop the client being built, so a
     // failure leaves the guard at ProcessDefault (a null guard) and the records on the event source only.
-    private static IEgressGuard? ResolveGuardAndActivateLogging(HttpMessageHandlerBuilder handlers)
+    internal static IEgressGuard? ResolveGuardAndActivateLogging(HttpMessageHandlerBuilder handlers)
     {
         IServiceProvider services;
         try

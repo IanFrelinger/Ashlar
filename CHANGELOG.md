@@ -195,6 +195,44 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Changed
 
+- **Every hop of an HTTP redirect is now decided by the egress guard before it is sent (SPEC-007 PR 4.3).**
+  Still report-only: the guard refuses nothing, and a hop it would refuse is still sent until PR 4.7. Before
+  this, a redirect that the primary handler followed went out below every `DelegatingHandler`, so only the first
+  hop was decided.
+  - **Behaviour change: the primary handler no longer follows redirects itself; Ashlar's follower does.** On every
+    `IHttpClientFactory` client in a container that runs `AddAshlarEgressGuard` (every `AddAshlar` container, the
+    host's own clients included, as the owner decided for PR 4, Q5) and on every client and handler
+    `EgressHttp.CreateClient` and `EgressHttp.Wrap` build, a primary `HttpClientHandler` or `SocketsHttpHandler` now
+    reads `AllowAutoRedirect == false`, and an internal `EgressRedirectHandler` directly above it follows redirects
+    the way the runtime would have (300, 301, 302, 303, 307 and 308; the primary's own `MaxAutomaticRedirections`;
+    a relative `Location` resolved; the fragment kept; never from `https` to `http`; `POST` to `GET` on 301, 302 and
+    300, anything but `GET` and `HEAD` to `GET` on 303; `Authorization` cleared on every hop), deciding each new
+    authority (scheme, host and port) before the hop is sent. A primary that did not follow is not followed for.
+    Differences from the runtime: a redirect to a scheme other than `http` or `https` is returned to the caller
+    instead of failing the send; and a primary with `Credentials` set, or of any other type, is left as it is (a
+    redirect it follows itself is decided after the send, from the response's request URI).
+  - **Behaviour change: clients built by `EgressHttp` no longer follow a redirect to another origin.** A 3xx whose
+    `Location` has another scheme, host or port is returned to the caller (the A2A, MCP and gRPC transports,
+    `ProviderFactory`, the cloud availability probe, the `mesh` and `workflow` CLI verbs, the mesh auto-pull client,
+    `MeshDirector` and the IDE tags endpoint's fallback client build their clients this way, and several of them
+    send an API key in a header, which such a hop would carry along). A same-origin redirect is still followed.
+  - **Behaviour change: the SNS signing-certificate client (`ashlar-sns-signing`, in the API and in Fleet.Host) and
+    the Bedrock runtime client never follow a redirect.** The SNS verifier checks the certificate URL's host before
+    the fetch, and a redirect would fetch from a host it never checked. New:
+    `EgressHttpClientBuilderExtensions.NeverFollowRedirects(this IHttpClientBuilder)` in `Ashlar.Infrastructure`,
+    which turns the factory's own primary handler's following off through the configure-existing
+    `ConfigurePrimaryHttpMessageHandler` overload.
+  - A handler between the guard handler and the primary handler that rewrites `RequestUri` (service discovery,
+    hedging, base-address rewriters) is decided again for the new authority before the send.
+  - A factory client whose own configuration removes the guard handler (for example
+    `ConfigureAdditionalHttpMessageHandlers((h, _) => h.Clear())`) gets it back as its outermost additional handler,
+    and the `Ashlar.Egress` logger writes a Warning (event 7303) naming the client. On AirGapped and
+    SecureWorkstation, a factory client whose primary handler is of a type Ashlar cannot stop from following is
+    named in a Warning (event 7304), once per client and type.
+  - The guard handler notes what it decided in the request's `Options` (an internal key); a retry of the same
+    authority is still one decision. A handler that sends a fresh `HttpRequestMessage` (hedging, retry) drops the
+    note, so its send is decided again: a duplicate record, never a missing one.
+
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes
   behaviour.

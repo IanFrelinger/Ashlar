@@ -32,6 +32,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Ashlar.AI.Pipeline" />
     <InternalsVisibleTo Include="Ashlar.Hosting" />
+    <InternalsVisibleTo Include="Ashlar.Infrastructure" />
     <InternalsVisibleTo Include="Ashlar.Mcp.Client" />
     <InternalsVisibleTo Include="Ashlar.Mcp.Server" />
     <InternalsVisibleTo Include="Ashlar.Orchestration" />

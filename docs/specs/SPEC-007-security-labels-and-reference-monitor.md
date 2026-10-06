@@ -46,9 +46,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
   unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record
   (the owner's 2026-10-06 amendment of D31). PR 3b found two more (`docs/EgressInventory.md`): redirects that the
-  primary handler follows are not evaluated, which stays open until 4.3, and a few records could read Host for a
-  remote peer (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client,
-  EG-MESH-07/08 with a `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no longer read Host.
+  primary handler follows were not evaluated, which PR 4.3 closes (each hop is decided before it is sent), and a few
+  records could read Host for a remote peer (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom
+  `local:` inner client, EG-MESH-07/08 with a `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no
+  longer read Host.
 - **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
   enforcement on alone would therefore make `AirGapped` and `SecureWorkstation` host-only: every decision is made at
   `SystemHigh`, and the leak test would pass without a label causing the refusal. PR 4 ships as eleven small PRs, in
@@ -105,7 +106,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
   convention fact pins. The guard refuses nothing yet; the netstandard2.0 asset's synchronous-`Send` refusal
   (PR 4.2) is the runtime's and holds in every mode.
-- **PR 4.4** (#716) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
+- **PR 4.4** (#716, `de41a8a`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
   while that head is undisposed, and goes back to exactly the frame it was entered under, disposed or not, so a flow
@@ -125,6 +126,22 @@ The status line above and the starting prompt are the owner's, as written; the s
   (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
   reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
   appears unlisted.
+- **PR 4.3** (this PR) closes the redirect gap, still report-only: every hop of a redirect, and every URI a handler
+  between the guard handler and the primary rewrites, is decided before it is sent. An internal follower sits directly
+  above the primary handler of every `EgressHttp` client and handler and of every factory client (an
+  `IHttpMessageHandlerBuilderFilter` that `AddAshlarEgressGuard` registers; the host's clients included, Q5), turns
+  the primary's own `AllowAutoRedirect` off, follows as the runtime would (a cert-gate differential twin compares the
+  two over loopback Kestrel), and decides each new authority with the guard handler's guard, family and site. Clients
+  `EgressHttp` builds return a cross-origin redirect to the caller (D33's P2); factory clients follow it (P1). A
+  factory client that removed the guard handler gets it back, with a Warning, and a primary that follows on its own is
+  checked after the send. Both SNS signing-certificate clients and the Bedrock runtime client never follow (behaviour
+  changes in the CHANGELOG). Until 4.7 a hop the guard would refuse is still sent; the decision is made before the
+  send, where 4.7 will stop it. `Ashlar.Abstractions` grants `InternalsVisibleTo` to `Ashlar.Infrastructure` (D9).
+  Known limits it records (`docs/EgressInventory.md`): a primary of another type, with credentials, or that has
+  already sent keeps following on its own and is decided after the send; a factory client follows a redirect from a
+  remote `http` host into the host boundary, which the label model allows (P1; an `https` first hop cannot downgrade to
+  an `http` loopback; whether to refuse the hop at all is an open owner question); only `Authorization` is cleared on
+  a hop.
 
 ---
 

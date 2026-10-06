@@ -579,6 +579,43 @@ public sealed class EgressGuardChatClientTwinTests
         request.Destination.Should().Be(new Uri("https://bedrock-runtime.us-west-2.amazonaws.com"));
     }
 
+    /// <summary>
+    /// SPEC-007 PR 4.3: the Bedrock runtime client's configuration never follows a redirect, with a region, with a
+    /// padded one and without one. The SDK owns its HTTP, below every handler Ashlar can place, so a redirect it
+    /// followed would reach a host no decision names. The configuration alone is read here because the SDK's client
+    /// constructor needs a region from somewhere, and the no-region path leaves that to the SDK's own default chain,
+    /// which the test environment does not provide.
+    /// </summary>
+    [Theory]
+    [InlineData("us-west-2", "us-west-2")]
+    [InlineData(" us-west-2 ", "us-west-2")]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(string? region, string? expectedRegion)
+    {
+        var config = AwsBedrockChatClientFactory.RuntimeConfig(region);
+
+        config.AllowAutoRedirect.Should().BeFalse();
+        config.RegionEndpoint?.SystemName.Should().Be(expectedRegion);
+        if (expectedRegion is not null)
+            config.RegionEndpoint.Should().NotBeNull();
+    }
+
+    /// <summary>
+    /// SPEC-007 PR 4.3: the client the factory builds carries that configuration. Building the client sends nothing.
+    /// </summary>
+    [Fact]
+    public void CloudBedrock_TheRuntimeClientNeverFollowsARedirect()
+    {
+        var options = new MeaiPipelineOptions();
+        options.Bedrock.Region = "us-west-2";
+        var chat = new AwsBedrockChatClientFactory(Options.Create(options)).Create("anthropic.claude-test");
+
+        var runtime = chat.GetService(typeof(Amazon.BedrockRuntime.IAmazonBedrockRuntime));
+        runtime.Should().NotBeNull("the AWS MEAI client hands out its runtime client");
+        ((Amazon.Runtime.IAmazonService)runtime!).Config.AllowAutoRedirect.Should().BeFalse();
+    }
+
     [Fact]
     public async Task ARegionName_IsTrimmedIntoTheRuntimeEndpoint()
     {

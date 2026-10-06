@@ -23,11 +23,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// refused: the hop only forwards.</para>
 /// <para><b>Asynchronous sends are unchanged.</b> <c>SendAsync</c> is forwarded through an owned
 /// <see cref="HttpMessageInvoker"/> with the same request, token and response instances; the guard handler above has
-/// already evaluated it exactly once. Disposing the hop disposes the inner handler. Under an outer
-/// <see cref="HttpMessageInvoker"/> (not an <see cref="HttpClient"/>) on .NET 5-7, the runtime's request telemetry
-/// may count such a send twice.</para>
+/// already decided it, and the redirect follower under this hop decides each further authority (SPEC-007 PR 4.3).
+/// Disposing the hop disposes the inner handler. Under an outer <see cref="HttpMessageInvoker"/> (not an
+/// <see cref="HttpClient"/>) on .NET 5-7, the runtime's request telemetry may count such a send twice.</para>
 /// <para><b>Walking the chain.</b> Because the hop is not a <see cref="DelegatingHandler"/>, a walker of the handler
-/// chain (for example one that finds the primary handler) steps through <see cref="Inner"/> here.</para>
+/// chain (the redirect follower's, which finds the primary handler) steps through <see cref="Inner"/> here.</para>
 /// </remarks>
 internal sealed class SynchronousSendRefusedOnNetstandard20Asset : HttpMessageHandler
 {

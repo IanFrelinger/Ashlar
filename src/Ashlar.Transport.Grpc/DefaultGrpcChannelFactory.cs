@@ -70,8 +70,8 @@ public sealed class DefaultGrpcChannelFactory : IGrpcChannelFactory
         });
     }
 
-    // The guard handler goes in front of the configured HttpClientHandler. Grpc.Net.Client finds the handler type
-    // through DelegatingHandler.InnerHandler, so the channel still sees an HttpClientHandler.
+    // The guard handler goes in front of the configured HttpClientHandler, with the egress redirect follower between
+    // them (SPEC-007 PR 4.3). Grpc.Net.Client walks DelegatingHandler.InnerHandler to the end, so it still sees it.
     private HttpMessageHandler BuildHandler() =>
         EgressHttp.Wrap(ConfigureHandler(new HttpClientHandler()), EgressFamilies.Grpc, "EG-XPT-03");
 
