@@ -854,7 +854,7 @@ public sealed class EgressProducerTwinTests
     }
 
     /// <summary>An embedding generator whose every embedding has zero magnitude, which the legacy stores refuse to rank.</summary>
-    private sealed class ZeroEmbeddings : IEmbeddingGenerator
+    private sealed class ZeroEmbeddings : Ashlar.BackgroundAgents.RAG.IEmbeddingGenerator
     {
         public int Dimension => 2;
 
