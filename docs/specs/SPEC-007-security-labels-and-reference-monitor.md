@@ -70,12 +70,15 @@ The status line above and the starting prompt are the owner's, as written; the s
 
   - **4.4** (this PR): frame semantics. A decision joins the innermost live `EgressSubject` frame with every frame it
     was entered inside, live or disposed (fail closed: a parent that ends first never declassifies a task it started),
-    and a disposed frame's mark reaches the frames around it; `EgressSubject.Observe` raises every frame on the chain;
+    and a disposed frame's mark reaches the frames around it; a flow that disposes its own frames out of order goes
+    back to where in-order `using` blocks would have left it; `EgressSubject.Observe` raises every frame on the chain;
     a `BeginRead` scope that ends unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run
-    with no subject. Report-only, and no production code enters a frame yet. **D9 amended:** `Ashlar.Abstractions`
-    also grants `InternalsVisibleTo` to `Ashlar.Orchestration`, for the internal `EgressSubject.Detach` at the
-    `AgentBus` dispatch point. The grant exposes every Abstractions internal to Orchestration, so the callers of the
-    reset seam and the mode latch setters (4.6) are to be pinned by a convention fact when 4.4 and 4.6 are integrated.
+    with no subject. Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
+    `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
+    the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
+    `Ashlar.Orchestration`, for the internal `EgressSubject.Detach` at the `AgentBus` dispatch point. The grant
+    exposes every Abstractions internal to Orchestration, so the callers of the reset seam and the mode latch setters
+    (4.6) are to be pinned by a convention fact when 4.4 and 4.6 are integrated.
 
 ---
 

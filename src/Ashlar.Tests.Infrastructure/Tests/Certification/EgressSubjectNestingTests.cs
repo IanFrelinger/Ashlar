@@ -18,11 +18,14 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// read, and it only raises. Before 4.4 the guard read only the innermost live frame, so entering a fresh Public frame
 /// inside a Secret one declassified everything the enclosing subject had read, and a nested subject's reads were lost
 /// when it was disposed.</para>
-/// <para><b>Disposed ancestors (phase B, fail closed).</b> A frame disposed out of order, or a parent frame that ends
-/// while a fire-and-forget task started inside it still runs, still counts for every frame entered inside it, then or
-/// later, and is still raised by what those frames read, so a sibling task started inside the same parent counts it.
-/// The 4.4 lane first walked ancestors through the live ones only, which let the child decide Public once the Secret
-/// parent's <c>using</c> ended.</para>
+/// <para><b>Disposed ancestors (fail closed).</b> A frame disposed out of order still counts for the frame running
+/// inside it. A parent frame that ends while a fire-and-forget task started inside it still runs counts for every
+/// frame that task enters, then or later, and is still raised by what the task reads, in a frame of its own or with
+/// none, so a sibling task started inside the same parent counts it. Otherwise a parent frame that ends first would
+/// declassify a child task still running inside it, whose closures may hold what the parent read.</para>
+/// <para><b>Unwinding.</b> A flow that disposes its own frames out of order goes back to where in-order <c>using</c>
+/// blocks would have left it, past the enclosing frame it disposed first, so no chain of disposed frames builds up on
+/// it, also across the iterations of an async loop. A task started inside that enclosing frame does not go past it.</para>
 /// <para><b>Process-global state.</b> None. Frames live on each test's own async flow, the guard has an explicit
 /// profile and reads no environment variable, and each decision is read from the value <c>Evaluate</c> returns.</para>
 /// <para>Hermetic: no network, no files, no environment.</para>

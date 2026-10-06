@@ -21,8 +21,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>What is pinned.</b> A subscriber decides with no subject (<see cref="SecurityLabel.SystemHigh"/>) while
 /// the publisher is inside a frame, and the publisher's own frame is restored when <c>PublishAsync</c> returns.
 /// Under <c>Detach</c> a decision has no subject; a frame entered under it starts a chain of its own whose reads never
-/// reach the caller's frames; disposing it restores the caller's frame on that flow only; and a task started under it
-/// keeps no subject after the caller is restored. The convention fact pins every call site of <c>Detach</c> in the
+/// reach the caller's frames; disposing it restores the caller's frame on that flow only, exactly, so a task inside a
+/// parent frame that has ended is back inside that parent after it publishes; and a task started under it keeps no
+/// subject after the caller is restored. The convention fact pins every call site of <c>Detach</c> in the
 /// repository's C#, and that the bus starts each subscriber inside the detached block.</para>
 /// <para><b>Internal surface.</b> This assembly is not in <c>Ashlar.Abstractions</c>' InternalsVisibleTo, so
 /// <c>Detach</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
@@ -43,7 +44,7 @@ public sealed class EgressSubjectDetachTests
 
     private const string AgentBusPath = "src/Ashlar.Orchestration/Communication/AgentBus.cs";
 
-    /// <summary>Every production dispatch point that must not inherit its caller's subject (design §2.2, D18).</summary>
+    /// <summary>Every production dispatch point that must not inherit its caller's subject (SPEC-007 PR 4.4).</summary>
     private static readonly string[] ExpectedSites = [AgentBusPath + " x1"];
 
     /// <summary>The trees the call-site scan reads, where they exist.</summary>

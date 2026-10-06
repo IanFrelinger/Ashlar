@@ -78,8 +78,9 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `localhost`, a `unix` or `npipe` socket and a declared `host:` name are inside the host boundary
   (`SystemHigh`), a model is an external model (`Internal`), web search is `Confidential`, a network
   export is `Internal`, and an unknown destination fails closed to `Public`. The current label is the
-  high-water mark of the ambient `EgressSubject` frame, or `SystemHigh` when there is none, and the
-  decision is `ReferenceMonitor.CanWrite(current, destination)`. Every decision goes to the
+  join of the high-water marks of the ambient `EgressSubject` frames (see the SPEC-007 PR 4.4 entry
+  below), or `SystemHigh` when there is none, and the decision is
+  `ReferenceMonitor.CanWrite(current, destination)`. Every decision goes to the
   `Ashlar-Egress` EventSource and to each `EgressDecisionLog` subscriber, except one made on a
   thread that is already publishing a record (an egress that a sink or listener itself causes): that
   decision is returned to its caller and counted, but not published, so the pipeline cannot recurse.
@@ -118,9 +119,11 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   marks of every frame it was entered inside, not only the innermost one's, so a frame entered inside
   another can never decide below it; the record's basis still names the innermost subject. A frame
   that was disposed first, such as a parent whose `using` ended while a fire-and-forget task it
-  started is still running, still counts for the frames inside it. Disposing a frame observes its
-  mark into every frame it was entered inside. The new `EgressSubject.Observe(SecurityLabel)` joins a
-  label into every frame on the chain at once, only raises, and does nothing with no frame. The new `EgressSubject.BeginRead()`
+  started is still running, still counts for the frames inside it, while a flow that disposes its own
+  frames out of order goes back to where in-order `using` blocks would have left it. Disposing a frame
+  observes its mark into every frame it was entered inside. The new
+  `EgressSubject.Observe(SecurityLabel)` joins a label into every frame on the chain at once, only
+  raises, and does nothing with no frame. The new `EgressSubject.BeginRead()`
   returns a `ReadScope` for one read: disposed after `Complete()`, it observes the join of what was
   passed to `Report` (a `Public` report reads nothing), or `SystemHigh` if nothing was reported;
   disposed without `Complete()`, as when the read throws, it observes `SystemHigh` whatever was

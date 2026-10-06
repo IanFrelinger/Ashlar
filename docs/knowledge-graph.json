@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 769,
-    "declared_facts": 4783,
+    "declared_facts": 4788,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5136,21 +5136,21 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressSubjectDetachTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 6,
+      "declared_facts": 7,
       "in_cert_gate_filter": true
     },
     {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressSubjectNestingTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 10,
+      "declared_facts": 13,
       "in_cert_gate_filter": true
     },
     {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressSubjectReadScopeTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 11,
+      "declared_facts": 12,
       "in_cert_gate_filter": true
     },
     {
