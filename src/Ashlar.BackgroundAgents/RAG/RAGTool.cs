@@ -17,8 +17,8 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// be the other way round -- the model's value won and the agent's was only a fallback -- so a
 /// prompt injection that talked the model into asking for TopSecret got TopSecret.
 /// <para><b>It labels what it returns</b> (SPEC-007 PR 4.5). It declares itself labelled
-/// (<see cref="ILabelledTool"/>): invoked through <see cref="InvokeLabelledAsync"/>, it reports each hit's tier to the
-/// caller's read scope, and "read nothing" (<see cref="SecurityLabel.Public"/>) for no hits and for its
+/// (<see cref="ILabelledTool"/>): invoked through <see cref="InvokeLabelledAsync"/>, it reports each hit's tier through the
+/// caller's <see cref="ReadReporter"/>, and "read nothing" (<see cref="SecurityLabel.Public"/>) for no hits and for its
 /// unrankable-query refusal, whose payload holds only the model's own query and the store's message. A tier is the
 /// label of one of the five canonical levels only when its trimmed name resolves through the registry to one of
 /// <see cref="DataSensitivityLevels.All"/>, which also accepts any case and <c>top-secret</c>; anything else, a custom
@@ -74,8 +74,8 @@ public sealed class RAGTool : ILabelledTool
         InvokeCoreAsync(toolCall, s, read: null, ct);
 
     /// <inheritdoc />
-    public Task<ToolResult> InvokeLabelledAsync(ToolCall toolCall, WorldSnapshot s, ReadScope read, CancellationToken ct) =>
-        InvokeCoreAsync(toolCall, s, read ?? throw new ArgumentNullException(nameof(read)), ct);
+    public Task<ToolResult> InvokeLabelledAsync(ToolCall toolCall, WorldSnapshot s, ReadReporter report, CancellationToken ct) =>
+        InvokeCoreAsync(toolCall, s, report ?? throw new ArgumentNullException(nameof(report)), ct);
 
     // The spellings the RAG pipeline's TrustTierOrder ranks (trimmed, ordinal, ignoring case): the five canonical names
     // and top-secret. Compared the same way here, so a tier the pipeline serves as unlabelled is never labelled below it.
@@ -108,7 +108,7 @@ public sealed class RAGTool : ILabelledTool
             : SecurityLabel.SystemHigh;
     }
 
-    private async Task<ToolResult> InvokeCoreAsync(ToolCall toolCall, WorldSnapshot s, ReadScope? read, CancellationToken ct)
+    private async Task<ToolResult> InvokeCoreAsync(ToolCall toolCall, WorldSnapshot s, ReadReporter? read, CancellationToken ct)
     {
         var args = ParseArgs(toolCall);
         var query = args.Query ?? string.Empty;

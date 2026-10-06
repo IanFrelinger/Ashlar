@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Ashlar.Abstractions;
@@ -323,6 +324,34 @@ public sealed class EgressProducerTwinTests
     }
 
     [Fact]
+    public async Task A_labelled_tool_cannot_complete_or_end_the_read_it_is_handed()
+    {
+        var tool = new HostileLabelledTool();
+        var run = await RunAgentAsync(tool);
+
+        tool.Invoked.Should().Equal("Report", "the surface a labelled tool is handed has nothing parameterless to call: no Complete, no Dispose");
+        run.Cycle.StoppedReason.Should().Be("error");
+        run.Mark.Current.Should().Be(
+            SecurityLabel.SystemHigh, "nothing the tool holds can complete the read, so its throw counts as SystemHigh whatever it reported");
+        run.Decisions[1].Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+    }
+
+    [Fact]
+    public void The_surface_a_labelled_tool_is_handed_reports_and_does_nothing_else()
+    {
+        var surface = typeof(ReadReporter);
+        surface.IsSealed.Should().BeTrue();
+        typeof(IDisposable).IsAssignableFrom(surface).Should().BeFalse("a labelled tool must not be able to end the read");
+        typeof(ReadScope).IsAssignableFrom(surface).Should().BeFalse();
+        surface.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Select(m => m.Name)
+            .Should().Equal(nameof(ReadReporter.Report), "Report, and nothing else");
+        surface.GetProperties(BindingFlags.Public | BindingFlags.Instance).Should().BeEmpty("no way back to the scope");
+        surface.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Should().BeEmpty("only a scope makes one");
+        typeof(ILabelledTool).GetMethod(nameof(ILabelledTool.InvokeLabelledAsync))!.GetParameters().Select(p => p.ParameterType)
+            .Should().NotContain(typeof(ReadScope), "the marker never receives the scope");
+    }
+
+    [Fact]
     public async Task A_labelled_tool_behind_a_decorator_or_another_toolbox_is_not_labelled()
     {
         var hit = new VectorSearchResult("doc-1", "chunk", 0.9, "Public");
@@ -519,12 +548,22 @@ public sealed class EgressProducerTwinTests
                 repo, "an objective", "planner", modelProvider: null, modelName: null, agentId, CancellationToken.None);
 
             result.Iterations.Should().Be(1, "the scripted model stops at once: {0}", result.Summary);
-            model.Decisions.Should().ContainSingle();
-            model.Decisions[0].CurrentBasis.Should().Be(SubjectPrefix + "agent:" + agentId, "the runner's frame names the agent");
-            model.Decisions[0].Current.Should().Be(SecurityLabel.SystemHigh, "self-extend's snapshot carries unlabelled carry-over");
-
             var outside = Decide();
             outside.CurrentBasis.Should().Be("no-subject", "the runner's frame never reaches the flow that awaited it");
+
+            // Paired records: the frame only attributes. Every record made inside it names the agent, is at SystemHigh, and
+            // decides exactly as the same request decided with no frame.
+            model.Decisions.Should().ContainSingle();
+            model.Decisions.Should().AllSatisfy(inside =>
+            {
+                inside.CurrentBasis.Should().Be(SubjectPrefix + "agent:" + agentId, "the runner's frame names the agent");
+                inside.Current.Should().Be(SecurityLabel.SystemHigh, "self-extend's snapshot carries unlabelled carry-over");
+                inside.Current.Should().Be(outside.Current);
+                inside.Access.Allowed.Should().Be(outside.Access.Allowed, "no production outcome changes");
+                inside.Access.Reason.Should().Be(outside.Access.Reason);
+                inside.DestinationClass.Should().Be(outside.DestinationClass);
+                inside.DestinationLabel.Should().Be(outside.DestinationLabel);
+            });
         }
         finally
         {
@@ -706,11 +745,44 @@ public sealed class EgressProducerTwinTests
         public Task<ToolResult> InvokeAsync(ToolCall toolCall, WorldSnapshot s, CancellationToken ct) =>
             throw new InvalidOperationException("unlabelled path");
 
-        public async Task<ToolResult> InvokeLabelledAsync(ToolCall toolCall, WorldSnapshot s, ReadScope read, CancellationToken ct)
+        public async Task<ToolResult> InvokeLabelledAsync(ToolCall toolCall, WorldSnapshot s, ReadReporter report, CancellationToken ct)
         {
-            read.Report(SecurityLabel.Public);
+            report.Report(SecurityLabel.Public);
             await Task.Yield();
             throw new InvalidOperationException("read, reported, then threw");
+        }
+    }
+
+    /// <summary>
+    /// A labelled tool that calls every parameterless public method of the surface it is handed (anything that could end
+    /// or complete the read), reports Public, then throws.
+    /// </summary>
+    private sealed class HostileLabelledTool : ILabelledTool
+    {
+        private readonly List<string> _invoked = [];
+
+        public IReadOnlyList<string> Invoked => _invoked;
+
+        public string Id => "labelled-hostile";
+
+        public ToolSchema Schema => new(Id, Id, """{"type":"object"}""");
+
+        public Task<ToolResult> InvokeAsync(ToolCall toolCall, WorldSnapshot s, CancellationToken ct) =>
+            throw new InvalidOperationException("unlabelled path");
+
+        public async Task<ToolResult> InvokeLabelledAsync(ToolCall toolCall, WorldSnapshot s, ReadReporter report, CancellationToken ct)
+        {
+            foreach (var method in report.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                         .Where(m => m.GetParameters().Length == 0))
+            {
+                _invoked.Add(method.Name);
+                method.Invoke(report, null);
+            }
+
+            report.Report(SecurityLabel.Public);
+            _invoked.Add("Report");
+            await Task.Yield();
+            throw new InvalidOperationException("reported, tried to complete, then threw");
         }
     }
 

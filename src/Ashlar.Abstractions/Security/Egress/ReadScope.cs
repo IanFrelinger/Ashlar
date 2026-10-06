@@ -28,7 +28,9 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para>Only <see cref="Report"/> satisfies a scope. <see cref="EgressSubject.Observe"/> raises the frames but never
 /// reports a read, so code that can reach it cannot launder a result by observing a low label on a side value. The
 /// scope is not ambient: only code holding it can report, and its holder decides whose reports it accepts, such as
-/// those of a reader that labels everything its result carries.</para>
+/// those of a reader that labels everything its result carries. The holder hands such a reader <see cref="Reporter"/>,
+/// never the scope: a reader that could call <see cref="Complete"/> itself and then throw would have its reports
+/// counted where the completion rule requires SystemHigh.</para>
 /// <para>A scope observes only when it is disposed, so dispose it on every path, with a <c>using</c> block that
 /// encloses the read, on the flow that began it: disposing it observes first and only then takes that flow out of the
 /// read's frame, back to the frames it was begun in, so the flow never decides below what the read observed. Disposed on
@@ -49,7 +51,14 @@ public sealed class ReadScope : IDisposable
     {
         _chain = chain;
         _read = read;
+        Reporter = new ReadReporter(this);
     }
+
+    /// <summary>
+    /// The report-only surface to hand a reader that labels what it returns (<see cref="ILabelledTool"/>): it can
+    /// <see cref="ReadReporter.Report"/> and nothing else, so only the holder of the scope can complete or end the read.
+    /// </summary>
+    public ReadReporter Reporter { get; }
 
     /// <summary>
     /// Reports that the read returned data labelled <paramref name="label"/>. Several reports join. Call it with a

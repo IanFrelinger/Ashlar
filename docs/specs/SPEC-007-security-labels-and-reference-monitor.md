@@ -135,8 +135,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   a read ended out of order or on another flow leaves the flow that began it inside it. `SelfExtendRunnerAdapter`
   enters `agent:<id>` at `SystemHigh` around the cycle and the admission and auto-share after it (records go from
   `no-subject` to `subject:agent:<id>`, at the same `SystemHigh`); `ToolCallingAgent` scopes every tool call as a read
-  and hands the scope only to a tool that declares itself labelled (the new public `ILabelledTool`, served directly by
-  a `CapabilityRegistry`); `RAGTool` is that tool and reports each hit's tier as a canonical level's label (trimmed,
+  and hands a report-only `ReadReporter` (never the scope, which alone completes the read) to a tool that declares
+  itself labelled (the new public `ILabelledTool`, served directly by a `CapabilityRegistry`); `RAGTool` is that tool and reports each hit's tier as a canonical level's label (trimmed,
   any case, `top-secret`; anything else, a custom level included, `SystemHigh`, as `TrustTierOrder.RecordLabel`
   does) and "read nothing" for no hits and for the stores' own unrankable-query refusal, any other `ArgumentException`
   staying unreported, in a spelling `TrustTierOrder` also ranks (it is registered in no production toolbox, so no production read is reported

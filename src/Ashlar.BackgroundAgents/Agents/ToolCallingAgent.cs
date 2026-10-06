@@ -144,8 +144,9 @@ public sealed class ToolCallingAgent : IAgent
     /// decision on the flows inside it, the tool's own included, is made at SystemHigh, and when it
     /// returns its result is observed into the frame the runner entered around the cycle before the
     /// next model call is decided. Only a tool that declares itself labelled (<see cref="ILabelledTool"/>,
-    /// registered directly in a <see cref="CapabilityRegistry"/>) is handed the scope to report to; every
-    /// other result counts as SystemHigh, and so does a call that threw. With no frame around the
+    /// registered directly in a <see cref="CapabilityRegistry"/>) is handed the scope's report-only
+    /// <see cref="ReadScope.Reporter"/>; the scope itself, and so completing the read, stays here, so every
+    /// other result counts as SystemHigh, and so does a call that threw, a labelled one's included. With no frame around the
     /// cycle every decision has no subject, which is SystemHigh already.</para>
     /// </summary>
     public async Task<AgentCycleResult> RunCycleAsync(
@@ -241,8 +242,8 @@ public sealed class ToolCallingAgent : IAgent
                     }
 
                     // The call is a read, scoped on this flow and ended in order before the next model call
-                    // (SPEC-007 PR 4.5). A labelled tool reports to the scope; for any other tool, or a call that
-                    // throws, the scope observes SystemHigh when it ends.
+                    // (SPEC-007 PR 4.5). A labelled tool reports through the scope's report-only surface; for any other
+                    // tool, or a call that throws, the scope observes SystemHigh when it ends. Only this method completes it.
                     var labelled = LabelledToolFor(tools, call.Id);
                     ToolResult result;
                     using (var read = EgressSubject.BeginRead())
@@ -251,7 +252,7 @@ public sealed class ToolCallingAgent : IAgent
                         {
                             result = labelled is null
                                 ? await tools.InvokeAsync(call, snapshot, loopCt).ConfigureAwait(false)
-                                : await labelled.InvokeLabelledAsync(call, snapshot, read, loopCt).ConfigureAwait(false);
+                                : await labelled.InvokeLabelledAsync(call, snapshot, read.Reporter, loopCt).ConfigureAwait(false);
                         }
                         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                         {

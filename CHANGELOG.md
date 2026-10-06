@@ -178,9 +178,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `no-subject`, at the same `SystemHigh` (its model calls, EG-MDL-01 when the model is the governed MEAI
   client; its `dotnet.build` and `dotnet.test` tool calls, EG-PROC-01; and the auto-share after admission,
   EG-MESH-01). `ToolCallingAgent` runs every tool call inside a read scope
-  and hands the scope only to a tool that declares itself labelled through the new
-  `ILabelledTool` (registered directly in a `CapabilityRegistry`, which gains `Find`); any other
-  result, and a call that throws, counts as `SystemHigh`. `RAGTool` is that tool: it reports each
+  and hands a report-only `ReadReporter` (new; `ReadScope.Reporter`) only to a tool that declares itself labelled
+  through the new `ILabelledTool` (registered directly in a `CapabilityRegistry`, which gains `Find`); the scope,
+  and so completing the read, stays with the agent, so any other result, and a call that throws, a labelled
+  one's included, counts as `SystemHigh`. `RAGTool` is that tool: it reports each
   hit's tier, trimmed and resolved through the registry, as the label of one of the five canonical
   levels, and anything else, a custom level or a blank tier included, as `SystemHigh`, which is what
   `TrustTierOrder.RecordLabel` gives (a parity test holds the two together); no hits and the stores' own unrankable-query refusal report "read nothing" (`Public`), while any other
@@ -192,8 +193,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   convention pins every production `EgressSubject.Enter` and `BeginRead` with its floor and method,
   and requires each to be a `using` outside an iterator. With a runner frame at `Public` (only a test
   declares one), a `Secret` RAG hit makes the next model call decide at `Secret`, which would be
-  refused `LevelTooLow`; an `Internal` hit would be allowed. `ILabelledTool` is recorded in
-  `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`.
+  refused `LevelTooLow`; an `Internal` hit would be allowed. `ILabelledTool`, `ReadReporter` and
+  `ReadScope.Reporter` are recorded in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`.
 - **A Claude Code cloud session sets docker up by itself.** A new SessionStart hook,
   `.claude/hooks/session-start.sh` (registered in `.claude/settings.json`), runs only when
   `CLAUDE_CODE_REMOTE=true`: it starts `dockerd` if it is not running, writes a session-local

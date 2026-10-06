@@ -56,10 +56,13 @@ Ashlar.Abstractions.Security.Egress.IEgressDecisionSink.Record(Ashlar.Abstractio
 Ashlar.Abstractions.Security.Egress.IEgressGuard
 Ashlar.Abstractions.Security.Egress.IEgressGuard.Evaluate(Ashlar.Abstractions.Security.Egress.EgressRequest! request) -> Ashlar.Abstractions.Security.Egress.EgressDecision!
 Ashlar.Abstractions.Security.Egress.ILabelledTool
-Ashlar.Abstractions.Security.Egress.ILabelledTool.InvokeLabelledAsync(Ashlar.Abstractions.ToolCall! toolCall, Ashlar.Abstractions.WorldSnapshot! s, Ashlar.Abstractions.Security.Egress.ReadScope! read, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<Ashlar.Abstractions.ToolResult!>!
+Ashlar.Abstractions.Security.Egress.ILabelledTool.InvokeLabelledAsync(Ashlar.Abstractions.ToolCall! toolCall, Ashlar.Abstractions.WorldSnapshot! s, Ashlar.Abstractions.Security.Egress.ReadReporter! report, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<Ashlar.Abstractions.ToolResult!>!
+Ashlar.Abstractions.Security.Egress.ReadReporter
+Ashlar.Abstractions.Security.Egress.ReadReporter.Report(Ashlar.Abstractions.Security.SecurityLabel! label) -> void
 Ashlar.Abstractions.Security.Egress.ReadScope
 Ashlar.Abstractions.Security.Egress.ReadScope.Complete() -> void
 Ashlar.Abstractions.Security.Egress.ReadScope.Dispose() -> void
+Ashlar.Abstractions.Security.Egress.ReadScope.Reporter.get -> Ashlar.Abstractions.Security.Egress.ReadReporter!
 Ashlar.Abstractions.Security.Egress.ReadScope.Report(Ashlar.Abstractions.Security.SecurityLabel! label) -> void
 Ashlar.Abstractions.Security.HighWaterMark
 Ashlar.Abstractions.Security.HighWaterMark.CanWriteTo(Ashlar.Abstractions.Security.SecurityLabel! destination) -> Ashlar.Abstractions.Security.AccessDecision
