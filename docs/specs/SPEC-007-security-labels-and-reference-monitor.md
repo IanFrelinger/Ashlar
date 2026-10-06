@@ -60,15 +60,20 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
     `EgressSubject.Enter` is a `using` on the flow that enters it (never inside an async helper, whose frame does not
     reach the flow that awaits it), disposed in order, since a flow that disposes frames out of order stays inside the
-    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). A task
-    or thread a runner starts inside its frame keeps that frame for as long as it runs, also after the `using` ends, so
-    what it reads later still raises the subject's shared mark. The `using` block never spans a `yield return` of an
-    async iterator: each `MoveNextAsync` runs the body on the consumer's flow, so after the first `yield return` the
-    frame is gone, and the rest of the block decides at the consumer's frames (a write-down wherever they do not hold
-    the subject's mark) while its reads never reach that mark. The code that drives the iteration enters the frame
-    around its `await foreach`, or the body enters one for each stretch between two `yield return`s. Ashlar's streaming
-    chat clients are such iterators (`GetStreamingResponseAsync` in seven production files, `RoutingChatClient` among
-    them), so a runner that streams must follow this;
+    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). Work a
+    runner creates and starts inside its frame, such as a task or a thread, keeps that frame for as long as it runs,
+    also after the `using` ends, so what it reads later still raises the subject's shared mark. Work keeps the frames of
+    the flow where it captured the execution context: a task, a `System.Threading.Timer`, a cancellation registration or
+    a continuation where it is created, a thread or a `System.Timers.Timer` where it is started. So what is read by work
+    created before the frame (a cold task, a continuation, a timer or a registration), or by a thread created inside it
+    and started after the `using` ends, never reaches the frame's mark, and the runner would decide below what the work
+    it started and awaited has read: a runner creates and starts the work it reads through inside its `using` block. The
+    `using` block never spans a `yield return` of an async iterator: each `MoveNextAsync` runs the body on the
+    consumer's flow, so after the first `yield return` the frame is gone, and the rest of the block decides at the
+    consumer's frames (a write-down wherever they do not hold the subject's mark) while its reads never reach that mark.
+    The code that drives the iteration enters the frame around its `await foreach`, or the body enters one for each
+    stretch between two `yield return`s. Ashlar's streaming chat clients are such iterators (`GetStreamingResponseAsync`
+    in seven production files, `RoutingChatClient` among them), so a runner that streams must follow this;
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
@@ -108,10 +113,11 @@ The status line above and the starting prompt are the owner's, as written; the s
   above); `EgressSubject.Observe` raises every frame on the chain;
   a `BeginRead` scope that ends unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run
   with no subject, inside a callback run by the internal `EgressSubject.RunDetached`, which puts the publisher's frame
-  back exactly when it returns or throws, before any exception filter of the publisher runs. Work created inside the
-  callback, such as each subscriber's `Task.Run`, keeps no subject; a task, timer, registration or continuation the
-  publisher created and the callback starts or triggers keeps the publisher's frame, since each captures the flow
-  where it is created. Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
+  back exactly when it returns or throws, before any exception filter of the publisher runs. Work created and started
+  inside the callback, such as each subscriber's `Task.Run`, keeps no subject; a task, timer, registration or
+  continuation the publisher created and the callback starts or triggers keeps the publisher's frame, since each
+  captures the flow where it is created, and a thread or `System.Timers.Timer` captures it where it is started.
+  Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
   `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
   the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
   `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant

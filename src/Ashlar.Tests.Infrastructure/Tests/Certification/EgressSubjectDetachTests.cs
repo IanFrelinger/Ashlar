@@ -29,17 +29,21 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// detached, and a filter of the caller decides at the caller's mark and what it reads raises the caller's frame, also
 /// around a nested callback; a frame such a filter enters stays on the caller's flow until the flow disposes it. A
 /// frame the callback enters and leaves undisposed is dropped from the calling flow, which decides at its own mark,
-/// also after it disposes that frame. Work the callback creates keeps no subject for its whole life: a task it starts,
-/// after the callback returns, after the caller's frame ends, and when the frame it was handed ends after the callback
-/// returned; and a cold task, a timer, a cancellation registration and a continuation it creates, also when the caller
-/// starts or triggers them. Each captures the flow where it is created, so one of those the caller created keeps the
-/// caller's frame although the callback starts or triggers it. No caller holds the detachment, so none can end it out
-/// of order or hand it to a task, and no program on one flow leaves the flow detached, or below a live frame it
-/// entered outside every callback: not the 24 that dispose three frames entered inside the callback in every order, 0
-/// to 3 of them before it returns and the rest after it, and not any of the 2,092 programs of an enclosing frame, up
-/// to two more frames and up to two callbacks, nested or in turn, each checked step by step against a model of the
-/// rule. The convention fact pins every call site of <c>RunDetached</c> in the repository's C#, every tree but build
-/// output, dot directories and nested checkouts, and that the bus starts each subscriber inside the callback.</para>
+/// also after it disposes that frame. Work the callback creates and starts keeps no subject for its whole life: a task
+/// it starts, after the callback returns, after the caller's frame ends, and when the frame it was handed ends after
+/// the callback returned; and a cold task, a timer, a cancellation registration and a continuation it creates, also
+/// when the caller starts or triggers them. Each captures the flow where it is created, so one of those the caller
+/// created keeps the caller's frame although the callback starts or triggers it. A thread and a
+/// <see cref="System.Timers.Timer"/> capture the flow where they are started instead: one the caller created and the
+/// callback starts runs detached, and one the callback created and the caller starts runs in the caller's frame. The
+/// compiled <c>RunDetached</c> writes the flow's frame only inside a try that catches everything or in that catch, so
+/// an asynchronous abort cannot leave it with the flow detached. No caller holds the detachment, so none can end it out
+/// of order or hand it to a task, and no program on one flow leaves the flow detached, or below a live frame it entered
+/// outside every callback: not the 24 that dispose three frames entered inside the callback in every order, 0 to 3 of
+/// them before it returns and the rest after it, and not any of the 2,092 programs of an enclosing frame, up to two
+/// more frames and up to two callbacks, nested or in turn, each checked step by step against a model of the rule. The
+/// convention fact pins every call site of <c>RunDetached</c> in the repository's C#, every tree but build output, dot
+/// directories and nested checkouts, and that the bus starts each subscriber inside the callback.</para>
 /// <para><b>Internal surface.</b> This assembly is not in <c>Ashlar.Abstractions</c>' InternalsVisibleTo, so
 /// <c>RunDetached</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
 /// <para><b>Process-global state.</b> None: frames live on each test's own flow (the program twin runs each program on
