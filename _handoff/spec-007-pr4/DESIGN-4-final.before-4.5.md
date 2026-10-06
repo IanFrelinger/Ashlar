@@ -1,7 +1,5 @@
 # SPEC-007 PR 4: design, final (after three critiques)
 
-> **Amended 2026-10-06 (phase C, PR 4.5):** §5 Scenario B's reason, control C4 and control C5 follow the owner's open-read-scope decision; see `design-4.5-amendment.md` on this branch for the diff. Phase B's amendments (D9 gains `Ashlar.Orchestration`; D31 amended; `Detach()` is `RunDetached(Action)`) and the phase C owner decisions (O1: custom tiers are SystemHigh in PR 4; O2: a redirect from a non-Host authority into Host is never followed) are recorded in SPEC-007's decisions log and the phase handoffs, not in the body below.
-
 This revises `DESIGN-4.md` with three critiques: code-truth, security and scope. Every finding was checked against the
 read-only clone at `8ec674d2a` (PR 3b merged) before it was accepted. Nothing was built or run. §7 lists each finding
 as accepted or rejected, with the reason.
@@ -945,7 +943,7 @@ Readiness lanes are diff-conditional, so cert-gate tests are the evidence.
   - the Bing stub sees **0** requests;
   - the model sees one `REFUSED` observation with the same redaction;
   - call 3 returns empty, so `StoppedReason == "empty"` and the refusal count is 1;
-  - the decision is **`SystemHighData`**, WebSearch / Confidential, `ModeBasis == "profile:secure-workstation"`: the search runs inside the `web_search` tool call, so inside the agent's open read scope, and a read that has not ended counts as SystemHigh (owner decision 2026-10-06; PR 4.5). B and C5 then share a reason and differ by site and family: B's refused record is the tool's (`EG-WEB-01`, family `web-search`, WebSearch / Confidential), C5's the model's (`EG-MDL-01`, family `model.meai`, ExternalModel / Internal). The verifier asserts the site and the family, not the reason alone.
+  - the decision is `LevelTooLow`, WebSearch / Confidential, `ModeBasis == "profile:secure-workstation"`.
 
 **Scenario C: the factory route and a redirect** (the composition binding). Same composition as B, inside a frame
 whose mark has observed Secret.
@@ -965,8 +963,8 @@ whose mark has observed Secret.
 | C1 | record tier `"Internal"` | call 2 allowed; the stub sees 2 calls; `"empty"` | the refusal is caused by the label's level |
 | C2 | snapshot clearance **`"TopSecret"`**; record tier blank, or the custom name `"Restricted"` | the RAG audit shows `results=1`, **then** call 2 is refused with `SystemHighData` | an unknown label that was read fails closed (E9), not an empty search |
 | C3 | guard `new EgressGuard("full")` | call 2 sent; `Mode = report`, would-refuse `LevelTooLow` | the switch is per profile |
-| C4 | a test tool that enters `Enter("inner", new HighWaterMark())` and, **inside that frame**, sends through a guarded stub | that send is refused, `Current = SystemHigh`, `SystemHighData`, basis `subject:inner` | the send is made inside the agent's open read scope, so it is decided at SystemHigh whatever the frames hold (PR 4.5); it no longer isolates monotone nesting, which PR 4.4's `EgressSubjectNestingTests` pin on their own (a `Public` frame inside a `Secret` one decides `Secret`). A frame set inside an async tool never flows back to the agent, so the egress must happen inside it. |
-| C5 | an unlabelled test tool instead of `rag_search` | call 2 refused, `SystemHighData`, at the model's site (`EG-MDL-01`, `model.meai`, ExternalModel / Internal) | the unreported-read rule. Same reason as Scenario B since PR 4.5; told apart by site and family. |
+| C4 | a test tool that enters `Enter("inner", new HighWaterMark())` and, **inside that frame**, sends through a guarded stub | that send is refused, `Current = Secret`, `LevelTooLow` | monotone nesting. A frame set inside an async tool never flows back to the agent, so the egress must happen inside it. |
+| C5 | an unlabelled test tool instead of `rag_search` | call 2 refused, `SystemHighData` | the unreported-read rule |
 | C6 | the runner enters no frame | call 1 refused, `SystemHighData`, `no-subject` | the floor is the runner's declaration; no-subject fails closed |
 | C7 | `AddAshlar(AirGapped)` with `ASHLAR_EGRESS_MODE=report` | still refused; `ModeBasis == "override-ignored"` | on AG no override lowers the mode |
 | C8 | a classification fault (a relative URI through a test site) | refused; `Fault` set; the inner handler is never called | a fault fails closed |
@@ -995,8 +993,6 @@ whose mark has observed Secret.
 | M14 | any `Observe` satisfies a read scope | C11 |
 | M15 | a thrown tool's scope is discarded | C12 |
 | M16 | the Bing site keeps `_ =` | B (the stub sees 1 request) |
-
-The open-read rule (PR 4.5) is mutation m01 of that PR: `BeginRead` not entering the read's frame makes a tool's own in-call egress decide at the pre-read mark; B then reads `LevelTooLow` again.
 
 **Records in 4.11.**
 - A new `ci/cert-gate-assertions.md` row: "An agent that has read labelled data cannot write it down: under an

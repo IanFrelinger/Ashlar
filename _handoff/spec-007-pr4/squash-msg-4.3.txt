@@ -1,0 +1,53 @@
+SPEC-007 PR 4.3: every redirect hop is decided before it is sent (R-a, R-b, R-c; D32, D33; Q5)
+
+An internal redirect follower, EgressRedirectHandler, sits directly above the primary handler of
+every EgressHttp client and handler and of every IHttpClientFactory client under AddAshlarEgressGuard
+(the host's clients included, owner answer Q5). It turns an HttpClientHandler's or
+SocketsHttpHandler's own AllowAutoRedirect off, remembers the original per instance, follows as the
+runtime would (300/301/302/303/307/308, the primary's limit, relative Location resolved, fragment
+kept, never https to http, method rewrite on 301/302/303, Authorization cleared) and decides each
+new authority (scheme, host, port) with the guard handler's guard, family and site before the hop is
+sent. A handler between the guard handler and the primary that rewrites RequestUri is decided again
+(EgressHopEvaluation, a per-request note in HttpRequestMessage.Options; Properties on ns2.0).
+Factory clients follow across origins (P1); EgressHttp clients return a cross-origin 3xx (P2).
+EgressRedirectFilter (an IHttpMessageHandlerBuilderFilter registered by AddAshlarEgressGuard) puts
+the guard handler back, with a Warning (7303), when a client's configuration removed it, and on
+AirGapped/SecureWorkstation names a primary type whose following cannot be turned off (7304). A
+primary of another type, with Credentials, or already started keeps following on its own and the
+final authority is decided after the send. On netstandard2.0 the follower sits under the
+synchronous-send hop, whose Inner the follower's walker steps through.
+
+By the owner's decision of 2026-10-06 (O2, SPEC-007 decisions log) a hop from outside the host
+boundary into it (loopback, localhost and *.localhost, unix, npipe, link-local) is never followed on
+either route: the hop is recorded and the 3xx returned, so a remote peer cannot bounce a request into
+a local service. A caller's token cancelled between hops stops the follower before the next hop is
+sent or decided; intermediate responses are disposed; a Wrap over a chain with no primary yet only
+decides (Known limit).
+
+Both SNS signing-certificate clients (API and Fleet.Host) never follow, through the new
+EgressHttpClientBuilderExtensions.NeverFollowRedirects (configure-existing overload); the Bedrock
+runtime client's configuration never follows (AwsBedrockChatClientFactory.RuntimeConfig).
+
+Still report-only: a hop the guard would refuse is decided Refused before it is sent, and still sent
+until PR 4.7. Behaviour changes in the CHANGELOG. Known limits (docs/EgressInventory.md): only
+Authorization is cleared on a hop; a cloning handler costs a duplicate decision; a primary of another
+type, with credentials, already started, or attached after the wrap is decided after the send.
+
+Twins: EgressRedirectTwinTests (stub, P2, rewrite, Clear(), post-send, enforcement, shapes, and the
+adversarial twins), EgressRedirectDifferentialTests (23 cases against the real SocketsHttpHandler
+over loopback Kestrel, plus the factory's own primary, the enforcing refusal, NeverFollowRedirects,
+a non-HTTP Location, a started primary, a remote hop into loopback Kestrel returned), the ns2.0
+follow-through-the-hop twin, the SNS host twins, the Bedrock configuration theory, the gRPC chain
+walk. 18 of the first 45 facts red at the base.
+
+Records: SPEC-007 (4.3 bullet; the O2 decisions-log row; 4.4 merge SHA de41a8a), CHANGELOG, docs/EgressInventory.md,
+ci/egress-inventory.tsv (rows 9, 34, 38, 42; 149 occurrences), ci/cert-gate-assertions.md row 64
+and the count paragraph (133/136), the floors comment (2,139 / 149 / 67), docs/SdkCompatibilityPolicy.md,
+knowledge graph. InternalsVisibleTo: Abstractions -> Infrastructure (D9); AI.Pipeline -> Tests.Infrastructure.
+
+[coordinated-integration]: application/src/Ashlar.API/Program.cs:171 chains .NeverFollowRedirects()
+on the ashlar-sns-signing registration; the verifier checks the certificate URL's host before the
+fetch, and a followed redirect would fetch the PEM from a host it never checked.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_017TjtzCLb6VaYxD1MtRJ1ja
