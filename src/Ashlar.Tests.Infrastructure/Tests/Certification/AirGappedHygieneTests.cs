@@ -393,7 +393,9 @@ public sealed class AirGappedHygieneTests : IDisposable
         using var sp = services.BuildServiceProvider();
 
         sp.GetRequiredService<ResolvedDeploymentProfile>().IsAirGapped.Should().BeTrue();
-        Overnight(sp).Should().BeOfType<ExecutionTarget.Local>().Which.Reason.Should().StartWith(NcrCapabilityRouter.AirGappedLocalReasonPrefix);
+        // (The router cannot be resolved here: its peer poller reads RunPodBrickConfig, which the opt-in below makes the
+        // validator refuse at first resolution, as asserted at the end. A_later_weaker_AddAshlar_keeps_the_AirGapped_routing
+        // covers the routing of a later weaker composition.)
         // The carry-in for 4.11: the later AddAshlar still selects its own (Full) module set; only the value is AirGapped.
         sp.GetService<Ashlar.Transport.Grpc.IGrpcChannelFactory>().Should().NotBeNull(
             "a later AddAshlar still selects its own module set (4.6 carry-in, 4.11 territory); AirGapped itself omits runtime transport");
@@ -471,11 +473,12 @@ public sealed class AirGappedHygieneTests : IDisposable
         await Task.CompletedTask;
         Action<IServiceCollection> bedrock = s => s.AddSingleton(Options.Create(new MeaiPipelineOptions { Bedrock = { Enabled = true } }));
 
-        var airGapped = () => Compose(AshlarDeploymentProfile.AirGapped, before: bedrock);
-        airGapped.Should().Throw<InvalidOperationException>().WithMessage("*Ashlar:Meai:Bedrock:Enabled*AirGapped*");
-
+        // The Full control first: once AirGapped is noted the process keeps it (D5), and a later Full AddAshlar is refused too.
         var full = () => Compose(AshlarDeploymentProfile.Full, before: bedrock);
         full.Should().NotThrow();
+
+        var airGapped = () => Compose(AshlarDeploymentProfile.AirGapped, before: bedrock);
+        airGapped.Should().Throw<InvalidOperationException>().WithMessage("*Ashlar:Meai:Bedrock:Enabled*AirGapped*");
     }
 
     [Fact(Timeout = TestTimeouts.E2E)]
@@ -485,11 +488,12 @@ public sealed class AirGappedHygieneTests : IDisposable
         using var enabled = new EnvironmentVariableScope("Ashlar__Meai__Bedrock__Enabled", "true");
         using var region = new EnvironmentVariableScope("Ashlar__Meai__Bedrock__Region", "us-east-1");
 
-        var airGapped = () => Compose(AshlarDeploymentProfile.AirGapped);
-        airGapped.Should().Throw<InvalidOperationException>().WithMessage("*Ashlar:Meai:Bedrock:Enabled*AirGapped*");
-
+        // The Full control first (D5: a later Full AddAshlar in a process that noted AirGapped is refused as well).
         var full = () => Compose(AshlarDeploymentProfile.Full);
         full.Should().NotThrow();
+
+        var airGapped = () => Compose(AshlarDeploymentProfile.AirGapped);
+        airGapped.Should().Throw<InvalidOperationException>().WithMessage("*Ashlar:Meai:Bedrock:Enabled*AirGapped*");
     }
 
     /// <summary>
