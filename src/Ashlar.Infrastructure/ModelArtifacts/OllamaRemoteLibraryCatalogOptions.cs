@@ -8,7 +8,8 @@ public sealed class OllamaRemoteLibraryCatalogOptions
 
     /// <summary>
     /// When false, <see cref="OllamaRemoteLibraryModelArtifactCatalogSource"/> reports unavailable (no outbound call).
-    /// Default is true so <c>ListInstallableAsync</c> works out of the box; set false on air-gapped hosts.
+    /// The property default is true, so a Full host lists the library out of the box.
+    /// <c>AddModelArtifactCatalog</c> sets this false on AirGapped when the <c>Enabled</c> key is absent.
     /// </summary>
     public bool Enabled { get; set; } = true;
 

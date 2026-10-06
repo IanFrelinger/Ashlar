@@ -12,6 +12,16 @@ public sealed class ValidateAshlarMcpServerOptions : IValidateOptions<AshlarMcpS
     /// <summary>Deployment-profile environment variable honored by the Ashlar kernel.</summary>
     public const string DeploymentProfileVariable = "ASHLAR_DEPLOYMENT_PROFILE";
 
+    private readonly bool _httpTransport;
+
+    /// <summary>
+    /// Creates the validator. DI supplies every <see cref="AshlarMcpHttpTransportMarker"/>; stdio registers none.
+    /// </summary>
+    public ValidateAshlarMcpServerOptions(IEnumerable<AshlarMcpHttpTransportMarker>? httpTransports = null)
+    {
+        _httpTransport = httpTransports is not null && httpTransports.Any();
+    }
+
     /// <inheritdoc />
     public ValidateOptionsResult Validate(string? name, AshlarMcpServerOptions options)
     {
@@ -33,6 +43,12 @@ public sealed class ValidateAshlarMcpServerOptions : IValidateOptions<AshlarMcpS
             failures.Add(
                 $"{nameof(AshlarMcpServerOptions.Enabled)}=true is not permitted under the AirGapped deployment profile " +
                 $"({DeploymentProfileVariable}={profile}). The MCP server is a network protocol surface and stays off.");
+        }
+        else if (_httpTransport && AshlarDeploymentProfileEnvironment.IsSecureWorkstation(profile))
+        {
+            failures.Add(
+                $"{nameof(AshlarMcpServerOptions.Enabled)}=true with HTTP transport is not permitted under the SecureWorkstation " +
+                $"deployment profile ({DeploymentProfileVariable}={profile}). MCP over HTTP fails boot; stdio stays.");
         }
 
         if (string.IsNullOrWhiteSpace(options.ServerName))
