@@ -655,13 +655,14 @@ public sealed class EgressSubjectNestingTests
         var parentLabel = new SecurityLabel(
             SecurityLevel.Secret, Enumerable.Range(0, 60_000).Select(i => "P" + i.ToString("D6", CultureInfo.InvariantCulture)));
         var resolve = ResolveOnThisFlow();
+        var innermostLive = InnermostLiveFrame();
         const int Iterations = 60;
         var below = 0;
         string? example = null;
 
         for (var i = 0; i < Iterations; i++)
         {
-            var hit = await DisposeWhileAFramelessTaskDecides(enclosingFloor, parentLabel, resolve);
+            var hit = await DisposeWhileAFramelessTaskDecides(enclosingFloor, parentLabel, resolve, innermostLive);
             if (hit is not null)
             {
                 below++;
@@ -869,15 +870,29 @@ public sealed class EgressSubjectNestingTests
         return method!.CreateDelegate<Func<(SecurityLabel Current, string Basis)>>();
     }
 
+    // EgressSubject.Frame.Live is internal too: the frame whose basis a decision names, given the flow's frame. A scope
+    // returned by Enter is that frame. Much cheaper than a decision over labels this large, so it samples a short window.
+    private static Func<object, object?> InnermostLiveFrame()
+    {
+        var frame = typeof(EgressSubject).GetNestedType("Frame", BindingFlags.NonPublic);
+        frame.Should().NotBeNull("EgressSubject.Frame is the internal frame type");
+        var method = frame!.GetMethod("Live", BindingFlags.NonPublic | BindingFlags.Static);
+        method.Should().NotBeNull("EgressSubject.Frame.Live finds the innermost live frame of a chain");
+        return chain => method!.Invoke(null, [chain]);
+    }
+
     // Its own async method, so its frames never flow back to the caller. Enclosing > parent on this flow, and a task
     // started inside the parent, with no frame of its own, that decides in a loop while this flow disposes the parent
-    // in order, as a using block would. Returns the first decision the task made below the parent's mark, or that named
-    // the enclosing frame before that frame held the parent's mark, if any.
+    // in order, as a using block would. Returns the first decision the task made below the parent's mark, or the first
+    // time its decisions would have named the enclosing frame before that frame held the parent's mark, if any.
     private static async Task<string?> DisposeWhileAFramelessTaskDecides(
-        SecurityLabel enclosingFloor, SecurityLabel parentLabel, Func<(SecurityLabel Current, string Basis)> resolve)
+        SecurityLabel enclosingFloor,
+        SecurityLabel parentLabel,
+        Func<(SecurityLabel Current, string Basis)> resolve,
+        Func<object, object?> innermostLive)
     {
         var enclosingMark = new HighWaterMark(enclosingFloor);
-        using (EgressSubject.Enter("disposing-enclosing", enclosingMark))
+        using (var enclosing = EgressSubject.Enter("disposing-enclosing", enclosingMark))
         {
             var parent = EgressSubject.Enter("disposing-parent", new HighWaterMark(parentLabel));
             using var started = new ManualResetEventSlim(false);
@@ -890,15 +905,21 @@ public sealed class EgressSubjectNestingTests
                     if (first.Basis != SubjectPrefix + "disposing-parent" || !first.Current.Dominates(parentLabel))
                         return $"before the dispose: {first.Basis} at level {first.Current.Level}, not inside the parent";
 
-                    while (Volatile.Read(ref stop) == 0)
+                    for (var spin = 0; Volatile.Read(ref stop) == 0; spin++)
                     {
+                        // The frame the task's decisions name, then what that frame holds: read in that order, so a
+                        // frame that already held the mark when it was named can only pass.
+                        var named = innermostLive(parent);
+                        var held = enclosingMark.Current;
+                        if (ReferenceEquals(named, enclosing) && !held.Dominates(parentLabel))
+                            return "named the enclosing frame before that frame held the parent's mark";
+
+                        if (spin % 8 != 0)
+                            continue;
+
                         var (current, basis) = resolve();
                         if (!current.Dominates(parentLabel))
                             return $"{basis} at level {current.Level}, without the parent's mark";
-
-                        // Read after the decision, so a frame that already held the mark can only pass.
-                        if (basis == SubjectPrefix + "disposing-enclosing" && !enclosingMark.Current.Dominates(parentLabel))
-                            return $"{basis}, named before that frame held the parent's mark";
                     }
 
                     return null;
