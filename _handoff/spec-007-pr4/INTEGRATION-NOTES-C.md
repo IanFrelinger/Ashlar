@@ -66,3 +66,5 @@
 - 19:1xZ all three lane branches pushed for the first time.
 - 20:1xZ model-4.5/REPORT.md landed (41,755,599 sequences, B1–B4 caught in 2–5 ops, 1,900,357 reproduces 4.4).
 - 20:3xZ critic landed; O1/O2 asked and answered; O3 resolved by the owner's Q6 text; pull-forward items sent to lanes.
+- 20:41Z owner paused phase C (move to Cursor); lane agents stopped; clones clean and pushed (4.3 4d8860c5, 4.10 696d3819, 4.5 91d3b48c).
+- 21:0xZ pause handoff published (ff58e485a), then republished with state-4.5.md and the 4.5 body fragments.
