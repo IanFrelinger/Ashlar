@@ -122,12 +122,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   disposed first, such as a parent whose `using` ended while a fire-and-forget task it started is
   still running, still counts for that task, with no frame of its own or in the frames it enters, at
   its mark as it is when the task decides. A flow leaves a frame only by disposing its own head
-  frame, which may be a disposed one, so a task handed a child scope, the flow that entered a frame
-  another flow disposed, and a flow that disposes its own frames out of order all stay inside the
-  frame they did not leave. Known limits, fail closed: such a flow's chain grows by one frame each
+  while that head is undisposed, and goes back to exactly the frame it was entered under, disposed
+  or not, so a task handed a child scope, the flow that entered a frame another flow disposed, and a
+  flow that disposes its own frames out of order all stay inside the frame they did not leave. Known limits, fail closed: such a flow's chain grows by one frame each
   time it repeats the out-of-order dispose, and what it reads later raises the subject's shared mark,
-  so another session of that subject can decide higher; neither arises for a frame entered and
-  disposed in a `using` block on the flow that entered it. Enter a frame that way only: not inside an
+  so another session of that subject can decide higher. Neither arises on the flow that entered a
+  frame and disposed it in a `using` block, in order, but a task or thread started inside that frame
+  keeps it for as long as it runs, so what it reads later still raises the frame's shared mark.
+  Enter a frame that way only: not inside an
   async helper, whose frame does not reach the flow that awaits it, and not across a `yield return`
   of an async iterator, whose body resumes on its consumer's flow, so after the first `yield return`
   the rest of the block decides at the consumer's frames and its reads never reach the frame's mark.
@@ -141,7 +143,9 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   subscriber with no egress subject, inside a callback run by an internal
   `EgressSubject.RunDetached`, which puts the publisher's own frame back exactly when the callback
   returns or throws, before any exception filter of the publisher runs, so a subscriber's egress is
-  no longer decided at the publisher's mark. Still report-only, and no production code enters a frame
+  no longer decided at the publisher's mark. Work created inside the callback keeps no subject; a
+  task, timer, registration or continuation the publisher created and the callback starts or
+  triggers keeps the publisher's frame, since each captures the flow where it is created. Still report-only, and no production code enters a frame
   or begins a read yet, so no recorded decision changes; the agent producers come in PR 4.5. The new
   public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, and the behaviour is pinned by
   cert-gate tests listed in `ci/cert-gate-assertions.md`.

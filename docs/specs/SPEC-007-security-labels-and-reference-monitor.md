@@ -59,7 +59,9 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
     `EgressSubject.Enter` is a `using` on the flow that enters it (never inside an async helper, whose frame does not
     reach the flow that awaits it), disposed in order, since a flow that disposes frames out of order stays inside the
-    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). The
+    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). A
+    task or thread a runner starts inside its frame keeps that frame for as long as it runs, also after the `using`
+    ends, so what it reads later still raises the subject's shared mark. The
     `using` block never spans a `yield return` of an async iterator: each `MoveNextAsync` runs the body on the
     consumer's flow, so after the first `yield return` the frame is gone, and the rest of the block decides at the
     consumer's frames (a write-down wherever they do not hold the subject's mark) while its reads never reach that
@@ -94,12 +96,15 @@ The status line above and the starting prompt are the owner's, as written; the s
 - **PR 4.4** (#716) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
-  frame (disposed or not), so a flow that disposes frames out of order stays inside the outer one (fail closed, at
-  the costs in the 4.5 obligation above); `EgressSubject.Observe` raises every frame on the chain;
+  while that head is undisposed, and goes back to exactly the frame it was entered under, disposed or not, so a flow
+  that disposes frames out of order stays inside the outer one (fail closed, at the costs in the 4.5 obligation
+  above); `EgressSubject.Observe` raises every frame on the chain;
   a `BeginRead` scope that ends unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run
   with no subject, inside a callback run by the internal `EgressSubject.RunDetached`, which puts the publisher's frame
-  back exactly when it returns or throws, before any exception filter of the publisher runs. Report-only, and no
-  production code enters a frame yet. **Amended PR 4 design:** its
+  back exactly when it returns or throws, before any exception filter of the publisher runs. Work created inside the
+  callback, such as each subscriber's `Task.Run`, keeps no subject; a task, timer, registration or continuation the
+  publisher created and the callback starts or triggers keeps the publisher's frame, since each captures the flow
+  where it is created. Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
   `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
   the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
   `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant

@@ -29,10 +29,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// first would declassify a child task still running inside it, whose closures may hold what the parent read. A frame
 /// being disposed counts as live until its mark has reached the frames around it, so a task with no frame of its own
 /// never decides below that mark, nor names the enclosing frame before it holds the mark.</para>
-/// <para><b>Leaving a frame.</b> A flow leaves a frame only by disposing its head, the flow's own frame (which may be a
-/// disposed one, so not always its innermost live frame), and goes back to exactly the frame that one was entered
-/// under, disposed or not; disposing a frame anywhere else moves no flow. So a flow that disposes its own frames out of
-/// order stays inside the outer frame it disposed (fail closed): a frame it enters afterwards joins that frame's mark,
+/// <para><b>Leaving a frame.</b> A flow leaves a frame only by disposing its own head while that head is undisposed,
+/// and goes back to exactly the frame that one was entered under, disposed or not; disposing a frame anywhere else
+/// moves no flow, and a flow whose head was already disposed never leaves it. So a flow that disposes its own frames out
+/// of order stays inside the outer frame it disposed (fail closed): a frame it enters afterwards joins that frame's mark,
 /// in every order of three, and in an async loop the flow's chain grows by exactly one frame per iteration (lengths
 /// pinned), while nothing stays reachable from the inner frame; and what such a flow reads later raises the outer
 /// frame's mark, which is the subject's shared one, so another session of that subject decides at it. A task started
@@ -1136,8 +1136,8 @@ public sealed class EgressSubjectNestingTests
     }
 
     /// <summary>
-    /// A model of one flow under the frame rule: a flow leaves a frame only by disposing the frame that is its own head,
-    /// which goes back to exactly the frame that one was entered under, disposed or not; a callback run detached starts
+    /// A model of one flow under the frame rule: a flow leaves a frame only by disposing the frame that is its own head
+    /// while that head is undisposed, which goes back to exactly the frame that one was entered under, disposed or not; a callback run detached starts
     /// at a detachment, which ends the chain, and returns to exactly the caller's head. Disposing a subject frame raises
     /// every subject frame it was entered inside, up to a detachment; a decision joins every subject frame from the head
     /// down to a detachment and names the nearest live one.

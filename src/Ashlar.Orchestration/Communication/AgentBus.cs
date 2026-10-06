@@ -61,9 +61,10 @@ public sealed class AgentBus : IAgentBus
         }
 
         // Notify subscribers. Each handler is another component's work, so it must not be decided at the
-        // publisher's mark: the dispatch tasks start inside a callback run with no egress subject (SystemHigh) and
-        // keep it for their whole life, while the publisher's flow is back in exactly its own frame as soon as the
-        // callback returns (SPEC-007 PR 4.4).
+        // publisher's mark: the dispatch tasks are created inside a callback run with no egress subject (SystemHigh),
+        // so they keep it for their whole life, while the publisher's flow is back in exactly its own frame as soon as
+        // the callback returns (SPEC-007 PR 4.4). A task created before the callback and started inside it would keep
+        // the publisher's frame: a task captures the flow where it is created.
         var subscriptions = GetMatchingSubscriptions(message);
         EgressSubject.RunDetached(() =>
         {

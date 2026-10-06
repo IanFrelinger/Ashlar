@@ -24,11 +24,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// even inside that frame's <c>using</c> block. The rest of the block decides at the consumer's frames, which need not
 /// hold the frame's mark, or with no subject, and what it reads raises the consumer's frames, or nothing, not the
 /// frame's mark. Enter the frame in the code that drives the iteration, around its <c>await foreach</c>, or once for
-/// each stretch of the body between two <c>yield return</c>s. A flow leaves a frame only by disposing its head, the
-/// flow's own frame (which may be a disposed one, so not always its innermost live frame), and then goes back to
-/// exactly the frame that one was entered under, also after an await and also when that frame has ended meanwhile.
-/// Disposing a frame anywhere else moves no flow: every flow inside it stays inside it. Disposing twice does nothing.
-/// So <c>using</c> blocks on one flow end where they began.</para>
+/// each stretch of the body between two <c>yield return</c>s. A flow leaves a frame only by disposing its own head,
+/// the frame it is in, while that head is undisposed, and then goes back to exactly the frame that one was entered
+/// under, disposed or not, also after an await. Disposing a frame anywhere else moves no flow: every flow inside it
+/// stays inside it. A flow whose head was already disposed, out of order or on another flow, therefore never leaves
+/// it (known limit (a)). Disposing twice does nothing. So <c>using</c> blocks on one flow end where they began.</para>
 /// <para><b>Disposed frames still count.</b> A disposed frame is never the innermost live one, so it never names a
 /// decision: a flow whose own frame was disposed, such as a task that captured it and outlives the scope, decides with
 /// the basis of the nearest live frame it was entered inside, or at <c>no-subject</c> if there is none. But a disposed
@@ -48,8 +48,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// subject's shared <see cref="HighWaterMark"/>, so unrelated later work can raise the label of another session of that
 /// subject. The same holds for a task or thread, which keeps the frames it inherited, ended or not, for as long as it
 /// runs, and for a flow whose frame was disposed on another flow, as by <c>await Task.Run(scope.Dispose)</c>, inside an
-/// async method it awaits, by a background task, or from a thread started without the execution context. None of this
-/// happens to a frame entered and disposed in a <c>using</c> block on the flow that entered it.</para>
+/// async method it awaits, by a background task, or from a thread started without the execution context. Neither limit
+/// arises on the flow that entered a frame and disposed it in a <c>using</c> block, in order. Work started inside that
+/// frame, such as a fire-and-forget task or a thread, still keeps it for as long as it runs, also after the
+/// <c>using</c> block ends, so what it reads later still raises the frame's mark, which is the subject's shared
+/// <see cref="HighWaterMark"/> ("Disposed frames still count").</para>
 /// <para>Entering a frame can lower the current label only from SystemHigh, where there is no subject, to the join
 /// of the marks on the chain; a producer must therefore observe every read before the egress it governs.</para>
 /// </remarks>
@@ -110,10 +113,10 @@ public static class EgressSubject
     public static ReadScope BeginRead() => new(Active.Value);
 
     /// <summary>
-    /// Runs <paramref name="start"/> with no subject on this async flow: decisions made while it runs, and in tasks it
-    /// starts, have no subject, so their current label is <see cref="SecurityLabel.SystemHigh"/>. When it returns or
-    /// throws, this flow's frame is exactly the one it was before the call, before any exception filter of the caller
-    /// runs.
+    /// Runs <paramref name="start"/> with no subject on this async flow: decisions made while it runs, and in work it
+    /// creates, such as a task it starts with <c>Task.Run</c>, have no subject, so their current label is
+    /// <see cref="SecurityLabel.SystemHigh"/>. When it returns or throws, this flow's frame is exactly the one it was
+    /// before the call, before any exception filter of the caller runs.
     /// </summary>
     /// <remarks>
     /// <para>For work handed to another component that must not be decided at the caller's mark: AgentBus subscriber
@@ -121,8 +124,12 @@ public static class EgressSubject
     /// never reaches the caller's frames.</para>
     /// <para>No caller holds the detachment, so none can end it out of order, on another flow, or by handing it to a
     /// task: the calling flow leaves it exactly when <paramref name="start"/> returns. Work <paramref name="start"/>
-    /// starts, such as a task, keeps it for its whole life, also after the caller's frame ends. A frame
-    /// <paramref name="start"/> enters and leaves undisposed is dropped from the calling flow on return, as in-order
+    /// creates keeps it for its whole life, also after the caller's frame ends: a task it starts with <c>Task.Run</c>
+    /// or <c>StartNew</c>, a thread it starts, and a timer, cancellation registration or continuation it creates. A
+    /// <c>Task</c>, <c>Timer</c>, registration or continuation captures the flow where it is created, not
+    /// where it starts or fires, so one the caller created and <paramref name="start"/> starts or triggers, such as a
+    /// cold task it calls <c>Start</c> on, keeps the caller's frame: create the work inside <paramref name="start"/>. A
+    /// frame <paramref name="start"/> enters and leaves undisposed is dropped from the calling flow on return, as in-order
     /// <c>using</c> blocks around the frame and the detachment would leave the caller: a frame entered under a
     /// detachment never reaches the caller. Disposed later, it moves no flow but one whose head it is, such as a task
     /// started inside it, and its mark reaches only the frames it was entered inside, up to the detachment.</para>
@@ -130,7 +137,8 @@ public static class EgressSubject
     /// and the caller's frame is back before the exception leaves this method. An exception's first pass runs every
     /// filter up the stack before any <c>finally</c> block, so a restore made only in a <c>finally</c> would run a
     /// filter of the caller, such as <c>catch (Exception ex) when (Log(ex))</c>, at the callback's frame: it would
-    /// decide below the caller's mark, and what it read would miss the caller's frames.</para>
+    /// decide below the caller's mark, and what it read would miss the caller's frames. Nothing here runs after that
+    /// filter, so a frame it enters stays on the caller's flow until the flow disposes it.</para>
     /// </remarks>
     /// <param name="start">The work, run synchronously on this flow.</param>
     /// <exception cref="ArgumentNullException"><paramref name="start"/> is <see langword="null"/>.</exception>
@@ -147,17 +155,16 @@ public static class EgressSubject
         catch
         {
             // An exception's first pass runs every filter up the stack before any finally block, so a restore made
-            // only in the finally would run the caller's filters at the callback's frame. This catch matches every
+            // only in a finally would run the caller's filters at the callback's frame. This catch matches every
             // exception, so the first pass stops here: the callback's filters have run, and its finally blocks run as
             // the stack unwinds to here, all detached, and the caller's frame is back before the rethrow's first pass
-            // reaches a filter of the caller.
+            // reaches a filter of the caller. Nothing here runs after that filter: a finally would, in the rethrow's
+            // second pass, and would drop a frame the filter entered and the caller's flow never disposed.
             Active.Value = caller;
             throw;
         }
-        finally
-        {
-            Active.Value = caller;
-        }
+
+        Active.Value = caller;
     }
 
     /// <summary>The current label on this async flow and where it came from.</summary>

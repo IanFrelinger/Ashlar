@@ -27,15 +27,19 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// caller's frames. When the callback returns, or throws, the calling flow is back in exactly the caller's frame, and
 /// when it throws, before any exception filter of the caller runs: the callback's own filters and finally blocks run
 /// detached, and a filter of the caller decides at the caller's mark and what it reads raises the caller's frame, also
-/// around a nested callback. A frame the callback enters and leaves undisposed is dropped from the calling flow, which
-/// decides at its own mark, also after it disposes that frame. A task started inside keeps no subject for its whole
-/// life: after the callback returns, after the caller's frame ends, and when the frame it was handed ends after the
-/// callback returned. No caller holds the detachment, so none can end it out of order or hand it to a task, and no
+/// around a nested callback; a frame such a filter enters stays on the caller's flow until the flow disposes it. A
+/// frame the callback enters and leaves undisposed is dropped from the calling flow, which decides at its own mark,
+/// also after it disposes that frame. Work the callback creates keeps no subject for its whole life: a task it starts,
+/// after the callback returns, after the caller's frame ends, and when the frame it was handed ends after the callback
+/// returned; and a cold task, a timer, a cancellation registration and a continuation it creates, also when the caller
+/// starts or triggers them. Each captures the flow where it is created, so one of those the caller created keeps the
+/// caller's frame although the callback starts or triggers it. No caller holds the detachment, so none can end it out of order or hand it to a task, and no
 /// program on one flow leaves the flow detached, or below a live frame it entered outside every callback: not the 24
 /// that dispose three frames entered inside the callback in every order, 0 to 3 of them before it returns and the rest
 /// after it, and not any of the 2,092 programs of an enclosing frame, up to two more frames and up to two callbacks,
 /// nested or in turn, each checked step by step against a model of the rule. The convention fact pins every call site
-/// of <c>RunDetached</c> in the repository's C#, and that the bus starts each subscriber inside the callback.</para>
+/// of <c>RunDetached</c> in the repository's C#, every tree but build output, dot directories and nested checkouts, and
+/// that the bus starts each subscriber inside the callback.</para>
 /// <para><b>Internal surface.</b> This assembly is not in <c>Ashlar.Abstractions</c>' InternalsVisibleTo, so
 /// <c>RunDetached</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
 /// <para><b>Process-global state.</b> None: frames live on each test's own flow (the program twin runs each program on
@@ -58,10 +62,6 @@ public sealed class EgressSubjectDetachTests
 
     /// <summary>Every production dispatch point that must not inherit its caller's subject (SPEC-007 PR 4.4).</summary>
     private static readonly string[] ExpectedSites = [AgentBusPath + " x1"];
-
-    /// <summary>The trees the call-site scan reads, where they exist.</summary>
-    private static readonly string[] ScanRoots =
-        ["src", "application", "applications", "apps", "commercial", "products", "tools", "consumer-template", "extensions"];
 
     /// <summary>Below this many scanned files the scan is taken to have lost its reach, not to have found nothing.</summary>
     private const int ScannedFileFloor = 1000;
@@ -599,7 +599,7 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
-    public void A_flow_that_disposes_its_own_detachment_out_of_order_never_decides_below_the_callers_frame()
+    public void A_callback_that_returns_with_frames_it_entered_undisposed_never_leaves_the_flow_below_the_callers_frame()
     {
         var callerLabel = new SecurityLabel(SecurityLevel.Secret, ["DETACH-PROBE-CALLER"]);
         var failures = new List<string>();
@@ -607,9 +607,9 @@ public sealed class EgressSubjectDetachTests
 
         using (EgressSubject.Enter("detach-probe-caller", new HighWaterMark(callerLabel)))
         {
-            // No caller holds a detachment, so the nearest thing to disposing one out of order is a callback that returns
-            // while frames it entered are still undisposed. Three frames entered inside, disposed in every order (6), the
-            // first `inside` of them before the callback returns and the rest after it (4 splits): 24 programs, one flow.
+            // A callback that returns while frames it entered are still undisposed. Three frames entered inside, disposed
+            // in every order (6), the first `inside` of them before the callback returns and the rest after it (4 splits):
+            // 24 programs, one flow.
             foreach (var order in Permutations(3))
             {
                 for (var inside = 0; inside <= 3; inside++)
@@ -836,15 +836,10 @@ public sealed class EgressSubjectDetachTests
 
     private static (List<string> Sites, int Scanned) Sites(string root)
     {
+        // The whole repository, as ProcessGlobalEnvironmentConventionTests reads it: tests, samples, spikes and docs
+        // included, less build output, dot directories and nested checkouts (IsPruned).
         var found = new List<string>();
-        var scanned = 0;
-        foreach (var name in ScanRoots)
-        {
-            var start = Path.Combine(root, name);
-            if (Directory.Exists(start))
-                scanned += Collect(root, start, found);
-        }
-
+        var scanned = Collect(root, root, found);
         found.Sort(StringComparer.Ordinal);
         return (found, scanned);
     }
