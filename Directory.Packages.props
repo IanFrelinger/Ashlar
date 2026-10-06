@@ -68,7 +68,7 @@
          kept at the latest stable of the 10.x line, family-aligned across AI/VectorData. -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.VectorData.Abstractions" Version="10.10.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.17" />
     <PackageVersion Include="Spectre.Console" Version="0.48.0" />
     <PackageVersion Include="YamlDotNet" Version="13.7.1" />
