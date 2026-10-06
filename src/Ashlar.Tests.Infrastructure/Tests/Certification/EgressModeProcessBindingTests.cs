@@ -160,6 +160,72 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         decision.Profile.Should().Be("full");
     }
 
+    [Fact]
+    public void A_guard_built_without_a_profile_keeps_its_own_override_when_the_process_raises_nothing()
+    {
+        var reported = DecideWith(new EgressGuard(deploymentProfile: null, egressMode: "report"));
+        reported.Mode.Should().Be(Report);
+        reported.ModeBasis.Should().Be(Override);
+
+        var enforced = DecideWith(new EgressGuard(deploymentProfile: null, egressMode: "enforce"));
+        enforced.Mode.Should().Be(Enforce, "its own enforce is stricter than the process's unset override");
+        enforced.ModeBasis.Should().Be(Override);
+
+        DecideWithProcessDefault().Mode.Should().Be(Report, "positive control: the process itself raised nothing");
+    }
+
+    [Theory]
+    [InlineData("variable")]
+    [InlineData("hosting-option")]
+    public void A_guard_built_without_a_profile_takes_the_stricter_of_its_own_override_and_the_process_override(string raisedBy)
+    {
+        if (raisedBy == "variable")
+            Environment.SetEnvironmentVariable(ModeVariable, "enforce");
+        else
+            new ServiceCollection().AddAshlar(o => o.EgressMode = "enforce");
+
+        var decision = DecideWith(new EgressGuard(deploymentProfile: null, egressMode: "report"));
+
+        decision.Mode.Should().Be(Enforce, "a guard that reads the process state cannot lower the process's enforce with its own report");
+        decision.ModeBasis.Should().Be(Override);
+        decision.Refused.Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_decision_names_one_profile_even_when_the_noted_profile_changes_while_it_is_made()
+    {
+        Environment.SetEnvironmentVariable(ProfileVariable, "edge");
+        // Stands in for a concurrent AddAshlar(AirGapped) that lands while ProcessDefault is deciding.
+        EgressProcessStateScope.SetModeResolutionProbe(() => EgressProcessStateScope.NoteProfile("air-gapped"));
+
+        var decision = DecideWithProcessDefault();
+
+        EgressProcessStateScope.NotedProfile.Should().Be("air-gapped", "positive control: AirGapped was noted during the decision");
+        decision.ModeBasis.Should().Be("profile:edge");
+        decision.Profile.Should().Be("edge", "the profile is read once per decision, so the mode and the record cannot disagree");
+        decision.ProfileEnforcesByDefault.Should().BeFalse();
+    }
+
+    [Fact]
+    public void The_mode_resolution_probe_does_not_reach_another_flow()
+    {
+        EgressProcessStateScope.SetModeResolutionProbe(() => throw new InvalidOperationException("mode probe"));
+        DecideWith(new EgressGuard("full")).ModeBasis.Should().Be("fault", "positive control: the probe faults this flow");
+
+        EgressDecision? elsewhere = null;
+        var thread = new Thread(() => elsewhere = DecideWith(new EgressGuard("full")));
+        using (ExecutionContext.SuppressFlow())
+        {
+            thread.Start();
+        }
+
+        thread.Join();
+
+        elsewhere.Should().NotBeNull();
+        elsewhere!.ModeBasis.Should().Be("profile:full", "the probe belongs to the flow that set it, so a guard elsewhere never sees it");
+        elsewhere.Mode.Should().Be(Report);
+    }
+
     // ---------------------------------------------------------------------------------------------------------
     // Strictest profile wins, and the reset seam
     // ---------------------------------------------------------------------------------------------------------
@@ -168,10 +234,33 @@ public sealed class EgressModeProcessBindingTests : IDisposable
     public void A_second_AddAshlar_with_no_profile_does_not_lower_an_AirGapped_process()
     {
         new ServiceCollection().AddAshlarProfile(AshlarDeploymentProfile.AirGapped);
-        new ServiceCollection().AddAshlar();
+        var second = new ServiceCollection();
+        second.AddAshlar();
 
         EgressProcessStateScope.NotedProfile.Should().Be("air-gapped", "once AirGapped is noted nothing lowers it");
         DecideWithProcessDefault().Profile.Should().Be("air-gapped", "the explicit sites decide under the noted profile");
+
+        // The second container's own guard, which its factory clients and MEAI targets use, composes the strictest
+        // profile noted in the process, not the Full this call defaulted to.
+        using var provider = second.BuildServiceProvider();
+        var composed = DecideWith(provider.GetRequiredService<IEgressGuard>());
+        composed.Profile.Should().Be("air-gapped", "the composed guard decides under the strictest profile noted");
+        composed.ModeBasis.Should().Be("profile:air-gapped");
+    }
+
+    [Fact]
+    public async Task A_later_AddAshlar_in_an_AirGapped_container_does_not_lower_the_startup_line()
+    {
+        var services = new ServiceCollection();
+        services.AddAshlarProfile(AshlarDeploymentProfile.AirGapped);
+        services.AddAshlar();
+
+        var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
+
+        entry.Message.Should().Be(
+            "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
+            + "Records only: nothing is refused yet (SPEC-007 PR 4).",
+            "the line names the profile the container's guard composed, and that profile was not defaulted");
     }
 
     [Theory]
@@ -233,16 +322,24 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         DecideWith(ComposedGuard(services)).Mode.Should().Be(Enforce, "the composed guard carries the latched override");
     }
 
-    [Fact]
-    public void The_hosting_option_raises_the_mode_for_the_process()
+    [Theory]
+    [InlineData("enforce", LogLevel.Information)]
+    [InlineData("junk", LogLevel.Warning)]
+    public async Task The_hosting_option_raises_the_mode_for_the_process(string option, LogLevel level)
     {
         var services = new ServiceCollection();
-        services.AddAshlar(o => o.EgressMode = "enforce");
+        services.AddAshlar(o => o.EgressMode = option);
 
         var processBound = DecideWithProcessDefault();
-        processBound.Mode.Should().Be(Enforce);
+        processBound.Mode.Should().Be(Enforce, "enforce raises the mode, and a value that is neither mode fails closed");
         processBound.ModeBasis.Should().Be(Override);
-        DecideWith(ComposedGuard(services)).Mode.Should().Be(Enforce);
+        var composed = DecideWith(ComposedGuard(services));
+        composed.Mode.Should().Be(Enforce);
+        composed.ModeBasis.Should().Be(Override);
+
+        var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
+        entry.Level.Should().Be(level, "an unrecognised value is logged at Warning");
+        entry.Message.Should().StartWith("Ashlar egress mode: enforce (basis override; profile full, defaulted because nothing set it). ");
     }
 
     [Fact]

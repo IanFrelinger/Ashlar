@@ -225,6 +225,7 @@ public sealed class EgressModeResolutionTests
         Field(e, "refused").Should().Be(true);
         Field(e, "ref").Should().Be(decision.Ref);
         decision.Refused.Should().BeTrue();
+        e.Version.Should().Be(1, "appending fields bumps the event's version, which ETW and TraceEvent consumers key manifests on");
     }
 
     private static (string Mode, string ModeBasis) Resolve(string? profile, string? modeOverride) =>
