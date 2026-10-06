@@ -81,7 +81,7 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
-    public void A_frame_disposed_out_of_order_leaves_the_chain()
+    public void A_frame_disposed_out_of_order_still_counts_for_the_frame_entered_inside_it()
     {
         var outer = EgressSubject.Enter("order-outer", new HighWaterMark(Secret));
         var inner = EgressSubject.Enter("order-inner", new HighWaterMark(Internal));
@@ -90,9 +90,11 @@ public sealed class EgressSubjectNestingTests
             outer.Dispose();
 
             var decision = Decide(EgressFamilies.ModelMeai);
-            decision.CurrentBasis.Should().Be(SubjectPrefix + "order-inner");
-            decision.Current.Should().Be(Internal, "a disposed frame counts nowhere, so only the inner mark is left");
-            decision.Access.Allowed.Should().BeTrue("Internal data may go to an Internal model: {0}", decision.Access);
+            decision.CurrentBasis.Should().Be(SubjectPrefix + "order-inner", "the basis still names the innermost live subject");
+            decision.Current.Should().Be(
+                Secret, "the inner frame was entered inside the Secret one, and disposing that one first does not declassify it");
+            decision.Access.Allowed.Should().BeFalse("Secret data may not go to an Internal model: {0}", decision.Access);
+            decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
         }
         finally
         {
@@ -101,6 +103,50 @@ public sealed class EgressSubjectNestingTests
         }
 
         Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject);
+    }
+
+    [Fact]
+    public async Task A_child_task_that_outlives_its_parent_frame_still_decides_at_the_parent_mark()
+    {
+        var childEntered = new TaskCompletionSource<EgressDecision>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<(EgressDecision After, EgressDecision Late)> child;
+
+        using (EgressSubject.Enter("orphan-parent", new HighWaterMark(Secret)))
+        {
+            // Fire and forget: the parent never awaits the child, whose closure may hold what the parent read.
+            child = Task.Run(async () =>
+            {
+                EgressDecision after;
+                using (EgressSubject.Enter("orphan-child", new HighWaterMark()))
+                {
+                    childEntered.SetResult(Decide(EgressFamilies.ModelMeai));
+                    await parentDisposed.Task.WaitAsync(Patience);
+                    after = Decide(EgressFamilies.ModelMeai);
+                }
+
+                // A frame entered only after the parent was disposed was still started inside it.
+                using (EgressSubject.Enter("orphan-late", new HighWaterMark()))
+                    return (after, Decide(EgressFamilies.ModelMeai));
+            });
+
+            var before = await childEntered.Task.WaitAsync(Patience);
+            before.CurrentBasis.Should().Be(SubjectPrefix + "orphan-child");
+            before.Current.Should().Be(Secret, "while the parent frame is live, the child decides at its mark");
+        }
+
+        Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject, "the parent's flow is restored when its frame ends");
+        parentDisposed.SetResult();
+        var (afterDispose, late) = await child.WaitAsync(Patience);
+
+        afterDispose.CurrentBasis.Should().Be(SubjectPrefix + "orphan-child");
+        afterDispose.Current.Should().Be(Secret, "disposing the parent frame first must not declassify a child still running inside it");
+        afterDispose.Access.Allowed.Should().BeFalse("Secret data may not go to an Internal model: {0}", afterDispose.Access);
+        afterDispose.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+
+        late.CurrentBasis.Should().Be(SubjectPrefix + "orphan-late");
+        late.Current.Should().Be(Secret, "a frame entered after the parent ended was still entered inside it");
+        late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
     }
 
     [Fact]
