@@ -70,8 +70,9 @@ The status line above and the starting prompt are the owner's, as written; the s
   - **4.2** (this PR): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
     a synchronous `Send` through `EgressHttp` is refused with `NotSupportedException` before anything is sent, the
     factory handler is refused there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0`
-    or later. The refusal publishes no decision record: no Ashlar code runs on that path, and a record published
-    when a client is built, the only place one could be, would report a refused egress where none happened.
+    or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
+    decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
+    record published when a client is built would report a refused egress where none happened.
 
 ---
 
@@ -350,7 +351,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", and the eight PR 4 answers of 2026-10-05. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
+applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 answer of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
 were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
@@ -369,6 +370,7 @@ were not the owner's are in the next section.
 | 2026-10-05 | PR 4 (Q6) | **Inbound surfaces stay on loopback on `AirGapped` and `SecureWorkstation` until PR 5 mediates responses.** On `SecureWorkstation`, MCP over HTTP fails boot; stdio stays. On both profiles the API's listeners and mesh serve must bind loopback, or boot fails. |
 | 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
 | 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
+| 2026-10-06 | PR 4 (4.2) | **A synchronous `Send` refused on the `netstandard2.0` asset leaves no decision record; the exception is the only signal.** This amends the PR 4 design's default D31, which wanted the hop to publish a `NoDecision` record so the refusal reaches the operator log. No Ashlar code runs when the runtime refuses that `Send`, so a record could only be published when a client is built, which would claim a refused egress where none happened, or from a process-wide `AppDomain.FirstChanceException` hook, which runs on every exception in the host. The `NotSupportedException` reaches the caller, whose own error handling logs it. The accepted cost: under `AirGapped` or `SecureWorkstation` enforcement, such a refusal never appears in Ashlar's egress log. Ashlar's own hosts bind `net8.0` or `net10.0` and are unaffected; only an app that binds the `netstandard2.0` asset on .NET 5 or later is. |
 
 ## Design as merged (added 2026-10-04)
 
