@@ -5,11 +5,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// </summary>
 /// <remarks>
 /// <para><b>Current label.</b> With a frame active, a decision's current label is the join of the
-/// <see cref="HighWaterMark.Current"/> of every live frame on this flow's chain: the innermost frame and every frame
-/// it was entered inside. It is read when the decision is made, and its basis is <c>subject:&lt;id&gt;</c> of the
-/// innermost live frame. With none, the current label is <see cref="SecurityLabel.SystemHigh"/> and the basis is
-/// <c>no-subject</c>: unlabelled data fails closed upward, so only a destination inside the host boundary would be
-/// allowed.</para>
+/// <see cref="HighWaterMark.Current"/> of every frame on this flow's chain: the innermost live frame and every frame
+/// it was entered inside, live or disposed. It is read when the decision is made, and its basis is
+/// <c>subject:&lt;id&gt;</c> of the innermost live frame. With none, the current label is
+/// <see cref="SecurityLabel.SystemHigh"/> and the basis is <c>no-subject</c>: unlabelled data fails closed upward, so
+/// only a destination inside the host boundary would be allowed.</para>
 /// <para><b>Monotone nesting.</b> A nested frame never decides below a frame it was entered inside. Disposing a
 /// frame observes its mark into every enclosing live frame, because what a subject read leaves with its output.
 /// <see cref="Observe"/> joins a label into every live frame at once, so an enclosing flow that egresses while a
@@ -19,8 +19,13 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// ends (<see cref="ReadScope"/>). <see cref="Observe"/> only raises: it never satisfies a read scope.</para>
 /// <para>The frame lives in an <see cref="AsyncLocal{T}"/>, so it flows into awaits and tasks started inside it
 /// and never back out to the caller. Disposing the returned scope restores the frame that was active when it was
-/// entered, also after an await. Once disposed, a frame counts nowhere: a task that captured it and outlives
-/// the scope falls back to the enclosing live frame, or to <c>no-subject</c>. Disposing twice does nothing.</para>
+/// entered, also after an await. Disposing twice does nothing.</para>
+/// <para><b>Disposed frames.</b> A disposed frame is never the innermost one: a task that captured it and outlives
+/// the scope decides at the nearest enclosing live frame, into which its mark was observed, or at
+/// <c>no-subject</c>. But a disposed frame still counts for every live frame entered inside it, so disposing an
+/// enclosing scope first, or ending it while a fire-and-forget task started inside it is still running, never
+/// lowers the current label of the frames inside it. The chain therefore joins the innermost live frame's mark
+/// with every frame above it, live or disposed, up to a detachment.</para>
 /// <para>Entering a frame can lower the current label only from SystemHigh, where there is no subject, to the join
 /// of the marks on the chain; a producer must therefore observe every read before the egress it governs.</para>
 /// </remarks>
@@ -34,7 +39,7 @@ public static class EgressSubject
     /// <summary>
     /// Makes <paramref name="mark"/> part of the current label for egress decisions on this async flow until the
     /// returned scope is disposed. The current label is the join of <paramref name="mark"/> and the marks of every
-    /// live frame this one is entered inside, so a nested frame never decides below an enclosing one.
+    /// frame this one is entered inside, live or disposed, so a nested frame never decides below an enclosing one.
     /// </summary>
     /// <param name="subjectId">Who the subject is, for the decision record (<c>subject:&lt;id&gt;</c>).</param>
     /// <param name="mark">The subject's high-water mark. Its current value is read at each decision, and observed
@@ -136,7 +141,11 @@ public static class EgressSubject
             return frame;
         }
 
-        // The join of every live subject frame's mark on the chain, with the innermost frame's basis.
+        // The innermost live subject frame's mark joined with the mark of every subject frame it was entered inside,
+        // live or disposed, up to the end of the chain or a detachment; with the innermost frame's basis. A frame
+        // disposed above a live one still counts, so ending an enclosing scope first never declassifies a frame (or
+        // a task) still running inside it. A disposed frame below the innermost live one has already observed its
+        // mark into that one.
         internal static (SecurityLabel Current, string Basis) Resolve(Frame? chain)
         {
             var innermost = Live(chain);
@@ -144,7 +153,7 @@ public static class EgressSubject
                 return (SecurityLabel.SystemHigh, NoSubjectBasis);
 
             var current = innermost.Mark.Current;
-            for (var frame = Live(innermost._previous); frame?.Mark is not null; frame = Live(frame._previous))
+            for (var frame = innermost._previous; frame?.Mark is not null; frame = frame._previous)
                 current = current.Join(frame.Mark.Current);
 
             return (current, innermost.Basis);
