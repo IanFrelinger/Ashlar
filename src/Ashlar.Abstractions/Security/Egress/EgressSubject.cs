@@ -21,12 +21,12 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// started inside it and never back out to the caller: a frame entered inside an async method is not on the flow that
 /// awaits it. Nor does a frame outlast a <c>yield return</c> of an async iterator: each <c>MoveNextAsync</c> runs the
 /// iterator's body on its consumer's flow, so after the first <c>yield return</c> the frame the body entered is gone,
-/// even inside that frame's <c>using</c> block. The rest of the block decides at the consumer's frames, below the
-/// frame's mark, or with no subject, and what it reads raises the consumer's frames, or nothing, never the frame's
-/// mark. Enter the frame in the code that drives the iteration, around its <c>await foreach</c>, or once for each
-/// stretch of the body between two <c>yield return</c>s. A flow leaves a frame only by disposing the frame that is its
-/// own innermost one, and then goes back to exactly the frame that one was entered under, also after an await and also
-/// when that frame has ended meanwhile. Disposing a frame anywhere else moves no flow: every flow inside it stays
+/// even inside that frame's <c>using</c> block. The rest of the block decides at the consumer's frames, which need not
+/// hold the frame's mark, or with no subject, and what it reads raises the consumer's frames, or nothing, not the
+/// frame's mark. Enter the frame in the code that drives the iteration, around its <c>await foreach</c>, or once for
+/// each stretch of the body between two <c>yield return</c>s. A flow leaves a frame only by disposing the frame that is
+/// its own innermost one, and then goes back to exactly the frame that one was entered under, also after an await and
+/// also when that frame has ended meanwhile. Disposing a frame anywhere else moves no flow: every flow inside it stays
 /// inside it. Disposing twice does nothing. So <c>using</c> blocks on one flow end where they began.</para>
 /// <para><b>Disposed frames still count.</b> A disposed frame is never the innermost one, so it never names a
 /// decision: a flow whose own frame was disposed, such as a task that captured it and outlives the scope, decides
