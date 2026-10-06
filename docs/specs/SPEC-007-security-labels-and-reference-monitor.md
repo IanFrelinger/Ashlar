@@ -97,6 +97,11 @@ The status line above and the starting prompt are the owner's, as written; the s
   or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
   decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
   record published when a client is built would report a refused egress where none happened.
+- **PR 4.3** (this PR): known primaries Ashlar builds or binds have `AllowAutoRedirect` false, and an internal
+  follower applies that primary's own redirect settings. An `EgressHttp` client follows only a same-host redirect
+  (P2); a factory client follows a cross-host redirect and each hop is evaluated again (P1). HTTPS to HTTP is not
+  followed. `Authorization` is cleared on a followed redirect. Report-only: `Refused` stays false. On the
+  netstandard2.0 asset the synchronous-send hop is unchanged and still throws before the follower runs.
 - **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
@@ -105,7 +110,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
   convention fact pins. The guard refuses nothing yet; the netstandard2.0 asset's synchronous-`Send` refusal
   (PR 4.2) is the runtime's and holds in every mode.
-- **PR 4.4** (#716) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
+- **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
   while that head is undisposed, and goes back to exactly the frame it was entered under, disposed or not, so a flow

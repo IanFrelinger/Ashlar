@@ -66,7 +66,7 @@ public sealed class EgressRedirectTwinTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         stub.Requested.Select(u => u.AbsolutePath).Should().Equal("/start", "/done");
-        sink.Seen.Select(d => d.Destination).Should().Equal($"https://{host}", $"https://{host}",
+        sink.Seen.Select(d => d.Destination).Should().Equal(new[] { $"https://{host}", $"https://{host}" },
             "a same-host redirect is a second hop and a second decision");
         sink.Seen.Should().OnlyContain(d => d.Mode == "report" && d.Refused == false && d.Family == EgressFamilies.Http);
     }
@@ -176,7 +176,8 @@ public sealed class EgressRedirectTwinTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         stub.Requested.Should().Contain(u => string.Equals(u.Host, other, StringComparison.OrdinalIgnoreCase));
-        sink.Seen.Select(d => d.Destination).Should().Equal($"https://{host}", $"https://{other}",
+        sink.Seen.Select(d => d.Destination).Should().Equal(
+            new[] { $"https://{host}", $"https://{other}" },
             "P1 follows a cross-host redirect and the second hop is its own decision");
     }
 
@@ -196,7 +197,8 @@ public sealed class EgressRedirectTwinTests
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         primary.LastUri!.Host.Should().Be(rewritten);
-        sink.Seen.Select(d => d.Destination).Should().Equal($"https://{original}", $"https://{rewritten}",
+        sink.Seen.Select(d => d.Destination).Should().Equal(
+            new[] { $"https://{original}", $"https://{rewritten}" },
             "the first decision is the caller's URI; the rewritten URI is evaluated before it is sent");
     }
 
@@ -241,7 +243,8 @@ public sealed class EgressRedirectTwinTests
         using var response = await client.GetAsync(new Uri($"https://{host}/start"));
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        sink.Seen.Select(d => d.Destination).Should().Equal($"https://{host}", $"https://{other}",
+        sink.Seen.Select(d => d.Destination).Should().Equal(
+            new[] { $"https://{host}", $"https://{other}" },
             "a primary Ashlar cannot flip still reports the authority it actually followed");
         sink.Seen.Should().OnlyContain(d => d.Refused == false && d.Mode == "report");
     }

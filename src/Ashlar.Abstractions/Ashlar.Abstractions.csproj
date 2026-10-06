@@ -37,5 +37,6 @@
     <InternalsVisibleTo Include="Ashlar.Orchestration" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A.Server" />
+    <InternalsVisibleTo Include="Ashlar.Infrastructure" />
   </ItemGroup>
 </Project>

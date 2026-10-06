@@ -113,7 +113,7 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             var buildHandler = typeof(DefaultGrpcChannelFactory).GetMethod("BuildHandler", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
             var guarded = (DelegatingHandler)buildHandler.Invoke(factory, null)!;
             guarded.GetType().FullName.Should().Be("Ashlar.Abstractions.Security.Egress.EgressGuardHandler", "SPEC-007: the channel handler is wrapped by the egress guard");
-            var httpHandler = (HttpClientHandler)guarded.InnerHandler!;
+            var httpHandler = PrimaryHttpClientHandler((DelegatingHandler)buildHandler.Invoke(factory, null)!);
             httpHandler.ServerCertificateCustomValidationCallback.Should().NotBeNull();
             httpHandler.ServerCertificateCustomValidationCallback!(null!, null, null, System.Net.Security.SslPolicyErrors.None)
                 .Should().BeFalse();
@@ -147,7 +147,7 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             factory.GetOrCreate("http://127.0.0.1:9").Should().NotBeNull();
 
             var buildHandler = typeof(DefaultGrpcChannelFactory).GetMethod("BuildHandler", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-            var httpHandler = (HttpClientHandler)((DelegatingHandler)buildHandler.Invoke(factory, null)!).InnerHandler!;
+            var httpHandler = PrimaryHttpClientHandler((DelegatingHandler)buildHandler.Invoke(factory, null)!);
             var serverCertificate = new X509Certificate2(caPem);
             httpHandler.ServerCertificateCustomValidationCallback!(
                     null!,
@@ -200,6 +200,14 @@ public sealed class DefaultGrpcChannelFactoryGapCoverageTests
             null!);
 
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    private static HttpClientHandler PrimaryHttpClientHandler(DelegatingHandler guarded)
+    {
+        HttpMessageHandler? handler = guarded;
+        while (handler is DelegatingHandler delegating)
+            handler = delegating.InnerHandler;
+        return (HttpClientHandler)handler!;
     }
 
     private static (string certPem, string keyPem, string caPem, string pfxPath) CreateTempCertificates(string dir)
