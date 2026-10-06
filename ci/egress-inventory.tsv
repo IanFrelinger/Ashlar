@@ -47,7 +47,7 @@ src/Ashlar.BackgroundAgents/WebSearch/BingWebSearchProvider.cs	http.param	1	1	Pr
 src/Ashlar.Client/AshlarClient.cs	http.param	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client; covered by the guard handler when the consumer also calls AddAshlar or AddAshlarEgressGuard
 src/Ashlar.Client/ServiceCollectionExtensions.cs	http.register	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client registration (:20)
 src/Ashlar.Hosting/AshlarKernelRegistrar.Phases.cs	http.register	1	1	Factory	-	EG-EXE-04	named client AshlarExecution (:778); AddAshlarEgressGuard follows it in the same remote-URL block (:780)
-src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs	http.register	1	1	Factory	-	EG-EXE-01,EG-EXE-02,EG-EXE-03,EG-HTTP-01,EG-HTTP-02	AddAshlar's IHttpClientFactory (:124): the default client behind remote bricks, the peer executor and workflow webhooks; AddAshlarEgressGuard follows it (:127)
+src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs	http.register	1	1	Factory	-	EG-EXE-01,EG-EXE-02,EG-EXE-03,EG-HTTP-01,EG-HTTP-02	AddAshlar's IHttpClientFactory (:136): the default client behind remote bricks, the peer executor and workflow webhooks; AddAshlarEgressGuard follows it (:139)
 src/Ashlar.Infrastructure/Adaptation/CoreVersionManager.cs	process	2	0	-	Exempt:LocalOnly	EG-PROC-05	git rev-parse (:43-51)
 src/Ashlar.Infrastructure/Adaptation/FileBasedSharedAdaptationStore.cs	door	1	1	Precedes	-	EG-MESH-07	BroadcastAsync writes promoted source into the shared directory, after the EG-MESH-07 guard (:57)
 src/Ashlar.Infrastructure/Adaptation/SneakernetTransport.cs	door	1	1	Precedes	-	EG-MESH-08	ExportAsync writes every shared adaptation to the --to path, after the EG-MESH-08 guard (:36)
