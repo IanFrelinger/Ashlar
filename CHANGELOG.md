@@ -83,9 +83,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `Ashlar-Egress` EventSource and to each `EgressDecisionLog` subscriber, except one made on a
   thread that is already publishing a record (an egress that a sink or listener itself causes): that
   decision is returned to its caller and counted, but not published, so the pipeline cannot recurse.
-  A record names the destination by scheme, host and port only, never its path, query or userinfo,
-  and it never carries the payload or the headers. `EgressGuard` never throws: a fault is recorded
-  with `Fault` set and `Access` left at `NoDecision`. `EgressHttp` builds HTTP clients and handlers
+  A record names the destination by scheme, host and port only, never its path, query or userinfo
+  (since PR 4.1 a `file:` name is a path and is recorded as written), and it never carries the payload
+  or the headers. `EgressGuard` never throws: a fault is recorded with `Fault` set and `Access` left at
+  `NoDecision`. `EgressHttp` builds HTTP clients and handlers
   that evaluate every request without reading or buffering its content and return the inner response
   unchanged; on the netstandard2.0 asset, which .NET 5–7 apps resolve, only `SendAsync` is evaluated
   and a synchronous `Send` is not (`docs/EgressInventory.md` records it as a PR 4 prerequisite).
@@ -159,7 +160,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - The MEAI guard layer (EG-MDL-01, EG-MDL-02) records the destination the inner client names,
     `ChatClientMetadata.ProviderUri`, instead of deriving it from the target key. A custom inner client under
     `local:ollama` is recorded where it dials, and one that names no URI as `meai:local:ollama`, an external
-    model. `local:onnx` records nothing only when its inner client is the in-process `LlamaSharpChatClient` (a
+    model; a `cloud:bedrock:*` client that names none keeps the configured region's endpoint, as before.
+    `local:onnx` records nothing only when its inner client is the in-process `LlamaSharpChatClient` (a
     type check), so a custom `local:onnx` client is now recorded. The default registrations record what they did.
   - A destination name that starts with `file:`, in any case, is a path: it is recorded as written and never
     read as a URL, and a `file` URI is never Host. An export or shared directory spelled `//127.0.0.1/…` or

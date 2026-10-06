@@ -16,7 +16,8 @@ public static class AshlarGovernanceChatClientBuilderExtensions
     /// <remarks>
     /// EgressGuard (<see cref="EgressGuardChatClient"/>, SPEC-007) is report-only: it records one egress decision per
     /// call for the destination the inner client names (<c>MeaiEgressDestination</c>; none for the in-process LLamaSharp
-    /// client under <c>local:onnx</c>, and <c>meai:&lt;key&gt;</c> when the inner client names none) and never refuses.
+    /// client under <c>local:onnx</c>; when the inner client names none, the configured region's runtime endpoint, or
+    /// <c>aws-bedrock</c>, for <c>cloud:bedrock:*</c>, else <c>meai:&lt;key&gt;</c>) and never refuses.
     /// It is outermost, so an attempt that PolicyGate denies is still recorded.
     /// </remarks>
     public static ChatClientBuilder UseAshlarGovernance(this ChatClientBuilder builder, string targetKey)
