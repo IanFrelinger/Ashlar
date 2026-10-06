@@ -205,6 +205,137 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
+    public void A_callers_exception_filter_runs_in_the_callers_frame_when_the_callback_throws()
+    {
+        // An exception's first pass runs every filter up the stack before any finally block, so a restore made only in a
+        // finally would come after the caller's filter. The filter is the caller's code, inside the caller's live frame.
+        var seen = new List<(EgressDecision Decision, int Length)>();
+
+        using (EgressSubject.Enter("filter-caller", new HighWaterMark(Secret)))
+        {
+            try
+            {
+                RunDetached(() =>
+                {
+                    using (EgressSubject.Enter("filter-callback", new HighWaterMark()))
+                        throw new InvalidOperationException("the work handed off failed");
+                });
+            }
+            catch (InvalidOperationException) when (Record(seen, EgressFamilies.ModelMeai))
+            {
+            }
+
+            Decide(UnknownFamily).CurrentBasis.Should().Be(SubjectPrefix + "filter-caller");
+        }
+
+        // The same for a frame entered inside a callback, around a nested callback that throws.
+        RunDetached(() =>
+        {
+            using (EgressSubject.Enter("filter-nested-caller", new HighWaterMark(Secret)))
+            {
+                try
+                {
+                    RunDetached(() =>
+                    {
+                        using (EgressSubject.Enter("filter-nested-callback", new HighWaterMark()))
+                            throw new InvalidOperationException("the nested work failed");
+                    });
+                }
+                catch (InvalidOperationException) when (Record(seen, EgressFamilies.ModelMeai))
+                {
+                }
+            }
+        });
+
+        seen.Should().HaveCount(2);
+        string[] callers = ["filter-caller", "filter-nested-caller"];
+        for (var i = 0; i < 2; i++)
+        {
+            var (decision, length) = seen[i];
+            decision.CurrentBasis.Should().Be(
+                SubjectPrefix + callers[i], "the caller's filter runs in the caller's frame, never in the frame the callback entered");
+            decision.Current.Should().Be(Secret, "the caller's filter decides at the caller's mark");
+            decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow, "Secret data may not go to an Internal model");
+            length.Should().Be(i == 0 ? 1 : 2, "the flow is back in exactly the caller's frame before the caller's filter runs");
+        }
+    }
+
+    [Fact]
+    public void A_read_in_a_callers_exception_filter_raises_the_callers_frame()
+    {
+        var callerMark = new HighWaterMark(Internal);
+
+        using (EgressSubject.Enter("filter-reader", callerMark))
+        {
+            try
+            {
+                RunDetached(() => throw new InvalidOperationException("the work handed off failed"));
+            }
+            catch (InvalidOperationException) when (Observed(Confidential))
+            {
+            }
+
+            callerMark.Current.Should().Be(Confidential, "what the caller's filter observes is the caller's read");
+
+            try
+            {
+                RunDetached(() => throw new InvalidOperationException("the work handed off failed again"));
+            }
+            catch (InvalidOperationException) when (Read(Secret))
+            {
+            }
+
+            callerMark.Current.Should().Be(Secret, "and so is what a read scope begun and ended in the caller's filter reports");
+            var after = Decide(EgressFamilies.ModelMeai);
+            after.CurrentBasis.Should().Be(SubjectPrefix + "filter-reader");
+            after.Current.Should().Be(Secret);
+            after.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow, "the caller read Secret, in its own filter, before it decided");
+        }
+    }
+
+    [Fact]
+    public void The_callbacks_filters_and_finally_blocks_run_detached_and_only_then_the_callers_filter_in_the_callers_frame()
+    {
+        var order = new List<string>();
+        var seen = new List<(EgressDecision Decision, int Length)>();
+
+        using (EgressSubject.Enter("unwind-caller", new HighWaterMark(Internal)))
+        {
+            try
+            {
+                RunDetached(() =>
+                {
+                    try
+                    {
+                        throw new InvalidOperationException("the work handed off failed");
+                    }
+                    catch (InvalidOperationException) when (Declined(order, "callback filter", seen))
+                    {
+                    }
+                    finally
+                    {
+                        Step(order, "callback finally", seen);
+                    }
+                });
+            }
+            catch (InvalidOperationException) when (Step(order, "caller filter", seen))
+            {
+            }
+        }
+
+        string[] expected = ["callback filter", "callback finally", "caller filter"];
+        order.Should().Equal(
+            expected,
+            "the callback unwinds detached, and the caller's frame is back before the caller's first filter runs");
+        seen[0].Decision.CurrentBasis.Should().Be(NoSubject, "a filter inside the callback runs detached");
+        seen[1].Decision.CurrentBasis.Should().Be(NoSubject, "a finally block inside the callback runs detached");
+        seen[1].Decision.Current.Should().Be(SecurityLabel.SystemHigh);
+        seen[2].Decision.CurrentBasis.Should().Be(SubjectPrefix + "unwind-caller", "the caller's filter runs in the caller's frame");
+        seen[2].Decision.Current.Should().Be(Internal);
+        seen[2].Length.Should().Be(1, "exactly the caller's frame");
+    }
+
+    [Fact]
     public async Task A_task_started_inside_RunDetached_keeps_no_subject_after_it_returns_and_after_the_callers_frame_ends()
     {
         var returned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -467,6 +598,37 @@ public sealed class EgressSubjectDetachTests
 
     private static EgressDecision Decide(string family) =>
         Guard.Evaluate(new EgressRequest(family, "twin:detach:" + Guid.NewGuid().ToString("N"), new Uri(Remote)));
+
+    // Exception filters: each records where it ran and returns true, so the catch it guards is taken.
+    private static bool Record(List<(EgressDecision Decision, int Length)> seen, string family)
+    {
+        seen.Add((Decide(family), EgressSubjectNestingTests.RestorePathLength()));
+        return true;
+    }
+
+    private static bool Step(List<string> order, string step, List<(EgressDecision Decision, int Length)> seen)
+    {
+        order.Add(step);
+        return Record(seen, UnknownFamily);
+    }
+
+    // A filter that records where it ran and declines, so the exception goes on up the stack.
+    private static bool Declined(List<string> order, string step, List<(EgressDecision Decision, int Length)> seen) =>
+        !Step(order, step, seen);
+
+    private static bool Observed(SecurityLabel label)
+    {
+        EgressSubject.Observe(label);
+        return true;
+    }
+
+    private static bool Read(SecurityLabel label)
+    {
+        using var read = EgressSubject.BeginRead();
+        read.Report(label);
+        read.Complete();
+        return true;
+    }
 
     // The D1 probe's check, after each step outside the callback: back in exactly the caller's frame, at its mark.
     private static List<string> AtTheProbeCallersFrame(SecurityLabel callerLabel, string step)
