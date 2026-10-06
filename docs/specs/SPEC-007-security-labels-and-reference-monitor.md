@@ -60,7 +60,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
-  - 4.10 `AirGapped` and `SecureWorkstation` hygiene (3a defects 3 and 5);
+  - 4.10 `AirGapped` and `SecureWorkstation` hygiene. It fixes two defects found while reviewing 3a: the MCP
+    server's HTTP transport is allowed on `SecureWorkstation` (`ValidateAshlarMcpServerOptions` refuses only
+    `AirGapped`), and `AirGapped` still registers network paths, such as RunPod as the default remote execution
+    target;
   - 4.11 the switch, which carries the §5 leak test.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
@@ -362,7 +365,7 @@ were not the owner's are in the next section.
 | 2026-10-05 | PR 4 (Q2) | **A subject's label comes from the runner.** The code that builds an agent's inputs enters a frame at the floor it can vouch for. A runner may declare a floor below `SystemHigh` only for inputs it built and can vouch for. Every tool result is observed: a labelled RAG hit counts at its tier, and an unreported read counts as `SystemHigh`. Self-extend declares `SystemHigh`. |
 | 2026-10-05 | PR 4 (Q3) | **Child processes that run code an agent can write are not Host.** That covers `dotnet` build, test, run, pack and publish, `forge test`, the regression runner and the instance spawner. They are recorded as process exports. Docker counts as Host only with `--network=none`. On `AirGapped` and `SecureWorkstation` they are refused unless they run in the network-off docker sandbox. |
 | 2026-10-05 | PR 4 (Q4) | **Before PR 6, an operator may move files off an `AirGapped` or `SecureWorkstation` host, and nothing else.** `pkg export --out`, `export` and `mesh export` run in report mode, recorded as an operator verb. `pkg publish` and `pkg share` are refused, because the mesh store can be a network mount. Everything an agent can reach is enforced. |
-| 2026-10-05 | PR 4 (Q5) | **Every factory client is enforced, the host's own included.** This answers the question 3a left to PR 4. On `SecureWorkstation` and on opt-in profiles, a host may list named clients as report-only through `Configure<EgressGuardOptions>`. `AirGapped` ignores the list, and naming one of Ashlar's own clients fails boot. |
+| 2026-10-05 | PR 4 (Q5) | **Every factory client is enforced, the host's own included.** This answers the question 3a left to PR 4: the 2026-10-04 PR 3 row puts the guard on host-registered clients, and PR 4 decides whether they are enforced. On `SecureWorkstation` and on opt-in profiles, a host may list named clients as report-only through `Configure<EgressGuardOptions>`. `AirGapped` ignores the list, and naming one of Ashlar's own clients fails boot. |
 | 2026-10-05 | PR 4 (Q6) | **Inbound surfaces stay on loopback on `AirGapped` and `SecureWorkstation` until PR 5 mediates responses.** On `SecureWorkstation`, MCP over HTTP fails boot; stdio stays. On both profiles the API's listeners and mesh serve must bind loopback, or boot fails. |
 | 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
 | 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
@@ -441,7 +444,8 @@ answered on 2026-10-05 for PR 4; A, B and E are still open, and none blocked a m
     `DataSensitivityLabelBridgeTests.IntendedDivergence_BridgeLabelsUnlabelledData_SystemHigh_WhichATopSecretClearanceCannotRead`
     (labels).
 
-  So the PR that switches enforcement flips the legacy-side assertions on purpose, by name.
+  So the PR that switches reads to labels flips the legacy-side assertions on purpose, by name. That is PR 5, not
+  4.11: PR 4 enforces egress only, and nothing calls the bridges yet.
 
 - **C. The scope of caveats** (related to §8 Q1). Treating caveats like compartments is sound for eligibility
   markings such as `NOFORN` and `NOWEB`. It cannot express originator-controlled markings such as `ORCON`, and REL TO
