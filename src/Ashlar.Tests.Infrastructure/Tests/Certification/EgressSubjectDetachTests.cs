@@ -22,12 +22,16 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>What is pinned.</b> A subscriber decides with no subject (<see cref="SecurityLabel.SystemHigh"/>) while
 /// the publisher is inside a frame, and the publisher's own frame is restored when <c>PublishAsync</c> returns.
 /// Under <c>Detach</c> a decision has no subject; a frame entered under it starts a chain of its own whose reads never
-/// reach the caller's frames; disposing it restores the caller's frame on that flow only, exactly, so a task inside a
-/// parent frame that has ended is back inside that parent after it publishes; a task started under it keeps no
-/// subject after the caller is restored, also when the detachment ends before a frame entered under it that the task
-/// ends; and a flow that disposes its own detachment out of order goes back to the caller's frame, as in-order
-/// <c>using</c> blocks would, in every dispose order and over 50 iterations. The convention fact pins every call site
-/// of <c>Detach</c> in the repository's C#, and that the bus starts each subscriber inside the detached block.</para>
+/// reach the caller's frames; disposing it restores the caller's frame, exactly, on the flow where it is the innermost
+/// frame and nowhere else, so a task inside a parent frame that has ended is back inside that parent after it
+/// publishes, and a task started under it that is handed the detachment and disposes it is back in the caller's frame,
+/// at the caller's mark, while the flow that detached stays detached; a task started under it that does not dispose
+/// it keeps no subject after the caller is restored, also when the detachment ends before a frame entered under it
+/// that the task ends; and a flow that disposes its own frames and detachments out of order goes back to where in-order
+/// <c>using</c> blocks would have left it, in every dispose order of a frame, a detachment and a frame inside it, over
+/// 50 iterations, and in every shape and dispose order of four frames and detachments inside a live frame (384
+/// programs on one flow). The convention fact pins every call site of <c>Detach</c> in the repository's C#, and that
+/// the bus starts each subscriber inside the detached block.</para>
 /// <para><b>Internal surface.</b> This assembly is not in <c>Ashlar.Abstractions</c>' InternalsVisibleTo, so
 /// <c>Detach</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
 /// <para><b>Process-global state.</b> None: frames live on each test's own flow, the guard has an explicit profile,

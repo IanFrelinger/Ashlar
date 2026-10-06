@@ -5,11 +5,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// </summary>
 /// <remarks>
 /// <para><b>Current label.</b> With a frame active, a decision's current label is the join of the
-/// <see cref="HighWaterMark.Current"/> of every frame on this flow's chain: the innermost live frame and every frame
-/// it was entered inside, live or disposed, up to a detachment. It is read when the decision is made, and its basis
-/// is <c>subject:&lt;id&gt;</c> of the innermost live frame. With none, the current label is
-/// <see cref="SecurityLabel.SystemHigh"/> and the basis is <c>no-subject</c>: unlabelled data fails closed upward, so
-/// only a destination inside the host boundary would be allowed.</para>
+/// <see cref="HighWaterMark.Current"/> of every frame on this flow's chain, live or disposed, up to a detachment: the
+/// flow's own frame and every frame it was entered inside. It is read when the decision is made, and its basis is
+/// <c>subject:&lt;id&gt;</c> of the innermost live frame. With no frame, with no live frame on the chain, or under a
+/// detachment, the current label is <see cref="SecurityLabel.SystemHigh"/> and the basis is <c>no-subject</c>:
+/// unlabelled data fails closed upward, so only a destination inside the host boundary would be allowed.</para>
 /// <para><b>Monotone nesting.</b> A nested frame never decides below a frame it was entered inside. Disposing a
 /// frame observes its mark into every frame it was entered inside, because what a subject read leaves with its
 /// output. <see cref="Observe"/> joins a label into every frame on the chain at once, so an enclosing flow that
@@ -24,21 +24,23 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// just inside it, which the flow goes on past, to where in-order <c>using</c> blocks would have left it. A task the
 /// flow starts after that out-of-order dispose does the same; no other flow does. So frames that one flow disposes
 /// out of order build up no chain of disposed frames on it. Disposing twice does nothing.</para>
-/// <para><b>Disposed frames still count for the frames inside them.</b> A frame counts as live until its mark has
-/// been observed into the frames it was entered inside, also while it is being disposed. A disposed frame is never
-/// the innermost one: a flow whose innermost frame was disposed, such as a task that captured it and outlives the
-/// scope, decides at the nearest live frame it was entered inside, into which its mark was observed, or at
-/// <c>no-subject</c>. But it still counts for the frames entered inside it, and what they read still raises it. A
-/// frame disposed out of order counts for the frame still running inside it. A flow goes past a disposed frame only
-/// if that flow disposed it, or is a task started there afterwards. Every other flow stays inside it, in every frame
-/// it enters then or later, and reads its mark when it decides, also what the mark rose to after the frame ended: a
-/// fire-and-forget task started inside a parent frame whose <c>using</c> ends first, a task handed a child scope to
-/// end, and the flow that entered a frame another flow disposed. Ending an enclosing scope first therefore never
-/// lowers the current label of work it started.</para>
+/// <para><b>Disposed frames still count.</b> A disposed frame is never the innermost one, so it never names a
+/// decision: a flow whose own frame was disposed, such as a task that captured it and outlives the scope, decides
+/// with the basis of the nearest live frame it was entered inside, or at <c>no-subject</c> if there is none. But a
+/// disposed frame's mark still counts, as it is when the decision is made, on every flow still inside it, and what
+/// such a flow reads still raises it. A frame disposed out of order counts for the frame still running inside it. A
+/// flow goes past a disposed frame only if that flow disposed it, or is a task started there afterwards. Every other
+/// flow stays inside it, with no frame of its own and in every frame it enters then or later, and reads its mark when
+/// it decides, also what the mark rose to after the frame ended: a fire-and-forget task started inside a parent frame
+/// whose <c>using</c> ends first, a task handed a child scope to end, and the flow that entered a frame another flow
+/// disposed. Ending an enclosing scope first therefore never lowers the current label of work it started. A frame
+/// counts as live until its mark has been observed into the frames it was entered inside, also while it is being
+/// disposed, so a decision made meanwhile names that frame, never an enclosing one that does not hold its mark
+/// yet.</para>
 /// <para><b>Known limit (fail closed).</b> A task or thread keeps the frames it inherited, ended or not, for as long
-/// as it runs: a long-running async loop or a dedicated thread started inside a frame counts that frame's mark in
-/// every frame it enters, for its whole life. And disposing a frame takes out of it only the flow it is disposed on
-/// and the tasks that flow starts afterwards: a frame disposed on another flow, as by
+/// as it runs: a long-running async loop or a dedicated thread started inside a frame counts that frame's mark, as it
+/// rises, in every decision it makes, for its whole life. And disposing a frame takes out of it only the flow it is
+/// disposed on and the tasks that flow starts afterwards: a frame disposed on another flow, as by
 /// <c>await Task.Run(scope.Dispose)</c>, by a background task, or from a thread started without the execution
 /// context, leaves the flow that entered it inside it for good, and repeating that grows that flow's chain. Neither
 /// happens to a frame entered and disposed in a <c>using</c> block on one flow.</para>
@@ -110,13 +112,16 @@ public static class EgressSubject
     /// <para>For work handed to another component that must not be decided at the caller's mark: AgentBus subscriber
     /// dispatch. It only raises, since no subject is the top. A frame entered under it starts a chain of its own,
     /// which never reaches the caller's frames.</para>
-    /// <para>Disposing restores the caller's frame on this flow only, as for a frame: if a frame entered under it is
-    /// still innermost here, this flow goes back to the caller's frame when that frame ends, as in-order
-    /// <c>using</c> blocks would, and so does a task this flow starts after the dispose. A task started under it
-    /// before it is disposed keeps no subject afterwards, and so does any other flow it is still active on: neither
-    /// falls back to the caller's frame.</para>
+    /// <para>Disposing it restores the caller's frame on the flow where it is the innermost frame, as for a frame:
+    /// the flow that detached, or a task started under it that was handed the scope, which then decides at the
+    /// caller's mark (what it read under the detachment never reached that mark, as on the flow that detached). If a
+    /// frame entered under it is still innermost on the disposing flow, that flow goes back to the caller's frame when
+    /// that frame ends, as in-order <c>using</c> blocks would, and so does a task it starts after the dispose. Every
+    /// other flow it is still active on keeps no subject and never falls back to the caller's frame: a task started
+    /// under it that does not dispose it, also when the detachment ends before a frame entered under it, and the flow
+    /// that detached when another flow disposed it.</para>
     /// </remarks>
-    /// <returns>A scope; disposing it restores the previous frame on this flow.</returns>
+    /// <returns>A scope; disposing it restores the caller's frame on the flow where it is innermost.</returns>
     internal static IDisposable Detach()
     {
         var detachment = Frame.Detachment(Active.Value);
@@ -202,8 +207,8 @@ public static class EgressSubject
         internal static Frame ForSubject(string basis, HighWaterMark mark, Frame? previous) =>
             new(basis, mark, previous, restore: null);
 
-        // A detachment has no enclosing frame, so a chain ends at it, live or disposed. It remembers the frame to
-        // restore on the flow it detached.
+        // A detachment has no enclosing frame, so a chain ends at it, live or disposed. It remembers the caller's
+        // frame, which a flow goes back to when it disposes the detachment where that is its innermost frame.
         internal static Frame Detachment(Frame? restore) =>
             new(NoSubjectBasis, mark: null, previous: null, restore);
 

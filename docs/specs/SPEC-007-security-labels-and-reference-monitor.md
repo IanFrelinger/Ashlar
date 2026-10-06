@@ -68,8 +68,8 @@ The status line above and the starting prompt are the owner's, as written; the s
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
 
-  - **4.4** (this PR): frame semantics. A decision joins the innermost live `EgressSubject` frame with every frame it
-    was entered inside, live or disposed (fail closed: a parent that ends first never declassifies a task it started),
+  - **4.4** (this PR): frame semantics. A decision joins every `EgressSubject` frame the flow is inside, live or
+    disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
     and a disposed frame's mark reaches the frames around it; a flow that disposes its own frames out of order goes
     back to where in-order `using` blocks would have left it, and no other flow goes past a frame it did not dispose;
     `EgressSubject.Observe` raises every frame on the chain;
