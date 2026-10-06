@@ -195,6 +195,35 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Changed
 
+- **AirGapped keeps work on the node, and AirGapped and SecureWorkstation accept inbound connections on loopback
+  only (SPEC-007 PR 4.10).** Behaviour changes on those two profiles; every other profile is unchanged, and the
+  egress guard still refuses nothing.
+  - **AirGapped routes every job locally.** `NcrCapabilityRouter` no longer sends an overnight, under-resourced or
+    queued job to RunPod or a peer: it runs it locally with the reason
+    `AirGapped: remote execution unavailable; running locally (<reason>)`. A job that asks for `PeerNetworkOnly`
+    is refused with an explained `InvalidOperationException`.
+  - **AirGapped never falls back to a cloud model.** With adaptive load balancing on, `AdaptiveProviderFactory`
+    never tries `openai` or `azure`, on the LLM path or the single-image vision path.
+  - **Four opt-ins fail boot on AirGapped:** a non-empty `BrickHost:RemoteCatalogBaseUrls`,
+    `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and
+    `Ashlar:Meai:Bedrock:Enabled=true`. The message names the setting and the remedy.
+  - **The ollama.com model catalog defaults to off on AirGapped.** An explicit
+    `Ashlar:ModelArtifactCatalog:OllamaRemoteLibrary:Enabled=true` still turns it on.
+  - **MCP over HTTP fails boot on SecureWorkstation** when the MCP server is enabled. MCP over stdio
+    (`Ashlar.Mcp.Server.Host`) still boots.
+  - **Ashlar.API binds loopback on AirGapped and SecureWorkstation, or does not start.** A `urls` /
+    `ASPNETCORE_URLS`, `Kestrel:Endpoints` or `ASPNETCORE_HTTP_PORTS` / `ASPNETCORE_HTTPS_PORTS` address that is not
+    `localhost`, a loopback address, a Unix socket or a named pipe refuses the start with an explained message, and
+    so does a non-loopback address Kestrel bound anyway. **Action:** the .NET container images set
+    `ASPNETCORE_HTTP_PORTS=8080`, which binds every interface; an API container on those profiles needs, for
+    example, `ASPNETCORE_URLS=http://localhost:8080`.
+  - **Mesh serve refuses to serve on AirGapped and SecureWorkstation.** It listens on every interface and has no
+    loopback mode, so with `ASHLAR_MESH_SERVE_PORT` set it logs why and binds nothing; the rest of the daemon runs.
+  - New public types: `Ashlar.Infrastructure.Deployment.ResolvedDeploymentProfile` (the profile `AddAshlar`
+    resolved, registered as a singleton) and `LoopbackListenerPolicy`. `NcrCapabilityRouter`,
+    `AdaptiveProviderFactory` and `MeshServeService` take an optional `ResolvedDeploymentProfile`, and
+    `ValidateAshlarMcpServerOptions` gains a constructor that takes `IServiceProviderIsService`.
+
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes
   behaviour.

@@ -106,6 +106,14 @@ public static partial class AshlarServiceCollectionExtensions
     /// a later <c>AddAshlar</c> in the same process with a less strict profile does not lower the profile the
     /// process notes: the remote-protocol validators, the egress guard and the container's own guard keep it.
     /// </para>
+    /// <para>
+    /// It also registers that profile, the strictest noted in the process, as a
+    /// <c>Ashlar.Infrastructure.Deployment.ResolvedDeploymentProfile</c> singleton (SPEC-007 PR 4.10). On AirGapped it
+    /// keeps routed jobs local, keeps the adaptive provider factory off the cloud providers, fails boot on the opt-ins
+    /// that leave the node (remote brick catalogs, RunPod peer routing, the MeshLab worker executor, Bedrock) and turns
+    /// the ollama.com catalog off by default; on AirGapped and SecureWorkstation, Ashlar.API and mesh serve read it to
+    /// keep their listeners on loopback.
+    /// </para>
     /// </summary>
     public static IServiceCollection AddAshlar(
         this IServiceCollection services,

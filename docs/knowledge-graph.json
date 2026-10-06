@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 154,
     "operator_vars_missing_from_configuration_reference": 19,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 772,
-    "declared_facts": 4874,
+    "test_files_declaring_facts": 774,
+    "declared_facts": 4898,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -798,6 +798,7 @@
         "Ashlar.Infrastructure",
         "Ashlar.Ingress.DynamoDb",
         "Ashlar.Manifest",
+        "Ashlar.Mcp.Server",
         "Ashlar.Orchestration",
         "Ashlar.Policies.Dev",
         "Ashlar.Runtime",
@@ -1805,7 +1806,8 @@
     {
       "name": "ASHLAR_MESH_SERVE_PORT",
       "declared_in": [
-        "Ashlar.CLI"
+        "Ashlar.CLI",
+        "Ashlar.Tests.CLI"
       ],
       "test_only": false,
       "in_configuration_reference": false,
@@ -2756,6 +2758,13 @@
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
       "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshServeLoopbackProfileTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {
@@ -4751,6 +4760,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 11,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AirGappedHygieneTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 15,
       "in_cert_gate_filter": true
     },
     {
@@ -7130,7 +7146,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/AirGappedProfileApiHostProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.VirtualProduction",
-      "declared_facts": 2,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {

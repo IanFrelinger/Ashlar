@@ -10,7 +10,7 @@ namespace Ashlar.Mcp.Client.Tests;
 /// it in <c>finally</c>; <see cref="McpRoundTripTests"/> reads it indirectly — its
 /// <c>ServerHarness.StartAsync</c> resolves the hosted bridge, whose first
 /// <c>IOptions&lt;AshlarMcpServerOptions&gt;.Value</c> read runs
-/// <c>ValidateAshlarMcpServerOptions.Validate</c> (<c>Ashlar.Mcp.Server/ValidateAshlarMcpServerOptions.cs:29-35</c>).
+/// <c>ValidateAshlarMcpServerOptions.Validate</c> (<c>Ashlar.Mcp.Server/ValidateAshlarMcpServerOptions.cs:66-73</c>).
 /// With xUnit's default class-level parallelism the <c>AirGapped</c> write can land between the
 /// harness being built and the validator running, so every round-trip fact fails with
 /// "Enabled=true is not permitted under the AirGapped deployment profile" — the same

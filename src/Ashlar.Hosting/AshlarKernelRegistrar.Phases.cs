@@ -589,9 +589,7 @@ internal static partial class AshlarKernelRegistrar
                 chain = new AdaptiveProviderFactory(
                     chain,
                     sp.GetRequiredService<ILoadPolicy>(),
-                    sp.GetService<Microsoft.Extensions.Logging.ILogger<AdaptiveProviderFactory>>(),
-                    // SPEC-007 PR 4.10: on AirGapped the cloud providers are never tried.
-                    sp.GetService<Ashlar.Infrastructure.Deployment.ResolvedDeploymentProfile>());
+                    sp.GetService<Microsoft.Extensions.Logging.ILogger<AdaptiveProviderFactory>>(), sp.GetService<Ashlar.Infrastructure.Deployment.ResolvedDeploymentProfile>()); // SPEC-007 PR 4.10
             }
 
             return chain;

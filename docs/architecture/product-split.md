@@ -63,7 +63,7 @@ not enable them by itself.
 
 MCP **client** and A2A (client and server) refuse to enable under both
 profiles. Local MCP **server** stays allowed on `SecureWorkstation` for an IDE
-stdio tool surface; it stays forbidden on `AirGapped`. Profile aliases are
+stdio tool surface (MCP over HTTP is refused there since SPEC-007 PR 4.10); it stays forbidden on `AirGapped`. Profile aliases are
 parsed by one linked helper (`AshlarDeploymentProfileEnvironment`) so hosting
 and protocol assemblies cannot drift. (`AddAshlarWorkstation()`, which
 re-asserted the profile and `TrustEnabled=true` after any caller `configure`

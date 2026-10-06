@@ -31,8 +31,8 @@ and is unaffected.
 2. **Fail-closed everywhere.** Every surface has `Enabled=false` defaults, explicit allowlists
    that default to empty, `ValidateOnStart` options validation, and a hard refusal to enable
    MCP **client** and A2A (client and server) under `AirGapped` **and** `SecureWorkstation`.
-   MCP **server** is refused under `AirGapped` only (local IDE stdio stays allowed on
-   `SecureWorkstation`). Validators honor the profile `AddAshlar` recorded, not only the
+   MCP **server** is refused under `AirGapped`; under `SecureWorkstation` it is refused over HTTP
+   (`.WithHttpTransport()`, SPEC-007 PR 4.10) and local IDE stdio stays allowed. Validators honor the profile `AddAshlar` recorded, not only the
    `ASHLAR_DEPLOYMENT_PROFILE` env var.
 3. **Existing seams, not parallel plumbing.** Tools flow through `ITool`/`ToolSchema`
    (`src/Ashlar.Abstractions`), agents will flow through `IAgentTransport` + endpoint routing,

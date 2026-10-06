@@ -125,6 +125,16 @@ The status line above and the starting prompt are the owner's, as written; the s
   (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
   reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
   appears unlisted.
+- **PR 4.10** (this PR), `AirGapped` and `SecureWorkstation` hygiene (defect 5 by the design's default D35; inbound by
+  the owner's Q6). `AddAshlar` registers the profile it resolved, the strictest noted in the process, as a value
+  Infrastructure and the hosts read. On `AirGapped`, `NcrCapabilityRouter` runs every job locally, saying why
+  (`AirGapped: remote execution unavailable; running locally (<reason>)`), and refuses an explicit `PeerNetworkOnly`;
+  `AdaptiveProviderFactory` never tries `openai` or `azure` on the LLM or vision path; a non-empty
+  `BrickHost:RemoteCatalogBaseUrls`, RunPod peer-network routing, the MeshLab worker executor and the Bedrock tier
+  fail boot; and the ollama.com catalog defaults to off. On `SecureWorkstation`, MCP over HTTP fails boot and stdio
+  still boots. On both, Ashlar.API refuses to start on a listener that is not loopback, and mesh serve, which listens
+  on every interface, refuses to serve. **Known limit:** responses on inbound connections are not mediated until PR 5's
+  `CanRead` at the server seams. These are configuration and routing changes; the guard still refuses nothing.
 
 ---
 

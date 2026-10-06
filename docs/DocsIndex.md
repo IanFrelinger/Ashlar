@@ -109,7 +109,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/runtime/ExecutionRouting.md` — NCR-based generation routing (local, peer network, RunPod), preferences, and resilience behavior.
 - `docs/AgentExecutionIsolation.md` — per-agent isolation tiers (in-process through container-per-agent), JSON field, and invocation metadata for transports.
 - `docs/architecture/product-split.md` — framework vs extractable product trees; `AirGapped` vs `SecureWorkstation`.
-- `docs/architecture/ProtocolIntegration-MCP-A2A.md` — MCP + A2A protocol adapters: MCP server bridge over `ITool` (allowlists, policy gate, stdio host), MCP client, A2A server core + client transport, and the `Ashlar.API` wiring (`/api/mcp`, `/api/a2a/{agentId}`; all feature-flagged off by default). MCP client and A2A refuse AirGapped **and** SecureWorkstation; local MCP server stays allowed on SecureWorkstation.
+- `docs/architecture/ProtocolIntegration-MCP-A2A.md` — MCP + A2A protocol adapters: MCP server bridge over `ITool` (allowlists, policy gate, stdio host), MCP client, A2A server core + client transport, and the `Ashlar.API` wiring (`/api/mcp`, `/api/a2a/{agentId}`; all feature-flagged off by default). MCP client and A2A refuse AirGapped **and** SecureWorkstation; local MCP server (stdio) stays allowed on SecureWorkstation, MCP over HTTP does not.
 - `docs/runtime/specs/README.md` — runtime spec documents.
 - `docs/runtime/benchmarks/README.md` — runtime benchmark goals and notes.
 - `apps/runtime-studio/README.md` — **hub** for the Runtime Studio agent-set JSON, CLI vs API-hosted background agents, and how the Director portal fits; anchor [How this fits](../apps/runtime-studio/README.md#how-this-fits-one-config-flexible-hosts).
