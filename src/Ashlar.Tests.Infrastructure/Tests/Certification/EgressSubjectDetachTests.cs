@@ -207,6 +207,39 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
+    public void RunDetached_writes_the_flows_frame_only_inside_a_try_that_catches_everything_or_in_that_catch()
+    {
+        // An asynchronous abort, such as the one ControlledExecution.Run raises on .NET 8 and later, can arrive between
+        // any two instructions outside an exception handler. One that arrives inside a try that catches everything goes
+        // to that catch, which puts the caller's frame back, and the runtime holds it back while a catch runs. A write of
+        // the flow's frame outside both, such as a restore after the try, leaves a window in which the abort leaves
+        // RunDetached with the flow detached: a filter of the caller for it decides below the caller's mark, what it
+        // reads misses the caller's frames, and the flow stays detached afterwards. The abort cannot be raised here
+        // without risking the test host, so the compiled method is read instead.
+        using var module = Mono.Cecil.ModuleDefinition.ReadModule(typeof(EgressSubject).Assembly.Location);
+        var method = module.GetType(typeof(EgressSubject).FullName).Methods.Single(m => m.Name == "RunDetached");
+
+        var catchAll = method.Body.ExceptionHandlers
+            .Where(h => h.HandlerType == Mono.Cecil.Cil.ExceptionHandlerType.Catch && h.CatchType.FullName == "System.Object")
+            .ToList();
+        catchAll.Should().ContainSingle("RunDetached puts the caller's frame back in one catch that matches every exception");
+        var clause = catchAll[0];
+
+        var writes = method.Body.Instructions
+            .Where(i => i.Operand is Mono.Cecil.MethodReference { Name: "set_Value" } called
+                && called.DeclaringType.Name == "AsyncLocal`1")
+            .ToList();
+        writes.Should().HaveCount(3, "it detaches the flow once and puts the caller's frame back twice: when the callback returns, and in the catch");
+
+        var unprotected = writes
+            .Where(i => !Within(i, clause.TryStart, clause.TryEnd) && !Within(i, clause.HandlerStart, clause.HandlerEnd))
+            .Select(i => $"IL_{i.Offset:x4}")
+            .ToList();
+        string.Join(", ", unprotected).Should().BeEmpty(
+            "an asynchronous abort next to a write of the flow's frame outside the try and its catch would leave RunDetached with the flow detached");
+    }
+
+    [Fact]
     public void A_callers_exception_filter_runs_in_the_callers_frame_when_the_callback_throws()
     {
         // An exception's first pass runs every filter up the stack before any finally block, so a restore made only in a
@@ -462,6 +495,78 @@ public sealed class EgressSubjectDetachTests
 
         callerMade.Should().HaveCount(4);
         callbackMade.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public async Task A_thread_or_a_timers_timer_keeps_the_frame_of_the_flow_that_starts_it_not_of_the_one_that_creates_it()
+    {
+        // Unlike a Task, a System.Threading.Timer, a registration or a continuation, a Thread and a System.Timers.Timer
+        // capture the flow when they are started (Thread.Start, and Timer.Start, which builds the timer underneath). So
+        // one the caller created and the callback starts runs detached, and one the callback created and the caller
+        // starts after it returned runs in the caller's frame: a site creates and starts the work it hands off inside
+        // the callback.
+        var startedInside = new Dictionary<string, Task<EgressDecision>>();
+        var startedByCaller = new Dictionary<string, Task<EgressDecision>>();
+
+        using (EgressSubject.Enter("started-caller", new HighWaterMark(Secret)))
+        {
+            var (thread, threadSeen) = IdleThread();
+            var (timer, timerSeen) = IdleTimersTimer();
+            Thread? thread2 = null;
+            Task<EgressDecision>? thread2Seen = null;
+            System.Timers.Timer? timer2 = null;
+            Task<EgressDecision>? timer2Seen = null;
+
+            RunDetached(() =>
+            {
+                // Created by the caller, started here.
+                thread.Start();
+                timer.Start();
+
+                // Created here, started by the caller after the callback returns.
+                (thread2, thread2Seen) = IdleThread();
+                (timer2, timer2Seen) = IdleTimersTimer();
+            });
+
+            Decide(UnknownFamily).CurrentBasis.Should().Be(SubjectPrefix + "started-caller", "the callback has returned");
+            thread2!.Start();
+            timer2!.Start();
+
+            startedInside["a thread"] = threadSeen;
+            startedInside["a System.Timers.Timer"] = timerSeen;
+            startedByCaller["a thread"] = thread2Seen!;
+            startedByCaller["a System.Timers.Timer"] = timer2Seen!;
+
+            // Every decision is awaited while the caller's frame is live, so a frame that ended cannot explain what it
+            // shows.
+            foreach (var (what, decided) in startedInside)
+            {
+                var decision = await decided.WaitAsync(Patience);
+                decision.CurrentBasis.Should().Be(
+                    NoSubject, "{0} the callback started captured the detachment, although the caller created it", what);
+                decision.Current.Should().Be(SecurityLabel.SystemHigh);
+                decision.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+            }
+
+            foreach (var (what, decided) in startedByCaller)
+            {
+                var decision = await decided.WaitAsync(Patience);
+                decision.CurrentBasis.Should().Be(
+                    SubjectPrefix + "started-caller",
+                    "{0} the caller started captured the caller's flow, although the callback created it",
+                    what);
+                decision.Current.Should().Be(Secret, "{0} the caller started decides at the caller's mark", what);
+                decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+            }
+
+            thread.Join(Patience).Should().BeTrue();
+            thread2.Join(Patience).Should().BeTrue();
+            timer.Dispose();
+            timer2.Dispose();
+        }
+
+        startedInside.Should().HaveCount(2);
+        startedByCaller.Should().HaveCount(2);
     }
 
     [Fact]
@@ -762,6 +867,28 @@ public sealed class EgressSubjectDetachTests
         var timer = new Timer(_ => decided.TrySetResult(Decide(EgressFamilies.ModelMeai)), null, Timeout.Infinite, Timeout.Infinite);
         return (timer, decided.Task);
     }
+
+    // A thread not yet started: it captures the flow that starts it, and decides once when it runs.
+    private static (Thread Thread, Task<EgressDecision> Decided) IdleThread()
+    {
+        var decided = Signal();
+        var thread = new Thread(() => decided.TrySetResult(Decide(EgressFamilies.ModelMeai))) { IsBackground = true };
+        return (thread, decided.Task);
+    }
+
+    // A System.Timers.Timer not yet started: it captures the flow that starts it, and decides once when it elapses.
+    private static (System.Timers.Timer Timer, Task<EgressDecision> Decided) IdleTimersTimer()
+    {
+        var decided = Signal();
+        var timer = new System.Timers.Timer(1) { AutoReset = false };
+        timer.Elapsed += (_, _) => decided.TrySetResult(Decide(EgressFamilies.ModelMeai));
+        return (timer, decided.Task);
+    }
+
+    // Whether an instruction lies in [start, end) of a method body; a null end runs to the end of the body.
+    private static bool Within(
+        Mono.Cecil.Cil.Instruction instruction, Mono.Cecil.Cil.Instruction start, Mono.Cecil.Cil.Instruction? end) =>
+        instruction.Offset >= start.Offset && (end is null || instruction.Offset < end.Offset);
 
     private static bool Observed(SecurityLabel label)
     {
