@@ -11,12 +11,12 @@
     "projects": 60,
     "projects_shipped_to_nuget": 22,
     "projects_declaring_ispackable_true": 18,
-    "config_variables": 175,
-    "operator_facing_config_variables": 154,
-    "operator_vars_missing_from_configuration_reference": 19,
-    "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 772,
-    "declared_facts": 4874,
+    "config_variables": 176,
+    "operator_facing_config_variables": 155,
+    "operator_vars_missing_from_configuration_reference": 20,
+    "operator_vars_absent_from_all_documentation": 1,
+    "test_files_declaring_facts": 773,
+    "declared_facts": 4884,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -31,6 +31,7 @@
     "ASHLAR_MESH_PULL_DIR",
     "ASHLAR_MESH_PULL_INTERVAL_SECONDS",
     "ASHLAR_MESH_PULL_PROJECT",
+    "ASHLAR_MESH_SERVE_BIND",
     "ASHLAR_MESH_SERVE_CA",
     "ASHLAR_MESH_SERVE_PORT",
     "ASHLAR_MESH_SERVE_REQUIRE_CLIENT_CERT",
@@ -40,7 +41,9 @@
     "ASHLAR_NODE_NAME",
     "ASHLAR_TAILNET_PEER_PORT"
   ],
-  "operator_vars_absent_from_all_documentation": [],
+  "operator_vars_absent_from_all_documentation": [
+    "ASHLAR_MESH_SERVE_BIND"
+  ],
   "projects": [
     {
       "name": "Ashlar.AI.Pipeline",
@@ -798,6 +801,7 @@
         "Ashlar.Infrastructure",
         "Ashlar.Ingress.DynamoDb",
         "Ashlar.Manifest",
+        "Ashlar.Mcp.Server",
         "Ashlar.Orchestration",
         "Ashlar.Policies.Dev",
         "Ashlar.Runtime",
@@ -1792,6 +1796,15 @@
       "test_only": false,
       "in_configuration_reference": false,
       "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_MESH_SERVE_BIND",
+      "declared_in": [
+        "Ashlar.CLI"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
+      "in_any_document": false
     },
     {
       "name": "ASHLAR_MESH_SERVE_CA",
@@ -3021,7 +3034,7 @@
       "file": "src/Ashlar.Mcp.Server.Tests/AshlarMcpServerServiceCollectionExtensionsTests.cs",
       "project": "Ashlar.Mcp.Server.Tests",
       "namespace": "Ashlar.Mcp.Server.Tests",
-      "declared_facts": 7,
+      "declared_facts": 8,
       "in_cert_gate_filter": false
     },
     {
@@ -4751,6 +4764,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 11,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AirGappedSecureWorkstationHygieneCertificationTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 9,
       "in_cert_gate_filter": true
     },
     {
