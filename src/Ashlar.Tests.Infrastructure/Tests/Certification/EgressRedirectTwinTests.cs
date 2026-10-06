@@ -788,7 +788,12 @@ public sealed class EgressRedirectTwinTests
             san.AddIpAddress(IPAddress.Loopback);
             request.CertificateExtensions.Add(san.Build());
             using var created = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
-            return new X509Certificate2(created.Export(X509ContentType.Pfx), string.Empty, X509KeyStorageFlags.Exportable);
+            var pfx = created.Export(X509ContentType.Pfx);
+#if NET9_0_OR_GREATER
+            return X509CertificateLoader.LoadPkcs12(pfx, password: null, X509KeyStorageFlags.Exportable);
+#else
+            return new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.Exportable);
+#endif
         }
     }
 }
