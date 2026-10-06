@@ -189,10 +189,11 @@ public sealed class EgressRedirectTwinTests
         var site = NewSite();
         var sink = new SiteSink(site);
         using var subscription = EgressDecisionLog.Subscribe(sink);
-        var primary = new TerminalHandler();
+        var order = new ConcurrentQueue<string>();
+        var primary = new TerminalHandler(order);
         var rewriter = new RewritingHandler(primary, new Uri($"https://{rewritten}/landed"));
 
-        using var client = EgressHttp.CreateClient(rewriter, EgressFamilies.Http, site, Guard);
+        using var client = EgressHttp.CreateClient(rewriter, EgressFamilies.Http, site, new RecordingGuard(Guard, order));
         using var response = await client.GetAsync(new Uri($"https://{original}/start"));
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -200,6 +201,9 @@ public sealed class EgressRedirectTwinTests
         sink.Seen.Select(d => d.Destination).Should().Equal(
             new[] { $"https://{original}", $"https://{rewritten}" },
             "the first decision is the caller's URI; the rewritten URI is evaluated before it is sent");
+        order.Should().Equal(
+            new[] { $"eval:https://{original}", $"eval:https://{rewritten}", "send" },
+            "the rewritten host is evaluated before the primary sends, not only from the response");
     }
 
     [Fact]
@@ -576,13 +580,28 @@ public sealed class EgressRedirectTwinTests
         }
     }
 
+    private sealed class RecordingGuard(IEgressGuard inner, ConcurrentQueue<string> order) : IEgressGuard
+    {
+        public EgressDecision Evaluate(EgressRequest request)
+        {
+            var decision = inner.Evaluate(request);
+            order.Enqueue("eval:" + decision.Destination);
+            return decision;
+        }
+    }
+
     private sealed class TerminalHandler : HttpMessageHandler
     {
+        private readonly ConcurrentQueue<string>? _order;
+
+        public TerminalHandler(ConcurrentQueue<string>? order = null) => _order = order;
+
         public Uri? LastUri { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             LastUri = request.RequestUri;
+            _order?.Enqueue("send");
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent) { RequestMessage = request });
         }
     }
