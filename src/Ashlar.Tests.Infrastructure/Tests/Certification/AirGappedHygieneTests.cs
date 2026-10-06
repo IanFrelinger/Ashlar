@@ -285,7 +285,9 @@ public sealed class AirGappedHygieneTests : IDisposable
         sp.GetRequiredService<ResolvedDeploymentProfile>().IsAirGapped.Should().BeTrue();
         var act = () => ValidateOnStart(sp);
         act.Should().Throw<OptionsValidationException>().WithMessage("*AirGapped*");
-        Overnight(sp).Should().BeOfType<ExecutionTarget.Local>();
+        // The validator also refuses at the first resolution of the options, outside a host start.
+        var resolve = () => sp.GetRequiredService<IOptions<RunPodBrickConfig>>().Value;
+        resolve.Should().Throw<OptionsValidationException>().WithMessage("*EnablePeerNetworkRouting*AirGapped*");
     }
 
     [Theory(Timeout = TestTimeouts.E2E)]
