@@ -315,8 +315,8 @@ public sealed class EgressRedirectTwinTests
     {
         var server = Server.Value;
         server.Reset();
-        using var ours = GuardedClient(server.DangerousCertValidation, allowRedirects: true, maxRedirects: 50);
-        using var reference = ReferenceClient(server.DangerousCertValidation, maxRedirects: 50);
+        using var ours = GuardedClient(server, allowRedirects: true, maxRedirects: 50);
+        using var reference = ReferenceClient(server, maxRedirects: 50);
 
         using var ourResponse = await ours.SendAsync(Marked(HttpMethod.Get, server.DowngradeUri, "ours"));
         using var referenceResponse = await reference.SendAsync(Marked(HttpMethod.Get, server.DowngradeUri, "reference"));
@@ -331,8 +331,8 @@ public sealed class EgressRedirectTwinTests
     {
         var server = Server.Value;
         server.Reset();
-        using var ours = GuardedClient(server.DangerousCertValidation, allowRedirects: true, maxRedirects: 50);
-        using var reference = ReferenceClient(server.DangerousCertValidation, maxRedirects: 50);
+        using var ours = GuardedClient(server, allowRedirects: true, maxRedirects: 50);
+        using var reference = ReferenceClient(server, maxRedirects: 50);
 
         using var ourResponse = await ours.SendAsync(Authorized(server.RedirectUri(302), "ours"));
         var ourLanding = server.Hits.Should().ContainSingle(h => h.Path == "/done" && h.Client == "ours").Which;
@@ -358,8 +358,8 @@ public sealed class EgressRedirectTwinTests
     {
         var server = Server.Value;
         server.Reset();
-        using var ours = GuardedClient(server.DangerousCertValidation, allowRedirects: true, maxRedirects: 50);
-        using var reference = ReferenceClient(server.DangerousCertValidation, maxRedirects: 50);
+        using var ours = GuardedClient(server, allowRedirects: true, maxRedirects: 50);
+        using var reference = ReferenceClient(server, maxRedirects: 50);
         var uri = server.RedirectUri(status);
 
         using var ourResponse = await ours.SendAsync(Request(method, uri, keepsBody || method == "POST", "ours"));
@@ -382,8 +382,8 @@ public sealed class EgressRedirectTwinTests
     {
         var server = Server.Value;
         server.Reset();
-        using var ours = GuardedClient(server.DangerousCertValidation, allowRedirects: true, maxRedirects: 50);
-        using var reference = ReferenceClient(server.DangerousCertValidation, maxRedirects: 50);
+        using var ours = GuardedClient(server, allowRedirects: true, maxRedirects: 50);
+        using var reference = ReferenceClient(server, maxRedirects: 50);
 
         using (var ourRelative = await ours.GetAsync(server.RelativeUri))
         using (var referenceRelative = await reference.GetAsync(server.RelativeUri))
@@ -433,7 +433,7 @@ public sealed class EgressRedirectTwinTests
         ourLimit.RequestMessage!.RequestUri!.AbsolutePath.Should().Be(referenceLimit.RequestMessage!.RequestUri!.AbsolutePath);
     }
 
-    private static HttpClient GuardedClient(Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> validate, bool allowRedirects, int maxRedirects)
+    private static HttpClient GuardedClient(LoopbackRedirectServer server, bool allowRedirects, int maxRedirects)
     {
         var handler = new HttpClientHandler
         {
@@ -441,12 +441,13 @@ public sealed class EgressRedirectTwinTests
             MaxAutomaticRedirections = maxRedirects,
             UseCookies = false,
             UseProxy = false,
-            ServerCertificateCustomValidationCallback = validate,
+            ServerCertificateCustomValidationCallback = (_, certificate, _, _) =>
+                certificate is not null && string.Equals(certificate.Thumbprint, server.Certificate.Thumbprint, StringComparison.OrdinalIgnoreCase),
         };
         return EgressHttp.CreateClient(handler, EgressFamilies.Http, NewSite(), Guard);
     }
 
-    private static HttpClient ReferenceClient(Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> validate, int maxRedirects)
+    private static HttpClient ReferenceClient(LoopbackRedirectServer server, int maxRedirects)
     {
         var handler = new SocketsHttpHandler
         {
@@ -455,7 +456,8 @@ public sealed class EgressRedirectTwinTests
             UseCookies = false,
             UseProxy = false,
         };
-        handler.SslOptions.RemoteCertificateValidationCallback = validate;
+        handler.SslOptions.RemoteCertificateValidationCallback = (_, certificate, _, _) =>
+            certificate is not null && string.Equals(certificate.GetCertHashString(), server.Certificate.Thumbprint, StringComparison.OrdinalIgnoreCase);
         return new HttpClient(handler);
     }
 
@@ -689,9 +691,6 @@ public sealed class EgressRedirectTwinTests
         public Uri RedirectUri(int status) => new($"http://127.0.0.1:{Http.Port}/r/{status}");
 
         public Uri HopUri(int remaining) => new($"http://127.0.0.1:{Http.Port}/hop/{remaining}");
-
-        public bool DangerousCertValidation(HttpRequestMessage request, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors errors) =>
-            certificate is not null && certificate.Thumbprint == Certificate.Thumbprint;
 
         public void Reset()
         {
