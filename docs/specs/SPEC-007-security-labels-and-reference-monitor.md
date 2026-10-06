@@ -74,7 +74,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   `meai:<key>`; a `file:` destination is never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at
   `https://ollama.com`; and the default MEAI Ollama client stops following redirects (a behaviour change).
   `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
-- **PR 4.6** (this PR), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
+- **PR 4.6** (#718), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
   still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
