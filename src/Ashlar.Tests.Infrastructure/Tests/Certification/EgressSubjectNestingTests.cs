@@ -430,6 +430,47 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
+    public async Task A_task_with_no_frame_of_its_own_counts_a_later_raise_of_the_mark_of_a_parent_whose_using_ended()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var parentMark = new HighWaterMark();
+
+        using (EgressSubject.Enter("frameless-raised-enclosing", new HighWaterMark()))
+        {
+            Task<(EgressDecision NoFrame, EgressDecision Late)> task;
+            using (EgressSubject.Enter("frameless-raised-parent", parentMark))
+            {
+                // Fire and forget, with no frame of its own. The parent's using ends first, in order on this flow.
+                task = Task.Run(async () =>
+                {
+                    await release.Task.WaitAsync(Patience);
+                    var noFrame = Decide(EgressFamilies.ModelMeai);
+                    using (EgressSubject.Enter("frameless-raised-late", new HighWaterMark()))
+                        return (noFrame, Decide(EgressFamilies.ModelMeai));
+                });
+            }
+
+            // Then the parent's subject reads Secret: only the parent's mark rises, not the enclosing frame its mark
+            // was observed into when the parent ended.
+            parentMark.Observe(Secret); // Straight into the parent's mark, as a producer holding it would.
+            var own = Decide(UnknownFamily);
+            release.SetResult();
+            var (noFrame, late) = await task.WaitAsync(Patience);
+
+            own.CurrentBasis.Should().Be(SubjectPrefix + "frameless-raised-enclosing");
+            own.Current.Should().Be(SecurityLabel.Public, "this flow ended the parent itself, in order, so it is past it");
+            noFrame.CurrentBasis.Should().Be(
+                SubjectPrefix + "frameless-raised-enclosing", "a disposed frame is never the innermost one, so the basis names the nearest live frame");
+            noFrame.Current.Should().Be(
+                Secret,
+                "the task never disposed the parent, so with no frame of its own it is still inside it and reads what its mark rose to after it ended");
+            noFrame.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+            late.CurrentBasis.Should().Be(SubjectPrefix + "frameless-raised-late");
+            late.Current.Should().Be(Secret, "and so does a frame it enters afterwards");
+        }
+    }
+
+    [Fact]
     public async Task A_task_handed_a_child_scope_counts_a_later_raise_of_the_mark_of_a_parent_another_flow_ended()
     {
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -445,8 +486,9 @@ public sealed class EgressSubjectNestingTests
             {
                 await release.Task.WaitAsync(Patience);
                 child.Dispose();
+                var noFrame = Decide(UnknownFamily);
                 using (EgressSubject.Enter("raised-late", new HighWaterMark()))
-                    return Decide(UnknownFamily);
+                    return (NoFrame: noFrame, Late: Decide(UnknownFamily));
             });
 
             // Out of order on this flow, which still has the child innermost. Then the parent's subject reads Secret
@@ -454,8 +496,13 @@ public sealed class EgressSubjectNestingTests
             parent.Dispose();
             parentMark.Observe(Secret); // Straight into the parent's mark, as a producer holding it would.
             release.SetResult();
-            var late = await task.WaitAsync(Patience);
+            var (noFrame, late) = await task.WaitAsync(Patience);
 
+            noFrame.CurrentBasis.Should().Be(
+                SubjectPrefix + "raised-enclosing", "a disposed frame is never the innermost one, so the basis names the nearest live frame");
+            noFrame.Current.Should().Be(
+                Secret,
+                "with no frame of its own the task is still inside the parent it never disposed, and reads what the parent's mark rose to, which the enclosing frame never saw");
             late.CurrentBasis.Should().Be(SubjectPrefix + "raised-late");
             late.Current.Should().Be(
                 Secret,
@@ -476,6 +523,13 @@ public sealed class EgressSubjectNestingTests
             await Task.Run(parent.Dispose).WaitAsync(Patience);
             await RaiseThroughAnotherFrame(parentMark, Secret);
             child.Dispose();
+
+            var noFrame = Decide(UnknownFamily);
+            noFrame.CurrentBasis.Should().Be(
+                SubjectPrefix + "raised-awaited-enclosing", "a disposed frame is never the innermost one, so the basis names the nearest live frame");
+            noFrame.Current.Should().Be(
+                Secret,
+                "ending its own child in order leaves this flow inside the parent, so with no frame of its own it still reads what the parent's mark rose to");
 
             using (EgressSubject.Enter("raised-awaited-late", new HighWaterMark()))
             {
@@ -616,7 +670,7 @@ public sealed class EgressSubjectNestingTests
 
         below.Should().Be(
             0,
-            "a task started inside a frame decides at that frame until the frame's mark has been observed into the enclosing frame; {0} of {1} disposals let it decide below, for example: {2}",
+            "a task started inside a frame decides at that frame until the frame's mark has been observed into the enclosing frame, never below it and never naming the enclosing frame without that mark; {0} of {1} disposals let it, for example: {2}",
             below,
             Iterations,
             example);
@@ -816,12 +870,13 @@ public sealed class EgressSubjectNestingTests
 
     // Its own async method, so its frames never flow back to the caller. Enclosing > parent on this flow, and a task
     // started inside the parent, with no frame of its own, that decides in a loop while this flow disposes the parent
-    // in order, as a using block would. Returns the first decision the task made at the enclosing frame below the
-    // parent's mark, if any.
+    // in order, as a using block would. Returns the first decision the task made below the parent's mark, or that named
+    // the enclosing frame before that frame held the parent's mark, if any.
     private static async Task<string?> DisposeWhileAFramelessTaskDecides(
         SecurityLabel enclosingFloor, SecurityLabel parentLabel, Func<(SecurityLabel Current, string Basis)> resolve)
     {
-        using (EgressSubject.Enter("disposing-enclosing", new HighWaterMark(enclosingFloor)))
+        var enclosingMark = new HighWaterMark(enclosingFloor);
+        using (EgressSubject.Enter("disposing-enclosing", enclosingMark))
         {
             var parent = EgressSubject.Enter("disposing-parent", new HighWaterMark(parentLabel));
             using var started = new ManualResetEventSlim(false);
@@ -837,8 +892,12 @@ public sealed class EgressSubjectNestingTests
                     while (Volatile.Read(ref stop) == 0)
                     {
                         var (current, basis) = resolve();
-                        if (basis == SubjectPrefix + "disposing-enclosing" && !current.Dominates(parentLabel))
+                        if (!current.Dominates(parentLabel))
                             return $"{basis} at level {current.Level}, without the parent's mark";
+
+                        // Read after the decision, so a frame that already held the mark can only pass.
+                        if (basis == SubjectPrefix + "disposing-enclosing" && !enclosingMark.Current.Dominates(parentLabel))
+                            return $"{basis}, named before that frame held the parent's mark";
                     }
 
                     return null;
