@@ -201,7 +201,23 @@ public sealed class AirGappedHygieneTests : IDisposable
 
         act.Should().Throw<OptionsValidationException>()
             .WithMessage($"*{setting}*AirGapped*");
+
+        if (setting != "Ashlar:Meai:Bedrock:Enabled")
+        {
+            // The three options-bound validators also refuse at the first resolution of their options, in a process
+            // that never starts a host; the Bedrock check reads a ready-made instance, so it runs at start only.
+            var resolve = () => ResolveOptIn(sp, setting);
+            resolve.Should().Throw<OptionsValidationException>().WithMessage($"*{setting}*AirGapped*");
+        }
     }
+
+    private static object ResolveOptIn(IServiceProvider sp, string setting) => setting switch
+    {
+        "BrickHost:RemoteCatalogBaseUrls" => sp.GetRequiredService<IOptions<BrickHostOptions>>().Value,
+        "Ashlar:RunPod:EnablePeerNetworkRouting" => sp.GetRequiredService<IOptions<RunPodBrickConfig>>().Value,
+        "Ashlar:MeshLab:WorkerExecutor:Enabled" => sp.GetRequiredService<IOptions<MeshLabWorkerExecutorOptions>>().Value,
+        _ => throw new ArgumentOutOfRangeException(nameof(setting), setting, null),
+    };
 
     [Fact(Timeout = TestTimeouts.E2E)]
     public async Task AirGapped_without_an_opt_in_boots()
