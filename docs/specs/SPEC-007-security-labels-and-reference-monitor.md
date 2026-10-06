@@ -44,10 +44,11 @@ The status line above and the starting prompt are the owner's, as written; the s
   outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It is still report-only.
 - **Gaps carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`). The `netstandard2.0` asset of
   `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
-  unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record.
-  PR 3b found two more (`docs/EgressInventory.md`), which stay open until 4.3 and 4.1: redirects that the primary
-  handler follows are not evaluated, and a few records can read Host for a remote peer (EG-MESH-03 behind a local
-  proxy or tunnel, EG-MDL-01 with a custom `local:` inner client, EG-MESH-07/08 with a `//127.0.0.1/…` path).
+  unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record
+  (the owner's 2026-10-06 amendment of D31). PR 3b found two more (`docs/EgressInventory.md`): redirects that the
+  primary handler follows are not evaluated, which stays open until 4.3, and a few records could read Host for a
+  remote peer (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client,
+  EG-MESH-07/08 with a `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no longer read Host.
 - **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
   enforcement on alone would therefore make `AirGapped` and `SecureWorkstation` host-only: every decision is made at
   `SystemHigh`, and the leak test would pass without a label causing the refusal. PR 4 ships as eleven small PRs, in
@@ -64,15 +65,29 @@ The status line above and the starting prompt are the owner's, as written; the s
     server's HTTP transport is allowed on `SecureWorkstation` (`ValidateAshlarMcpServerOptions` refuses only
     `AirGapped`), and `AirGapped` still registers network paths, such as RunPod as the default remote execution
     target;
-  - 4.11 the switch, which carries the §5 leak test.
+  - 4.11 the switch, which carries the §5 leak test. Of the "never refuses" twins it flips,
+    `EgressGuardDecisionTests.An_explicit_profile_is_reported_and_does_not_change_the_decision` already has an
+    `enforce` row from 4.6 (an unrecognised profile fails closed); 4.11 flips its AirGapped and SecureWorkstation rows.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
-  - **4.2** (this PR): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
-    a synchronous `Send` through `EgressHttp` is refused with `NotSupportedException` before anything is sent, the
-    factory handler is refused there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0`
-    or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
-    decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
-    record published when a client is built would report a refused egress where none happened.
+- **PR 4.1** (#717, `bbc5d71`) closes the third gap above, still report-only: mesh serve records `mesh-peer:<ip>`, never Host;
+  the MEAI layer records where the inner client dials, else Bedrock's region endpoint, else the fail-closed
+  `meai:<key>`; a `file:` destination is never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at
+  `https://ollama.com`; and the default MEAI Ollama client stops following redirects (a behaviour change).
+  `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
+- **PR 4.2** (this PR): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
+  a synchronous `Send` through `EgressHttp` is refused with `NotSupportedException` before anything is sent, the
+  factory handler is refused there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0`
+  or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
+  decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
+  record published when a client is built would report a refused egress where none happened.
+- **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
+  `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
+  process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
+  still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
+  remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault` (or of the guard an
+  earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
+  convention fact pins. Nothing refuses yet.
 
 ---
 

@@ -25,6 +25,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Onboarding;
 [Collection("EnvironmentVariables")]
 public sealed class OnboardingE2ETests : IDisposable
 {
+    // SPEC-007 PR 4.6: composing AirGapped or SecureWorkstation notes a profile no later AddAshlar lowers, so each
+    // test restores the process egress state (the noted profile and the mode latch) through the reset seam.
+    private readonly EgressProcessStateScope _egressState = new();
     private readonly string _tempDir;
 
     public OnboardingE2ETests()
@@ -35,6 +38,7 @@ public sealed class OnboardingE2ETests : IDisposable
 
     public void Dispose()
     {
+        _egressState.Dispose();
         if (Directory.Exists(_tempDir))
             Directory.Delete(_tempDir, recursive: true);
     }

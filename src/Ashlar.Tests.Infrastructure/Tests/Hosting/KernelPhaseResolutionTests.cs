@@ -28,8 +28,14 @@ namespace Ashlar.Tests.Infrastructure.Tests.Hosting;
 [Trait("Category", "ProdStyle")]
 [Trait("Category", "E2E")]
 [Collection("EnvironmentVariables")]
-public sealed class KernelPhaseResolutionTests
+public sealed class KernelPhaseResolutionTests : IDisposable
 {
+    // SPEC-007 PR 4.6: composing AirGapped or SecureWorkstation notes a profile no later AddAshlar lowers, so each
+    // test restores the process egress state (the noted profile and the mode latch) through the reset seam.
+    private readonly EgressProcessStateScope _egressState = new();
+
+    public void Dispose() => _egressState.Dispose();
+
     public static TheoryData<AshlarDeploymentProfile, KernelProfileExpectations> ProfileMatrix =>
         new()
         {

@@ -83,9 +83,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `Ashlar-Egress` EventSource and to each `EgressDecisionLog` subscriber, except one made on a
   thread that is already publishing a record (an egress that a sink or listener itself causes): that
   decision is returned to its caller and counted, but not published, so the pipeline cannot recurse.
-  A record names the destination by scheme, host and port only, never its path, query or userinfo,
-  and it never carries the payload or the headers. `EgressGuard` never throws: a fault is recorded
-  with `Fault` set and `Access` left at `NoDecision`. `EgressHttp` builds HTTP clients and handlers
+  A record names the destination by scheme, host and port only, never its path, query or userinfo
+  (since PR 4.1 a `file:` name is a path and is recorded as written), and it never carries the payload
+  or the headers. `EgressGuard` never throws: a fault is recorded with `Fault` set and `Access` left at
+  `NoDecision`. `EgressHttp` builds HTTP clients and handlers
   that evaluate every request without reading or buffering its content and return the inner response
   unchanged. On the netstandard2.0 asset, which .NET 5–7 apps resolve, only `SendAsync` is evaluated:
   that asset cannot override `HttpMessageHandler.Send`, so on a runtime that has one (.NET 5 or later)
@@ -154,6 +155,32 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Changed
 
+- **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
+  Still report-only: nothing refuses. The records below change, and one HTTP client changes behaviour.
+  - **Behaviour change: the default MEAI Ollama client no longer follows redirects.** `OllamaHttpChatClient`
+    built from `MeaiPipelineOptions` (the default `local:ollama` inner client) now turns `AllowAutoRedirect`
+    off. A 3xx from the Ollama endpoint fails the call with an `HttpRequestException` instead of re-sending the
+    conversation to wherever `Location` points, which no egress record named. An Ollama behind a redirecting
+    proxy must be configured with its final URL. A client built with the `HttpClient` constructor is unchanged.
+  - Mesh serve (EG-MESH-03) records the pulling peer as `mesh-peer:<ip>` (`mesh-peer:unknown` with no
+    address), which is never read as a URL, so it is a network export whatever the IP. A loopback peer was
+    recorded as Host, but a local TLS terminator, `ssh -R` or a localhost tunnel delivers every remote puller as
+    loopback.
+  - The MEAI guard layer (EG-MDL-01, EG-MDL-02) records the destination the inner client names,
+    `ChatClientMetadata.ProviderUri`, instead of deriving it from the target key. A custom inner client under
+    `local:ollama` is recorded where it dials, and one that names no URI as `meai:local:ollama`, an external
+    model; a `cloud:bedrock:*` client that names none keeps the configured region's endpoint, as before.
+    `local:onnx` records nothing only when its inner client is the in-process `LlamaSharpChatClient` (a
+    type check), so a custom `local:onnx` client is now recorded. The default registrations record what they did.
+  - A destination name that starts with `file:`, in any case, is a path: it is recorded as written and never
+    read as a URL, and a `file` URI is never Host. An export or shared directory spelled `//127.0.0.1/…` or
+    `//localhost/…` (EG-MESH-07, EG-MESH-08 and every other file site) is recorded as a network export, and its
+    record keeps the path, as every other file site's does.
+  - An Ollama model whose id ends in `-cloud` or `:cloud`, in any case, is recorded as an external model at
+    `https://ollama.com`, because the local daemon relays it there: on the MEAI route, from the call's
+    `ChatOptions.ModelId` or else the inner client's default model, and by `OllamaProvider`, which records one
+    more EG-MDL-07 decision before it sends such a chat.
+
 - **Every Ashlar host now reports its outbound requests to the egress guard (SPEC-007 PR 3b).**
   Report-only: nothing refuses, and each change below adds a decision record, not a refusal.
   - `AddAshlar` calls `AddAshlarEgressGuard` after its own `AddHttpClient`, so every `AddAshlar`
@@ -176,9 +203,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - Every keyed MEAI chat client's outermost type is now `EgressGuardChatClient`, a new public sealed
     type in `Ashlar.AI.Pipeline`, which has no PublicAPI baseline. `GetType()`, `is` checks and
     `GetService(typeof(DelegatingChatClient))` now see it first. It records one decision per call
-    (`local:onnx`, in process, records none),
+    (`local:onnx`, in process, records none; PR 4.1 narrows that to the in-process LLamaSharp client, above),
     synchronously and before PolicyGate's audit record, with a destination fixed when the keyed client
-    is built, and it swallows an exception from a host `IEgressGuard`.
+    is built (since PR 4.1, an Ollama `-cloud`/`:cloud` model is recorded at `https://ollama.com` per
+    call instead), and it swallows an exception from a host `IEgressGuard`.
   - `NativeBundle.StageApp` (public, in the `Ashlar.CLI` tool package) takes a third parameter, `site`,
     the decision's site. Its two callers, `NativeBundle.Stage` and `CloudBundle.Stage`, pass
     `EG-FILE-01` and `EG-FILE-02`.
@@ -188,6 +216,46 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     pretty-printed output now run on System.Text.Json 10 instead of the shared framework's 8.
     `MeshDirectorJsonOutputCharacterizationTests`, committed before the reference, shows both
     byte-identical.
+
+- **The egress guard resolves a mode (SPEC-007 PR 4.6). Every profile still reports, and nothing
+  refuses.** Mode plumbing only: no route acts on the mode until PR 4.7, and AirGapped and
+  SecureWorkstation keep reporting until the switch (PR 4.11), so an `enforce` record says what would
+  have been refused, not that a send stopped.
+  - `EgressDecision` gains `ModeBasis` (what decided `Mode`: `profile:<profile>`, `override`,
+    `override-ignored`, `profile:unrecognised` or `fault`), `Refused` (`Mode` is `enforce` and `Access`
+    does not allow the egress) and `Ref` (a random 64-bit reference, 16 hex digits). `Mode` is now
+    `report` or `enforce`. The `Ashlar-Egress` event 1 appends `modeBasis`, `refused` and `ref` after
+    `fault`, and its version goes from 0 to 1; no field is renamed or reordered.
+  - `EgressGuard`'s constructor takes a second optional parameter, `egressMode`, and
+    `AshlarHostingOptions` gains `EgressMode`, which can only raise the mode and is never bound from
+    configuration. A mode setting exists, but it is not supported yet. Every profile defaults to
+    `report`; an unreadable mode value, a profile that is none of the six, and a fault while resolving
+    the mode fail closed to `enforce`. A guard built with a profile never reads the environment.
+    `EgressGuard.ProcessDefault` reads the deployment profile once per decision and records the value
+    it resolved the mode from.
+  - **`AddAshlar` registers its own guard.** `IEgressGuard` in an `AddAshlar` container is now a guard
+    built with the strictest deployment profile noted in the process (the one `AddAshlar` resolved,
+    unless an earlier `AddAshlar` noted a stricter one) and the process's mode, in place of
+    `EgressGuard.ProcessDefault`. A `ProcessDefault` registration is replaced, including one an
+    `AddAshlarEgressGuard` call made before `AddAshlar`, and so is the guard an earlier `AddAshlar`
+    registered in the same service collection; a host's own guard is kept. `AddAshlar` also adds one
+    hosted service, which logs the mode line at start (`Ashlar.Egress`, event 7302 `EgressMode`) for
+    the guard it composed, and a process whose mode is not plain `report` writes that line to standard
+    error once. When a host's own guard is the container's guard, the line does not describe it.
+  - **Behaviour change: the strictest deployment profile noted in a process wins.** After
+    `AddAshlar` has resolved AirGapped, a later `AddAshlar` with another profile in the same process no
+    longer lowers `ForbidsRemoteProtocolEgress` or the profile's `DisplayName`, so the MCP and A2A
+    option validators stay on AirGapped, and `ProcessDefault` and the later container's own guard
+    decide under AirGapped. SecureWorkstation is replaced only by AirGapped. Among the other profiles
+    the last one still wins. A host outside this repository that composes two profiles in one process
+    will see it.
+  - `Ashlar.Abstractions` grants `InternalsVisibleTo` to `Ashlar.AI.Pipeline`, for the refusal surface
+    in PR 4.7. The new public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`.
+    `EgressModeResolutionTests` and `EgressModeProcessBindingTests` pin the mode table and the two
+    bindings in cert-gate, and `ProcessGlobalEnvironmentConventionTests` now treats composing
+    AirGapped or SecureWorkstation, raising the mode and the reset seam as process-global writes, and
+    pins every file that names the reset seam or a member that writes the noted profile or the mode
+    latch outside their rules.
 
 - **`Ashlar.CLI` references its test projects only on request.** Unless a build passed
   `-p:IncludeTestProjectReferences=false`, the CLI compiled `Ashlar.Tests.Domain`,

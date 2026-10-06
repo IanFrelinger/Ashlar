@@ -31,8 +31,13 @@ public sealed class KernelDiCompositionProdStyleTests : IDisposable
     private readonly string? _trust = Environment.GetEnvironmentVariable("ASHLAR_TRUST_ENABLED");
     private readonly string? _loadPref = Environment.GetEnvironmentVariable("ASHLAR_LOAD_PREFERENCE");
 
+    // SPEC-007 PR 4.6: composing AirGapped or SecureWorkstation notes a profile no later AddAshlar lowers, so each
+    // test restores the process egress state (the noted profile and the mode latch) through the reset seam.
+    private readonly EgressProcessStateScope _egressState = new();
+
     public void Dispose()
     {
+        _egressState.Dispose();
         Environment.SetEnvironmentVariable("ASHLAR_TRUST_ENABLED", _trust);
         Environment.SetEnvironmentVariable("ASHLAR_LOAD_PREFERENCE", _loadPref);
     }

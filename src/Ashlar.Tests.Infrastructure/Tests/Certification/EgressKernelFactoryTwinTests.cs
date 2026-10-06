@@ -24,8 +24,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <c>AddHttpClient</c>, so the default client of a bare kernel records one decision per send with site
 /// <c>factory:</c>. The kernel members that register a client of their own (RunPod, NCR and the model-artifact
 /// catalog on Linux) call it again after their registration; the marker makes those calls add nothing, so a send
-/// is still one decision, the collection still holds one activator and one <see cref="IEgressGuard"/>, and a named
-/// kernel client's site is <c>factory:</c> plus its name.</para>
+/// is still one decision, the collection still holds one activator and one <see cref="IEgressGuard"/> (from PR 4.6
+/// the guard <c>AddAshlar</c> composed, not <see cref="EgressGuard.ProcessDefault"/>), and a named kernel client's
+/// site is <c>factory:</c> plus its name.</para>
 /// <para><b>Why the static facts are not enough.</b> The convention test sees that each registration has a call
 /// after it in the same block; only a send through a real kernel provider shows that the handler is on the client
 /// exactly once.</para>
@@ -122,9 +123,11 @@ public sealed class EgressKernelFactoryTwinTests
                 && d.ServiceType == typeof(IHostedService)
                 && d.ImplementationType == typeof(EgressDecisionLoggerActivator))
             .Should().ContainSingle("one hosted activator, however many members installed the guard");
+        // SPEC-007 PR 4.6: AddAshlar replaces the ProcessDefault registration with the guard it composed.
         services.Where(d => !d.IsKeyedService && d.ServiceType == typeof(IEgressGuard))
             .Should().ContainSingle("one guard, however many members installed it")
-            .Which.ImplementationInstance.Should().BeSameAs(EgressGuard.ProcessDefault);
+            .Which.ImplementationInstance.Should().BeOfType<EgressGuard>()
+            .And.NotBeSameAs(EgressGuard.ProcessDefault, "AddAshlar binds the guard it composed");
     }
 
     // Test-only: registered after AddAshlar, so it is the last default to set the primary handler. A new stub per

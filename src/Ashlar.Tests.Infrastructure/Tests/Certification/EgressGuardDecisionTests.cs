@@ -16,7 +16,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// </summary>
 /// <remarks>
 /// <para><b>What is pinned.</b> The destination table row by row (loopback v4 and v6, <c>localhost</c>,
-/// <c>*.localhost</c>, <c>unix:</c>, <c>npipe:</c>, <c>host:</c> names, every family, and Unknown giving Public);
+/// <c>*.localhost</c>, <c>unix:</c>, <c>npipe:</c>, <c>host:</c> names, every family, and Unknown giving Public),
+/// and, since PR 4.1, that a <c>file</c> URI or a <c>file:</c> name is never inside the host boundary;
 /// that the table's labels are the ones derived from the built-in <see cref="DataSensitivityLevels"/> flags through
 /// <see cref="DataSensitivityLabelBridge.ToDataLabel"/>; that with no subject every non-host destination is refused
 /// with <see cref="AccessDenialReason.SystemHighData"/> and the host boundary is allowed; that an
@@ -166,6 +167,50 @@ public sealed class EgressGuardDecisionTests
         var decision = Guard.Evaluate(new EgressRequest(family, NewSite(), name));
 
         AssertRow(decision, expected, $"family '{family}' to the name '{name}'");
+    }
+
+    /// <summary>
+    /// SPEC-007 PR 4.1, gap 3: a <c>file</c> URI is never inside the host boundary, whatever its host. A file
+    /// written to <c>//localhost/share</c> or <c>//127.0.0.1/E$</c> leaves through a share, not through the host,
+    /// so it is classified by its family (a network export for both file families).
+    /// </summary>
+    [Theory]
+    [InlineData("file.export", "file://localhost/share/out.nxpkg")]
+    [InlineData("file.export", "file://127.0.0.1/E$/out.nxpkg")]
+    [InlineData("mesh.publish", "file://[::1]/share/published")]
+    [InlineData("mesh.publish", "FILE://LOCALHOST/share")]
+    [InlineData("file.export", "file://ollama.localhost/x")]
+    public void A_file_uri_is_never_inside_the_host_boundary(string family, string uri)
+    {
+        var decision = Guard.Evaluate(new EgressRequest(family, NewSite(), new Uri(uri)));
+
+        AssertRow(decision, EgressDestinationClass.NetworkExport, $"family '{family}' to the file URI {uri}");
+    }
+
+    /// <summary>
+    /// SPEC-007 PR 4.1, gap 3: a name that starts with <c>file:</c> (in any case) is a path. It is never read as a
+    /// URL, so a path spelled <c>//127.0.0.1/…</c> cannot make <c>file:</c> plus that path a URL with a loopback
+    /// host; it is recorded as written, like every other file site's path (<c>file:/home/…</c> always was), and
+    /// classified by its family. So the URL redaction of <see cref="AssertRow"/> does not apply to it; the bound on
+    /// caller text still does.
+    /// </summary>
+    [Theory]
+    [InlineData("file.export", "file://127.0.0.1/E$/out.nxpkg")]
+    [InlineData("mesh.publish", "file://localhost/share")]
+    [InlineData("file.export", "file://[::1]/x/out.nxpkg")]
+    [InlineData("mesh.publish", "FILE://127.0.0.1/share")]
+    [InlineData("file.export", "File:////127.0.0.1/share/out.nxpkg")]
+    [InlineData("file.export", @"file:\\127.0.0.1\share\out.nxpkg")]
+    public void A_file_name_is_a_path_recorded_as_written_and_never_inside_the_host_boundary(string family, string name)
+    {
+        var decision = Guard.Evaluate(new EgressRequest(family, NewSite(), name));
+
+        var what = $"family '{family}' to the name '{name}'";
+        decision.Fault.Should().BeNull(what);
+        decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport, what);
+        decision.DestinationLabel.Should().Be(InternalLabel, what);
+        decision.DestinationBasis.Should().Be(NetworkExportBasis, what);
+        decision.Destination.Should().Be(name, "a file: name is a path, recorded as written like every other file site's");
     }
 
     [Fact]
@@ -742,19 +787,22 @@ public sealed class EgressGuardDecisionTests
     // Profile
     // ---------------------------------------------------------------------------------------------------------
 
+    /// <remarks>SPEC-007 PR 4.6: every one of the six profiles still reports. A profile that is none of them fails
+    /// closed to <c>enforce</c> (the mode table is pinned in <see cref="EgressModeResolutionTests"/>); nothing acts on the
+    /// mode yet, so the access decision is unchanged either way.</remarks>
     [Theory]
-    [InlineData("air-gapped", true)]
-    [InlineData("secure-workstation", true)]
-    [InlineData("AirGapped", true)]
-    [InlineData("SECURE_WORKSTATION", true)]
-    [InlineData("workstation", true)]
-    [InlineData("full", false)]
-    [InlineData("server", false)]
-    [InlineData("edge", false)]
-    [InlineData("system", false)]
-    [InlineData("", false)]
-    [InlineData("air-gapped-ish", false)]
-    public void An_explicit_profile_is_reported_and_does_not_change_the_decision(string profile, bool enforcesByDefault)
+    [InlineData("air-gapped", true, "report")]
+    [InlineData("secure-workstation", true, "report")]
+    [InlineData("AirGapped", true, "report")]
+    [InlineData("SECURE_WORKSTATION", true, "report")]
+    [InlineData("workstation", true, "report")]
+    [InlineData("full", false, "report")]
+    [InlineData("server", false, "report")]
+    [InlineData("edge", false, "report")]
+    [InlineData("system", false, "report")]
+    [InlineData("", false, "report")]
+    [InlineData("air-gapped-ish", false, "enforce")]
+    public void An_explicit_profile_is_reported_and_does_not_change_the_decision(string profile, bool enforcesByDefault, string mode)
     {
         var request = new EgressRequest(EgressFamilies.ModelMeai, NewSite(), new Uri(Remote));
 
@@ -762,7 +810,7 @@ public sealed class EgressGuardDecisionTests
 
         decision.Profile.Should().Be(profile);
         decision.ProfileEnforcesByDefault.Should().Be(enforcesByDefault);
-        decision.Mode.Should().Be("report", "PR 3 has one mode and nothing is refused");
+        decision.Mode.Should().Be(mode, "every profile defaults to report until PR 4.11; an unreadable one fails closed");
         decision.Access.Should().Be(Guard.Evaluate(request).Access, "the profile is reported, not enforced");
     }
 
@@ -879,7 +927,7 @@ public sealed class EgressGuardDecisionTests
         e.PayloadNames.Should().Equal(
             "sequence", "at", "mode", "family", "site", "destination", "destinationClass", "destinationLabel",
             "destinationBasis", "current", "currentBasis", "allowed", "reason", "detail", "profile",
-            "profileEnforcesByDefault", "fault");
+            "profileEnforcesByDefault", "fault", "modeBasis", "refused", "ref");
         e.Payload.Should().OnlyContain(value => value is string || value is bool, "every field is a string or a bool");
 
         Field(e, "sequence").Should().Be(decision.Sequence.ToString(CultureInfo.InvariantCulture));
@@ -897,6 +945,9 @@ public sealed class EgressGuardDecisionTests
         Field(e, "profile").Should().Be("full");
         Field(e, "profileEnforcesByDefault").Should().Be(false);
         Field(e, "fault").Should().Be(string.Empty);
+        Field(e, "modeBasis").Should().Be("profile:full");
+        Field(e, "refused").Should().Be(false, "report mode refuses nothing");
+        Field(e, "ref").Should().Be(decision.Ref);
 
         var everything = string.Join("|", e.Payload!.Select(value => Convert.ToString(value, CultureInfo.InvariantCulture)));
         everything.Should().NotContainAny(SecretMarkers);
