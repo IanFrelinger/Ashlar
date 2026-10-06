@@ -61,10 +61,11 @@ public sealed class AgentBus : IAgentBus
         }
 
         // Notify subscribers. Each handler is another component's work, so it must not be decided at the
-        // publisher's mark: the dispatch tasks start detached, with no egress subject (SystemHigh), and keep it
-        // after the publisher's flow is restored (SPEC-007 PR 4.4).
+        // publisher's mark: the dispatch tasks start inside a callback run with no egress subject (SystemHigh) and
+        // keep it for their whole life, while the publisher's flow is back in exactly its own frame as soon as the
+        // callback returns (SPEC-007 PR 4.4).
         var subscriptions = GetMatchingSubscriptions(message);
-        using (EgressSubject.Detach())
+        EgressSubject.RunDetached(() =>
         {
             foreach (var subscription in subscriptions)
             {
@@ -80,7 +81,7 @@ public sealed class AgentBus : IAgentBus
                     }
                 }, cancellationToken);
             }
-        }
+        });
 
         return Task.CompletedTask;
     }
