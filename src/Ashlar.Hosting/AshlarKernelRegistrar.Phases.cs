@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Ashlar.Abstractions;
 using Ashlar.Abstractions.Routing;
 using Ashlar.AI.Pipeline;
@@ -589,7 +590,8 @@ internal static partial class AshlarKernelRegistrar
                 chain = new AdaptiveProviderFactory(
                     chain,
                     sp.GetRequiredService<ILoadPolicy>(),
-                    sp.GetService<Microsoft.Extensions.Logging.ILogger<AdaptiveProviderFactory>>());
+                    sp.GetService<Microsoft.Extensions.Logging.ILogger<AdaptiveProviderFactory>>(),
+                    sp.GetService<IOptions<AshlarResolvedDeploymentProfileOptions>>());
             }
 
             return chain;
