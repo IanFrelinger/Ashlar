@@ -125,7 +125,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
   reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
   appears unlisted.
-- **PR 4.10** (this PR) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
+- **PR 4.10** (#720) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
   `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
   an explicit peer-network-only request fails with an explained error and is not sent to a peer or to RunPod.
