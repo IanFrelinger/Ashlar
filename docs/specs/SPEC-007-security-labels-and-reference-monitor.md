@@ -43,11 +43,11 @@ The status line above and the starting prompt are the owner's, as written; the s
   and Fleet.Host covers the commercial Fleet registration); MEAI targets go through `EgressGuardChatClient`, the
   outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It is still report-only.
 - **Gaps carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`). The `netstandard2.0` asset of
-  `Ashlar.Abstractions` does not evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` goes out
-  unevaluated. It has to be closed before the guard enforces. PR 3b adds two more (`docs/EgressInventory.md`):
-  redirects that the primary handler follows are not evaluated, and a few records can read Host for a remote peer
-  (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client, EG-MESH-07/08 with a
-  `//127.0.0.1/…` path).
+  `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
+  unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record.
+  PR 3b found two more (`docs/EgressInventory.md`), which stay open until 4.3 and 4.1: redirects that the primary
+  handler follows are not evaluated, and a few records can read Host for a remote peer (EG-MESH-03 behind a local
+  proxy or tunnel, EG-MDL-01 with a custom `local:` inner client, EG-MESH-07/08 with a `//127.0.0.1/…` path).
 - **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
   enforcement on alone would therefore make `AirGapped` and `SecureWorkstation` host-only: every decision is made at
   `SystemHigh`, and the leak test would pass without a label causing the refusal. PR 4 ships as eleven small PRs, in
@@ -64,9 +64,11 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.11 the switch, which carries the §5 leak test.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
-  - **4.2** (this PR): on the `netstandard2.0` asset a synchronous `Send` through `EgressHttp` is refused before
-    anything is sent and recorded as a `NoDecision` (`SynchronousSendUnsupported`), the factory handler is refused
-    there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0` or later.
+  - **4.2** (this PR): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
+    a synchronous `Send` through `EgressHttp` is refused with `NotSupportedException` before anything is sent, the
+    factory handler is refused there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0`
+    or later. The refusal publishes no decision record: no Ashlar code runs on that path, and a record published
+    when a client is built, the only place one could be, would report a refused egress where none happened.
 
 ---
 

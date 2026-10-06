@@ -32,7 +32,6 @@ public sealed class EgressGuard : IEgressGuard
     internal const string DeploymentProfileVariable = "ASHLAR_DEPLOYMENT_PROFILE";
     internal const string FaultedDestinationBasis = "not classified: the evaluation faulted";
     internal const string FaultedCurrentBasis = "not resolved: the evaluation faulted";
-    internal const string NotEvaluatedBasis = "not evaluated: the egress is refused before it can be evaluated";
 
     private static long _sequence;
 
@@ -117,53 +116,6 @@ public sealed class EgressGuard : IEgressGuard
             profile,
             enforces,
             fault);
-
-        EgressDecisionLog.Publish(decision);
-        return decision;
-    }
-
-    /// <summary>
-    /// Publishes a record for egress that is refused before it can be evaluated: no destination (<c>unknown</c>), no
-    /// decision (<c>default(AccessDecision)</c>, so <see cref="AccessDenialReason.NoDecision"/>), and
-    /// <paramref name="fault"/> as <see cref="EgressDecision.Fault"/>. The profile is this guard's, read as
-    /// <see cref="Evaluate"/> reads it. Never throws.
-    /// </summary>
-    /// <remarks>Its one caller is the netstandard2.0 asset's synchronous-send hop
-    /// (<c>SynchronousSendRefusedOnNetstandard20Asset</c>); it compiles on every asset so that a change to the record's
-    /// shape is checked on every build, not only on the netstandard2.0 one.</remarks>
-    internal EgressDecision PublishNoDecision(string family, string site, string fault)
-    {
-        var sequence = Interlocked.Increment(ref _sequence);
-        var at = DateTimeOffset.UtcNow;
-        var profile = string.Empty;
-        var enforces = false;
-        try
-        {
-            (profile, enforces) = ResolveProfile();
-        }
-#pragma warning disable CA1031 // Never throws by contract, as Evaluate: a profile that cannot be read is recorded as empty.
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            // The placeholders above stand: an empty profile that does not enforce by default.
-        }
-
-        var decision = new EgressDecision(
-            sequence,
-            at,
-            ReportMode,
-            EgressDestinations.Bound(family),
-            EgressDestinations.Bound(site),
-            EgressDestinations.UnknownDestination,
-            EgressDestinationClass.Unknown,
-            SecurityLabel.Public,
-            NotEvaluatedBasis,
-            SecurityLabel.SystemHigh,
-            NotEvaluatedBasis,
-            default,
-            profile,
-            enforces,
-            EgressDestinations.Bound(fault));
 
         EgressDecisionLog.Publish(decision);
         return decision;
