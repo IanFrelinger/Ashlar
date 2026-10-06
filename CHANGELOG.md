@@ -221,7 +221,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     the fetch, and a redirect would fetch from a host it never checked. New:
     `EgressHttpClientBuilderExtensions.NeverFollowRedirects(this IHttpClientBuilder)` in `Ashlar.Infrastructure`,
     which turns the factory's own primary handler's following off through the configure-existing
-    `ConfigurePrimaryHttpMessageHandler` overload.
+    `ConfigurePrimaryHttpMessageHandler` overload. `AwsBedrockChatClientFactory.RuntimeConfig` (internal) builds the
+    Bedrock configuration, and `Ashlar.AI.Pipeline` grants `InternalsVisibleTo` to `Ashlar.Tests.Infrastructure` so
+    the cert-gate can read it without an AWS region.
+  - **Behaviour change: a redirect from outside the host boundary into it is never followed** (owner decision
+    2026-10-06, SPEC-007 decisions log). A 3xx whose `Location` names loopback, `localhost` or `*.localhost`, `unix`,
+    `npipe` or a link-local address, reached from a remote authority, is returned to the caller on both routes, with
+    the attempted hop recorded: a remote peer cannot bounce a request, body included, to a local service. Hops within
+    the boundary, and out of it, are followed as above.
   - A handler between the guard handler and the primary handler that rewrites `RequestUri` (service discovery,
     hedging, base-address rewriters) is decided again for the new authority before the send.
   - A factory client whose own configuration removes the guard handler (for example
@@ -231,7 +238,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     named in a Warning (event 7304), once per client and type.
   - The guard handler notes what it decided in the request's `Options` (an internal key); a retry of the same
     authority is still one decision. A handler that sends a fresh `HttpRequestMessage` (hedging, retry) drops the
-    note, so its send is decided again: a duplicate record, never a missing one.
+    note, so its send is decided again: a duplicate record, never a missing one. A caller whose token is cancelled
+    between hops gets `OperationCanceledException` before the next hop is sent or decided.
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes

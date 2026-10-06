@@ -26,10 +26,17 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <c>https</c>, is not followed: the 3xx response is returned. On 301 and 302 a <c>POST</c>, and on 303 anything but
 /// <c>GET</c> and <c>HEAD</c>, becomes a <c>GET</c> with no content. Each hop clears <c>Authorization</c>, disposes
 /// the response it does not return, and sends the same <see cref="HttpRequestMessage"/>, whose <c>RequestUri</c> and
-/// method it changes, as the runtime's own follower does. Past the limit, the last 3xx response is returned.</para>
+/// method it changes, as the runtime's own follower does. Past the limit, the last 3xx response is returned. A caller
+/// whose token is cancelled between hops gets <see cref="OperationCanceledException"/> before the next hop is sent
+/// or decided.</para>
 /// <para><b>Across origins</b> (default D33). A client built by <see cref="EgressHttp"/> does not follow a redirect to
 /// another origin (scheme, host or port): the 3xx response is returned to the caller, so the API-key headers those
 /// clients set never follow it. A factory client follows it, and the new origin is decided before it is sent.</para>
+/// <para><b>Into the host boundary</b> (owner decision 2026-10-06, O2). A redirect from an authority outside the host
+/// boundary to one inside it (loopback, <c>localhost</c> and <c>*.localhost</c>, <c>unix</c>, <c>npipe</c>, and a
+/// link-local address) is never followed, on either route: a remote peer must not be able to bounce a request, body
+/// included, to a local service. The hop is decided, so the record shows what was attempted, and the 3xx response is
+/// returned to the caller, who may follow it knowingly.</para>
 /// <para><b>Report-only.</b> Each decision is recorded, and the guard refuses nothing yet: until SPEC-007 PR 4.7 no
 /// route acts on <see cref="EgressDecision.Refused"/>, so a refused hop is still sent.</para>
 /// <para>It overrides <c>Send</c> as well on net8.0 and later. On the netstandard2.0 asset it sits under the
@@ -174,7 +181,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
             return response;
 
         var hops = 0;
-        while (NextHop(request, response, ref hops))
+        while (NextHop(request, response, ref hops, cancellationToken))
         {
             response = base.Send(request, cancellationToken);
         }
@@ -332,6 +339,11 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     private static bool SameOrigin(Uri a, Uri b) =>
         string.Equals(EgressHopEvaluation.AuthorityOf(a), EgressHopEvaluation.AuthorityOf(b), StringComparison.Ordinal);
 
+    // The host boundary as a decision records it (loopback, localhost and *.localhost, unix, npipe), plus link-local
+    // addresses, which a decision records as a network export but which the owner's rule names.
+    private static bool InsideHostBoundary(Uri uri) =>
+        EgressDestinations.IsInsideHost(uri) || EgressDestinations.IsLinkLocalHost(uri.Host);
+
     private void Decide(HttpRequestMessage request) =>
         _ = EgressHopEvaluation.EnsureDecided(request, request.RequestUri, _guard, _family, _site);
 
@@ -339,7 +351,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     {
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         var hops = 0;
-        while (NextHop(request, response, ref hops))
+        while (NextHop(request, response, ref hops, cancellationToken))
         {
             response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
@@ -348,8 +360,9 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     }
 
     // When the response is a redirect this handler follows, readies the request for the next hop (and decides it, if
-    // its authority is new) and disposes the response; otherwise leaves both alone and returns false.
-    private bool NextHop(HttpRequestMessage request, HttpResponseMessage response, ref int hops)
+    // its authority is new) and disposes the response; otherwise leaves both alone and returns false. A caller that
+    // gave up between hops stops the follower here: the next hop is neither sent nor decided.
+    private bool NextHop(HttpRequestMessage request, HttpResponseMessage response, ref int hops, CancellationToken cancellationToken)
     {
         var requestUri = request.RequestUri;
         if (requestUri is null || !requestUri.IsAbsoluteUri)
@@ -359,11 +372,25 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         if (location is null)
             return false;
 
+        // Owner decision 2026-10-06 (O2): a hop from outside the host boundary into it is never followed, on either
+        // route. The hop is decided, so the record shows what was attempted, and the 3xx goes back to the caller.
+        if (!InsideHostBoundary(requestUri) && InsideHostBoundary(location))
+        {
+            EgressHopEvaluation.RecordUnfollowed(request, location, _guard, _family, _site);
+            return false;
+        }
+
         if (!FollowsAcrossOrigins && !SameOrigin(requestUri, location))
             return false;
 
         if (++hops > MaxRedirects)
             return false;
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            response.Dispose();
+            cancellationToken.ThrowIfCancellationRequested();
+        }
 
         var status = (int)response.StatusCode;
         response.Dispose();

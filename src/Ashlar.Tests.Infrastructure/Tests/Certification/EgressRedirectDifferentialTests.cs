@@ -39,7 +39,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// client with <see cref="EgressHttpClientBuilderExtensions.NeverFollowRedirects"/> returns the 3xx; a redirect to a
 /// scheme other than <c>http</c> or <c>https</c> is returned, not followed; a primary that has already sent (its
 /// <c>AllowAutoRedirect</c> setter throws) keeps following on its own, and the final authority is decided after the
-/// send.</para>
+/// send; a hop from a remote host into loopback Kestrel is returned, recorded, and never reaches the server (owner
+/// decision 2026-10-06).</para>
 /// <para><b>Hermetic.</b> Every connection goes to the loopback listener: the handlers' <c>ConnectCallback</c> connects
 /// any host name to 127.0.0.1, so no name is resolved and nothing leaves the machine. The HTTPS listener uses a
 /// self-signed certificate made here, which the client accepts. Each case has its own token in every path and host,
@@ -200,6 +201,69 @@ public sealed class EgressRedirectDifferentialTests : IClassFixture<EgressRedire
         recorder.Decisions.Select(d => d.Decision.Destination).Should().Equal(
             $"http://127.0.0.1:{_server.HttpPort}", $"http://localhost:{_server.HttpPort}");
         recorder.Decisions[1].At.Should().BeGreaterThan(seen[2].At, "the primary's own hop is decided only after the send");
+    }
+
+    [Fact]
+    public async Task A_remote_hop_into_loopback_Kestrel_is_returned_and_the_server_never_sees_it()
+    {
+        // Owner decision 2026-10-06 (O2), against the real primary: the first hop is presented as a remote host by a
+        // stub that answers 307 to loopback Kestrel; everything else goes through the real SocketsHttpHandler. The 3xx
+        // comes back, the server sees nothing, and both hops are recorded.
+        var token = NewToken();
+        var name = "inward-" + token;
+        var recorder = new Recorder(d => d.Site == "factory:" + name);
+        using var subscription = EgressDecisionLog.Subscribe(recorder);
+        var target = $"http://127.0.0.1:{_server.HttpPort}/{token}/b";
+
+        var services = new ServiceCollection();
+        services.AddAshlarEgressGuard();
+        services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => new RemoteFrontedPrimary(Primary(maxRedirects: 50), $"remote-{token}.example", target));
+        using var provider = services.BuildServiceProvider();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+
+        using var response = await client.PostAsync(new Uri($"http://remote-{token}.example/{token}/a"), new StringContent(Payload));
+
+        response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect);
+        _server.For(token).Should().BeEmpty("the server inside the boundary never sees the bounced request");
+        recorder.Decisions.Select(d => d.Decision.Destination).Should().Equal($"http://remote-{token}.example", $"http://127.0.0.1:{_server.HttpPort}");
+        recorder.Decisions[1].Decision.DestinationClass.Should().Be(EgressDestinationClass.Host);
+    }
+
+    /// <summary>
+    /// A known-type primary that answers one remote host itself (307 to a given Location) and sends everything else
+    /// through a real handler to the loopback listener.
+    /// </summary>
+    private sealed class RemoteFrontedPrimary : HttpClientHandler
+    {
+        private readonly HttpMessageInvoker _real;
+        private readonly string _remoteHost;
+        private readonly string _location;
+
+        public RemoteFrontedPrimary(SocketsHttpHandler real, string remoteHost, string location)
+        {
+            _real = new HttpMessageInvoker(real);
+            _remoteHost = remoteHost;
+            _location = location;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (string.Equals(request.RequestUri!.Host, _remoteHost, StringComparison.OrdinalIgnoreCase))
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.TemporaryRedirect) { RequestMessage = request };
+                response.Headers.Location = new Uri(_location);
+                return Task.FromResult(response);
+            }
+
+            return _real.SendAsync(request, cancellationToken);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                _real.Dispose();
+            base.Dispose(disposing);
+        }
     }
 
     /// <summary>The <c>Follows</c> of the redirect follower directly under the client's guard handler, by reflection (no InternalsVisibleTo).</summary>

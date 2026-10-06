@@ -90,6 +90,24 @@ internal sealed class EgressHopEvaluation
     }
 
     /// <summary>
+    /// Decides <paramref name="uri"/>, a redirect hop that is not followed, so the record shows what was attempted,
+    /// without making it the authority last decided: the request stays where it is, so the check after the send
+    /// does not decide the request's own authority again. With no note, one is started with the fallback guard, family
+    /// and site.
+    /// </summary>
+    internal static void RecordUnfollowed(HttpRequestMessage request, Uri uri, IEgressGuard? fallbackGuard, string fallbackFamily, string fallbackSite)
+    {
+        var note = Find(request);
+        if (note is null)
+        {
+            note = new EgressHopEvaluation(fallbackGuard, fallbackFamily, fallbackSite);
+            Store(request, note);
+        }
+
+        note.Evaluate(uri);
+    }
+
+    /// <summary>
     /// After a send: decides the URI the response's request names when the note on <paramref name="request"/> never
     /// decided its authority. A response with no request message is not checked: there is nothing to decide.
     /// </summary>
@@ -141,6 +159,11 @@ internal sealed class EgressHopEvaluation
     private void Decide(Uri? uri)
     {
         Authority = AuthorityOf(uri);
+        Evaluate(uri);
+    }
+
+    private void Evaluate(Uri? uri)
+    {
         try
         {
             var egress = uri is null

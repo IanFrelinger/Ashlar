@@ -137,11 +137,11 @@ The status line above and the starting prompt are the owner's, as written; the s
   checked after the send. Both SNS signing-certificate clients and the Bedrock runtime client never follow (behaviour
   changes in the CHANGELOG). Until 4.7 a hop the guard would refuse is still sent; the decision is made before the
   send, where 4.7 will stop it. `Ashlar.Abstractions` grants `InternalsVisibleTo` to `Ashlar.Infrastructure` (D9).
-  Known limits it records (`docs/EgressInventory.md`): a primary of another type, with credentials, or that has
-  already sent keeps following on its own and is decided after the send; a factory client follows a redirect from a
-  remote `http` host into the host boundary, which the label model allows (P1; an `https` first hop cannot downgrade to
-  an `http` loopback; whether to refuse the hop at all is an open owner question); only `Authorization` is cleared on
-  a hop.
+  By the owner's 2026-10-06 decision (decisions log) a hop from outside the host boundary into it (loopback, `*.localhost`,
+  link-local) is never followed on either route: the hop is recorded and the 3xx returned. Known limits it records
+  (`docs/EgressInventory.md`): a primary of another type, with credentials, or that has already sent keeps following
+  on its own and is decided after the send; only `Authorization` is cleared on a hop; a handler that sends a fresh
+  request costs a duplicate decision.
 
 ---
 
@@ -420,7 +420,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 answer of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
+applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 and PR 4.3 answers of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
 were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
@@ -440,6 +440,7 @@ were not the owner's are in the next section.
 | 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
 | 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
 | 2026-10-06 | PR 4 (4.2) | **A synchronous `Send` refused on the `netstandard2.0` asset leaves no decision record; the exception is the only signal.** This amends the PR 4 design's default D31, which wanted the hop to publish a `NoDecision` record so the refusal reaches the operator log. No Ashlar code runs when the runtime refuses that `Send`, so a record could only be published when a client is built, which would claim a refused egress where none happened, or from a process-wide `AppDomain.FirstChanceException` hook, which runs on every exception in the host. The `NotSupportedException` reaches the caller, whose own error handling logs it. The accepted cost: under `AirGapped` or `SecureWorkstation` enforcement, such a refusal never appears in Ashlar's egress log. Ashlar's own hosts bind `net8.0` or `net10.0` and are unaffected; only an app that binds the `netstandard2.0` asset on .NET 5 or later is. |
+| 2026-10-06 | PR 4 (4.3) | **A redirect hop from outside the host boundary into it is never followed.** When the redirect follower (PR 4.3) holds a 3xx whose `Location` names the host boundary (loopback, `localhost` and `*.localhost`, `unix`, `npipe`, as a decision classifies Host, plus a link-local address, which a decision records as a network export) and the request came from an authority outside it, the hop is not followed, for factory (P1) clients as much as for `EgressHttp` (P2) clients: the hop is decided, so the record shows what was attempted, and the 3xx is returned to the caller, which may follow it knowingly. Reason: a remote peer must not be able to bounce a request, body included, to a local service, the path `MeshAutoPullService` already names and turns following off for; the label model alone would allow it, since the host boundary is `SystemHigh`. Cost: a host client behind a remote that legitimately redirects to a local service gets the 3xx. The rest of P1 (follow and decide each hop) stands. Asked by PR 4.3 (attack item 16, critic O2). |
 
 ## Design as merged (added 2026-10-04)
 

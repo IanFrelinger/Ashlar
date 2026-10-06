@@ -29,9 +29,14 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// credentials is left alone; a chain that already has a follower gets no second one. On AirGapped an unknown primary
 /// type is named in a Warning. The adversarial twins: a change of scheme or port alone is another origin; a handler
 /// that sends a fresh request (no note) is still decided, at the cost of a duplicate; a composite primary is followed
-/// at its tail and its own rewrite decided; a remote first hop into the host boundary is followed and allowed (a Known
-/// limit of P1, pinned); every hop is decided by the guard handler's own guard; userinfo in a <c>Location</c> is never
-/// recorded and the fragment is kept; a relative URI below the guard handler is decided once, as a fault.</para>
+/// at its tail and its own rewrite decided; a redirect from outside the host boundary into it (loopback,
+/// <c>*.localhost</c>, link-local) is returned unfollowed with the hop recorded, on both routes (owner decision
+/// 2026-10-06), while hops within the boundary or out of it keep P1; every hop is decided by the guard handler's own
+/// guard; userinfo in a <c>Location</c> is never
+/// recorded and the fragment is kept; a relative URI below the guard handler is decided once, as a fault; a token
+/// cancelled after the first hop stops the follower before the next hop is sent or decided; an intermediate response
+/// is disposed; a <c>Wrap</c> over a chain with no primary yet only decides, and the primary attached later is decided
+/// after the send.</para>
 /// <para><b>Isolation.</b> The decision log is process-wide and other classes decide in parallel, so every assertion
 /// filters by a site or host unique to the test. Hermetic: every primary is a stub, so nothing leaves the process.
 /// The differential twin against the runtime's own follower, over loopback Kestrel, is
@@ -499,19 +504,22 @@ public sealed class EgressRedirectTwinTests
         logs.Entries.Should().NotContain(e => e.EventId.Id == 7304 && e.Message.Contains(name, StringComparison.Ordinal), "the tail is a known type, so nothing is named on AirGapped");
     }
 
-    [Fact]
-    public async Task A_factory_client_follows_a_remote_first_hop_into_the_host_boundary_which_the_label_model_allows()
+    [Theory]
+    [InlineData("http://127.0.0.1:11434/api/chat", "http://127.0.0.1:11434", EgressDestinationClass.Host)]
+    [InlineData("http://svc.localhost/x", "http://svc.localhost", EgressDestinationClass.Host)]
+    [InlineData("http://169.254.169.254/latest/meta-data/", "http://169.254.169.254", EgressDestinationClass.NetworkExport)]
+    [InlineData("http://[fe80::1]/x", "http://[fe80::1]", EgressDestinationClass.NetworkExport)]
+    public async Task A_redirect_from_outside_the_host_boundary_into_it_is_returned_unfollowed_with_the_hop_recorded(string location, string destination, EgressDestinationClass destinationClass)
     {
-        // Known limit (default D33, P1): a remote peer reached over plain http can bounce a factory client's request,
-        // body included, to loopback or link-local, and the label model allows a write to the host boundary at every
-        // label. Pinned as the design has it, so that a later rule ("never follow into Host from outside it") has a
-        // flip to show. From an https first hop the same Location is a downgrade, which is not followed (parity).
+        // Owner decision 2026-10-06 (O2): a remote peer must not be able to bounce a request, body included, to a local
+        // service (loopback, *.localhost, or a link-local address, which a decision records as a network export). The
+        // 3xx is returned on both routes; the hop is decided so the record shows the attempt.
         var id = NewId();
         var name = "inward-" + id;
         var recorder = new Recorder(d => d.Site == "factory:" + name);
         using var subscription = EgressDecisionLog.Subscribe(recorder);
         var stub = new RedirectingClientHandler(recorder, request =>
-            request.RequestUri!.Host.StartsWith("remote-", StringComparison.Ordinal) ? Redirect(HttpStatusCode.TemporaryRedirect, "http://127.0.0.1:11434/api/chat") : null);
+            request.RequestUri!.Host.StartsWith("remote-", StringComparison.Ordinal) ? Redirect(HttpStatusCode.TemporaryRedirect, location) : null);
 
         var services = new ServiceCollection();
         services.AddAshlarEgressGuard();
@@ -520,20 +528,55 @@ public sealed class EgressRedirectTwinTests
         using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
 
         using (var response = await client.PostAsync(new Uri($"http://remote-{id}.example/a"), new StringContent("body")))
-            response.StatusCode.Should().Be(HttpStatusCode.OK, "the hop into the host boundary is followed (P1)");
+            response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect, "a hop into the host boundary is returned, never followed (P1 too)");
 
-        stub.Sends.Select(s => s.Uri).Should().Equal($"http://remote-{id}.example/a", "http://127.0.0.1:11434/api/chat");
-        recorder.Decisions.Should().HaveCount(2);
-        var inward = recorder.Decisions[1];
-        inward.Destination.Should().Be("http://127.0.0.1:11434");
-        inward.DestinationClass.Should().Be(EgressDestinationClass.Host);
-        inward.Access.Allowed.Should().BeTrue("the host boundary is SystemHigh, which every label may write to");
+        stub.Sends.Should().ContainSingle("the body never went into the boundary").Which.Uri.Should().Be($"http://remote-{id}.example/a");
+        recorder.Decisions.Select(d => d.Destination).Should().Equal(new[] { $"http://remote-{id}.example", destination }, "the attempted hop is recorded");
+        recorder.Decisions[1].DestinationClass.Should().Be(destinationClass);
 
-        using (var response = await client.PostAsync(new Uri($"https://remote-{id}.example/a"), new StringContent("body")))
-            response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect, "https to http is a downgrade, never followed");
+        // The same through an EgressHttp client (P2), which also records the attempt.
+        var site = NewSite();
+        var rawRecorder = new Recorder(d => d.Site == site);
+        using var rawSubscription = EgressDecisionLog.Subscribe(rawRecorder);
+        var rawStub = new RedirectingClientHandler(rawRecorder, request =>
+            request.RequestUri!.Host.StartsWith("remote-", StringComparison.Ordinal) ? Redirect(HttpStatusCode.TemporaryRedirect, location) : null);
+        using var raw = EgressHttp.CreateClient(rawStub, EgressFamilies.Http, site, Guard);
 
-        stub.Sends.Should().HaveCount(3, "the downgrade was returned, not followed");
-        recorder.Decisions.Should().HaveCount(3).And.Subject.Last().Destination.Should().Be($"https://remote-{id}.example");
+        using (var response = await raw.PostAsync(new Uri($"http://remote-{id}.example/a"), new StringContent("body")))
+            response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect);
+
+        rawStub.Sends.Should().ContainSingle();
+        rawRecorder.Decisions.Select(d => d.Destination).Should().Equal($"http://remote-{id}.example", destination);
+    }
+
+    [Fact]
+    public async Task A_redirect_inside_the_host_boundary_or_out_of_it_is_still_followed_by_a_factory_client()
+    {
+        // The owner's rule is for hops into the boundary from outside only: loopback to loopback on another port, and
+        // loopback out to a remote host, keep P1 (followed and decided before the send).
+        var id = NewId();
+        var name = "within-" + id;
+        var recorder = new Recorder(d => d.Site == "factory:" + name);
+        using var subscription = EgressDecisionLog.Subscribe(recorder);
+        var stub = new RedirectingClientHandler(recorder, request => request.RequestUri!.AbsolutePath switch
+        {
+            "/a" => Redirect(HttpStatusCode.TemporaryRedirect, "http://127.0.0.1:11434/b"),
+            "/b" => Redirect(HttpStatusCode.TemporaryRedirect, $"http://remote-{id}.example/c"),
+            _ => null,
+        });
+
+        var services = new ServiceCollection();
+        services.AddAshlarEgressGuard();
+        services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => stub);
+        using var provider = services.BuildServiceProvider();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+
+        using var response = await client.GetAsync(new Uri("http://127.0.0.1:5999/a"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        stub.Sends.Select(s => s.Uri).Should().Equal("http://127.0.0.1:5999/a", "http://127.0.0.1:11434/b", $"http://remote-{id}.example/c");
+        recorder.Decisions.Select(d => d.Destination).Should().Equal("http://127.0.0.1:5999", "http://127.0.0.1:11434", $"http://remote-{id}.example");
+        stub.Sends.Select(s => s.DecisionsBefore).Should().Equal(new[] { 1, 2, 3 });
     }
 
     [Fact]
@@ -605,6 +648,89 @@ public sealed class EgressRedirectTwinTests
         recorder.Decisions[1].Fault.Should().NotBeNull("a relative URI names no host, so its decision is a fault");
         recorder.Decisions[1].Destination.Should().Be("unknown");
         stub.Sends.Should().ContainSingle().Which.DecisionsBefore.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task A_token_cancelled_after_the_first_hop_stops_the_follower_before_the_next_hop_is_sent_or_decided()
+    {
+        var id = NewId();
+        var name = "cancel-" + id;
+        var recorder = new Recorder(d => d.Site == "factory:" + name);
+        using var subscription = EgressDecisionLog.Subscribe(recorder);
+        using var cts = new CancellationTokenSource();
+        var stub = new RedirectingClientHandler(recorder, request =>
+        {
+            if (request.RequestUri!.AbsolutePath != "/a")
+                return null;
+
+            cts.Cancel();
+            return Redirect(HttpStatusCode.TemporaryRedirect, $"https://remote-{id}.example/b");
+        });
+
+        var services = new ServiceCollection();
+        services.AddAshlarEgressGuard();
+        services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => stub);
+        using var provider = services.BuildServiceProvider();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+
+        var act = () => client.GetAsync(new Uri($"https://origin-{id}.example/a"), cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        stub.Sends.Should().ContainSingle("nothing is sent after the caller gave up");
+        recorder.Decisions.Select(d => d.Destination).Should().Equal(new[] { $"https://origin-{id}.example" }, "a hop that is never sent is not decided");
+    }
+
+    [Fact]
+    public async Task An_intermediate_redirect_response_is_disposed_when_the_hop_is_followed()
+    {
+        var id = NewId();
+        var site = NewSite();
+        var recorder = new Recorder(d => d.Site == site);
+        using var subscription = EgressDecisionLog.Subscribe(recorder);
+        var intermediate = new TrackingContent();
+        var stub = new RedirectingClientHandler(recorder, request =>
+        {
+            if (request.RequestUri!.AbsolutePath != "/a")
+                return null;
+
+            var redirect = Redirect(HttpStatusCode.Found, "/b");
+            redirect.Content = intermediate;
+            return redirect;
+        });
+        using var client = EgressHttp.CreateClient(stub, EgressFamilies.Http, site, Guard);
+
+        using var response = await client.GetAsync(new Uri($"https://same-{id}.example/a"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        stub.Sends.Should().HaveCount(2);
+        intermediate.Disposed.Should().BeTrue("the response the follower does not return is disposed, as the runtime's follower disposes it");
+    }
+
+    [Fact]
+    public async Task Wrap_over_a_delegating_handler_whose_inner_is_set_later_treats_it_as_unknown_and_decides_after_the_send()
+    {
+        // The chain has no primary at wrap time (the caller sets InnerHandler afterwards), so there is nothing to turn
+        // off: the follower only decides, and whatever is attached later follows on its own and is decided after the
+        // send (Known limit). Not a production shape: DefaultGrpcChannelFactory wraps a configured HttpClientHandler.
+        var id = NewId();
+        var site = NewSite();
+        var recorder = new Recorder(d => d.Site == site);
+        using var subscription = EgressDecisionLog.Subscribe(recorder);
+        var late = new Rewriter(uri => uri);
+        using var wrapped = EgressHttp.Wrap(late, EgressFamilies.Http, site, Guard);
+
+        var chain = Chain(wrapped);
+        chain.Select(h => h.GetType().Name).Should().Equal("EgressGuardHandler", FollowerTypeName, nameof(Rewriter));
+        Follower(chain[1]).Follows.Should().BeFalse("no primary was reachable at wrap time");
+
+        late.InnerHandler = new SelfFollowingPrimary($"moved-{id}.example");
+        using var invoker = new HttpMessageInvoker(wrapped, disposeHandler: false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://asked-{id}.example/x");
+        using var response = await invoker.SendAsync(request, CancellationToken.None);
+
+        recorder.Decisions.Select(d => d.Destination).Should().Equal(
+            new[] { $"https://asked-{id}.example", $"https://moved-{id}.example" },
+            "the primary attached later followed on its own, and the authority it reached is decided after the send");
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -752,6 +878,26 @@ public sealed class EgressRedirectTwinTests
             var uri = host is null ? request.RequestUri! : new UriBuilder(request.RequestUri!) { Host = host }.Uri;
             var fresh = new HttpRequestMessage(request.Method, uri);
             return base.SendAsync(fresh, cancellationToken);
+        }
+    }
+
+    /// <summary>Content that remembers whether it was disposed.</summary>
+    private sealed class TrackingContent : HttpContent
+    {
+        public bool Disposed { get; private set; }
+
+        protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context) => Task.CompletedTask;
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return true;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Disposed = true;
+            base.Dispose(disposing);
         }
     }
 
