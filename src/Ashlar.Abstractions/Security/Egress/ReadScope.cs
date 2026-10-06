@@ -10,8 +10,10 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para><b>While the read has not ended.</b> <see cref="EgressSubject.BeginRead"/> enters a read's frame on the flow,
 /// which counts as <see cref="SecurityLabel.SystemHigh"/>: the reader's own egress during the read, and the egress of
 /// work it creates there, is decided at SystemHigh, for every reader, a labelled one included, whatever it has
-/// reported so far. A report only counts once the read has completed and ended. Work created and started inside the
-/// read keeps the read's frame, and so SystemHigh, for its whole life (fail closed).</para>
+/// reported so far. A <see cref="Report"/>, even one followed by <see cref="Complete"/>, does not lower an open
+/// scope: the scope counts as SystemHigh until it is disposed, and a report counts only once the read has completed and
+/// ended. The read's frame's mark is pinned at SystemHigh for its whole life and never lowers when the read ends. Work
+/// created and started inside the read keeps the read's frame, and so SystemHigh, for its whole life (fail closed).</para>
 /// <para>How the scope ends decides what it observes:</para>
 /// <list type="bullet">
 /// <item><description><b>Completed and reported:</b> the join of the labels passed to <see cref="Report"/>, and

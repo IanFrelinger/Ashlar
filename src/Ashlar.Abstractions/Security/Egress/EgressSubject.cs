@@ -51,7 +51,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para><b>Known limits (fail closed).</b> (a) A flow that disposes its frames out of order stays inside the outer
 /// frame it disposed: a frame it enters later joins that frame's mark, and repeated in a loop the flow's chain grows by
 /// one frame per repetition, which every later decision on the flow walks. That costs availability, not
-/// confidentiality. (b) Anything such a flow reads later raises the mark of the frame it stayed inside, which is the
+/// confidentiality. A read scope not ended as its flow's own head stays on the flow the same way, and that flow decides
+/// SystemHigh from then on ("A read's frame is a frame", below). (b) Anything such a flow reads later raises the mark of the frame it stayed inside, which is the
 /// subject's shared <see cref="HighWaterMark"/>, so unrelated later work can raise the label of another session of that
 /// subject. The same holds for a task or thread, which keeps the frames it inherited, ended or not, for as long as it
 /// runs, and for a flow whose frame was disposed on another flow, as by <c>await Task.Run(scope.Dispose)</c>, inside an
@@ -67,7 +68,9 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// created inside it and started after the <c>using</c> block ends, never reaches the frame's mark, and a decision in
 /// the frame can be below what that work read: create and start the work a frame reads through inside its
 /// <c>using</c> block.</para>
-/// <para><b>A read's frame is a frame.</b> Everything above holds for it: a flow leaves it only by ending the scope
+/// <para><b>A read's frame is a frame.</b> Its mark is pinned at <see cref="SecurityLabel.SystemHigh"/> for its whole
+/// life and never lowers when the read ends (what the read reported goes into the frames around it, never into the
+/// read's frame), so every mark stays monotone as before. Everything above holds for it: a flow leaves it only by ending the scope
 /// while the read's frame is its head, so a read ended out of order or on another flow leaves the flow that began it
 /// inside the read's frame, at SystemHigh, for as long as that flow lives (limit (a), fail closed). Work created and
 /// started inside a read, such as a fire-and-forget task a tool starts during its call, keeps the read's frame for its

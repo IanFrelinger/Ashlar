@@ -532,6 +532,65 @@ public sealed class EgressSubjectReadScopeTests
         }
     }
 
+    [Fact]
+    public void A_decision_inside_an_open_read_is_named_by_the_nearest_live_subject_frame_never_by_the_read()
+    {
+        // Inside a subject frame: the subject names it, at SystemHigh.
+        using (EgressSubject.Enter("read-basis-outer", new HighWaterMark()))
+        using (var read = EgressSubject.BeginRead())
+        {
+            var inside = Decide(EgressFamilies.ModelMeai);
+            inside.CurrentBasis.Should().Be(SubjectPrefix + "read-basis-outer", "the read's frame contributes its mark only");
+            inside.Current.Should().Be(SecurityLabel.SystemHigh);
+
+            // A subject frame entered inside the read names the decision; the read still decides it.
+            using (EgressSubject.Enter("read-basis-inner", new HighWaterMark()))
+            {
+                var nested = Decide(EgressFamilies.ModelMeai);
+                nested.CurrentBasis.Should().Be(SubjectPrefix + "read-basis-inner");
+                nested.Current.Should().Be(SecurityLabel.SystemHigh);
+            }
+
+            // Work created inside the read, with no frame of its own, is named by the subject too.
+            var task = Task.Run(() => Decide(EgressFamilies.ModelMeai)).GetAwaiter().GetResult();
+            task.CurrentBasis.Should().Be(SubjectPrefix + "read-basis-outer");
+            task.Current.Should().Be(SecurityLabel.SystemHigh);
+
+            read.Complete();
+        }
+
+        // With no subject frame at all the basis stays no-subject.
+        using (var lone = EgressSubject.BeginRead())
+        {
+            var open = Decide(EgressFamilies.ModelMeai);
+            open.CurrentBasis.Should().Be(NoSubject, "a read's frame never names a decision");
+            open.Current.Should().Be(SecurityLabel.SystemHigh);
+            lone.Complete();
+        }
+    }
+
+    [Fact]
+    public void A_report_and_Complete_do_not_lower_an_open_read_until_it_is_disposed()
+    {
+        var mark = new HighWaterMark();
+        using (EgressSubject.Enter("read-open-until-disposed", mark))
+        {
+            using (var read = EgressSubject.BeginRead())
+            {
+                read.Report(SecurityLabel.Public);
+                Decide(EgressFamilies.ModelMeai).Current.Should().Be(SecurityLabel.SystemHigh, "reported, not completed, not ended");
+
+                read.Complete();
+                var completed = Decide(EgressFamilies.ModelMeai);
+                completed.Current.Should().Be(SecurityLabel.SystemHigh, "reported and completed, not yet ended: the scope is open until it is disposed");
+                completed.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+            }
+
+            mark.Current.Should().Be(SecurityLabel.Public, "the read ended reporting \"read nothing\"");
+            Decide(EgressFamilies.ModelMeai).Current.Should().Be(SecurityLabel.Public, "once disposed, the flow decides at what the read observed");
+        }
+    }
+
     private static EgressDecision Decide(string family) =>
         Guard.Evaluate(new EgressRequest(family, "twin:read:" + Guid.NewGuid().ToString("N"), new Uri(Remote)));
 }
