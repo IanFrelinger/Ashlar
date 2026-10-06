@@ -30,6 +30,23 @@ Read automatically by Claude Code at the start of every session in this reposito
   `scripts/mutation-check.sh` runs the apply, red, restore, porcelain and green steps in a clone of that
   commit, lists the red run's failing tests, and prints the verdict with the counts.
 
+## Phases and handoffs (the owner's rule)
+
+- **One thread per phase.** A workstream runs as a sequence of phases, and each phase runs in its own
+  thread. A phase ends with **`/handoff <workstream> <phase>`**:
+  1. push every in-flight branch;
+  2. write the handoff from `_handoff/phases/HANDOFF-TEMPLATE.md`;
+  3. publish it to the storage branch `claude/<workstream>-workspace` with `scripts/handoff-publish.sh`;
+  4. send it to the owner and notify them;
+  5. stop.
+- The next thread starts with **`/start-phase <workstream>`**:
+  1. fetch the handoff with `scripts/handoff-fetch.sh`, or take the attached file;
+  2. read it, and check it against the live repo;
+  3. restate the phase;
+  4. execute it.
+- The procedure, the naming, and why handoffs live on a storage branch rather than master:
+  `_handoff/phases/README.md`.
+
 Releases: `docs/RELEASE_RUNBOOK.md`. Product history and what is already done: `CONTINUITY.md`.
 Release-readiness convergence: `_handoff/readiness/README.md`.
 Security labels workstream (status, owner decisions, open questions): `docs/specs/SPEC-007-security-labels-and-reference-monitor.md`.
