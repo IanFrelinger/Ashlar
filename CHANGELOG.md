@@ -156,7 +156,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 ### Changed
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
-  Still report-only: nothing refuses. The records below change, and one HTTP client changes behaviour.
+  Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes
+  behaviour.
   - **Behaviour change: the default MEAI Ollama client no longer follows redirects.** `OllamaHttpChatClient`
     built from `MeaiPipelineOptions` (the default `local:ollama` inner client) now turns `AllowAutoRedirect`
     off. A 3xx from the Ollama endpoint fails the call with an `HttpRequestException` instead of re-sending the
@@ -182,7 +183,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     more EG-MDL-07 decision before it sends such a chat.
 
 - **Every Ashlar host now reports its outbound requests to the egress guard (SPEC-007 PR 3b).**
-  Report-only: nothing refuses, and each change below adds a decision record, not a refusal.
+  Report-only: the guard refuses nothing, and each change below adds a decision record, not a refusal.
   - `AddAshlar` calls `AddAshlarEgressGuard` after its own `AddHttpClient`, so every `AddAshlar`
     container (the API, the CLI host and its daemon, Fleet.Host, the MCP and gRPC server hosts,
     `AddAshlarFramework` and the consumer template's host) puts `EgressGuardHandler` in front of every
@@ -217,10 +218,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     `MeshDirectorJsonOutputCharacterizationTests`, committed before the reference, shows both
     byte-identical.
 
-- **The egress guard resolves a mode (SPEC-007 PR 4.6). Every profile still reports, and nothing
-  refuses.** Mode plumbing only: no route acts on the mode until PR 4.7, and AirGapped and
+- **The egress guard resolves a mode (SPEC-007 PR 4.6). Every profile still reports, and the guard
+  refuses nothing.** Mode plumbing only: no route acts on the mode until PR 4.7, and AirGapped and
   SecureWorkstation keep reporting until the switch (PR 4.11), so an `enforce` record says what would
-  have been refused, not that a send stopped.
+  have been refused, not that a send stopped. The netstandard2.0 asset's refusal of a synchronous
+  `Send` (PR 4.2, in the `Ashlar.Abstractions.Security.Egress` entry under Added) is the runtime's,
+  not the guard's, and holds in every mode.
   - `EgressDecision` gains `ModeBasis` (what decided `Mode`: `profile:<profile>`, `override`,
     `override-ignored`, `profile:unrecognised` or `fault`), `Refused` (`Mode` is `enforce` and `Access`
     does not allow the egress) and `Ref` (a random 64-bit reference, 16 hex digits). `Mode` is now

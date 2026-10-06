@@ -87,7 +87,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
   remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault` (or of the guard an
   earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
-  convention fact pins. Nothing refuses yet.
+  convention fact pins. The guard refuses nothing yet; the netstandard2.0 asset's synchronous-`Send` refusal
+  (PR 4.2) is the runtime's and holds in every mode.
 
 ---
 

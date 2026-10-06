@@ -15,12 +15,14 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para><b>The latch.</b> The variable is read once per process: by <c>AddAshlar</c>, which notes it together
 /// with <c>AshlarHostingOptions.EgressMode</c>, or else at the first decision a process-bound guard makes. A later
 /// change to the variable changes nothing. The hosting option can only raise the mode to <c>enforce</c>.</para>
-/// <para><b>Nothing refuses yet.</b> A route does not act on the mode until PR 4.7: until then an <c>enforce</c>
-/// record says what would have been refused, not that a send stopped.</para>
+/// <para><b>The guard refuses nothing yet.</b> A route does not act on the mode until PR 4.7: until then an
+/// <c>enforce</c> record says what would have been refused, not that a send stopped. The netstandard2.0 asset's
+/// refusal of a synchronous <c>Send</c> (SPEC-007 PR 4.2) is the runtime's, not the guard's, and holds in every
+/// mode.</para>
 /// </remarks>
 internal static class EgressEnforcement
 {
-    /// <summary>The mode in which a decision is recorded and nothing is refused.</summary>
+    /// <summary>The mode in which a decision is recorded and the guard refuses nothing.</summary>
     internal const string ReportMode = "report";
 
     /// <summary>The mode in which a route must refuse what the decision does not allow.</summary>
@@ -209,7 +211,7 @@ internal static class EgressEnforcement
     {
         var line = string.Format(
             CultureInfo.InvariantCulture,
-            "Ashlar egress mode: {0} (basis {1}; profile {2}{3}). Records only: nothing is refused yet (SPEC-007 PR 4).",
+            "Ashlar egress mode: {0} (basis {1}; profile {2}{3}). Records only: the guard refuses nothing yet (SPEC-007 PR 4).",
             mode,
             modeBasis,
             string.IsNullOrEmpty(profile) ? DefaultProfile : profile,
