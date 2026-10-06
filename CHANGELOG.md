@@ -127,8 +127,11 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   limits, fail closed: such a flow's chain grows by one frame each time it repeats the out-of-order
   dispose, and what it reads later raises the subject's shared mark, so another session of that
   subject can decide higher; neither arises for a frame entered and disposed in a `using` block on the
-  flow that entered it. Disposing a frame observes its mark into every frame it was entered
-  inside, and the frame counts as live until it has. The new
+  flow that entered it. Enter a frame that way only: not inside an async helper, whose frame does not
+  reach the flow that awaits it, and not across a `yield return` of an async iterator, whose body
+  resumes on its consumer's flow, so after the first `yield return` the rest of the block decides at
+  the consumer's frames and its reads never reach the frame's mark. Disposing a frame observes its
+  mark into every frame it was entered inside, and the frame counts as live until it has. The new
   `EgressSubject.Observe(SecurityLabel)` joins a label into every frame on the chain at once, only
   raises, and does nothing with no frame. The new `EgressSubject.BeginRead()`
   returns a `ReadScope` for one read: disposed after `Complete()`, it observes the join of what was

@@ -198,8 +198,9 @@ public sealed partial class EgressGuardConventionTests
     /// telemetry 2, store 14, chat.register 7, banned 0). SPEC-007 PR 4.1 adds one http.new, the redirect-off
     /// <c>HttpClientHandler</c> in <c>OllamaHttpChatClient.cs</c> (:170), and no production file; PR 4.4 adds one
     /// production file, <c>ReadScope.cs</c>, and no occurrence; so 2,131 files and 149 occurrences (http.new 19, the
-    /// other markers unchanged). Set far enough below to survive ordinary deletions; a scan that stops reading the
-    /// tree falls through them. Re-measure and restate when a PR moves them.
+    /// other markers unchanged), as measured in the devtest container with both merged. Set far enough below to
+    /// survive ordinary deletions; a scan that stops reading the tree falls through them. Re-measure and restate when a
+    /// PR moves them.
     /// </summary>
     private const int ScannedFilesFloor = 1000;
 

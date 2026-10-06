@@ -59,7 +59,13 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
     `EgressSubject.Enter` is a `using` on the flow that enters it (never inside an async helper, whose frame does not
     reach the flow that awaits it), disposed in order, since a flow that disposes frames out of order stays inside the
-    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark);
+    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). The
+    `using` block never spans a `yield return` of an async iterator: each `MoveNextAsync` runs the body on the
+    consumer's flow, so after the first `yield return` the frame is gone, and the rest of the block decides at the
+    consumer's frames (a write-down) while its reads never reach the subject's mark. The code that drives the
+    iteration enters the frame around its `await foreach`, or the body enters one for each stretch between two
+    `yield return`s. Ashlar's streaming chat clients are such iterators (`GetStreamingResponseAsync` in seven
+    production files, `RoutingChatClient` among them), so a runner that streams must follow this;
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
