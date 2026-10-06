@@ -56,7 +56,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.2 the synchronous `Send` gap;
   - 4.3 redirects;
   - 4.4 frame semantics: monotone nesting, `Observe`, read scopes;
-  - 4.5 subject producers at the agent runners, report-only;
+  - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
+    `EgressSubject.Enter` is a `using` on the flow that enters it, disposed in order, since a flow that disposes
+    frames out of order stays inside the outer one (its chain grows with each repetition, and what it reads later
+    raises the subject's shared mark);
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
@@ -68,16 +71,17 @@ The status line above and the starting prompt are the owner's, as written; the s
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
 
-  - **4.4** (this PR): frame semantics. A decision joins every `EgressSubject` frame the flow is inside, live or
+  - **4.4** (#716): frame semantics. A decision joins every `EgressSubject` frame the flow is inside, live or
     disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
-    and a disposed frame's mark reaches the frames around it; a flow that disposes its own frames out of order goes
-    back to where in-order `using` blocks would have left it, and no other flow goes past a frame it did not dispose;
-    `EgressSubject.Observe` raises every frame on the chain;
+    and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own innermost
+    frame, so a flow that disposes frames out of order stays inside the outer one (fail closed, at the costs in the
+    4.5 obligation above); `EgressSubject.Observe` raises every frame on the chain;
     a `BeginRead` scope that ends unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run
-    with no subject. Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
+    with no subject, inside a callback run by the internal `EgressSubject.RunDetached`, which puts the publisher's frame
+    back exactly when it returns. Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
     `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
     the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
-    `Ashlar.Orchestration`, for the internal `EgressSubject.Detach` at the `AgentBus` dispatch point. The grant
+    `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant
     exposes every Abstractions internal to Orchestration, so the callers of the reset seam and the mode latch setters
     (4.6) are to be pinned by a convention fact when 4.4 and 4.6 are integrated.
 
