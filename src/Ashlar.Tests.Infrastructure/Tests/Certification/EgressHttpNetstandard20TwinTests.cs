@@ -15,8 +15,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// SPEC-007 PR 4.2, behavioural twin of the synchronous-<c>Send</c> gap on the netstandard2.0 asset of
 /// Ashlar.Abstractions (design §2.6, gap 1, option C). Run on this runtime, that asset refuses a synchronous
 /// <c>Send</c> through an <see cref="EgressHttp"/> client or handler before anything is sent, still evaluates every
-/// <c>SendAsync</c> exactly once, publishes a <c>NoDecision</c> record naming the client whose synchronous sends it
-/// refuses, and refuses to build the factory handler, whose synchronous <c>Send</c> it cannot cover.
+/// <c>SendAsync</c> exactly once, publishes no record when a client or handler is built (no egress has happened
+/// then), and refuses to build the factory handler, whose synchronous <c>Send</c> it cannot cover.
 /// </summary>
 /// <remarks>
 /// <para><b>Why a second load context.</b> This project binds the net8.0 or net10.0 build of Ashlar.Abstractions,
@@ -48,10 +48,6 @@ public sealed class EgressHttpNetstandard20TwinTests
     private const string HopTypeName = "SynchronousSendRefusedOnNetstandard20Asset";
     private const string EventSourceName = "Ashlar-Egress";
 
-    /// <summary>The record the hop publishes when it is built with the driver's explicit guard (profile <c>full</c>).</summary>
-    private const string RefusalRecord =
-        "fault=SynchronousSendUnsupported reason=NoDecision allowed=False destination=unknown mode=report profile=full";
-
     // ---------------------------------------------------------------------------------------------------------
     // The harness runs the netstandard2.0 build
     // ---------------------------------------------------------------------------------------------------------
@@ -75,7 +71,8 @@ public sealed class EgressHttpNetstandard20TwinTests
     public void With_the_isolated_copy_loaded_the_guards_own_event_source_still_writes_every_decision()
     {
         // The isolated copy publishes, so its own Ashlar-Egress source exists beside the guard's.
-        Netstandard20.Run<IReadOnlyDictionary<string, object?>>(nameof(Netstandard20Driver.BuildEveryShape), NewSite());
+        Netstandard20.Run<string[]>(nameof(Netstandard20Driver.PublishOneDecision), NewSite()).Should().ContainSingle(
+            "the isolated copy must publish, or its event source never exists and this proves nothing");
         var site = NewSite();
         using var listener = new GuardEventListener();
 
@@ -110,21 +107,21 @@ public sealed class EgressHttpNetstandard20TwinTests
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // The refusal is in the decision log
+    // Building a client records nothing: no egress has happened yet
     // ---------------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void Building_a_client_or_handler_publishes_one_NoDecision_record_naming_its_family_and_site()
+    public void Building_a_client_or_handler_publishes_no_record()
     {
         var observed = Netstandard20.Run<IReadOnlyDictionary<string, object?>>(nameof(Netstandard20Driver.BuildEveryShape), NewSite());
 
-        ((string[])observed["records.client-over-inner"]!).Should().Equal(
-            [RefusalRecord + " family=mcp"], "the hop publishes the refusal so it reaches the operator log, not only the caller");
-        ((string[])observed["records.client-with-guard"]!).Should().Equal(RefusalRecord + " family=mcp");
-        ((string[])observed["records.wrap"]!).Should().Equal(RefusalRecord + " family=grpc");
-        ((string[])observed["records.client-process-default"]!).Should().ContainSingle()
-            .Which.Should().StartWith("fault=SynchronousSendUnsupported reason=NoDecision allowed=False destination=unknown mode=report profile=")
-            .And.EndWith(" family=mcp", "the process-default guard's profile is read from the environment, so only its shape is pinned");
+        const string because = "a record published when a client is built would tell an operator that an egress was refused "
+            + "when none was attempted, and a client that only calls SendAsync would leave one too; the refusal is the "
+            + "runtime's NotSupportedException, to the caller";
+        ((string[])observed["records.client-process-default"]!).Should().BeEmpty(because);
+        ((string[])observed["records.client-with-guard"]!).Should().BeEmpty(because);
+        ((string[])observed["records.client-over-inner"]!).Should().BeEmpty(because);
+        ((string[])observed["records.wrap"]!).Should().BeEmpty(because);
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -136,11 +133,16 @@ public sealed class EgressHttpNetstandard20TwinTests
     {
         var observed = Netstandard20.Run<IReadOnlyDictionary<string, object?>>(nameof(Netstandard20Driver.BuildEveryShape), NewSite());
 
-        var expected = GuardHandlerTypeName + " > " + HopTypeName;
-        observed["shape.client-process-default"].Should().Be(expected, "CreateClient(family, site) is the guard over the hop over an HttpClientHandler");
-        observed["shape.client-with-guard"].Should().Be(expected);
-        observed["shape.client-over-inner"].Should().Be(expected);
-        observed["shape.wrap"].Should().Be(expected);
+        // The chain is walked through DelegatingHandler.InnerHandler and, at the hop, which is not a DelegatingHandler,
+        // through its internal Inner: the step a handler-chain walker (SPEC-007 PR 4.3's redirect flip) takes there.
+        var overHttpClientHandler = GuardHandlerTypeName + " > " + HopTypeName + " > " + nameof(HttpClientHandler);
+        var overStub = GuardHandlerTypeName + " > " + HopTypeName + " > StubHandler";
+        observed["shape.client-process-default"].Should().Be(overHttpClientHandler, "CreateClient(family, site) is the guard over the hop over an HttpClientHandler");
+        observed["shape.client-with-guard"].Should().Be(overHttpClientHandler);
+        observed["shape.client-over-inner"].Should().Be(overStub);
+        observed["shape.wrap"].Should().Be(overStub);
+        observed["inner.client-over-inner"].Should().Be(true, "the hop's Inner is the caller's own handler instance");
+        observed["inner.wrap"].Should().Be(true);
     }
 
     [Fact]
@@ -182,10 +184,9 @@ public sealed class EgressHttpNetstandard20TwinTests
             + "refuses it (observed: {0})",
             syncSend);
         observed["sync.innerSends"].Should().Be(0, "nothing reaches the inner handler: the refusal is before anything is sent");
-        ((string[])observed["sync.records"]!).Should().BeEmpty("the refused send adds no decision; the hop's record was published when it was built");
+        ((string[])observed["sync.records"]!).Should().BeEmpty("the refused send is not evaluated: no Ashlar code is on that path");
         ((string)observed["sync.message"]!).Should().Contain(HopTypeName, "the runtime's message names the hop, so the refusal explains itself");
-        ((string[])observed["build.records"]!).Should().Equal(
-            [RefusalRecord + " family=http"], "building the client published the refusal record");
+        ((string[])observed["build.records"]!).Should().BeEmpty("building the client is not an egress, so it publishes nothing");
     }
 
     /// <param name="observed">The driver's observations.</param>
@@ -384,6 +385,14 @@ public static class Netstandard20Driver
         return observed;
     }
 
+    public static string[] PublishOneDecision(string site)
+    {
+        var sink = new RecordSink(site);
+        using var subscription = EgressDecisionLog.Subscribe(sink);
+        _ = Guard.Evaluate(new EgressRequest(EgressFamilies.Http, site, new Uri("https://es.example/")));
+        return sink.Take();
+    }
+
     public static IReadOnlyDictionary<string, object?> BuildEveryShape(string site)
     {
         var observed = new Dictionary<string, object?>(StringComparer.Ordinal);
@@ -402,16 +411,20 @@ public static class Netstandard20Driver
             observed["shape.client-with-guard"] = Shape(HandlerOf(client));
         }
 
-        using (var client = EgressHttp.CreateClient(new StubHandler(), EgressFamilies.Mcp, site, Guard))
+        var clientInner = new StubHandler();
+        using (var client = EgressHttp.CreateClient(clientInner, EgressFamilies.Mcp, site, Guard))
         {
             observed["records.client-over-inner"] = sink.Take();
             observed["shape.client-over-inner"] = Shape(HandlerOf(client));
+            observed["inner.client-over-inner"] = ReferenceEquals(Chain(HandlerOf(client)).Last(), clientInner);
         }
 
-        using (var handler = EgressHttp.Wrap(new StubHandler(), EgressFamilies.Grpc, site, Guard))
+        var wrapInner = new StubHandler();
+        using (var handler = EgressHttp.Wrap(wrapInner, EgressFamilies.Grpc, site, Guard))
         {
             observed["records.wrap"] = sink.Take();
             observed["shape.wrap"] = Shape(handler);
+            observed["inner.wrap"] = ReferenceEquals(Chain(handler).Last(), wrapInner);
         }
 
         return observed;
@@ -501,10 +514,29 @@ public static class Netstandard20Driver
         }
     }
 
-    private static string Shape(HttpMessageHandler outer) =>
-        outer is DelegatingHandler delegating
-            ? outer.GetType().Name + " > " + (delegating.InnerHandler?.GetType().Name ?? "(none)")
-            : outer.GetType().Name;
+    private static string Shape(HttpMessageHandler outer) => string.Join(" > ", Chain(outer).Select(h => h.GetType().Name));
+
+    /// <summary>
+    /// The handlers from <paramref name="outer"/> inward: through <see cref="DelegatingHandler.InnerHandler"/>, and
+    /// through the hop's internal <c>Inner</c>, which a walker of the chain needs because the hop is not a
+    /// <see cref="DelegatingHandler"/>. At most four, so a chain that loops still ends.
+    /// </summary>
+    private static List<HttpMessageHandler> Chain(HttpMessageHandler outer)
+    {
+        var chain = new List<HttpMessageHandler>();
+        for (HttpMessageHandler? handler = outer; handler is not null && chain.Count < 4; handler = Next(handler))
+            chain.Add(handler);
+        return chain;
+    }
+
+    private static HttpMessageHandler? Next(HttpMessageHandler handler) =>
+        handler switch
+        {
+            DelegatingHandler delegating => delegating.InnerHandler,
+            _ when handler.GetType().Name == "SynchronousSendRefusedOnNetstandard20Asset" =>
+                handler.GetType().GetProperty("Inner", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(handler) as HttpMessageHandler,
+            _ => null,
+        };
 
     /// <summary>The handler an <see cref="HttpMessageInvoker"/> sends through, which it keeps in a private field.</summary>
     private static HttpMessageHandler HandlerOf(HttpMessageInvoker invoker)
