@@ -207,7 +207,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     path refuses a cloud provider with `ModelUnavailableException`.
   - **Four opt-ins fail boot on AirGapped:** a non-empty `BrickHost:RemoteCatalogBaseUrls`,
     `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and
-    `Ashlar:Meai:Bedrock:Enabled=true`. The message names the setting and the remedy.
+    `Ashlar:Meai:Bedrock:Enabled=true`. The message names the setting and the remedy. The Bedrock tier is also
+    refused by `AddAshlar` itself when it is already registered when `AddAshlar` runs (from configuration, or by
+    host code before it), so a process that never starts a host, such as the `ashlar` CLI, is refused too. A
+    ready-made `IOptions<T>` instance host code registers after `AddAshlar` is outside the options pipeline and is
+    not validated (the routing rule holds regardless). SecureWorkstation's outbound paths are unchanged: the
+    validators and the routing and escalation rules are AirGapped-only until the switch (PR 4.11).
   - **The ollama.com model catalog defaults to off on AirGapped.** An explicit
     `Ashlar:ModelArtifactCatalog:OllamaRemoteLibrary:Enabled=true` still turns it on.
   - **MCP over HTTP fails boot on SecureWorkstation** when the MCP server is enabled. MCP over stdio

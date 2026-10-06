@@ -47,6 +47,10 @@ ASHLAR_MESH_SERVE_PORT=7420
 ASHLAR_NODE_NAME=study-node        # optional; defaults to the machine name
 ```
 
+On the `air-gapped` and `secure-workstation` deployment profiles the node does not serve: mesh serve listens on
+every interface and those profiles allow inbound listeners on loopback only (SPEC-007 PR 4.10), so with the port set
+it logs the refusal at Error, binds nothing, and the rest of the daemon runs.
+
 Three read-only endpoints:
 
 | Endpoint | Returns |

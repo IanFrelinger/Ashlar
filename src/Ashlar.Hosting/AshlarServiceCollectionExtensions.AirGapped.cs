@@ -33,7 +33,7 @@ public static partial class AshlarServiceCollectionExtensions
     /// <para><b>The ollama.com catalog defaults to off on AirGapped.</b> The default is applied before any binding,
     /// so an explicit <c>Enabled=true</c> still turns it on; the egress guard is the backstop for it.</para>
     /// </remarks>
-    private static void RegisterDeploymentProfileHygiene(IServiceCollection services, string profile)
+    private static ResolvedDeploymentProfile RegisterDeploymentProfileHygiene(IServiceCollection services, string profile)
     {
         var resolved = new ResolvedDeploymentProfile(AshlarDeploymentProfileEnvironment.ResolvedRaw ?? profile);
         services.RemoveAll<ResolvedDeploymentProfile>();
@@ -53,6 +53,37 @@ public static partial class AshlarServiceCollectionExtensions
             // First in the collection, so it runs before every binding and is only a default.
             services.Insert(0, ServiceDescriptor.Singleton<IConfigureOptions<OllamaRemoteLibraryCatalogOptions>>(
                 new ConfigureOptions<OllamaRemoteLibraryCatalogOptions>(static o => o.Enabled = false)));
+        }
+
+        return resolved;
+    }
+
+    /// <summary>
+    /// Refuses, when <c>AddAshlar</c> composes, a Bedrock tier already registered under AirGapped (SPEC-007 PR 4.10).
+    /// </summary>
+    /// <remarks>
+    /// The Bedrock check cannot bind to the options pipeline: <c>AddAshlarMeaiPipeline</c> registers
+    /// <see cref="MeaiPipelineOptions"/> as a ready-made <c>IOptions</c> instance that the options factory never builds,
+    /// and a process that never starts a host, such as the <c>ashlar</c> CLI, runs no start-time validator at all. So
+    /// <c>AddAshlar</c> also reads the collection it is about to return: an <c>IOptions&lt;MeaiPipelineOptions&gt;</c>
+    /// instance with <c>Bedrock.Enabled</c>, the kernel's own registration from <c>Ashlar:Meai:Bedrock:Enabled</c>
+    /// included, fails the composition with the same message the validator gives. A tier a host registers after
+    /// <c>AddAshlar</c> returns is still refused at start by <see cref="AirGappedOptInValidator"/>.
+    /// </remarks>
+    private static void RefuseBedrockAtComposition(IServiceCollection services, ResolvedDeploymentProfile resolved)
+    {
+        if (!resolved.IsAirGapped)
+        {
+            return;
+        }
+
+        var enabled = services.Any(d =>
+            d.ServiceType == typeof(IOptions<MeaiPipelineOptions>)
+            && !d.IsKeyedService
+            && d.ImplementationInstance is IOptions<MeaiPipelineOptions> { Value.Bedrock.Enabled: true });
+        if (enabled)
+        {
+            throw new InvalidOperationException(AirGappedOptInValidator.BedrockRefusal);
         }
     }
 }
@@ -118,14 +149,19 @@ internal sealed class AirGappedOptInValidator :
         // registered the Bedrock tier it enabled.
         var bedrock = _services.GetServices<IOptions<MeaiPipelineOptions>>()
             .Any(o => o?.Value?.Bedrock?.Enabled == true);
-        return Refuse(bedrock, $"{MeaiPipelineOptions.SectionName}:Bedrock:Enabled",
-            "is true", "the Bedrock tier sends prompts to AWS");
+        return bedrock && _profile.IsAirGapped ? ValidateOptionsResult.Fail(BedrockRefusal) : ValidateOptionsResult.Success;
     }
 
     private ValidateOptionsResult Refuse(bool optedIn, string setting, string state, string why) =>
         optedIn && _profile.IsAirGapped
-            ? ValidateOptionsResult.Fail(
-                $"{setting} {state}, which is not permitted under the AirGapped deployment profile: {why}. " +
-                $"Remove the setting, or run under a profile other than AirGapped (SPEC-007 PR 4.10).")
+            ? ValidateOptionsResult.Fail(RefusalMessage(setting, state, why))
             : ValidateOptionsResult.Success;
+
+    /// <summary>The message of the Bedrock refusal, at composition and at start alike.</summary>
+    internal static string BedrockRefusal { get; } =
+        RefusalMessage($"{MeaiPipelineOptions.SectionName}:Bedrock:Enabled", "is true", "the Bedrock tier sends prompts to AWS");
+
+    private static string RefusalMessage(string setting, string state, string why) =>
+        $"{setting} {state}, which is not permitted under the AirGapped deployment profile: {why}. " +
+        $"Remove the setting, or run under a profile other than AirGapped (SPEC-007 PR 4.10).";
 }

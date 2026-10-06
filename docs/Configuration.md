@@ -25,7 +25,7 @@ The tables below list keys in `Ashlar:A:B` form with the `Ashlar__A__B` environm
 | `ASHLAR_MESH_API_KEY` | Optional **`X-Ashlar-Api-Key`** for director CLI | unset |
 | `ASHLAR_MESH_MUTATING_TOKEN` | Optional **`X-Ashlar-Mesh-Token`** for mutating mesh routes on the hub | unset |
 | `ASHLAR_MESH_PEER_REGISTRATION_KEY` | Per-peer fleet registration secret for **commercial mesh director CLI `register`** (when director requires distinct key) | unset |
-| `ASHLAR_DEPLOYMENT_PROFILE` | Hosting dependency profile for `AddAshlar()` module composition. Canonical values: `full`, `server`, `edge`, `air-gapped`, `secure-workstation` (alias `workstation`), `system`. Hyphens, underscores, and case fold (`airgapped`, `air_gapped`, `secure_workstation`). `air-gapped` is the slim offline profile (no trust/agents/observation). `secure-workstation` is the IDE daemon profile — not a synonym for air-gapped. The profile registers modules; trust still requires `ASHLAR_TRUST_ENABLED=1` or `TrustEnabled = true`. | `full` |
+| `ASHLAR_DEPLOYMENT_PROFILE` | Hosting dependency profile for `AddAshlar()` module composition. Canonical values: `full`, `server`, `edge`, `air-gapped`, `secure-workstation` (alias `workstation`), `system`. Hyphens, underscores, and case fold (`airgapped`, `air_gapped`, `secure_workstation`). `air-gapped` is the slim offline profile (no trust/agents/observation). `secure-workstation` is the IDE daemon profile — not a synonym for air-gapped. The profile registers modules; trust still requires `ASHLAR_TRUST_ENABLED=1` or `TrustEnabled = true`. Since SPEC-007 PR 4.10, `air-gapped` routes every job locally, never escalates a model call to `openai`/`azure`, fails boot on `BrickHost:RemoteCatalogBaseUrls`, `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and `Ashlar:Meai:Bedrock:Enabled=true`, and turns the ollama.com catalog off by default; on `air-gapped` and `secure-workstation` Ashlar.API binds loopback only (set a loopback `ASPNETCORE_URLS`) and mesh serve does not serve; `secure-workstation` refuses MCP over HTTP (stdio stays). | `full` |
 | `ASHLAR_STRICT_MODE` | `1` or `true` = enable strict mode (fail-fast + verbose diagnostics for dev/CI; disable for production) | `false` |
 | `ASHLAR_AIRGAP` | `1` or `true` = air-gapped; no cloud calls | unset |
 | `ASHLAR_AIRGAP_PROBE` | `1` = probe network to detect air-gap | unset |
@@ -407,7 +407,7 @@ Generation execution routing uses NCR + peer network + RunPod cloud. These optio
 | `Ashlar:RunPod:PollingInterval` (`Ashlar__RunPod__PollingInterval`) | RunPod status polling interval | `00:00:02` |
 | `Ashlar:RunPod:OutputStagingPath` (`Ashlar__RunPod__OutputStagingPath`) | Staged output path for remote artifacts | temp path (`ashlar-runpod`) |
 | `Ashlar:RunPod:QueueDepthThreshold` (`Ashlar__RunPod__QueueDepthThreshold`) | Local queue threshold before remote routing | `4` |
-| `Ashlar:RunPod:EnablePeerNetworkRouting` (`Ashlar__RunPod__EnablePeerNetworkRouting`) | Enables routing to peer Ashlar nodes | `false` |
+| `Ashlar:RunPod:EnablePeerNetworkRouting` (`Ashlar__RunPod__EnablePeerNetworkRouting`) | Enables routing to peer Ashlar nodes; `true` fails boot on `air-gapped` (SPEC-007 PR 4.10) | `false` |
 | `Ashlar:RunPod:PreferPeerNetworkOverCloud` (`Ashlar__RunPod__PreferPeerNetworkOverCloud`) | System default preference when remote routing is required | `true` |
 | `Ashlar:RunPod:PeerCapabilityId` (`Ashlar__RunPod__PeerCapabilityId`) | Capability identifier required for peer eligibility | `generation.capability-routing` |
 | `Ashlar:RunPod:PeerRoutingBrickId` (`Ashlar__RunPod__PeerRoutingBrickId`) | Brick id invoked on peer nodes | `generation.capability-routing` |
@@ -512,7 +512,7 @@ Host-owned options bound by Ashlar.API from `builder.Configuration` (`appsetting
 
 | Section | Master switch | What else it needs |
 |---------|---------------|--------------------|
-| `Ashlar:Mcp:Server` (`AshlarMcpServerOptions`) | `Enabled` | `ExposedToolIds` allowlist (empty = zero tools), `ServerName`, `RepoRoot`/`OutputRoot`, `MaxConcurrentToolCalls`, per-tool `ArgumentOverrides` |
+| `Ashlar:Mcp:Server` (`AshlarMcpServerOptions`) | `Enabled` | `ExposedToolIds` allowlist (empty = zero tools), `ServerName`, `RepoRoot`/`OutputRoot`, `MaxConcurrentToolCalls`, per-tool `ArgumentOverrides`. Refused on `air-gapped`; on `secure-workstation` the HTTP transport fails boot and only stdio (`Ashlar.Mcp.Server.Host`) runs (SPEC-007 PR 4.10) |
 | `Ashlar:Mcp:Client` (`AshlarMcpClientOptions`) | `Enabled` | `Servers[]` (`Name`, `Url`, optional `ApiKeyHeader` + `ApiKeyEnvVar` — the secret lives in the named env var, never in config, `AllowedTools`), `ConnectTimeout`, `ToolListRefreshInterval` |
 | `Ashlar:A2A:Server` (`AshlarA2AServerOptions`) | `Enabled` | `ExposedAgentIds` allowlist, `ExposeByCoordinationProtocol`, `PublicBaseUrl`, `PrimaryAgentId`, `AllowAnonymousAgentCard`, `DefaultExecutionTimeout` |
 | `Ashlar:A2A:Transport` (`A2ATransportOptions`) | `Enabled` | `Endpoints[]` per remote URL prefix (API key env var names) |

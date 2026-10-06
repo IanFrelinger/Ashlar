@@ -148,12 +148,15 @@ public static partial class AshlarServiceCollectionExtensions
         BindComposedEgressGuard(services, canonicalProfile, profileDefaulted, egressOverride, options.EgressMode);
         // SPEC-007 PR 4.10: the resolved profile for Infrastructure and the hosts, the AirGapped boot validators and the
         // AirGapped ollama.com default, all for the strictest profile noted in the process.
-        RegisterDeploymentProfileHygiene(services, canonicalProfile);
+        var resolvedProfile = RegisterDeploymentProfileHygiene(services, canonicalProfile);
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .Build();
 
         AshlarKernelRegistrar.Register(services, options, modules, configuration);
+        // SPEC-007 PR 4.10: a Bedrock tier already registered under AirGapped fails the composition itself, so a process
+        // that never starts a host (the CLI) is refused too; a tier registered later is refused at start.
+        RefuseBedrockAtComposition(services, resolvedProfile);
 
         return services;
     }

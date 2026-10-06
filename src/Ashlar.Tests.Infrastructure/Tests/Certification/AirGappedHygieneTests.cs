@@ -1,9 +1,11 @@
 using Ashlar.AI.Pipeline;
 using Ashlar.Core.Application.Execution.Routing;
+using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
 using Ashlar.Hosting;
 using Ashlar.Infrastructure.Deployment;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.LoadPolicy;
+using Ashlar.Infrastructure.Execution.Routing;
 using Ashlar.Infrastructure.MeshLab;
 using Ashlar.Infrastructure.ModelArtifacts;
 using Ashlar.Mcp.Server;
@@ -75,6 +77,60 @@ public sealed class AirGappedHygieneTests : IDisposable
 
         target.Should().BeOfType<ExecutionTarget.Local>("AirGapped never routes a job off the node")
             .Which.Reason.Should().Be($"AirGapped: remote execution unavailable; running locally ({OvernightReason})");
+    }
+
+    /// <summary>Every remote reason the router knows, and a preferred peer, stay local on AirGapped (design §2.7).</summary>
+    [Theory(Timeout = TestTimeouts.E2E)]
+    [InlineData("overnight", RemoteExecutionPreference.UseSystemDefault, "Overnight/background job forces remote execution.")]
+    [InlineData("vram", RemoteExecutionPreference.UseSystemDefault, "Insufficient VRAM: available=0, required=1.")]
+    [InlineData("compute", RemoteExecutionPreference.UseSystemDefault, "Insufficient compute class: available=None, required=High.")]
+    [InlineData("queue", RemoteExecutionPreference.UseSystemDefault, "Local queue depth threshold exceeded: depth=1000, threshold=")]
+    [InlineData("overnight", RemoteExecutionPreference.PreferPeerNetwork, "Overnight/background job forces remote execution.")]
+    [InlineData("overnight", RemoteExecutionPreference.CloudOnly, "Overnight/background job forces remote execution.")]
+    public async Task AirGapped_keeps_every_remote_reason_local(string why, RemoteExecutionPreference preference, string reason)
+    {
+        await Task.CompletedTask;
+        // A snapshot that satisfies everything but the one reason under test.
+        var snapshot = why switch
+        {
+            "vram" => new FixedSnapshot(0, GpuComputeClass.Extreme, 0),
+            "compute" => new FixedSnapshot(long.MaxValue, GpuComputeClass.None, 0),
+            "queue" => new FixedSnapshot(long.MaxValue, GpuComputeClass.Extreme, 1000),
+            _ => new FixedSnapshot(long.MaxValue, GpuComputeClass.Extreme, 0),
+        };
+        using var sp = Compose(AshlarDeploymentProfile.AirGapped, before: s => s.AddSingleton<INCRCapabilitySnapshot>(snapshot))
+            .BuildServiceProvider();
+        var requirements = new JobRequirements
+        {
+            IsOvernightOrBackground = why == "overnight",
+            MinimumVramBytes = why == "vram" ? 1 : 0,
+            ComputeClass = why == "compute" ? GpuComputeClass.High : GpuComputeClass.None,
+            RemoteExecutionPreference = preference,
+        };
+
+        var target = sp.GetRequiredService<ICapabilityRouter>().ResolveExecutionTarget(requirements);
+
+        target.Should().BeOfType<ExecutionTarget.Local>()
+            .Which.Reason.Should().StartWith($"{NcrCapabilityRouter.AirGappedLocalReasonPrefix} (").And.Contain(reason);
+    }
+
+    /// <summary>
+    /// A ready-made <c>IOptions</c> instance that host code registers after <c>AddAshlar</c> is outside the options
+    /// pipeline, so the validator never sees it (a known limit, pinned here); the routing rule holds on its own.
+    /// </summary>
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task AirGapped_routes_locally_even_when_peer_routing_is_forced_past_the_validator()
+    {
+        await Task.CompletedTask;
+        var services = Compose(AshlarDeploymentProfile.AirGapped);
+        services.AddSingleton(Options.Create(new RunPodBrickConfig { EnablePeerNetworkRouting = true, PreferPeerNetworkOverCloud = true }));
+        using var sp = services.BuildServiceProvider();
+
+        var validate = () => ValidateOnStart(sp);
+        validate.Should().NotThrow("the options pipeline validates the instance it builds, not a ready-made one host code registered (known limit)");
+        Overnight(sp, RemoteExecutionPreference.PreferPeerNetwork).Should().BeOfType<ExecutionTarget.Local>(
+                "the router's AirGapped rule does not depend on the validator")
+            .Which.Reason.Should().StartWith(NcrCapabilityRouter.AirGappedLocalReasonPrefix);
     }
 
     [Fact(Timeout = TestTimeouts.E2E)]
@@ -228,6 +284,16 @@ public sealed class AirGappedHygieneTests : IDisposable
         var act = () => ValidateOnStart(sp);
 
         act.Should().NotThrow();
+
+        // A blank entry (the mesh ignores it) and a null list (a host's) are not opt-ins and do not fault the validator.
+        foreach (var list in new IReadOnlyList<string>?[] { new[] { "  " }, null })
+        {
+            var services = Compose(AshlarDeploymentProfile.AirGapped);
+            services.Configure<BrickHostOptions>(o => o.RemoteCatalogBaseUrls = list!);
+            using var provider = services.BuildServiceProvider();
+            var boot = () => ValidateOnStart(provider);
+            boot.Should().NotThrow();
+        }
     }
 
     [Fact(Timeout = TestTimeouts.E2E)]
@@ -246,6 +312,14 @@ public sealed class AirGappedHygieneTests : IDisposable
         {
             sp.GetRequiredService<IOptions<OllamaRemoteLibraryCatalogOptions>>().Value.Enabled
                 .Should().BeTrue("it is a default; an explicit setting still turns it on");
+        }
+
+        // A host's setting registered before AddAshlar also wins: the default is inserted first in the collection.
+        using (var sp = Compose(AshlarDeploymentProfile.AirGapped,
+                   before: s => s.Configure<OllamaRemoteLibraryCatalogOptions>(o => o.Enabled = true)).BuildServiceProvider())
+        {
+            sp.GetRequiredService<IOptions<OllamaRemoteLibraryCatalogOptions>>().Value.Enabled
+                .Should().BeTrue("the default runs before every binding, whichever side of AddAshlar the binding is on");
         }
     }
 
@@ -319,11 +393,131 @@ public sealed class AirGappedHygieneTests : IDisposable
         using var sp = services.BuildServiceProvider();
 
         sp.GetRequiredService<ResolvedDeploymentProfile>().IsAirGapped.Should().BeTrue();
+        Overnight(sp).Should().BeOfType<ExecutionTarget.Local>().Which.Reason.Should().StartWith(NcrCapabilityRouter.AirGappedLocalReasonPrefix);
+        // The carry-in for 4.11: the later AddAshlar still selects its own (Full) module set; only the value is AirGapped.
+        sp.GetService<Ashlar.Transport.Grpc.IGrpcChannelFactory>().Should().NotBeNull(
+            "a later AddAshlar still selects its own module set (4.6 carry-in, 4.11 territory); AirGapped itself omits runtime transport");
         var act = () => ValidateOnStart(sp);
         act.Should().Throw<OptionsValidationException>().WithMessage("*AirGapped*");
         // The validator also refuses at the first resolution of the options, outside a host start.
         var resolve = () => sp.GetRequiredService<IOptions<RunPodBrickConfig>>().Value;
         resolve.Should().Throw<OptionsValidationException>().WithMessage("*EnablePeerNetworkRouting*AirGapped*");
+    }
+
+    /// <summary>The value is captured when the container is composed (deviation 4): the reverse order keeps Full.</summary>
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task A_container_composed_Full_before_AirGapped_was_noted_keeps_Full()
+    {
+        await Task.CompletedTask;
+        using var full = Compose(AshlarDeploymentProfile.Full).BuildServiceProvider();
+        using var airGapped = Compose(AshlarDeploymentProfile.AirGapped).BuildServiceProvider();
+
+        full.GetRequiredService<ResolvedDeploymentProfile>().IsAirGapped.Should().BeFalse("the value is the profile noted when that container was composed");
+        Overnight(full).Should().BeOfType<ExecutionTarget.Remote>();
+        airGapped.GetRequiredService<ResolvedDeploymentProfile>().IsAirGapped.Should().BeTrue();
+    }
+
+    /// <summary>Known limit: host code can replace the value after <c>AddAshlar</c>, as it can replace any service.</summary>
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task Host_code_that_registers_its_own_profile_after_AddAshlar_replaces_the_value()
+    {
+        await Task.CompletedTask;
+        var services = Compose(AshlarDeploymentProfile.AirGapped);
+        services.AddSingleton(new ResolvedDeploymentProfile("full"));
+        using var sp = services.BuildServiceProvider();
+
+        Overnight(sp).Should().BeOfType<ExecutionTarget.Remote>(
+            "last registration wins: a known limit recorded in docs/EgressInventory.md; the egress guard reads the process profile and is the backstop");
+    }
+
+    /// <summary>Defect 5 is scoped to AirGapped (design §2.7): SecureWorkstation's outbound paths are unchanged by 4.10.</summary>
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task SecureWorkstation_outbound_paths_are_unchanged()
+    {
+        using (var sp = Compose(AshlarDeploymentProfile.SecureWorkstation).BuildServiceProvider())
+        {
+            Overnight(sp).Should().BeOfType<ExecutionTarget.Remote>("SecureWorkstation reaches RunPod by default until the switch (4.11)")
+                .Which.Reason.Should().Be(OvernightReason);
+            sp.GetRequiredService<IOptions<OllamaRemoteLibraryCatalogOptions>>().Value.Enabled.Should().BeTrue();
+        }
+
+        foreach (var setting in OptInSettings)
+        {
+            var services = Compose(AshlarDeploymentProfile.SecureWorkstation);
+            OptIn(services, setting);
+            using var sp = services.BuildServiceProvider();
+            var act = () => ValidateOnStart(sp);
+            act.Should().NotThrow($"{setting}: the four validators are AirGapped-only (design §2.7)");
+        }
+
+        var (recorded, recorder) = ComposeRecording(AshlarDeploymentProfile.SecureWorkstation, "ollama");
+        using (recorded)
+        {
+            var factory = recorded.GetRequiredService<IProviderFactory>();
+            var act = () => factory.ExecuteLLMAsync("any", "system", "user", new object());
+            await act.Should().ThrowAsync<CorePorts.ModelUnavailableException>();
+            recorder.Tried.Should().Equal("ollama", "openai", "azure");
+        }
+    }
+
+    /// <summary>
+    /// The Bedrock check also runs when <c>AddAshlar</c> composes, for a process that never starts a host (the CLI):
+    /// a tier already registered, by the kernel from configuration or by host code before <c>AddAshlar</c>, fails the
+    /// composition. Full composes with it.
+    /// </summary>
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task AirGapped_refuses_a_Bedrock_tier_already_registered_when_AddAshlar_composes()
+    {
+        await Task.CompletedTask;
+        Action<IServiceCollection> bedrock = s => s.AddSingleton(Options.Create(new MeaiPipelineOptions { Bedrock = { Enabled = true } }));
+
+        var airGapped = () => Compose(AshlarDeploymentProfile.AirGapped, before: bedrock);
+        airGapped.Should().Throw<InvalidOperationException>().WithMessage("*Ashlar:Meai:Bedrock:Enabled*AirGapped*");
+
+        var full = () => Compose(AshlarDeploymentProfile.Full, before: bedrock);
+        full.Should().NotThrow();
+    }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task AirGapped_refuses_the_configured_Bedrock_tier_when_AddAshlar_composes()
+    {
+        await Task.CompletedTask;
+        using var enabled = new EnvironmentVariableScope("Ashlar__Meai__Bedrock__Enabled", "true");
+        using var region = new EnvironmentVariableScope("Ashlar__Meai__Bedrock__Region", "us-east-1");
+
+        var airGapped = () => Compose(AshlarDeploymentProfile.AirGapped);
+        airGapped.Should().Throw<InvalidOperationException>().WithMessage("*Ashlar:Meai:Bedrock:Enabled*AirGapped*");
+
+        var full = () => Compose(AshlarDeploymentProfile.Full);
+        full.Should().NotThrow();
+    }
+
+    /// <summary>
+    /// The real listener checks run only on net10.0 (Ashlar.API and Ashlar.CLI), outside this gate, so this gate pins
+    /// their call sites by reading the source: a required check goes red when either host stops making the check.
+    /// </summary>
+    [Fact]
+    public void The_API_and_mesh_serve_call_the_listener_checks()
+    {
+        var root = TestPaths.FindRepoRoot();
+        var program = File.ReadAllText(Path.Combine(root, "application", "src", "Ashlar.API", "Program.cs"));
+        var built = program.IndexOf("var app = builder.Build();", StringComparison.Ordinal);
+        var check = program.IndexOf("LoopbackListenerPolicy.Violation(", StringComparison.Ordinal);
+        var refusal = program.IndexOf("throw new InvalidOperationException(listenerViolation);", StringComparison.Ordinal);
+        built.Should().BePositive();
+        check.Should().BeGreaterThan(built, "the pre-bind check reads the built app's configuration");
+        refusal.Should().BeGreaterThan(check, "a violation refuses the start");
+        program.Should().Contain("builder.Services.AddHostedService<LoopbackListenerVerifier>();");
+
+        var verifier = File.ReadAllText(Path.Combine(root, "application", "src", "Ashlar.API", "Security", "LoopbackListenerVerifier.cs"));
+        verifier.Should().Contain("LoopbackListenerPolicy.Violation(").And.Contain("throw new InvalidOperationException(violation)");
+
+        var mesh = File.ReadAllText(Path.Combine(root, "application", "src", "Ashlar.CLI", "Commands", "BackgroundAgent", "MeshServeService.cs"));
+        var profileCheck = mesh.IndexOf("var profileError = ProfileError(_settings, _deploymentProfile);", StringComparison.Ordinal);
+        var buildApp = mesh.IndexOf("app = BuildApp();", StringComparison.Ordinal);
+        profileCheck.Should().BePositive();
+        buildApp.Should().BeGreaterThan(profileCheck, "the refusal comes before anything binds");
+        mesh[profileCheck..buildApp].Should().Contain("return;", "a refused profile returns without building the app");
     }
 
     [Theory(Timeout = TestTimeouts.E2E)]
@@ -383,6 +577,10 @@ public sealed class AirGappedHygieneTests : IDisposable
     [InlineData("http://[::]:5000", false)]
     [InlineData("http://10.0.0.1:5000", false)]
     [InlineData("http://localhost.example:5000", false)]
+    [InlineData("http://api.localhost:5000", false)]
+    [InlineData("http://localhost.:5000", false)]
+    [InlineData("http://ashlar.internal:5000", false)]
+    [InlineData("https://0.0.0.0:0", false)]
     [InlineData("localhost:5000", false)]
     [InlineData("http://[::1:5000", false)]
     [InlineData("", false)]
@@ -416,6 +614,17 @@ public sealed class AirGappedHygieneTests : IDisposable
         // Last wins: the adaptive factory wraps this one.
         services.AddSingleton<ProviderFactory>(recorder);
         return (services.BuildServiceProvider(), recorder);
+    }
+
+    private sealed class FixedSnapshot(long vram, GpuComputeClass compute, int queue) : INCRCapabilitySnapshot
+    {
+        public long AvailableVramBytes => vram;
+
+        public GpuComputeClass ComputeClass => compute;
+
+        public int CurrentQueueDepth => queue;
+
+        public DateTimeOffset CapturedAt => DateTimeOffset.UtcNow;
     }
 
     private sealed class FixedLoadPolicy(string provider) : ILoadPolicy

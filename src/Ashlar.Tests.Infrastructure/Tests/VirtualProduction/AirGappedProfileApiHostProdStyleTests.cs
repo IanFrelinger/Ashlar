@@ -104,8 +104,10 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             return Task.CompletedTask;
         };
 
+        // The MCP validator's text, not only "AirGapped": a listener refusal also names the profile, and this twin must
+        // not pass for that reason (its urls are loopback, so none is expected).
         (await act.Should().ThrowAsync<Exception>("ValidateOnStart must stop the host"))
-            .Which.ToString().Should().Contain("AirGapped");
+            .Which.ToString().Should().Contain("is not permitted under the AirGapped deployment profile");
     }
 
     [Theory(Timeout = TestTimeouts.HostTouching)]
@@ -127,12 +129,13 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
     public async Task The_port_only_binding_fails_boot_on_AirGapped()
     {
         using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "airgapped");
-        // http_ports applies only while urls is unset, and binds every interface.
-        using var factory = CreateFactory(new Dictionary<string, string?> { ["urls"] = null, ["http_ports"] = "8080" });
+        // http_ports applies only while urls is unset, and binds every interface. A port the devtest image's
+        // ASPNETCORE_HTTP_PORTS=8080 cannot supply, so the refusal is this setting's, not the environment's.
+        using var factory = CreateFactory(new Dictionary<string, string?> { ["urls"] = null, ["http_ports"] = "18080" });
 
         var failure = await BootFailureAsync(factory);
 
-        failure.ToString().Should().Contain("http://*:8080").And.Contain("AirGapped");
+        failure.ToString().Should().Contain("http://*:18080").And.Contain("AirGapped");
     }
 
     [Fact(Timeout = TestTimeouts.HostTouching)]

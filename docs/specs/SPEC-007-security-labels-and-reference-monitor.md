@@ -131,10 +131,13 @@ The status line above and the starting prompt are the owner's, as written; the s
   (`AirGapped: remote execution unavailable; running locally (<reason>)`), and refuses an explicit `PeerNetworkOnly`;
   `AdaptiveProviderFactory` never tries `openai` or `azure` on the LLM or vision paths; a non-empty
   `BrickHost:RemoteCatalogBaseUrls`, RunPod peer-network routing, the MeshLab worker executor and the Bedrock tier
-  fail boot; and the ollama.com catalog defaults to off. On `SecureWorkstation`, MCP over HTTP fails boot and stdio
-  still boots. On both, Ashlar.API refuses to start on a listener that is not loopback, and mesh serve, which listens
-  on every interface, refuses to serve. **Known limit:** responses on inbound connections are not mediated until PR 5's
-  `CanRead` at the server seams. These are configuration and routing changes; the guard still refuses nothing.
+  fail boot (the Bedrock tier also fails `AddAshlar` itself when it is already registered, so a process that never
+  starts a host is refused too); and the ollama.com catalog defaults to off. On `SecureWorkstation`, MCP over HTTP
+  fails boot and stdio still boots; its outbound paths are unchanged until the switch. On both, Ashlar.API refuses to
+  start on a listener that is not loopback, and mesh serve, which listens on every interface, refuses to serve. A later
+  `AddAshlar` in the process registers the strictest profile but still selects its own module set (4.11). **Known
+  limit:** responses on inbound connections are not mediated until PR 5's `CanRead` at the server seams. These are
+  configuration and routing changes; the guard still refuses nothing.
 
 ---
 
@@ -256,7 +259,7 @@ SystemHigh                     the top element
 | Retrieval labels | `src/Ashlar.AI.Pipeline/Rag/TrustTierOrder.cs` | Records ranked by tier; blank or unknown ranks as `TopSecret` |
 | Egress sanitising | `src/Ashlar.AI.Pipeline/Governance/`, `src/Ashlar.BackgroundAgents/Trust/` | `SanitizingChatClient`, `CloudSanitizationProxy`, a sanitisation audit log |
 | Principles | `docs/TrustAndInformationArchitecture.md` | Default restrictive, fail closed, inferred facts inherit the most restrictive label |
-| Deployment profiles | `src/Ashlar.Abstractions/AshlarDeploymentProfileEnvironment.cs` | Both `AirGapped` and `SecureWorkstation` refuse the MCP client and A2A; `AirGapped` also refuses the MCP server |
+| Deployment profiles | `src/Ashlar.Abstractions/AshlarDeploymentProfileEnvironment.cs` | Both `AirGapped` and `SecureWorkstation` refuse the MCP client and A2A; `AirGapped` also refuses the MCP server, and since PR 4.10 `SecureWorkstation` refuses it over HTTP (stdio stays) while both profiles bind the API's listeners to loopback |
 | Isolation tiers | `src/Ashlar.Abstractions/Execution/AgentExecutionIsolationLevel.cs` | `InProcess`, `OutOfProcess`, `ContainerPooled`, `ContainerPerAgent` |
 | Docker sandboxes | `src/Ashlar.Infrastructure/Execution/Sandbox/` | Session runner, command runner, session reaper |
 | Sealed skills | `src/Ashlar.Infrastructure/Certification/CertifiedBrickActivator.cs` | Hash check, `IlImportFence`, then `Assembly.Load` |
