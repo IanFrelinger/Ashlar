@@ -74,14 +74,23 @@ The status line above and the starting prompt are the owner's, as written; the s
     server's HTTP transport is allowed on `SecureWorkstation` (`ValidateAshlarMcpServerOptions` refuses only
     `AirGapped`), and `AirGapped` still registers network paths, such as RunPod as the default remote execution
     target;
-  - 4.11 the switch, which carries the §5 leak test.
+  - 4.11 the switch, which carries the §5 leak test. Of the "never refuses" twins it flips,
+    `EgressGuardDecisionTests.An_explicit_profile_is_reported_and_does_not_change_the_decision` already has an
+    `enforce` row from 4.6 (an unrecognised profile fails closed); 4.11 flips its AirGapped and SecureWorkstation rows.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
-- **PR 4.1** (#717) closes the third gap above, still report-only: mesh serve records `mesh-peer:<ip>`, never Host;
+- **PR 4.1** (#717, `bbc5d71`) closes the third gap above, still report-only: mesh serve records `mesh-peer:<ip>`, never Host;
   the MEAI layer records where the inner client dials, else Bedrock's region endpoint, else the fail-closed
   `meai:<key>`; a `file:` destination is never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at
   `https://ollama.com`; and the default MEAI Ollama client stops following redirects (a behaviour change).
   `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
+- **PR 4.6** (#718), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
+  `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
+  process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
+  still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
+  remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault` (or of the guard an
+  earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
+  convention fact pins. Nothing refuses yet.
 - **PR 4.4** (#716) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
@@ -94,8 +103,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
   the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
   `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant
-  exposes every Abstractions internal to Orchestration, so the callers of the reset seam and the mode latch setters
-  (4.6) are to be pinned by a convention fact when 4.4 and 4.6 are integrated.
+  exposes every Abstractions internal to Orchestration; 4.6's convention fact
+  (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
+  reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
+  appears unlisted.
 
 ---
 

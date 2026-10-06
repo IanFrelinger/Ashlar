@@ -790,19 +790,22 @@ public sealed class EgressGuardDecisionTests
     // Profile
     // ---------------------------------------------------------------------------------------------------------
 
+    /// <remarks>SPEC-007 PR 4.6: every one of the six profiles still reports. A profile that is none of them fails
+    /// closed to <c>enforce</c> (the mode table is pinned in <see cref="EgressModeResolutionTests"/>); nothing acts on the
+    /// mode yet, so the access decision is unchanged either way.</remarks>
     [Theory]
-    [InlineData("air-gapped", true)]
-    [InlineData("secure-workstation", true)]
-    [InlineData("AirGapped", true)]
-    [InlineData("SECURE_WORKSTATION", true)]
-    [InlineData("workstation", true)]
-    [InlineData("full", false)]
-    [InlineData("server", false)]
-    [InlineData("edge", false)]
-    [InlineData("system", false)]
-    [InlineData("", false)]
-    [InlineData("air-gapped-ish", false)]
-    public void An_explicit_profile_is_reported_and_does_not_change_the_decision(string profile, bool enforcesByDefault)
+    [InlineData("air-gapped", true, "report")]
+    [InlineData("secure-workstation", true, "report")]
+    [InlineData("AirGapped", true, "report")]
+    [InlineData("SECURE_WORKSTATION", true, "report")]
+    [InlineData("workstation", true, "report")]
+    [InlineData("full", false, "report")]
+    [InlineData("server", false, "report")]
+    [InlineData("edge", false, "report")]
+    [InlineData("system", false, "report")]
+    [InlineData("", false, "report")]
+    [InlineData("air-gapped-ish", false, "enforce")]
+    public void An_explicit_profile_is_reported_and_does_not_change_the_decision(string profile, bool enforcesByDefault, string mode)
     {
         var request = new EgressRequest(EgressFamilies.ModelMeai, NewSite(), new Uri(Remote));
 
@@ -810,7 +813,7 @@ public sealed class EgressGuardDecisionTests
 
         decision.Profile.Should().Be(profile);
         decision.ProfileEnforcesByDefault.Should().Be(enforcesByDefault);
-        decision.Mode.Should().Be("report", "PR 3 has one mode and nothing is refused");
+        decision.Mode.Should().Be(mode, "every profile defaults to report until PR 4.11; an unreadable one fails closed");
         decision.Access.Should().Be(Guard.Evaluate(request).Access, "the profile is reported, not enforced");
     }
 
@@ -927,7 +930,7 @@ public sealed class EgressGuardDecisionTests
         e.PayloadNames.Should().Equal(
             "sequence", "at", "mode", "family", "site", "destination", "destinationClass", "destinationLabel",
             "destinationBasis", "current", "currentBasis", "allowed", "reason", "detail", "profile",
-            "profileEnforcesByDefault", "fault");
+            "profileEnforcesByDefault", "fault", "modeBasis", "refused", "ref");
         e.Payload.Should().OnlyContain(value => value is string || value is bool, "every field is a string or a bool");
 
         Field(e, "sequence").Should().Be(decision.Sequence.ToString(CultureInfo.InvariantCulture));
@@ -945,6 +948,9 @@ public sealed class EgressGuardDecisionTests
         Field(e, "profile").Should().Be("full");
         Field(e, "profileEnforcesByDefault").Should().Be(false);
         Field(e, "fault").Should().Be(string.Empty);
+        Field(e, "modeBasis").Should().Be("profile:full");
+        Field(e, "refused").Should().Be(false, "report mode refuses nothing");
+        Field(e, "ref").Should().Be(decision.Ref);
 
         var everything = string.Join("|", e.Payload!.Select(value => Convert.ToString(value, CultureInfo.InvariantCulture)));
         everything.Should().NotContainAny(SecretMarkers);

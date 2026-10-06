@@ -27,8 +27,14 @@ namespace Ashlar.Tests.Infrastructure.Tests.VirtualProduction;
 [Collection("EnvironmentVariables")]
 [Trait("Category", "Integration")]
 [Trait("Category", "ProdStyle")]
-public sealed class AirGappedProfileApiHostProdStyleTests
+public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
 {
+    // SPEC-007 PR 4.6: the host composes AirGapped from the variable, which notes a profile no later AddAshlar lowers,
+    // so each test restores the process egress state (the noted profile and the mode latch) through the reset seam.
+    private readonly EgressProcessStateScope _egressState = new();
+
+    public void Dispose() => _egressState.Dispose();
+
     private static WebApplicationFactory<Program> CreateFactory(IDictionary<string, string?>? settings = null)
         => new AshlarApiWebApplicationFactory().WithWebHostBuilder(builder =>
         {

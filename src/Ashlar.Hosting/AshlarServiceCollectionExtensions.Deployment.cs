@@ -10,8 +10,12 @@ public static partial class AshlarServiceCollectionExtensions
     ///    "secureworkstation"/"secure-workstation"/"workstation", "system"/"core").
     /// 3. Falls back to <see cref="AshlarDeploymentProfile.Full"/>.
     /// </summary>
-    private static AshlarDeploymentProfile ResolveDeploymentProfile(AshlarHostingOptions options)
+    /// <param name="options">The caller's options.</param>
+    /// <param name="defaulted"><see langword="true"/> when nothing set the profile, so it is
+    /// <see cref="AshlarDeploymentProfile.Full"/> by default.</param>
+    private static AshlarDeploymentProfile ResolveDeploymentProfile(AshlarHostingOptions options, out bool defaulted)
     {
+        defaulted = false;
         if (options.DeploymentProfile.HasValue)
         {
             return options.DeploymentProfile.Value;
@@ -20,6 +24,7 @@ public static partial class AshlarServiceCollectionExtensions
         var raw = Environment.GetEnvironmentVariable("ASHLAR_DEPLOYMENT_PROFILE");
         if (string.IsNullOrWhiteSpace(raw))
         {
+            defaulted = true;
             return AshlarDeploymentProfile.Full;
         }
 

@@ -32,7 +32,9 @@ public sealed class EgressDecision
         AccessDecision access,
         string profile,
         bool profileEnforcesByDefault,
-        string? fault)
+        string? fault,
+        string modeBasis,
+        string reference)
     {
         Sequence = sequence;
         At = at;
@@ -49,6 +51,9 @@ public sealed class EgressDecision
         Profile = profile;
         ProfileEnforcesByDefault = profileEnforcesByDefault;
         Fault = fault;
+        ModeBasis = modeBasis;
+        Ref = reference;
+        Refused = string.Equals(mode, EgressEnforcement.EnforceMode, StringComparison.Ordinal) && !access.Allowed;
     }
 
     /// <summary>A process-wide sequence number, unique and increasing across every guard in the process.</summary>
@@ -57,7 +62,11 @@ public sealed class EgressDecision
     /// <summary>When the decision was made (UTC).</summary>
     public DateTimeOffset At { get; }
 
-    /// <summary>The guard's mode. <c>report</c> is the only mode in SPEC-007 PR 3: nothing is refused.</summary>
+    /// <summary>
+    /// The mode the decision was made in: <c>report</c> or <c>enforce</c>. <see cref="ModeBasis"/> says what decided
+    /// it. Until SPEC-007 PR 4.11 every profile defaults to <c>report</c>, and until PR 4.7 no route acts on the mode,
+    /// so an <c>enforce</c> record says what would have been refused, not that a send stopped.
+    /// </summary>
     public string Mode { get; }
 
     /// <summary>The request's family (see <see cref="EgressFamilies"/>).</summary>
@@ -100,14 +109,16 @@ public sealed class EgressDecision
     public AccessDecision Access { get; }
 
     /// <summary>
-    /// The deployment profile the decision was made under: the guard's configured profile, or else the effective
-    /// <c>ASHLAR_DEPLOYMENT_PROFILE</c> text (empty when none is set).
+    /// The deployment profile the decision was made under, and the one <see cref="Mode"/> was resolved from: the
+    /// guard's configured profile, or else the effective <c>ASHLAR_DEPLOYMENT_PROFILE</c> text (the strictest profile
+    /// <c>AddAshlar</c> noted, else the variable; empty when none is set), read once per decision.
     /// </summary>
     public string Profile { get; }
 
     /// <summary>
-    /// <see langword="true"/> when the profile is one that will enforce egress decisions by default (AirGapped,
-    /// SecureWorkstation): the same predicate that today keeps remote MCP and A2A off those profiles.
+    /// <see langword="true"/> when the profile is one that will enforce egress decisions by default once SPEC-007
+    /// PR 4.11 switches it on (AirGapped, SecureWorkstation): the same predicate that today keeps remote MCP and A2A
+    /// off those profiles. It does not set the mode; <see cref="Mode"/> does.
     /// </summary>
     public bool ProfileEnforcesByDefault { get; }
 
@@ -116,4 +127,26 @@ public sealed class EgressDecision
     /// name is recorded, never the message. When set, <see cref="Access"/> is <c>default(AccessDecision)</c>.
     /// </summary>
     public string? Fault { get; }
+
+    /// <summary>
+    /// What decided <see cref="Mode"/>: <c>profile:&lt;profile&gt;</c> (the profile's default, with the canonical
+    /// profile name), <c>profile:unrecognised</c>, <c>override</c> (the process's mode override,
+    /// <c>AshlarHostingOptions.EgressMode</c> or the guard's constructor), <c>override-ignored</c>, or <c>fault</c>
+    /// (resolving the mode faulted, so it is <c>enforce</c>). Later PRs add <c>break-glass</c>, <c>host-opt-out</c> and
+    /// <c>operator-verb</c>.
+    /// </summary>
+    public string ModeBasis { get; }
+
+    /// <summary>
+    /// What a route must do with the egress: <see langword="true"/> when <see cref="Mode"/> is <c>enforce</c> and
+    /// <see cref="Access"/> does not allow it, a fault included. Until SPEC-007 PR 4.7 no route acts on it.
+    /// </summary>
+    public bool Refused { get; }
+
+    /// <summary>
+    /// A random 64-bit reference for this decision, as 16 lowercase hex digits (<c>unavailable</c> if none could be
+    /// drawn). It joins what a refused party is shown to the operator's record. Unlike <see cref="Sequence"/>, it says
+    /// nothing about how many other decisions the process made.
+    /// </summary>
+    public string Ref { get; }
 }

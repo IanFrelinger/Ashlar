@@ -24,8 +24,11 @@ Ashlar.Abstractions.Security.Egress.EgressDecision.DestinationLabel.get -> Ashla
 Ashlar.Abstractions.Security.Egress.EgressDecision.Family.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressDecision.Fault.get -> string?
 Ashlar.Abstractions.Security.Egress.EgressDecision.Mode.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.ModeBasis.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressDecision.Profile.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressDecision.ProfileEnforcesByDefault.get -> bool
+Ashlar.Abstractions.Security.Egress.EgressDecision.Ref.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.Refused.get -> bool
 Ashlar.Abstractions.Security.Egress.EgressDecision.Sequence.get -> long
 Ashlar.Abstractions.Security.Egress.EgressDecision.Site.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressDecisionLog
@@ -37,7 +40,7 @@ Ashlar.Abstractions.Security.Egress.EgressDestinationClass.Unknown = 0 -> Ashlar
 Ashlar.Abstractions.Security.Egress.EgressDestinationClass.WebSearch = 3 -> Ashlar.Abstractions.Security.Egress.EgressDestinationClass
 Ashlar.Abstractions.Security.Egress.EgressFamilies
 Ashlar.Abstractions.Security.Egress.EgressGuard
-Ashlar.Abstractions.Security.Egress.EgressGuard.EgressGuard(string? deploymentProfile = null) -> void
+Ashlar.Abstractions.Security.Egress.EgressGuard.EgressGuard(string? deploymentProfile = null, string? egressMode = null) -> void
 Ashlar.Abstractions.Security.Egress.EgressGuard.Evaluate(Ashlar.Abstractions.Security.Egress.EgressRequest! request) -> Ashlar.Abstractions.Security.Egress.EgressDecision!
 Ashlar.Abstractions.Security.Egress.EgressHttp
 Ashlar.Abstractions.Security.Egress.EgressRequest
