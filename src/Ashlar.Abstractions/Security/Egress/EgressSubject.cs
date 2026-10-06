@@ -20,24 +20,28 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para>The frame lives in an <see cref="AsyncLocal{T}"/>, so it flows into awaits and tasks started inside it
 /// and never back out to the caller. Disposing the returned scope on the flow where it is the innermost frame
 /// restores the frame that was active when it was entered, also after an await, and also when that frame has ended
-/// meanwhile, with one exception: if that frame was disposed out of order while this scope was the frame just inside
-/// it on the disposing flow, the flow goes on past it, where in-order <c>using</c> blocks would have left it. So
-/// frames that one flow disposes out of order build up no chain of disposed frames on it. Disposing twice does
-/// nothing.</para>
-/// <para><b>Disposed frames still count for the frames inside them.</b> A disposed frame is never the innermost one:
-/// a flow whose innermost frame was disposed, such as a task that captured it and outlives the scope, decides at the
-/// nearest live frame it was entered inside, into which its mark was observed, or at <c>no-subject</c>. But it still
-/// counts for the frames entered inside it, and what they read still raises it. A frame disposed out of order counts
-/// for the frame still running inside it. A parent frame whose <c>using</c> ends while a fire-and-forget task started
-/// inside it is still running counts for every frame that task enters, then or later: the task stays inside the
-/// parent, since only the flow that disposed the parent goes past it. Ending an enclosing scope first therefore never
+/// meanwhile, with one exception: a frame that this same flow disposed out of order while this scope was the frame
+/// just inside it, which the flow goes on past, to where in-order <c>using</c> blocks would have left it. A task the
+/// flow starts after that out-of-order dispose does the same; no other flow does. So frames that one flow disposes
+/// out of order build up no chain of disposed frames on it. Disposing twice does nothing.</para>
+/// <para><b>Disposed frames still count for the frames inside them.</b> A frame counts as live until its mark has
+/// been observed into the frames it was entered inside, also while it is being disposed. A disposed frame is never
+/// the innermost one: a flow whose innermost frame was disposed, such as a task that captured it and outlives the
+/// scope, decides at the nearest live frame it was entered inside, into which its mark was observed, or at
+/// <c>no-subject</c>. But it still counts for the frames entered inside it, and what they read still raises it. A
+/// frame disposed out of order counts for the frame still running inside it. A flow goes past a disposed frame only
+/// if that flow disposed it, or is a task started there afterwards. Every other flow stays inside it, in every frame
+/// it enters then or later, and reads its mark when it decides, also what the mark rose to after the frame ended: a
+/// fire-and-forget task started inside a parent frame whose <c>using</c> ends first, a task handed a child scope to
+/// end, and the flow that entered a frame another flow disposed. Ending an enclosing scope first therefore never
 /// lowers the current label of work it started.</para>
 /// <para><b>Known limit (fail closed).</b> A task or thread keeps the frames it inherited, ended or not, for as long
 /// as it runs: a long-running async loop or a dedicated thread started inside a frame counts that frame's mark in
-/// every frame it enters, for its whole life. And disposing a frame changes only the flow it is disposed on: a frame
-/// disposed on another flow, as by <c>await Task.Run(scope.Dispose)</c> or from a thread started without the
-/// execution context, can leave the flow that entered it inside it, and repeating that grows that flow's chain.
-/// Neither happens to a frame entered and disposed in a <c>using</c> block on one flow.</para>
+/// every frame it enters, for its whole life. And disposing a frame takes out of it only the flow it is disposed on
+/// and the tasks that flow starts afterwards: a frame disposed on another flow, as by
+/// <c>await Task.Run(scope.Dispose)</c>, by a background task, or from a thread started without the execution
+/// context, leaves the flow that entered it inside it for good, and repeating that grows that flow's chain. Neither
+/// happens to a frame entered and disposed in a <c>using</c> block on one flow.</para>
 /// <para>Entering a frame can lower the current label only from SystemHigh, where there is no subject, to the join
 /// of the marks on the chain; a producer must therefore observe every read before the egress it governs.</para>
 /// </remarks>
@@ -47,6 +51,10 @@ public static class EgressSubject
     internal const string SubjectBasisPrefix = "subject:";
 
     private static readonly AsyncLocal<Frame?> Active = new();
+
+    // The frames this flow disposed out of order and has not yet gone past. Only Unwind on this flow reads it, or in
+    // a task started here afterwards, which copies it; no other flow ever sees it.
+    private static readonly AsyncLocal<Skip?> Skips = new();
 
     /// <summary>
     /// Makes <paramref name="mark"/> part of the current label for egress decisions on this async flow until the
@@ -102,8 +110,11 @@ public static class EgressSubject
     /// <para>For work handed to another component that must not be decided at the caller's mark: AgentBus subscriber
     /// dispatch. It only raises, since no subject is the top. A frame entered under it starts a chain of its own,
     /// which never reaches the caller's frames.</para>
-    /// <para>Disposing restores the caller's frame on this flow only. A task started under it keeps no subject after
-    /// it is disposed: it never falls back to the caller's frame.</para>
+    /// <para>Disposing restores the caller's frame on this flow only, as for a frame: if a frame entered under it is
+    /// still innermost here, this flow goes back to the caller's frame when that frame ends, as in-order
+    /// <c>using</c> blocks would, and so does a task this flow starts after the dispose. A task started under it
+    /// before it is disposed keeps no subject afterwards, and so does any other flow it is still active on: neither
+    /// falls back to the caller's frame.</para>
     /// </remarks>
     /// <returns>A scope; disposing it restores the previous frame on this flow.</returns>
     internal static IDisposable Detach()
@@ -116,13 +127,55 @@ public static class EgressSubject
     /// <summary>The current label on this async flow and where it came from.</summary>
     internal static (SecurityLabel Current, string Basis) Resolve() => Frame.Resolve(Active.Value);
 
+    // An immutable list of records: this flow disposed Outer out of order while Inside was the frame just inside it
+    // on the flow's restore path. Immutable, so a task that copied it never sees the flow's later changes.
+    private sealed class Skip
+    {
+        private Skip(Frame inside, Frame outer, Skip? next)
+        {
+            Inside = inside;
+            Outer = outer;
+            Next = next;
+        }
+
+        private Frame Inside { get; }
+
+        private Frame Outer { get; }
+
+        private Skip? Next { get; }
+
+        internal static Skip Add(Skip? list, Frame inside, Frame outer) => new(inside, outer, list);
+
+        // The list without the record (inside, outer), and whether it held one.
+        internal static bool TryRemove(Skip? list, Frame inside, Frame outer, out Skip? rest)
+        {
+            var found = list;
+            while (found is not null && !(ReferenceEquals(found.Inside, inside) && ReferenceEquals(found.Outer, outer)))
+                found = found.Next;
+
+            rest = list;
+            if (found is null)
+                return false;
+
+            // The records after it are shared; the ones before it are copied.
+            rest = found.Next;
+            for (var record = list; record is not null && !ReferenceEquals(record, found); record = record.Next)
+                rest = new Skip(record.Inside, record.Outer, rest);
+
+            return true;
+        }
+    }
+
     /// <summary>A subject frame, or a detachment, which has no mark and ends the chain.</summary>
     internal sealed class Frame : IDisposable
     {
+        private const int Entered = 0;
+        private const int Disposing = 1;
+        private const int Disposed = 2;
+
         private readonly Frame? _previous;
         private readonly Frame? _restore;
-        private Frame? _unwoundBy;
-        private int _disposed;
+        private int _state;
 
         private Frame(string basis, HighWaterMark? mark, Frame? previous, Frame? restore)
         {
@@ -137,7 +190,9 @@ public static class EgressSubject
         /// <summary>The subject's mark, or <see langword="null"/> for a detachment.</summary>
         internal HighWaterMark? Mark { get; }
 
-        private bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+        // Disposed only once its mark has been observed outward: a frame being disposed still counts as live, so a
+        // flow that decides meanwhile reads its mark, never an enclosing frame that does not hold it yet.
+        private bool IsDisposed => Volatile.Read(ref _state) == Disposed;
 
         // The frame a flow goes back to when this one, innermost there, is disposed: the frame it was entered under,
         // or for a detachment the caller's frame.
@@ -189,12 +244,15 @@ public static class EgressSubject
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            if (Interlocked.CompareExchange(ref _state, Disposing, Entered) != Entered)
                 return;
 
-            // What this subject read leaves with its output, so every enclosing subject has now read it too.
+            // What this subject read leaves with its output, so every enclosing subject has now read it too. Only then
+            // is the frame disposed, so no flow decides past it before its mark has left.
             if (Mark is not null)
                 ObserveInto(_previous, Mark.Current);
+
+            Volatile.Write(ref _state, Disposed);
 
             // Only the flow this frame is innermost on goes back, to where in-order using blocks would have left it.
             var active = Active.Value;
@@ -204,31 +262,42 @@ public static class EgressSubject
                 return;
             }
 
-            // Disposed out of order on this flow: when the frame just inside this one on the flow ends, the flow goes
-            // on past this one too. Nowhere else does it: the frame simply stops being the innermost one.
+            // Disposed out of order on this flow: when the frame just inside this one on the flow's restore path ends
+            // here, this flow goes on past this one too. The record is this flow's own: every other flow, among them a
+            // task started here earlier and the flow that entered this frame, stays inside it.
             for (var inside = active; inside is not null; inside = inside.Outer)
             {
                 if (ReferenceEquals(inside.Outer, this))
                 {
-                    Volatile.Write(ref _unwoundBy, inside);
+                    Skips.Value = Skip.Add(Skips.Value, inside, this);
                     break;
                 }
             }
         }
 
         // The frame a flow goes back to when `frame`, innermost there, is disposed: its outer frame, even when that one
-        // was disposed meanwhile, so a task started inside a parent frame stays inside it after a frame of its own
-        // ends and a frame it enters later still counts the parent's mark. The flow goes past an outer frame only when
-        // it was disposed out of order on a flow where `frame` was the frame just inside it, as in-order using blocks
-        // would have left that flow; so repeated out-of-order disposal on one flow keeps no chain of disposed frames.
+        // was disposed meanwhile, so a flow stays inside every frame it did not dispose itself and a frame it enters
+        // later still counts that frame's mark. The flow goes on past an outer frame only when this flow (or the flow
+        // that started this task, before starting it) disposed that frame out of order while `frame` was the frame
+        // just inside it, as in-order using blocks would have left it. The record is used up, so repeated
+        // out-of-order disposal on one flow keeps no chain of disposed frames and nothing stays reachable from it.
         private static Frame? Unwind(Frame frame)
         {
             var outer = frame.Outer;
-            while (outer is not null && ReferenceEquals(Volatile.Read(ref outer._unwoundBy), frame))
+            var skips = Skips.Value;
+            if (skips is null)
+                return outer;
+
+            var left = skips;
+            while (outer is not null && Skip.TryRemove(left, frame, outer, out var rest))
             {
+                left = rest;
                 frame = outer;
                 outer = frame.Outer;
             }
+
+            if (!ReferenceEquals(left, skips))
+                Skips.Value = left;
 
             return outer;
         }
