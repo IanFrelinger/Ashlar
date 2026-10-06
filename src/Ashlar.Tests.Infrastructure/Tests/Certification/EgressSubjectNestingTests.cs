@@ -150,6 +150,62 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
+    public async Task A_read_after_the_parent_frame_ended_still_reaches_a_sibling_task_entered_inside_it()
+    {
+        var observed = new SecurityLabel(SecurityLevel.Internal, ["OBSERVED"]);
+        var propagated = new SecurityLabel(SecurityLevel.Internal, ["PROPAGATED"]);
+        var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var readerObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var siblingDecided = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var readerDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task reader;
+        Task<(EgressDecision AfterObserve, EgressDecision AfterDispose)> sibling;
+
+        using (EgressSubject.Enter("sibling-parent", new HighWaterMark()))
+        {
+            // Two fire-and-forget tasks started inside the parent frame, which can share what its closure holds.
+            reader = Task.Run(async () =>
+            {
+                var readerMark = new HighWaterMark();
+                using (EgressSubject.Enter("sibling-reader", readerMark))
+                {
+                    await parentDisposed.Task.WaitAsync(Patience);
+                    EgressSubject.Observe(observed);
+                    readerObserved.SetResult();
+                    await siblingDecided.Task.WaitAsync(Patience);
+
+                    // Straight into the reader's own mark: only disposing its frame carries this one outward.
+                    readerMark.Observe(propagated);
+                }
+
+                readerDisposed.SetResult();
+            });
+
+            sibling = Task.Run(async () =>
+            {
+                using (EgressSubject.Enter("sibling-egress", new HighWaterMark()))
+                {
+                    await readerObserved.Task.WaitAsync(Patience);
+                    var afterObserve = Decide(UnknownFamily);
+                    siblingDecided.SetResult();
+                    await readerDisposed.Task.WaitAsync(Patience);
+                    return (afterObserve, Decide(UnknownFamily));
+                }
+            });
+        }
+
+        parentDisposed.SetResult();
+        var (afterObserve, afterDispose) = await sibling.WaitAsync(Patience);
+        await reader.WaitAsync(Patience);
+
+        afterObserve.CurrentBasis.Should().Be(SubjectPrefix + "sibling-egress");
+        afterObserve.Current.Should().Be(
+            observed, "a read observed after the parent frame ended still raises it, and the sibling still counts it");
+        afterDispose.Current.Should().Be(
+            observed.Join(propagated), "a frame disposed after the parent ended still carries its mark into the parent");
+    }
+
+    [Fact]
     public void Disposing_a_frame_observes_its_mark_into_every_enclosing_live_frame()
     {
         var outerMark = new HighWaterMark();

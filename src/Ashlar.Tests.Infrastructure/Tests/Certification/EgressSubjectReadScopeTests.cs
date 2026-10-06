@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using FluentAssertions;
@@ -180,6 +181,72 @@ public sealed class EgressSubjectReadScopeTests
     }
 
     [Fact]
+    public async Task A_read_ended_on_a_flow_without_its_chain_still_raises_the_chain_it_was_begun_on()
+    {
+        var outerMark = new HighWaterMark();
+        var innerMark = new HighWaterMark();
+        var suppressedLabel = new SecurityLabel(SecurityLevel.Internal, ["SUPPRESSED"]);
+        var threadLabel = new SecurityLabel(SecurityLevel.Internal, ["THREAD"]);
+        var detachedLabel = new SecurityLabel(SecurityLevel.Internal, ["DETACHED"]);
+        var lateLabel = new SecurityLabel(SecurityLevel.Internal, ["LATE"]);
+
+        using (EgressSubject.Enter("read-offchain-outer", outerMark))
+        using (EgressSubject.Enter("read-offchain-inner", innerMark))
+        {
+            // 1. Ended in a task that does not inherit the execution context.
+            var suppressed = EgressSubject.BeginRead();
+            Task<EgressDecision> suppressedEnd;
+            using (ExecutionContext.SuppressFlow())
+            {
+                suppressedEnd = Task.Run(() =>
+                {
+                    var there = Decide(EgressFamilies.ModelMeai);
+                    suppressed.Report(suppressedLabel);
+                    suppressed.Complete();
+                    suppressed.Dispose();
+                    return there;
+                });
+            }
+
+            (await suppressedEnd.WaitAsync(Patience)).CurrentBasis.Should().Be(
+                NoSubject, "the task ran without the begin chain: no frame flowed into it");
+            innerMark.Current.Should().Be(suppressedLabel, "the scope observes into the chain it was begun on");
+            outerMark.Current.Should().Be(suppressedLabel, "every frame of that chain, not the ending flow's");
+
+            // 2. Ended on a new thread started without the execution context.
+            var threaded = EgressSubject.BeginRead();
+            EgressDecision? onThread = null;
+            var thread = new Thread(() =>
+            {
+                onThread = Decide(EgressFamilies.ModelMeai);
+                threaded.Report(threadLabel);
+                threaded.Complete();
+                threaded.Dispose();
+            });
+            thread.UnsafeStart();
+            thread.Join(Patience).Should().BeTrue("the thread ends the read");
+
+            onThread!.CurrentBasis.Should().Be(NoSubject, "the thread has no frame of its own");
+            outerMark.Current.Should().Be(suppressedLabel.Join(threadLabel));
+
+            // 3. Ended under a detachment on this flow, then reported late from there.
+            var detached = EgressSubject.BeginRead();
+            using (Detach())
+            {
+                Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject, "the detachment leaves every frame");
+                detached.Report(detachedLabel);
+                detached.Complete();
+                detached.Dispose();
+                detached.Report(lateLabel);
+            }
+
+            var expected = suppressedLabel.Join(threadLabel).Join(detachedLabel).Join(lateLabel);
+            innerMark.Current.Should().Be(expected, "a late report from a flow without the chain still reaches it");
+            outerMark.Current.Should().Be(expected);
+        }
+    }
+
+    [Fact]
     public void A_report_after_the_read_ended_is_never_lost()
     {
         var mark = new HighWaterMark();
@@ -239,6 +306,14 @@ public sealed class EgressSubjectReadScopeTests
 
         using var scope = EgressSubject.BeginRead();
         ((Action)(() => scope.Report(null!))).Should().Throw<ArgumentNullException>().WithParameterName("label");
+    }
+
+    /// <summary>The internal <c>EgressSubject.Detach</c>, by reflection, as <see cref="EgressSubjectDetachTests"/> reaches it.</summary>
+    private static IDisposable Detach()
+    {
+        var method = typeof(EgressSubject).GetMethod("Detach", BindingFlags.NonPublic | BindingFlags.Static, binder: null, Type.EmptyTypes, modifiers: null);
+        method.Should().NotBeNull("EgressSubject.Detach is the internal, raise-only way to leave every frame (SPEC-007 PR 4.4)");
+        return (IDisposable)method!.Invoke(null, null)!;
     }
 
     private static EgressDecision Decide(string family) =>
