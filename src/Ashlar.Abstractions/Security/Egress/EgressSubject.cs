@@ -191,7 +191,8 @@ public static class EgressSubject
         internal HighWaterMark? Mark { get; }
 
         // Disposed only once its mark has been observed outward: a frame being disposed still counts as live, so a
-        // flow that decides meanwhile reads its mark, never an enclosing frame that does not hold it yet.
+        // decision made meanwhile names it as the innermost live frame, never an enclosing frame that does not hold
+        // its mark yet. (The label does not depend on it: Resolve reads a disposed frame's mark too.)
         private bool IsDisposed => Volatile.Read(ref _state) == Disposed;
 
         // The frame a flow goes back to when this one, innermost there, is disposed: the frame it was entered under,
@@ -214,19 +215,22 @@ public static class EgressSubject
             return frame;
         }
 
-        // The innermost live subject frame's mark joined with the mark of every subject frame it was entered inside,
-        // live or disposed, up to the end of the chain or a detachment; with the innermost frame's basis. A frame
-        // disposed above a live one still counts, so ending an enclosing scope first never declassifies a frame (or
-        // a task) still running inside it. A disposed frame below the innermost live one has already observed its
-        // mark into that one.
+        // The join of the mark of every subject frame on the chain, live or disposed, from its head to the end of the
+        // chain or a detachment, with the basis of the innermost live frame; no subject if there is no live frame or it
+        // is a detachment. A disposed frame is read as its mark is now, not as it was observed into the frames around
+        // it when it ended: a flow that did not dispose it stays inside it (Unwind), also with no live frame of its own
+        // above the nearest live one, so ending an enclosing scope first never declassifies a frame or a task still
+        // running inside it, and what the ended frame's mark rises to afterwards still counts there.
         internal static (SecurityLabel Current, string Basis) Resolve(Frame? chain)
         {
             var innermost = Live(chain);
             if (innermost?.Mark is null)
                 return (SecurityLabel.SystemHigh, NoSubjectBasis);
 
-            var current = innermost.Mark.Current;
-            for (var frame = innermost._previous; frame?.Mark is not null; frame = frame._previous)
+            // Every frame from the chain's head to the innermost live one is a subject frame (Live would have stopped
+            // at a detachment), so the walk reaches it and goes on below it.
+            var current = SecurityLabel.Public;
+            for (var frame = chain; frame?.Mark is not null; frame = frame._previous)
                 current = current.Join(frame.Mark.Current);
 
             return (current, innermost.Basis);
@@ -248,7 +252,7 @@ public static class EgressSubject
                 return;
 
             // What this subject read leaves with its output, so every enclosing subject has now read it too. Only then
-            // is the frame disposed, so no flow decides past it before its mark has left.
+            // is the frame disposed, so no decision names a frame outside it before its mark has left.
             if (Mark is not null)
                 ObserveInto(_previous, Mark.Current);
 
