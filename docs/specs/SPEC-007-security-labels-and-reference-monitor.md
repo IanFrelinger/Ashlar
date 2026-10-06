@@ -57,9 +57,9 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.3 redirects;
   - 4.4 frame semantics: monotone nesting, `Observe`, read scopes;
   - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
-    `EgressSubject.Enter` is a `using` on the flow that enters it, disposed in order, since a flow that disposes
-    frames out of order stays inside the outer one (its chain grows with each repetition, and what it reads later
-    raises the subject's shared mark);
+    `EgressSubject.Enter` is a `using` on the flow that enters it (never inside an async helper, whose frame does not
+    reach the flow that awaits it), disposed in order, since a flow that disposes frames out of order stays inside the
+    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark);
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;

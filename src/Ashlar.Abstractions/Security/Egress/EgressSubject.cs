@@ -18,10 +18,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// and reports a label for everything it returned, the scope observes <see cref="SecurityLabel.SystemHigh"/> when it
 /// ends (<see cref="ReadScope"/>). <see cref="Observe"/> only raises: it never satisfies a read scope.</para>
 /// <para><b>Leaving a frame.</b> The frame lives in an <see cref="AsyncLocal{T}"/>, so it flows into awaits and tasks
-/// started inside it and never back out to the caller. A flow leaves a frame only by disposing the frame that is its
-/// own innermost one, and then goes back to exactly the frame that one was entered under, also after an await and also
-/// when that frame has ended meanwhile. Disposing a frame anywhere else moves no flow: every flow inside it stays inside
-/// it. Disposing twice does nothing. So <c>using</c> blocks on one flow end where they began.</para>
+/// started inside it and never back out to the caller: a frame entered inside an async method is not on the flow that
+/// awaits it. A flow leaves a frame only by disposing the frame that is its own innermost one, and then goes back to
+/// exactly the frame that one was entered under, also after an await and also when that frame has ended meanwhile.
+/// Disposing a frame anywhere else moves no flow: every flow inside it stays inside it. Disposing twice does nothing.
+/// So <c>using</c> blocks on one flow end where they began.</para>
 /// <para><b>Disposed frames still count.</b> A disposed frame is never the innermost one, so it never names a
 /// decision: a flow whose own frame was disposed, such as a task that captured it and outlives the scope, decides
 /// with the basis of the nearest live frame it was entered inside, or at <c>no-subject</c> if there is none. But a
@@ -39,11 +40,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// frame it disposed: a frame it enters later joins that frame's mark, and repeated in a loop the flow's chain grows by
 /// one frame per repetition, which every later decision on the flow walks. That costs availability, not
 /// confidentiality. (b) Anything such a flow reads later raises the mark of the frame it stayed inside, which is the
-/// subject's shared <see cref="HighWaterMark"/>, so unrelated later work can raise the label of another session of
-/// that subject. The same holds for a task or thread, which keeps the frames it inherited, ended or not, for as long as
-/// it runs, and for a flow whose frame was disposed on another flow, as by <c>await Task.Run(scope.Dispose)</c>, by a
-/// background task, or from a thread started without the execution context. None of this happens to a frame entered
-/// and disposed in a <c>using</c> block on the flow that entered it.</para>
+/// subject's shared <see cref="HighWaterMark"/>, so unrelated later work can raise the label of another session of that
+/// subject. The same holds for a task or thread, which keeps the frames it inherited, ended or not, for as long as it
+/// runs, and for a flow whose frame was disposed on another flow, as by <c>await Task.Run(scope.Dispose)</c>, inside an
+/// async method it awaits, by a background task, or from a thread started without the execution context. None of this
+/// happens to a frame entered and disposed in a <c>using</c> block on the flow that entered it.</para>
 /// <para>Entering a frame can lower the current label only from SystemHigh, where there is no subject, to the join
 /// of the marks on the chain; a producer must therefore observe every read before the egress it governs.</para>
 /// </remarks>

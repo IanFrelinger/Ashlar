@@ -70,6 +70,7 @@ public sealed class EgressSubjectDetachTests
     private static readonly EgressGuard Guard = new("full");
 
     private static readonly SecurityLabel Internal = new(SecurityLevel.Internal);
+    private static readonly SecurityLabel Confidential = new(SecurityLevel.Confidential);
     private static readonly SecurityLabel Secret = new(SecurityLevel.Secret);
 
     [Fact]
@@ -323,6 +324,17 @@ public sealed class EgressSubjectDetachTests
                 late.CurrentBasis.Should().Be(SubjectPrefix + "dropped-late");
                 late.Current.Should().Be(Internal, "a frame entered afterwards is inside the caller's frame only");
             }
+
+            // And what the flow reads after the callback returned reaches the caller's frame, which it is back inside.
+            EgressSubject.Observe(Confidential);
+            using (var read = EgressSubject.BeginRead())
+            {
+                read.Report(Confidential);
+                read.Complete();
+            }
+
+            callerMark.Current.Should().Be(Confidential, "reads after the callback returned are the caller's reads");
+            Decide(EgressFamilies.ModelMeai).Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
         }
     }
 
