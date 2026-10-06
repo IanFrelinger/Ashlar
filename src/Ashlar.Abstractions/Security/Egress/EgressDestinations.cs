@@ -11,7 +11,10 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para>The first matching rule wins:</para>
 /// <list type="number">
 /// <item>URI scheme <c>unix</c> or <c>npipe</c>; host <c>localhost</c>, <c>*.localhost</c> or a loopback IP; or a
-/// name starting with <c>host:</c>: <see cref="EgressDestinationClass.Host"/>, SystemHigh.</item>
+/// name starting with <c>host:</c>: <see cref="EgressDestinationClass.Host"/>, SystemHigh. Never a <c>file</c> URI,
+/// whatever its host, and never a name starting with <c>file:</c> (in any case): such a name is a path, recorded as
+/// written and never read as a URL, so <c>file:</c> plus a path spelled <c>//127.0.0.1/…</c> is not a loopback URL. A
+/// file written to a share leaves the host, so it takes its family's class (SPEC-007 PR 4.1).</item>
 /// <item>Family <c>model.*</c>: <see cref="EgressDestinationClass.ExternalModel"/>, Internal.</item>
 /// <item>Family <c>web-search</c>: <see cref="EgressDestinationClass.WebSearch"/>, Confidential.</item>
 /// <item>Families a2a, grpc, mcp, http, http.factory, mesh.*, file.export, process, telemetry:
@@ -35,6 +38,12 @@ internal static class EgressDestinations
 
     /// <summary>The prefix of a destination name that declares a destination inside the host boundary.</summary>
     internal const string HostNamePrefix = "host:";
+
+    /// <summary>
+    /// The prefix, matched in any case, of a destination name that is a file path. Such a name is never read as a URL
+    /// and is never inside the host boundary.
+    /// </summary>
+    internal const string FileNamePrefix = "file:";
 
     /// <summary>The longest caller-supplied text a record keeps; longer text is cut and ends in <c>...</c>.</summary>
     internal const int MaxTextLength = 256;
@@ -176,13 +185,14 @@ internal static class EgressDestinations
         return builder.ToString();
     }
 
-    // scheme://host[:port] only. A relative URI names no host, so it cannot be classified.
+    // scheme://host[:port] only. A relative URI names no host, so it cannot be classified. A file URI is never inside
+    // the host boundary: file://localhost/share and file://127.0.0.1/E$ name a share, which leaves the host.
     private static string DescribeUri(Uri uri, out bool insideHost)
     {
         if (!uri.IsAbsoluteUri)
             throw new ArgumentException("A relative URI names no destination host.", nameof(uri));
 
-        insideHost = IsHostScheme(uri.Scheme) || IsLoopbackHost(uri.Host);
+        insideHost = !IsFileScheme(uri.Scheme) && (IsHostScheme(uri.Scheme) || IsLoopbackHost(uri.Host));
         return Bound(uri.GetComponents(UriComponents.SchemeAndServer, UriFormat.UriEscaped));
     }
 
@@ -197,6 +207,11 @@ internal static class EgressDestinations
             insideHost = true;
             return Bound(name);
         }
+
+        // A file: name is a path, recorded as written like every other file site's, and never read as a URL: "file:" plus
+        // a path spelled //127.0.0.1/... would otherwise parse with a loopback host and read as inside the host.
+        if (name.StartsWith(FileNamePrefix, StringComparison.OrdinalIgnoreCase))
+            return Bound(name);
 
         // A URL passed as a name is still a URL: classify and redact it as one, so a URL-shaped name cannot carry
         // a userinfo, path or query into a record.
@@ -304,6 +319,9 @@ internal static class EgressDestinations
         builder.Append(name, 0, separator).Append(SchemeSeparator).Append(UnparsedAuthority);
         return Bound(builder.ToString());
     }
+
+    private static bool IsFileScheme(string scheme) =>
+        string.Equals(scheme, "file", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsHostScheme(string scheme) =>
         string.Equals(scheme, "unix", StringComparison.OrdinalIgnoreCase)

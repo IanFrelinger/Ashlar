@@ -45,9 +45,9 @@ The status line above and the starting prompt are the owner's, as written; the s
 - **Gaps carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`). The `netstandard2.0` asset of
   `Ashlar.Abstractions` does not evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` goes out
   unevaluated. It has to be closed before the guard enforces. PR 3b adds two more (`docs/EgressInventory.md`):
-  redirects that the primary handler follows are not evaluated, and a few records can read Host for a remote peer
+  redirects that the primary handler follows are not evaluated, and a few records could read Host for a remote peer
   (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client, EG-MESH-07/08 with a
-  `//127.0.0.1/…` path).
+  `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no longer read Host.
 - **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
   enforcement on alone would therefore make `AirGapped` and `SecureWorkstation` host-only: every decision is made at
   `SystemHigh`, and the leak test would pass without a label causing the refusal. PR 4 ships as eleven small PRs, in
@@ -67,6 +67,11 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.11 the switch, which carries the §5 leak test.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
+- **PR 4.1** (#717) closes the third gap above, still report-only: mesh serve records `mesh-peer:<ip>`, never Host;
+  the MEAI layer records where the inner client dials, else Bedrock's region endpoint, else the fail-closed
+  `meai:<key>`; a `file:` destination is never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at
+  `https://ollama.com`; and the default MEAI Ollama client stops following redirects (a behaviour change).
+  `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
 
 ---
 

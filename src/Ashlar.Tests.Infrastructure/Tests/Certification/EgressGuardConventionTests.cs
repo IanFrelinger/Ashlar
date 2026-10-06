@@ -195,7 +195,9 @@ public sealed partial class EgressGuardConventionTests
     /// files) and two http.new occurrences, the MCP transport's EgressHttp client and a second construction in
     /// the gRPC channel handler, so 148 occurrences (http.new 18, of which 3 are the guard's own in
     /// <c>EgressHttp.cs</c>; http.param 22, http.register 12, sdk.client 9, socket 2, process 51, door 11,
-    /// telemetry 2, store 14, chat.register 7, banned 0). Set far enough below to survive ordinary deletions;
+    /// telemetry 2, store 14, chat.register 7, banned 0). PR 4.1 adds one http.new, the redirect-off
+    /// <c>HttpClientHandler</c> in <c>OllamaHttpChatClient.cs</c> (:170), and no production file, so 149 occurrences
+    /// (http.new 19, the other markers unchanged). Set far enough below to survive ordinary deletions;
     /// a scan that stops reading the tree falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
     private const int ScannedFilesFloor = 1000;

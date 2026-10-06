@@ -32,9 +32,9 @@ namespace Ashlar.Tests.CLI.Tests.Commands;
 /// or the <c>--store</c> directory), before the package is written there. The discovery loop decides once,
 /// before its sender exists: <c>udp://239.7.42.1:&lt;port&gt;</c> (NetworkExport) when it announces, and
 /// <c>host:listen-only</c> (Host) when it does not, so a node that never sends records nothing outside the host.
-/// <c>MeshServeService.PeerDestination</c> writes the peer as a URL host the guard can read (IPv4-mapped peers as
-/// IPv4, IPv6 in brackets), and a package served to a loopback peer records one Host decision, while a 404 records
-/// none.</para>
+/// <c>MeshServeService.PeerDestination</c> names the peer <c>mesh-peer:&lt;ip&gt;</c> (IPv4-mapped peers as IPv4), which
+/// the guard never reads as a URL, and a package served to a loopback peer records one NetworkExport decision
+/// (SPEC-007 PR 4.1; it was Host before), while a 404 records none.</para>
 /// <para><b>Isolation.</b> Each case enters its own <see cref="EgressSubject"/> frame and keeps only decisions
 /// whose basis is that frame, except the live serve case: the decision is made on Kestrel's request thread, where no
 /// frame flows, so it keeps decisions by site. The frame is an <c>AsyncLocal</c>, so it flows across <c>await</c>s
@@ -70,22 +70,34 @@ public sealed class EgressCliSiteTwinTests : IDisposable
     // EG-MESH-03: the peer a served package goes to
     // ---------------------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// SPEC-007 PR 4.1, gap 3: the peer is named <c>mesh-peer:&lt;ip&gt;</c>, which is never read as a URL, so its class
+    /// is the family's (a network export) whatever the IP. A loopback address is no evidence that the puller is on
+    /// this host: a local TLS terminator, <c>ssh -R</c> or a localhost tunnel delivers every remote puller as
+    /// loopback.
+    /// </summary>
     [Theory]
-    [InlineData(null, "tcp://unknown")]
-    [InlineData("::ffff:10.0.0.5", "tcp://10.0.0.5")]
-    [InlineData("::1", "tcp://[::1]")]
-    [InlineData("192.168.1.5", "tcp://192.168.1.5")]
-    [InlineData("127.0.0.1", "tcp://127.0.0.1")]
-    [InlineData("2001:db8::5", "tcp://[2001:db8::5]")]
-    public void PeerDestination_writes_the_peer_as_a_URL_host(string? address, string expected)
+    [InlineData(null, "mesh-peer:unknown")]
+    [InlineData("::ffff:10.0.0.5", "mesh-peer:10.0.0.5")]
+    [InlineData("::ffff:127.0.0.1", "mesh-peer:127.0.0.1")]
+    [InlineData("::1", "mesh-peer:::1")]
+    [InlineData("192.168.1.5", "mesh-peer:192.168.1.5")]
+    [InlineData("127.0.0.1", "mesh-peer:127.0.0.1")]
+    [InlineData("2001:db8::5", "mesh-peer:2001:db8::5")]
+    public void PeerDestination_names_the_peer_so_it_is_never_inside_the_host_boundary(string? address, string expected)
     {
         var ip = address is null ? null : IPAddress.Parse(address);
 
-        MeshServeService.PeerDestination(ip).Should().Be(expected);
+        var destination = MeshServeService.PeerDestination(ip);
+
+        destination.Should().Be(expected);
+        var decision = new EgressGuard("full").Evaluate(new EgressRequest(EgressFamilies.MeshServe, "EG-TWIN-1", destination));
+        decision.Destination.Should().Be(expected, "the name is recorded as written");
+        decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport, "'{0}' must not read as the host", address);
     }
 
     [Fact]
-    public async Task A_package_served_to_a_loopback_peer_records_one_Host_decision_and_a_404_records_none()
+    public async Task A_package_served_to_a_loopback_peer_records_one_NetworkExport_decision_and_a_404_records_none()
     {
         var published = Directory.CreateDirectory(Path.Combine(_dir, "published")).FullName;
         await File.WriteAllTextAsync(Path.Combine(published, "twin-abc123.ashpkg"), "{ \"twin\": true }");
@@ -107,8 +119,9 @@ public sealed class EgressCliSiteTwinTests : IDisposable
             body.Should().Contain("twin", "the guard records; it does not change what is served");
             var decision = sink.Seen.Should().ContainSingle().Which;
             decision.Family.Should().Be(EgressFamilies.MeshServe);
-            decision.Destination.Should().Be("tcp://127.0.0.1");
-            decision.DestinationClass.Should().Be(EgressDestinationClass.Host);
+            decision.Destination.Should().Be("mesh-peer:127.0.0.1");
+            decision.DestinationClass.Should().Be(
+                EgressDestinationClass.NetworkExport, "a loopback puller may be a local proxy or tunnel for a remote one");
             decision.Fault.Should().BeNull();
         }
         finally

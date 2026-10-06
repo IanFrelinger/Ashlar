@@ -28,7 +28,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// and, for docker and docker-compose, from <c>DOCKER_HOST</c>, then a non-default <c>DOCKER_CONTEXT</c>, then the
 /// local daemon; a live run records exactly one decision. <c>SneakernetTransport.ExportAsync</c> (EG-MESH-08)
 /// records the file it actually writes, after the <c>.nxpkg</c> rewrite, and decides before that file exists.
-/// <c>FileBasedSharedAdaptationStore.BroadcastAsync</c> (EG-MESH-07) records the shared directory.
+/// <c>FileBasedSharedAdaptationStore.BroadcastAsync</c> (EG-MESH-07) records the shared directory. Since SPEC-007
+/// PR 4.1, both doors record a path spelled <c>//127.0.0.1/…</c> as written and by their family, never as Host.
 /// <c>ValidationServiceAdapter</c> (EG-PROC-02) reads its destination off the argv the real start-info builders
 /// produce: <c>dotnet build</c> restores (<c>nuget-feeds</c>) and <c>dotnet test --no-build</c> does not
 /// (<c>host:dotnet</c>), and both of its call sites record that destination when they run. The Tools.Dev runner
@@ -153,6 +154,53 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
         decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport);
     }
 
+    /// <summary>
+    /// SPEC-007 PR 4.1, gap 3: an export path spelled <c>//127.0.0.1/…</c> made <c>file:</c> plus the path a URL with
+    /// a loopback host, so EG-MESH-08 recorded it as Host. It is now recorded as written, by its family. The share
+    /// does not exist (on Linux the path is rooted at <c>/127.0.0.1</c>, which is absent), so the write after the
+    /// decision fails and nothing is written.
+    /// </summary>
+    [Fact]
+    public async Task SneakernetTransport_records_a_loopback_spelled_export_path_by_its_family_not_as_Host()
+    {
+        var target = "//127.0.0.1/egress-twin-" + Guid.NewGuid().ToString("N") + "/mesh-export";
+        var transport = new SneakernetTransport(new EmptySync());
+        using var observed = Observe();
+
+        await FluentActions.Awaiting(() => transport.ExportAsync(target)).Should().ThrowAsync<Exception>(
+            "the share does not exist, so the write after the decision fails");
+
+        var decision = observed.Sink.Seen.Should().ContainSingle().Which;
+        decision.Site.Should().Be("EG-MESH-08");
+        decision.Family.Should().Be(EgressFamilies.FileExport);
+        decision.Destination.Should().Be("file:" + Path.ChangeExtension(target, ".nxpkg"));
+        decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport);
+    }
+
+    /// <summary>
+    /// SPEC-007 PR 4.1, gap 3: a shared directory spelled <c>//127.0.0.1/…</c> was recorded by EG-MESH-07 as Host. It
+    /// is now recorded as written, by its family. The entry's id holds a NUL, which no file system accepts, so the
+    /// directory creation after the decision throws and nothing is created anywhere.
+    /// </summary>
+    [Fact]
+    public async Task FileBasedSharedAdaptationStore_records_a_loopback_spelled_shared_path_by_its_family_not_as_Host()
+    {
+        var shared = "//127.0.0.1/egress-twin-" + Guid.NewGuid().ToString("N");
+        var store = new FileBasedSharedAdaptationStore(
+            shared, new NoOpAdaptationLog(), new PassingRegressionRunner(), new PermissiveImmutableCore());
+        using var observed = Observe();
+        var entry = Entry(id: "twin\0nul");
+
+        await FluentActions.Awaiting(() => store.BroadcastAsync(entry)).Should().ThrowAsync<ArgumentException>(
+            "a NUL in the path is refused before anything is created");
+
+        var decision = observed.Sink.Seen.Should().ContainSingle().Which;
+        decision.Site.Should().Be("EG-MESH-07");
+        decision.Family.Should().Be(EgressFamilies.MeshPublish);
+        decision.Destination.Should().Be("file:" + shared);
+        decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport);
+    }
+
     [Fact]
     public async Task FileBasedSharedAdaptationStore_records_the_attempt_even_when_the_broadcast_is_refused()
     {
@@ -264,13 +312,16 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
     [InlineData(EgressFamilies.FileExport, "file:/home/u/out/pkg.ashpkg", "file:/home/u/out/pkg.ashpkg", EgressDestinationClass.NetworkExport)]
     [InlineData(EgressFamilies.MeshPublish, "file:/home/u/.ashlar/mesh/published", "file:/home/u/.ashlar/mesh/published", EgressDestinationClass.NetworkExport)]
     [InlineData(EgressFamilies.MeshPublish, @"file:\\server\share\published", @"file:\\server\share\published", EgressDestinationClass.NetworkExport)]
-    [InlineData(EgressFamilies.MeshServe, "tcp://127.0.0.1", "tcp://127.0.0.1", EgressDestinationClass.Host)]
-    [InlineData(EgressFamilies.MeshServe, "tcp://[::1]", "tcp://[::1]", EgressDestinationClass.Host)]
-    [InlineData(EgressFamilies.MeshServe, "tcp://192.168.1.5", "tcp://192.168.1.5", EgressDestinationClass.NetworkExport)]
-    [InlineData(EgressFamilies.MeshServe, "tcp://10.0.0.5", "tcp://10.0.0.5", EgressDestinationClass.NetworkExport)]
-    [InlineData(EgressFamilies.MeshServe, "tcp://unknown", "tcp://unknown", EgressDestinationClass.NetworkExport)]
-    // Why MeshServeService.PeerDestination maps an IPv4-mapped peer to IPv4: unbracketed, it does not parse.
-    [InlineData(EgressFamilies.MeshServe, "tcp://::ffff:10.0.0.5", "tcp://<unparsed>", EgressDestinationClass.NetworkExport)]
+    // The file shapes a //host/share path gives (SPEC-007 PR 4.1): a file: name is a path, never a URL.
+    [InlineData(EgressFamilies.FileExport, "file://127.0.0.1/E$/out.nxpkg", "file://127.0.0.1/E$/out.nxpkg", EgressDestinationClass.NetworkExport)]
+    [InlineData(EgressFamilies.MeshPublish, "file://localhost/share", "file://localhost/share", EgressDestinationClass.NetworkExport)]
+    // MeshServeService.PeerDestination (SPEC-007 PR 4.1): mesh-peer:<ip> is never a URL, so the class is the
+    // family's whatever the IP, a loopback peer included (it may be a local proxy or tunnel).
+    [InlineData(EgressFamilies.MeshServe, "mesh-peer:127.0.0.1", "mesh-peer:127.0.0.1", EgressDestinationClass.NetworkExport)]
+    [InlineData(EgressFamilies.MeshServe, "mesh-peer:::1", "mesh-peer:::1", EgressDestinationClass.NetworkExport)]
+    [InlineData(EgressFamilies.MeshServe, "mesh-peer:192.168.1.5", "mesh-peer:192.168.1.5", EgressDestinationClass.NetworkExport)]
+    [InlineData(EgressFamilies.MeshServe, "mesh-peer:10.0.0.5", "mesh-peer:10.0.0.5", EgressDestinationClass.NetworkExport)]
+    [InlineData(EgressFamilies.MeshServe, "mesh-peer:unknown", "mesh-peer:unknown", EgressDestinationClass.NetworkExport)]
     [InlineData(EgressFamilies.MeshDiscovery, "udp://239.7.42.1:7421", "udp://239.7.42.1:7421", EgressDestinationClass.NetworkExport)]
     [InlineData(EgressFamilies.MeshDiscovery, "host:listen-only", "host:listen-only", EgressDestinationClass.Host)]
     [InlineData(EgressFamilies.Process, "nuget-feeds", "nuget-feeds", EgressDestinationClass.NetworkExport)]
@@ -350,9 +401,9 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
         return (Task<T>)runner!.Invoke(null, args)!;
     }
 
-    private static SharedAdaptationEntry Entry(string path = "src/Fix.cs") => new()
+    private static SharedAdaptationEntry Entry(string path = "src/Fix.cs", string? id = null) => new()
     {
-        Id = "adapt-" + Guid.NewGuid().ToString("N")[..8],
+        Id = id ?? "adapt-" + Guid.NewGuid().ToString("N")[..8],
         Record = new AdaptationRecord
         {
             Id = "rec",

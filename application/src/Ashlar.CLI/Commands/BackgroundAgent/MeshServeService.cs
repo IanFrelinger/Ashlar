@@ -320,23 +320,28 @@ public sealed class MeshServeService : BackgroundService
     }
 
     /// <summary>
-    /// The peer a served package goes to, for the egress decision record: <c>tcp://&lt;remote ip&gt;</c>, an
-    /// IPv4-mapped address written as IPv4 and an IPv6 address in brackets, so the guard reads it as a URL host
-    /// and a loopback peer as inside the host. Never throws; a connection with no remote address is
-    /// <c>tcp://unknown</c>.
+    /// The peer a served package goes to, for the egress decision record: <c>mesh-peer:&lt;remote ip&gt;</c>, an
+    /// IPv4-mapped address written as IPv4. The name holds no <c>://</c>, so the guard never reads it as a URL and
+    /// never puts a peer inside the host boundary, whatever the IP: the class is the family's, a network export
+    /// (SPEC-007 PR 4.1). A loopback address is no evidence that the puller is on this host, because a local TLS
+    /// terminator, <c>ssh -R</c> or a localhost tunnel delivers every remote puller as loopback, and with forwarded
+    /// headers on, a client's <c>X-Forwarded-For</c> sets the address. The IP stays in the text for the operator.
+    /// Never throws; a connection with no remote address is <c>mesh-peer:unknown</c>.
     /// </summary>
     internal static string PeerDestination(System.Net.IPAddress? ip)
     {
         if (ip is null)
         {
-            return "tcp://unknown";
+            return PeerPrefix + "unknown";
         }
         if (ip.IsIPv4MappedToIPv6)
         {
             ip = ip.MapToIPv4();
         }
-        return ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? $"tcp://[{ip}]" : $"tcp://{ip}";
+        return PeerPrefix + ip;
     }
+
+    private const string PeerPrefix = "mesh-peer:";
 
     /// <summary>
     /// The packages this node will actually serve, with the size it will actually serve them at.

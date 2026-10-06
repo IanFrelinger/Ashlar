@@ -3,13 +3,22 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 
 namespace Ashlar.Infrastructure.Execution.Ollama;
 
 /// <summary>Ollama provider.</summary>
+/// <remarks>
+/// SPEC-007 PR 4.1: a model whose id ends in <c>-cloud</c> or <c>:cloud</c>, in any case, runs on ollama.com, relayed by
+/// the local daemon. Before such a chat is sent, one more report-only egress decision is recorded (EG-MDL-07): an
+/// external model at <c>https://ollama.com</c>. The client's own guard handler still records the send to the daemon.
+/// </remarks>
 public sealed class OllamaProvider
 {
+    /// <summary>Where Ollama runs a <c>-cloud</c> or <c>:cloud</c> model.</summary>
+    private static readonly Uri OllamaCloud = new("https://ollama.com");
+
     private readonly HttpClient _httpClient;
     private readonly ILogger? _logger;
     private readonly object _manifestLock = new();
@@ -229,6 +238,12 @@ public sealed class OllamaProvider
                 "Model validation failed before Ollama execution."));
         }
 
+        if (IsOllamaCloudModel(requestedModel) || IsOllamaCloudModel(validationResult.Value.Name))
+        {
+            // SPEC-007 EG-MDL-07, report-only: the local daemon relays a cloud model's prompt to ollama.com.
+            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, "EG-MDL-07", OllamaCloud));
+        }
+
         var json = BuildChatPayload(validationResult.Value.Name, systemPrompt, userPrompt, imageBytesList);
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/chat")
         {
@@ -279,6 +294,21 @@ public sealed class OllamaProvider
                 "OLLAMA_CHAT_INVALID_JSON",
                 $"Failed to parse Ollama /api/chat response: {ex.Message}"));
         }
+    }
+
+    /// <summary>
+    /// <see langword="true"/> when <paramref name="modelId"/>, trimmed, ends in <c>-cloud</c> or <c>:cloud</c>,
+    /// ignoring case: Ollama's naming for a model the local daemon relays to ollama.com. The MEAI route applies the
+    /// same rule in <c>EgressGuardChatClient</c>.
+    /// </summary>
+    internal static bool IsOllamaCloudModel(string? modelId)
+    {
+        if (string.IsNullOrWhiteSpace(modelId))
+            return false;
+
+        var id = modelId.Trim();
+        return id.EndsWith("-cloud", StringComparison.OrdinalIgnoreCase)
+            || id.EndsWith(":cloud", StringComparison.OrdinalIgnoreCase);
     }
 
     private static OllamaModelManifest[] ParseManifest(JsonElement root)
