@@ -202,7 +202,10 @@ public sealed partial class EgressGuardConventionTests
     /// adds the netstandard2.0 synchronous-send hop and its <c>HttpMessageInvoker</c>: 2,134 files, 150 occurrences
     /// (http.new 20, of which 4 are the guard's own, pinned <c>Exempt:GuardImpl</c>). SPEC-007 PR 4.4 adds one file
     /// with no outbound path, <c>ReadScope.cs</c>: 2,135 files, 150 occurrences, as measured in the devtest container
-    /// with all four merged. Set far enough below to survive ordinary deletions; a scan that stops reading the tree
+    /// with all four merged. SPEC-007 PR 4.10 adds four files with no outbound path (<c>ResolvedDeploymentProfile.cs</c>,
+    /// <c>LoopbackListenerPolicy.cs</c>, <c>AshlarServiceCollectionExtensions.AirGapped.cs</c>,
+    /// <c>LoopbackListenerVerifier.cs</c>): 2,139 files, 150 occurrences (every marker unchanged), measured in the devtest
+    /// container on that PR. Set far enough below to survive ordinary deletions; a scan that stops reading the tree
     /// falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
     private const int ScannedFilesFloor = 1000;
