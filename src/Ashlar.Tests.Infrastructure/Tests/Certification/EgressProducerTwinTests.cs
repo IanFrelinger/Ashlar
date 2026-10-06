@@ -283,7 +283,10 @@ public sealed class EgressProducerTwinTests
         var run = await RunAgentAsync(new RAGTool(rag, sensitivityRegistry: registry));
 
         run.Mark.Current.Should().Be(
-            SecurityLabel.SystemHigh, "only the five canonical names are mapped; a custom level fails closed (the owner's answer to Q8); level {0} at {1}", name, value);
+            SecurityLabel.SystemHigh,
+            "only the five canonical names are mapped; a custom level fails closed (D15, kept by the owner's decision of 2026-10-06: Q8's C3 normalisation is for the first producer that labels custom-level data on purpose, not RAG in PR 4); level {0} at {1}",
+            name,
+            value);
     }
 
     public static TheoryData<string, bool> NonAsciiTierNames() => new()

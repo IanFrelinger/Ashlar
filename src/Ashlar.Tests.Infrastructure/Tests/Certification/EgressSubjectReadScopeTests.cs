@@ -533,7 +533,7 @@ public sealed class EgressSubjectReadScopeTests
     }
 
     [Fact]
-    public void A_decision_inside_an_open_read_is_named_by_the_nearest_live_subject_frame_never_by_the_read()
+    public async Task A_decision_inside_an_open_read_is_named_by_the_nearest_live_subject_frame_never_by_the_read()
     {
         // Inside a subject frame: the subject names it, at SystemHigh.
         using (EgressSubject.Enter("read-basis-outer", new HighWaterMark()))
@@ -552,7 +552,7 @@ public sealed class EgressSubjectReadScopeTests
             }
 
             // Work created inside the read, with no frame of its own, is named by the subject too.
-            var task = Task.Run(() => Decide(EgressFamilies.ModelMeai)).GetAwaiter().GetResult();
+            var task = await Task.Run(() => Decide(EgressFamilies.ModelMeai));
             task.CurrentBasis.Should().Be(SubjectPrefix + "read-basis-outer");
             task.Current.Should().Be(SecurityLabel.SystemHigh);
 
