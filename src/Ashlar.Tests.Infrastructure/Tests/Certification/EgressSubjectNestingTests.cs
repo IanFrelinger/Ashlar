@@ -267,52 +267,63 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
-    public async Task Frames_disposed_out_of_order_on_one_flow_unwind_as_in_order_using_blocks_would()
+    public async Task A_flow_that_disposes_its_frames_out_of_order_stays_inside_the_outer_frame_it_disposed()
     {
-        var outer = EgressSubject.Enter("unwind-outer", new HighWaterMark(Secret));
-        var inner = EgressSubject.Enter("unwind-inner", new HighWaterMark());
-        outer.Dispose();
-        inner.Dispose();
+        RestorePathLength().Should().Be(0, "the test starts with no frame");
+        var outer = EgressSubject.Enter("stay-outer", new HighWaterMark(Secret));
+        var inner = EgressSubject.Enter("stay-inner", new HighWaterMark());
+        outer.Dispose(); // Out of order: the inner frame is this flow's head, so the flow stays where it is.
+        inner.Dispose(); // Its own head: back to exactly the frame it was entered under, the disposed outer one.
 
-        Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject);
-        using (EgressSubject.Enter("unwind-after", new HighWaterMark()))
+        RestorePathLength().Should().Be(1, "the flow left only the frame that was its head, so it is still in the outer frame");
+        var none = Decide(EgressFamilies.ModelMeai);
+        none.CurrentBasis.Should().Be(NoSubject, "a disposed frame is never the innermost one");
+        none.Current.Should().Be(SecurityLabel.SystemHigh);
+        using (EgressSubject.Enter("stay-after", new HighWaterMark()))
         {
-            var after = Decide(UnknownFamily);
-            after.CurrentBasis.Should().Be(SubjectPrefix + "unwind-after");
+            var after = Decide(EgressFamilies.ModelMeai);
+            after.CurrentBasis.Should().Be(SubjectPrefix + "stay-after");
             after.Current.Should().Be(
-                SecurityLabel.Public,
-                "this flow disposed both frames, so it unwinds past the outer one as in-order using blocks would, and a frame entered afterwards is inside neither");
+                Secret,
+                "this flow never left the outer frame, since that one was not its head when it was disposed, so a frame entered afterwards joins its mark (fail closed)");
+            after.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
         }
 
-        // The same in an async loop, whose flow is never restored between iterations: no chain builds up.
+        // The same in an async loop, whose flow is never restored between iterations: each iteration leaves its outer
+        // frame on the flow, so the flow's chain grows by exactly one frame per iteration and every mark on it counts.
+        var held = Secret;
         for (var i = 0; i < 50; i++)
         {
-            var loopOuter = EgressSubject.Enter("unwind-loop-outer", new HighWaterMark(Secret));
-            var loopInner = EgressSubject.Enter("unwind-loop-inner", new HighWaterMark());
+            var read = new SecurityLabel(SecurityLevel.Internal, ["STAY-LOOP-" + i.ToString(CultureInfo.InvariantCulture)]);
+            var loopOuter = EgressSubject.Enter("stay-loop-outer", new HighWaterMark(read));
+            var loopInner = EgressSubject.Enter("stay-loop-inner", new HighWaterMark());
             loopOuter.Dispose();
             loopInner.Dispose();
             await Task.Yield();
 
-            using (EgressSubject.Enter("unwind-loop-probe", new HighWaterMark()))
-                Decide(UnknownFamily).Current.Should().Be(SecurityLabel.Public, "iteration {0} leaves no disposed frame behind", i);
+            held = held.Join(read);
+            RestorePathLength().Should().Be(i + 2, "iteration {0} leaves its outer frame on the flow, on top of the ones before", i);
+            using (EgressSubject.Enter("stay-loop-probe", new HighWaterMark()))
+                Decide(UnknownFamily).Current.Should().Be(held, "iteration {0}: every outer frame left on the flow still counts", i);
         }
 
         var enclosingMark = new HighWaterMark();
-        using (EgressSubject.Enter("unwind-enclosing", enclosingMark))
-        {
-            var nestedOuter = EgressSubject.Enter("unwind-nested-outer", new HighWaterMark(Secret));
-            var nestedInner = EgressSubject.Enter("unwind-nested-inner", new HighWaterMark());
-            nestedOuter.Dispose();
-            nestedInner.Dispose();
+        var enclosing = EgressSubject.Enter("stay-enclosing", enclosingMark);
+        var nestedOuter = EgressSubject.Enter("stay-nested-outer", new HighWaterMark(Secret));
+        var nestedInner = EgressSubject.Enter("stay-nested-inner", new HighWaterMark());
+        nestedOuter.Dispose();
+        nestedInner.Dispose();
 
-            var back = Decide(EgressFamilies.ModelMeai);
-            back.CurrentBasis.Should().Be(SubjectPrefix + "unwind-enclosing", "the flow is back in the frame both were entered inside");
-            back.Current.Should().Be(
-                Secret, "unwinding past the disposed frame loses nothing: its mark was observed into the enclosing frame");
-            back.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
-        }
+        RestorePathLength().Should().Be(53, "the disposed nested outer frame and the live enclosing frame, on the 51 frames before");
+        var back = Decide(EgressFamilies.ModelMeai);
+        back.CurrentBasis.Should().Be(SubjectPrefix + "stay-enclosing", "the nearest live frame on the chain names the decision");
+        back.Current.Should().Be(held, "the nested outer frame's mark reached the enclosing frame when it ended, and every frame below still counts");
+        back.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
 
-        Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject, "the enclosing frame's using restores this flow");
+        // The enclosing frame is not this flow's head, which is the disposed nested outer frame: the flow stays.
+        enclosing.Dispose();
+        RestorePathLength().Should().Be(53, "disposing a frame that is not the flow's head moves no flow");
+        Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject, "every frame on the chain is disposed");
     }
 
     [Fact]
@@ -341,7 +352,10 @@ public sealed class EgressSubjectNestingTests
         next.Dispose();
 
         using (EgressSubject.Enter("unwound-after", new HighWaterMark()))
-            Decide(UnknownFamily).Current.Should().Be(SecurityLabel.Public, "this flow disposed both, so it unwinds past the parent");
+        {
+            Decide(UnknownFamily).Current.Should().Be(
+                Secret, "the parent was not this flow's head when it was disposed, so the flow never left it (fail closed)");
+        }
 
         parentDisposed.SetResult();
         var (own, late) = await child.WaitAsync(Patience);
@@ -349,8 +363,32 @@ public sealed class EgressSubjectNestingTests
         own.CurrentBasis.Should().Be(SubjectPrefix + "unwound-child");
         own.Current.Should().Be(Secret, "the task was started inside the parent, which still counts for its frames");
         late.CurrentBasis.Should().Be(SubjectPrefix + "unwound-late");
+        late.Current.Should().Be(Secret, "the task's own frame ends back inside the parent, which the task never disposed");
+        late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+    }
+
+    [Fact]
+    public async Task A_task_started_after_an_out_of_order_dispose_stays_inside_the_frame_it_did_not_dispose()
+    {
+        var parent = EgressSubject.Enter("after-dispose-parent", new HighWaterMark(Secret));
+        var child = EgressSubject.Enter("after-dispose-child", new HighWaterMark());
+        parent.Dispose(); // Out of order on this flow: the child is its head.
+
+        // Started only after that dispose, and handed the child to end. This flow disposed the parent, the task did not.
+        var task = Task.Run(() =>
+        {
+            child.Dispose();
+            var noFrame = Decide(EgressFamilies.ModelMeai);
+            using (EgressSubject.Enter("after-dispose-late", new HighWaterMark()))
+                return (NoFrame: noFrame, Late: Decide(EgressFamilies.ModelMeai));
+        });
+        var (noFrame, late) = await task.WaitAsync(Patience);
+
+        noFrame.CurrentBasis.Should().Be(NoSubject, "the task's only frames have ended, and a disposed frame is never the innermost one");
+        noFrame.Current.Should().Be(SecurityLabel.SystemHigh);
+        late.CurrentBasis.Should().Be(SubjectPrefix + "after-dispose-late");
         late.Current.Should().Be(
-            Secret, "only the flow that disposed the parent out of order unwinds past it; the task's own frame ends back inside it");
+            Secret, "the task left only the child, its own head; the parent it never disposed still counts for a frame it enters afterwards");
         late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
     }
 
@@ -591,58 +629,56 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
-    public void Every_dispose_order_of_three_frames_on_one_flow_decides_as_in_order_using_blocks_would()
+    public async Task Every_dispose_order_of_three_frames_on_one_flow_leaves_only_the_head_it_disposes()
     {
         string[] names = ["orders-a", "orders-b", "orders-c"];
-        SecurityLabel[] labels =
-        [
-            new(SecurityLevel.Internal, ["ORDER-A"]),
-            new(SecurityLevel.Internal, ["ORDER-B"]),
-            new(SecurityLevel.Internal, ["ORDER-C"]),
-        ];
-        var all = labels[0].Join(labels[1]).Join(labels[2]);
+        var model = new FlowModel();
         var failures = new List<string>();
+        var programs = 0;
 
-        // One synchronous flow for every order, so anything an order leaves behind shows in the next.
+        // One flow for every order, so anything an order leaves behind shows in the next, and the model must agree.
         foreach (var order in Permutations(3))
         {
-            var tag = string.Join(",", order.Select(i => names[i]));
-            using (EgressSubject.Enter("orders-enclosing", new HighWaterMark()))
+            var tag = $"[{programs++}: {string.Join(",", order.Select(i => names[i]))}]";
+            var enclosing = EgressSubject.Enter("orders-enclosing", new HighWaterMark());
+            var enclosingNode = model.Enter("orders-enclosing", SecurityLabel.Public);
+            var frames = new IDisposable[3];
+            var nodes = new FlowModel.Node[3];
+            for (var i = 0; i < 3; i++)
             {
-                var frames = new IDisposable[3];
-                for (var i = 0; i < 3; i++)
-                    frames[i] = EgressSubject.Enter(names[i], new HighWaterMark(labels[i]));
-
-                var live = new[] { true, true, true };
-                foreach (var k in order)
-                {
-                    frames[k].Dispose();
-                    live[k] = false;
-
-                    // In-order using blocks would leave the flow in the innermost frame not yet disposed.
-                    var innermost = Array.LastIndexOf(live, true);
-                    var basis = SubjectPrefix + (innermost < 0 ? "orders-enclosing" : names[innermost]);
-                    var decision = Decide(UnknownFamily);
-                    if (decision.CurrentBasis != basis || !decision.Current.Equals(all))
-                        failures.Add($"[{tag}] after {names[k]}: {decision.CurrentBasis} at {decision.Current}, not {basis} at {all}");
-                }
+                var label = new SecurityLabel(
+                    SecurityLevel.Internal, [$"ORDER-{i}-{programs.ToString(CultureInfo.InvariantCulture)}"]);
+                frames[i] = EgressSubject.Enter(names[i], new HighWaterMark(label));
+                nodes[i] = model.Enter(names[i], label);
             }
 
-            var after = Decide(UnknownFamily);
-            if (after.CurrentBasis != NoSubject)
-                failures.Add($"[{tag}] after the enclosing frame ended: {after.CurrentBasis}, not {NoSubject}");
+            foreach (var k in order)
+            {
+                frames[k].Dispose();
+                model.Dispose(nodes[k]);
+                failures.AddRange(model.Compare(Decide(UnknownFamily), RestorePathLength(), $"{tag} after {names[k]}"));
+            }
+
+            enclosing.Dispose();
+            model.Dispose(enclosingNode);
+            failures.AddRange(model.Compare(Decide(UnknownFamily), RestorePathLength(), $"{tag} after the enclosing frame"));
 
             using (EgressSubject.Enter("orders-fresh", new HighWaterMark()))
             {
-                var fresh = Decide(UnknownFamily);
-                if (!fresh.Current.Equals(SecurityLabel.Public))
-                    failures.Add($"[{tag}] a frame entered afterwards decides {fresh.Current}, not Public");
+                var fresh = model.Enter("orders-fresh", SecurityLabel.Public);
+                failures.AddRange(model.Compare(Decide(UnknownFamily), RestorePathLength(), $"{tag} in a frame entered afterwards"));
+                model.Dispose(fresh);
             }
+
+            await Task.Yield();
         }
 
         failures.Should().BeEmpty(
-            "a flow that disposes its own frames, in any order, ends where in-order using blocks would; every failure: {0}",
+            "a flow leaves a frame only by disposing its own head, and goes back to exactly the frame it was entered under; every failure: {0}",
             string.Join(" || ", failures));
+        RestorePathLength().Should().Be(
+            model.RestorePathLength, "every frame a flow disposed out of order stays on it, and the chain grows by those frames");
+        model.RestorePathLength.Should().Be(13, "the six orders leave 13 frames on the flow: growth is pinned, not hidden");
     }
 
     [Fact]
@@ -691,7 +727,7 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
-    public void An_unwound_frame_no_longer_keeps_the_frame_inside_it_reachable()
+    public void A_frame_disposed_out_of_order_keeps_no_frame_entered_inside_it_reachable()
     {
         // The pair outermost on this flow, then inside a live enclosing frame.
         var (outermostOuter, outermostInner) = EnterPairAndDispose(outOfOrder: true);
@@ -707,7 +743,7 @@ public sealed class EgressSubjectNestingTests
 
             inOrderInner.IsAlive.Should().BeFalse("the control: an in-order pair keeps nothing, so the collection did run");
             outermostInner.IsAlive.Should().BeFalse(
-                "once the flow has unwound past the outer frame, nothing keeps the inner frame or its mark reachable from it");
+                "the flow stays in the disposed outer frame, but nothing keeps the inner frame or its mark reachable from it");
             outOfOrderInner.IsAlive.Should().BeFalse("nor inside an enclosing frame");
             GC.KeepAlive(outermostOuter);
             GC.KeepAlive(outOfOrderOuter);
@@ -837,6 +873,27 @@ public sealed class EgressSubjectNestingTests
         }
 
         ((Action)(() => EgressSubject.Observe(null!))).Should().Throw<ArgumentNullException>().WithParameterName("label");
+    }
+
+    /// <summary>
+    /// How many frames this flow would go back through, its head first: each frame's restore target in turn (for a
+    /// subject frame the frame it was entered under, for a detachment the caller's frame). Read by reflection on the
+    /// internal <c>EgressSubject</c> state, as <see cref="ResolveOnThisFlow"/> reaches <c>Resolve</c>.
+    /// </summary>
+    internal static int RestorePathLength()
+    {
+        var active = typeof(EgressSubject).GetField("Active", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null);
+        active.Should().NotBeNull("EgressSubject.Active is the flow's frame");
+        var value = active!.GetType().GetProperty("Value")!;
+        var frame = typeof(EgressSubject).GetNestedType("Frame", BindingFlags.NonPublic);
+        frame.Should().NotBeNull("EgressSubject.Frame is the internal frame type");
+        var outer = frame!.GetProperty("Outer", BindingFlags.NonPublic | BindingFlags.Instance);
+        outer.Should().NotBeNull("EgressSubject.Frame.Outer is the frame a flow goes back to");
+
+        var length = 0;
+        for (var at = value.GetValue(active); at is not null; at = outer!.GetValue(at))
+            length++;
+        return length;
     }
 
     private static EgressDecision Decide(string family) =>
@@ -1018,8 +1075,8 @@ public sealed class EgressSubjectNestingTests
         }
     }
 
-    // Not inlined, so no local of the caller keeps the inner frame alive. The flow is inside a live enclosing frame,
-    // so an out-of-order pair unwinds past its outer frame to the enclosing one.
+    // Not inlined, so no local of the caller keeps the inner frame alive. Disposing an out-of-order pair leaves the flow
+    // in the disposed outer frame, which refers only to the frames it was entered inside.
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static (IDisposable Outer, WeakReference InnerMark) EnterPairAndDispose(bool outOfOrder)
     {
@@ -1032,5 +1089,92 @@ public sealed class EgressSubjectNestingTests
         inner.Dispose();
         outer.Dispose();
         return (outer, new WeakReference(innerMark));
+    }
+
+    /// <summary>
+    /// A model of one flow under the frame rule: a flow leaves a frame only by disposing the frame that is its own head,
+    /// which goes back to exactly the frame that one was entered under (for a detachment, the caller's frame), disposed
+    /// or not. Disposing a subject frame raises every subject frame it was entered inside, up to a detachment; a decision
+    /// joins every subject frame from the head down to a detachment and names the nearest live one.
+    /// </summary>
+    internal sealed class FlowModel
+    {
+        private Node? _head;
+
+        internal int RestorePathLength
+        {
+            get
+            {
+                var length = 0;
+                for (var at = _head; at is not null; at = at.Outer)
+                    length++;
+                return length;
+            }
+        }
+
+        internal Node Enter(string name, SecurityLabel mark) => _head = new Node(name, mark, previous: _head, outer: _head);
+
+        internal Node Detach() => _head = new Node("a detachment", mark: null, previous: null, outer: _head);
+
+        internal void Dispose(Node node)
+        {
+            if (node.Disposed)
+                return;
+
+            if (node.Mark is not null)
+            {
+                for (var at = node.Previous; at?.Mark is not null; at = at.Previous)
+                    at.Mark = at.Mark.Join(node.Mark);
+            }
+
+            node.Disposed = true;
+            if (ReferenceEquals(_head, node))
+                _head = node.Outer;
+        }
+
+        /// <summary>Each difference between the real flow and the model after <paramref name="step"/>.</summary>
+        internal List<string> Compare(EgressDecision decision, int restorePathLength, string step)
+        {
+            var differences = new List<string>();
+            var innermost = _head;
+            while (innermost is { Disposed: true })
+                innermost = innermost.Previous;
+
+            var (basis, current) = (NoSubject, SecurityLabel.SystemHigh);
+            if (innermost?.Mark is not null)
+            {
+                basis = SubjectPrefix + innermost.Name;
+                current = SecurityLabel.Public;
+                for (var at = _head; at?.Mark is not null; at = at.Previous)
+                    current = current.Join(at.Mark);
+            }
+
+            if (decision.CurrentBasis != basis || !decision.Current.Equals(current))
+                differences.Add($"{step}: {decision.CurrentBasis} at {decision.Current}, not {basis} at {current}");
+            if (restorePathLength != RestorePathLength)
+                differences.Add($"{step}: {restorePathLength} frames on the flow's restore path, not {RestorePathLength}");
+            return differences;
+        }
+
+        internal sealed class Node
+        {
+            internal Node(string name, SecurityLabel? mark, Node? previous, Node? outer)
+            {
+                Name = name;
+                Mark = mark;
+                Previous = previous;
+                Outer = outer;
+            }
+
+            internal string Name { get; }
+
+            internal SecurityLabel? Mark { get; set; }
+
+            internal Node? Previous { get; }
+
+            internal Node? Outer { get; }
+
+            internal bool Disposed { get; set; }
+        }
     }
 }

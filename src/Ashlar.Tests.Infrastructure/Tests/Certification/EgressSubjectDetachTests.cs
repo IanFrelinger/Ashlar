@@ -241,105 +241,85 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
-    public void A_flow_that_disposes_its_own_detachment_out_of_order_goes_back_to_the_callers_frame()
+    public void A_flow_that_disposes_its_own_detachment_out_of_order_never_decides_below_the_callers_frame()
     {
-        var callerLabel = new SecurityLabel(SecurityLevel.Secret, ["DETACH-LOOP-CALLER"]);
+        var callerLabel = new SecurityLabel(SecurityLevel.Secret, ["DETACH-PROBE-CALLER"]);
         var callerMark = new HighWaterMark(callerLabel);
 
-        using (EgressSubject.Enter("detach-loop-caller", callerMark))
+        using (EgressSubject.Enter("detach-probe-caller", callerMark))
         {
-            // One synchronous flow, so anything an iteration leaves behind shows in the next.
-            for (var i = 0; i < 50; i++)
+            // The detachment's using ends while the frame entered under it is still this flow's head: out of order.
+            // Then that frame's using ends. This flow is back inside the caller's frame, which is live: nobody disposed it.
+            var detachment = Detach();
+            var detached = EgressSubject.Enter("detach-probe-detached", new HighWaterMark());
+            detachment.Dispose();
+            detached.Dispose();
+
+            var noFrame = Decide(UnknownFamily);
+            noFrame.Current.Dominates(callerLabel).Should().BeTrue(
+                "with no frame of its own the flow never decides below the live caller frame it is inside; it decided {0} at {1}",
+                noFrame.CurrentBasis,
+                noFrame.Current);
+
+            using (EgressSubject.Enter("detach-probe-late", new HighWaterMark()))
             {
-                var read = new SecurityLabel(SecurityLevel.Internal, ["DETACH-LOOP-" + i.ToString(CultureInfo.InvariantCulture)]);
-
-                // The detachment's using ends while the frame entered under it is still innermost: out of order.
-                var detachment = Detach();
-                var detached = EgressSubject.Enter("detach-loop-detached", new HighWaterMark(read));
-                detachment.Dispose();
-                detached.Dispose();
-
-                var back = Decide(UnknownFamily);
-                back.CurrentBasis.Should().Be(
-                    SubjectPrefix + "detach-loop-caller", "iteration {0}: this flow disposed both, so it is back in the caller's frame, as in-order using blocks would leave it", i);
-                back.Current.Should().Be(callerLabel, "iteration {0}: what was read under the detachment never reaches the caller", i);
-                using (EgressSubject.Enter("detach-loop-fresh", new HighWaterMark()))
-                {
-                    Decide(UnknownFamily).Current.Should().Be(
-                        callerLabel, "iteration {0}: a frame entered afterwards is still inside the live caller frame", i);
-                }
-
-                // A pair disposed out of order under a detachment, whose using then ends in order.
-                using (Detach())
-                {
-                    var outer = EgressSubject.Enter("detach-loop-outer", new HighWaterMark(read));
-                    var inner = EgressSubject.Enter("detach-loop-inner", new HighWaterMark());
-                    outer.Dispose();
-                    inner.Dispose();
-                    Decide(UnknownFamily).CurrentBasis.Should().Be(NoSubject, "iteration {0}: back under the detachment", i);
-                }
-
-                Decide(UnknownFamily).CurrentBasis.Should().Be(
-                    SubjectPrefix + "detach-loop-caller", "iteration {0}: the detachment's using restores the caller's frame", i);
+                var late = Decide(EgressFamilies.ModelMeai);
+                late.Current.Dominates(callerLabel).Should().BeTrue(
+                    "a frame entered afterwards is inside the live caller frame, which this flow never disposed, so it never decides below it; it decided {0} at {1}",
+                    late.CurrentBasis,
+                    late.Current);
             }
         }
-
-        callerMark.Current.Should().Be(callerLabel, "nothing read under a detachment reaches the caller's frames");
-        Decide(UnknownFamily).CurrentBasis.Should().Be(NoSubject, "the caller's using restores this flow");
     }
 
     [Fact]
-    public void Every_dispose_order_with_a_detachment_in_the_middle_decides_as_in_order_using_blocks_would()
+    public async Task Every_dispose_order_with_a_detachment_in_the_middle_leaves_only_the_head_it_disposes()
     {
-        var labelA = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-A"]);
-        var labelC = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-C"]);
         string[] names = ["detach-orders-a", "the detachment", "detach-orders-c"];
+        var model = new EgressSubjectNestingTests.FlowModel();
         var failures = new List<string>();
+        var programs = 0;
 
-        // One synchronous flow for every order, so anything an order leaves behind shows in the next.
+        // One flow for every order, so anything an order leaves behind shows in the next, and the model must agree.
         foreach (var order in Permutations(3))
         {
-            var tag = string.Join(",", order.Select(i => names[i]));
+            var tag = $"[{programs++}: {string.Join(",", order.Select(i => names[i]))}]";
+            var labelA = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-A-" + programs.ToString(CultureInfo.InvariantCulture)]);
+            var labelC = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-C-" + programs.ToString(CultureInfo.InvariantCulture)]);
             var enclosingMark = new HighWaterMark();
-            using (EgressSubject.Enter("detach-orders-enclosing", enclosingMark))
+            var enclosing = EgressSubject.Enter("detach-orders-enclosing", enclosingMark);
+            var enclosingNode = model.Enter("detach-orders-enclosing", SecurityLabel.Public);
+            var frames = new IDisposable[3];
+            var nodes = new EgressSubjectNestingTests.FlowModel.Node[3];
+            frames[0] = EgressSubject.Enter(names[0], new HighWaterMark(labelA));
+            nodes[0] = model.Enter(names[0], labelA);
+            frames[1] = Detach();
+            nodes[1] = model.Detach();
+            frames[2] = EgressSubject.Enter(names[2], new HighWaterMark(labelC));
+            nodes[2] = model.Enter(names[2], labelC);
+
+            foreach (var k in order)
             {
-                var frames = new IDisposable[3];
-                frames[0] = EgressSubject.Enter("detach-orders-a", new HighWaterMark(labelA));
-                frames[1] = Detach();
-                frames[2] = EgressSubject.Enter("detach-orders-c", new HighWaterMark(labelC));
-
-                var live = new[] { true, true, true };
-                foreach (var k in order)
-                {
-                    frames[k].Dispose();
-                    live[k] = false;
-
-                    // In-order using blocks would leave the flow in the innermost one not yet disposed. The detachment
-                    // ends C's chain, so C decides at its own mark; A's mark reached the enclosing frame when A ended.
-                    var (basis, current) = Array.LastIndexOf(live, true) switch
-                    {
-                        2 => (SubjectPrefix + "detach-orders-c", labelC),
-                        1 => (NoSubject, SecurityLabel.SystemHigh),
-                        0 => (SubjectPrefix + "detach-orders-a", labelA),
-                        _ => (SubjectPrefix + "detach-orders-enclosing", labelA),
-                    };
-                    var decision = Decide(UnknownFamily);
-                    if (decision.CurrentBasis != basis || !decision.Current.Equals(current))
-                        failures.Add($"[{tag}] after {names[k]}: {decision.CurrentBasis} at {decision.Current}, not {basis} at {current}");
-                }
-
-                if (!enclosingMark.Current.Equals(labelA))
-                    failures.Add($"[{tag}] the enclosing frame holds {enclosingMark.Current}, not {labelA}: what C read crossed the detachment");
+                frames[k].Dispose();
+                model.Dispose(nodes[k]);
+                failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after {names[k]}"));
             }
 
-            var after = Decide(UnknownFamily);
-            if (after.CurrentBasis != NoSubject)
-                failures.Add($"[{tag}] after the enclosing frame ended: {after.CurrentBasis}, not {NoSubject}");
+            if (enclosingMark.Current.Dominates(labelC))
+                failures.Add($"{tag} the enclosing frame holds {enclosingMark.Current}: what C read crossed the detachment");
+
+            enclosing.Dispose();
+            model.Dispose(enclosingNode);
+            failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after the enclosing frame"));
+            await Task.Yield();
         }
 
         failures.Should().BeEmpty(
-            "a flow that disposes its own frames and detachment, in any order, ends where in-order using blocks would; every failure: {0}",
+            "a flow leaves a frame or a detachment only by disposing its own head, and goes back to exactly its restore target; every failure: {0}",
             string.Join(" || ", failures));
+        EgressSubjectNestingTests.RestorePathLength().Should().Be(
+            model.RestorePathLength, "every frame and detachment a flow disposed out of order stays on it");
+        model.RestorePathLength.Should().Be(13, "the six orders leave 13 frames and detachments on the flow: growth is pinned, not hidden");
     }
 
     [Fact]
@@ -399,27 +379,35 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
-    public void Every_shape_and_dispose_order_of_four_frames_and_detachments_decides_as_in_order_using_blocks_would()
+    public async Task Every_shape_and_dispose_order_of_four_frames_and_detachments_leaves_only_the_head_it_disposes()
     {
+        var model = new EgressSubjectNestingTests.FlowModel();
         var failures = new List<string>();
         var programs = 0;
 
         // Each of four frames inside a live enclosing frame is a subject frame or a detachment (16 shapes), disposed in
-        // every order (24). One synchronous flow for every program, so anything a program leaves behind shows in the next.
+        // every order (24). One flow for every program, so anything a program leaves behind shows in the next, and the
+        // model of the rule must agree with it after every step.
         for (var shape = 0; shape < 16; shape++)
         {
             foreach (var order in Permutations(4))
             {
                 programs++;
-                failures.AddRange(RunShape(shape, order));
+                failures.AddRange(RunShape(model, shape, order));
             }
+
+            await Task.Yield();
         }
 
         programs.Should().Be(384);
         failures.Should().BeEmpty(
-            "a flow that disposes its own frames and detachments, in any order, ends where in-order using blocks would; {0} failures, the first: {1}",
+            "a flow leaves a frame or a detachment only by disposing its own head, and goes back to exactly its restore target; {0} failures, the first: {1}",
             failures.Count,
             string.Join(" || ", failures.Take(10)));
+        EgressSubjectNestingTests.RestorePathLength().Should().Be(
+            model.RestorePathLength, "every frame and detachment a flow disposed out of order stays on it");
+        model.RestorePathLength.Should().Be(
+            1248, "the 384 programs leave 1,248 frames and detachments on the flow: growth is pinned, not hidden");
     }
 
     [Fact]
@@ -471,61 +459,40 @@ public sealed class EgressSubjectDetachTests
         Guard.Evaluate(new EgressRequest(family, "twin:detach:" + Guid.NewGuid().ToString("N"), new Uri(Remote)));
 
     // Not async, so what it leaves on the flow stays there for the next program. Index 0 is the enclosing frame; 1 to 4
-    // are entered in turn inside it, a detachment where the shape's bit is set, and disposed in `order`. A model of
-    // in-order using blocks gives the decision expected after each dispose.
-    private static List<string> RunShape(int shape, int[] order)
+    // are entered in turn inside it, a detachment where the shape's bit is set, and disposed in `order`, then the
+    // enclosing frame, then a frame is entered and ended. The model gives the decision expected after each step.
+    private static List<string> RunShape(EgressSubjectNestingTests.FlowModel model, int shape, int[] order)
     {
         var detached = new bool[5];
-        var names = new string[5];
-        var marks = new SecurityLabel?[5];
         var scopes = new IDisposable[5];
+        var nodes = new EgressSubjectNestingTests.FlowModel.Node[5];
         for (var i = 0; i < 5; i++)
         {
             detached[i] = i > 0 && ((shape >> (i - 1)) & 1) == 1;
-            names[i] = detached[i] ? "a detachment" : "detach-shapes-" + i.ToString(CultureInfo.InvariantCulture);
-            marks[i] = detached[i] ? null : new SecurityLabel(SecurityLevel.Internal, ["DETACH-SHAPES-" + i.ToString(CultureInfo.InvariantCulture)]);
-            scopes[i] = detached[i] ? Detach() : EgressSubject.Enter(names[i], new HighWaterMark(marks[i]!));
+            var name = "detach-shapes-" + i.ToString(CultureInfo.InvariantCulture);
+            var mark = new SecurityLabel(SecurityLevel.Internal, ["DETACH-SHAPES-" + i.ToString(CultureInfo.InvariantCulture)]);
+            scopes[i] = detached[i] ? Detach() : EgressSubject.Enter(name, new HighWaterMark(mark));
+            nodes[i] = detached[i] ? model.Detach() : model.Enter(name, mark);
         }
 
         var tag = $"[{string.Concat(detached.Skip(1).Select(d => d ? 'D' : 'S'))} order {string.Join(",", order.Select(o => o + 1))}]";
         var failures = new List<string>();
-        var live = new[] { true, true, true, true, true };
         foreach (var k in order.Select(o => o + 1))
         {
             scopes[k].Dispose();
-            live[k] = false;
-
-            // A disposed subject frame's mark reaches every frame it was entered inside, up to a detachment.
-            for (var j = k - 1; !detached[k] && j >= 0 && !detached[j]; j--)
-                marks[j] = marks[j]!.Join(marks[k]!);
-
-            // In-order using blocks would leave the flow in the innermost one not yet disposed: no subject under a
-            // detachment, otherwise that frame's basis and the join of the marks down to a detachment.
-            var innermost = Array.LastIndexOf(live, true);
-            var basis = detached[innermost] ? NoSubject : SubjectPrefix + names[innermost];
-            var current = SecurityLabel.SystemHigh;
-            if (!detached[innermost])
-            {
-                current = marks[innermost]!;
-                for (var j = innermost - 1; j >= 0 && !detached[j]; j--)
-                    current = current.Join(marks[j]!);
-            }
-
-            var decision = Decide(UnknownFamily);
-            if (decision.CurrentBasis != basis || !decision.Current.Equals(current))
-                failures.Add($"{tag} after {k}: {decision.CurrentBasis} at {decision.Current}, not {basis} at {current}");
+            model.Dispose(nodes[k]);
+            failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after {k}"));
         }
 
         scopes[0].Dispose();
-        var after = Decide(UnknownFamily);
-        if (after.CurrentBasis != NoSubject)
-            failures.Add($"{tag} after the enclosing frame ended: {after.CurrentBasis}, not {NoSubject}");
+        model.Dispose(nodes[0]);
+        failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after the enclosing frame"));
 
         using (EgressSubject.Enter("detach-shapes-fresh", new HighWaterMark()))
         {
-            var fresh = Decide(UnknownFamily);
-            if (!fresh.Current.Equals(SecurityLabel.Public))
-                failures.Add($"{tag} a frame entered afterwards decides {fresh.Current}, not Public: a frame was left on the flow");
+            var fresh = model.Enter("detach-shapes-fresh", SecurityLabel.Public);
+            failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} in a frame entered afterwards"));
+            model.Dispose(fresh);
         }
 
         return failures;
