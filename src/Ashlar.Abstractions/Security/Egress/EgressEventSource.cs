@@ -12,13 +12,17 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <see cref="EventListener"/>.</para>
 /// <para>Every field is a string or a bool. The provider name, the event id and name, and the field names and
 /// order are a public contract that operators script against: append fields, never reorder or rename them.
-/// SPEC-007 PR 4.6 appended <c>modeBasis</c>, <c>refused</c> and <c>ref</c> after <c>fault</c>.</para>
+/// Appending fields bumps the event's <c>Version</c>, which ETW and TraceEvent consumers key their manifests on:
+/// SPEC-007 PR 4.6 appended <c>modeBasis</c>, <c>refused</c> and <c>ref</c> after <c>fault</c>, and set version 1.</para>
 /// </remarks>
 [EventSource(Name = SourceName)]
 internal sealed class EgressEventSource : EventSource
 {
     internal const string SourceName = "Ashlar-Egress";
     internal const int DecisionEventId = 1;
+
+    /// <summary>Event 1's version: 0 with the 3a fields, 1 since SPEC-007 PR 4.6 appended three.</summary>
+    internal const byte DecisionEventVersion = 1;
 
     internal static readonly EgressEventSource Log = new();
 
@@ -57,7 +61,7 @@ internal sealed class EgressEventSource : EventSource
             decision.Ref);
     }
 
-    [Event(DecisionEventId, Level = EventLevel.Informational)]
+    [Event(DecisionEventId, Level = EventLevel.Informational, Version = DecisionEventVersion)]
     public void Decision(
         string sequence,
         string at,

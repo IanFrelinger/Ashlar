@@ -61,15 +61,18 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
   - 4.10 `AirGapped` and `SecureWorkstation` hygiene (3a defects 3 and 5);
-  - 4.11 the switch, which carries the §5 leak test.
+  - 4.11 the switch, which carries the §5 leak test. Of the "never refuses" twins it flips,
+    `EgressGuardDecisionTests.An_explicit_profile_is_reported_and_does_not_change_the_decision` already has an
+    `enforce` row from 4.6 (an unrecognised profile fails closed); 4.11 flips its AirGapped and SecureWorkstation rows.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
 
   - **4.6 (this PR)**, mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
     `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once
     per process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every
-    profile still defaults to `report`. The strictest profile noted in the process wins, `AddAshlar` binds its own
-    guard in place of `ProcessDefault`, and tests restore that state through a reset seam. Nothing refuses yet.
+    profile still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
+    remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault`; tests restore that
+    state through a reset seam, whose callers a convention fact pins. Nothing refuses yet.
 
 ---
 

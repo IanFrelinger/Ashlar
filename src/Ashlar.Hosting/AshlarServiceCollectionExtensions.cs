@@ -98,7 +98,13 @@ public static partial class AshlarServiceCollectionExtensions
     /// <c>ASHLAR_OBSERVATION_FAIL_OPEN</c>, <c>ASHLAR_EPHEMERAL</c>,
     /// <c>ASHLAR_EPHEMERAL_MODELS</c>, <c>ASHLAR_EPHEMERAL_DB</c>,
     /// <c>ASHLAR_TRUST_ENABLED</c>, <c>ASHLAR_LOAD_PREFERENCE</c>,
-    /// <c>ASHLAR_EXECUTION_REMOTE_URL</c>, <c>ASHLAR_EGRESS_MODE</c> (read once per process).
+    /// <c>ASHLAR_EXECUTION_REMOTE_URL</c>.
+    /// </para>
+    /// <para>
+    /// It also composes the egress guard's mode (SPEC-007 PR 4), which is <c>report</c> on every profile; a mode
+    /// setting exists but is not yet supported. After <c>AddAshlar</c> has resolved AirGapped (or SecureWorkstation),
+    /// a later <c>AddAshlar</c> in the same process with a less strict profile does not lower the profile the
+    /// process notes: the remote-protocol validators, the egress guard and the container's own guard keep it.
     /// </para>
     /// </summary>
     public static IServiceCollection AddAshlar(

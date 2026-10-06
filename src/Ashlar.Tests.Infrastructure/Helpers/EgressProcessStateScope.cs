@@ -53,8 +53,10 @@ public sealed class EgressProcessStateScope : IDisposable
             .Invoke(null, [canonical]);
 
     /// <summary>
-    /// Sets the mode-resolution probe, which runs at the start of every mode resolution; a throwing probe makes the
-    /// resolution fault. Disposing the scope restores the previous probe.
+    /// Sets the mode-resolution probe, which runs at the start of every mode resolution, after the decision has read
+    /// its profile; a throwing probe makes the resolution fault. The probe is an <c>AsyncLocal</c>: it reaches only
+    /// decisions made on the calling flow and the tasks it starts, never a test running beside it. Disposing a scope
+    /// taken on the same flow restores the previous probe.
     /// </summary>
     /// <param name="probe">The probe, or <see langword="null"/>.</param>
     public static void SetModeResolutionProbe(Action? probe) =>

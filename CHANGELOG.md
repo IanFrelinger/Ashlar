@@ -188,31 +188,36 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     `override-ignored`, `profile:unrecognised` or `fault`), `Refused` (`Mode` is `enforce` and `Access`
     does not allow the egress) and `Ref` (a random 64-bit reference, 16 hex digits). `Mode` is now
     `report` or `enforce`. The `Ashlar-Egress` event 1 appends `modeBasis`, `refused` and `ref` after
-    `fault`; no field is renamed or reordered.
-  - `EgressGuard`'s constructor takes a second optional parameter, `egressMode`. A guard built with a
-    profile takes its override from the constructor only and never reads the environment.
-    `EgressGuard.ProcessDefault` reads its override from `ASHLAR_EGRESS_MODE` once per process (at
-    `AddAshlar`, or at its first decision), so a later change to the variable does nothing. `report`
-    and `enforce` are honoured on every profile; any other value, a profile that is none of the six,
-    and a fault while resolving the mode fail closed to `enforce`. The new
-    `AshlarHostingOptions.EgressMode` can only raise the mode, and is never bound from configuration.
-    Neither setting is supported yet.
+    `fault`, and its version goes from 0 to 1; no field is renamed or reordered.
+  - `EgressGuard`'s constructor takes a second optional parameter, `egressMode`, and
+    `AshlarHostingOptions` gains `EgressMode`, which can only raise the mode and is never bound from
+    configuration. A mode setting exists, but it is not supported yet. Every profile defaults to
+    `report`; an unreadable mode value, a profile that is none of the six, and a fault while resolving
+    the mode fail closed to `enforce`. A guard built with a profile never reads the environment.
+    `EgressGuard.ProcessDefault` reads the deployment profile once per decision and records the value
+    it resolved the mode from.
   - **`AddAshlar` registers its own guard.** `IEgressGuard` in an `AddAshlar` container is now a guard
-    built with the profile that `AddAshlar` resolved and the process's mode override, in place of
+    built with the strictest deployment profile noted in the process (the one `AddAshlar` resolved,
+    unless an earlier `AddAshlar` noted a stricter one) and the process's mode, in place of
     `EgressGuard.ProcessDefault`. Only a `ProcessDefault` registration is replaced, including one an
     `AddAshlarEgressGuard` call made before `AddAshlar`; a host's own guard is kept. `AddAshlar` also
     adds one hosted service, which logs the mode line at start (`Ashlar.Egress`, event 7302
     `EgressMode`), and a process whose mode is not plain `report` writes that line to standard error
     once.
-  - **Behaviour change: the strictest deployment profile noted in a process wins.** Once `AddAshlar`
-    has resolved AirGapped, a later `AddAshlar` with another profile no longer lowers what the
-    remote-protocol validators and `ProcessDefault` read; SecureWorkstation is replaced only by
-    AirGapped. Among the other profiles the last one still wins.
+  - **Behaviour change: the strictest deployment profile noted in a process wins.** After
+    `AddAshlar` has resolved AirGapped, a later `AddAshlar` with another profile in the same process no
+    longer lowers `ForbidsRemoteProtocolEgress` or the profile's `DisplayName`, so the MCP and A2A
+    option validators stay on AirGapped, and `ProcessDefault` and the later container's own guard
+    decide under AirGapped. SecureWorkstation is replaced only by AirGapped. Among the other profiles
+    the last one still wins. A host outside this repository that composes two profiles in one process
+    will see it.
   - `Ashlar.Abstractions` grants `InternalsVisibleTo` to `Ashlar.AI.Pipeline`, for the refusal surface
     in PR 4.7. The new public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`.
     `EgressModeResolutionTests` and `EgressModeProcessBindingTests` pin the mode table and the two
     bindings in cert-gate, and `ProcessGlobalEnvironmentConventionTests` now treats composing
-    AirGapped or SecureWorkstation, raising the mode and the reset seam as process-global writes.
+    AirGapped or SecureWorkstation, raising the mode and the reset seam as process-global writes, and
+    pins every file that names the reset seam or a member that writes the noted profile or the mode
+    latch outside their rules.
 
 - **`Ashlar.CLI` references its test projects only on request.** Unless a build passed
   `-p:IncludeTestProjectReferences=false`, the CLI compiled `Ashlar.Tests.Domain`,

@@ -47,6 +47,12 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// profile reached only through a variable (a host built under <c>ASHLAR_DEPLOYMENT_PROFILE=airgapped</c>) is a
 /// variable write, and is caught as one only where the file writes the variable itself.</para>
 ///
+/// <para><b>Who may write that state at all.</b> <see cref="Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state"/>
+/// pins, file by file, every source that names a member able to write the process egress state outside the
+/// strictest-wins and read-once rules: the reset seam, the noted profile's setters, the mode latch's raise and seam
+/// halves, and the fault probe. <c>Ashlar.Abstractions</c> grants <c>InternalsVisibleTo</c> to several assemblies,
+/// so the compiler no longer keeps those members to a few callers; this pin does.</para>
+///
 /// <para>Hermetic: pure file reads, no build, no network, no SDK, and the same structural pruning
 /// as <see cref="TestOwnershipConventionTests"/>, because a nested git worktree holds a second
 /// copy of every file here and counting those turned a required check on master red on
@@ -99,6 +105,49 @@ public sealed class ProcessGlobalEnvironmentConventionTests
     /// <summary>The reset seam in <c>Ashlar.Abstractions</c>, and the test helper that wraps it (its name plus
     /// <c>Scope</c>). Concatenated, so this file is not itself a user of the seam.</summary>
     private static readonly string SeamMarker = "EgressProcess" + "State";
+
+    private static readonly string SeamToken = "EgressProcess" + "State";
+
+    private const string AbstractionsEgressDirectory = "src/Ashlar.Abstractions/Security/Egress/";
+
+    private const string ProfileEnvironmentFile = "src/Ashlar.Abstractions/AshlarDeploymentProfileEnvironment.cs";
+
+    private const string EnforcementFile = AbstractionsEgressDirectory + "EgressEnforcement.cs";
+
+    private const string GuardFile = AbstractionsEgressDirectory + "EgressGuard.cs";
+
+    private const string AddAshlarFile = "src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs";
+
+    private static readonly string SeamFile = AbstractionsEgressDirectory + SeamToken + ".cs";
+
+    private static readonly string SeamHelperFile = "src/Ashlar.Tests.Infrastructure/Helpers/" + SeamToken + "Scope.cs";
+
+    /// <summary>
+    /// Every member that writes the process egress state outside the strictest-wins and read-once rules, and every
+    /// file allowed to name it, repo-root-relative (SPEC-007 PR 4.6). The names are concatenated so this file does
+    /// not match its own scan. Production reaches them only from <c>AddAshlar</c> (which notes its profile and the
+    /// hosting option) and from the seam itself; tests only through the <c>Scope</c> helper, by reflection. The pin
+    /// is exact in both directions: a new caller fails, and so does a listed file that no longer names the member.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> EgressStateWriters = new(StringComparer.Ordinal)
+    {
+        // The reset seam: Snapshot, Restore and Reset bypass strictest-wins and clear the latch.
+        [SeamToken] = [SeamFile, SeamHelperFile],
+
+        // The noted profile: the strictest-wins note, and the two setters that bypass it.
+        ["Note" + "Resolved"] = [ProfileEnvironmentFile, AddAshlarFile, SeamHelperFile],
+        ["Restore" + "Resolved"] = [ProfileEnvironmentFile, SeamFile],
+        ["Clear" + "Resolved"] = [ProfileEnvironmentFile],
+
+        // The mode latch: the hosting option's raise, and the seam's capture, restore and reset.
+        ["Note" + "HostingOption"] = [EnforcementFile, AddAshlarFile],
+        ["Capture" + "Latch"] = [EnforcementFile, SeamFile],
+        ["Restore" + "Latch"] = [EnforcementFile, SeamFile],
+        ["Reset" + "Latch"] = [EnforcementFile, SeamFile],
+
+        // The fault probe, which the guard runs and only the helper sets.
+        ["ModeResolution" + "Probe"] = [EnforcementFile, GuardFile, SeamHelperFile],
+    };
 
     /// <summary>
     /// Test files known on 2026-09-11 to write a process-global environment variable without
@@ -240,6 +289,58 @@ public sealed class ProcessGlobalEnvironmentConventionTests
     }
 
     /// <summary>
+    /// The members that write the process egress state outside its rules (a profile noted without strictest-wins, a
+    /// latch reset, a raise, the fault probe) are named only where <see cref="EgressStateWriters"/> says. The scan
+    /// covers every C# file in the repository, production and test alike, with whole-line comments left out, and
+    /// matches a member's name as a whole word, so a reflection string counts and <c>…Scope</c> does not.
+    /// </summary>
+    [Fact]
+    public void Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var matchers = EgressStateWriters.Keys.ToDictionary(
+            name => name,
+            name => new Regex(@"\b" + Regex.Escape(name) + @"\b", RegexOptions.CultureInvariant),
+            StringComparer.Ordinal);
+        var observed = EgressStateWriters.Keys.ToDictionary(name => name, _ => new SortedSet<string>(StringComparer.Ordinal), StringComparer.Ordinal);
+
+        var scanned = 0;
+        foreach (var path in Sources(root, root, skipDotDirectories: true))
+        {
+            scanned++;
+            var code = string.Join('\n', File.ReadAllLines(Path.Combine(root, path))
+                .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+            foreach (var (name, matcher) in matchers)
+            {
+                if (matcher.IsMatch(code))
+                    observed[name].Add(path);
+            }
+        }
+
+        scanned.Should().BeGreaterThan(1000, "the scan must read the repository, or every pin below is checked against nothing");
+
+        var problems = new List<string>();
+        foreach (var (name, allowed) in EgressStateWriters)
+        {
+            var unlisted = observed[name].Where(path => !allowed.Contains(path, StringComparer.Ordinal)).ToList();
+            var stale = allowed.Where(path => !observed[name].Contains(path)).OrderBy(path => path, StringComparer.Ordinal).ToList();
+            if (unlisted.Count > 0)
+                problems.Add($"{name} is named by an unlisted file: {string.Join(", ", unlisted)}");
+            if (stale.Count > 0)
+                problems.Add($"{name} is no longer named by a listed file: {string.Join(", ", stale)}");
+        }
+
+        problems.Should().BeEmpty(
+            "these members write the process egress state outside the strictest-wins and read-once rules, and "
+            + "InternalsVisibleTo exposes them beyond Ashlar.Abstractions. Production code reaches them only from "
+            + "AddAshlar and the seam; a test reaches them only through the {0}Scope helper, inside the "
+            + "EnvironmentVariables collection. A new caller is a change to who may lower an AirGapped process or "
+            + "reset the mode latch: say why in the pull request and update the pin. {1}",
+            SeamToken,
+            string.Join("; ", problems));
+    }
+
+    /// <summary>
     /// A process-global write: an environment variable, or the process egress state (a profile that would enforce
     /// composed through <c>AddAshlar</c>, the mode raised through the hosting option, or any use of the reset seam).
     /// </summary>
@@ -326,17 +427,20 @@ public sealed class ProcessGlobalEnvironmentConventionTests
         }
     }
 
-    private static IEnumerable<string> Sources(string root, string directory)
+    private static IEnumerable<string> Sources(string root, string directory, bool skipDotDirectories = false)
     {
         foreach (var file in Directory.EnumerateFiles(directory, "*.cs"))
             yield return Normalize(Path.GetRelativePath(root, file));
 
         foreach (var child in Directory.EnumerateDirectories(directory))
         {
-            if (IsPruned(child))
+            if (IsPruned(child)
+                || (skipDotDirectories && Path.GetFileName(child).StartsWith('.')))
+            {
                 continue;
+            }
 
-            foreach (var file in Sources(root, child))
+            foreach (var file in Sources(root, child, skipDotDirectories))
                 yield return file;
         }
     }

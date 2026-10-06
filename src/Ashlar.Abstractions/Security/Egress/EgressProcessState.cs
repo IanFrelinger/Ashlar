@@ -10,7 +10,9 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// SecureWorkstation, raises the mode, or sets the variable takes a <see cref="Snapshot"/> first and
 /// <see cref="Restore"/>s it in <c>Dispose</c>, inside a non-parallel collection.
 /// <c>ProcessGlobalEnvironmentConventionTests</c> treats any use of this seam as a process-global write.</para>
-/// <para>Production code never calls it. Test assemblies reach it by reflection.</para>
+/// <para>Production code never calls it. Test assemblies reach it by reflection, through one helper.
+/// <c>ProcessGlobalEnvironmentConventionTests</c> pins, file by file, who names it and the other members that write
+/// this state outside its rules, since <c>InternalsVisibleTo</c> exposes them beyond this assembly.</para>
 /// </remarks>
 internal static class EgressProcessState
 {

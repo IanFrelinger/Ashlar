@@ -105,8 +105,9 @@ public sealed class EgressDecision
     public AccessDecision Access { get; }
 
     /// <summary>
-    /// The deployment profile the decision was made under: the guard's configured profile, or else the effective
-    /// <c>ASHLAR_DEPLOYMENT_PROFILE</c> text (empty when none is set).
+    /// The deployment profile the decision was made under, and the one <see cref="Mode"/> was resolved from: the
+    /// guard's configured profile, or else the effective <c>ASHLAR_DEPLOYMENT_PROFILE</c> text (the strictest profile
+    /// <c>AddAshlar</c> noted, else the variable; empty when none is set), read once per decision.
     /// </summary>
     public string Profile { get; }
 
@@ -125,7 +126,7 @@ public sealed class EgressDecision
 
     /// <summary>
     /// What decided <see cref="Mode"/>: <c>profile:&lt;profile&gt;</c> (the profile's default, with the canonical
-    /// profile name), <c>profile:unrecognised</c>, <c>override</c> (<c>ASHLAR_EGRESS_MODE</c>,
+    /// profile name), <c>profile:unrecognised</c>, <c>override</c> (the process's mode override,
     /// <c>AshlarHostingOptions.EgressMode</c> or the guard's constructor), <c>override-ignored</c>, or <c>fault</c>
     /// (resolving the mode faulted, so it is <c>enforce</c>). Later PRs add <c>break-glass</c>, <c>host-opt-out</c> and
     /// <c>operator-verb</c>.

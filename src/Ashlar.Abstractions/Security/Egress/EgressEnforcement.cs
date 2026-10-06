@@ -67,6 +67,8 @@ internal static class EgressEnforcement
     private static readonly RandomNumberGenerator Random = RandomNumberGenerator.Create();
 #endif
 
+    private static readonly AsyncLocal<Action?> Probe = new();
+
     private static bool _environmentRead;
     private static string? _environmentOverride;
     private static bool _hostRaised;
@@ -89,10 +91,17 @@ internal static class EgressEnforcement
     }
 
     /// <summary>
-    /// Test seam, <see langword="null"/> in production: when set, it runs at the start of every mode resolution, so a
-    /// test can make the resolution fault. <see cref="EgressProcessState"/> snapshots and restores it.
+    /// Test seam, <see langword="null"/> in production: when set, it runs at the start of every mode resolution, after
+    /// the decision has read its profile, so a test can make the resolution fault. It is an
+    /// <see cref="AsyncLocal{T}"/>: it runs only for decisions made on the flow that set it (and the tasks that flow
+    /// starts), so a test that sets it cannot fault a decision another test makes beside it.
+    /// <see cref="EgressProcessState"/> snapshots and restores it on the calling flow.
     /// </summary>
-    internal static Action? ModeResolutionProbe { get; set; }
+    internal static Action? ModeResolutionProbe
+    {
+        get => Probe.Value;
+        set => Probe.Value = value;
+    }
 
     /// <summary>
     /// Resolves the mode for a profile and an override. Pure: it reads nothing but its arguments.
