@@ -199,11 +199,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - **`AddAshlar` registers its own guard.** `IEgressGuard` in an `AddAshlar` container is now a guard
     built with the strictest deployment profile noted in the process (the one `AddAshlar` resolved,
     unless an earlier `AddAshlar` noted a stricter one) and the process's mode, in place of
-    `EgressGuard.ProcessDefault`. Only a `ProcessDefault` registration is replaced, including one an
-    `AddAshlarEgressGuard` call made before `AddAshlar`; a host's own guard is kept. `AddAshlar` also
-    adds one hosted service, which logs the mode line at start (`Ashlar.Egress`, event 7302
-    `EgressMode`), and a process whose mode is not plain `report` writes that line to standard error
-    once.
+    `EgressGuard.ProcessDefault`. A `ProcessDefault` registration is replaced, including one an
+    `AddAshlarEgressGuard` call made before `AddAshlar`, and so is the guard an earlier `AddAshlar`
+    registered in the same service collection; a host's own guard is kept. `AddAshlar` also adds one
+    hosted service, which logs the mode line at start (`Ashlar.Egress`, event 7302 `EgressMode`) for
+    the guard it composed, and a process whose mode is not plain `report` writes that line to standard
+    error once. When a host's own guard is the container's guard, the line does not describe it.
   - **Behaviour change: the strictest deployment profile noted in a process wins.** After
     `AddAshlar` has resolved AirGapped, a later `AddAshlar` with another profile in the same process no
     longer lowers `ForbidsRemoteProtocolEgress` or the profile's `DisplayName`, so the MCP and A2A

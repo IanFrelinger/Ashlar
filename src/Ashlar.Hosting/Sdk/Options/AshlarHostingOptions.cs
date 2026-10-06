@@ -22,9 +22,12 @@ public sealed class AshlarHostingOptions
     /// raise the mode: <c>enforce</c> (trimmed, any case) raises it, and so does any other non-blank value, which
     /// fails closed; <c>report</c> and <see langword="null"/> change nothing. The raise reaches
     /// <c>EgressGuard.ProcessDefault</c>, every guard built without a profile (whatever override it was built with),
-    /// and the guard this <c>AddAshlar</c> and every later one compose. A guard composed by an earlier
-    /// <c>AddAshlar</c>, like any guard built with a profile, keeps the mode it was built with. Ashlar
-    /// never binds this from <c>IConfiguration</c>, so an appsettings file or a command-line argument cannot set it.
+    /// and the guard this <c>AddAshlar</c> and every later one bind, which on the same service collection replaces
+    /// the guard an earlier <c>AddAshlar</c> bound there. A container built before the raise and a guard bound into
+    /// another collection keep the mode they were built with, like any guard built with a profile. A host's own
+    /// <c>IEgressGuard</c> is kept, not replaced, so the raise reaches it only if it is a guard built without a
+    /// profile. Ashlar never binds this from <c>IConfiguration</c>, so an appsettings file or a command-line argument
+    /// cannot set it.
     /// <para>Not yet a supported setting: until SPEC-007 PR 4.7 no route acts on the mode, so an <c>enforce</c>
     /// decision record says what would have been refused, not that a send stopped.</para>
     /// </summary>

@@ -22,8 +22,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// mode; an unrecognised mode value, an unrecognised profile and a fault while resolving the mode all fail closed to
 /// <c>enforce</c>; a guard built with a profile never reads the environment; the strictest profile noted wins;
 /// the reset seam restores the noted profile and the latch; <c>AddAshlar</c> replaces a
-/// <see cref="EgressGuard.ProcessDefault"/> registration made before it, keeps a host's own guard, and logs one
-/// startup line; and a mode other than plain report is written to standard error once. Every profile still
+/// <see cref="EgressGuard.ProcessDefault"/> registration made before it and the guard an earlier <c>AddAshlar</c>
+/// composed into the same collection, keeps a host's own guard, and logs one startup line for the guard it composed;
+/// and a mode other than plain report is written to standard error once. Every profile still
 /// defaults to <c>report</c>, and nothing refuses: no route acts on the mode until PR 4.7.</para>
 /// <para><b>Process-global state.</b> This class writes the override and profile variables, notes profiles and
 /// swaps standard error, so it runs in the serialized <c>EnvironmentVariables</c> collection. The constructor

@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 19,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 768,
-    "declared_facts": 4791,
+    "declared_facts": 4793,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5149,7 +5149,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressModeProcessBindingTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 23,
+      "declared_facts": 25,
       "in_cert_gate_filter": true
     },
     {

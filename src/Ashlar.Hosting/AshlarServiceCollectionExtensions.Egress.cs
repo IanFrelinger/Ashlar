@@ -15,23 +15,26 @@ public static partial class AshlarServiceCollectionExtensions
     /// targets decide under the composed profile. It also registers the startup line, for the same profile.
     /// </summary>
     /// <remarks>
-    /// <para><b>Only a <see cref="EgressGuard.ProcessDefault"/> registration is replaced.</b>
-    /// <c>AddAshlarEgressGuard</c> registers <see cref="EgressGuard.ProcessDefault"/> with <c>TryAdd</c>, and several
-    /// public members call it, so it may already have run before <c>AddAshlar</c> (RunPod routing, the node
-    /// capability runtime, the model-artifact catalog, MeshLab). Every descriptor whose instance is
-    /// <see cref="EgressGuard.ProcessDefault"/> is replaced in place; any other registration is the host's own guard
-    /// and is kept.</para>
+    /// <para><b>Only <see cref="EgressGuard.ProcessDefault"/> and a guard an earlier <c>AddAshlar</c> composed are
+    /// replaced.</b> <c>AddAshlarEgressGuard</c> registers <see cref="EgressGuard.ProcessDefault"/> with <c>TryAdd</c>,
+    /// and several public members call it, so it may already have run before <c>AddAshlar</c> (RunPod routing, the
+    /// node capability runtime, the model-artifact catalog, MeshLab). An earlier <c>AddAshlar</c> on the same
+    /// collection left the guard it composed, which its startup line names. Every descriptor holding either instance
+    /// is replaced in place; any other registration is the host's own guard and is kept.</para>
     /// <para><b>The strictest profile noted wins here too</b> (default D5). The caller notes its profile first, so
     /// after <c>AddAshlar(AirGapped)</c> a later <c>AddAshlar</c> that resolves Full composes an AirGapped guard and
     /// logs an AirGapped line, as <see cref="EgressGuard.ProcessDefault"/> and the remote-protocol validators already
-    /// decide. The line says the profile was defaulted only when the composed profile is this call's own default.</para>
+    /// decide. The line says the profile was defaulted only when the composed profile is this call's own default.
+    /// Because a later call on the same collection replaces the guard an earlier one composed, a stricter profile or
+    /// a raised mode reaches that container's guard and its line together.</para>
     /// <para><b>The guard never reads the environment.</b> It is built with an explicit profile and override, so a
-    /// later change to <c>ASHLAR_EGRESS_MODE</c> or <c>ASHLAR_DEPLOYMENT_PROFILE</c> does not change it, and neither
-    /// does a later <c>AddAshlar</c> that notes a stricter profile or raises the mode: a guard keeps what it was
-    /// composed with.</para>
+    /// later change to <c>ASHLAR_EGRESS_MODE</c> or <c>ASHLAR_DEPLOYMENT_PROFILE</c> does not change it. A guard in a
+    /// container already built, or composed into another collection, keeps what it was composed with.</para>
     /// <para><b>The startup line.</b> <c>AddAshlar</c> has no logger, so a hosted activator logs the line when a host
     /// starts: at Warning when an override is unrecognised, at Information otherwise. A host-less CLI verb never
-    /// starts a host, so a mode other than plain report also goes to standard error, once per process.</para>
+    /// starts a host, so a mode other than plain report also goes to standard error, once per process. The line
+    /// describes the guard this call composed; when the host's own guard is the container's guard, that guard
+    /// decides and the line does not describe it.</para>
     /// </remarks>
     private static void BindComposedEgressGuard(
         IServiceCollection services,
@@ -44,12 +47,22 @@ public static partial class AshlarServiceCollectionExtensions
         var composedProfile = AshlarDeploymentProfileEnvironment.ResolvedRaw ?? profile;
         var defaulted = profileDefaulted && string.Equals(composedProfile, profile, StringComparison.Ordinal);
         var composed = new EgressGuard(composedProfile, egressOverride);
+
+        // The guards an earlier AddAshlar composed into this collection: each is the one its startup line names.
+        var earlier = new List<EgressGuard>();
+        foreach (var descriptor in services)
+        {
+            if (!descriptor.IsKeyedService && descriptor.ImplementationInstance is EgressModeStartup line)
+                earlier.Add(line.Guard);
+        }
+
         for (var i = 0; i < services.Count; i++)
         {
             var descriptor = services[i];
             if (!descriptor.IsKeyedService
                 && descriptor.ServiceType == typeof(IEgressGuard)
-                && ReferenceEquals(descriptor.ImplementationInstance, EgressGuard.ProcessDefault))
+                && (ReferenceEquals(descriptor.ImplementationInstance, EgressGuard.ProcessDefault)
+                    || earlier.Exists(guard => ReferenceEquals(descriptor.ImplementationInstance, guard))))
             {
                 services[i] = ServiceDescriptor.Singleton<IEgressGuard>(composed);
             }
@@ -61,7 +74,7 @@ public static partial class AshlarServiceCollectionExtensions
         EgressEnforcement.AnnounceOnce(mode, modeBasis, composedProfile, defaulted, overrideUnrecognised);
 
         services.RemoveAll<EgressModeStartup>();
-        services.AddSingleton(new EgressModeStartup(mode, modeBasis, composedProfile, defaulted, overrideUnrecognised));
+        services.AddSingleton(new EgressModeStartup(mode, modeBasis, composedProfile, defaulted, overrideUnrecognised, composed));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EgressModeStartupActivator>());
     }
 }
@@ -69,16 +82,20 @@ public static partial class AshlarServiceCollectionExtensions
 /// <summary>The egress mode a composition resolved, for the startup line (SPEC-007 PR 4.6).</summary>
 /// <param name="Mode"><c>report</c> or <c>enforce</c>.</param>
 /// <param name="ModeBasis">What decided the mode.</param>
-/// <param name="Profile">The canonical profile the container's guard composed: the strictest noted in the process.</param>
+/// <param name="Profile">The canonical profile <paramref name="Guard"/> was composed with: the strictest noted in the
+/// process.</param>
 /// <param name="ProfileDefaulted"><see langword="true"/> when nothing set the profile and no stricter one was noted.</param>
 /// <param name="OverrideUnrecognised"><see langword="true"/> when <c>ASHLAR_EGRESS_MODE</c> or
 /// <c>AshlarHostingOptions.EgressMode</c> is neither <c>report</c> nor <c>enforce</c>.</param>
+/// <param name="Guard">The guard the composition built, which the line describes. A later <c>AddAshlar</c> on the
+/// same collection replaces it, with the line.</param>
 internal sealed record EgressModeStartup(
     string Mode,
     string ModeBasis,
     string Profile,
     bool ProfileDefaulted,
-    bool OverrideUnrecognised)
+    bool OverrideUnrecognised,
+    EgressGuard Guard)
 {
     /// <summary>The line, as <see cref="EgressEnforcement.StartupLine"/> writes it.</summary>
     internal string Line => EgressEnforcement.StartupLine(Mode, ModeBasis, Profile, ProfileDefaulted, OverrideUnrecognised);

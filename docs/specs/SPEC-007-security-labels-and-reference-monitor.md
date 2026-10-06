@@ -74,8 +74,9 @@ The status line above and the starting prompt are the owner's, as written; the s
     `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once
     per process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every
     profile still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
-    remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault`; tests restore that
-    state through a reset seam, whose callers a convention fact pins. Nothing refuses yet.
+    remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault` (or of the guard an
+    earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose
+    callers a convention fact pins. Nothing refuses yet.
 
 ---
 
