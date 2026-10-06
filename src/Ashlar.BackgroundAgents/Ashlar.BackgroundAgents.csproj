@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Ashlar.Tests.BackgroundAgents" />
+    <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
   </ItemGroup>
 
   <ItemGroup>

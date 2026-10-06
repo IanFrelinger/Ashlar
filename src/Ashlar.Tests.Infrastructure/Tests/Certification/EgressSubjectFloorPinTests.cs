@@ -40,9 +40,15 @@ public sealed class EgressSubjectFloorPinTests
         "src/Ashlar.BackgroundAgents.HostRunners/SelfExtendRunnerAdapter.cs | RunAsync | SecurityLabel.SystemHigh | x1",
     ];
 
+    /// <summary>One line, so a type cannot swallow the next statement. Keywords are not methods.</summary>
     private static readonly Regex MethodHeader = new(
-        @"^[\t ]*(?:(?:public|private|protected|internal)\s+)?(?:(?:static|async|override|virtual|sealed|unsafe|partial|new)\s+)*[\w.<>,?\[\]\s]+\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(",
-        RegexOptions.Multiline | RegexOptions.CultureInvariant);
+        @"^[ \t]*(?:(?:public|private|protected|internal)[ \t]+)?(?:(?:static|async|override|virtual|sealed|partial)[ \t]+)*[\w.]+(?:<[^>\n]+>)?[ \t]+(?<name>[A-Za-z_][A-Za-z0-9_]*)[ \t]*\(",
+        RegexOptions.CultureInvariant);
+
+    private static readonly HashSet<string> NotAMethod = new(StringComparer.Ordinal)
+    {
+        "if", "for", "foreach", "while", "switch", "catch", "using", "lock", "return", "var", "else", "throw", "await", "new", "get", "set",
+    };
 
     [Fact]
     public void Every_production_Enter_is_pinned_with_its_floor_and_enclosing_method()
@@ -99,8 +105,19 @@ public sealed class EgressSubjectFloorPinTests
     private static string EnclosingMethod(string text, int callAt)
     {
         var prefix = text[..callAt];
-        var matches = MethodHeader.Matches(prefix);
-        return matches.Count == 0 ? "(no method)" : matches[^1].Groups["name"].Value;
+        var lines = prefix.Split('\n');
+        for (var i = lines.Length - 1; i >= 0; i--)
+        {
+            var match = MethodHeader.Match(lines[i]);
+            if (!match.Success)
+                continue;
+
+            var name = match.Groups["name"].Value;
+            if (!NotAMethod.Contains(name))
+                return name;
+        }
+
+        return "(no method)";
     }
 
     private static string Floor(string text, int callAt)

@@ -1,11 +1,16 @@
 using Ashlar.Abstractions;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
+using Ashlar.AI.Pipeline.Clients;
+using Ashlar.AI.Pipeline.Governance;
+using Ashlar.AI.Pipeline.Rag;
 using Ashlar.BackgroundAgents.Agents;
+using Ashlar.BackgroundAgents.DataSensitivity;
 using Ashlar.BackgroundAgents.HostRunners;
 using Ashlar.BackgroundAgents.RAG;
 using Ashlar.Runtime;
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -166,6 +171,152 @@ public sealed class EgressSubjectProducerTests
         }
     }
 
+    [Fact]
+    public async Task An_empty_RAG_search_reports_read_nothing_and_the_next_model_call_stays_at_the_floor()
+    {
+        var guard = new EgressGuard("full");
+        var decisions = await RunRagCycleAsync(guard, "agent:empty", new FixedRag([]));
+
+        decisions.Should().HaveCount(2);
+        var next = decisions[1];
+        next.CurrentBasis.Should().Be("subject:agent:empty");
+        next.Current.Should().Be(SecurityLabel.Public);
+        next.Access.Allowed.Should().BeTrue();
+        next.Access.Reason.Should().Be(AccessDenialReason.None);
+        next.Refused.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task An_unrankable_RAG_query_reports_read_nothing()
+    {
+        var guard = new EgressGuard("full");
+        var decisions = await RunRagCycleAsync(guard, "agent:refused", new FixedRag([], refuse: true));
+
+        decisions.Should().HaveCount(2);
+        var next = decisions[1];
+        next.Current.Should().Be(SecurityLabel.Public);
+        next.Access.Allowed.Should().BeTrue();
+        next.Access.Reason.Should().Be(AccessDenialReason.None);
+    }
+
+    [Fact]
+    public async Task An_egress_during_the_tool_call_is_decided_at_the_pre_read_mark()
+    {
+        var guard = new EgressGuard("full");
+        var during = new EgressDuringReadTool(guard);
+        var model = Scripted(guard, Call("during_read"), Done());
+        var tools = new CapabilityRegistry();
+        tools.Register(during);
+
+        using (EgressSubject.Enter("agent:during", new HighWaterMark(SecurityLabel.Public)))
+        {
+            var cycle = await CycleAsync(model, tools);
+            cycle.StoppedReason.Should().Be("empty");
+            cycle.ToolCallsExecuted.Should().Be(1);
+        }
+
+        during.During.Should().NotBeNull();
+        var mid = during.During!;
+        mid.CurrentBasis.Should().Be("subject:agent:during");
+        mid.Current.Should().Be(SecurityLabel.Public,
+            "an open scope observes only when it ends, so this send is still at the floor");
+        mid.Access.Allowed.Should().BeTrue();
+        mid.Access.Reason.Should().NotBe(AccessDenialReason.SystemHighData);
+        mid.Access.Reason.Should().NotBe(AccessDenialReason.LevelTooLow);
+
+        model.Decisions.Should().HaveCount(2);
+        var next = model.Decisions[1];
+        next.Current.Should().Be(Secret);
+        next.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        next.Refused.Should().BeFalse();
+        next.Mode.Should().Be("report");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("public")]
+    [InlineData("INTERNAL")]
+    [InlineData(" Confidential ")]
+    [InlineData("secret")]
+    [InlineData("TopSecret")]
+    [InlineData("topsecret")]
+    [InlineData("top-secret")]
+    [InlineData(" TOP-SECRET ")]
+    [InlineData("SystemHigh")]
+    [InlineData("not-a-level")]
+    [InlineData("Pony")]
+    public void RAGTool_hit_labels_match_TrustTierOrder_RecordLabel(string? name)
+    {
+        var registry = new DataSensitivityRegistry();
+        registry.Register(new PonyLevel());
+        RAGTool.MapHitLabel(name, registry).Should().Be(TrustTierOrder.RecordLabel(name));
+    }
+
+    [Fact]
+    public async Task A_peer_response_is_observed_as_SystemHigh_and_a_model_response_is_not()
+    {
+        var guard = new EgressGuard("full");
+        var request = new EgressRequest(EgressFamilies.ModelMeai, "meai:peer:node-7", "meai:peer:node-7");
+        var local = new EgressGuardChatClient(new FakeChatClient(), request, guard, "local:ollama");
+        var peer = new EgressGuardChatClient(new FakeChatClient(), request, guard, " PEER:node-7 ");
+
+        using (EgressSubject.Enter("agent:peer", new HighWaterMark(SecurityLabel.Public)))
+        {
+            await local.GetResponseAsync("hello");
+            var afterModel = guard.Evaluate(new EgressRequest(EgressFamilies.ModelMeai, "after-model", RemoteUri));
+            afterModel.Current.Should().Be(SecurityLabel.Public);
+            afterModel.Access.Allowed.Should().BeTrue();
+            afterModel.CurrentBasis.Should().Be("subject:agent:peer");
+
+            await peer.GetResponseAsync("hello");
+            var afterPeer = guard.Evaluate(new EgressRequest(EgressFamilies.ModelMeai, "after-peer", RemoteUri));
+            afterPeer.CurrentBasis.Should().Be("subject:agent:peer");
+            afterPeer.Current.Should().Be(SecurityLabel.SystemHigh);
+            afterPeer.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+            afterPeer.Refused.Should().BeFalse();
+            afterPeer.Mode.Should().Be("report");
+        }
+    }
+
+    [Fact]
+    public async Task A_streamed_peer_response_is_observed_as_SystemHigh()
+    {
+        var guard = new EgressGuard("full");
+        var request = new EgressRequest(EgressFamilies.ModelMeai, "meai:peer:node-7", "meai:peer:node-7");
+        var peer = new EgressGuardChatClient(new FakeChatClient("streamed"), request, guard, "peer:node-7");
+
+        using (EgressSubject.Enter("agent:stream", new HighWaterMark(SecurityLabel.Public)))
+        {
+            await foreach (var _ in peer.GetStreamingResponseAsync("hello"))
+            {
+            }
+
+            var after = guard.Evaluate(new EgressRequest(EgressFamilies.ModelMeai, "after-stream", RemoteUri));
+            after.Current.Should().Be(SecurityLabel.SystemHigh);
+            after.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+            after.Refused.Should().BeFalse();
+        }
+    }
+
+    [Fact]
+    public void A_peer_call_that_throws_synchronously_is_not_observed()
+    {
+        var guard = new EgressGuard("full");
+        var request = new EgressRequest(EgressFamilies.ModelMeai, "meai:peer:node-7", "meai:peer:node-7");
+        var peer = new EgressGuardChatClient(new SyncDenyClient(), request, guard, "peer:node-7");
+
+        using (EgressSubject.Enter("agent:denied", new HighWaterMark(SecurityLabel.Public)))
+        {
+            Action call = () => _ = peer.GetResponseAsync("hello");
+            call.Should().Throw<InvalidOperationException>();
+            var after = guard.Evaluate(new EgressRequest(EgressFamilies.ModelMeai, "after-deny", RemoteUri));
+            after.Current.Should().Be(SecurityLabel.Public);
+            after.Access.Allowed.Should().BeTrue();
+        }
+    }
+
     private static async Task<IReadOnlyList<EgressDecision>> RunRagCycleAsync(
         EgressGuard guard,
         string subjectId,
@@ -242,12 +393,21 @@ public sealed class EgressSubjectProducerTests
     private sealed class FixedRag : IRAGService
     {
         private readonly IReadOnlyList<VectorSearchResult> _hits;
+        private readonly bool _refuse;
 
-        public FixedRag(IReadOnlyList<VectorSearchResult> hits) => _hits = hits;
+        public FixedRag(IReadOnlyList<VectorSearchResult> hits, bool refuse = false)
+        {
+            _hits = hits;
+            _refuse = refuse;
+        }
 
         public Task<IReadOnlyList<VectorSearchResult>> SearchAsync(
             string query, int maxResults, double minScore, string? maxSensitivityLevelName, CancellationToken cancellationToken = default)
-            => Task.FromResult(_hits);
+        {
+            if (_refuse)
+                throw new ArgumentException("zero magnitude");
+            return Task.FromResult(_hits);
+        }
 
         public Task IndexAsync(string id, string text, string? sensitivityLevelName, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
@@ -280,6 +440,56 @@ public sealed class EgressSubjectProducerTests
 
         public Task<ToolResult> InvokeAsync(ToolCall call, WorldSnapshot s, CancellationToken ct) =>
             throw new InvalidOperationException("boom");
+    }
+
+    private sealed class EgressDuringReadTool : ITool, IEgressLabelledTool
+    {
+        private readonly EgressGuard _guard;
+
+        public EgressDuringReadTool(EgressGuard guard) => _guard = guard;
+
+        public EgressDecision? During { get; private set; }
+
+        public string Id => "during_read";
+
+        public ToolSchema Schema => new(Id, "egresses before the scope ends", "{}");
+
+        public Task<ToolResult> InvokeAsync(ToolCall call, WorldSnapshot s, CancellationToken ct)
+        {
+            During = _guard.Evaluate(new EgressRequest(EgressFamilies.ModelMeai, "during-read", RemoteUri));
+            return Task.FromResult(new ToolResult(new ActionDelta(s.Tick, s.Tick + 1, ["during"]), "payload"));
+        }
+
+        public void ReportRead(ReadScope read, ToolResult result) => read.Report(Secret);
+    }
+
+    private sealed class PonyLevel : IDataSensitivityLevel
+    {
+        public string Value => "Pony";
+        public string Display => "Pony";
+        public string Description => "a custom level";
+        public int SensitivityValue => 3;
+        public bool AllowsExternalLLM => false;
+        public bool AllowsWebSearch => false;
+        public bool RequiresLocalOnly => false;
+        public bool AllowsNetworkExports => false;
+    }
+
+    private sealed class SyncDenyClient : IChatClient
+    {
+        public Task<ChatResponse> GetResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("denied");
+
+        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("denied");
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
     }
 
     private sealed class AllowEverything : IPolicy

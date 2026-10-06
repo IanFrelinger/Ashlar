@@ -22,6 +22,10 @@ public sealed class CapabilityRegistry : IToolbox
     /// <summary>Registers a tool for agent invocation.</summary>
     public void Register(ITool tool) => _tools[tool.Id] = tool;
 
+    /// <summary>The tool registered under <paramref name="id"/>, or <see langword="null"/> when none is.</summary>
+    public ITool? Find(string? id) =>
+        !string.IsNullOrEmpty(id) && _tools.TryGetValue(id, out var tool) ? tool : null;
+
     /// <summary>Returns schemas for all registered tools.</summary>
     public IEnumerable<ToolSchema> Schemas() => _tools.Values.Select(t => t.Schema);
 

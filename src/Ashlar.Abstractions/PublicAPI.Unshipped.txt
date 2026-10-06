@@ -55,6 +55,8 @@ Ashlar.Abstractions.Security.Egress.IEgressDecisionSink
 Ashlar.Abstractions.Security.Egress.IEgressDecisionSink.Record(Ashlar.Abstractions.Security.Egress.EgressDecision! decision) -> void
 Ashlar.Abstractions.Security.Egress.IEgressGuard
 Ashlar.Abstractions.Security.Egress.IEgressGuard.Evaluate(Ashlar.Abstractions.Security.Egress.EgressRequest! request) -> Ashlar.Abstractions.Security.Egress.EgressDecision!
+Ashlar.Abstractions.Security.Egress.IEgressLabelledTool
+Ashlar.Abstractions.Security.Egress.IEgressLabelledTool.ReportRead(Ashlar.Abstractions.Security.Egress.ReadScope! read, Ashlar.Abstractions.ToolResult! result) -> void
 Ashlar.Abstractions.Security.Egress.ReadScope
 Ashlar.Abstractions.Security.Egress.ReadScope.Complete() -> void
 Ashlar.Abstractions.Security.Egress.ReadScope.Dispose() -> void
