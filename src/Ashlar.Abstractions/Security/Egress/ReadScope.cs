@@ -2,7 +2,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
 /// One read by the subject on an async flow, such as one tool call. When the scope ends, what the read returned is
-/// observed into every live frame of the chain it was begun on. Start one with <see cref="EgressSubject.BeginRead"/>.
+/// observed into every frame of the chain it was begun on, from whatever flow it ends on. Start one with
+/// <see cref="EgressSubject.BeginRead"/>.
 /// </summary>
 /// <remarks>
 /// <para>How the scope ends decides what it observes:</para>
@@ -72,7 +73,7 @@ public sealed class ReadScope : IDisposable
 
     /// <summary>
     /// Ends the scope: observes the reported labels if the read completed and reported, and otherwise
-    /// <see cref="SecurityLabel.SystemHigh"/>, into every live frame of the chain the scope was begun on.
+    /// <see cref="SecurityLabel.SystemHigh"/>, into every frame of the chain the scope was begun on.
     /// </summary>
     public void Dispose()
     {

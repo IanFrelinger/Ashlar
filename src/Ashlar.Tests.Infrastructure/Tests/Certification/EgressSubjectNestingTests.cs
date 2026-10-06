@@ -10,13 +10,19 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// frame it was entered inside.
 /// </summary>
 /// <remarks>
-/// <para><b>What is pinned.</b> A decision's current label is the join of every live frame's mark on the chain, and
-/// its basis names the innermost subject. Disposing a frame observes its mark into every enclosing live frame,
-/// also when the frame was entered in a child task whose frames never flow back out. <see cref="EgressSubject.Observe"/>
-/// joins into every live frame at once, so an enclosing flow that decides while a nested frame is still running in
-/// another task already counts what it read, and it only raises. Before 4.4 the guard read only
-/// the innermost live frame, so entering a fresh Public frame inside a Secret one declassified everything the
-/// enclosing subject had read, and a nested subject's reads were lost when it was disposed.</para>
+/// <para><b>What is pinned.</b> A decision's current label is the join of the innermost live frame's mark and the
+/// mark of every frame it was entered inside, live or disposed, and its basis names the innermost subject. Disposing a
+/// frame observes its mark into every frame it was entered inside, also when the frame was entered in a child task
+/// whose frames never flow back out. <see cref="EgressSubject.Observe"/> joins into every frame on the chain at once,
+/// so an enclosing flow that decides while a nested frame is still running in another task already counts what it
+/// read, and it only raises. Before 4.4 the guard read only the innermost live frame, so entering a fresh Public frame
+/// inside a Secret one declassified everything the enclosing subject had read, and a nested subject's reads were lost
+/// when it was disposed.</para>
+/// <para><b>Disposed ancestors (phase B, fail closed).</b> A frame disposed out of order, or a parent frame that ends
+/// while a fire-and-forget task started inside it still runs, still counts for every frame entered inside it, then or
+/// later, and is still raised by what those frames read, so a sibling task started inside the same parent counts it.
+/// The 4.4 lane first walked ancestors through the live ones only, which let the child decide Public once the Secret
+/// parent's <c>using</c> ended.</para>
 /// <para><b>Process-global state.</b> None. Frames live on each test's own async flow, the guard has an explicit
 /// profile and reads no environment variable, and each decision is read from the value <c>Evaluate</c> returns.</para>
 /// <para>Hermetic: no network, no files, no environment.</para>
@@ -224,7 +230,7 @@ public sealed class EgressSubjectNestingTests
                 }
 
                 middleMark.Current.Should().Be(Secret, "what the inner subject read leaves with its output");
-                outerMark.Current.Should().Be(Secret, "every enclosing live frame is raised, not only the nearest");
+                outerMark.Current.Should().Be(Secret, "every enclosing frame is raised, not only the nearest");
 
                 var middle = Decide(EgressFamilies.ModelMeai);
                 middle.CurrentBasis.Should().Be(SubjectPrefix + "dispose-middle");
@@ -270,7 +276,7 @@ public sealed class EgressSubjectNestingTests
             EgressSubject.Observe(Confidential);
 
             innerMark.Current.Should().Be(Confidential);
-            outerMark.Current.Should().Be(Confidential, "every live frame is raised at once, before the inner frame ends");
+            outerMark.Current.Should().Be(Confidential, "every frame on the chain is raised at once, before the inner frame ends");
         }
     }
 

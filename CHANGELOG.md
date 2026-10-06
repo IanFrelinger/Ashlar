@@ -114,11 +114,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   behavioural tests of the guard, the HTTP handler and the factory defaults, and the route twins in
   `Tests/Certification`, are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
 - **Egress subject frames nest monotonically, and reads are scoped (SPEC-007 PR 4.4).** A decision's
-  current label is now the join of the high-water marks of every live `EgressSubject` frame on the
-  flow, not only the innermost one's, so a frame entered inside another can never decide below it;
-  the record's basis still names the innermost subject. Disposing a frame observes its mark into every
-  enclosing live frame. The new `EgressSubject.Observe(SecurityLabel)` joins a label into every live
-  frame at once, only raises, and does nothing with no frame. The new `EgressSubject.BeginRead()`
+  current label is now the join of the innermost live `EgressSubject` frame's high-water mark and the
+  marks of every frame it was entered inside, not only the innermost one's, so a frame entered inside
+  another can never decide below it; the record's basis still names the innermost subject. A frame
+  that was disposed first, such as a parent whose `using` ended while a fire-and-forget task it
+  started is still running, still counts for the frames inside it. Disposing a frame observes its
+  mark into every frame it was entered inside. The new `EgressSubject.Observe(SecurityLabel)` joins a
+  label into every frame on the chain at once, only raises, and does nothing with no frame. The new `EgressSubject.BeginRead()`
   returns a `ReadScope` for one read: disposed after `Complete()`, it observes the join of what was
   passed to `Report` (a `Public` report reads nothing), or `SystemHigh` if nothing was reported;
   disposed without `Complete()`, as when the read throws, it observes `SystemHigh` whatever was

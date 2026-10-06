@@ -21,7 +21,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <see cref="DataSensitivityLabelBridge.ToDataLabel"/>; that with no subject every non-host destination is refused
 /// with <see cref="AccessDenialReason.SystemHighData"/> and the host boundary is allowed; that an
 /// <see cref="EgressSubject"/> frame lowers the current label, flows across <c>await</c>, and is restored on
-/// <c>Dispose</c>, and that a nested frame decides at the join of every live frame (SPEC-007 PR 4.4; the rest of
+/// <c>Dispose</c>, and that a nested frame decides at the join of every frame it was entered inside (SPEC-007 PR 4.4; the rest of
 /// frame semantics is in <see cref="EgressSubjectNestingTests"/>); that a record never carries a userinfo, path, query or fragment; that a
 /// fault is a record with <see cref="EgressDecision.Fault"/> and <c>default(AccessDecision)</c>, never a throw; that an
 /// explicit profile is reported and sets <see cref="EgressDecision.ProfileEnforcesByDefault"/> without changing the
@@ -358,7 +358,7 @@ public sealed class EgressGuardDecisionTests
                 await Task.Delay(1);
 
                 // SPEC-007 PR 4.4 flipped this block. It pinned "inner Public decides Public", which let a fresh
-                // frame declassify what the enclosing subject had read; a nested frame now joins every live frame.
+                // frame declassify what the enclosing subject had read; a nested frame now joins every frame it was entered inside.
                 var inner = Decide("not-a-family", Remote);
                 inner.CurrentBasis.Should().Be(SubjectPrefix + "agent-inner", "the basis names the innermost subject");
                 inner.Current.Should().Be(InternalLabel, "a nested frame never decides below a frame it was entered inside");
@@ -466,7 +466,7 @@ public sealed class EgressGuardDecisionTests
         release.SetResult();
         var decision = await child.WaitAsync(TimeSpan.FromSeconds(30));
 
-        decision.CurrentBasis.Should().Be(NoSubject, "a disposed frame counts nowhere, so the child fails closed");
+        decision.CurrentBasis.Should().Be(NoSubject, "a disposed frame is never the innermost one, so a child with no frame of its own fails closed");
         decision.Current.Should().Be(SecurityLabel.SystemHigh);
     }
 
@@ -480,7 +480,7 @@ public sealed class EgressGuardDecisionTests
 
             await Task.Run(scope.Dispose).WaitAsync(TimeSpan.FromSeconds(30));
 
-            Decide("not-a-family", Remote).CurrentBasis.Should().Be(NoSubject, "the frame is disposed, so it counts nowhere");
+            Decide("not-a-family", Remote).CurrentBasis.Should().Be(NoSubject, "the frame is disposed, so it is no longer the innermost one");
         }
         finally
         {

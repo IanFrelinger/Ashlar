@@ -65,10 +65,14 @@ The status line above and the starting prompt are the owner's, as written; the s
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
 
-  - **4.4** (this PR): frame semantics. A decision joins every live `EgressSubject` frame and a disposed frame's mark
-    reaches the frames around it; `EgressSubject.Observe` raises every live frame; a `BeginRead` scope that ends
-    unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run with no subject. Report-only,
-    and no production code enters a frame yet.
+  - **4.4** (this PR): frame semantics. A decision joins the innermost live `EgressSubject` frame with every frame it
+    was entered inside, live or disposed (fail closed: a parent that ends first never declassifies a task it started),
+    and a disposed frame's mark reaches the frames around it; `EgressSubject.Observe` raises every frame on the chain;
+    a `BeginRead` scope that ends unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run
+    with no subject. Report-only, and no production code enters a frame yet. **D9 amended:** `Ashlar.Abstractions`
+    also grants `InternalsVisibleTo` to `Ashlar.Orchestration`, for the internal `EgressSubject.Detach` at the
+    `AgentBus` dispatch point. The grant exposes every Abstractions internal to Orchestration, so the callers of the
+    reset seam and the mode latch setters (4.6) are to be pinned by a convention fact when 4.4 and 4.6 are integrated.
 
 ---
 
