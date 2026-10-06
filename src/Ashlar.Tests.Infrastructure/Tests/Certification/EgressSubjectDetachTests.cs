@@ -13,30 +13,33 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
 /// SPEC-007 PR 4.4: work handed to another component is not decided at the caller's mark. The internal, raise-only
-/// <c>EgressSubject.Detach</c> leaves every frame, and <see cref="AgentBus"/> dispatches each subscriber under it.
+/// <c>EgressSubject.RunDetached</c> runs a callback with no subject, and <see cref="AgentBus"/> starts each subscriber
+/// inside it.
 /// </summary>
 /// <remarks>
 /// <para><b>Why.</b> <see cref="AgentBus.PublishAsync"/> runs every subscriber's handler through <c>Task.Run</c>, which
 /// captures the publisher's execution context, so before 4.4 a subscriber's egress was decided at the publisher's
 /// mark: another component's sends attributed to, and allowed or refused by, what the publisher had read.</para>
 /// <para><b>What is pinned.</b> A subscriber decides with no subject (<see cref="SecurityLabel.SystemHigh"/>) while
-/// the publisher is inside a frame, and the publisher's own frame is restored when <c>PublishAsync</c> returns.
-/// Under <c>Detach</c> a decision has no subject; a frame entered under it starts a chain of its own whose reads never
-/// reach the caller's frames; disposing it restores the caller's frame, exactly, on the flow where it is the innermost
-/// frame and nowhere else, so a task inside a parent frame that has ended is back inside that parent after it
-/// publishes, and a task started under it that is handed the detachment and disposes it is back in the caller's frame,
-/// at the caller's mark, while the flow that detached stays detached; a task started under it that does not dispose
-/// it keeps no subject after the caller is restored, also when the detachment ends before a frame entered under it
-/// that the task ends; and a flow that disposes its own frames and detachments out of order goes back to where in-order
-/// <c>using</c> blocks would have left it, in every dispose order of a frame, a detachment and a frame inside it, over
-/// 50 iterations, and in every shape and dispose order of four frames and detachments inside a live frame (384
-/// programs on one flow). The convention fact pins every call site of <c>Detach</c> in the repository's C#, and that
-/// the bus starts each subscriber inside the detached block.</para>
+/// the publisher is inside a frame, and the publisher's own frame is restored when <c>PublishAsync</c> returns, also
+/// for a task inside a parent frame that has ended, which a frame it enters afterwards still counts. While the callback
+/// runs a decision has no subject, and a frame entered inside it starts a chain of its own whose reads never reach the
+/// caller's frames. When the callback returns, or throws, the calling flow is back in exactly the caller's frame. A frame
+/// the callback enters and leaves undisposed is dropped from the calling flow, which decides at its own mark, also after
+/// it disposes that frame. A task started inside keeps no subject for its whole life: after the callback returns, after
+/// the caller's frame ends, and when the frame it was handed ends after the callback returned. No caller holds the
+/// detachment, so none can end it out of order or hand it to a task, and no program on one flow leaves the flow
+/// detached, or below a live frame it entered outside every callback: not the 24 that return from the callback while
+/// frames entered inside it are undisposed and dispose them afterwards, and not any of the 2,092 programs of an
+/// enclosing frame, two more frames and two callbacks, nested or in turn, each checked step by step against a model of
+/// the rule. The convention fact pins every call site of <c>RunDetached</c> in the repository's C#, and that the bus
+/// starts each subscriber inside the callback.</para>
 /// <para><b>Internal surface.</b> This assembly is not in <c>Ashlar.Abstractions</c>' InternalsVisibleTo, so
-/// <c>Detach</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
-/// <para><b>Process-global state.</b> None: frames live on each test's own flow, the guard has an explicit profile,
-/// and each bus is a fresh instance with a message type unique to the test. The convention fact is a pure file read.
-/// It is a tripwire, not a proof: a call spelled through an alias, a delegate or reflection is not seen.</para>
+/// <c>RunDetached</c> is reached by reflection, as <see cref="EgressGuardDecisionTests"/> reads the core's counters.</para>
+/// <para><b>Process-global state.</b> None: frames live on each test's own flow (the program twin runs each program on
+/// a copy of it), the guard has an explicit profile, and each bus is a fresh instance with a message type unique to the
+/// test. The convention fact is a pure file read. It is a tripwire, not a proof: a call spelled through an alias, a
+/// delegate or reflection is not seen.</para>
 /// </remarks>
 [Trait("Category", "Certification")]
 public sealed class EgressSubjectDetachTests
@@ -47,7 +50,7 @@ public sealed class EgressSubjectDetachTests
     private const string UnknownFamily = "not-a-family";
 
     /// <summary>The call as written, split so that this file is not one of the sites it counts.</summary>
-    private const string DetachCall = "EgressSubject" + ".Detach(";
+    private const string DetachCall = "EgressSubject" + ".RunDetached(";
 
     private const string AgentBusPath = "src/Ashlar.Orchestration/Communication/AgentBus.cs";
 
@@ -141,13 +144,13 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
-    public void Detach_leaves_every_frame_until_disposed_and_then_restores_the_callers()
+    public void RunDetached_leaves_every_frame_while_the_callback_runs_and_then_restores_the_callers()
     {
         var callerMark = new HighWaterMark(Internal);
 
         using (EgressSubject.Enter("detach-caller", callerMark))
         {
-            using (Detach())
+            RunDetached(() =>
             {
                 var detached = Decide(EgressFamilies.ModelMeai);
                 detached.CurrentBasis.Should().Be(NoSubject);
@@ -165,78 +168,161 @@ public sealed class EgressSubjectDetachTests
                 }
 
                 Decide(UnknownFamily).CurrentBasis.Should().Be(NoSubject, "disposing the inner frame returns to the detachment");
-            }
+            });
 
             callerMark.Current.Should().Be(Internal, "what was read under the detachment never reaches the caller's frames");
+            EgressSubjectNestingTests.RestorePathLength().Should().Be(1, "the calling flow is back in exactly the caller's frame");
 
             var restored = Decide(EgressFamilies.ModelMeai);
-            restored.CurrentBasis.Should().Be(SubjectPrefix + "detach-caller", "disposing the detachment restores the caller's frame");
+            restored.CurrentBasis.Should().Be(SubjectPrefix + "detach-caller", "the caller's frame is restored when the callback returns");
             restored.Current.Should().Be(Internal);
             restored.Access.Allowed.Should().BeTrue("Internal data may go to an Internal model: {0}", restored.Access);
         }
     }
 
     [Fact]
-    public async Task A_task_started_under_Detach_keeps_no_subject_after_the_caller_is_restored()
+    public void RunDetached_restores_the_callers_frame_when_the_callback_throws()
     {
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Task<EgressDecision> child;
+        var thrown = new InvalidOperationException("the work handed off failed");
+        IDisposable? left = null;
 
-        using (EgressSubject.Enter("detach-spawner", new HighWaterMark(Internal)))
+        using (EgressSubject.Enter("detach-throw-caller", new HighWaterMark(Internal)))
         {
-            using (Detach())
+            var run = () => RunDetached(() =>
             {
-                child = Task.Run(async () =>
-                {
-                    await release.Task.WaitAsync(Patience);
-                    return Decide(EgressFamilies.ModelMeai);
-                });
-            }
+                left = EgressSubject.Enter("detach-throw-left", new HighWaterMark(Secret));
+                throw thrown;
+            });
 
-            Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(SubjectPrefix + "detach-spawner");
-
-            release.SetResult();
-            var decision = await child.WaitAsync(Patience);
-
-            decision.CurrentBasis.Should().Be(NoSubject, "the task never falls back to the caller's frame, which is still live");
-            decision.Current.Should().Be(SecurityLabel.SystemHigh);
+            run.Should().Throw<InvalidOperationException>().Which.Should().BeSameAs(thrown, "the callback's exception reaches the caller");
+            EgressSubjectNestingTests.RestorePathLength().Should().Be(1, "the calling flow is back in exactly the caller's frame");
+            var back = Decide(EgressFamilies.ModelMeai);
+            back.CurrentBasis.Should().Be(SubjectPrefix + "detach-throw-caller", "the caller's frame is restored on every path");
+            back.Current.Should().Be(Internal, "the frame the callback entered before it threw is not on the calling flow");
+            left!.Dispose();
         }
     }
 
     [Fact]
-    public async Task A_task_started_under_Detach_keeps_no_subject_when_the_detachment_ends_before_its_frame()
+    public async Task A_task_started_inside_RunDetached_keeps_no_subject_after_it_returns_and_after_the_callers_frame_ends()
+    {
+        var returned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var decidedAfterReturn = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var callerEnded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var callerMark = new HighWaterMark(Internal);
+        Task<(EgressDecision AfterReturn, EgressDecision AfterCallerEnded, EgressDecision Late)>? task = null;
+
+        using (EgressSubject.Enter("detach-spawner", callerMark))
+        {
+            RunDetached(() => task = Task.Run(async () =>
+            {
+                await returned.Task.WaitAsync(Patience);
+                var afterReturn = Decide(EgressFamilies.ModelMeai);
+                EgressSubject.Observe(Secret);
+                decidedAfterReturn.SetResult();
+
+                await callerEnded.Task.WaitAsync(Patience);
+                var afterCallerEnded = Decide(EgressFamilies.ModelMeai);
+                using (EgressSubject.Enter("detach-spawned-late", new HighWaterMark()))
+                    return (afterReturn, afterCallerEnded, Decide(UnknownFamily));
+            }));
+
+            Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(SubjectPrefix + "detach-spawner", "the callback has returned");
+
+            // The task decides after the callback returned, while the caller's frame is still live.
+            returned.SetResult();
+            await decidedAfterReturn.Task.WaitAsync(Patience);
+        }
+
+        callerEnded.SetResult();
+        var (afterReturn, afterCallerEnded, late) = await task!.WaitAsync(Patience);
+
+        afterReturn.CurrentBasis.Should().Be(NoSubject, "the task never falls back to the caller's frame, which is still live");
+        afterReturn.Current.Should().Be(SecurityLabel.SystemHigh);
+        afterCallerEnded.CurrentBasis.Should().Be(NoSubject, "nor once the caller's frame has ended: the task keeps the detachment for its life");
+        afterCallerEnded.Current.Should().Be(SecurityLabel.SystemHigh);
+        late.CurrentBasis.Should().Be(SubjectPrefix + "detach-spawned-late");
+        late.Current.Should().Be(
+            SecurityLabel.Public, "a frame the task enters starts a chain of its own, which the caller's mark never reaches");
+        callerMark.Current.Should().Be(Internal, "and what the task read under the detachment never reaches the caller's frame");
+    }
+
+    [Fact]
+    public async Task A_task_started_inside_RunDetached_keeps_no_subject_when_the_detachment_ends_before_its_frame()
     {
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var callerMark = new HighWaterMark(Internal);
         var detachedMark = new HighWaterMark();
+        Task<(EgressDecision InFrame, EgressDecision After)>? task = null;
 
         using (EgressSubject.Enter("detach-order-caller", callerMark))
         {
-            var detachment = Detach();
-            var detached = EgressSubject.Enter("detach-order-detached", detachedMark);
-
-            // Started under the detachment, inside a frame entered under it, and handed that frame to end.
-            var task = Task.Run(async () =>
+            RunDetached(() =>
             {
-                await release.Task.WaitAsync(Patience);
-                EgressSubject.Observe(Secret);
-                var inFrame = Decide(UnknownFamily);
-                detached.Dispose();
-                return (InFrame: inFrame, After: Decide(EgressFamilies.ModelMeai));
+                var detached = EgressSubject.Enter("detach-order-detached", detachedMark);
+
+                // Started inside a frame entered under the detachment, and handed that frame to end. The callback returns
+                // while that frame is still its innermost one, so the detachment ends first.
+                task = Task.Run(async () =>
+                {
+                    await release.Task.WaitAsync(Patience);
+                    EgressSubject.Observe(Secret);
+                    var inFrame = Decide(UnknownFamily);
+                    detached.Dispose();
+                    return (inFrame, Decide(EgressFamilies.ModelMeai));
+                });
             });
 
-            // Out of order on this flow: the frame entered under the detachment is still its innermost one.
-            detachment.Dispose();
+            Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(
+                SubjectPrefix + "detach-order-caller", "the frame the callback left undisposed is dropped from this flow");
             release.SetResult();
-            var (inFrame, after) = await task.WaitAsync(Patience);
+            var (inFrame, after) = await task!.WaitAsync(Patience);
 
             inFrame.Current.Should().Be(Secret);
             detachedMark.Current.Should().Be(Secret);
             callerMark.Current.Should().Be(Internal, "what was read under the detachment never reaches the caller's frames");
             after.CurrentBasis.Should().Be(
-                NoSubject, "a task started under a detachment never falls back to the caller's frame, whichever order they end in");
+                NoSubject, "a task started under a detachment goes back to it, never to the caller's frame, whichever order they end in");
             after.Current.Should().Be(SecurityLabel.SystemHigh, "the task read Secret under the detachment; no subject is the top");
             after.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        }
+    }
+
+    [Fact]
+    public void A_frame_entered_inside_RunDetached_and_left_undisposed_is_dropped_from_the_calling_flow()
+    {
+        var callerMark = new HighWaterMark(Internal);
+        var leftMark = new HighWaterMark();
+        IDisposable? left = null;
+
+        using (EgressSubject.Enter("dropped-caller", callerMark))
+        {
+            RunDetached(() =>
+            {
+                left = EgressSubject.Enter("dropped-left", leftMark);
+                EgressSubject.Observe(Secret);
+            });
+
+            leftMark.Current.Should().Be(Secret);
+            EgressSubjectNestingTests.RestorePathLength().Should().Be(
+                1, "the calling flow is back in exactly the caller's frame, and nothing the callback entered is on it");
+            var back = Decide(EgressFamilies.ModelMeai);
+            back.CurrentBasis.Should().Be(SubjectPrefix + "dropped-caller", "the frame the callback entered and did not dispose is dropped on return");
+            back.Current.Should().Be(Internal, "the caller decides at its own mark: a frame entered under a detachment never reaches the caller");
+            back.Access.Allowed.Should().BeTrue("Internal data may go to an Internal model: {0}", back.Access);
+
+            // On the calling flow, after the callback returned: not this flow's innermost frame, so no flow moves.
+            left!.Dispose();
+            EgressSubjectNestingTests.RestorePathLength().Should().Be(1);
+            callerMark.Current.Should().Be(Internal, "its mark reaches only the frames it was entered inside, which end at the detachment");
+            Decide(UnknownFamily).CurrentBasis.Should().Be(SubjectPrefix + "dropped-caller");
+
+            using (EgressSubject.Enter("dropped-late", new HighWaterMark()))
+            {
+                var late = Decide(UnknownFamily);
+                late.CurrentBasis.Should().Be(SubjectPrefix + "dropped-late");
+                late.Current.Should().Be(Internal, "a frame entered afterwards is inside the caller's frame only");
+            }
         }
     }
 
@@ -244,174 +330,84 @@ public sealed class EgressSubjectDetachTests
     public void A_flow_that_disposes_its_own_detachment_out_of_order_never_decides_below_the_callers_frame()
     {
         var callerLabel = new SecurityLabel(SecurityLevel.Secret, ["DETACH-PROBE-CALLER"]);
-        var callerMark = new HighWaterMark(callerLabel);
-
-        using (EgressSubject.Enter("detach-probe-caller", callerMark))
-        {
-            // The detachment's using ends while the frame entered under it is still this flow's head: out of order.
-            // Then that frame's using ends. This flow is back inside the caller's frame, which is live: nobody disposed it.
-            var detachment = Detach();
-            var detached = EgressSubject.Enter("detach-probe-detached", new HighWaterMark());
-            detachment.Dispose();
-            detached.Dispose();
-
-            var noFrame = Decide(UnknownFamily);
-            noFrame.Current.Dominates(callerLabel).Should().BeTrue(
-                "with no frame of its own the flow never decides below the live caller frame it is inside; it decided {0} at {1}",
-                noFrame.CurrentBasis,
-                noFrame.Current);
-
-            using (EgressSubject.Enter("detach-probe-late", new HighWaterMark()))
-            {
-                var late = Decide(EgressFamilies.ModelMeai);
-                late.Current.Dominates(callerLabel).Should().BeTrue(
-                    "a frame entered afterwards is inside the live caller frame, which this flow never disposed, so it never decides below it; it decided {0} at {1}",
-                    late.CurrentBasis,
-                    late.Current);
-            }
-        }
-    }
-
-    [Fact]
-    public async Task Every_dispose_order_with_a_detachment_in_the_middle_leaves_only_the_head_it_disposes()
-    {
-        string[] names = ["detach-orders-a", "the detachment", "detach-orders-c"];
-        var model = new EgressSubjectNestingTests.FlowModel();
         var failures = new List<string>();
         var programs = 0;
 
-        // One flow for every order, so anything an order leaves behind shows in the next, and the model must agree.
-        foreach (var order in Permutations(3))
+        using (EgressSubject.Enter("detach-probe-caller", new HighWaterMark(callerLabel)))
         {
-            var tag = $"[{programs++}: {string.Join(",", order.Select(i => names[i]))}]";
-            var labelA = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-A-" + programs.ToString(CultureInfo.InvariantCulture)]);
-            var labelC = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-C-" + programs.ToString(CultureInfo.InvariantCulture)]);
-            var enclosingMark = new HighWaterMark();
-            var enclosing = EgressSubject.Enter("detach-orders-enclosing", enclosingMark);
-            var enclosingNode = model.Enter("detach-orders-enclosing", SecurityLabel.Public);
-            var frames = new IDisposable[3];
-            var nodes = new EgressSubjectNestingTests.FlowModel.Node[3];
-            frames[0] = EgressSubject.Enter(names[0], new HighWaterMark(labelA));
-            nodes[0] = model.Enter(names[0], labelA);
-            frames[1] = Detach();
-            nodes[1] = model.Detach();
-            frames[2] = EgressSubject.Enter(names[2], new HighWaterMark(labelC));
-            nodes[2] = model.Enter(names[2], labelC);
-
-            foreach (var k in order)
+            // No caller holds a detachment, so the nearest thing to disposing one out of order is a callback that returns
+            // while frames it entered are still undisposed. Three frames entered inside, disposed in every order (6), the
+            // first `inside` of them before the callback returns and the rest after it (4 splits): 24 programs, one flow.
+            foreach (var order in Permutations(3))
             {
-                frames[k].Dispose();
-                model.Dispose(nodes[k]);
-                failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after {names[k]}"));
+                for (var inside = 0; inside <= 3; inside++)
+                {
+                    programs++;
+                    var tag = $"[order {string.Join(",", order)}, {inside} disposed inside]";
+                    var frames = new IDisposable[3];
+                    var disposedInside = order.Take(inside).ToArray();
+                    RunDetached(() =>
+                    {
+                        for (var i = 0; i < 3; i++)
+                            frames[i] = EgressSubject.Enter("detach-probe-" + i.ToString(CultureInfo.InvariantCulture), new HighWaterMark());
+
+                        foreach (var k in disposedInside)
+                            frames[k].Dispose();
+                    });
+
+                    failures.AddRange(AtTheProbeCallersFrame(callerLabel, $"{tag} on return"));
+                    foreach (var k in order.Skip(inside))
+                    {
+                        frames[k].Dispose();
+                        failures.AddRange(AtTheProbeCallersFrame(callerLabel, $"{tag} after disposing frame {k} outside"));
+                    }
+
+                    using (EgressSubject.Enter("detach-probe-late", new HighWaterMark()))
+                    {
+                        var late = Decide(UnknownFamily);
+                        if (!late.Current.Dominates(callerLabel))
+                            failures.Add($"{tag} a frame entered afterwards decided {late.CurrentBasis} at {late.Current}");
+                    }
+                }
             }
-
-            if (enclosingMark.Current.Dominates(labelC))
-                failures.Add($"{tag} the enclosing frame holds {enclosingMark.Current}: what C read crossed the detachment");
-
-            enclosing.Dispose();
-            model.Dispose(enclosingNode);
-            failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after the enclosing frame"));
-            await Task.Yield();
         }
 
+        programs.Should().Be(24);
         failures.Should().BeEmpty(
-            "a flow leaves a frame or a detachment only by disposing its own head, and goes back to exactly its restore target; every failure: {0}",
+            "no sequence on one flow leaves it detached, or below the live caller frame it is inside; every failure: {0}",
             string.Join(" || ", failures));
-        EgressSubjectNestingTests.RestorePathLength().Should().Be(
-            model.RestorePathLength, "every frame and detachment a flow disposed out of order stays on it");
-        model.RestorePathLength.Should().Be(13, "the six orders leave 13 frames and detachments on the flow: growth is pinned, not hidden");
     }
 
     [Fact]
-    public async Task A_detachment_disposed_from_another_flow_restores_nothing_there()
+    public void Every_program_of_frames_and_detached_callbacks_on_one_flow_leaves_only_the_head_it_disposes_and_never_writes_down()
     {
-        var scope = EgressSubject.Enter("detach-elsewhere", new HighWaterMark(Internal));
-        try
-        {
-            var detachment = Detach();
-            await Task.Run(detachment.Dispose).WaitAsync(Patience);
-
-            Decide(UnknownFamily).CurrentBasis.Should().Be(NoSubject, "this flow stays detached: a detachment only raises");
-
-            detachment.Dispose();
-            Decide(UnknownFamily).CurrentBasis.Should().Be(NoSubject, "a second Dispose does nothing");
-        }
-        finally
-        {
-            scope.Dispose();
-        }
-    }
-
-    [Fact]
-    public async Task A_task_started_under_Detach_that_disposes_it_goes_back_to_the_callers_frame_there_only()
-    {
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var callerMark = new HighWaterMark(Internal);
-
-        using (EgressSubject.Enter("detach-handed-caller", callerMark))
-        {
-            var detachment = Detach();
-
-            // Started under the detachment and handed it: the task, where it is the innermost frame, ends it.
-            var task = Task.Run(async () =>
-            {
-                await release.Task.WaitAsync(Patience);
-                EgressSubject.Observe(Secret);
-                var under = Decide(UnknownFamily);
-                detachment.Dispose();
-                return (Under: under, After: Decide(EgressFamilies.ModelMeai));
-            });
-
-            release.SetResult();
-            var (under, after) = await task.WaitAsync(Patience);
-
-            under.CurrentBasis.Should().Be(NoSubject);
-            under.Current.Should().Be(SecurityLabel.SystemHigh);
-            callerMark.Current.Should().Be(Internal, "what was read under the detachment never reaches the caller's frames");
-            after.CurrentBasis.Should().Be(
-                SubjectPrefix + "detach-handed-caller",
-                "disposing the detachment on a flow where it is the innermost frame restores the caller's frame on that flow, as for a frame");
-            after.Current.Should().Be(
-                Internal, "the caller's mark, which does not count what was read under the detachment, as on the flow that detached");
-            Decide(UnknownFamily).CurrentBasis.Should().Be(
-                NoSubject, "the flow that detached is still detached: a dispose on another flow restores nothing here");
-        }
-    }
-
-    [Fact]
-    public async Task Every_shape_and_dispose_order_of_four_frames_and_detachments_leaves_only_the_head_it_disposes()
-    {
-        var model = new EgressSubjectNestingTests.FlowModel();
+        var clean = ExecutionContext.Capture();
+        clean.Should().NotBeNull("the test runs with the execution context flowing");
         var failures = new List<string>();
         var programs = 0;
+        var leftOnTheFlow = 0;
 
-        // Each of four frames inside a live enclosing frame is a subject frame or a detachment (16 shapes), disposed in
-        // every order (24). One flow for every program, so anything a program leaves behind shows in the next, and the
+        // Inside a live enclosing frame: up to two more frames and up to two callbacks run detached, nested or in turn and
+        // never empty, and every frame disposed by the program's end, in any order, inside or outside any callback, the
+        // enclosing frame included. Each program runs on its own copy of this test's flow, which has no frame, and the
         // model of the rule must agree with it after every step.
-        for (var shape = 0; shape < 16; shape++)
+        foreach (var program in Programs(frames: 2, callbacks: 2))
         {
-            foreach (var order in Permutations(4))
-            {
-                programs++;
-                failures.AddRange(RunShape(model, shape, order));
-            }
-
-            await Task.Yield();
+            programs++;
+            ExecutionContext.Run(clean!.CreateCopy(), _ => leftOnTheFlow += new ProgramRun(program, failures).Run(), null);
         }
 
-        programs.Should().Be(384);
+        programs.Should().Be(2092);
         failures.Should().BeEmpty(
-            "a flow leaves a frame or a detachment only by disposing its own head, and goes back to exactly its restore target; {0} failures, the first: {1}",
+            "a flow leaves a frame only by disposing its own head, a callback run detached returns to exactly the caller's frame, and a flow outside every callback never decides below a live frame it entered there; {0} failures, the first: {1}",
             failures.Count,
             string.Join(" || ", failures.Take(10)));
-        EgressSubjectNestingTests.RestorePathLength().Should().Be(
-            model.RestorePathLength, "every frame and detachment a flow disposed out of order stays on it");
-        model.RestorePathLength.Should().Be(
-            1248, "the 384 programs leave 1,248 frames and detachments on the flow: growth is pinned, not hidden");
+        leftOnTheFlow.Should().Be(
+            2474, "the frames each program disposed out of order stay on its flow (a known limit, fail closed): growth is pinned, not hidden");
     }
 
     [Fact]
-    public void Detach_is_called_only_at_the_listed_dispatch_points()
+    public void RunDetached_is_called_only_at_the_listed_dispatch_points()
     {
         var root = RepoPathResolver.FindRepoRoot();
         var (sites, scanned) = Sites(root);
@@ -420,7 +416,7 @@ public sealed class EgressSubjectDetachTests
             ScannedFileFloor, "the scan must reach the repository's C#; an emptied scan proves nothing");
         sites.Should().Equal(
             ExpectedSites,
-            "Detach leaves the caller's subject. It belongs only where work is handed to another component (AgentBus "
+            "RunDetached runs work with no subject. It belongs only where work is handed to another component (AgentBus "
             + "subscriber dispatch). A new site needs a reason recorded in the design and a row here; a missing one "
             + "means a dispatch point decides at its caller's mark again");
     }
@@ -431,71 +427,71 @@ public sealed class EgressSubjectDetachTests
         var root = RepoPathResolver.FindRepoRoot();
         var text = File.ReadAllText(Path.Combine(root, AgentBusPath));
 
-        var call = text.IndexOf("using (" + DetachCall + "))", StringComparison.Ordinal);
-        call.Should().BeGreaterThanOrEqualTo(0, "PublishAsync dispatches its subscribers inside a using block around the detachment");
+        var call = text.IndexOf(DetachCall + "() =>", StringComparison.Ordinal);
+        call.Should().BeGreaterThanOrEqualTo(0, "PublishAsync dispatches its subscribers inside the callback it runs detached");
 
         var open = text.IndexOf('{', call);
         open.Should().BeGreaterThan(call);
         var close = MatchingBrace(text, open);
-        close.Should().BeGreaterThan(open, "the detached block must close");
+        close.Should().BeGreaterThan(open, "the detached callback must close");
 
         var inside = text.Substring(open, close - open + 1);
         var outside = text.Remove(open, close - open + 1);
 
-        inside.Should().Contain("Task.Run(", "each subscriber's task starts inside the detached block");
+        inside.Should().Contain("Task.Run(", "each subscriber's task starts inside the detached callback");
         inside.Should().Contain("subscription.Handler(", "and runs the subscriber's handler");
         outside.Should().NotContain("Task.Run(", "no dispatch task starts outside it");
         outside.Should().NotContain(".Handler(", "no handler runs outside it");
     }
 
-    private static IDisposable Detach()
+    /// <summary>The internal <c>EgressSubject.RunDetached</c>, reached by reflection.</summary>
+    internal static void RunDetached(Action start)
     {
-        var method = typeof(EgressSubject).GetMethod("Detach", BindingFlags.NonPublic | BindingFlags.Static, binder: null, Type.EmptyTypes, modifiers: null);
-        method.Should().NotBeNull("EgressSubject.Detach is the internal, raise-only way to leave every frame (SPEC-007 PR 4.4)");
-        return (IDisposable)method!.Invoke(null, null)!;
+        var method = typeof(EgressSubject).GetMethod(
+            "RunDetached", BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(Action)], modifiers: null);
+        method.Should().NotBeNull("EgressSubject.RunDetached is the internal, raise-only way to run work with no subject (SPEC-007 PR 4.4)");
+        method!.CreateDelegate<Action<Action>>()(start);
     }
 
     private static EgressDecision Decide(string family) =>
         Guard.Evaluate(new EgressRequest(family, "twin:detach:" + Guid.NewGuid().ToString("N"), new Uri(Remote)));
 
-    // Not async, so what it leaves on the flow stays there for the next program. Index 0 is the enclosing frame; 1 to 4
-    // are entered in turn inside it, a detachment where the shape's bit is set, and disposed in `order`, then the
-    // enclosing frame, then a frame is entered and ended. The model gives the decision expected after each step.
-    private static List<string> RunShape(EgressSubjectNestingTests.FlowModel model, int shape, int[] order)
+    // The D1 probe's check, after each step outside the callback: back in exactly the caller's frame, at its mark.
+    private static List<string> AtTheProbeCallersFrame(SecurityLabel callerLabel, string step)
     {
-        var detached = new bool[5];
-        var scopes = new IDisposable[5];
-        var nodes = new EgressSubjectNestingTests.FlowModel.Node[5];
-        for (var i = 0; i < 5; i++)
+        var decision = Decide(UnknownFamily);
+        var length = EgressSubjectNestingTests.RestorePathLength();
+        return decision.CurrentBasis == SubjectPrefix + "detach-probe-caller" && decision.Current.Dominates(callerLabel) && length == 1
+            ? []
+            : [$"{step}: {decision.CurrentBasis} at {decision.Current}, {length} frames on the flow"];
+    }
+
+    // Every program over the ops "E" (enter the next frame), "X<i>" (dispose frame i; the enclosing frame is 0), "(" (start
+    // a callback run detached) and ")" (return from it), in order: a program is complete once every callback has
+    // returned and every frame but the enclosing one is disposed, and no callback is empty.
+    private static List<string[]> Programs(int frames, int callbacks)
+    {
+        var programs = new List<string[]>();
+        Extend([], entered: 1, live: 1, open: 0, started: 0);
+        return programs;
+
+        void Extend(List<string> program, int entered, int live, int open, int started)
         {
-            detached[i] = i > 0 && ((shape >> (i - 1)) & 1) == 1;
-            var name = "detach-shapes-" + i.ToString(CultureInfo.InvariantCulture);
-            var mark = new SecurityLabel(SecurityLevel.Internal, ["DETACH-SHAPES-" + i.ToString(CultureInfo.InvariantCulture)]);
-            scopes[i] = detached[i] ? Detach() : EgressSubject.Enter(name, new HighWaterMark(mark));
-            nodes[i] = detached[i] ? model.Detach() : model.Enter(name, mark);
+            if (open == 0 && (live & ~1) == 0 && program.Count > 0)
+                programs.Add([.. program]);
+            if (entered <= frames)
+                Extend([.. program, "E"], entered + 1, live | (1 << entered), open, started);
+            for (var i = 0; i < entered; i++)
+            {
+                if ((live & (1 << i)) != 0)
+                    Extend([.. program, "X" + i.ToString(CultureInfo.InvariantCulture)], entered, live & ~(1 << i), open, started);
+            }
+
+            if (started < callbacks)
+                Extend([.. program, "("], entered, live, open + 1, started + 1);
+            if (open > 0 && program[^1] != "(")
+                Extend([.. program, ")"], entered, live, open - 1, started);
         }
-
-        var tag = $"[{string.Concat(detached.Skip(1).Select(d => d ? 'D' : 'S'))} order {string.Join(",", order.Select(o => o + 1))}]";
-        var failures = new List<string>();
-        foreach (var k in order.Select(o => o + 1))
-        {
-            scopes[k].Dispose();
-            model.Dispose(nodes[k]);
-            failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after {k}"));
-        }
-
-        scopes[0].Dispose();
-        model.Dispose(nodes[0]);
-        failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} after the enclosing frame"));
-
-        using (EgressSubject.Enter("detach-shapes-fresh", new HighWaterMark()))
-        {
-            var fresh = model.Enter("detach-shapes-fresh", SecurityLabel.Public);
-            failures.AddRange(model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{tag} in a frame entered afterwards"));
-            model.Dispose(fresh);
-        }
-
-        return failures;
     }
 
     private static IEnumerable<int[]> Permutations(int n)
@@ -579,5 +575,122 @@ public sealed class EgressSubjectDetachTests
         }
 
         return -1;
+    }
+
+    /// <summary>
+    /// One program of <see cref="Programs"/>, run on this flow and in a model of the rule in step. After every step the
+    /// decision and the flow's restore path must be the model's; outside every callback the flow must never decide with
+    /// no subject, or below the mark of a live frame it entered there; and at the end every frame's mark must be the
+    /// model's, and no frame entered outside the callbacks may hold the mark of one entered inside them.
+    /// </summary>
+    private sealed class ProgramRun
+    {
+        private readonly string[] _ops;
+        private readonly List<string> _failures;
+        private readonly string _tag;
+        private readonly EgressSubjectNestingTests.FlowModel _model = new();
+        private readonly List<IDisposable> _frames = [];
+        private readonly List<EgressSubjectNestingTests.FlowModel.Node> _nodes = [];
+        private readonly List<HighWaterMark> _marks = [];
+        private readonly List<SecurityLabel> _labels = [];
+        private readonly List<int> _depths = [];
+        private int _at;
+
+        internal ProgramRun(string[] ops, List<string> failures)
+        {
+            _ops = ops;
+            _failures = failures;
+            _tag = "[" + string.Join(" ", ops) + "]";
+        }
+
+        /// <summary>Runs the program; returns how many frames are left on the flow once the enclosing frame has ended.</summary>
+        internal int Run()
+        {
+            Enter(depth: 0);
+            Execute(depth: 0);
+
+            Dispose(0);
+            Check(depth: 0, "after the enclosing frame");
+            var left = EgressSubjectNestingTests.RestorePathLength();
+
+            using (EgressSubject.Enter("program-fresh", new HighWaterMark()))
+            {
+                var fresh = _model.Enter("program-fresh", SecurityLabel.Public);
+                _failures.AddRange(_model.Compare(Decide(UnknownFamily), EgressSubjectNestingTests.RestorePathLength(), $"{_tag} in a frame entered afterwards"));
+                _model.Dispose(fresh);
+            }
+
+            for (var i = 0; i < _frames.Count; i++)
+            {
+                if (!_marks[i].Current.Equals(_nodes[i].Mark))
+                    _failures.Add($"{_tag} frame {i} holds {_marks[i].Current}, not {_nodes[i].Mark}");
+
+                for (var j = 0; j < _frames.Count; j++)
+                {
+                    if (_depths[i] == 0 && _depths[j] > 0 && _marks[i].Current.Dominates(_labels[j]))
+                        _failures.Add($"{_tag} frame {i}, entered outside the callbacks, holds the mark of frame {j}, entered inside one");
+                }
+            }
+
+            return left;
+        }
+
+        // Runs ops until the ")" that returns from the callback at this depth, or the end of the program.
+        private void Execute(int depth)
+        {
+            while (_at < _ops.Length)
+            {
+                var op = _ops[_at++];
+                switch (op)
+                {
+                    case ")":
+                        return;
+                    case "(":
+                        RunDetached(() => _model.RunDetached(() => Execute(depth + 1)));
+                        break;
+                    case "E":
+                        Enter(depth);
+                        break;
+                    default:
+                        Dispose(int.Parse(op.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture));
+                        break;
+                }
+
+                Check(depth, $"after {op} (op {_at})");
+            }
+        }
+
+        private void Enter(int depth)
+        {
+            var index = _frames.Count.ToString(CultureInfo.InvariantCulture);
+            var label = new SecurityLabel(SecurityLevel.Internal, ["PROGRAM-" + index]);
+            var mark = new HighWaterMark(label);
+            _frames.Add(EgressSubject.Enter("program-" + index, mark));
+            _nodes.Add(_model.Enter("program-" + index, label));
+            _marks.Add(mark);
+            _labels.Add(label);
+            _depths.Add(depth);
+        }
+
+        private void Dispose(int frame)
+        {
+            _frames[frame].Dispose();
+            _model.Dispose(_nodes[frame]);
+        }
+
+        private void Check(int depth, string step)
+        {
+            var decision = Decide(UnknownFamily);
+            _failures.AddRange(_model.Compare(decision, EgressSubjectNestingTests.RestorePathLength(), $"{_tag} {step}"));
+            if (depth > 0)
+                return;
+
+            // Outside every callback: the flow is inside every live frame it entered there.
+            for (var i = 0; i < _frames.Count; i++)
+            {
+                if (_depths[i] == 0 && !_nodes[i].Disposed && (decision.CurrentBasis == NoSubject || !decision.Current.Dominates(_labels[i])))
+                    _failures.Add($"{_tag} {step}: a write-down, {decision.CurrentBasis} at {decision.Current} below live frame {i}");
+            }
+        }
     }
 }

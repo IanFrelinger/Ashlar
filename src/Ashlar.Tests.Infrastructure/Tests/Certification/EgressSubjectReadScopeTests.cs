@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reflection;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using FluentAssertions;
@@ -19,7 +18,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// exception observes SystemHigh even after it reported, because it may have fetched data its message carries. The
 /// scope observes into every frame of the chain it was begun on, from whatever flow it ends on, including a flow that
 /// never had that chain (<see cref="ExecutionContext.SuppressFlow"/>, a thread started without the execution context,
-/// or a detachment); a report after it ended is never lost, from any flow; and with no frame it changes nothing.</para>
+/// or a callback run detached); a report after it ended is never lost, from any flow; and with no frame it changes nothing.</para>
 /// <para><b>Process-global state.</b> None. Frames live on each test's own async flow, the guard has an explicit
 /// profile and reads no environment variable, and each decision is read from the value <c>Evaluate</c> returns.</para>
 /// <para>Hermetic: no network, no files, no environment.</para>
@@ -230,16 +229,16 @@ public sealed class EgressSubjectReadScopeTests
             onThread!.CurrentBasis.Should().Be(NoSubject, "the thread has no frame of its own");
             outerMark.Current.Should().Be(suppressedLabel.Join(threadLabel));
 
-            // 3. Ended under a detachment on this flow, then reported late from there.
+            // 3. Ended inside a callback run detached on this flow, then reported late from there.
             var detached = EgressSubject.BeginRead();
-            using (Detach())
+            EgressSubjectDetachTests.RunDetached(() =>
             {
                 Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject, "the detachment leaves every frame");
                 detached.Report(detachedLabel);
                 detached.Complete();
                 detached.Dispose();
                 detached.Report(lateLabel);
-            }
+            });
 
             var expected = suppressedLabel.Join(threadLabel).Join(detachedLabel).Join(lateLabel);
             innerMark.Current.Should().Be(expected, "a late report from a flow without the chain still reaches it");
@@ -347,14 +346,6 @@ public sealed class EgressSubjectReadScopeTests
 
         using var scope = EgressSubject.BeginRead();
         ((Action)(() => scope.Report(null!))).Should().Throw<ArgumentNullException>().WithParameterName("label");
-    }
-
-    /// <summary>The internal <c>EgressSubject.Detach</c>, by reflection, as <see cref="EgressSubjectDetachTests"/> reaches it.</summary>
-    private static IDisposable Detach()
-    {
-        var method = typeof(EgressSubject).GetMethod("Detach", BindingFlags.NonPublic | BindingFlags.Static, binder: null, Type.EmptyTypes, modifiers: null);
-        method.Should().NotBeNull("EgressSubject.Detach is the internal, raise-only way to leave every frame (SPEC-007 PR 4.4)");
-        return (IDisposable)method!.Invoke(null, null)!;
     }
 
     private static EgressDecision Decide(string family) =>

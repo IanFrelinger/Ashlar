@@ -29,13 +29,17 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// first would declassify a child task still running inside it, whose closures may hold what the parent read. A frame
 /// being disposed counts as live until its mark has reached the frames around it, so a task with no frame of its own
 /// never decides below that mark, nor names the enclosing frame before it holds the mark.</para>
-/// <para><b>Unwinding.</b> A flow that disposes its own frames out of order, in any order, goes back to where
-/// in-order <c>using</c> blocks would have left it, past the frames it disposed first, so no chain of disposed frames
-/// builds up on it, also across the iterations of an async loop, and nothing stays reachable from an unwound frame.
-/// Only that flow goes past them. A task started inside such a frame, also one handed a child scope to end, and the
-/// flow that entered a frame another flow disposed (a background task, <c>await Task.Run(parent.Dispose)</c>) stay
-/// inside it, also after ending the frames around it, in every dispose order, and read its mark when they decide, with
-/// no frame of their own or in one they enter, also what it rose to after it ended.</para>
+/// <para><b>Leaving a frame.</b> A flow leaves a frame only by disposing the frame that is its own innermost one, and
+/// goes back to exactly the frame that one was entered under, disposed or not; disposing a frame anywhere else moves no
+/// flow. So a flow that disposes its own frames out of order stays inside the outer frame it disposed (fail closed): a
+/// frame it enters afterwards joins that frame's mark, in every order of three, and in an async loop the flow's chain
+/// grows by exactly one frame per iteration (lengths pinned), while nothing stays reachable from the inner frame; and
+/// what such a flow reads later raises the outer frame's mark, which is the subject's shared one, so another session of
+/// that subject decides at it. A task started inside a frame disposed first, also one started after an out-of-order
+/// dispose or handed a child scope to end, and the flow that entered a frame another flow disposed (a background task,
+/// <c>await Task.Run(parent.Dispose)</c>) stay inside it, also after ending the frames around it, in every dispose order,
+/// and read its mark when they decide, with no frame of their own or in one they enter, also what it rose to after it
+/// ended.</para>
 /// <para><b>Process-global state.</b> None. Frames live on each test's own async flow, the guard has an explicit
 /// profile and reads no environment variable, and each decision is read from the value <c>Evaluate</c> returns.</para>
 /// <para>Hermetic: no network, no files, no environment.</para>
@@ -327,31 +331,71 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
+    public async Task What_a_flow_reads_after_an_out_of_order_dispose_raises_the_subjects_shared_mark_for_its_other_sessions()
+    {
+        var unframed = new SecurityLabel(SecurityLevel.Internal, ["SHARED-UNFRAMED"]);
+        var framed = new SecurityLabel(SecurityLevel.Confidential, ["SHARED-FRAMED"]);
+        var sessionMark = new HighWaterMark(); // One mark per subject: every session of the subject enters it.
+        var outer = EgressSubject.Enter("shared-session", sessionMark);
+        var inner = EgressSubject.Enter("shared-inner", new HighWaterMark());
+        outer.Dispose(); // Out of order: the inner frame is this flow's head, so the flow stays inside the outer one.
+        inner.Dispose();
+        RestorePathLength().Should().Be(1, "the flow is still inside the session's outer frame");
+        sessionMark.Current.Should().Be(SecurityLabel.Public);
+
+        // Unrelated later work on this flow: a read with no frame of its own, and one in a frame entered and ended in order.
+        EgressSubject.Observe(unframed);
+        var unrelatedMark = new HighWaterMark();
+        using (EgressSubject.Enter("shared-unrelated", unrelatedMark))
+            unrelatedMark.Observe(framed); // Straight into the unrelated frame's mark: only its dispose carries it outward.
+
+        var raised = unframed.Join(framed);
+        sessionMark.Current.Should().Be(
+            raised, "the outer frame the flow stayed inside holds the subject's shared mark, so unrelated later work raises it (fail closed)");
+
+        // Another session of the same subject, on a flow that carries none of this test's frames, decides at the raised mark.
+        Task<EgressDecision> other;
+        using (ExecutionContext.SuppressFlow())
+        {
+            other = Task.Run(() =>
+            {
+                using (EgressSubject.Enter("shared-other-session", sessionMark))
+                    return Decide(EgressFamilies.ModelMeai);
+            });
+        }
+
+        var decision = await other.WaitAsync(Patience);
+        decision.CurrentBasis.Should().Be(SubjectPrefix + "shared-other-session");
+        decision.Current.Should().Be(raised, "another session of the subject decides at what this flow's unrelated work read");
+        decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow, "Confidential data may not go to an Internal model");
+    }
+
+    [Fact]
     public async Task A_parent_frame_disposed_out_of_order_on_its_own_flow_still_holds_a_task_started_inside_it()
     {
         var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Task<(EgressDecision Own, EgressDecision Late)> child;
 
-        var parent = EgressSubject.Enter("unwound-parent", new HighWaterMark(Secret));
+        var parent = EgressSubject.Enter("own-flow-parent", new HighWaterMark(Secret));
 
         // Fire and forget, started inside the parent frame only.
         child = Task.Run(async () =>
         {
             await parentDisposed.Task.WaitAsync(Patience);
             EgressDecision own;
-            using (EgressSubject.Enter("unwound-child", new HighWaterMark()))
+            using (EgressSubject.Enter("own-flow-child", new HighWaterMark()))
                 own = Decide(EgressFamilies.ModelMeai);
 
-            using (EgressSubject.Enter("unwound-late", new HighWaterMark()))
+            using (EgressSubject.Enter("own-flow-late", new HighWaterMark()))
                 return (own, Decide(EgressFamilies.ModelMeai));
         });
 
         // This flow enters a frame after starting the task, then disposes the parent first.
-        var next = EgressSubject.Enter("unwound-next", new HighWaterMark());
+        var next = EgressSubject.Enter("own-flow-next", new HighWaterMark());
         parent.Dispose();
         next.Dispose();
 
-        using (EgressSubject.Enter("unwound-after", new HighWaterMark()))
+        using (EgressSubject.Enter("own-flow-after", new HighWaterMark()))
         {
             Decide(UnknownFamily).Current.Should().Be(
                 Secret, "the parent was not this flow's head when it was disposed, so the flow never left it (fail closed)");
@@ -360,9 +404,9 @@ public sealed class EgressSubjectNestingTests
         parentDisposed.SetResult();
         var (own, late) = await child.WaitAsync(Patience);
 
-        own.CurrentBasis.Should().Be(SubjectPrefix + "unwound-child");
+        own.CurrentBasis.Should().Be(SubjectPrefix + "own-flow-child");
         own.Current.Should().Be(Secret, "the task was started inside the parent, which still counts for its frames");
-        late.CurrentBasis.Should().Be(SubjectPrefix + "unwound-late");
+        late.CurrentBasis.Should().Be(SubjectPrefix + "own-flow-late");
         late.Current.Should().Be(Secret, "the task's own frame ends back inside the parent, which the task never disposed");
         late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
     }
@@ -876,9 +920,9 @@ public sealed class EgressSubjectNestingTests
     }
 
     /// <summary>
-    /// How many frames this flow would go back through, its head first: each frame's restore target in turn (for a
-    /// subject frame the frame it was entered under, for a detachment the caller's frame). Read by reflection on the
-    /// internal <c>EgressSubject</c> state, as <see cref="ResolveOnThisFlow"/> reaches <c>Resolve</c>.
+    /// How many frames this flow would go back through, its head first: the frame each one was entered under, in turn, to
+    /// the end of the chain or a detachment, which ends it. Read by reflection on the internal <c>EgressSubject</c>
+    /// state, as <see cref="ResolveOnThisFlow"/> reaches <c>Resolve</c>.
     /// </summary>
     internal static int RestorePathLength()
     {
@@ -887,11 +931,11 @@ public sealed class EgressSubjectNestingTests
         var value = active!.GetType().GetProperty("Value")!;
         var frame = typeof(EgressSubject).GetNestedType("Frame", BindingFlags.NonPublic);
         frame.Should().NotBeNull("EgressSubject.Frame is the internal frame type");
-        var outer = frame!.GetProperty("Outer", BindingFlags.NonPublic | BindingFlags.Instance);
-        outer.Should().NotBeNull("EgressSubject.Frame.Outer is the frame a flow goes back to");
+        var previous = frame!.GetField("_previous", BindingFlags.NonPublic | BindingFlags.Instance);
+        previous.Should().NotBeNull("EgressSubject.Frame._previous is the frame a flow goes back to");
 
         var length = 0;
-        for (var at = value.GetValue(active); at is not null; at = outer!.GetValue(at))
+        for (var at = value.GetValue(active); at is not null; at = previous!.GetValue(at))
             length++;
         return length;
     }
@@ -917,7 +961,7 @@ public sealed class EgressSubjectNestingTests
         mark.Current.Should().Be(label, "the read elsewhere raised the shared mark");
     }
 
-    // EgressSubject.Resolve is internal: reached by reflection, as the detachment tests reach Detach. It is what a
+    // EgressSubject.Resolve is internal: reached by reflection, as the detachment tests reach RunDetached. It is what a
     // decision reads, without building a decision around labels this large.
     private static Func<(SecurityLabel Current, string Basis)> ResolveOnThisFlow()
     {
@@ -1093,9 +1137,10 @@ public sealed class EgressSubjectNestingTests
 
     /// <summary>
     /// A model of one flow under the frame rule: a flow leaves a frame only by disposing the frame that is its own head,
-    /// which goes back to exactly the frame that one was entered under (for a detachment, the caller's frame), disposed
-    /// or not. Disposing a subject frame raises every subject frame it was entered inside, up to a detachment; a decision
-    /// joins every subject frame from the head down to a detachment and names the nearest live one.
+    /// which goes back to exactly the frame that one was entered under, disposed or not; a callback run detached starts
+    /// at a detachment, which ends the chain, and returns to exactly the caller's head. Disposing a subject frame raises
+    /// every subject frame it was entered inside, up to a detachment; a decision joins every subject frame from the head
+    /// down to a detachment and names the nearest live one.
     /// </summary>
     internal sealed class FlowModel
     {
@@ -1106,15 +1151,27 @@ public sealed class EgressSubjectNestingTests
             get
             {
                 var length = 0;
-                for (var at = _head; at is not null; at = at.Outer)
+                for (var at = _head; at is not null; at = at.Previous)
                     length++;
                 return length;
             }
         }
 
-        internal Node Enter(string name, SecurityLabel mark) => _head = new Node(name, mark, previous: _head, outer: _head);
+        internal Node Enter(string name, SecurityLabel mark) => _head = new Node(name, mark, previous: _head);
 
-        internal Node Detach() => _head = new Node("a detachment", mark: null, previous: null, outer: _head);
+        internal void RunDetached(Action start)
+        {
+            var caller = _head;
+            _head = new Node("a detachment", mark: null, previous: null);
+            try
+            {
+                start();
+            }
+            finally
+            {
+                _head = caller;
+            }
+        }
 
         internal void Dispose(Node node)
         {
@@ -1129,7 +1186,7 @@ public sealed class EgressSubjectNestingTests
 
             node.Disposed = true;
             if (ReferenceEquals(_head, node))
-                _head = node.Outer;
+                _head = node.Previous;
         }
 
         /// <summary>Each difference between the real flow and the model after <paramref name="step"/>.</summary>
@@ -1158,12 +1215,11 @@ public sealed class EgressSubjectNestingTests
 
         internal sealed class Node
         {
-            internal Node(string name, SecurityLabel? mark, Node? previous, Node? outer)
+            internal Node(string name, SecurityLabel? mark, Node? previous)
             {
                 Name = name;
                 Mark = mark;
                 Previous = previous;
-                Outer = outer;
             }
 
             internal string Name { get; }
@@ -1171,8 +1227,6 @@ public sealed class EgressSubjectNestingTests
             internal SecurityLabel? Mark { get; set; }
 
             internal Node? Previous { get; }
-
-            internal Node? Outer { get; }
 
             internal bool Disposed { get; set; }
         }
