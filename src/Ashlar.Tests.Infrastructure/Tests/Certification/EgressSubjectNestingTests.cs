@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using FluentAssertions;
@@ -345,6 +348,312 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
+    public async Task A_task_handed_a_child_scope_stays_inside_a_parent_frame_that_another_flow_ended()
+    {
+        var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<(EgressDecision NoFrame, EgressDecision Late)> task;
+
+        using (EgressSubject.Enter("handed-parent", new HighWaterMark(Secret)))
+        {
+            var child = EgressSubject.Enter("handed-child", new HighWaterMark());
+
+            // Fire and forget, handed the child scope: the task owns its lifetime and ends it.
+            task = Task.Run(async () =>
+            {
+                await parentDisposed.Task.WaitAsync(Patience);
+                child.Dispose();
+                var noFrame = Decide(EgressFamilies.ModelMeai);
+                using (EgressSubject.Enter("handed-late", new HighWaterMark()))
+                    return (noFrame, Decide(EgressFamilies.ModelMeai));
+            });
+        } // The parent's using ends while the child is still innermost on this flow: out of order here.
+
+        parentDisposed.SetResult();
+        var (noFrame, late) = await task.WaitAsync(Patience);
+
+        noFrame.CurrentBasis.Should().Be(NoSubject, "the task's only frames have ended, and a disposed frame is never the innermost one");
+        late.CurrentBasis.Should().Be(SubjectPrefix + "handed-late");
+        late.Current.Should().Be(
+            Secret, "the task was started inside the Secret parent and never disposed it, so a frame it enters later still counts it");
+        late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+    }
+
+    [Fact]
+    public async Task A_flow_whose_parent_frame_a_background_task_ended_stays_inside_it()
+    {
+        var parent = EgressSubject.Enter("background-parent", new HighWaterMark(Secret));
+        var child = EgressSubject.Enter("background-child", new HighWaterMark());
+
+        // Fire and forget: the parent's owner ends it in the background. This flow never disposes the parent.
+        var parentEnded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = Task.Run(async () =>
+        {
+            await Task.Yield();
+            parent.Dispose();
+            parentEnded.SetResult();
+        });
+        await parentEnded.Task.WaitAsync(Patience);
+        child.Dispose();
+
+        using (EgressSubject.Enter("background-after", new HighWaterMark()))
+        {
+            var after = Decide(EgressFamilies.ModelMeai);
+            after.CurrentBasis.Should().Be(SubjectPrefix + "background-after");
+            after.Current.Should().Be(
+                Secret, "this flow entered the Secret parent and never disposed it, so it is still inside it (fail closed)");
+            after.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        }
+    }
+
+    [Fact]
+    public async Task A_flow_that_awaits_its_parent_frame_disposed_on_another_flow_stays_inside_it()
+    {
+        var parent = EgressSubject.Enter("awaited-parent", new HighWaterMark(Secret));
+        var child = EgressSubject.Enter("awaited-child", new HighWaterMark());
+        await Task.Run(parent.Dispose).WaitAsync(Patience);
+        child.Dispose();
+
+        using (EgressSubject.Enter("awaited-after", new HighWaterMark()))
+        {
+            var after = Decide(EgressFamilies.ModelMeai);
+            after.CurrentBasis.Should().Be(SubjectPrefix + "awaited-after");
+            after.Current.Should().Be(
+                Secret, "the parent was disposed on another flow, which does not take this flow out of it (fail closed)");
+            after.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        }
+    }
+
+    [Fact]
+    public async Task A_task_handed_a_child_scope_counts_a_later_raise_of_the_mark_of_a_parent_another_flow_ended()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var parentMark = new HighWaterMark();
+
+        using (EgressSubject.Enter("raised-enclosing", new HighWaterMark()))
+        {
+            var parent = EgressSubject.Enter("raised-parent", parentMark);
+            var child = EgressSubject.Enter("raised-child", new HighWaterMark());
+
+            // Fire and forget, handed the child scope.
+            var task = Task.Run(async () =>
+            {
+                await release.Task.WaitAsync(Patience);
+                child.Dispose();
+                using (EgressSubject.Enter("raised-late", new HighWaterMark()))
+                    return Decide(UnknownFamily);
+            });
+
+            // Out of order on this flow, which still has the child innermost. Then the parent's subject reads Secret
+            // somewhere else: only the parent's mark rises, not the enclosing frame its mark was observed into.
+            parent.Dispose();
+            parentMark.Observe(Secret); // Straight into the parent's mark, as a producer holding it would.
+            release.SetResult();
+            var late = await task.WaitAsync(Patience);
+
+            late.CurrentBasis.Should().Be(SubjectPrefix + "raised-late");
+            late.Current.Should().Be(
+                Secret,
+                "the task never disposed the parent, so it is still inside it and reads its mark when it decides, also what it rose to after the parent ended");
+            late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        }
+    }
+
+    [Fact]
+    public async Task A_flow_whose_parent_frame_another_flow_ended_counts_a_later_raise_of_the_parent_mark()
+    {
+        var parentMark = new HighWaterMark();
+
+        using (EgressSubject.Enter("raised-awaited-enclosing", new HighWaterMark()))
+        {
+            var parent = EgressSubject.Enter("raised-awaited-parent", parentMark);
+            var child = EgressSubject.Enter("raised-awaited-child", new HighWaterMark());
+            await Task.Run(parent.Dispose).WaitAsync(Patience);
+            await RaiseThroughAnotherFrame(parentMark, Secret);
+            child.Dispose();
+
+            using (EgressSubject.Enter("raised-awaited-late", new HighWaterMark()))
+            {
+                var late = Decide(UnknownFamily);
+                late.CurrentBasis.Should().Be(SubjectPrefix + "raised-awaited-late");
+                late.Current.Should().Be(
+                    Secret, "this flow entered the parent and never disposed it, so it still reads the parent's mark when it decides");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task A_task_that_ends_the_frames_around_a_frame_another_flow_ended_stays_inside_that_frame()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var outermost = EgressSubject.Enter("around-outermost", new HighWaterMark());
+        var parent = EgressSubject.Enter("around-parent", new HighWaterMark(Secret));
+        var child = EgressSubject.Enter("around-child", new HighWaterMark());
+
+        // Fire and forget, handed the child and the outermost frame, which it ends innermost first.
+        var task = Task.Run(async () =>
+        {
+            await release.Task.WaitAsync(Patience);
+            child.Dispose();
+            outermost.Dispose();
+            using (EgressSubject.Enter("around-late", new HighWaterMark()))
+                return Decide(EgressFamilies.ModelMeai);
+        });
+
+        parent.Dispose(); // Out of order on this flow: the child is still innermost here.
+        release.SetResult();
+        var late = await task.WaitAsync(Patience);
+
+        late.CurrentBasis.Should().Be(SubjectPrefix + "around-late");
+        late.Current.Should().Be(
+            Secret, "the task was started inside the Secret parent and never disposed it; ending the frames around it does not take the task out");
+        late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+    }
+
+    [Fact]
+    public async Task A_flow_that_ends_the_frames_around_a_frame_another_flow_ended_stays_inside_that_frame()
+    {
+        var outermost = EgressSubject.Enter("around-awaited-outermost", new HighWaterMark());
+        var parent = EgressSubject.Enter("around-awaited-parent", new HighWaterMark(Secret));
+        var child = EgressSubject.Enter("around-awaited-child", new HighWaterMark());
+        await Task.Run(parent.Dispose).WaitAsync(Patience);
+        child.Dispose();
+        outermost.Dispose();
+
+        using (EgressSubject.Enter("around-awaited-late", new HighWaterMark()))
+        {
+            var late = Decide(EgressFamilies.ModelMeai);
+            late.CurrentBasis.Should().Be(SubjectPrefix + "around-awaited-late");
+            late.Current.Should().Be(
+                Secret, "this flow entered the Secret parent and never disposed it; ending the frames around it does not take the flow out");
+            late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        }
+    }
+
+    [Fact]
+    public void Every_dispose_order_of_three_frames_on_one_flow_decides_as_in_order_using_blocks_would()
+    {
+        string[] names = ["orders-a", "orders-b", "orders-c"];
+        SecurityLabel[] labels =
+        [
+            new(SecurityLevel.Internal, ["ORDER-A"]),
+            new(SecurityLevel.Internal, ["ORDER-B"]),
+            new(SecurityLevel.Internal, ["ORDER-C"]),
+        ];
+        var all = labels[0].Join(labels[1]).Join(labels[2]);
+        var failures = new List<string>();
+
+        // One synchronous flow for every order, so anything an order leaves behind shows in the next.
+        foreach (var order in Permutations(3))
+        {
+            var tag = string.Join(",", order.Select(i => names[i]));
+            using (EgressSubject.Enter("orders-enclosing", new HighWaterMark()))
+            {
+                var frames = new IDisposable[3];
+                for (var i = 0; i < 3; i++)
+                    frames[i] = EgressSubject.Enter(names[i], new HighWaterMark(labels[i]));
+
+                var live = new[] { true, true, true };
+                foreach (var k in order)
+                {
+                    frames[k].Dispose();
+                    live[k] = false;
+
+                    // In-order using blocks would leave the flow in the innermost frame not yet disposed.
+                    var innermost = Array.LastIndexOf(live, true);
+                    var basis = SubjectPrefix + (innermost < 0 ? "orders-enclosing" : names[innermost]);
+                    var decision = Decide(UnknownFamily);
+                    if (decision.CurrentBasis != basis || !decision.Current.Equals(all))
+                        failures.Add($"[{tag}] after {names[k]}: {decision.CurrentBasis} at {decision.Current}, not {basis} at {all}");
+                }
+            }
+
+            var after = Decide(UnknownFamily);
+            if (after.CurrentBasis != NoSubject)
+                failures.Add($"[{tag}] after the enclosing frame ended: {after.CurrentBasis}, not {NoSubject}");
+
+            using (EgressSubject.Enter("orders-fresh", new HighWaterMark()))
+            {
+                var fresh = Decide(UnknownFamily);
+                if (!fresh.Current.Equals(SecurityLabel.Public))
+                    failures.Add($"[{tag}] a frame entered afterwards decides {fresh.Current}, not Public");
+            }
+        }
+
+        failures.Should().BeEmpty(
+            "a flow that disposes its own frames, in any order, ends where in-order using blocks would; every failure: {0}",
+            string.Join(" || ", failures));
+    }
+
+    [Fact]
+    public async Task A_task_with_no_frame_of_its_own_never_decides_below_a_frame_while_it_is_being_disposed()
+    {
+        // Labels this large make the join that observes the parent's mark outward take measurable time: the window in
+        // which the parent is ending and the enclosing frame does not hold its mark yet.
+        var enclosingFloor = new SecurityLabel(
+            SecurityLevel.Internal, Enumerable.Range(0, 60_000).Select(i => "E" + i.ToString("D6", CultureInfo.InvariantCulture)));
+        var parentLabel = new SecurityLabel(
+            SecurityLevel.Secret, Enumerable.Range(0, 60_000).Select(i => "P" + i.ToString("D6", CultureInfo.InvariantCulture)));
+        var resolve = ResolveOnThisFlow();
+        const int Iterations = 60;
+        var below = 0;
+        string? example = null;
+
+        for (var i = 0; i < Iterations; i++)
+        {
+            var hit = await DisposeWhileAFramelessTaskDecides(enclosingFloor, parentLabel, resolve);
+            if (hit is not null)
+            {
+                below++;
+                example ??= hit;
+            }
+        }
+
+        below.Should().Be(
+            0,
+            "a task started inside a frame decides at that frame until the frame's mark has been observed into the enclosing frame; {0} of {1} disposals let it decide below, for example: {2}",
+            below,
+            Iterations,
+            example);
+    }
+
+    [Fact]
+    public async Task Tasks_started_at_every_level_keep_every_frame_they_were_started_inside_in_every_dispose_order()
+    {
+        var failures = new List<string>();
+        foreach (var order in Permutations(3))
+            failures.AddRange(await DisposeInOrderWithTasksAtEveryLevel(order));
+
+        failures.Should().BeEmpty(
+            "a task never decides below a frame it was started inside and did not dispose; every failing order: {0}",
+            string.Join(" || ", failures));
+    }
+
+    [Fact]
+    public void An_unwound_frame_no_longer_keeps_the_frame_inside_it_reachable()
+    {
+        // The pair outermost on this flow, then inside a live enclosing frame.
+        var (outermostOuter, outermostInner) = EnterPairAndDispose(outOfOrder: true);
+        using (EgressSubject.Enter("retain-enclosing", new HighWaterMark()))
+        {
+            var (outOfOrderOuter, outOfOrderInner) = EnterPairAndDispose(outOfOrder: true);
+            var (inOrderOuter, inOrderInner) = EnterPairAndDispose(outOfOrder: false);
+            for (var i = 0; i < 3; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+
+            inOrderInner.IsAlive.Should().BeFalse("the control: an in-order pair keeps nothing, so the collection did run");
+            outermostInner.IsAlive.Should().BeFalse(
+                "once the flow has unwound past the outer frame, nothing keeps the inner frame or its mark reachable from it");
+            outOfOrderInner.IsAlive.Should().BeFalse("nor inside an enclosing frame");
+            GC.KeepAlive(outermostOuter);
+            GC.KeepAlive(outOfOrderOuter);
+            GC.KeepAlive(inOrderOuter);
+        }
+    }
+
+    [Fact]
     public void Disposing_a_frame_observes_its_mark_into_every_enclosing_live_frame()
     {
         var outerMark = new HighWaterMark();
@@ -470,4 +779,171 @@ public sealed class EgressSubjectNestingTests
 
     private static EgressDecision Decide(string family) =>
         Guard.Evaluate(new EgressRequest(family, "twin:nesting:" + Guid.NewGuid().ToString("N"), new Uri(Remote)));
+
+    // The same subject's mark entered again on a flow that carries none of this test's frames, as a second session of
+    // that subject would: what it reads there raises that mark and nothing else.
+    private static async Task RaiseThroughAnotherFrame(HighWaterMark mark, SecurityLabel label)
+    {
+        Task raise;
+        using (ExecutionContext.SuppressFlow())
+        {
+            raise = Task.Run(() =>
+            {
+                using (EgressSubject.Enter("same-subject-elsewhere", mark))
+                    EgressSubject.Observe(label);
+            });
+        }
+
+        await raise.WaitAsync(Patience);
+        mark.Current.Should().Be(label, "the read elsewhere raised the shared mark");
+    }
+
+    // EgressSubject.Resolve is internal: reached by reflection, as the detachment tests reach Detach. It is what a
+    // decision reads, without building a decision around labels this large.
+    private static Func<(SecurityLabel Current, string Basis)> ResolveOnThisFlow()
+    {
+        var method = typeof(EgressSubject).GetMethod(
+            "Resolve", BindingFlags.NonPublic | BindingFlags.Static, binder: null, Type.EmptyTypes, modifiers: null);
+        method.Should().NotBeNull("EgressSubject.Resolve is the internal read of the current label");
+        return method!.CreateDelegate<Func<(SecurityLabel Current, string Basis)>>();
+    }
+
+    // Its own async method, so its frames never flow back to the caller. Enclosing > parent on this flow, and a task
+    // started inside the parent, with no frame of its own, that decides in a loop while this flow disposes the parent
+    // in order, as a using block would. Returns the first decision the task made at the enclosing frame below the
+    // parent's mark, if any.
+    private static async Task<string?> DisposeWhileAFramelessTaskDecides(
+        SecurityLabel enclosingFloor, SecurityLabel parentLabel, Func<(SecurityLabel Current, string Basis)> resolve)
+    {
+        using (EgressSubject.Enter("disposing-enclosing", new HighWaterMark(enclosingFloor)))
+        {
+            var parent = EgressSubject.Enter("disposing-parent", new HighWaterMark(parentLabel));
+            using var started = new ManualResetEventSlim(false);
+            var stop = 0;
+            var task = Task.Factory.StartNew<string?>(
+                () =>
+                {
+                    var first = resolve();
+                    started.Set();
+                    if (first.Basis != SubjectPrefix + "disposing-parent" || !first.Current.Dominates(parentLabel))
+                        return $"before the dispose: {first.Basis} at level {first.Current.Level}, not inside the parent";
+
+                    while (Volatile.Read(ref stop) == 0)
+                    {
+                        var (current, basis) = resolve();
+                        if (basis == SubjectPrefix + "disposing-enclosing" && !current.Dominates(parentLabel))
+                            return $"{basis} at level {current.Level}, without the parent's mark";
+                    }
+
+                    return null;
+                },
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+
+            started.Wait(Patience).Should().BeTrue("the task must start deciding inside the parent before it is disposed");
+            Thread.SpinWait(2000);
+            parent.Dispose();
+            Thread.SpinWait(2000);
+            Volatile.Write(ref stop, 1);
+            return await task.WaitAsync(Patience);
+        }
+    }
+
+    // Its own async method, so the frames it enters never flow back to the caller: each order starts with no frame.
+    // A > B > C on this flow, a fire-and-forget task started at each level, and one more started inside C and handed C.
+    // The flow disposes the three in `order`, except that when C comes last the handed task disposes it instead.
+    private static async Task<List<string>> DisposeInOrderWithTasksAtEveryLevel(int[] order)
+    {
+        string[] names = ["levels-a", "levels-b", "levels-c"];
+        SecurityLabel[] labels =
+        [
+            new(SecurityLevel.Internal, ["LEVEL-A"]),
+            new(SecurityLevel.Internal, ["LEVEL-B"]),
+            new(SecurityLevel.Internal, ["LEVEL-C"]),
+        ];
+        var tag = string.Join(",", order.Select(i => names[i]));
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var frames = new IDisposable[3];
+        var tasks = new Task<EgressDecision>[3];
+        for (var i = 0; i < 3; i++)
+        {
+            frames[i] = EgressSubject.Enter(names[i], new HighWaterMark(labels[i]));
+            var level = i;
+            tasks[i] = Task.Run(async () =>
+            {
+                await release.Task.WaitAsync(Patience);
+                using (EgressSubject.Enter("levels-late-" + level, new HighWaterMark()))
+                    return Decide(UnknownFamily);
+            });
+        }
+
+        var c = frames[2];
+        var handed = Task.Run(async () =>
+        {
+            await release.Task.WaitAsync(Patience);
+            c.Dispose();
+            using (EgressSubject.Enter("levels-handed-late", new HighWaterMark()))
+                return Decide(UnknownFamily);
+        });
+
+        var handedDisposesC = order[2] == 2;
+        foreach (var k in order)
+        {
+            if (k != 2 || !handedDisposesC)
+                frames[k].Dispose();
+        }
+
+        release.SetResult();
+        var failures = new List<string>();
+        for (var i = 0; i < 3; i++)
+        {
+            var late = await tasks[i].WaitAsync(Patience);
+            var floor = labels.Take(i + 1).Aggregate((x, y) => x.Join(y));
+            if (!late.Current.Dominates(floor))
+                failures.Add($"[{tag}] the task started at level {i} decides {late.Current}, below {floor}");
+        }
+
+        var handedLate = await handed.WaitAsync(Patience);
+        var all = labels[0].Join(labels[1]).Join(labels[2]);
+        if (!handedLate.Current.Dominates(all))
+            failures.Add($"[{tag}] the task handed C (C disposed by the {(handedDisposesC ? "task" : "flow")}) decides {handedLate.Current}, below {all}");
+
+        return failures;
+    }
+
+    private static IEnumerable<int[]> Permutations(int n)
+    {
+        if (n == 1)
+        {
+            yield return [0];
+            yield break;
+        }
+
+        foreach (var shorter in Permutations(n - 1))
+        {
+            for (var at = 0; at <= shorter.Length; at++)
+            {
+                var longer = shorter.ToList();
+                longer.Insert(at, n - 1);
+                yield return longer.ToArray();
+            }
+        }
+    }
+
+    // Not inlined, so no local of the caller keeps the inner frame alive. The flow is inside a live enclosing frame,
+    // so an out-of-order pair unwinds past its outer frame to the enclosing one.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (IDisposable Outer, WeakReference InnerMark) EnterPairAndDispose(bool outOfOrder)
+    {
+        var outer = EgressSubject.Enter("retain-outer", new HighWaterMark());
+        var innerMark = new HighWaterMark();
+        var inner = EgressSubject.Enter("retain-inner", innerMark);
+        if (outOfOrder)
+            outer.Dispose();
+
+        inner.Dispose();
+        outer.Dispose();
+        return (outer, new WeakReference(innerMark));
+    }
 }

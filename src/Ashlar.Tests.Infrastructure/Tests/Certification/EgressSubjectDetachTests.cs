@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
@@ -197,6 +198,145 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
+    public async Task A_task_started_under_Detach_keeps_no_subject_when_the_detachment_ends_before_its_frame()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var callerMark = new HighWaterMark(Internal);
+        var detachedMark = new HighWaterMark();
+
+        using (EgressSubject.Enter("detach-order-caller", callerMark))
+        {
+            var detachment = Detach();
+            var detached = EgressSubject.Enter("detach-order-detached", detachedMark);
+
+            // Started under the detachment, inside a frame entered under it, and handed that frame to end.
+            var task = Task.Run(async () =>
+            {
+                await release.Task.WaitAsync(Patience);
+                EgressSubject.Observe(Secret);
+                var inFrame = Decide(UnknownFamily);
+                detached.Dispose();
+                return (InFrame: inFrame, After: Decide(EgressFamilies.ModelMeai));
+            });
+
+            // Out of order on this flow: the frame entered under the detachment is still its innermost one.
+            detachment.Dispose();
+            release.SetResult();
+            var (inFrame, after) = await task.WaitAsync(Patience);
+
+            inFrame.Current.Should().Be(Secret);
+            detachedMark.Current.Should().Be(Secret);
+            callerMark.Current.Should().Be(Internal, "what was read under the detachment never reaches the caller's frames");
+            after.CurrentBasis.Should().Be(
+                NoSubject, "a task started under a detachment never falls back to the caller's frame, whichever order they end in");
+            after.Current.Should().Be(SecurityLabel.SystemHigh, "the task read Secret under the detachment; no subject is the top");
+            after.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        }
+    }
+
+    [Fact]
+    public void A_flow_that_disposes_its_own_detachment_out_of_order_goes_back_to_the_callers_frame()
+    {
+        var callerLabel = new SecurityLabel(SecurityLevel.Secret, ["DETACH-LOOP-CALLER"]);
+        var callerMark = new HighWaterMark(callerLabel);
+
+        using (EgressSubject.Enter("detach-loop-caller", callerMark))
+        {
+            // One synchronous flow, so anything an iteration leaves behind shows in the next.
+            for (var i = 0; i < 50; i++)
+            {
+                var read = new SecurityLabel(SecurityLevel.Internal, ["DETACH-LOOP-" + i.ToString(CultureInfo.InvariantCulture)]);
+
+                // The detachment's using ends while the frame entered under it is still innermost: out of order.
+                var detachment = Detach();
+                var detached = EgressSubject.Enter("detach-loop-detached", new HighWaterMark(read));
+                detachment.Dispose();
+                detached.Dispose();
+
+                var back = Decide(UnknownFamily);
+                back.CurrentBasis.Should().Be(
+                    SubjectPrefix + "detach-loop-caller", "iteration {0}: this flow disposed both, so it is back in the caller's frame, as in-order using blocks would leave it", i);
+                back.Current.Should().Be(callerLabel, "iteration {0}: what was read under the detachment never reaches the caller", i);
+                using (EgressSubject.Enter("detach-loop-fresh", new HighWaterMark()))
+                {
+                    Decide(UnknownFamily).Current.Should().Be(
+                        callerLabel, "iteration {0}: a frame entered afterwards is still inside the live caller frame", i);
+                }
+
+                // A pair disposed out of order under a detachment, whose using then ends in order.
+                using (Detach())
+                {
+                    var outer = EgressSubject.Enter("detach-loop-outer", new HighWaterMark(read));
+                    var inner = EgressSubject.Enter("detach-loop-inner", new HighWaterMark());
+                    outer.Dispose();
+                    inner.Dispose();
+                    Decide(UnknownFamily).CurrentBasis.Should().Be(NoSubject, "iteration {0}: back under the detachment", i);
+                }
+
+                Decide(UnknownFamily).CurrentBasis.Should().Be(
+                    SubjectPrefix + "detach-loop-caller", "iteration {0}: the detachment's using restores the caller's frame", i);
+            }
+        }
+
+        callerMark.Current.Should().Be(callerLabel, "nothing read under a detachment reaches the caller's frames");
+        Decide(UnknownFamily).CurrentBasis.Should().Be(NoSubject, "the caller's using restores this flow");
+    }
+
+    [Fact]
+    public void Every_dispose_order_with_a_detachment_in_the_middle_decides_as_in_order_using_blocks_would()
+    {
+        var labelA = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-A"]);
+        var labelC = new SecurityLabel(SecurityLevel.Internal, ["DETACH-ORDER-C"]);
+        string[] names = ["detach-orders-a", "the detachment", "detach-orders-c"];
+        var failures = new List<string>();
+
+        // One synchronous flow for every order, so anything an order leaves behind shows in the next.
+        foreach (var order in Permutations(3))
+        {
+            var tag = string.Join(",", order.Select(i => names[i]));
+            var enclosingMark = new HighWaterMark();
+            using (EgressSubject.Enter("detach-orders-enclosing", enclosingMark))
+            {
+                var frames = new IDisposable[3];
+                frames[0] = EgressSubject.Enter("detach-orders-a", new HighWaterMark(labelA));
+                frames[1] = Detach();
+                frames[2] = EgressSubject.Enter("detach-orders-c", new HighWaterMark(labelC));
+
+                var live = new[] { true, true, true };
+                foreach (var k in order)
+                {
+                    frames[k].Dispose();
+                    live[k] = false;
+
+                    // In-order using blocks would leave the flow in the innermost one not yet disposed. The detachment
+                    // ends C's chain, so C decides at its own mark; A's mark reached the enclosing frame when A ended.
+                    var (basis, current) = Array.LastIndexOf(live, true) switch
+                    {
+                        2 => (SubjectPrefix + "detach-orders-c", labelC),
+                        1 => (NoSubject, SecurityLabel.SystemHigh),
+                        0 => (SubjectPrefix + "detach-orders-a", labelA),
+                        _ => (SubjectPrefix + "detach-orders-enclosing", labelA),
+                    };
+                    var decision = Decide(UnknownFamily);
+                    if (decision.CurrentBasis != basis || !decision.Current.Equals(current))
+                        failures.Add($"[{tag}] after {names[k]}: {decision.CurrentBasis} at {decision.Current}, not {basis} at {current}");
+                }
+
+                if (!enclosingMark.Current.Equals(labelA))
+                    failures.Add($"[{tag}] the enclosing frame holds {enclosingMark.Current}, not {labelA}: what C read crossed the detachment");
+            }
+
+            var after = Decide(UnknownFamily);
+            if (after.CurrentBasis != NoSubject)
+                failures.Add($"[{tag}] after the enclosing frame ended: {after.CurrentBasis}, not {NoSubject}");
+        }
+
+        failures.Should().BeEmpty(
+            "a flow that disposes its own frames and detachment, in any order, ends where in-order using blocks would; every failure: {0}",
+            string.Join(" || ", failures));
+    }
+
+    [Fact]
     public async Task A_detachment_disposed_from_another_flow_restores_nothing_there()
     {
         var scope = EgressSubject.Enter("detach-elsewhere", new HighWaterMark(Internal));
@@ -263,6 +403,25 @@ public sealed class EgressSubjectDetachTests
 
     private static EgressDecision Decide(string family) =>
         Guard.Evaluate(new EgressRequest(family, "twin:detach:" + Guid.NewGuid().ToString("N"), new Uri(Remote)));
+
+    private static IEnumerable<int[]> Permutations(int n)
+    {
+        if (n == 1)
+        {
+            yield return [0];
+            yield break;
+        }
+
+        foreach (var shorter in Permutations(n - 1))
+        {
+            for (var at = 0; at <= shorter.Length; at++)
+            {
+                var longer = shorter.ToList();
+                longer.Insert(at, n - 1);
+                yield return longer.ToArray();
+            }
+        }
+    }
 
     private static (List<string> Sites, int Scanned) Sites(string root)
     {
