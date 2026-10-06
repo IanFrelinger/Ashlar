@@ -212,6 +212,136 @@ public sealed class EgressSubjectNestingTests
     }
 
     [Fact]
+    public async Task Observe_in_a_task_with_no_frame_of_its_own_after_the_parent_ended_still_reaches_a_sibling_task()
+    {
+        var observed = new SecurityLabel(SecurityLevel.Internal, ["FRAMELESS"]);
+        var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var readerObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<EgressDecision> reader;
+        Task<EgressDecision> sibling;
+
+        using (EgressSubject.Enter("frameless-parent", new HighWaterMark()))
+        {
+            // The reader enters no frame: the only frame on its flow is the parent's.
+            reader = Task.Run(async () =>
+            {
+                await parentDisposed.Task.WaitAsync(Patience);
+                var own = Decide(UnknownFamily);
+                EgressSubject.Observe(observed);
+                readerObserved.SetResult();
+                return own;
+            });
+
+            sibling = Task.Run(async () =>
+            {
+                using (EgressSubject.Enter("frameless-sibling", new HighWaterMark()))
+                {
+                    await readerObserved.Task.WaitAsync(Patience);
+                    return Decide(UnknownFamily);
+                }
+            });
+        }
+
+        parentDisposed.SetResult();
+        var own = await reader.WaitAsync(Patience);
+        var decision = await sibling.WaitAsync(Patience);
+
+        own.CurrentBasis.Should().Be(
+            NoSubject, "a disposed frame is never the innermost one, so a task with no frame of its own decides with no subject");
+        decision.CurrentBasis.Should().Be(SubjectPrefix + "frameless-sibling");
+        decision.Current.Should().Be(
+            observed, "what the reader observes still raises the parent it was started inside, which the sibling counts");
+    }
+
+    [Fact]
+    public async Task Frames_disposed_out_of_order_on_one_flow_unwind_as_in_order_using_blocks_would()
+    {
+        var outer = EgressSubject.Enter("unwind-outer", new HighWaterMark(Secret));
+        var inner = EgressSubject.Enter("unwind-inner", new HighWaterMark());
+        outer.Dispose();
+        inner.Dispose();
+
+        Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject);
+        using (EgressSubject.Enter("unwind-after", new HighWaterMark()))
+        {
+            var after = Decide(UnknownFamily);
+            after.CurrentBasis.Should().Be(SubjectPrefix + "unwind-after");
+            after.Current.Should().Be(
+                SecurityLabel.Public,
+                "this flow disposed both frames, so it unwinds past the outer one as in-order using blocks would, and a frame entered afterwards is inside neither");
+        }
+
+        // The same in an async loop, whose flow is never restored between iterations: no chain builds up.
+        for (var i = 0; i < 50; i++)
+        {
+            var loopOuter = EgressSubject.Enter("unwind-loop-outer", new HighWaterMark(Secret));
+            var loopInner = EgressSubject.Enter("unwind-loop-inner", new HighWaterMark());
+            loopOuter.Dispose();
+            loopInner.Dispose();
+            await Task.Yield();
+
+            using (EgressSubject.Enter("unwind-loop-probe", new HighWaterMark()))
+                Decide(UnknownFamily).Current.Should().Be(SecurityLabel.Public, "iteration {0} leaves no disposed frame behind", i);
+        }
+
+        var enclosingMark = new HighWaterMark();
+        using (EgressSubject.Enter("unwind-enclosing", enclosingMark))
+        {
+            var nestedOuter = EgressSubject.Enter("unwind-nested-outer", new HighWaterMark(Secret));
+            var nestedInner = EgressSubject.Enter("unwind-nested-inner", new HighWaterMark());
+            nestedOuter.Dispose();
+            nestedInner.Dispose();
+
+            var back = Decide(EgressFamilies.ModelMeai);
+            back.CurrentBasis.Should().Be(SubjectPrefix + "unwind-enclosing", "the flow is back in the frame both were entered inside");
+            back.Current.Should().Be(
+                Secret, "unwinding past the disposed frame loses nothing: its mark was observed into the enclosing frame");
+            back.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        }
+
+        Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject, "the enclosing frame's using restores this flow");
+    }
+
+    [Fact]
+    public async Task A_parent_frame_disposed_out_of_order_on_its_own_flow_still_holds_a_task_started_inside_it()
+    {
+        var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<(EgressDecision Own, EgressDecision Late)> child;
+
+        var parent = EgressSubject.Enter("unwound-parent", new HighWaterMark(Secret));
+
+        // Fire and forget, started inside the parent frame only.
+        child = Task.Run(async () =>
+        {
+            await parentDisposed.Task.WaitAsync(Patience);
+            EgressDecision own;
+            using (EgressSubject.Enter("unwound-child", new HighWaterMark()))
+                own = Decide(EgressFamilies.ModelMeai);
+
+            using (EgressSubject.Enter("unwound-late", new HighWaterMark()))
+                return (own, Decide(EgressFamilies.ModelMeai));
+        });
+
+        // This flow enters a frame after starting the task, then disposes the parent first.
+        var next = EgressSubject.Enter("unwound-next", new HighWaterMark());
+        parent.Dispose();
+        next.Dispose();
+
+        using (EgressSubject.Enter("unwound-after", new HighWaterMark()))
+            Decide(UnknownFamily).Current.Should().Be(SecurityLabel.Public, "this flow disposed both, so it unwinds past the parent");
+
+        parentDisposed.SetResult();
+        var (own, late) = await child.WaitAsync(Patience);
+
+        own.CurrentBasis.Should().Be(SubjectPrefix + "unwound-child");
+        own.Current.Should().Be(Secret, "the task was started inside the parent, which still counts for its frames");
+        late.CurrentBasis.Should().Be(SubjectPrefix + "unwound-late");
+        late.Current.Should().Be(
+            Secret, "only the flow that disposed the parent out of order unwinds past it; the task's own frame ends back inside it");
+        late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+    }
+
+    [Fact]
     public void Disposing_a_frame_observes_its_mark_into_every_enclosing_live_frame()
     {
         var outerMark = new HighWaterMark();

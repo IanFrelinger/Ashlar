@@ -248,6 +248,46 @@ public sealed class EgressSubjectReadScopeTests
     }
 
     [Fact]
+    public async Task An_unreported_read_in_a_task_with_no_frame_after_the_parent_ended_still_reaches_a_sibling_task()
+    {
+        var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var readerEnded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task reader;
+        Task<EgressDecision> sibling;
+
+        using (EgressSubject.Enter("read-ended-parent", new HighWaterMark()))
+        {
+            // The reader enters no frame: the only frame on its flow is the parent's.
+            reader = Task.Run(async () =>
+            {
+                await parentDisposed.Task.WaitAsync(Patience);
+                using (var read = EgressSubject.BeginRead())
+                    read.Complete();
+
+                readerEnded.SetResult();
+            });
+
+            sibling = Task.Run(async () =>
+            {
+                using (EgressSubject.Enter("read-ended-sibling", new HighWaterMark()))
+                {
+                    await readerEnded.Task.WaitAsync(Patience);
+                    return Decide(EgressFamilies.ModelMeai);
+                }
+            });
+        }
+
+        parentDisposed.SetResult();
+        await reader.WaitAsync(Patience);
+        var decision = await sibling.WaitAsync(Patience);
+
+        decision.CurrentBasis.Should().Be(SubjectPrefix + "read-ended-sibling");
+        decision.Current.Should().Be(
+            SecurityLabel.SystemHigh, "the unreported read was begun inside the parent, so it raises the parent the sibling counts");
+        decision.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+    }
+
+    [Fact]
     public void A_report_after_the_read_ended_is_never_lost()
     {
         var mark = new HighWaterMark();

@@ -97,6 +97,42 @@ public sealed class EgressSubjectDetachTests
     }
 
     [Fact]
+    public async Task A_publish_from_a_task_inside_an_ended_parent_frame_keeps_the_parent_for_a_frame_entered_after_it()
+    {
+        var bus = new AgentBus(NullLogger<AgentBus>.Instance);
+        var parentDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<EgressDecision> child;
+
+        using (EgressSubject.Enter("bus-ended-parent", new HighWaterMark(Secret)))
+        {
+            child = Task.Run(async () =>
+            {
+                await parentDisposed.Task.WaitAsync(Patience);
+
+                // The bus detaches this flow while it dispatches, then restores the frame the flow was in.
+                await bus.PublishAsync(new OutputEmitted
+                {
+                    MessageId = Guid.NewGuid().ToString("N"),
+                    FromAgentId = "bus-ended-parent",
+                    MessageType = "egress-detach-" + Guid.NewGuid().ToString("N"),
+                    Output = "a result the task computed inside the parent",
+                });
+
+                using (EgressSubject.Enter("bus-ended-late", new HighWaterMark()))
+                    return Decide(EgressFamilies.ModelMeai);
+            });
+        }
+
+        parentDisposed.SetResult();
+        var late = await child.WaitAsync(Patience);
+
+        late.CurrentBasis.Should().Be(SubjectPrefix + "bus-ended-late");
+        late.Current.Should().Be(
+            Secret, "the detachment restores exactly the frame the task was in, the ended parent, so a later frame still counts it");
+        late.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+    }
+
+    [Fact]
     public void Detach_leaves_every_frame_until_disposed_and_then_restores_the_callers()
     {
         var callerMark = new HighWaterMark(Internal);
