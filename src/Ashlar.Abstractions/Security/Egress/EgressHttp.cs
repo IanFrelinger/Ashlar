@@ -6,12 +6,20 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <remarks>
 /// <para>Every <c>SendAsync</c> through these (and, on net8.0 and later, every <c>Send</c>) is evaluated exactly
 /// once, before the request is sent, and the request is then sent unchanged: the guard handler never reads the
-/// request content, never touches a header, and returns the inner response instance. In SPEC-007 PR 3 the decision
-/// is recorded and nothing is refused.</para>
-/// <para><b>Not covered on the netstandard2.0 asset.</b> On the netstandard2.0 asset, which .NET 5-7 apps resolve,
-/// the synchronous <c>HttpMessageHandler.Send</c> cannot be overridden. A synchronous <c>HttpClient.Send</c> or
-/// <c>HttpMessageInvoker.Send</c> is therefore not evaluated there; only <c>SendAsync</c> is covered. This gap must
-/// be closed before SPEC-007 PR 4 enforces.</para>
+/// request content, never touches a header, and returns the inner response instance. The decision is recorded and the
+/// guard refuses nothing (SPEC-007 PR 3); the one refusal, below, is the netstandard2.0 asset's, not the guard's.</para>
+/// <para><b>Refused on the netstandard2.0 asset.</b> That asset, which .NET 5-7 apps resolve, cannot override the
+/// synchronous <c>HttpMessageHandler.Send</c>, so it cannot evaluate a synchronous send. On a runtime that has one
+/// (.NET 5 and later), a synchronous <c>HttpClient.Send</c> or <c>HttpMessageInvoker.Send</c> through a client or
+/// handler built here is refused with <see cref="NotSupportedException"/> before anything is sent. No Ashlar code runs
+/// on that path, so the caller's exception is the refusal's only trace: no decision is published.
+/// <see cref="CreateDelegatingHandler"/> throws <see cref="PlatformNotSupportedException"/> there. On .NET Framework,
+/// classic Mono and Unity, which have no synchronous <c>Send</c>, nothing is refused. The hop is there on every
+/// runtime that binds this asset, though, so on all of them it is the one change: each <c>SendAsync</c> takes one
+/// extra in-process step, and the <see cref="DelegatingHandler.InnerHandler"/> of a <see cref="Wrap"/> handler is the
+/// hop, not the inner handler. The hop is not a <see cref="DelegatingHandler"/>, so code that walks the chain through
+/// <c>InnerHandler</c> (to find the primary handler's type, for example) stops at it. Synchronous sends are evaluated
+/// on the net8.0 and later assets (<c>docs/SdkCompatibilityPolicy.md</c>).</para>
 /// <para>A <see langword="null"/> guard means <see cref="EgressGuard.ProcessDefault"/>, resolved at each send.</para>
 /// <para>The family and site are checked here, when the client is built, so a send never fails on them.</para>
 /// <para>Of the <c>CreateClient</c> overloads only the one with the most parameters has an optional parameter, as
@@ -46,7 +54,7 @@ public static class EgressHttp
         SecurityGuard.ThrowIfNull(family, nameof(family));
         SecurityGuard.ThrowIfNull(site, nameof(site));
 #pragma warning disable CA2000 // Ownership passes inward: the client disposes the guard handler, which disposes the HttpClientHandler; the outer constructors throw only on a null argument.
-        return new HttpClient(new EgressGuardHandler(new HttpClientHandler(), family, site, guard));
+        return new HttpClient(Guarded(new HttpClientHandler(), family, site, guard));
 #pragma warning restore CA2000
     }
 
@@ -67,7 +75,7 @@ public static class EgressHttp
         SecurityGuard.ThrowIfNull(family, nameof(family));
         SecurityGuard.ThrowIfNull(site, nameof(site));
 #pragma warning disable CA2000 // Ownership passes inward: the client disposes the guard handler, which disposes inner; both constructors throw only on a null argument.
-        return new HttpClient(new EgressGuardHandler(inner, family, site, guard));
+        return new HttpClient(Guarded(inner, family, site, guard));
 #pragma warning restore CA2000
     }
 
@@ -82,12 +90,20 @@ public static class EgressHttp
     /// <returns>The guarded handler.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="inner"/>, <paramref name="family"/> or
     /// <paramref name="site"/> is <see langword="null"/>.</exception>
+    /// <remarks>The returned handler is a <see cref="DelegatingHandler"/>. On the netstandard2.0 asset, on every
+    /// runtime, its <see cref="DelegatingHandler.InnerHandler"/> is the hop that refuses a synchronous <c>Send</c>, not
+    /// <paramref name="inner"/>, and the hop is not a <see cref="DelegatingHandler"/>: code that walks the chain
+    /// through <c>InnerHandler</c> stops at it and does not see <paramref name="inner"/>.
+    /// <c>InnerHandler</c> can be set until the first send. Do not replace it: that voids what this method guarantees.
+    /// After a replacement on the netstandard2.0 asset a synchronous <c>Send</c> goes out unevaluated; and on every
+    /// asset the handler then neither sends through nor owns <paramref name="inner"/>.
+    /// </remarks>
     public static HttpMessageHandler Wrap(HttpMessageHandler inner, string family, string site, IEgressGuard? guard = null)
     {
         SecurityGuard.ThrowIfNull(inner, nameof(inner));
         SecurityGuard.ThrowIfNull(family, nameof(family));
         SecurityGuard.ThrowIfNull(site, nameof(site));
-        return new EgressGuardHandler(inner, family, site, guard);
+        return Guarded(inner, family, site, guard);
     }
 
     /// <summary>
@@ -100,10 +116,33 @@ public static class EgressHttp
     /// <returns>The guarded delegating handler.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="family"/> or <paramref name="site"/> is
     /// <see langword="null"/>.</exception>
+    /// <exception cref="PlatformNotSupportedException">On the netstandard2.0 asset, on a runtime that has a synchronous
+    /// <c>HttpMessageHandler.Send</c> (.NET 5 to 7 bind this asset): the pipeline sets this handler's inner handler
+    /// itself, so a synchronous send through it could not be refused and would go out unevaluated.</exception>
     public static DelegatingHandler CreateDelegatingHandler(string family, string site, IEgressGuard? guard = null)
     {
         SecurityGuard.ThrowIfNull(family, nameof(family));
         SecurityGuard.ThrowIfNull(site, nameof(site));
+#if NETSTANDARD2_0
+        if (SynchronousSendRefusedOnNetstandard20Asset.RuntimeHasSynchronousSend)
+            throw new PlatformNotSupportedException(SynchronousSendRefusedOnNetstandard20Asset.FactoryHandlerRefusal);
+#endif
         return new EgressGuardHandler(family, site, guard);
+    }
+
+    /// <summary>
+    /// The guard handler over <paramref name="inner"/>, which it then owns. On the netstandard2.0 asset the
+    /// synchronous-send hop goes between them, so a synchronous <c>Send</c> is refused instead of going out
+    /// unevaluated (see <c>SynchronousSendRefusedOnNetstandard20Asset</c>).
+    /// </summary>
+    private static EgressGuardHandler Guarded(HttpMessageHandler inner, string family, string site, IEgressGuard? guard)
+    {
+#if NETSTANDARD2_0
+#pragma warning disable CA2000 // Ownership passes inward: the guard handler owns the hop, which owns inner; the guard handler's constructor throws only on a null argument.
+        return new EgressGuardHandler(SynchronousSendRefusedOnNetstandard20Asset.Over(inner), family, site, guard);
+#pragma warning restore CA2000
+#else
+        return new EgressGuardHandler(inner, family, site, guard);
+#endif
     }
 }

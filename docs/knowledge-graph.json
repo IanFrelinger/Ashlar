@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 154,
     "operator_vars_missing_from_configuration_reference": 19,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 771,
-    "declared_facts": 4864,
+    "test_files_declaring_facts": 772,
+    "declared_facts": 4872,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5136,6 +5136,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 17,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressHttpNetstandard20TwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 8,
       "in_cert_gate_filter": true
     },
     {

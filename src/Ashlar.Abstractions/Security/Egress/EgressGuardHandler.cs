@@ -10,12 +10,14 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <see cref="HttpRequestMessage.Content"/>, never reads, adds or changes a header, and returns the inner handler's
 /// response instance unchanged. A guard that throws (a custom <see cref="IEgressGuard"/> may) is swallowed and
 /// counted, so it never reaches the caller; an exception from the inner handler is not caught.</para>
-/// <para><b>Not covered on the netstandard2.0 asset.</b> That asset, which .NET 5-7 apps resolve, cannot override the
-/// synchronous <c>HttpMessageHandler.Send</c>: netstandard2.0 has no such member. A synchronous
+/// <para><b>Refused, not evaluated, on the netstandard2.0 asset.</b> That asset, which .NET 5-7 apps resolve, cannot
+/// override the synchronous <c>HttpMessageHandler.Send</c>: netstandard2.0 has no such member. A synchronous
 /// <c>HttpClient.Send</c> or <c>HttpMessageInvoker.Send</c> therefore reaches the inherited
-/// <c>DelegatingHandler.Send</c>, which forwards to the inner handler without calling <c>SendAsync</c>, and is not
-/// evaluated there. Only <c>SendAsync</c> is covered on that asset. This gap must be closed before SPEC-007 PR 4
-/// enforces.</para>
+/// <c>DelegatingHandler.Send</c>, which forwards to the inner handler's <c>Send</c> without calling
+/// <c>SendAsync</c>. So <see cref="EgressHttp"/> puts <c>SynchronousSendRefusedOnNetstandard20Asset</c> under this
+/// handler on that asset, and the runtime refuses that <c>Send</c> before anything is sent;
+/// <see cref="EgressHttp.CreateDelegatingHandler"/>, whose inner handler a factory pipeline sets, is refused there
+/// instead. Only <c>SendAsync</c> is evaluated on that asset.</para>
 /// <para>The decision records the request URI's scheme, host and port only, or <c>unknown</c> when the request has
 /// no URI. A <see langword="null"/> guard means <see cref="EgressGuard.ProcessDefault"/>, read at each send.</para>
 /// </remarks>

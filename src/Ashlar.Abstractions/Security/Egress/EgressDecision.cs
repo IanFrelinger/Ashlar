@@ -98,7 +98,11 @@ public sealed class EgressDecision
     /// </summary>
     public SecurityLabel Current { get; }
 
-    /// <summary>Where <see cref="Current"/> came from: <c>subject:&lt;id&gt;</c> or <c>no-subject</c>.</summary>
+    /// <summary>
+    /// Where <see cref="Current"/> came from: <c>subject:&lt;id&gt;</c> or <c>no-subject</c>; or, when the evaluation
+    /// faulted before the current label was read, <c>not resolved: the evaluation faulted</c> (and <see cref="Current"/>
+    /// is <see cref="SecurityLabel.SystemHigh"/>).
+    /// </summary>
     public string CurrentBasis { get; }
 
     /// <summary>

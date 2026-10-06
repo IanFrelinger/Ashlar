@@ -195,13 +195,15 @@ public sealed partial class EgressGuardConventionTests
     /// files) and two http.new occurrences, the MCP transport's EgressHttp client and a second construction in
     /// the gRPC channel handler, so 148 occurrences (http.new 18, of which 3 are the guard's own in
     /// <c>EgressHttp.cs</c>; http.param 22, http.register 12, sdk.client 9, socket 2, process 51, door 11,
-    /// telemetry 2, store 14, chat.register 7, banned 0). SPEC-007 PR 4.1 adds one http.new, the redirect-off
+    /// telemetry 2, store 14, chat.register 7, banned 0). PR 4.1 adds one http.new, the redirect-off
     /// <c>HttpClientHandler</c> in <c>OllamaHttpChatClient.cs</c> (:170), and no production file, so 149 occurrences
-    /// (http.new 19, the other markers unchanged). PR 4.6 adds three files with no outbound path (the mode resolver,
-    /// the reset seam and <c>AddAshlar</c>'s egress partial), and PR 4.4 one, <c>ReadScope.cs</c>, with none: 2,134
-    /// files and 149 occurrences, as measured in the devtest container with all three merged. Set far enough below to
-    /// survive ordinary deletions; a scan that stops reading the tree falls through them. Re-measure and restate when a
-    /// PR moves them.
+    /// (http.new 19, the other markers unchanged). SPEC-007 PR 4.6 adds three files with no outbound path (the mode
+    /// resolver, the reset seam and <c>AddAshlar</c>'s egress partial): 2,133 files, 149 occurrences. SPEC-007 PR 4.2
+    /// adds the netstandard2.0 synchronous-send hop and its <c>HttpMessageInvoker</c>: 2,134 files, 150 occurrences
+    /// (http.new 20, of which 4 are the guard's own, pinned <c>Exempt:GuardImpl</c>). SPEC-007 PR 4.4 adds one file
+    /// with no outbound path, <c>ReadScope.cs</c>: 2,135 files, 150 occurrences, as measured in the devtest container
+    /// with all four merged. Set far enough below to survive ordinary deletions; a scan that stops reading the tree
+    /// falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
     private const int ScannedFilesFloor = 1000;
 

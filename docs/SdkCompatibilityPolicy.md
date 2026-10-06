@@ -170,6 +170,12 @@ If an assembly is on nuget.org, it is not in this tier — it is Substrate, and 
 above applies to it. That distinction is the point of the split: "internal" previously covered both
 things a consumer could never see and things they could `dotnet add package`.
 
+## Target frameworks and the egress guard
+
+`Ashlar.Abstractions` ships a `netstandard2.0`, a `net8.0` and a `net10.0` asset. **Full egress-guard coverage needs the `net8.0` or later asset**: there the guard handler that `EgressHttp` builds evaluates every request it is handed, through `SendAsync` or a synchronous `Send` (redirects: see `docs/EgressInventory.md`). The `netstandard2.0` asset is for .NET Framework, classic Mono and Unity, which have no synchronous `HttpMessageHandler.Send`; on them it evaluates every request it is handed (redirects: see `docs/EgressInventory.md`). On every runtime, this asset puts an internal hop under the guard handler, so the `InnerHandler` of an `EgressHttp.Wrap` handler is that hop, not the caller's handler, and code that walks the chain through `DelegatingHandler.InnerHandler` stops at it (`docs/EgressInventory.md`, Known limits).
+
+Wherever the `netstandard2.0` asset runs on a runtime that has a synchronous `HttpMessageHandler.Send` (.NET 5 or later), it cannot override that `Send`. That is every .NET 5, 6 or 7 app, which binds this asset, and any other app that loads it on such a runtime, for example a `netcoreapp3.1` app rolled forward or a plugin loaded by path. There, a synchronous `HttpClient.Send` or `HttpMessageInvoker.Send` through an `EgressHttp` client or handler is **refused** with `NotSupportedException` before anything is sent, and no egress decision is recorded for it: the caller's exception is the only trace. `EgressHttp.CreateDelegatingHandler` throws `PlatformNotSupportedException`, and `SendAsync` is evaluated as everywhere else. This is a run-time refusal only: nothing stops such an app building against the asset. .NET 5, 6 and 7 are out of support, and Ashlar does not add an end-of-life target for them. `docs/EgressInventory.md` records the mechanism (SPEC-007 PR 4.2).
+
 ## Breaking change process
 
 1. Prefer additive changes (new types, new optional parameters, new overloads) over modifying existing contracts. Additive changes go into `PublicAPI.Unshipped.txt` in the same PR and may ship in any patch.

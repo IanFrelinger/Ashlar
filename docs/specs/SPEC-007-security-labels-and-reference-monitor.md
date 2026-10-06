@@ -43,11 +43,12 @@ The status line above and the starting prompt are the owner's, as written; the s
   and Fleet.Host covers the commercial Fleet registration); MEAI targets go through `EgressGuardChatClient`, the
   outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It is still report-only.
 - **Gaps carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`). The `netstandard2.0` asset of
-  `Ashlar.Abstractions` does not evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` goes out
-  unevaluated. It has to be closed before the guard enforces. PR 3b adds two more (`docs/EgressInventory.md`):
-  redirects that the primary handler follows are not evaluated, and a few records could read Host for a remote peer
-  (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client, EG-MESH-07/08 with a
-  `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no longer read Host.
+  `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
+  unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record
+  (the owner's 2026-10-06 amendment of D31). PR 3b found two more (`docs/EgressInventory.md`): redirects that the
+  primary handler follows are not evaluated, which stays open until 4.3, and a few records could read Host for a
+  remote peer (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client,
+  EG-MESH-07/08 with a `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no longer read Host.
 - **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
   enforcement on alone would therefore make `AirGapped` and `SecureWorkstation` host-only: every decision is made at
   `SystemHigh`, and the leak test would pass without a label causing the refusal. PR 4 ships as eleven small PRs, in
@@ -59,16 +60,15 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
     `EgressSubject.Enter` is a `using` on the flow that enters it (never inside an async helper, whose frame does not
     reach the flow that awaits it), disposed in order, since a flow that disposes frames out of order stays inside the
-    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). A
-    task or thread a runner starts inside its frame keeps that frame for as long as it runs, also after the `using`
-    ends, so what it reads later still raises the subject's shared mark. The
-    `using` block never spans a `yield return` of an async iterator: each `MoveNextAsync` runs the body on the
-    consumer's flow, so after the first `yield return` the frame is gone, and the rest of the block decides at the
-    consumer's frames (a write-down wherever they do not hold the subject's mark) while its reads never reach that
-    mark. The code that drives the iteration enters the frame around its `await foreach`, or the body enters one for
-    each stretch between two `yield return`s. Ashlar's streaming chat clients are such iterators
-    (`GetStreamingResponseAsync` in seven production files, `RoutingChatClient` among them), so a runner that streams
-    must follow this;
+    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). A task
+    or thread a runner starts inside its frame keeps that frame for as long as it runs, also after the `using` ends, so
+    what it reads later still raises the subject's shared mark. The `using` block never spans a `yield return` of an
+    async iterator: each `MoveNextAsync` runs the body on the consumer's flow, so after the first `yield return` the
+    frame is gone, and the rest of the block decides at the consumer's frames (a write-down wherever they do not hold
+    the subject's mark) while its reads never reach that mark. The code that drives the iteration enters the frame
+    around its `await foreach`, or the body enters one for each stretch between two `yield return`s. Ashlar's streaming
+    chat clients are such iterators (`GetStreamingResponseAsync` in seven production files, `RoutingChatClient` among
+    them), so a runner that streams must follow this;
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
@@ -86,13 +86,20 @@ The status line above and the starting prompt are the owner's, as written; the s
   `meai:<key>`; a `file:` destination is never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at
   `https://ollama.com`; and the default MEAI Ollama client stops following redirects (a behaviour change).
   `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
-- **PR 4.6** (#718), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
+- **PR 4.2** (#719, `ad3d570`): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
+  a synchronous `Send` through `EgressHttp` is refused with `NotSupportedException` before anything is sent, the
+  factory handler is refused there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0`
+  or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
+  decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
+  record published when a client is built would report a refused egress where none happened.
+- **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
   still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
   remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault` (or of the guard an
   earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
-  convention fact pins. Nothing refuses yet.
+  convention fact pins. The guard refuses nothing yet; the netstandard2.0 asset's synchronous-`Send` refusal
+  (PR 4.2) is the runtime's and holds in every mode.
 - **PR 4.4** (#716) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
@@ -390,7 +397,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", and the eight PR 4 answers of 2026-10-05. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
+applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 answer of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
 were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
@@ -409,6 +416,7 @@ were not the owner's are in the next section.
 | 2026-10-05 | PR 4 (Q6) | **Inbound surfaces stay on loopback on `AirGapped` and `SecureWorkstation` until PR 5 mediates responses.** On `SecureWorkstation`, MCP over HTTP fails boot; stdio stays. On both profiles the API's listeners and mesh serve must bind loopback, or boot fails. |
 | 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
 | 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
+| 2026-10-06 | PR 4 (4.2) | **A synchronous `Send` refused on the `netstandard2.0` asset leaves no decision record; the exception is the only signal.** This amends the PR 4 design's default D31, which wanted the hop to publish a `NoDecision` record so the refusal reaches the operator log. No Ashlar code runs when the runtime refuses that `Send`, so a record could only be published when a client is built, which would claim a refused egress where none happened, or from a process-wide `AppDomain.FirstChanceException` hook, which runs on every exception in the host. The `NotSupportedException` reaches the caller, whose own error handling logs it. The accepted cost: under `AirGapped` or `SecureWorkstation` enforcement, such a refusal never appears in Ashlar's egress log. Ashlar's own hosts bind `net8.0` or `net10.0` and are unaffected; only an app that binds the `netstandard2.0` asset on .NET 5 or later is. |
 
 ## Design as merged (added 2026-10-04)
 
