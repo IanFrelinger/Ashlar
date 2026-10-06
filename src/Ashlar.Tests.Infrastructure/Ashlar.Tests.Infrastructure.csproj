@@ -125,6 +125,9 @@
     <ProjectReference Include="..\Ashlar.Manifest\Ashlar.Manifest.csproj" />
     <ProjectReference Include="..\Ashlar.Bricks.Owasp\Ashlar.Bricks.Owasp.csproj" />
     <ProjectReference Include="..\Ashlar.Hosting\Ashlar.Hosting.csproj" />
+    <!-- SPEC-007 PR 4.10: AirGappedHygieneTests composes the MCP server over HTTP and over stdio under
+         SecureWorkstation on net8.0, where the Ashlar.API reference (net10.0 only) is absent. -->
+    <ProjectReference Include="..\Ashlar.Mcp.Server\Ashlar.Mcp.Server.csproj" />
     <ProjectReference Include="..\Ashlar.Ingress.DynamoDb\Ashlar.Ingress.DynamoDb.csproj" />
     <ProjectReference Include="..\Ashlar.Client\Ashlar.Client.csproj" />
   </ItemGroup>
