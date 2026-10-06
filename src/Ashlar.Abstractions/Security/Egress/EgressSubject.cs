@@ -34,10 +34,10 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// lowers the current label of work it started.</para>
 /// <para><b>Known limit (fail closed).</b> A task or thread keeps the frames it inherited, ended or not, for as long
 /// as it runs: a long-running async loop or a dedicated thread started inside a frame counts that frame's mark in
-/// every frame it enters, for its whole life. A frame disposed from a flow that does not carry it (one started under
-/// <c>ExecutionContext.SuppressFlow</c>, or a thread started without the execution context) is not gone past on the
-/// flow that entered it either: that flow stays inside it, and repeating that grows its chain. Neither happens to a
-/// frame entered and disposed in a <c>using</c> block on one flow.</para>
+/// every frame it enters, for its whole life. And disposing a frame changes only the flow it is disposed on: a frame
+/// disposed on another flow, as by <c>await Task.Run(scope.Dispose)</c> or from a thread started without the
+/// execution context, can leave the flow that entered it inside it, and repeating that grows that flow's chain.
+/// Neither happens to a frame entered and disposed in a <c>using</c> block on one flow.</para>
 /// <para>Entering a frame can lower the current label only from SystemHigh, where there is no subject, to the join
 /// of the marks on the chain; a producer must therefore observe every read before the egress it governs.</para>
 /// </remarks>
