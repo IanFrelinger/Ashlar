@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Ashlar.CLI.Packaging;
 using Ashlar.Abstractions.Security.Egress;
+using Ashlar.Infrastructure.Deployment;
 using Ashlar.Manifest.Signing;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
@@ -121,17 +122,31 @@ public static class MeshWire
 /// what they are about to serve rather than trusting how it arrived. Issue #488.</para>
 ///
 /// <para>Opt-in (registered only when <c>ASHLAR_MESH_SERVE_PORT</c> is set).</para>
+///
+/// <para><b>Not on AirGapped or SecureWorkstation</b> (SPEC-007 PR 4.10, owner decision Q6). Those profiles allow
+/// inbound listeners on loopback only, and mesh serve listens on every interface, so it refuses to serve there, with
+/// the reason, and binds nothing (<see cref="ProfileError"/>). The rest of the node keeps running, as for a
+/// half-configured TLS setup.</para>
 /// </summary>
 public sealed class MeshServeService : BackgroundService
 {
     private readonly MeshServeSettings _settings;
     private readonly ILogger<MeshServeService> _logger;
+    private readonly ResolvedDeploymentProfile? _deploymentProfile;
 
     /// <summary>Creates the mesh serve service.</summary>
-    public MeshServeService(MeshServeSettings settings, ILogger<MeshServeService> logger)
+    /// <param name="settings">What to serve, and how.</param>
+    /// <param name="logger">Logger.</param>
+    /// <param name="deploymentProfile">The profile <c>AddAshlar</c> resolved; on AirGapped and SecureWorkstation mesh
+    /// serve refuses to serve. <see langword="null"/> where it never ran.</param>
+    public MeshServeService(
+        MeshServeSettings settings,
+        ILogger<MeshServeService> logger,
+        ResolvedDeploymentProfile? deploymentProfile = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _deploymentProfile = deploymentProfile;
     }
 
     /// <inheritdoc />
@@ -152,6 +167,17 @@ public sealed class MeshServeService : BackgroundService
             _logger.LogError(
                 "Mesh serve refusing to start on :{Port} — {Error} Not serving (fail-closed; no plaintext fallback).",
                 _settings.Port, configError);
+            return;
+        }
+
+        // SPEC-007 PR 4.10 (owner decision Q6): loopback-only inbound on AirGapped and SecureWorkstation, and this
+        // listener is every interface. Refuse before anything binds.
+        var profileError = ProfileError(_settings, _deploymentProfile);
+        if (profileError is not null)
+        {
+            _logger.LogError(
+                "Mesh serve refusing to start on :{Port} — {Error} Not serving (fail-closed).",
+                _settings.Port, profileError);
             return;
         }
 
@@ -210,6 +236,22 @@ public sealed class MeshServeService : BackgroundService
             return "client-cert (mTLS) was required but no CA (ASHLAR_MESH_SERVE_CA) is set to validate client certs against.";
         }
         return null;
+    }
+
+    /// <summary>
+    /// Returns the explained refusal when <paramref name="profile"/> allows loopback listeners only (AirGapped,
+    /// SecureWorkstation), since mesh serve listens on every interface; otherwise null. Pure, so the refusal is
+    /// directly testable.
+    /// </summary>
+    public static string? ProfileError(MeshServeSettings settings, ResolvedDeploymentProfile? profile)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var address = $"{(settings.Tls ? "https" : "http")}://*:{settings.Port}";
+        return LoopbackListenerPolicy.Violation(
+            profile,
+            [address],
+            "Mesh serve",
+            "Mesh serve has no loopback-only mode: unset ASHLAR_MESH_SERVE_PORT");
     }
 
     private WebApplication BuildApp()

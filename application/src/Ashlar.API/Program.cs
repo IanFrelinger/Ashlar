@@ -62,6 +62,7 @@ using Ashlar.API.Middleware.Ingress;
 using Ashlar.API.Security;
 using Ashlar.Core.Application.Middleware.Ports;
 using Ashlar.Core.Application.Product.Ports;
+using Ashlar.Infrastructure.Deployment;
 using Ashlar.Infrastructure.Product;
 using Ashlar.Infrastructure.Egress;
 using Ashlar.Contracts;
@@ -230,6 +231,9 @@ builder.Services.AddAshlar(options =>
 // SPEC-007: AddAshlar has already installed the report-only egress guard on every IHttpClientFactory client in this
 // host, ashlar-sns-signing above included. This call is idempotent and adds nothing; it states the coverage here.
 builder.Services.AddAshlarEgressGuard();
+// SPEC-007 PR 4.10 (owner decision Q6): on AirGapped and SecureWorkstation, a non-loopback address Kestrel bound fails
+// the start. The configuration check after Build refuses the configured ones before anything binds.
+builder.Services.AddHostedService<LoopbackListenerVerifier>();
 
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(RecordSmsYesApprovalCommand).Assembly));
@@ -260,6 +264,21 @@ if (!string.IsNullOrWhiteSpace(otlpEndpoint))
 }
 
 var app = builder.Build();
+
+// --- Inbound listeners: loopback only on AirGapped and SecureWorkstation (SPEC-007 PR 4.10, owner decision Q6) ---
+// Responses on inbound connections are not mediated until SPEC-007 PR 5, so on those profiles a configured address
+// that is not loopback refuses the start here, before Kestrel binds anything. LoopbackListenerVerifier checks what
+// Kestrel actually bound, after it starts, for a listener a host adds in code.
+{
+    var listenerViolation = LoopbackListenerPolicy.Violation(
+        app.Services.GetService<ResolvedDeploymentProfile>(),
+        LoopbackListenerPolicy.ConfiguredAddresses(app.Configuration, app.Urls),
+        "Ashlar.API");
+    if (listenerViolation is not null)
+    {
+        throw new InvalidOperationException(listenerViolation);
+    }
+}
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<IngressEnvelopeMiddleware>();

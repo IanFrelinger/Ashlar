@@ -138,6 +138,9 @@ public static partial class AshlarServiceCollectionExtensions
         // included (owner decision Q1 = A). Idempotent, so the kernel members below that call it add nothing.
         services.AddAshlarEgressGuard();
         BindComposedEgressGuard(services, canonicalProfile, profileDefaulted, egressOverride, options.EgressMode);
+        // SPEC-007 PR 4.10: the resolved profile for Infrastructure and the hosts, the AirGapped boot validators and the
+        // AirGapped ollama.com default, all for the strictest profile noted in the process.
+        RegisterDeploymentProfileHygiene(services, canonicalProfile);
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .Build();

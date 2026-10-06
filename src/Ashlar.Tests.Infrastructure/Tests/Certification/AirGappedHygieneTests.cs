@@ -1,6 +1,7 @@
 using Ashlar.AI.Pipeline;
 using Ashlar.Core.Application.Execution.Routing;
 using Ashlar.Hosting;
+using Ashlar.Infrastructure.Deployment;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.LoadPolicy;
 using Ashlar.Infrastructure.MeshLab;
@@ -267,6 +268,92 @@ public sealed class AirGappedHygieneTests : IDisposable
 
         act.Should().NotThrow("a local IDE spawns the stdio server; only MCP over HTTP is inbound");
     }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task A_composition_after_AirGapped_was_noted_registers_AirGapped_and_refuses_the_opt_ins()
+    {
+        await Task.CompletedTask;
+        using (Compose(AshlarDeploymentProfile.AirGapped).BuildServiceProvider())
+        {
+        }
+
+        // A separate, later, weaker composition in the same process (default D5).
+        var services = Compose(AshlarDeploymentProfile.Full);
+        OptIn(services, "Ashlar:RunPod:EnablePeerNetworkRouting");
+        using var sp = services.BuildServiceProvider();
+
+        sp.GetRequiredService<ResolvedDeploymentProfile>().IsAirGapped.Should().BeTrue();
+        var act = () => ValidateOnStart(sp);
+        act.Should().Throw<OptionsValidationException>().WithMessage("*AirGapped*");
+        Overnight(sp).Should().BeOfType<ExecutionTarget.Local>();
+    }
+
+    [Theory(Timeout = TestTimeouts.E2E)]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "urls", "http://0.0.0.0:5000")]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "urls", "http://localhost:5000;http://+:80")]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "http_ports", "8080")]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "https_ports", "8443")]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "Kestrel:Endpoints:Http:Url", "http://192.168.1.5:5000")]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, "urls", "http://[::]:5000")]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, "urls", "http://ashlar.lan:5000")]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, "http_ports", "8080")]
+    public async Task A_non_loopback_listener_fails_boot_on_AirGapped_and_SecureWorkstation(
+        AshlarDeploymentProfile profile, string key, string value)
+    {
+        await Task.CompletedTask;
+        using var sp = Compose(profile).BuildServiceProvider();
+        var configuration = Configuration((key, value));
+
+        var violation = LoopbackListenerPolicy.Violation(
+            sp.GetRequiredService<ResolvedDeploymentProfile>(),
+            LoopbackListenerPolicy.ConfiguredAddresses(configuration),
+            "Ashlar.API");
+
+        violation.Should().NotBeNull().And.Contain("not loopback")
+            .And.Contain(profile == AshlarDeploymentProfile.AirGapped ? "AirGapped" : "SecureWorkstation");
+    }
+
+    [Theory(Timeout = TestTimeouts.E2E)]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "http://localhost:5000;http://127.0.0.1:5001;https://[::1]:5002")]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, "http://unix:/run/ashlar.sock")]
+    [InlineData(AshlarDeploymentProfile.Full, "http://0.0.0.0:5000")]
+    public async Task A_loopback_listener_boots_and_Full_is_unchanged(AshlarDeploymentProfile profile, string urls)
+    {
+        await Task.CompletedTask;
+        using var sp = Compose(profile).BuildServiceProvider();
+        // http_ports binds every interface, but Kestrel ignores it once urls is set.
+        var configuration = Configuration(("urls", urls), ("http_ports", "8080"));
+
+        LoopbackListenerPolicy.Violation(
+                sp.GetRequiredService<ResolvedDeploymentProfile>(),
+                LoopbackListenerPolicy.ConfiguredAddresses(configuration),
+                "Ashlar.API")
+            .Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("http://localhost:5000", true)]
+    [InlineData("https://LOCALHOST", true)]
+    [InlineData("http://127.0.0.1:5000", true)]
+    [InlineData("http://127.8.9.10:5000/base", true)]
+    [InlineData("http://[::1]:5000", true)]
+    [InlineData("http://unix:/tmp/ashlar.sock", true)]
+    [InlineData("http://pipe:/ashlar", true)]
+    [InlineData("http://*:5000", false)]
+    [InlineData("http://+:5000", false)]
+    [InlineData("http://0.0.0.0:5000", false)]
+    [InlineData("http://[::]:5000", false)]
+    [InlineData("http://10.0.0.1:5000", false)]
+    [InlineData("http://localhost.example:5000", false)]
+    [InlineData("localhost:5000", false)]
+    [InlineData("http://[::1:5000", false)]
+    [InlineData("", false)]
+    public void Loopback_is_localhost_a_loopback_address_a_unix_socket_or_a_pipe(string address, bool loopback) =>
+        LoopbackListenerPolicy.IsLoopback(address).Should().Be(loopback);
+
+    private static IConfiguration Configuration(params (string Key, string Value)[] pairs) => new ConfigurationBuilder()
+        .AddInMemoryCollection(pairs.ToDictionary(p => p.Key, p => (string?)p.Value))
+        .Build();
 
     private static IConfiguration McpEnabled() => new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?>
