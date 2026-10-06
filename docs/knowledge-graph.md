@@ -17,8 +17,8 @@ remembered to update — staleness here is a red build.
 | of those, declaring `<IsPackable>true</IsPackable>` | 18 |
 | `ASHLAR_*` variables named in code | 176 |
 | of those, operator-facing (not test-only) | 155 |
-| missing from `docs/Configuration.md` | 20 |
-| **mentioned in no document at all** | **1** |
+| missing from `docs/Configuration.md` | 18 |
+| **mentioned in no document at all** | **0** |
 | test files declaring xUnit facts | 773 |
 | declared facts | 4884 |
 | workflows | 61 |
@@ -41,7 +41,7 @@ Kept separate from "missing from `docs/Configuration.md`" on purpose: a variable
 some other document is a discoverability problem, not an undocumented one, and conflating the
 two overstates the gap by the difference between the counts above.
 
-- `ASHLAR_MESH_SERVE_BIND`
+_None._
 
 ## Packable projects
 
