@@ -93,7 +93,9 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   handler is refused with `NotSupportedException` before anything is sent, by an internal hop under
   the guard handler (`SynchronousSendRefusedOnNetstandard20Asset`), and no decision is recorded for
   it; `EgressHttp.CreateDelegatingHandler` throws `PlatformNotSupportedException` there (SPEC-007
-  PR 4.2). This holds in every mode. On .NET Framework, classic Mono and Unity nothing is refused.
+  PR 4.2). This holds in every mode. On .NET Framework, classic Mono and Unity nothing is refused,
+  but the hop is there on every runtime that binds that asset, so code that walks a `Wrap` handler's
+  chain through `DelegatingHandler.InnerHandler` stops at it.
   `docs/SdkCompatibilityPolicy.md` says full egress-guard coverage needs the net8.0 or later asset,
   and `EgressHttpNetstandard20TwinTests` (cert-gate) runs the netstandard2.0 build to show it.
   `AddAshlarEgressGuard` (`Ashlar.Infrastructure.Egress`) registers the guard, subscribes an `ILogger`

@@ -14,8 +14,12 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// handler built here is refused with <see cref="NotSupportedException"/> before anything is sent. No Ashlar code runs
 /// on that path, so the caller's exception is the refusal's only trace: no decision is published.
 /// <see cref="CreateDelegatingHandler"/> throws <see cref="PlatformNotSupportedException"/> there. On .NET Framework,
-/// classic Mono and Unity, which have no synchronous <c>Send</c>, nothing changes. Synchronous sends are evaluated on
-/// the net8.0 and later assets (<c>docs/SdkCompatibilityPolicy.md</c>).</para>
+/// classic Mono and Unity, which have no synchronous <c>Send</c>, nothing is refused. The hop is there on every
+/// runtime that binds this asset, though, so on all of them it is the one change: each <c>SendAsync</c> takes one
+/// extra in-process step, and the <see cref="DelegatingHandler.InnerHandler"/> of a <see cref="Wrap"/> handler is the
+/// hop, not the inner handler. The hop is not a <see cref="DelegatingHandler"/>, so code that walks the chain through
+/// <c>InnerHandler</c> (to find the primary handler's type, for example) stops at it. Synchronous sends are evaluated
+/// on the net8.0 and later assets (<c>docs/SdkCompatibilityPolicy.md</c>).</para>
 /// <para>A <see langword="null"/> guard means <see cref="EgressGuard.ProcessDefault"/>, resolved at each send.</para>
 /// <para>The family and site are checked here, when the client is built, so a send never fails on them.</para>
 /// <para>Of the <c>CreateClient</c> overloads only the one with the most parameters has an optional parameter, as
@@ -86,11 +90,13 @@ public static class EgressHttp
     /// <returns>The guarded handler.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="inner"/>, <paramref name="family"/> or
     /// <paramref name="site"/> is <see langword="null"/>.</exception>
-    /// <remarks>The returned handler is a <see cref="DelegatingHandler"/>, whose
-    /// <see cref="DelegatingHandler.InnerHandler"/> can be set until its first send. Do not replace it: that voids
-    /// what this method guarantees. On the netstandard2.0 asset the inner handler is the hop that refuses a synchronous
-    /// <c>Send</c>, not <paramref name="inner"/>, so after a replacement a synchronous <c>Send</c> goes out
-    /// unevaluated; and on every asset the handler then neither sends through nor owns <paramref name="inner"/>.
+    /// <remarks>The returned handler is a <see cref="DelegatingHandler"/>. On the netstandard2.0 asset, on every
+    /// runtime, its <see cref="DelegatingHandler.InnerHandler"/> is the hop that refuses a synchronous <c>Send</c>, not
+    /// <paramref name="inner"/>, and the hop is not a <see cref="DelegatingHandler"/>: code that walks the chain
+    /// through <c>InnerHandler</c> stops at it and does not see <paramref name="inner"/>.
+    /// <c>InnerHandler</c> can be set until the first send. Do not replace it: that voids what this method guarantees.
+    /// After a replacement on the netstandard2.0 asset a synchronous <c>Send</c> goes out unevaluated; and on every
+    /// asset the handler then neither sends through nor owns <paramref name="inner"/>.
     /// </remarks>
     public static HttpMessageHandler Wrap(HttpMessageHandler inner, string family, string site, IEgressGuard? guard = null)
     {
