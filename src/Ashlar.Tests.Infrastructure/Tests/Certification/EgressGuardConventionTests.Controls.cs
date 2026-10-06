@@ -98,7 +98,7 @@ public sealed partial class EgressGuardConventionTests
                 private static readonly HttpClient Http = new();
             }
             """, "http.new 1/0"),
-        ["unguarded: an object initializer on the next line (OllamaHttpChatClient.cs:166)"] = new("""
+        ["unguarded: an object initializer on the next line (OllamaHttpChatClient.cs:166 as it was before 4.1)"] = new("""
             private static HttpClient Build(Uri baseUrl)
             {
                 return new HttpClient
