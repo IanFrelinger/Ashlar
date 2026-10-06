@@ -97,7 +97,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
   decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
   record published when a client is built would report a refused egress where none happened.
-- **PR 4.3** (this PR): known primaries Ashlar builds or binds have `AllowAutoRedirect` false, and an internal
+- **PR 4.3** (#722): known primaries Ashlar builds or binds have `AllowAutoRedirect` false, and an internal
   follower applies that primary's own redirect settings. An `EgressHttp` client follows only a same-host redirect
   (P2); a factory client follows a cross-host redirect and each hop is evaluated again (P1). HTTPS to HTTP is not
   followed. `Authorization` is cleared on a followed redirect. Report-only: `Refused` stays false. On the
