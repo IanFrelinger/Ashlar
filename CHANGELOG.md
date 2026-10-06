@@ -159,10 +159,40 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   subject; a task, timer, registration or continuation the publisher created and the callback starts
   or triggers keeps the publisher's frame, since each captures the flow where it is created, and a
   thread or `System.Timers.Timer` the callback created and the publisher starts runs in the
-  publisher's frame, since it captures the flow where it is started. Still report-only, and no production code enters a frame
-  or begins a read yet, so no recorded decision changes; the agent producers come in PR 4.5. The new
+  publisher's frame, since it captures the flow where it is started. Still report-only, and no production code entered a frame
+  or began a read in this change, so no recorded decision changed; the agent producers came in PR 4.5. The new
   public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, and the behaviour is pinned by
   cert-gate tests listed in `ci/cert-gate-assertions.md`.
+- **Agent runners declare an egress subject, and every tool call is a scoped read (SPEC-007 PR 4.5).**
+  Still report-only: the guard refuses nothing, and no production decision changes its label. A read
+  that has not ended now counts as `SystemHigh` (the owner's decision of 2026-10-06):
+  `EgressSubject.BeginRead()` enters a read's frame on the flow, so every egress decided on the flows
+  inside the read, such as a tool's own egress during its call, a labelled tool's included, is decided
+  at `SystemHigh` until the scope is disposed; then it observes what the read reported, or `SystemHigh`,
+  and only then does the flow that began it go back to its frames, which hold that. A read's frame
+  never names a decision, and it is a frame like any other: work created and started inside a read,
+  such as a fire-and-forget task a tool starts, keeps it, at `SystemHigh`, for its whole life, and a
+  read ended out of order or on another flow leaves the flow that began it inside it (fail closed).
+  The producers: `SelfExtendRunnerAdapter` enters `agent:<id>` at `SystemHigh` around the cycle and
+  the admission after it, so self-extend's egress is recorded as `subject:agent:<id>` instead of
+  `no-subject`, at the same `SystemHigh` (its model calls, EG-MDL-01 when the model is the governed MEAI
+  client; its `dotnet.build` and `dotnet.test` tool calls, EG-PROC-01; and the auto-share after admission,
+  EG-MESH-01). `ToolCallingAgent` runs every tool call inside a read scope
+  and hands the scope only to a tool that declares itself labelled through the new
+  `ILabelledTool` (registered directly in a `CapabilityRegistry`, which gains `Find`); any other
+  result, and a call that throws, counts as `SystemHigh`. `RAGTool` is that tool: it reports each
+  hit's tier, trimmed and resolved through the registry, as the label of one of the five canonical
+  levels, and anything else, a custom level or a blank tier included, as `SystemHigh`, which is what
+  `TrustTierOrder.RecordLabel` gives (a parity test holds the two together); no hits and its
+  unrankable-query refusal report "read nothing" (`Public`). `RAGTool` is registered in no production toolbox, so no
+  production read is reported below `SystemHigh` yet. A response from a `peer:` chat target,
+  or any governed target whose key is neither `local:` nor `cloud:`, observes `SystemHigh` into the
+  caller's frames when the call ends, and before each streamed update reaches the caller. A cert-gate
+  convention pins every production `EgressSubject.Enter` and `BeginRead` with its floor and method,
+  and requires each to be a `using` outside an iterator. With a runner frame at `Public` (only a test
+  declares one), a `Secret` RAG hit makes the next model call decide at `Secret`, which would be
+  refused `LevelTooLow`; an `Internal` hit would be allowed. `ILabelledTool` is recorded in
+  `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`.
 - **A Claude Code cloud session sets docker up by itself.** A new SessionStart hook,
   `.claude/hooks/session-start.sh` (registered in `.claude/settings.json`), runs only when
   `CLAUDE_CODE_REMOTE=true`: it starts `dockerd` if it is not running, writes a session-local

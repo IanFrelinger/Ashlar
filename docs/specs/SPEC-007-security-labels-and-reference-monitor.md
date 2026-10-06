@@ -73,7 +73,8 @@ The status line above and the starting prompt are the owner's, as written; the s
     consumer's frames (a write-down wherever they do not hold the subject's mark) while its reads never reach that mark.
     The code that drives the iteration enters the frame around its `await foreach`, or the body enters one for each
     stretch between two `yield return`s. Ashlar's streaming chat clients are such iterators (`GetStreamingResponseAsync`
-    in seven production files, `RoutingChatClient` among them), so a runner that streams must follow this;
+    in seven production files, `RoutingChatClient` among them), so a runner that streams must follow this (discharged in PR 4.5: `EgressSubjectProducerConventionTests` pins
+    both production entries as `using` resources outside any iterator);
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
@@ -117,7 +118,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   inside the callback, such as each subscriber's `Task.Run`, keeps no subject; a task, timer, registration or
   continuation the publisher created and the callback starts or triggers keeps the publisher's frame, since each
   captures the flow where it is created, and a thread or `System.Timers.Timer` captures it where it is started.
-  Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
+  Report-only, and no production code entered a frame until PR 4.5. **Amended PR 4 design:** its
   `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
   the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
   `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant
@@ -125,6 +126,26 @@ The status line above and the starting prompt are the owner's, as written; the s
   (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
   reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
   appears unlisted.
+- **PR 4.5** (this PR), the subject producers, report-only. **A read that has not ended counts as `SystemHigh`** (the
+  owner's decision of 2026-10-06, decisions log): `EgressSubject.BeginRead` now enters a read's frame on the flow,
+  so every egress decided on the flows inside a read, a tool's own egress during its call included, is decided at
+  `SystemHigh` until the scope is disposed; disposing it observes what the read reported, or `SystemHigh`, before the
+  flow that began it goes back to its frames. A read's frame never names a decision, and it is a frame like any
+  other under PR 4.4's rule: work created and started inside a read keeps it, at `SystemHigh`, for its whole life, and
+  a read ended out of order or on another flow leaves the flow that began it inside it. `SelfExtendRunnerAdapter`
+  enters `agent:<id>` at `SystemHigh` around the cycle and the admission and auto-share after it (records go from
+  `no-subject` to `subject:agent:<id>`, at the same `SystemHigh`); `ToolCallingAgent` scopes every tool call as a read
+  and hands the scope only to a tool that declares itself labelled (the new public `ILabelledTool`, served directly by
+  a `CapabilityRegistry`); `RAGTool` is that tool and reports each hit's tier as a canonical level's label (trimmed,
+  any case, `top-secret`; anything else, a custom level included, `SystemHigh`, as `TrustTierOrder.RecordLabel`
+  does) and "read nothing" for no hits and for its unrankable-query refusal (it is registered in no production toolbox, so no production read is reported
+  below `SystemHigh` yet); and a response from a `peer:` target, or
+  from any governed target whose key is neither `local:` nor `cloud:`, observes `SystemHigh` into the caller's
+  frames. Obligation (d) holds for both production entries: each is a `using` on the flow that enters it, disposed in
+  order before its method returns, outside any iterator and any async helper, and a cert-gate convention pins them
+  with their floors and methods. The leak skeleton passes in report mode: inside a test runner frame at `Public`,
+  after a `Secret` RAG hit the next model call records `subject:agent:<id>`, `Current = Secret` and would be refused
+  `LevelTooLow`; after an `Internal` hit it would be allowed.
 
 ---
 
@@ -403,7 +424,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 answer of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
+applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 and PR 4.5 answers of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
 were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
@@ -423,6 +444,7 @@ were not the owner's are in the next section.
 | 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
 | 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
 | 2026-10-06 | PR 4 (4.2) | **A synchronous `Send` refused on the `netstandard2.0` asset leaves no decision record; the exception is the only signal.** This amends the PR 4 design's default D31, which wanted the hop to publish a `NoDecision` record so the refusal reaches the operator log. No Ashlar code runs when the runtime refuses that `Send`, so a record could only be published when a client is built, which would claim a refused egress where none happened, or from a process-wide `AppDomain.FirstChanceException` hook, which runs on every exception in the host. The `NotSupportedException` reaches the caller, whose own error handling logs it. The accepted cost: under `AirGapped` or `SecureWorkstation` enforcement, such a refusal never appears in Ashlar's egress log. Ashlar's own hosts bind `net8.0` or `net10.0` and are unaffected; only an app that binds the `netstandard2.0` asset on .NET 5 or later is. |
+| 2026-10-06 | PR 4 (4.5) | **While a read scope is open and unreported, every egress decided on the flows inside it is decided at `SystemHigh`, for every tool, `RAGTool` included (no labelled-tool exemption).** This answers the read-scope question the PR 4.4 phase carried to PR 4.5: a scope observes its result only when it ends, so without this a tool that reads and then egresses within one call was decided at the mark from before the read. Once the scope ends, the frames it was begun in hold what it observed: the reported label if it completed and reported, else `SystemHigh`, as PR 4.4 already does. A report counts only once the read has completed and ended, so a read that has not ended counts as `SystemHigh` whatever it reported so far, and work created inside it keeps that (fail closed). The accepted cost: under a runner floor below `SystemHigh`, a tool's own egress during its call is refused once the guard enforces. In the PR 4 design's §5 leak test, Scenario B's web search runs inside the `web_search` tool call, so its expected reason changes from `LevelTooLow` to `SystemHighData`; control C4's inner send, made by a test tool during its call, is decided at `SystemHigh` too. |
 
 ## Design as merged (added 2026-10-04)
 

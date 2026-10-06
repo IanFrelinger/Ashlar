@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 154,
     "operator_vars_missing_from_configuration_reference": 19,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 772,
-    "declared_facts": 4874,
+    "test_files_declaring_facts": 774,
+    "declared_facts": 4902,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5167,6 +5167,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressProducerTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 21,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRawClientTwinTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5188,10 +5195,17 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressSubjectProducerConventionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 4,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressSubjectReadScopeTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 12,
+      "declared_facts": 15,
       "in_cert_gate_filter": true
     },
     {

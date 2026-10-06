@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Runtime;
 
@@ -137,6 +138,15 @@ public sealed class ToolCallingAgent : IAgent
     /// <para>Denied tool calls are reported back to the model as a "user" message so it can
     /// adjust on the next iteration (e.g. retry with an allowed write path) instead of
     /// silently giving up.</para>
+    ///
+    /// <para><b>Every tool call is a read</b> (SPEC-007 PR 4.5). Each invocation runs inside an
+    /// <see cref="EgressSubject.BeginRead"/> scope on this flow, so while the tool runs every egress
+    /// decision on the flows inside it, the tool's own included, is made at SystemHigh, and when it
+    /// returns its result is observed into the frame the runner entered around the cycle before the
+    /// next model call is decided. Only a tool that declares itself labelled (<see cref="ILabelledTool"/>,
+    /// registered directly in a <see cref="CapabilityRegistry"/>) is handed the scope to report to; every
+    /// other result counts as SystemHigh, and so does a call that threw. With no frame around the
+    /// cycle every decision has no subject, which is SystemHigh already.</para>
     /// </summary>
     public async Task<AgentCycleResult> RunCycleAsync(
         WorldSnapshot snapshot,
@@ -230,15 +240,26 @@ public sealed class ToolCallingAgent : IAgent
                         break;
                     }
 
+                    // The call is a read, scoped on this flow and ended in order before the next model call
+                    // (SPEC-007 PR 4.5). A labelled tool reports to the scope; for any other tool, or a call that
+                    // throws, the scope observes SystemHigh when it ends.
+                    var labelled = LabelledToolFor(tools, call.Id);
                     ToolResult result;
-                    try
+                    using (var read = EgressSubject.BeginRead())
                     {
-                        result = await tools.InvokeAsync(call, snapshot, loopCt).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-                    {
-                        stoppedReason = "deadline";
-                        throw;
+                        try
+                        {
+                            result = labelled is null
+                                ? await tools.InvokeAsync(call, snapshot, loopCt).ConfigureAwait(false)
+                                : await labelled.InvokeLabelledAsync(call, snapshot, read, loopCt).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                        {
+                            stoppedReason = "deadline";
+                            throw;
+                        }
+
+                        read.Complete();
                     }
 
                     deltas.Add(policies.Sign(result.Delta));
@@ -283,6 +304,12 @@ public sealed class ToolCallingAgent : IAgent
         var merged = deltas.Count == 0 ? null : ActionDelta.Merge(deltas);
         return new AgentCycleResult(merged, iterations, executed, denied, lastRationale, stoppedReason);
     }
+
+    // The tool that declares itself labelled and serves this call, or null. Only a CapabilityRegistry says which
+    // tool serves a call; behind any other toolbox, or a decorator, no tool is labelled, so every read there counts
+    // as SystemHigh (fail closed).
+    private static ILabelledTool? LabelledToolFor(IToolbox tools, string toolId) =>
+        tools is CapabilityRegistry registry ? registry.Find(toolId) as ILabelledTool : null;
 
     private void LogModelTurn(string rawText, IReadOnlyList<ToolCall> calls, string? rationale, int? iter = null)
     {

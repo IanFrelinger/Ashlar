@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.AI;
 
@@ -21,6 +23,13 @@ namespace Ashlar.AI.Pipeline.Governance;
 /// destination. The model is the call's <see cref="ChatOptions.ModelId"/>, or, when that is blank, the inner client's
 /// <see cref="ChatClientMetadata.DefaultModelId"/>, which is the model the default Ollama client sends. The rule is
 /// unconditional: a wrong guess only records a model with that ending as leaving the host.</para>
+/// <para><b>A response from an agent-backed target is a read</b> (SPEC-007 PR 4.5). A model's response is derived
+/// from the prompt, which the caller already holds, so it is not a read. A <c>peer:</c> target, or any target whose key
+/// names no model endpoint (neither <c>local:</c> nor <c>cloud:</c>), may be backed by an agent whose own data is not
+/// derived from our prompt, and until PR 5 carries a label on responses that data is unlabelled: when such a call
+/// ends, however it ends, this layer observes <see cref="SecurityLabel.SystemHigh"/> into the caller's frames
+/// (<see cref="EgressSubject.Observe"/>). A streamed response observes it before each update reaches the caller, and
+/// when the stream ends. With no frame on the caller's flow it changes nothing.</para>
 /// </remarks>
 public sealed class EgressGuardChatClient : DelegatingChatClient
 {
@@ -29,17 +38,30 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
 
     private readonly IEgressGuard _guard;
     private readonly string? _defaultModelId;
+    private readonly bool _responsesAreReads;
 
     /// <summary>Creates the guard layer around an inner client.</summary>
     /// <param name="innerClient">The client this layer delegates to.</param>
     /// <param name="request">What each call is reported as, or <see langword="null"/> for an in-process target.</param>
     /// <param name="guard">The guard; <see langword="null"/> means <see cref="EgressGuard.ProcessDefault"/>.</param>
     public EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard = null)
+        : this(innerClient, request, guard, responsesAreReads: false)
+    {
+    }
+
+    /// <summary>Creates the guard layer around the inner client of the target <paramref name="targetKey"/>.</summary>
+    internal EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard, string targetKey)
+        : this(innerClient, request, guard, IsAgentBacked(targetKey))
+    {
+    }
+
+    private EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard, bool responsesAreReads)
         : base(innerClient)
     {
         Request = request;
         _guard = guard ?? EgressGuard.ProcessDefault;
         _defaultModelId = DefaultModelIdOf(innerClient);
+        _responsesAreReads = responsesAreReads;
     }
 
     /// <summary>
@@ -55,7 +77,21 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         CancellationToken cancellationToken = default)
     {
         Decide(options);
-        return base.GetResponseAsync(messages, options, cancellationToken);
+        if (!_responsesAreReads)
+            return base.GetResponseAsync(messages, options, cancellationToken);
+
+        Task<ChatResponse> call;
+        try
+        {
+            call = base.GetResponseAsync(messages, options, cancellationToken);
+        }
+        catch
+        {
+            ObserveResponse();
+            throw;
+        }
+
+        return ObservedAsync(call);
     }
 
     /// <inheritdoc />
@@ -65,7 +101,67 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         CancellationToken cancellationToken = default)
     {
         Decide(options);
-        return base.GetStreamingResponseAsync(messages, options, cancellationToken);
+        if (!_responsesAreReads)
+            return base.GetStreamingResponseAsync(messages, options, cancellationToken);
+
+        IAsyncEnumerable<ChatResponseUpdate> updates;
+        try
+        {
+            updates = base.GetStreamingResponseAsync(messages, options, cancellationToken);
+        }
+        catch
+        {
+            ObserveResponse();
+            throw;
+        }
+
+        return ObservedAsync(updates, cancellationToken);
+    }
+
+    /// <summary>
+    /// <see langword="true"/> unless <paramref name="targetKey"/> names a model endpoint (<c>local:</c> or
+    /// <c>cloud:</c>, ignoring case): a <c>peer:</c> target, or one of no known kind, may be backed by an agent.
+    /// </summary>
+    internal static bool IsAgentBacked(string? targetKey) =>
+        targetKey is null
+        || !(targetKey.StartsWith("local:", StringComparison.OrdinalIgnoreCase)
+            || targetKey.StartsWith("cloud:", StringComparison.OrdinalIgnoreCase));
+
+    // An agent-backed target's response is unlabelled data the caller has now read (until PR 5 labels responses).
+    private static void ObserveResponse() => EgressSubject.Observe(SecurityLabel.SystemHigh);
+
+    // Runs on the caller's flow (an async method keeps the context it was called with), so the observation reaches the
+    // caller's frames, however the call ends.
+    private static async Task<ChatResponse> ObservedAsync(Task<ChatResponse> call)
+    {
+        try
+        {
+            return await call.ConfigureAwait(false);
+        }
+        finally
+        {
+            ObserveResponse();
+        }
+    }
+
+    // An iterator's body runs on its consumer's flow, so each observation reaches the frames of the flow that is about
+    // to see the update; the finally covers the end of the stream, a fault, and a consumer that stops early.
+    private static async IAsyncEnumerable<ChatResponseUpdate> ObservedAsync(
+        IAsyncEnumerable<ChatResponseUpdate> updates,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var update in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
+            {
+                ObserveResponse();
+                yield return update;
+            }
+        }
+        finally
+        {
+            ObserveResponse();
+        }
     }
 
     /// <summary>

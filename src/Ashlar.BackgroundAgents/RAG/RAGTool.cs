@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.BackgroundAgents.DataSensitivity;
 
 namespace Ashlar.BackgroundAgents.RAG;
@@ -14,8 +16,17 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// clearance in the snapshot the search runs at the floor whatever the model asks for. It used to
 /// be the other way round -- the model's value won and the agent's was only a fallback -- so a
 /// prompt injection that talked the model into asking for TopSecret got TopSecret.
+/// <para><b>It labels what it returns</b> (SPEC-007 PR 4.5). It declares itself labelled
+/// (<see cref="ILabelledTool"/>): invoked through <see cref="InvokeLabelledAsync"/>, it reports each hit's tier to the
+/// caller's read scope, and "read nothing" (<see cref="SecurityLabel.Public"/>) for no hits and for its
+/// unrankable-query refusal, whose payload holds only the model's own query and the store's message. A tier is the
+/// label of one of the five canonical levels only when its trimmed name resolves through the registry to one of
+/// <see cref="DataSensitivityLevels.All"/>, which also accepts any case and <c>top-secret</c>; anything else, a custom
+/// level, a blank or no tier included, is <see cref="SecurityLabel.SystemHigh"/>. That is exactly what the RAG
+/// pipeline's <c>TrustTierOrder.RecordLabel</c> gives, and a cert-gate parity test holds the two together. Labels carry
+/// the level only (the owner's 2026-10-05 answer to Q8).</para>
 /// </remarks>
-public sealed class RAGTool : ITool
+public sealed class RAGTool : ILabelledTool
 {
     /// <summary>
     /// Default tool id.
@@ -59,7 +70,32 @@ public sealed class RAGTool : ITool
     }
 
     /// <inheritdoc />
-    public async Task<ToolResult> InvokeAsync(ToolCall toolCall, WorldSnapshot s, CancellationToken ct)
+    public Task<ToolResult> InvokeAsync(ToolCall toolCall, WorldSnapshot s, CancellationToken ct) =>
+        InvokeCoreAsync(toolCall, s, read: null, ct);
+
+    /// <inheritdoc />
+    public Task<ToolResult> InvokeLabelledAsync(ToolCall toolCall, WorldSnapshot s, ReadScope read, CancellationToken ct) =>
+        InvokeCoreAsync(toolCall, s, read ?? throw new ArgumentNullException(nameof(read)), ct);
+
+    /// <summary>
+    /// The label of a hit whose stored tier is <paramref name="tier"/>: the bare label of a canonical level when the
+    /// trimmed name resolves through <paramref name="registry"/> to one of <see cref="DataSensitivityLevels.All"/>,
+    /// otherwise <see cref="SecurityLabel.SystemHigh"/>.
+    /// </summary>
+    private static SecurityLabel HitLabel(IDataSensitivityRegistry registry, string? tier)
+    {
+        if (string.IsNullOrWhiteSpace(tier))
+            return SecurityLabel.SystemHigh;
+
+        // The registry does not trim (DataSensitivityLevels.FromName), and TrustTierOrder does: trim here, so " Secret "
+        // is Secret on both sides. A custom level the registry knows is not one of the five, so it is SystemHigh.
+        var level = registry.GetByName(tier.Trim());
+        return level is not null && DataSensitivityLevels.All.Any(canonical => ReferenceEquals(canonical, level))
+            ? level.ToDataLabel()
+            : SecurityLabel.SystemHigh;
+    }
+
+    private async Task<ToolResult> InvokeCoreAsync(ToolCall toolCall, WorldSnapshot s, ReadScope? read, CancellationToken ct)
     {
         var args = ParseArgs(toolCall);
         var query = args.Query ?? string.Empty;
@@ -94,9 +130,20 @@ public sealed class RAGTool : ITool
             // store throws rather than returning one: an empty list reads to the model as "the
             // knowledge base has nothing on this", which is a different and unearned claim.
             var refusal = new[] { $"RAG search REFUSED: query='{query}' cannot be ranked. {ex.Message}" };
+
+            // Read nothing: the payload is the model's own query and the store's message.
+            read?.Report(SecurityLabel.Public);
             return new ToolResult(
                 new ActionDelta(tick, tick + 1, refusal),
                 new { Refused = true, Reason = ex.Message });
+        }
+
+        // A label for everything the result carries: each hit's tier, or "read nothing" when there is none.
+        if (read is not null)
+        {
+            read.Report(SecurityLabel.Public);
+            foreach (var hit in results)
+                read.Report(HitLabel(_sensitivityRegistry, hit.SensitivityLevelName));
         }
 
         var log = new[] { $"RAG search: query='{query}', results={results.Count}" };

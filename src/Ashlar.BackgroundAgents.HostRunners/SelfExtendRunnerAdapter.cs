@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.BackgroundAgents.Agents;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.DataSensitivity;
@@ -149,6 +151,14 @@ public sealed class SelfExtendRunnerAdapter : ISelfExtendRunner
 
         var resolvedAgentName = string.IsNullOrWhiteSpace(agentName) ? "self-extend" : agentName!.Trim();
         var resolvedAgentId = string.IsNullOrWhiteSpace(agentId) ? resolvedAgentName : agentId!.Trim();
+
+        // SPEC-007 PR 4.5: this runner builds the agent's inputs, so it declares the egress subject. The floor is
+        // SystemHigh because the snapshot carries unlabelled carry-over (scratchpad, other agents' observations, repo
+        // listings), so the frame only attributes the cycle's egress, and the admission and auto-share after it, to the
+        // agent: every decision is made at SystemHigh, as with no subject. A using on this flow, disposed in order
+        // before the method returns, never across a yield; the cycle, the toolbox and the admission are created and
+        // started inside it, so what they read reaches the frame.
+        using var subject = EgressSubject.Enter("agent:" + resolvedAgentId, new HighWaterMark(SecurityLabel.SystemHigh));
 
         // Claim a backlog item for this cycle when an objective store is wired and
         // the caller hasn't pinned an explicit objective string. Without this the

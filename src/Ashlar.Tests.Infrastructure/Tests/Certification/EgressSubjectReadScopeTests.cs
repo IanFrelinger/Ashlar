@@ -9,8 +9,16 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <summary>
 /// SPEC-007 PR 4.4, read scopes: <see cref="EgressSubject.BeginRead"/> and <see cref="ReadScope"/>. A read counts
 /// at what it reported only when it completed and reported; otherwise it counts as <see cref="SecurityLabel.SystemHigh"/>.
+/// Since PR 4.5 a read that has not ended counts as <see cref="SecurityLabel.SystemHigh"/> on every flow inside it.
 /// </summary>
 /// <remarks>
+/// <para><b>While a read has not ended</b> (PR 4.5, the owner's decision of 2026-10-06). <c>BeginRead</c> enters a
+/// read's frame, which counts as SystemHigh for every flow inside it: a tool's own egress during its call is decided at
+/// SystemHigh, before and after it reports and after it completes, until the scope is disposed; a frame entered inside
+/// the read never decides below SystemHigh, also with no frame around the read; and work created inside the read keeps
+/// the read's frame after the read ended. The flow that ends the read in order goes back to its frames, which hold what
+/// the read observed; a flow whose read another flow ended stays inside the read's frame (fail closed). A read's frame
+/// never names a decision.</para>
 /// <para><b>What is pinned.</b> A completed read with no report observes SystemHigh (the unreported-read rule, SPEC-007
 /// §7: unlabelled data fails closed upward). A completed read observes the join of its reports and nothing else, and a
 /// report of Public ("read nothing") raises no mark. <see cref="EgressSubject.Observe"/> never satisfies a scope, so
@@ -47,7 +55,8 @@ public sealed class EgressSubjectReadScopeTests
         {
             using (var read = EgressSubject.BeginRead())
             {
-                Decide(EgressFamilies.ModelMeai).Current.Should().Be(SecurityLabel.Public, "the read has not ended yet");
+                Decide(EgressFamilies.ModelMeai).Current.Should().Be(
+                    SecurityLabel.SystemHigh, "a read that has not ended counts as SystemHigh on the flows inside it");
                 read.Complete();
             }
 
@@ -176,7 +185,21 @@ public sealed class EgressSubjectReadScopeTests
 
             innerMark.Current.Should().Be(Secret);
             outerMark.Current.Should().Be(Secret, "every frame of the chain the read was begun on");
-            Decide(EgressFamilies.ModelMeai).Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+
+            // This flow began the read and another flow ended it, so this flow never left the read's frame (fail
+            // closed, as for any frame disposed off its flow): it still counts as SystemHigh here. A flow that ends
+            // its read in order goes back to its frames, which hold what the read observed.
+            var stuck = Decide(EgressFamilies.ModelMeai);
+            stuck.CurrentBasis.Should().Be(SubjectPrefix + "read-chain-inner", "a read's frame never names a decision");
+            stuck.Current.Should().Be(SecurityLabel.SystemHigh);
+            stuck.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        }
+
+        using (EgressSubject.Enter("read-chain-after", new HighWaterMark(Secret)))
+        {
+            var after = Decide(EgressFamilies.ModelMeai);
+            after.CurrentBasis.Should().Be(SubjectPrefix + "read-chain-after");
+            after.Current.Should().Be(SecurityLabel.SystemHigh, "this flow is still inside the read's frame, which it never left");
         }
     }
 
@@ -346,6 +369,116 @@ public sealed class EgressSubjectReadScopeTests
 
         using var scope = EgressSubject.BeginRead();
         ((Action)(() => scope.Report(null!))).Should().Throw<ArgumentNullException>().WithParameterName("label");
+    }
+
+    [Fact]
+    public async Task A_tool_that_reads_then_egresses_within_one_call_is_decided_at_SystemHigh()
+    {
+        var mark = new HighWaterMark();
+        var inCall = new List<EgressDecision>();
+        using (EgressSubject.Enter("read-in-call", mark))
+        {
+            // The shape ToolCallingAgent gives a tool call: the scope is begun on the agent's flow, the tool is awaited
+            // inside it, and the scope is completed when the tool returns and disposed in order.
+            async Task ToolAsync(ReadScope read)
+            {
+                await Task.Yield();
+                inCall.Add(Decide(EgressFamilies.ModelMeai)); // the tool's own egress, before it reports
+                read.Report(SecurityLabel.Public);
+                await Task.Delay(1);
+                inCall.Add(Decide(EgressFamilies.ModelMeai)); // after it reported, still inside the call
+            }
+
+            using (var read = EgressSubject.BeginRead())
+            {
+                await ToolAsync(read);
+                read.Complete();
+                inCall.Add(Decide(EgressFamilies.ModelMeai)); // completed, not yet ended
+            }
+
+            inCall.Should().HaveCount(3);
+            inCall.Should().AllSatisfy(d =>
+            {
+                d.CurrentBasis.Should().Be(SubjectPrefix + "read-in-call", "a read's frame never names a decision");
+                d.Current.Should().Be(SecurityLabel.SystemHigh, "a read counts as SystemHigh until it has ended");
+                d.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+            });
+
+            mark.Current.Should().Be(SecurityLabel.Public, "the read ended reporting \"read nothing\"");
+            var after = Decide(EgressFamilies.ModelMeai);
+            after.Current.Should().Be(SecurityLabel.Public, "once the read has ended, the flow decides at what it observed");
+            after.Access.Allowed.Should().BeTrue("Public data may go to an Internal model: {0}", after.Access);
+        }
+    }
+
+    [Fact]
+    public void A_frame_entered_inside_an_open_read_never_decides_below_SystemHigh()
+    {
+        using (EgressSubject.Enter("read-outer", new HighWaterMark()))
+        using (var read = EgressSubject.BeginRead())
+        {
+            using (EgressSubject.Enter("read-nested", new HighWaterMark()))
+            {
+                var nested = Decide(EgressFamilies.ModelMeai);
+                nested.CurrentBasis.Should().Be(SubjectPrefix + "read-nested");
+                nested.Current.Should().Be(SecurityLabel.SystemHigh, "a frame entered inside a read is inside the read's frame");
+            }
+
+            read.Complete();
+        }
+
+        // With no frame at all: entering one inside a read cannot lower the label from SystemHigh either.
+        using (var lone = EgressSubject.BeginRead())
+        {
+            var open = Decide(EgressFamilies.ModelMeai);
+            open.CurrentBasis.Should().Be(NoSubject, "a read's frame names no subject");
+            open.Current.Should().Be(SecurityLabel.SystemHigh);
+
+            using (EgressSubject.Enter("read-lone-nested", new HighWaterMark()))
+            {
+                var nested = Decide(EgressFamilies.ModelMeai);
+                nested.CurrentBasis.Should().Be(SubjectPrefix + "read-lone-nested");
+                nested.Current.Should().Be(SecurityLabel.SystemHigh);
+            }
+
+            lone.Complete();
+        }
+
+        Decide(EgressFamilies.ModelMeai).CurrentBasis.Should().Be(NoSubject, "the flow is back where it began");
+    }
+
+    [Fact]
+    public async Task Work_created_inside_an_open_read_keeps_its_frame_after_the_read_ends()
+    {
+        var mark = new HighWaterMark();
+        var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<EgressDecision> background;
+
+        using (EgressSubject.Enter("read-background", mark))
+        {
+            using (var read = EgressSubject.BeginRead())
+            {
+                // A fire-and-forget task the tool starts during its call, which egresses after the call returned.
+                background = Task.Run(async () =>
+                {
+                    await ended.Task.WaitAsync(Patience);
+                    return Decide(EgressFamilies.ModelMeai);
+                });
+
+                read.Report(SecurityLabel.Public);
+                read.Complete();
+            }
+
+            var agent = Decide(EgressFamilies.ModelMeai);
+            agent.Current.Should().Be(SecurityLabel.Public, "the flow that ended the read in order decides at what it observed");
+
+            ended.SetResult();
+            var late = await background.WaitAsync(Patience);
+            late.CurrentBasis.Should().Be(SubjectPrefix + "read-background");
+            late.Current.Should().Be(
+                SecurityLabel.SystemHigh, "work created inside the read keeps the read's frame, which counts as SystemHigh (fail closed)");
+            late.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        }
     }
 
     private static EgressDecision Decide(string family) =>

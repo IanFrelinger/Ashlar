@@ -36,6 +36,12 @@ public sealed class CapabilityRegistry : IToolbox
         return m;
     }
 
+    /// <summary>
+    /// The tool registered under <paramref name="id"/>, the one <see cref="InvokeAsync"/> would invoke for a call with
+    /// that id, or <see langword="null"/> when none is.
+    /// </summary>
+    public ITool? Find(string id) => _tools.TryGetValue(id, out var tool) ? tool : null;
+
     /// <summary>Invokes a registered tool on behalf of an agent.</summary>
     public Task<ToolResult> InvokeAsync(ToolCall call, WorldSnapshot s, CancellationToken ct)
     {
