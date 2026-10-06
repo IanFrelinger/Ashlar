@@ -183,8 +183,9 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   result, and a call that throws, counts as `SystemHigh`. `RAGTool` is that tool: it reports each
   hit's tier, trimmed and resolved through the registry, as the label of one of the five canonical
   levels, and anything else, a custom level or a blank tier included, as `SystemHigh`, which is what
-  `TrustTierOrder.RecordLabel` gives (a parity test holds the two together); no hits and its
-  unrankable-query refusal report "read nothing" (`Public`). `RAGTool` is registered in no production toolbox, so no
+  `TrustTierOrder.RecordLabel` gives (a parity test holds the two together); no hits and the stores' own unrankable-query refusal report "read nothing" (`Public`), while any other
+  `ArgumentException` a store throws stays unreported; a tier is accepted only in a spelling the pipeline's
+  `TrustTierOrder` also ranks, so no hit is ever labelled below what the pipeline treats it as. `RAGTool` is registered in no production toolbox, so no
   production read is reported below `SystemHigh` yet. A response from a `peer:` chat target,
   or any governed target whose key is neither `local:` nor `cloud:`, observes `SystemHigh` into the
   caller's frames when the call ends, and before each streamed update reaches the caller. A cert-gate

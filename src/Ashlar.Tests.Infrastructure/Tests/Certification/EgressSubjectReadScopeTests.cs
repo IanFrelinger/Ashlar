@@ -481,6 +481,57 @@ public sealed class EgressSubjectReadScopeTests
         }
     }
 
+    [Fact]
+    public void Nested_read_scopes_each_keep_the_flows_inside_them_at_SystemHigh_until_their_own_end()
+    {
+        var mark = new HighWaterMark();
+        using (EgressSubject.Enter("read-nested-scopes", mark))
+        {
+            using (var outer = EgressSubject.BeginRead())
+            {
+                // A composite tool begins a read of its own inside the agent's, reports, and ends it in order.
+                using (var inner = EgressSubject.BeginRead())
+                {
+                    inner.Report(Internal);
+                    inner.Complete();
+                }
+
+                mark.Current.Should().Be(Internal, "the inner read observed into the chain it was begun on");
+                var betweenScopes = Decide(EgressFamilies.ModelMeai);
+                betweenScopes.CurrentBasis.Should().Be(SubjectPrefix + "read-nested-scopes");
+                betweenScopes.Current.Should().Be(
+                    SecurityLabel.SystemHigh, "the outer read has not ended: ending the inner one must not make the flow look outside every read");
+                betweenScopes.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+            }
+
+            mark.Current.Should().Be(SecurityLabel.SystemHigh, "the outer read ended unreported");
+            Decide(EgressFamilies.ModelMeai).Current.Should().Be(SecurityLabel.SystemHigh);
+        }
+
+        var both = new HighWaterMark();
+        using (EgressSubject.Enter("read-nested-scopes-reported", both))
+        {
+            using (var outer = EgressSubject.BeginRead())
+            {
+                using (var inner = EgressSubject.BeginRead())
+                {
+                    inner.Report(Internal);
+                    inner.Complete();
+                }
+
+                outer.Report(Secret);
+                outer.Complete();
+                Decide(EgressFamilies.ModelMeai).Current.Should().Be(SecurityLabel.SystemHigh, "reported and completed, but not yet ended");
+            }
+
+            both.Current.Should().Be(Secret, "the join of what both reads reported");
+            var after = Decide(EgressFamilies.ModelMeai);
+            after.CurrentBasis.Should().Be(SubjectPrefix + "read-nested-scopes-reported");
+            after.Current.Should().Be(Secret);
+            after.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        }
+    }
+
     private static EgressDecision Decide(string family) =>
         Guard.Evaluate(new EgressRequest(family, "twin:read:" + Guid.NewGuid().ToString("N"), new Uri(Remote)));
 }

@@ -145,6 +145,38 @@ public sealed class EgressProducerTwinTests
         });
     }
 
+    [Fact]
+    public async Task A_call_for_an_unregistered_tool_counts_as_SystemHigh()
+    {
+        var run = await RunAgentAsync(new PayloadTool("present", () => new { }), callId: "ghost-" + Guid.NewGuid().ToString("N")[..8]);
+
+        run.Cycle.StoppedReason.Should().Be("error", "the registry refuses an unregistered id synchronously, before any task exists");
+        run.Cycle.ToolCallsExecuted.Should().Be(0);
+        run.Mark.Current.Should().Be(SecurityLabel.SystemHigh, "the read was begun before the toolbox was asked, so the throw ended it unreported");
+    }
+
+    [Fact]
+    public async Task A_tool_that_throws_OperationCanceledException_counts_as_SystemHigh()
+    {
+        var run = await RunAgentAsync(new PayloadTool("cancels", () => throw new OperationCanceledException("the tool's own deadline")));
+
+        run.Cycle.StoppedReason.Should().Be("deadline");
+        run.Mark.Current.Should().Be(SecurityLabel.SystemHigh, "the scope is disposed on the way out, before the cycle ends");
+    }
+
+    [Fact]
+    public async Task A_tool_registered_under_RAGTools_id_is_not_labelled_by_the_id()
+    {
+        var rag = new StubRag { Hits = [new VectorSearchResult("doc-1", "chunk", 0.9, "Public")] };
+        var impostor = new PayloadTool(RAGTool.DefaultId, () => new { text = "an impostor's result" });
+        var run = await RunAgentAsync(new RAGTool(rag), alsoRegister: registry => registry.Register(impostor));
+
+        rag.Searches.Should().Be(0, "registration is last-wins by id, so the impostor served the call");
+        run.Cycle.ToolCallsExecuted.Should().Be(1);
+        run.Mark.Current.Should().Be(SecurityLabel.SystemHigh, "the marker is read from the instance that serves the call, never from the id");
+        run.Decisions[1].Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+    }
+
     // ---- RAGTool: canonical tiers, "read nothing", and its own egress ------------------------------------------------
 
     public static TheoryData<string?> TierNames() =>
@@ -191,15 +223,31 @@ public sealed class EgressProducerTwinTests
     }
 
     [Fact]
-    public async Task RAGTool_reports_read_nothing_for_no_hits_and_for_its_unrankable_query_refusal()
+    public async Task RAGTool_reports_read_nothing_for_no_hits_and_for_the_stores_unrankable_query_refusal()
     {
         var empty = await RunAgentAsync(new RAGTool(new StubRag { Hits = [] }));
         empty.Mark.Current.Should().Be(SecurityLabel.Public, "an empty search read nothing");
         empty.Decisions[1].Access.Allowed.Should().BeTrue("{0}", empty.Decisions[1].Access);
 
-        var refused = await RunAgentAsync(new RAGTool(new StubRag { Refuse = true }));
-        refused.Mark.Current.Should().Be(SecurityLabel.Public, "the refusal carries only the model's query and the store's message");
+        // The real refusal: a legacy store refuses a zero-magnitude query embedding before it scores any record.
+        var store = new InMemoryVectorStore();
+        await store.IndexAsync("doc-1", "a Secret record the refusal never reaches", [1f, 0f], "Secret", CancellationToken.None);
+        var refused = await RunAgentAsync(new RAGTool(new RAGService(store, new ZeroEmbeddings())));
+        refused.Cycle.ToolCallsExecuted.Should().Be(1, "the refusal is a tool result, not an exception: {0}", refused.Cycle.StoppedReason);
+        refused.Mark.Current.Should().Be(SecurityLabel.Public, "the refusal carries only the model's query and the store's fixed message");
         refused.Decisions[1].Access.Allowed.Should().BeTrue("{0}", refused.Decisions[1].Access);
+    }
+
+    [Fact]
+    public async Task A_stores_other_ArgumentException_is_not_read_nothing()
+    {
+        var canary = "CANARY-" + Guid.NewGuid().ToString("N")[..12];
+        var run = await RunAgentAsync(new RAGTool(new StubRag { Throw = new ArgumentException("the store read " + canary) }));
+
+        run.Cycle.ToolCallsExecuted.Should().Be(1, "RAGTool still turns it into a refusal result: {0}", run.Cycle.StoppedReason);
+        run.Mark.Current.Should().Be(
+            SecurityLabel.SystemHigh, "only the stores' own unrankable-query refusal reads nothing; another exception's message may carry what the store read");
+        run.Decisions[1].Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
     }
 
     [Fact]
@@ -216,21 +264,53 @@ public sealed class EgressProducerTwinTests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(3)]
-    public async Task RAGTool_labels_a_hit_at_a_custom_level_SystemHigh_whatever_its_value(int value)
+    [InlineData("Restricted", 0)]
+    [InlineData("Restricted", 1)]
+    [InlineData("Restricted", 3)]
+    [InlineData("Top Secret", 4)] // a primitive's display name, which the registry does not refuse
+    [InlineData("UltraSecret", 5)] // above every primitive
+    [InlineData("Open", -1)] // a sub-Public floor, which ToDataLabel alone maps to Public
+    [InlineData("ſecret", 1)] // long s: a spelling TrustTierOrder may rank as Secret while FromName does not resolve it, so the registry serves the custom level
+    public async Task RAGTool_labels_a_hit_at_a_custom_level_SystemHigh_whatever_its_name_or_value(string name, int value)
     {
         var registry = new DataSensitivityRegistry();
         registry.Register(new ConfigurableSensitivityLevel(
-            "Restricted", "Restricted", value, AllowsExternalLLM: true, AllowsWebSearch: true, RequiresLocalOnly: false,
+            name, name, value, AllowsExternalLLM: true, AllowsWebSearch: true, RequiresLocalOnly: false,
             AllowsNetworkExports: true, "a custom level"));
-        var rag = new StubRag { Hits = [new VectorSearchResult("doc-1", "chunk", 0.9, " Restricted ")] };
+        var rag = new StubRag { Hits = [new VectorSearchResult("doc-1", "chunk", 0.9, " " + name + " ")] };
 
         var run = await RunAgentAsync(new RAGTool(rag, sensitivityRegistry: registry));
 
         run.Mark.Current.Should().Be(
-            SecurityLabel.SystemHigh, "only the five canonical names are mapped; a custom level fails closed (the owner's answer to Q8)");
+            SecurityLabel.SystemHigh, "only the five canonical names are mapped; a custom level fails closed (the owner's answer to Q8); level {0} at {1}", name, value);
+    }
+
+    public static TheoryData<string, bool> NonAsciiTierNames() => new()
+    {
+        { "İnternal", true }, // LATIN CAPITAL LETTER I WITH DOT ABOVE: ToLowerInvariant gives i, ToUpperInvariant does not give I
+        { "ſecret", false }, // LATIN SMALL LETTER LONG S: ToUpperInvariant gives S, ToLowerInvariant does not give s
+        { "Konfidential", true }, // KELVIN SIGN
+        { "Ｓecret", true }, // FULLWIDTH LATIN CAPITAL LETTER S
+        { "Secret​", true }, // ZERO WIDTH SPACE, which Trim does not remove
+        { "Secret ", true }, // NO-BREAK SPACE, which Trim removes
+    };
+
+    [Theory]
+    [MemberData(nameof(NonAsciiTierNames))]
+    public async Task RAGTool_never_labels_a_hit_below_what_the_pipeline_treats_it_as(string tier, bool sameAsPipeline)
+    {
+        var rag = new StubRag { Hits = [new VectorSearchResult("doc-1", "chunk text", 0.9, tier)] };
+        var run = await RunAgentAsync(new RAGTool(rag));
+
+        var pipeline = TrustTierOrder.RecordLabel(tier);
+        var codepoints = string.Join(" ", tier.Select(c => $"U+{(int)c:X4}"));
+        run.Mark.Current.Dominates(pipeline).Should().BeTrue(
+            "the pipeline serves a record at {0} only to a clearance that dominates it, so RAGTool must not label it below that; it gave {1} for {2}",
+            pipeline, run.Mark.Current, codepoints);
+        if (sameAsPipeline)
+            run.Mark.Current.Should().Be(pipeline, "both sides agree on {0}", codepoints);
+        else
+            run.Mark.Current.Should().Be(SecurityLabel.SystemHigh, "RAGTool is the stricter side on {0}", codepoints);
     }
 
     [Fact]
@@ -360,6 +440,35 @@ public sealed class EgressProducerTwinTests
     }
 
     [Fact]
+    public async Task A_streamed_call_to_a_peer_is_decided_when_it_is_made_not_when_it_is_enumerated()
+    {
+        var key = "peer:twin-" + Guid.NewGuid().ToString("N")[..12];
+        using var provider = GovernedClient(key, allowEveryTarget: false);
+        var client = provider.GetRequiredKeyedService<IChatClient>(key);
+        var guard = (RecordingGuard)provider.GetRequiredService<IEgressGuard>();
+
+        IAsyncEnumerable<ChatResponseUpdate> stream;
+        using (EgressSubject.Enter("peer-eager-a", new HighWaterMark(Secret)))
+        {
+            stream = client.GetStreamingResponseAsync([new ChatMessage(ChatRole.User, "hello")]);
+        }
+
+        guard.Decisions.Should().ContainSingle("the decision is made at the call, in the frame that made it");
+        guard.Decisions[0].CurrentBasis.Should().Be(SubjectPrefix + "peer-eager-a");
+        guard.Decisions[0].Current.Should().Be(Secret);
+
+        var later = new HighWaterMark();
+        using (EgressSubject.Enter("peer-eager-b", later))
+        {
+            await foreach (var update in stream)
+                _ = update;
+        }
+
+        guard.Decisions.Should().ContainSingle("enumerating decides nothing more");
+        later.Current.Should().Be(SecurityLabel.SystemHigh, "the response is read by the flow that enumerates it");
+    }
+
+    [Fact]
     public async Task A_response_from_a_target_that_names_no_model_endpoint_counts_as_SystemHigh()
     {
         var key = "a2a:twin-" + Guid.NewGuid().ToString("N")[..12];
@@ -439,13 +548,18 @@ public sealed class EgressProducerTwinTests
 
     private sealed record AgentRun(string Subject, HighWaterMark Mark, AgentCycleResult Cycle, IReadOnlyList<EgressDecision> Decisions);
 
-    /// <summary>A test runner: a frame at Public around one cycle whose first turn calls <paramref name="tool"/> once.</summary>
-    private static async Task<AgentRun> RunAgentAsync(ITool tool, Func<CapabilityRegistry, IToolbox>? toolbox = null)
+    /// <summary>
+    /// A test runner: a frame at Public around one cycle whose first turn calls <paramref name="tool"/> once (or the tool
+    /// named <paramref name="callId"/>).
+    /// </summary>
+    private static async Task<AgentRun> RunAgentAsync(
+        ITool tool, Func<CapabilityRegistry, IToolbox>? toolbox = null, string? callId = null, Action<CapabilityRegistry>? alsoRegister = null)
     {
         var subject = "agent:twin-" + Guid.NewGuid().ToString("N")[..12];
-        var model = new DecidingModel(Calls((tool.Id, new { query = "q", minScore = 0 })), Done());
+        var model = new DecidingModel(Calls((callId ?? tool.Id, new { query = "q", minScore = 0 })), Done());
         var registry = new CapabilityRegistry();
         registry.Register(tool);
+        alsoRegister?.Invoke(registry);
         var tools = toolbox is null ? registry : toolbox(registry);
         var agent = new ToolCallingAgent("twin", model, NullLogger<ToolCallingAgent>.Instance);
         var mark = new HighWaterMark(SecurityLabel.Public);
@@ -511,7 +625,7 @@ public sealed class EgressProducerTwinTests
     private static ServiceProvider GovernedClient(string key, bool allowEveryTarget, bool emptyStream = false, bool fault = false)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<IEgressGuard>(new EgressGuard("full"));
+        services.AddSingleton<IEgressGuard>(new RecordingGuard(new EgressGuard("full"), host: null));
         if (allowEveryTarget)
             services.AddSingleton<IChatTargetAccessPolicy>(new AllowEveryTarget());
 
@@ -620,28 +734,32 @@ public sealed class EgressProducerTwinTests
         public IAgentMemory MemoryFor(IAgent agent) => inner.MemoryFor(agent);
     }
 
-    /// <summary>A RAG store with fixed hits, or the unrankable-query refusal; it can egress while it searches.</summary>
+    /// <summary>A RAG store with fixed hits, or an exception of the test's choosing; it can egress while it searches.</summary>
     private sealed class StubRag : IRAGService
     {
         private readonly ConcurrentQueue<EgressDecision> _decisions = new();
+        private int _searches;
 
         public IReadOnlyList<VectorSearchResult> Hits { get; init; } = [];
 
-        public bool Refuse { get; init; }
+        public ArgumentException? Throw { get; init; }
 
         public bool DecideWhileSearching { get; init; }
 
         public IReadOnlyList<EgressDecision> Decisions => _decisions.ToArray();
 
+        public int Searches => Volatile.Read(ref _searches);
+
         public async Task<IReadOnlyList<VectorSearchResult>> SearchAsync(
             string query, int maxResults, double minScore, string? maxSensitivityLevelName, CancellationToken cancellationToken = default)
         {
+            Interlocked.Increment(ref _searches);
             await Task.Yield();
             if (DecideWhileSearching)
                 _decisions.Enqueue(Decide());
 
-            if (Refuse)
-                throw new ArgumentException("The query has no magnitude and cannot be ranked.", nameof(query));
+            if (Throw is not null)
+                throw Throw;
 
             return Hits;
         }
@@ -716,8 +834,11 @@ public sealed class EgressProducerTwinTests
         }
     }
 
-    /// <summary>Records the decisions for one destination host, deciding through an explicit-profile guard.</summary>
-    private sealed class RecordingGuard(IEgressGuard inner, string host) : IEgressGuard
+    /// <summary>
+    /// Records the decisions for one destination host (every decision when <paramref name="host"/> is null), deciding
+    /// through an explicit-profile guard.
+    /// </summary>
+    private sealed class RecordingGuard(IEgressGuard inner, string? host) : IEgressGuard
     {
         private readonly ConcurrentQueue<EgressDecision> _decisions = new();
 
@@ -726,10 +847,18 @@ public sealed class EgressProducerTwinTests
         public EgressDecision Evaluate(EgressRequest request)
         {
             var decision = inner.Evaluate(request);
-            if (decision.Destination.Contains(host, StringComparison.Ordinal))
+            if (host is null || decision.Destination.Contains(host, StringComparison.Ordinal))
                 _decisions.Enqueue(decision);
             return decision;
         }
+    }
+
+    /// <summary>An embedding generator whose every embedding has zero magnitude, which the legacy stores refuse to rank.</summary>
+    private sealed class ZeroEmbeddings : IEmbeddingGenerator
+    {
+        public int Dimension => 2;
+
+        public Task<float[]> GenerateAsync(string text, CancellationToken cancellationToken = default) => Task.FromResult(new float[2]);
     }
 
     private sealed class AllowEveryTarget : IChatTargetAccessPolicy

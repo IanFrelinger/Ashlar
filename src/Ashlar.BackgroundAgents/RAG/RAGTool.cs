@@ -77,10 +77,14 @@ public sealed class RAGTool : ILabelledTool
     public Task<ToolResult> InvokeLabelledAsync(ToolCall toolCall, WorldSnapshot s, ReadScope read, CancellationToken ct) =>
         InvokeCoreAsync(toolCall, s, read ?? throw new ArgumentNullException(nameof(read)), ct);
 
+    // The spellings the RAG pipeline's TrustTierOrder ranks (trimmed, ordinal, ignoring case): the five canonical names
+    // and top-secret. Compared the same way here, so a tier the pipeline serves as unlabelled is never labelled below it.
+    private static readonly string[] CanonicalSpellings = { "Public", "Internal", "Confidential", "Secret", "TopSecret", "top-secret" };
+
     /// <summary>
     /// The label of a hit whose stored tier is <paramref name="tier"/>: the bare label of a canonical level when the
-    /// trimmed name resolves through <paramref name="registry"/> to one of <see cref="DataSensitivityLevels.All"/>,
-    /// otherwise <see cref="SecurityLabel.SystemHigh"/>.
+    /// trimmed name is a spelling the RAG pipeline ranks and resolves through <paramref name="registry"/> to one of
+    /// <see cref="DataSensitivityLevels.All"/>, otherwise <see cref="SecurityLabel.SystemHigh"/>.
     /// </summary>
     private static SecurityLabel HitLabel(IDataSensitivityRegistry registry, string? tier)
     {
@@ -88,8 +92,17 @@ public sealed class RAGTool : ILabelledTool
             return SecurityLabel.SystemHigh;
 
         // The registry does not trim (DataSensitivityLevels.FromName), and TrustTierOrder does: trim here, so " Secret "
-        // is Secret on both sides. A custom level the registry knows is not one of the five, so it is SystemHigh.
-        var level = registry.GetByName(tier.Trim());
+        // is Secret on both sides.
+        var trimmed = tier.Trim();
+
+        // FromName folds with ToLowerInvariant and TrustTierOrder with OrdinalIgnoreCase, and the two differ on a few
+        // letters (U+0130 lower-cases to i but does not upper-case to I), so a name only FromName accepts would be
+        // labelled here while the pipeline serves it as unlabelled: accept only a spelling TrustTierOrder also ranks.
+        if (!CanonicalSpellings.Any(name => string.Equals(name, trimmed, StringComparison.OrdinalIgnoreCase)))
+            return SecurityLabel.SystemHigh;
+
+        // A custom level the registry knows is not one of the five, so it is SystemHigh.
+        var level = registry.GetByName(trimmed);
         return level is not null && DataSensitivityLevels.All.Any(canonical => ReferenceEquals(canonical, level))
             ? level.ToDataLabel()
             : SecurityLabel.SystemHigh;
@@ -131,8 +144,11 @@ public sealed class RAGTool : ILabelledTool
             // knowledge base has nothing on this", which is a different and unearned claim.
             var refusal = new[] { $"RAG search REFUSED: query='{query}' cannot be ranked. {ex.Message}" };
 
-            // Read nothing: the payload is the model's own query and the store's message.
-            read?.Report(SecurityLabel.Public);
+            // Read nothing, but only for the stores' own unrankable-query refusal, which they throw before any record is
+            // scored. Any other ArgumentException from a store may carry what it read, and its message is in the
+            // payload, so it stays unreported and counts as SystemHigh (SPEC-007 PR 4.5).
+            if (VectorMath.IsUnrankableQuery(ex))
+                read?.Report(SecurityLabel.Public);
             return new ToolResult(
                 new ActionDelta(tick, tick + 1, refusal),
                 new { Refused = true, Reason = ex.Message });

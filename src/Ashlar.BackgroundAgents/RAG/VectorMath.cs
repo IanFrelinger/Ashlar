@@ -158,8 +158,17 @@ public static class VectorMath
     /// retyping the query, while NaN or an overflow is a malformed embedding and retyping will not
     /// help.</para>
     /// </remarks>
-    internal static ArgumentException UnrankableQuery(string paramName)
-        => new(
+    internal static ArgumentException UnrankableQuery(string paramName) => new(UnrankableQueryMessage, paramName);
+
+    /// <summary>
+    /// Whether <paramref name="ex"/> is the refusal <see cref="UnrankableQuery"/> raises. The stores throw it before
+    /// any record is scored, so a caller that catches it has read nothing; any other <see cref="ArgumentException"/>
+    /// from a search may carry what the store read (SPEC-007 PR 4.5: only this one is "read nothing").
+    /// </summary>
+    internal static bool IsUnrankableQuery(ArgumentException ex) =>
+        ex is not null && ex.Message.StartsWith(UnrankableQueryMessage, StringComparison.Ordinal);
+
+    private const string UnrankableQueryMessage =
             "The query embedding cannot be ranked against anything: its magnitude is zero, not a "
             + "number, or too large to represent, so cosine similarity is undefined for it and "
             + "every document in the store is equally (un)close to it. This is NOT the same as "
@@ -168,8 +177,7 @@ public static class VectorMath
             + "tokens in the query: an empty string, whitespace, or punctuation only (\"!!!\", "
             + "\"...\"). A NaN or OVERFLOWING magnitude means the embedding itself is malformed — a "
             + "generator that emitted NaN or components above ~1.8e19, or stored bytes reinterpreted "
-            + "as floats. Supply a query whose embedding has a finite, nonzero magnitude.",
-            paramName);
+            + "as floats. Supply a query whose embedding has a finite, nonzero magnitude.";
 
     /// <summary>
     /// Normalize vector in place to unit length.

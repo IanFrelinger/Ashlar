@@ -15,7 +15,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para>The declaration is the tool's own. A decorator that wraps a labelled tool, or a toolbox that hides which tool
 /// serves a call, is not labelled, so its calls count as <see cref="SecurityLabel.SystemHigh"/> (fail closed). While
 /// the read has not ended, the tool's own egress is decided at <see cref="SecurityLabel.SystemHigh"/> like any
-/// other tool's.</para>
+/// other tool's. Only <c>RAGTool</c> implements this in production, which a cert-gate convention pins; a host's own labelled
+/// tool is the host's trusted base, as its <c>IEgressGuard</c> is.</para>
 /// </remarks>
 public interface ILabelledTool : ITool
 {

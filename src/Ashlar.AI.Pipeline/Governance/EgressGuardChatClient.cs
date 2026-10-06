@@ -27,9 +27,11 @@ namespace Ashlar.AI.Pipeline.Governance;
 /// from the prompt, which the caller already holds, so it is not a read. A <c>peer:</c> target, or any target whose key
 /// names no model endpoint (neither <c>local:</c> nor <c>cloud:</c>), may be backed by an agent whose own data is not
 /// derived from our prompt, and until PR 5 carries a label on responses that data is unlabelled: when such a call
-/// ends, however it ends, this layer observes <see cref="SecurityLabel.SystemHigh"/> into the caller's frames
-/// (<see cref="EgressSubject.Observe"/>). A streamed response observes it before each update reaches the caller, and
-/// when the stream ends. With no frame on the caller's flow it changes nothing.</para>
+/// ends, however it ends (a faulted task or stream, a synchronous throw under this layer such as PolicyGate's deny),
+/// this layer observes <see cref="SecurityLabel.SystemHigh"/> into the caller's frames (<see cref="EgressSubject.Observe"/>).
+/// A streamed response observes it before each update reaches the caller, and when the stream ends. Nothing in a chat
+/// client says whether an agent answers, so the rule is keyed on the target key: a host's own inner client under a
+/// <c>local:</c> or <c>cloud:</c> key is the host's trusted base. With no frame on the caller's flow it changes nothing.</para>
 /// </remarks>
 public sealed class EgressGuardChatClient : DelegatingChatClient
 {

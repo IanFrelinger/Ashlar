@@ -44,13 +44,19 @@ public sealed class EgressSubjectProducerConventionTests
             + "RunCycleAsync(WorldSnapshot, IToolbox, PolicyEngine, ChainRejectionCallback?, IAgentMemory?, CancellationToken) | BeginRead | -",
     ];
 
+    /// <summary>Path and type name of every production type that declares itself labelled.</summary>
+    private static readonly string[] ExpectedImplementers =
+    [
+        "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs | RAGTool",
+    ];
+
     [Fact]
     public void Every_production_frame_entry_is_listed_with_its_floor_and_its_method()
     {
-        var (sites, _, scanned) = Scan();
+        var scan = Scan();
 
-        scanned.Should().BeGreaterThanOrEqualTo(ScannedFileFloor, "the scan must reach the repository's C#; an emptied scan proves nothing");
-        sites.Select(s => s.Pin).Should().Equal(
+        scan.Scanned.Should().BeGreaterThanOrEqualTo(ScannedFileFloor, "the scan must reach the repository's C#; an emptied scan proves nothing");
+        scan.Sites.Select(s => s.Pin).Should().Equal(
             ExpectedSites,
             "a production frame entry decides the label its subject's egress starts from. A new one, or a changed floor, "
             + "needs its reason in SPEC-007 PR 4.5's producer rule and a row here; a missing one means a runner stopped "
@@ -60,9 +66,8 @@ public sealed class EgressSubjectProducerConventionTests
     [Fact]
     public void No_production_runner_declares_a_floor_below_SystemHigh()
     {
-        var (sites, _, _) = Scan();
+        var enters = Scan().Sites.Where(s => s.Call == "Enter").ToList();
 
-        var enters = sites.Where(s => s.Call == "Enter").ToList();
         enters.Should().NotBeEmpty("self-extend declares its frame");
         enters.Should().AllSatisfy(s => s.Floor.Should().Be(
             SystemHighFloor,
@@ -73,15 +78,30 @@ public sealed class EgressSubjectProducerConventionTests
     [Fact]
     public void Every_production_frame_entry_is_a_using_in_a_method_that_is_not_an_iterator()
     {
-        var (sites, staticImports, _) = Scan();
+        var scan = Scan();
 
-        staticImports.Should().BeEmpty("a using static of EgressSubject would hide a frame entry from this scan");
-        sites.Should().NotBeEmpty();
-        sites.Should().AllSatisfy(s =>
+        scan.StaticImports.Should().BeEmpty("a using static of EgressSubject would hide a frame entry from this scan");
+        scan.Aliases.Should().BeEmpty("a using alias of EgressSubject would hide a frame entry from this scan");
+        scan.Sites.Should().NotBeEmpty();
+        scan.Sites.Should().AllSatisfy(s =>
         {
             s.IsUsing.Should().BeTrue("{0} must be the resource of a using statement or declaration, so the flow that entered the frame disposes it, in order", s.Pin);
             s.InIterator.Should().BeFalse("{0} must not be in an iterator: after a yield return the body resumes on its consumer's flow", s.Pin);
         });
+    }
+
+    [Fact]
+    public void Only_RAGTool_declares_itself_labelled_in_production()
+    {
+        var scan = Scan();
+
+        scan.Scanned.Should().BeGreaterThanOrEqualTo(ScannedFileFloor);
+        scan.Implementers.Should().Equal(
+            ExpectedImplementers,
+            "a tool that declares itself labelled (ILabelledTool) is trusted to report a label for everything its result "
+            + "carries, and a report that is too low is a write-down with no downgrade once the guard enforces: a new "
+            + "implementer needs its reason in SPEC-007 PR 4.5's producer rule and a row here (a host's own labelled tool is "
+            + "the host's trusted base, as its IEgressGuard is)");
     }
 
     [Fact]
@@ -114,19 +134,45 @@ public sealed class EgressSubjectProducerConventionTests
             "fixture.cs | a lambda in IteratorAroundLambda() | Enter | new HighWaterMark() | using=True | iterator=False");
     }
 
-    private sealed record Site(string Pin, string Call, string Floor, bool IsUsing, bool InIterator);
-
-    private static (List<Site> Sites, List<string> StaticImports, int Scanned) Scan()
+    [Fact]
+    public void The_scan_reads_the_alias_the_static_import_and_the_implementers_from_the_syntax()
     {
-        var root = RepoPathResolver.FindRepoRoot();
-        var sites = new List<Site>();
-        var staticImports = new List<string>();
-        var scanned = Collect(root, root, sites, staticImports);
-        sites.Sort((a, b) => string.CompareOrdinal(a.Pin, b.Pin));
-        return (sites, staticImports, scanned);
+        const string source = """
+            using ES = Ashlar.Abstractions.Security.Egress.EgressSubject;
+            using static Ashlar.Abstractions.Security.Egress.EgressSubject;
+            using Ashlar.Abstractions.Security.Egress;
+            sealed class Labelled : ITool, ILabelledTool { }
+            sealed class Qualified : Ashlar.Abstractions.Security.Egress.ILabelledTool { }
+            sealed class Plain : ITool { }
+            interface IDerived : ILabelledTool { }
+            sealed class Wrapper { sealed class Nested : ILabelledTool { } }
+            """;
+
+        var (staticImports, aliases) = DirectivesIn("fixture.cs", source);
+        staticImports.Should().Equal("fixture.cs");
+        aliases.Should().Equal("fixture.cs | ES");
+        ImplementersIn("fixture.cs", source).Should().Equal(
+            "fixture.cs | Labelled",
+            "fixture.cs | Qualified",
+            "fixture.cs | IDerived",
+            "fixture.cs | Nested");
     }
 
-    private static int Collect(string root, string directory, List<Site> sites, List<string> staticImports)
+    private sealed record Site(string Pin, string Call, string Floor, bool IsUsing, bool InIterator);
+
+    private sealed record ScanResult(List<Site> Sites, List<string> StaticImports, List<string> Aliases, List<string> Implementers, int Scanned);
+
+    private static ScanResult Scan()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var result = new ScanResult([], [], [], [], 0);
+        var scanned = Collect(root, root, result);
+        result.Sites.Sort((a, b) => string.CompareOrdinal(a.Pin, b.Pin));
+        result.Implementers.Sort(string.CompareOrdinal);
+        return result with { Scanned = scanned };
+    }
+
+    private static int Collect(string root, string directory, ScanResult result)
     {
         var scanned = 0;
         foreach (var file in Directory.EnumerateFiles(directory, "*.cs"))
@@ -137,27 +183,59 @@ public sealed class EgressSubjectProducerConventionTests
                 continue;
 
             var text = File.ReadAllText(file);
-            if (!text.Contains("EgressSubject", StringComparison.Ordinal))
+            if (!text.Contains("EgressSubject", StringComparison.Ordinal) && !text.Contains("ILabelledTool", StringComparison.Ordinal))
                 continue;
 
-            var unit = CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot();
-            if (unit.DescendantNodes().OfType<UsingDirectiveSyntax>().Any(
-                    u => u.StaticKeyword != default && u.Name?.ToString().EndsWith("EgressSubject", StringComparison.Ordinal) == true))
-            {
-                staticImports.Add(relative);
-            }
-
-            sites.AddRange(SitesIn(relative, text));
+            var (staticImports, aliases) = DirectivesIn(relative, text);
+            result.StaticImports.AddRange(staticImports);
+            result.Aliases.AddRange(aliases);
+            result.Implementers.AddRange(ImplementersIn(relative, text));
+            result.Sites.AddRange(SitesIn(relative, text));
         }
 
         foreach (var child in Directory.EnumerateDirectories(directory))
         {
             if (!IsPruned(child))
-                scanned += Collect(root, child, sites, staticImports);
+                scanned += Collect(root, child, result);
         }
 
         return scanned;
     }
+
+    // A `using static …EgressSubject;` (the file) and every `using X = …EgressSubject;` (the file and the alias).
+    private static (List<string> StaticImports, List<string> Aliases) DirectivesIn(string relative, string text)
+    {
+        var staticImports = new List<string>();
+        var aliases = new List<string>();
+        var unit = CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot();
+        foreach (var directive in unit.DescendantNodes().OfType<UsingDirectiveSyntax>())
+        {
+            if (directive.Name?.ToString().EndsWith("EgressSubject", StringComparison.Ordinal) != true)
+                continue;
+
+            if (directive.StaticKeyword != default)
+                staticImports.Add(relative);
+            else if (directive.Alias is not null)
+                aliases.Add($"{relative} | {directive.Alias.Name.Identifier.ValueText}");
+        }
+
+        return (staticImports, aliases);
+    }
+
+    // Every type whose base list names ILabelledTool, simple or qualified, nested or not, in declaration order.
+    private static IEnumerable<string> ImplementersIn(string relative, string text) =>
+        CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot()
+            .DescendantNodes().OfType<TypeDeclarationSyntax>()
+            .Where(type => type.BaseList?.Types.Any(b => SimpleName(b.Type) == "ILabelledTool") == true)
+            .Select(type => $"{relative} | {type.Identifier.ValueText}");
+
+    private static string? SimpleName(TypeSyntax type) => type switch
+    {
+        IdentifierNameSyntax id => id.Identifier.ValueText,
+        QualifiedNameSyntax qualified => qualified.Right.Identifier.ValueText,
+        AliasQualifiedNameSyntax alias => alias.Name.Identifier.ValueText,
+        _ => null,
+    };
 
     private static IEnumerable<Site> SitesIn(string relative, string text)
     {
