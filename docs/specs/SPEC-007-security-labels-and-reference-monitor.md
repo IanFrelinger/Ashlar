@@ -129,7 +129,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   the owner's Q6). `AddAshlar` registers the profile it resolved, the strictest noted in the process, as a value
   Infrastructure and the hosts read. On `AirGapped`, `NcrCapabilityRouter` runs every job locally, saying why
   (`AirGapped: remote execution unavailable; running locally (<reason>)`), and refuses an explicit `PeerNetworkOnly`;
-  `AdaptiveProviderFactory` never tries `openai` or `azure` on the LLM or vision path; a non-empty
+  `AdaptiveProviderFactory` never tries `openai` or `azure` on the LLM or vision paths; a non-empty
   `BrickHost:RemoteCatalogBaseUrls`, RunPod peer-network routing, the MeshLab worker executor and the Bedrock tier
   fail boot; and the ollama.com catalog defaults to off. On `SecureWorkstation`, MCP over HTTP fails boot and stdio
   still boots. On both, Ashlar.API refuses to start on a listener that is not loopback, and mesh serve, which listens

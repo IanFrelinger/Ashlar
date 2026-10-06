@@ -14,8 +14,8 @@ namespace Ashlar.Infrastructure.Execution;
 /// <b>AirGapped never escalates past local</b> (SPEC-007 PR 4.10, default D35). When the composition's
 /// <see cref="ResolvedDeploymentProfile"/> is AirGapped, the cloud providers (<c>openai</c>, <c>azure</c>) are never
 /// tried, on the LLM path and the single-image vision path alike, whatever the load policy resolved: a local resolve
-/// tries only itself, and a cloud resolve falls back to the local providers alone. The multi-frame path already uses
-/// the resolved provider only. The egress guard stays the backstop for anything else.
+/// tries only itself, and a cloud resolve falls back to the local providers alone. The multi-frame path, which uses
+/// the resolved provider only, refuses a cloud resolve. The egress guard stays the backstop for anything else.
 /// </remarks>
 public sealed class AdaptiveProviderFactory : IProviderFactory
 {
@@ -139,6 +139,9 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         var resolved = _loadPolicy.ResolveProvider(_inner);
         if (string.IsNullOrEmpty(resolved))
             throw new ModelUnavailableException("No vision model available.");
+        if (_airGapped && IsCloudProvider(resolved))
+            throw new ModelUnavailableException(
+                $"No vision model available: the load policy chose '{resolved}', a cloud provider, which the AirGapped profile never tries.");
 
         try
         {

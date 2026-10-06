@@ -135,6 +135,26 @@ public sealed class AirGappedHygieneTests : IDisposable
         }
     }
 
+    [Theory(Timeout = TestTimeouts.E2E)]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "ollama", new[] { "ollama" })]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "openai", new string[0])]
+    [InlineData(AshlarDeploymentProfile.AirGapped, "azure", new string[0])]
+    [InlineData(AshlarDeploymentProfile.Full, "openai", new[] { "openai" })]
+    public async Task Multi_frame_vision_on_AirGapped_refuses_a_cloud_resolve(
+        AshlarDeploymentProfile profile, string resolved, string[] expected)
+    {
+        var (sp, recorder) = ComposeRecording(profile, resolved);
+        using (sp)
+        {
+            var factory = sp.GetRequiredService<IProviderFactory>();
+
+            var act = () => factory.ExecuteVisionMultiFrameAsync("any", "system", "user", [new byte[] { 1 }], new object());
+
+            await act.Should().ThrowAsync<CorePorts.ModelUnavailableException>();
+            recorder.Tried.Should().Equal(expected);
+        }
+    }
+
     /// <summary>The four opt-ins, by the setting an operator would write.</summary>
     private static readonly string[] OptInSettings =
     [
@@ -407,6 +427,11 @@ public sealed class AirGappedHygieneTests : IDisposable
 
         Task<string> CorePorts.IProviderFactory.ExecuteLLMAsync(
             string provider, string systemPrompt, string userPrompt, object config, CancellationToken cancellationToken) =>
+            Record(provider);
+
+        Task<string> CorePorts.IProviderFactory.ExecuteVisionMultiFrameAsync(
+            string provider, string systemPrompt, string userPrompt, IReadOnlyList<byte[]> frameBytes, object config,
+            CancellationToken cancellationToken) =>
             Record(provider);
 
         Task<string> CorePorts.IProviderFactory.ExecuteVisionAsync(

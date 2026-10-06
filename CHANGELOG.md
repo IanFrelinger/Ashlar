@@ -203,7 +203,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     `AirGapped: remote execution unavailable; running locally (<reason>)`. A job that asks for `PeerNetworkOnly`
     is refused with an explained `InvalidOperationException`.
   - **AirGapped never falls back to a cloud model.** With adaptive load balancing on, `AdaptiveProviderFactory`
-    never tries `openai` or `azure`, on the LLM path or the single-image vision path.
+    never tries `openai` or `azure`, on the LLM path or the single-image vision path, and the multi-frame vision
+    path refuses a cloud provider with `ModelUnavailableException`.
   - **Four opt-ins fail boot on AirGapped:** a non-empty `BrickHost:RemoteCatalogBaseUrls`,
     `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and
     `Ashlar:Meai:Bedrock:Enabled=true`. The message names the setting and the remedy.
