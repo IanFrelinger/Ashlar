@@ -54,10 +54,6 @@ public static class EgressSubject
 
     private static readonly AsyncLocal<Frame?> Active = new();
 
-    // The frames this flow disposed out of order and has not yet gone past. Only Unwind on this flow reads it, or in
-    // a task started here afterwards, which copies it; no other flow ever sees it.
-    private static readonly AsyncLocal<Skip?> Skips = new();
-
     /// <summary>
     /// Makes <paramref name="mark"/> part of the current label for egress decisions on this async flow until the
     /// returned scope is disposed. The current label is the join of <paramref name="mark"/> and the marks of every
@@ -132,45 +128,6 @@ public static class EgressSubject
     /// <summary>The current label on this async flow and where it came from.</summary>
     internal static (SecurityLabel Current, string Basis) Resolve() => Frame.Resolve(Active.Value);
 
-    // An immutable list of records: this flow disposed Outer out of order while Inside was the frame just inside it
-    // on the flow's restore path. Immutable, so a task that copied it never sees the flow's later changes.
-    private sealed class Skip
-    {
-        private Skip(Frame inside, Frame outer, Skip? next)
-        {
-            Inside = inside;
-            Outer = outer;
-            Next = next;
-        }
-
-        private Frame Inside { get; }
-
-        private Frame Outer { get; }
-
-        private Skip? Next { get; }
-
-        internal static Skip Add(Skip? list, Frame inside, Frame outer) => new(inside, outer, list);
-
-        // The list without the record (inside, outer), and whether it held one.
-        internal static bool TryRemove(Skip? list, Frame inside, Frame outer, out Skip? rest)
-        {
-            var found = list;
-            while (found is not null && !(ReferenceEquals(found.Inside, inside) && ReferenceEquals(found.Outer, outer)))
-                found = found.Next;
-
-            rest = list;
-            if (found is null)
-                return false;
-
-            // The records after it are shared; the ones before it are copied.
-            rest = found.Next;
-            for (var record = list; record is not null && !ReferenceEquals(record, found); record = record.Next)
-                rest = new Skip(record.Inside, record.Outer, rest);
-
-            return true;
-        }
-    }
-
     /// <summary>A subject frame, or a detachment, which has no mark and ends the chain.</summary>
     internal sealed class Frame : IDisposable
     {
@@ -223,9 +180,10 @@ public static class EgressSubject
         // The join of the mark of every subject frame on the chain, live or disposed, from its head to the end of the
         // chain or a detachment, with the basis of the innermost live frame; no subject if there is no live frame or it
         // is a detachment. A disposed frame is read as its mark is now, not as it was observed into the frames around
-        // it when it ended: a flow that did not dispose it stays inside it (Unwind), also with no live frame of its own
-        // above the nearest live one, so ending an enclosing scope first never declassifies a frame or a task still
-        // running inside it, and what the ended frame's mark rises to afterwards still counts there.
+        // it when it ended: a flow leaves a frame only by disposing it as its own head, so a flow still inside it reads
+        // it, also with no live frame of its own above the nearest live one, so ending an enclosing scope first never
+        // declassifies a frame or a task still running inside it, and what the ended frame's mark rises to afterwards
+        // still counts there.
         internal static (SecurityLabel Current, string Basis) Resolve(Frame? chain)
         {
             var innermost = Live(chain);
@@ -263,52 +221,11 @@ public static class EgressSubject
 
             Volatile.Write(ref _state, Disposed);
 
-            // Only the flow this frame is innermost on goes back, to where in-order using blocks would have left it.
-            var active = Active.Value;
-            if (ReferenceEquals(active, this))
-            {
-                Active.Value = Unwind(this);
-                return;
-            }
-
-            // Disposed out of order on this flow: when the frame just inside this one on the flow's restore path ends
-            // here, this flow goes on past this one too. The record is this flow's own: every other flow, among them a
-            // task started here earlier and the flow that entered this frame, stays inside it.
-            for (var inside = active; inside is not null; inside = inside.Outer)
-            {
-                if (ReferenceEquals(inside.Outer, this))
-                {
-                    Skips.Value = Skip.Add(Skips.Value, inside, this);
-                    break;
-                }
-            }
-        }
-
-        // The frame a flow goes back to when `frame`, innermost there, is disposed: its outer frame, even when that one
-        // was disposed meanwhile, so a flow stays inside every frame it did not dispose itself and a frame it enters
-        // later still counts that frame's mark. The flow goes on past an outer frame only when this flow (or the flow
-        // that started this task, before starting it) disposed that frame out of order while `frame` was the frame
-        // just inside it, as in-order using blocks would have left it. The record is used up, so repeated
-        // out-of-order disposal on one flow keeps no chain of disposed frames and nothing stays reachable from it.
-        private static Frame? Unwind(Frame frame)
-        {
-            var outer = frame.Outer;
-            var skips = Skips.Value;
-            if (skips is null)
-                return outer;
-
-            var left = skips;
-            while (outer is not null && Skip.TryRemove(left, frame, outer, out var rest))
-            {
-                left = rest;
-                frame = outer;
-                outer = frame.Outer;
-            }
-
-            if (!ReferenceEquals(left, skips))
-                Skips.Value = left;
-
-            return outer;
+            // A flow leaves a frame only by disposing the frame that is its own head, and goes back to exactly the
+            // frame that one was entered under (a detachment: the caller's frame), disposed or not. Anywhere else the
+            // frame stays on every chain that holds it and keeps counting.
+            if (ReferenceEquals(Active.Value, this))
+                Active.Value = Outer;
         }
     }
 }
