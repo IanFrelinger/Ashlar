@@ -123,10 +123,11 @@ public static class MeshWire
 ///
 /// <para>Opt-in (registered only when <c>ASHLAR_MESH_SERVE_PORT</c> is set).</para>
 ///
-/// <para><b>Not on AirGapped or SecureWorkstation</b> (SPEC-007 PR 4.10, owner decision Q6). Those profiles allow
-/// inbound listeners on loopback only, and mesh serve listens on every interface, so it refuses to serve there, with
-/// the reason, and binds nothing (<see cref="ProfileError"/>). The rest of the node keeps running, as for a
-/// half-configured TLS setup.</para>
+/// <para><b>Loopback only on AirGapped and SecureWorkstation</b> (SPEC-007 PR 4.10, owner decision Q6 as recorded:
+/// "mesh serve must bind loopback"). Those profiles allow inbound listeners on loopback only, so there mesh serve
+/// binds <c>localhost</c> (127.0.0.1 and [::1]) instead of every interface (<see cref="BindAddress"/>) and keeps
+/// serving: a peer on another host cannot reach it, which is the point. A genuine bind failure still never takes
+/// the daemon down.</para>
 /// </summary>
 public sealed class MeshServeService : BackgroundService
 {
@@ -138,7 +139,7 @@ public sealed class MeshServeService : BackgroundService
     /// <param name="settings">What to serve, and how.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="deploymentProfile">The profile <c>AddAshlar</c> resolved; on AirGapped and SecureWorkstation mesh
-    /// serve refuses to serve. <see langword="null"/> where it never ran.</param>
+    /// serve binds loopback only. <see langword="null"/> where it never ran, which binds every interface as before.</param>
     public MeshServeService(
         MeshServeSettings settings,
         ILogger<MeshServeService> logger,
@@ -170,17 +171,6 @@ public sealed class MeshServeService : BackgroundService
             return;
         }
 
-        // SPEC-007 PR 4.10 (owner decision Q6): loopback-only inbound on AirGapped and SecureWorkstation, and this
-        // listener is every interface. Refuse before anything binds.
-        var profileError = ProfileError(_settings, _deploymentProfile);
-        if (profileError is not null)
-        {
-            _logger.LogError(
-                "Mesh serve refusing to start on :{Port} — {Error} Not serving (fail-closed).",
-                _settings.Port, profileError);
-            return;
-        }
-
         WebApplication app;
         try
         {
@@ -196,8 +186,8 @@ public sealed class MeshServeService : BackgroundService
         }
 
         _logger.LogInformation(
-            "Mesh serve armed on :{Port} ({Scheme}) — offering {Dir} to the network (read-only, signed packages; trust is enforced by the puller).",
-            _settings.Port, _settings.Tls ? (_settings.RequireClientCert ? "mTLS" : "TLS") : "http", _settings.PublishedDir);
+            "Mesh serve armed on {Address} ({Scheme}) — offering {Dir} to the network (read-only, signed packages; trust is enforced by the puller).",
+            BindAddress(_settings, _deploymentProfile), _settings.Tls ? (_settings.RequireClientCert ? "mTLS" : "TLS") : "http", _settings.PublishedDir);
 
         try
         {
@@ -239,20 +229,19 @@ public sealed class MeshServeService : BackgroundService
     }
 
     /// <summary>
-    /// Returns the explained refusal when <paramref name="profile"/> allows loopback listeners only (AirGapped,
-    /// SecureWorkstation), since mesh serve listens on every interface; otherwise null. Pure, so the refusal is
-    /// directly testable.
+    /// The address mesh serve binds: every interface, or <c>localhost</c> only when <paramref name="profile"/> allows
+    /// inbound listeners on loopback only (AirGapped, SecureWorkstation; SPEC-007 PR 4.10, owner decision Q6). Pure, so
+    /// the choice is directly testable; <see cref="LoopbackListenerPolicy.IsLoopback"/> holds for the loopback form.
     /// </summary>
-    public static string? ProfileError(MeshServeSettings settings, ResolvedDeploymentProfile? profile)
+    public static string BindAddress(MeshServeSettings settings, ResolvedDeploymentProfile? profile)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        var address = $"{(settings.Tls ? "https" : "http")}://*:{settings.Port}";
-        return LoopbackListenerPolicy.Violation(
-            profile,
-            [address],
-            "Mesh serve",
-            "Mesh serve has no loopback-only mode: unset ASHLAR_MESH_SERVE_PORT");
+        var scheme = settings.Tls ? "https" : "http";
+        return BindsLoopbackOnly(profile) ? $"{scheme}://localhost:{settings.Port}" : $"{scheme}://*:{settings.Port}";
     }
+
+    /// <summary><see langword="true"/> when <paramref name="profile"/> allows inbound listeners on loopback only.</summary>
+    public static bool BindsLoopbackOnly(ResolvedDeploymentProfile? profile) => profile is { RequiresLoopbackInbound: true };
 
     private WebApplication BuildApp()
     {
@@ -268,7 +257,7 @@ public sealed class MeshServeService : BackgroundService
             // Kestrel aborts a connection that reads slower than its default MinResponseDataRate —
             // this is the built-in defence against the slow/non-reading client that a raw HttpListener
             // loop had to guard by hand.
-            k.ListenAnyIP(_settings.Port, listen =>
+            Action<Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions> configure = listen =>
             {
                 if (_settings.Tls)
                 {
@@ -289,7 +278,17 @@ public sealed class MeshServeService : BackgroundService
                         }
                     });
                 }
-            });
+            };
+            if (BindsLoopbackOnly(_deploymentProfile))
+            {
+                // SPEC-007 PR 4.10 (owner decision Q6): on AirGapped and SecureWorkstation mesh serve binds loopback
+                // (127.0.0.1 and [::1]) and keeps serving; a peer on another host cannot reach it.
+                k.ListenLocalhost(_settings.Port, configure);
+            }
+            else
+            {
+                k.ListenAnyIP(_settings.Port, configure);
+            }
         });
 
         var app = builder.Build();

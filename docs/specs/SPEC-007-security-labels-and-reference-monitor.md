@@ -134,7 +134,9 @@ The status line above and the starting prompt are the owner's, as written; the s
   fail boot (the Bedrock tier also fails `AddAshlar` itself when it is already registered, so a process that never
   starts a host is refused too); and the ollama.com catalog defaults to off. On `SecureWorkstation`, MCP over HTTP
   fails boot and stdio still boots; its outbound paths are unchanged until the switch. On both, Ashlar.API refuses to
-  start on a listener that is not loopback, and mesh serve, which listens on every interface, refuses to serve. A later
+  start on a listener that is not loopback, and mesh serve binds `localhost` instead of every interface and keeps
+  serving (Q6 as recorded; a peer on another host cannot reach it). Infrastructure, the API and the CLI never read the
+  profile source, which a convention fact pins now that PR 4.3 lets Infrastructure see it. A later
   `AddAshlar` in the process registers the strictest profile but still selects its own module set (4.11). **Known
   limit:** responses on inbound connections are not mediated until PR 5's `CanRead` at the server seams. These are
   configuration and routing changes; the guard still refuses nothing.

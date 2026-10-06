@@ -517,11 +517,13 @@ public sealed class AirGappedHygieneTests : IDisposable
         verifier.Should().Contain("LoopbackListenerPolicy.Violation(").And.Contain("throw new InvalidOperationException(violation)");
 
         var mesh = File.ReadAllText(Path.Combine(root, "application", "src", "Ashlar.CLI", "Commands", "BackgroundAgent", "MeshServeService.cs"));
-        var profileCheck = mesh.IndexOf("var profileError = ProfileError(_settings, _deploymentProfile);", StringComparison.Ordinal);
-        var buildApp = mesh.IndexOf("app = BuildApp();", StringComparison.Ordinal);
-        profileCheck.Should().BePositive();
-        buildApp.Should().BeGreaterThan(profileCheck, "the refusal comes before anything binds");
-        mesh[profileCheck..buildApp].Should().Contain("return;", "a refused profile returns without building the app");
+        var loopbackBranch = mesh.IndexOf("if (BindsLoopbackOnly(_deploymentProfile))", StringComparison.Ordinal);
+        var listenLocalhost = mesh.IndexOf("k.ListenLocalhost(_settings.Port, configure);", StringComparison.Ordinal);
+        var listenAnyIp = mesh.IndexOf("k.ListenAnyIP(_settings.Port, configure);", StringComparison.Ordinal);
+        loopbackBranch.Should().BePositive("mesh serve chooses its listener by the profile");
+        listenLocalhost.Should().BeGreaterThan(loopbackBranch, "the loopback-only profiles bind localhost");
+        listenAnyIp.Should().BeGreaterThan(listenLocalhost, "every interface is the other branch");
+        mesh.Split("k.ListenAnyIP(").Length.Should().Be(2, "exactly one every-interface listen call");
     }
 
     [Theory(Timeout = TestTimeouts.E2E)]

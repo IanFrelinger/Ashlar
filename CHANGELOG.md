@@ -223,12 +223,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     so does a non-loopback address Kestrel bound anyway. **Action:** the .NET container images set
     `ASPNETCORE_HTTP_PORTS=8080`, which binds every interface; an API container on those profiles needs, for
     example, `ASPNETCORE_URLS=http://localhost:8080`.
-  - **Mesh serve refuses to serve on AirGapped and SecureWorkstation.** It listens on every interface and has no
-    loopback mode, so with `ASHLAR_MESH_SERVE_PORT` set it logs why and binds nothing; the rest of the daemon runs.
+  - **Mesh serve binds loopback only on AirGapped and SecureWorkstation.** With `ASHLAR_MESH_SERVE_PORT` set it
+    listens on `localhost` (127.0.0.1 and [::1]) instead of every interface and keeps serving, so a peer on another
+    host cannot pull from it; a genuine bind failure still never takes the daemon down.
   - New public types: `Ashlar.Infrastructure.Deployment.ResolvedDeploymentProfile` (the profile `AddAshlar`
     resolved, registered as a singleton) and `LoopbackListenerPolicy`. `NcrCapabilityRouter`,
-    `AdaptiveProviderFactory` and `MeshServeService` take an optional `ResolvedDeploymentProfile`, and
-    `ValidateAshlarMcpServerOptions` gains a constructor that takes `IServiceProviderIsService`.
+    `AdaptiveProviderFactory` and `MeshServeService` take an optional `ResolvedDeploymentProfile` (`MeshServeService.BindAddress` and
+    `BindsLoopbackOnly` say which listener it chooses), and `ValidateAshlarMcpServerOptions` gains a constructor that
+    takes `IServiceProviderIsService`.
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes
