@@ -263,6 +263,45 @@ public sealed class EgressModeProcessBindingTests : IDisposable
             "the line names the profile the container's guard composed, and that profile was not defaulted");
     }
 
+    [Fact]
+    public async Task A_later_stricter_AddAshlar_on_the_same_collection_reaches_its_guard_and_its_startup_line()
+    {
+        var services = new ServiceCollection();
+        services.AddAshlar();
+        services.AddAshlarProfile(AshlarDeploymentProfile.AirGapped);
+
+        // The guard the first call composed is replaced like ProcessDefault, so the container decides under the
+        // strictest profile noted and the line describes the guard the container uses.
+        using var provider = services.BuildServiceProvider();
+        var composed = DecideWith(provider.GetRequiredService<IEgressGuard>());
+        composed.Profile.Should().Be("air-gapped", "a later AddAshlar on the same collection replaces the guard an earlier one composed");
+        composed.ModeBasis.Should().Be("profile:air-gapped");
+
+        var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
+        entry.Message.Should().Be(
+            "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
+            + "Records only: nothing is refused yet (SPEC-007 PR 4).",
+            "the line and the container's guard name the same profile");
+    }
+
+    [Fact]
+    public async Task A_later_AddAshlar_that_raises_the_mode_on_the_same_collection_reaches_its_guard_and_its_startup_line()
+    {
+        var services = new ServiceCollection();
+        services.AddAshlar();
+        services.AddAshlar(o => o.EgressMode = Enforce);
+
+        using var provider = services.BuildServiceProvider();
+        var composed = DecideWith(provider.GetRequiredService<IEgressGuard>());
+        composed.Mode.Should().Be(Enforce, "a later AddAshlar on the same collection replaces the guard an earlier one composed");
+        composed.ModeBasis.Should().Be(Override);
+
+        var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
+        entry.Message.Should().StartWith(
+            "Ashlar egress mode: enforce (basis override; profile full, defaulted because nothing set it). ",
+            "the line and the container's guard name the same mode");
+    }
+
     [Theory]
     [InlineData("air-gapped", "full", "air-gapped")]
     [InlineData("air-gapped", "secure-workstation", "air-gapped")]
