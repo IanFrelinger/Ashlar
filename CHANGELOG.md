@@ -194,7 +194,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     `GetService(typeof(DelegatingChatClient))` now see it first. It records one decision per call
     (`local:onnx`, in process, records none; PR 4.1 narrows that to the in-process LLamaSharp client, above),
     synchronously and before PolicyGate's audit record, with a destination fixed when the keyed client
-    is built, and it swallows an exception from a host `IEgressGuard`.
+    is built (since PR 4.1, an Ollama `-cloud`/`:cloud` model is recorded at `https://ollama.com` per
+    call instead), and it swallows an exception from a host `IEgressGuard`.
   - `NativeBundle.StageApp` (public, in the `Ashlar.CLI` tool package) takes a third parameter, `site`,
     the decision's site. Its two callers, `NativeBundle.Stage` and `CloudBundle.Stage`, pass
     `EG-FILE-01` and `EG-FILE-02`.

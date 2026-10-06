@@ -115,6 +115,36 @@ public sealed class EgressRawClientTwinTests
             2, "the handler still records each send to the daemon (tags, then chat)");
     }
 
+    /// <summary>
+    /// SPEC-007 PR 4.1 (D34), the resolved-name half of the rule: a config asks for the short name <c>gpt-oss</c>, the
+    /// daemon lists only <c>gpt-oss:120b-cloud</c>, and <c>OllamaProvider</c> resolves the one by its single family
+    /// prefix and sends the chat with the resolved, cloud name. The requested name is not a cloud id, so only the
+    /// resolved name can record the relay: one EG-MDL-07 decision, an external model at <c>https://ollama.com</c>.
+    /// </summary>
+    [Fact]
+    public async Task OllamaProvider_records_a_short_name_that_resolves_to_a_cloud_model_at_ollama_com()
+    {
+        var id = "egress-twin-" + Guid.NewGuid().ToString("N");
+        var sink = new FrameSink("subject:" + id);
+        using var subscription = EgressDecisionLog.Subscribe(sink);
+        using var frame = EgressSubject.Enter(id, new HighWaterMark());
+        var stub = new OllamaStub("gpt-oss:120b-cloud");
+        using var http = EgressHttp.CreateClient(stub, EgressFamilies.ModelLegacy, "EG-MDL-07");
+        var provider = new OllamaProvider(http, "http://localhost:11434");
+
+        (await provider.RefreshModelsAsync()).IsSuccess.Should().BeTrue();
+        OllamaProvider.IsOllamaCloudModel("gpt-oss").Should().BeFalse("the requested name alone is not a cloud id");
+        var chat = await provider.ExecuteChatAsync("gpt-oss", "system", "user", null);
+
+        chat.IsSuccess.Should().BeTrue("report-only: the chat is sent whatever the decision");
+        stub.ChatModels.Should().Equal(new[] { "gpt-oss:120b-cloud" }, "the chat carries the resolved name");
+        var decision = sink.Seen.Where(d => d.Destination == "https://ollama.com").Should()
+            .ContainSingle("the resolved model runs on ollama.com").Which;
+        decision.Site.Should().Be("EG-MDL-07");
+        decision.Family.Should().Be(EgressFamilies.ModelLegacy);
+        decision.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel);
+    }
+
     [Fact]
     public async Task Grpc_channel_handler_records_EG_XPT_03()
     {
@@ -152,23 +182,39 @@ public sealed class EgressRawClientTwinTests
         }
     }
 
-    /// <summary>A local Ollama daemon that lists one model and answers every chat.</summary>
+    /// <summary>A local Ollama daemon that lists one model and answers every chat, keeping the model each chat names.</summary>
     private sealed class OllamaStub(string model) : HttpMessageHandler
     {
         private readonly ConcurrentQueue<string> _requests = new();
+        private readonly ConcurrentQueue<string> _chatModels = new();
 
         public IReadOnlyList<string> Requests => _requests.ToArray();
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        public IReadOnlyList<string> ChatModels => _chatModels.ToArray();
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             _requests.Enqueue(request.RequestUri!.AbsoluteUri);
-            var body = request.RequestUri.AbsolutePath.EndsWith("/api/tags", StringComparison.Ordinal)
+            var tags = request.RequestUri.AbsolutePath.EndsWith("/api/tags", StringComparison.Ordinal);
+            if (!tags && request.Content is not null)
+                _chatModels.Enqueue(ModelOf(await request.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false)));
+
+            var body = tags
                 ? "{\"models\":[{\"name\":\"" + model + "\",\"size\":1}]}"
                 : "{\"message\":{\"role\":\"assistant\",\"content\":\"ok\"},\"done\":true}";
-            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
             {
                 Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
-            });
+            };
+        }
+
+        // Reads the first JSON value only, as the daemon's decoder does: the provider's chat payload ends in one more
+        // '}' than it opens, which Ollama ignores and a whole-document parse would reject.
+        private static string ModelOf(byte[] chatBody)
+        {
+            var reader = new System.Text.Json.Utf8JsonReader(chatBody);
+            using var chat = System.Text.Json.JsonDocument.ParseValue(ref reader);
+            return chat.RootElement.GetProperty("model").GetString() ?? string.Empty;
         }
     }
 

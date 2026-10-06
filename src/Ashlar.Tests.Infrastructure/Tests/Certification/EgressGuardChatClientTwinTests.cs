@@ -517,6 +517,68 @@ public sealed class EgressGuardChatClientTwinTests
             EgressDestinationClass.ExternalModel, "region '{0}' must not make Bedrock look like the host", region);
     }
 
+    /// <summary>
+    /// PR 4.1, gap 3, rule 1 on a Bedrock key: an inner client that reports an absolute
+    /// <see cref="ChatClientMetadata.ProviderUri"/> is recorded at that URI, ahead of the region reconstruction, and the
+    /// site stays Bedrock's <c>EG-MDL-02</c> rather than the key's name.
+    /// </summary>
+    [Fact]
+    public async Task CloudBedrock_WithAnInnerClientThatNamesItsUri_IsRecordedThere_UnderItsSite()
+    {
+        var guard = new RecordingGuard();
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(guard);
+        services.AddAshlarMeaiPipeline(
+            configure: o =>
+            {
+                o.Bedrock.Enabled = true;
+                o.Bedrock.Region = "us-west-2";
+            },
+            ollamaInnerFactory: _ => new FakeChatClient(),
+            onnxInnerFactory: _ => new FakeChatClient(),
+            bedrockInnerFactory: (_, _) => new MetadataChatClient("bedrock", new Uri("https://bedrock.example/model/invoke")));
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredKeyedService<IChatClient>(DefaultRouteCandidateTable.CloudBedrockFast);
+
+        (await client.GetResponseAsync("hello")).Text.Should().Be("bedrock");
+        var decision = guard.Decisions.Should().ContainSingle().Which;
+        decision.Site.Should().Be("EG-MDL-02", "a cloud:bedrock:* key keeps Bedrock's inventory site");
+        decision.Destination.Should().Be("https://bedrock.example", "the inner client names where it dials");
+        decision.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel);
+    }
+
+    /// <summary>
+    /// The production Bedrock inner client (<see cref="AwsBedrockChatClientFactory"/> over the AWS SDK's MEAI adapter)
+    /// reports no <see cref="ChatClientMetadata.ProviderUri"/>, so rule 1 never applies to it and the default
+    /// <c>cloud:bedrock:*</c> record stays the region reconstruction. Building the client sends nothing; no call is made.
+    /// If an SDK update starts reporting a URI, this fails and the Bedrock known limit must be restated.
+    /// </summary>
+    [Fact]
+    public void CloudBedrock_TheAwsClientReportsNoProviderUri_SoTheRegionIsReconstructed()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(new RecordingGuard());
+        services.AddAshlarMeaiPipeline(
+            configure: o =>
+            {
+                o.Bedrock.Enabled = true;
+                o.Bedrock.Region = "us-west-2";
+            },
+            ollamaInnerFactory: _ => new FakeChatClient(),
+            onnxInnerFactory: _ => new FakeChatClient());
+        using var provider = services.BuildServiceProvider();
+
+        var client = provider.GetRequiredKeyedService<IChatClient>(DefaultRouteCandidateTable.CloudBedrockFast);
+
+        var metadata = client.GetService(typeof(ChatClientMetadata)).Should().BeOfType<ChatClientMetadata>().Which;
+        metadata.ProviderName.Should().Be("aws.bedrock", "the inner client is the AWS SDK's");
+        metadata.ProviderUri.Should().BeNull("the AWS MEAI adapter names no endpoint");
+        var request = client.Should().BeOfType<EgressGuardChatClient>().Which.Request;
+        request.Should().NotBeNull();
+        request!.Site.Should().Be("EG-MDL-02");
+        request.Destination.Should().Be(new Uri("https://bedrock-runtime.us-west-2.amazonaws.com"));
+    }
+
     [Fact]
     public async Task ARegionName_IsTrimmedIntoTheRuntimeEndpoint()
     {
@@ -814,16 +876,47 @@ public sealed class EgressGuardChatClientTwinTests
 
         public int MovedRequests => Volatile.Read(ref _moved);
 
+        /// <summary>
+        /// Listens on a free loopback port. <see cref="HttpListener"/> cannot bind port 0 and report it, so a port is
+        /// probed and released first; another socket in the process can take it before the listener binds it, so a
+        /// failed bind retries on a freshly probed port.
+        /// </summary>
         public static RedirectingOllama Start()
+        {
+            const int attempts = 10;
+            for (var attempt = 1; ; attempt++)
+            {
+                var server = new RedirectingOllama(FreeLoopbackPort());
+                try
+                {
+                    server._listener.Start();
+                }
+                catch (Exception ex) when (ex is HttpListenerException or SocketException)
+                {
+                    server.Dispose();
+                    if (attempt == attempts)
+                        throw;
+
+                    continue;
+                }
+
+                _ = Task.Run(server.ServeAsync);
+                return server;
+            }
+        }
+
+        private static int FreeLoopbackPort()
         {
             var probe = new TcpListener(IPAddress.Loopback, 0);
             probe.Start();
-            var port = ((IPEndPoint)probe.LocalEndpoint).Port;
-            probe.Stop();
-            var server = new RedirectingOllama(port);
-            server._listener.Start();
-            _ = Task.Run(server.ServeAsync);
-            return server;
+            try
+            {
+                return ((IPEndPoint)probe.LocalEndpoint).Port;
+            }
+            finally
+            {
+                probe.Stop();
+            }
         }
 
         public void Dispose()

@@ -6,8 +6,10 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// </summary>
 /// <remarks>
 /// <para><b>What a record never contains:</b> the payload or request body, headers, or a URL's userinfo, path,
-/// query or fragment. <see cref="Destination"/> is <c>scheme://host[:port]</c> or a name. Caller-supplied
-/// text is bounded in length and its control and format characters are replaced.</para>
+/// query or fragment. <see cref="Destination"/> is <c>scheme://host[:port]</c> or a name. One exception: a name
+/// that starts with <c>file:</c> (in any case) is a file path, not a URL, so it is recorded as written and may hold
+/// a path, even when it is URL-shaped (<c>file://127.0.0.1/E$/out.nxpkg</c>). Caller-supplied text is bounded in
+/// length and its control and format characters are replaced.</para>
 /// <para><see cref="Access"/>'s <see cref="AccessDecision.Detail"/> is for operators and audit logs; do not hand
 /// it to the refused subject.</para>
 /// <para>Records are built only by <see cref="EgressGuard"/>; they are immutable.</para>
@@ -66,7 +68,8 @@ public sealed class EgressDecision
     /// <summary>
     /// The destination: <c>scheme://host[:port]</c> for a URI, otherwise the request's name (a URL-shaped name
     /// whose authority cannot be read without guessing is <c>scheme://&lt;unparsed&gt;</c>). Never a userinfo,
-    /// path, query or fragment.
+    /// path, query or fragment, except for a name that starts with <c>file:</c> (in any case): that name is a file
+    /// path, recorded as written and bounded, so it may hold a path.
     /// </summary>
     public string Destination { get; }
 
