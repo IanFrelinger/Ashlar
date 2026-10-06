@@ -78,8 +78,9 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `localhost`, a `unix` or `npipe` socket and a declared `host:` name are inside the host boundary
   (`SystemHigh`), a model is an external model (`Internal`), web search is `Confidential`, a network
   export is `Internal`, and an unknown destination fails closed to `Public`. The current label is the
-  high-water mark of the ambient `EgressSubject` frame, or `SystemHigh` when there is none, and the
-  decision is `ReferenceMonitor.CanWrite(current, destination)`. Every decision goes to the
+  join of the high-water marks of the ambient `EgressSubject` frames (see the SPEC-007 PR 4.4 entry
+  below), or `SystemHigh` when there is none, and the decision is
+  `ReferenceMonitor.CanWrite(current, destination)`. Every decision goes to the
   `Ashlar-Egress` EventSource and to each `EgressDecisionLog` subscriber, except one made on a
   thread that is already publishing a record (an egress that a sink or listener itself causes): that
   decision is returned to its caller and counted, but not published, so the pipeline cannot recurse.
@@ -123,6 +124,45 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   accredited cross-domain solution. The convention test that holds the inventory and its routes, the
   behavioural tests of the guard, the HTTP handler and the factory defaults, and the route twins in
   `Tests/Certification`, are cert-gate tests, listed in `ci/cert-gate-assertions.md`.
+- **Egress subject frames nest monotonically, and reads are scoped (SPEC-007 PR 4.4).** A decision's
+  current label is now the join of the high-water marks of every `EgressSubject` frame the flow is
+  inside, live or disposed, not only the innermost one's, so a frame entered inside another can never
+  decide below it; the record's basis still names the innermost live subject. A frame that was
+  disposed first, such as a parent whose `using` ended while a fire-and-forget task it started is
+  still running, still counts for that task, with no frame of its own or in the frames it enters, at
+  its mark as it is when the task decides. A flow leaves a frame only by disposing its own head
+  while that head is undisposed, and goes back to exactly the frame it was entered under, disposed
+  or not, so a task handed a child scope, the flow that entered a frame another flow disposed, and a
+  flow that disposes its own frames out of order all stay inside the frame they did not leave. Known limits, fail closed: such a flow's chain grows by one frame each
+  time it repeats the out-of-order dispose, and what it reads later raises the subject's shared mark,
+  so another session of that subject can decide higher. Neither arises on the flow that entered a
+  frame and disposed it in a `using` block, in order, but work created and started inside that frame,
+  such as a task or a thread, keeps it for as long as it runs, so what it reads later still raises
+  the frame's shared mark. Work keeps the frames of the flow where it captured the execution context
+  (a task, timer, registration or continuation where it is created, a thread or a
+  `System.Timers.Timer` where it is started), so what a cold task created before the frame and
+  started inside it reads never reaches the frame's mark. Enter a frame that way only: not inside an
+  async helper, whose frame does not reach the flow that awaits it, and not across a `yield return`
+  of an async iterator, whose body resumes on its consumer's flow, so after the first `yield return`
+  the rest of the block decides at the consumer's frames and its reads never reach the frame's mark.
+  Disposing a frame observes its mark into every frame it was entered inside, and the frame counts as
+  live until it has. The new `EgressSubject.Observe(SecurityLabel)` joins a label into every frame on
+  the chain at once, only raises, and does nothing with no frame. The new `EgressSubject.BeginRead()`
+  returns a `ReadScope` for one read: disposed after `Complete()`, it observes the join of what was
+  passed to `Report` (a `Public` report reads nothing), or `SystemHigh` if nothing was reported;
+  disposed without `Complete()`, as when the read throws, it observes `SystemHigh` whatever was
+  reported. `Observe` never satisfies a read scope. `AgentBus.PublishAsync` now starts every
+  subscriber with no egress subject, inside a callback run by an internal
+  `EgressSubject.RunDetached`, which puts the publisher's own frame back exactly when the callback
+  returns or throws, before any exception filter of the publisher runs, so a subscriber's egress is
+  no longer decided at the publisher's mark. Work created and started inside the callback keeps no
+  subject; a task, timer, registration or continuation the publisher created and the callback starts
+  or triggers keeps the publisher's frame, since each captures the flow where it is created, and a
+  thread or `System.Timers.Timer` the callback created and the publisher starts runs in the
+  publisher's frame, since it captures the flow where it is started. Still report-only, and no production code enters a frame
+  or begins a read yet, so no recorded decision changes; the agent producers come in PR 4.5. The new
+  public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, and the behaviour is pinned by
+  cert-gate tests listed in `ci/cert-gate-assertions.md`.
 - **A Claude Code cloud session sets docker up by itself.** A new SessionStart hook,
   `.claude/hooks/session-start.sh` (registered in `.claude/settings.json`), runs only when
   `CLAUDE_CODE_REMOTE=true`: it starts `dockerd` if it is not running, writes a session-local

@@ -55,6 +55,10 @@ Ashlar.Abstractions.Security.Egress.IEgressDecisionSink
 Ashlar.Abstractions.Security.Egress.IEgressDecisionSink.Record(Ashlar.Abstractions.Security.Egress.EgressDecision! decision) -> void
 Ashlar.Abstractions.Security.Egress.IEgressGuard
 Ashlar.Abstractions.Security.Egress.IEgressGuard.Evaluate(Ashlar.Abstractions.Security.Egress.EgressRequest! request) -> Ashlar.Abstractions.Security.Egress.EgressDecision!
+Ashlar.Abstractions.Security.Egress.ReadScope
+Ashlar.Abstractions.Security.Egress.ReadScope.Complete() -> void
+Ashlar.Abstractions.Security.Egress.ReadScope.Dispose() -> void
+Ashlar.Abstractions.Security.Egress.ReadScope.Report(Ashlar.Abstractions.Security.SecurityLabel! label) -> void
 Ashlar.Abstractions.Security.HighWaterMark
 Ashlar.Abstractions.Security.HighWaterMark.CanWriteTo(Ashlar.Abstractions.Security.SecurityLabel! destination) -> Ashlar.Abstractions.Security.AccessDecision
 Ashlar.Abstractions.Security.HighWaterMark.Current.get -> Ashlar.Abstractions.Security.SecurityLabel!
@@ -113,7 +117,9 @@ static Ashlar.Abstractions.Security.Egress.EgressHttp.CreateClient(string! famil
 static Ashlar.Abstractions.Security.Egress.EgressHttp.CreateClient(string! family, string! site, Ashlar.Abstractions.Security.Egress.IEgressGuard? guard) -> System.Net.Http.HttpClient!
 static Ashlar.Abstractions.Security.Egress.EgressHttp.CreateDelegatingHandler(string! family, string! site, Ashlar.Abstractions.Security.Egress.IEgressGuard? guard = null) -> System.Net.Http.DelegatingHandler!
 static Ashlar.Abstractions.Security.Egress.EgressHttp.Wrap(System.Net.Http.HttpMessageHandler! inner, string! family, string! site, Ashlar.Abstractions.Security.Egress.IEgressGuard? guard = null) -> System.Net.Http.HttpMessageHandler!
+static Ashlar.Abstractions.Security.Egress.EgressSubject.BeginRead() -> Ashlar.Abstractions.Security.Egress.ReadScope!
 static Ashlar.Abstractions.Security.Egress.EgressSubject.Enter(string! subjectId, Ashlar.Abstractions.Security.HighWaterMark! mark) -> System.IDisposable!
+static Ashlar.Abstractions.Security.Egress.EgressSubject.Observe(Ashlar.Abstractions.Security.SecurityLabel! label) -> void
 static Ashlar.Abstractions.Security.ReferenceMonitor.CanRead(Ashlar.Abstractions.Security.SecurityLabel! clearance, Ashlar.Abstractions.Security.SecurityLabel! data) -> Ashlar.Abstractions.Security.AccessDecision
 static Ashlar.Abstractions.Security.ReferenceMonitor.CanWrite(Ashlar.Abstractions.Security.SecurityLabel! current, Ashlar.Abstractions.Security.SecurityLabel! destination) -> Ashlar.Abstractions.Security.AccessDecision
 static Ashlar.Abstractions.Security.SecurityLabel.IsValidToken(string? token) -> bool

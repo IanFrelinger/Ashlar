@@ -12,8 +12,10 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <see cref="EgressDestinationClass.WebSearch"/> (Confidential), the network and export families are
 /// <see cref="EgressDestinationClass.NetworkExport"/> (Internal), and anything else is
 /// <see cref="EgressDestinationClass.Unknown"/> (Public, failing closed to the bottom).</para>
-/// <para><b>Current label.</b> The active <see cref="EgressSubject"/> frame's high-water mark, or
-/// <see cref="SecurityLabel.SystemHigh"/> (<c>no-subject</c>) when none is active.</para>
+/// <para><b>Current label.</b> With an <see cref="EgressSubject"/> frame active on the flow, the join of the
+/// high-water mark of every frame on its chain, live or disposed, up to a detachment (the flow's own frame and every
+/// frame it was entered inside), with the basis <c>subject:&lt;id&gt;</c> of the innermost live frame. With none, with
+/// no live one, or under a detachment, <see cref="SecurityLabel.SystemHigh"/>, with the basis <c>no-subject</c>.</para>
 /// <para><b>Decision.</b> <see cref="ReferenceMonitor.CanWrite"/>(current, destination label). With no subject,
 /// destinations inside the host boundary are allowed and every other one is refused with
 /// <see cref="AccessDenialReason.SystemHighData"/>.</para>

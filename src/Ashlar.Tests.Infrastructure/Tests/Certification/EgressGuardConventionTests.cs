@@ -200,9 +200,10 @@ public sealed partial class EgressGuardConventionTests
     /// (http.new 19, the other markers unchanged). SPEC-007 PR 4.6 adds three files with no outbound path (the mode
     /// resolver, the reset seam and <c>AddAshlar</c>'s egress partial): 2,133 files, 149 occurrences. SPEC-007 PR 4.2
     /// adds the netstandard2.0 synchronous-send hop and its <c>HttpMessageInvoker</c>: 2,134 files, 150 occurrences
-    /// (http.new 20, of which 4 are the guard's own, pinned <c>Exempt:GuardImpl</c>). Set far enough below to survive
-    /// ordinary deletions; a scan that stops reading the tree falls through them. Re-measure and restate when a PR
-    /// moves them.
+    /// (http.new 20, of which 4 are the guard's own, pinned <c>Exempt:GuardImpl</c>). SPEC-007 PR 4.4 adds one file
+    /// with no outbound path, <c>ReadScope.cs</c>: 2,135 files, 150 occurrences, as measured in the devtest container
+    /// with all four merged. Set far enough below to survive ordinary deletions; a scan that stops reading the tree
+    /// falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
     private const int ScannedFilesFloor = 1000;
 

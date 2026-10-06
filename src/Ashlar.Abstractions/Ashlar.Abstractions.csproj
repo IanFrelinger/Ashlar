@@ -34,6 +34,7 @@
     <InternalsVisibleTo Include="Ashlar.Hosting" />
     <InternalsVisibleTo Include="Ashlar.Mcp.Client" />
     <InternalsVisibleTo Include="Ashlar.Mcp.Server" />
+    <InternalsVisibleTo Include="Ashlar.Orchestration" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A.Server" />
   </ItemGroup>

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Ashlar.Orchestration.Communication.Models;
 
@@ -59,22 +60,29 @@ public sealed class AgentBus : IAgentBus
             _messageHistory.TryDequeue(out _);
         }
 
-        // Notify subscribers
+        // Notify subscribers. Each handler is another component's work, so it must not be decided at the
+        // publisher's mark: the dispatch tasks are created inside a callback run with no egress subject (SystemHigh),
+        // so they keep it for their whole life, while the publisher's flow is back in exactly its own frame as soon as
+        // the callback returns (SPEC-007 PR 4.4). A task created before the callback and started inside it would keep
+        // the publisher's frame: a task captures the flow where it is created.
         var subscriptions = GetMatchingSubscriptions(message);
-        foreach (var subscription in subscriptions)
+        EgressSubject.RunDetached(() =>
         {
-            _ = Task.Run(async () =>
+            foreach (var subscription in subscriptions)
             {
-                try
+                _ = Task.Run(async () =>
                 {
-                    await subscription.Handler(message, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error handling message {MessageId} in subscription", message.MessageId);
-                }
-            }, cancellationToken);
-        }
+                    try
+                    {
+                        await subscription.Handler(message, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error handling message {MessageId} in subscription", message.MessageId);
+                    }
+                }, cancellationToken);
+            }
+        });
 
         return Task.CompletedTask;
     }

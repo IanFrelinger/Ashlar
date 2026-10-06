@@ -57,7 +57,23 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.2 the synchronous `Send` gap;
   - 4.3 redirects;
   - 4.4 frame semantics: monotone nesting, `Observe`, read scopes;
-  - 4.5 subject producers at the agent runners, report-only;
+  - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
+    `EgressSubject.Enter` is a `using` on the flow that enters it (never inside an async helper, whose frame does not
+    reach the flow that awaits it), disposed in order, since a flow that disposes frames out of order stays inside the
+    outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). Work a
+    runner creates and starts inside its frame, such as a task or a thread, keeps that frame for as long as it runs,
+    also after the `using` ends, so what it reads later still raises the subject's shared mark. Work keeps the frames of
+    the flow where it captured the execution context: a task, a `System.Threading.Timer`, a cancellation registration or
+    a continuation where it is created, a thread or a `System.Timers.Timer` where it is started. So what is read by work
+    created before the frame (a cold task, a continuation, a timer or a registration), or by a thread created inside it
+    and started after the `using` ends, never reaches the frame's mark, and the runner would decide below what the work
+    it started and awaited has read: a runner creates and starts the work it reads through inside its `using` block. The
+    `using` block never spans a `yield return` of an async iterator: each `MoveNextAsync` runs the body on the
+    consumer's flow, so after the first `yield return` the frame is gone, and the rest of the block decides at the
+    consumer's frames (a write-down wherever they do not hold the subject's mark) while its reads never reach that mark.
+    The code that drives the iteration enters the frame around its `await foreach`, or the body enters one for each
+    stretch between two `yield return`s. Ashlar's streaming chat clients are such iterators (`GetStreamingResponseAsync`
+    in seven production files, `RoutingChatClient` among them), so a runner that streams must follow this;
   - 4.6 mode plumbing, with every profile still reporting;
   - 4.7 and 4.8 the refusal surface, then the catch-alls that would hide a refusal;
   - 4.9 the explicit sites, the operator verbs and child processes;
@@ -75,7 +91,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   `meai:<key>`; a `file:` destination is never Host; an Ollama model ending in `-cloud` or `:cloud` is recorded at
   `https://ollama.com`; and the default MEAI Ollama client stops following redirects (a behaviour change).
   `OllamaProvider`'s cloud decision is a 17th explicit guard site, which 4.9 must make refuse before the send.
-- **PR 4.2** (#719): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
+- **PR 4.2** (#719, `ad3d570`): on the `netstandard2.0` asset, on a runtime that has a synchronous `Send` (.NET 5 or later),
   a synchronous `Send` through `EgressHttp` is refused with `NotSupportedException` before anything is sent, the
   factory handler is refused there, and `docs/SdkCompatibilityPolicy.md` says full guard coverage needs `net8.0`
   or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
@@ -89,6 +105,26 @@ The status line above and the starting prompt are the owner's, as written; the s
   earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
   convention fact pins. The guard refuses nothing yet; the netstandard2.0 asset's synchronous-`Send` refusal
   (PR 4.2) is the runtime's and holds in every mode.
+- **PR 4.4** (#716) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
+  live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
+  and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
+  while that head is undisposed, and goes back to exactly the frame it was entered under, disposed or not, so a flow
+  that disposes frames out of order stays inside the outer one (fail closed, at the costs in the 4.5 obligation
+  above); `EgressSubject.Observe` raises every frame on the chain;
+  a `BeginRead` scope that ends unreported or by an exception counts as `SystemHigh`; and `AgentBus` subscribers run
+  with no subject, inside a callback run by the internal `EgressSubject.RunDetached`, which puts the publisher's frame
+  back exactly when it returns or throws, before any exception filter of the publisher runs. Work created and started
+  inside the callback, such as each subscriber's `Task.Run`, keeps no subject; a task, timer, registration or
+  continuation the publisher created and the callback starts or triggers keeps the publisher's frame, since each
+  captures the flow where it is created, and a thread or `System.Timers.Timer` captures it where it is started.
+  Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
+  `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
+  the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
+  `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant
+  exposes every Abstractions internal to Orchestration; 4.6's convention fact
+  (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
+  reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
+  appears unlisted.
 
 ---
 
