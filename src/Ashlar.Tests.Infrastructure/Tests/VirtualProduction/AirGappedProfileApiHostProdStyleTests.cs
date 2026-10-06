@@ -173,7 +173,7 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
         builder.WebHost.ConfigureKestrel(k =>
         {
             if (loopback)
-                k.ListenLocalhost(0);
+                k.Listen(IPAddress.Loopback, 0);
             else
                 k.ListenAnyIP(0);
         });
