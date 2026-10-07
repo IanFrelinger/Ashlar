@@ -123,9 +123,9 @@
   <ItemGroup>
     <PackageVersion Include="AWSSDK.S3" Version="4.0.101" />
     <PackageVersion Include="AWSSDK.Lambda" Version="4.0.103" />
-    <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.103.5" />
+    <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.107" />
     <PackageVersion Include="AWSSDK.Core" Version="4.0.100.4" />
-    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="4.0.101.4" />
+    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="4.0.101.8" />
     <PackageVersion Include="AWSSDK.Extensions.Bedrock.MEAI" Version="4.0.101.8" />
   </ItemGroup>
   <!-- Entity Framework Packages -->
@@ -156,12 +156,12 @@
   </ItemGroup>
   <!-- Testing Packages -->
   <ItemGroup>
-    <PackageVersion Include="CsCheck" Version="4.8.0" />
+    <PackageVersion Include="CsCheck" Version="4.9.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
-    <PackageVersion Include="coverlet.msbuild" Version="10.0.0" />
+    <PackageVersion Include="coverlet.msbuild" Version="10.1.0" />
     <PackageVersion Include="FluentAssertions" Version="8.10.0" />
     <PackageVersion Include="Moq" Version="4.20.70" />
     <PackageVersion Include="Castle.Core" Version="5.2.1" />
