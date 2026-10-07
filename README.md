@@ -172,10 +172,10 @@ The image has no auth; publish on all interfaces (`-p 8080:8080`) only behind au
 | Path | When to use | First step |
 |------|-------------|------------|
 | [**Native receipt script**](#native-receipt-script) | See a plain receipt without Docker | `bash scripts/demo-receipt.sh` |
-| [**Tester / Native SDK**](#lane-1--tester-native-sdk) | Build from source, run the CLI and API natively, understand the gate | [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md) |
+| [**Tester / Native SDK**](#lane-1--try-run-the-portal) | Build from source, run the CLI and API natively, understand the gate | [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md) |
 | [**Develop**](#lane-2--develop-dev-container--cli) | Extend the code, run inside Dev Container | Open in Dev Container |
 | [**Deploy**](#lane-3--deploy-operators) | Run as a service you operate | `docker compose -f deploy/node.yml up` |
-| [**Integrator**](#to-embed-ashlar-in-your-application) | Embed in your application | [`docs/IntegratorGuide.md`](docs/IntegratorGuide.md) |
+| **Integrator** | Embed in your application | [`docs/IntegratorGuide.md`](docs/IntegratorGuide.md) |
 
 ### Native receipt script
 
