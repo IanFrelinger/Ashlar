@@ -37,6 +37,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `samples/autonomy-objectives/README.md` — a complete tracked objective + witness + recorded model proposal, and how to feed it to the loop.
 - `spikes/README.md` — what each spike under `spikes/` is, which ledger rows cite it, and why none of them is a supported entry point; `spikes/autonomy-first-flight/run-first-flight.ps1` flies one real iteration (Docker + Ollama).
 - `scripts/run-cert-gate.sh` + `scripts/cert-gate-config.sh` — reproduce the CI `cert-gate` locally with the same filter.
+- **`docs/LearningHarness.md`** — **long-term design sketch (M7, post-M6):** autonomous experience → verified adaptation; four-loop harness (record → reflect → evaluate → promote), learning ladder (episodic memory through trust-kernel changes), evidence-chain requirements, fleet learning, and autonomy HOLD until dogfood unlock. Roadmap feature, not yet implemented.
 
 ## Operator / Production Readiness
 
@@ -136,6 +137,9 @@ The plans below describe programs that have since finished; they are kept as the
 
 - **`docs/marketing/positioning.md`** — **marketing positioning guide**: product name, one-liner, everyday frame ("receipts for AI actions" + "bouncer for new skills"), precision line (trust log + cert-gate), is/isn't clarity, what's live vs roadmap (Cloud = waitlist; autonomy = HOLD), funnel stages, visual lock, product naming, and messaging guardrails for sales/social consistency.
 - **`docs/marketing/claims-cheat-sheet.md`** — **Sales/Social claims lock**: product-locked marketing claims (always claim, soft claim, never claim), Dogfood unlock gates for Learn/autonomy, and public verbs. Status: Product-locked 2026-09-19.
+- **`docs/marketing/product-boundary.md`** — **CEO lock on product boundary**: Ashlar governs behavior, not intelligence. Defines core vs products-on-top, public language, architecture picture (propose → gate → admitted → package → receipt), commercial offers, and the autonomy HOLD covenant.
+- **`docs/marketing/friend-warm-script.md`** — **friend/warm close script**: BBQ/LinkedIn/founder warm intro script (15-second and 30-second versions), word choice guidance (plugin/recipe over skill/certified), and the gold line for explaining the value proposition in everyday language.
+- **`docs/marketing/landing-hero-handoff.md`** — **landing page hero copy**: H1, subtitle, CTAs, and support line for website landing hero. Autonomy HOLD; do not claim Cloud/Forge/Learn GA.
 - `assets/brand/BRAND.md` — the **brand kit**: palette, wordmark/icon SVG masters, NuGet/GitHub/social assets, and where each file gets wired; `docs/ashlar-terminal-style.md` — the CLI's **terminal style guide** (palette roles, glyph vocabulary, line format), implemented by the reference `assets/brand/AshlarConsole.cs`.
 - `docs/communications/linkedin-distribution-channels.md` — optional **LinkedIn** copy emphasizing **distribution channels** (NuGet, HTTP, CLI, Compose, mesh) with pointers to **`docs/DistributionModels.md`**.
 - `docs/Persistence.md` — persistence behavior and options.
