@@ -38,10 +38,12 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// is advisory — and is overdetermined here anyway: this class uses
 /// <c>Ashlar.Core.Application.Certification.Ports</c> and <c>Ashlar.Infrastructure.Certification</c>,
 /// which <c>Ashlar.Analyzers.Tests</c> does not reference, so it could not live beside the #605
-/// precedent whose design it copies. The remaining asymmetry is routing, not execution: cert-gate is
-/// required and unfiltered, whereas readiness runs <c>Ashlar.Analyzers.Tests</c> through its native
-/// <c>ci verify -> validate</c> sweep but lists no analyzer glob in either path list, so an
-/// analyzer-only PR skips the heavy lanes. The design transfers; the placement must not.</para>
+/// precedent whose design it copies. The remaining asymmetry is
+/// routing, not execution: cert-gate is required and runs on every pull request, whereas readiness
+/// runs <c>Ashlar.Analyzers.Tests</c> through its native <c>ci verify -> validate</c> sweep only on a
+/// diff matching its path lists - which, since 2026-09-30, include both <c>src/Ashlar.Analyzers/**</c>
+/// and <c>src/Ashlar.Analyzers.Tests/**</c> - and <c>Readiness summary</c> counts a skipped lane as a
+/// pass. The design transfers; the placement must not.</para>
 ///
 /// <para>Corrected 2026-09-13. This paragraph previously read "<c>ci/test-ownership.tsv</c> line 47
 /// records as UNOWNED — no gate runs it". That premise was false: readiness runs 34737292726 and

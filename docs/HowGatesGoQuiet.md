@@ -103,7 +103,7 @@ that refuses everything passes a suite of refusal assertions.
 ## 5. The check points at something that does not exist, and calls that a finding
 
 `dogfood-continuous-proof.yml` read
-`src/Ashlar.Infrastructure/Certification/CertificationVerifyOptions.cs`. That path has never
+`src/Ashlar.Certification.Contracts/CertificationVerifyOptions.cs`. That path has never
 existed; the type is in `Ashlar.Certification.Contracts`. The step always took its not-found branch,
 the canary sweep was always skipped, and the workflow wrote a `GAP` row saying `Strict` was not
 ready — while `master` had required the signature for weeks.
@@ -281,15 +281,16 @@ give the derivation a positive control with a floor, so a population that collap
 fails instead of passing. Where you genuinely cannot derive it, say what the lens excludes *in the
 test*, next to the assertion, so the next reader is not told a narrow fact in wide words.
 
-**Open, in this shape, right now.** Deriving the lane population turned up three lanes whose
-`--filter` selects **zero** tests in the project they run, so each passes having executed nothing:
-`scripts/security-gate-tier-b.sh:11` and `scripts/application-gate-tier-c.sh:11` both run
-`-f net8.0` while naming classes under `Tests/API` and `Tests/VirtualProduction`, which the csproj
-compiles out on net8.0; and `scripts/compat-gate-tier-a.sh:11` names
-`MeshTaskExecutionServiceTests`, which exists in no project — the real tests are
-`MeshTaskExecutionServiceGapCoverageTests` in `Ashlar.Commercial.Tests.Fleet`. Not fixed here:
-each needs a decision about which framework or project the step should have been running, and that
-is a separate change from the window work these were found by.
+**Closed 2026-09-30, and first recorded here as open.** Deriving the lane population turned up
+three lanes whose `--filter` selected **zero** tests in the project they ran, so each passed having
+executed nothing: security-gate Tier B and application-gate Tier C both ran `-f net8.0` while naming
+classes the csproj compiles for net10.0 only; and compat-gate Tier A step 1 named
+`MeshTaskExecutionServiceTests` in `Ashlar.Tests.Infrastructure`, although the class had moved to
+`Ashlar.Commercial.Tests.Fleet` in #151. (An earlier version of this paragraph said the class "exists
+in no project"; it exists, in the commercial Fleet suite.) All three now select their intended tests
+(44, 4 and 1), and `scripts/ci/zero-test-guard.sh` follows every pinned filter so that a selection of
+zero fails its lane - with `scripts/ci/verify-zero-test-guard-wiring.py`, in required `shell-lint`,
+refusing a pinned filter that has no guard.
 
 ## 13. The guard is written, it compiles, and it cannot fire
 
@@ -505,5 +506,7 @@ placement decision, so correcting the registry meant correcting a merged design 
 **A pessimistic record is not the safe direction.** Both instances understated coverage, and the
 repository treated understatement as conservative. It is not: it invited work to close a gap that
 did not exist, and it sat in the file whose purpose is truthful recording. The real gap here was
-narrower and went unnamed — those projects appear in neither readiness path list, so a PR touching
-only them still runs none of their tests.
+narrower and went unnamed — those projects appeared in neither readiness path list, so a PR touching
+only them ran none of their tests. That gap closed on 2026-09-30, when all three were added to both
+lists with the rest of the discovered suites' build closure, which ReadinessClosureConventionTests
+now gates.

@@ -9,7 +9,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](global.json)
 
-> **Local-first .NET runtime for auditable AI workflows you embed — every artifact certified, every action on the record.**
+> **Local-first .NET runtime for auditable AI workflows you embed — generated code certified before admission, every action on the record.**
 
 **Website:** [Marketing landing page](site/) — open-core product site with commercial pricing and integration guides.
 
@@ -23,7 +23,7 @@ Ashlar is a self-hosted .NET runtime for AI workflows you can audit and embed in
 **Three things you get, each with a command behind it:**
 
 1. **Auditable workflows.** Submit a task and you get the output **and** the record of what ran: the task is stored under an id, and the trust log carries an entry whose `sourceId` is that id (`POST /api/copilot/task` → `GET /api/trust/dashboard`).
-2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → witness (correctness) → mutation testing (does the witness have teeth) → determinism. The gate is a required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has proven is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md).
+2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → witness (correctness) → mutation testing (does the witness have teeth) → determinism → dependency graph. A brick a host registers itself (`AddAshlarSdk(sdk => sdk.RegisterBrick<T>())`) is not checked: the default host instantiates it into the brick registry without reading a certificate. The gate is a required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has proven is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md).
 3. **Your infrastructure.** Runs as a CLI, an HTTP API, containers, or embedded in your own host. Local-first: local model routing (Ollama; mock/offline behind an explicit `ASHLAR_ALLOW_MOCK=1`) is the default route and cloud providers are opt-in targets; the API refuses to start on a network exposure profile without auth. There is no hosted Ashlar service.
 
 **See a receipt in 3 commands** (no keys, no decisions):
@@ -97,7 +97,7 @@ For layer-by-layer detail see [`docs/Architecture.md`](docs/Architecture.md); fo
 
 - **Not a hosted SaaS or chatbot.** You run it (CLI, API, container, or embedded in your app); nothing is sent to a Ashlar-operated service.
 - **Not cloud-dependent.** Cloud providers are opt-in execution targets, not requirements. Air-gapped and local-only deployments are first-class.
-- **Not a drop-in IDE plugin by itself.** Ashlar is a runtime and orchestration layer. The extractable workstation product (`products/ashlar-workstation`, `SecureWorkstation` profile) plus `extensions/ashlar-vscode/` is the IDE path — not `ASHLAR_DEPLOYMENT_PROFILE=air-gapped`. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md).
+- **Not a drop-in IDE plugin by itself.** Ashlar is a runtime and orchestration layer. `extensions/ashlar-vscode/` against a host on the `SecureWorkstation` profile is the IDE path — not `ASHLAR_DEPLOYMENT_PROFILE=air-gapped`. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md).
 - **Local-first by default.** Production network exposure requires auth + TLS; the shipped defaults are HTTP-only with no auth for local use (see the [Quick Start note](#quick-start-5-minutes)).
 
 ## Subsystem map
@@ -117,7 +117,7 @@ For layer-by-layer detail see [`docs/Architecture.md`](docs/Architecture.md); fo
 
 ## Trust loop / certification (experimental)
 
-The trust loop is *how* "auditable" and "certified" are true rather than asserted. Its core invariant: an artifact carries a certificate if and only if it passed every leg of the gate — analyzer fence, witness (correctness cases authored **before** the proposal exists and never shown to the proposer), mutation testing (a witness that lets mutants escape is rejected, so the certificate has teeth), determinism — and the certificate is signed and stored with the artifact's content hash. On top of the gate sits an autonomy loop that lets a model propose code against a human-authored objective, run it through the same gate inside an attested container session, and, if admitted, hot-swap it into a running host.
+The trust loop is *how* "auditable" and "certified" are true rather than asserted. Its core invariant: an artifact carries a certificate if and only if it passed every leg of the gate — analyzer fence, witness (correctness cases authored **before** the proposal exists and never shown to the proposer), mutation testing (a witness that lets mutants escape is rejected, so the certificate has teeth), determinism, dependency graph (no `ProjectReference`; `PackageReference` only to `Ashlar.Brick.Contracts` or `Ashlar.Authoring`; the source may not mention `Ashlar.Infrastructure`, `Ashlar.Core.Application`, `/workspace` or any `src/Ashlar*` path) — and the certificate is signed and stored with the artifact's content hash. Two pre-checks run before the first leg: when the request carries the assembly the certifier compiled, its bytes must match their recorded hash, have been compiled from the request's source and carry the requested brick Id (a request without that assembly skips this check); and the generation lineage must be coherent and within the depth ceiling. On top of the gate sits an autonomy loop that lets a model propose code against a human-authored objective, run it through the same gate inside an attested container session, and, if admitted, hot-swap it into a running host.
 
 Status, honestly:
 
@@ -139,7 +139,7 @@ Where to read and what to run:
 
 ## Why Ashlar
 
-- **Embed and build on it.** Distribute Ashlar as NuGet packages, HTTP API, CLI containers, or source integration. Embed the runtime in your application via `services.AddAshlar()` for complete control over AI workflow execution with built-in audit trails and certification.
+- **Embed and build on it.** Distribute Ashlar as NuGet packages, HTTP API, CLI containers, or source integration. Embed the runtime in your application via `services.AddAshlar()` for AI workflow execution with built-in audit trails and certification. Two limits: a brick you register yourself runs without a certificate check unless you call the verifier ([`consumer-template/CONSUMING.md`](consumer-template/CONSUMING.md#certification-what-this-template-binds-and-what-it-does-not)), and the gate store, ledger and `.ashpkg` support (`Ashlar.Manifest`) is not published as a NuGet library: it ships only inside the `Ashlar.CLI` and `Ashlar.API` hosts.
 - **Control before capability.** Nothing is trusted because a model said so: proposals pass a gate, execution can be confined to attested containers, and admission is held until an operator flips it. Trust tiers, policy packs, and pause/resume sit on the execution path, not beside it.
 - **Proof, not claims.** The audit trail is queryable (`/api/trust/dashboard`, `/api/copilot/tasks`), the certificate is checkable (`cert-gate`), and the evidence ledger cites the run that proved each row.
 - **Data sovereignty.** Cloud providers are opt-in execution targets, not dependencies. Air-gapped and self-hosted deployments are first-class; the API fails closed on network exposure without auth.
@@ -280,8 +280,23 @@ Run Ashlar as a service on a host you control. Review the [security warning](#qu
 
 ```bash
 docker compose -f deploy/node.yml up -d          # the node
-ashlar keys init                                 # give it an operator identity (once)
+
+# Give it an operator identity (once). This runs INSIDE the node container: there is no
+# host `ashlar` binary in this lane, and the keys must land on the node's own state volume
+# (ashlar-state:/data/state), not on your laptop.
+docker compose -f deploy/node.yml exec node dotnet /app/Ashlar.CLI.dll keys init
 ```
+
+**Do not skip the second command, and read what it prints.** Until a node has an operator
+identity it writes gate records with no signature, and under SPEC-006 S-6 an unsigned record is
+indistinguishable from one whose signature was stripped — so a node left in that state is one whose
+trust decisions cannot later be told apart from forged ones. `keys init` also prints how many
+existing unsigned records it is grandfathering, and how many of those are `Admitted`; that count is
+the only control on the grandfather mechanism.
+
+If you prefer a host binary for this lane, install the CLI as a .NET tool first and use plain
+`ashlar keys init` — see [docs/GettingStarted.md](docs/GettingStarted.md). The container form above
+is the one that needs no host .NET SDK.
 
 **Lab / demo stacks:**
 
@@ -306,7 +321,7 @@ Validate a pipeline template from a mounted workspace with the published CLI ima
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/ianfrelinger/nexo-cli:0.1.2 \
+  ghcr.io/ianfrelinger/nexo-cli:0.2.0 \
   pipeline validate --template /work/path/to/template.json
 ```
 
@@ -346,8 +361,8 @@ Ship Ashlar from published container images and compose files. Host-native scrip
 
 | Image | Use |
 |-------|-----|
-| `ghcr.io/ianfrelinger/nexo-cli:0.1.2` | **Recommended for operators** — the immutable, smoke-tested, multi-arch release tag. Automation, agents, validation, and mounted-workspace commands. (`deploy/node.yml` pins its digest.) |
-| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.1.2` (or a digest) for anything durable. |
+| `ghcr.io/ianfrelinger/nexo-cli:0.2.0` | **Recommended for operators** — the immutable, smoke-tested, multi-arch release tag. Automation, agents, validation, and mounted-workspace commands. (`deploy/node.yml` pins a digest, re-pinned to this tag's after it publishes.) |
+| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.2.0` (or a digest) for anything durable. |
 | Build from `.docker/Dockerfile.quickstart` | Single-container API + portal smoke path with mock-friendly defaults. |
 | Build from `.docker/Dockerfile.api` | API image used by compose stacks. |
 
@@ -394,26 +409,24 @@ The canonical repo map is [`docs/ProjectTiers.md`](docs/ProjectTiers.md). Use it
 Ashlar/                           # the repo/clone directory (github.com/IanFrelinger/Ashlar)
 ├── src/                          # kernel spine, runtime, distribution/SDK, transport (gRPC, MCP, A2A), ingress, tests
 ├── application/src/              # Ashlar.CLI, Ashlar.API hosts + Ashlar.Tests.CLI (open)
-├── products/                     # extractable product scaffolds (workstation, cluster, cloud, native)
 ├── apps/                         # runtime-studio config (extraction scheduled; release-manager extracted 2026-09-01)
 ├── commercial/                   # Fleet, MeshDirector + tests (not Apache-2.0; LICENSING.md)
-├── docs/                         # architecture, operations, mesh, release, SDK, demos/, samples/, runbooks
+├── docs/                         # architecture, operations, mesh, release, SDK, samples/, runbooks
 ├── samples/                      # hello-brick, brick template, certified-brick-reuse, approval-workflow, autonomy-objectives, aws-sns lambda
 ├── spikes/                       # autonomy first-flight, portability spike (evidence, not product)
 ├── tools/                        # certify/export brick, devlog publisher
 ├── deploy/                       # compose/ stacks and k8s/ manifests
 ├── infra/                        # terraform
-├── extensions/                   # ashlar-vscode (→ ashlar-workstation product)
+├── extensions/                   # ashlar-vscode (VS Code / Cursor client for the API)
 ├── consumer-template/            # nuget.config + Directory.Packages.props + host/ reference host for external consumers
 ├── config/                       # trust policy packs
 ├── scripts/                      # setup, install, CI, release helpers
 ├── .devcontainer/
 ├── .docker/
 ├── .github/
-├── Ashlar.sln                      # everything open + 3 commercial projects (63 projects; does not include products/)
+├── Ashlar.sln                      # src/ (less Hosting.Bundle + a test helper) + application/ + 3 commercial (61 projects)
 ├── Ashlar.Kernel.sln               # kernel libraries + kernel tests (no CLI/API)
 ├── Ashlar.Runtime.sln              # embeddable runtime graph (no application/)
-├── Ashlar.Demos.sln                # docs/demos/* clients
 ├── Ashlar.Core.slnf                # Tier 0 spine + CLI/API hosts
 ├── Ashlar.LocalDevCore.slnf        # fast local CLI + core test slice
 ├── Ashlar.PrimeTime.slnf           # ProdStyle test gate (seven open test assemblies)
@@ -425,12 +438,10 @@ Ashlar/                           # the repo/clone directory (github.com/IanFrel
 | Goal | Open | Notes |
 |------|------|-------|
 | CLI / API / core dev loop | `Ashlar.LocalDevCore.slnf` (`make build-core`) or `Ashlar.Core.slnf` | Fastest restore; no `commercial/`. Add `Ashlar.Kernel.sln` when you edit kernel libraries and their tests without the hosts. |
-| Everything open, one solution | `Ashlar.sln` | Also pulls the commercial MeshDirector project and the Fleet/MeshDirector test projects that ship in the sln (see [`docs/ProjectTiers.md`](docs/ProjectTiers.md)). |
+| Nearly everything open, one solution | `Ashlar.sln` | `src/` and `application/`, except `Ashlar.Hosting.Bundle` and the `copy-assemblies` test helper; `tools/`, samples and spikes build from their own paths. Also pulls the commercial MeshDirector project and the Fleet/MeshDirector test projects that ship in the sln (see [`docs/ProjectTiers.md`](docs/ProjectTiers.md)). |
 | Kernel libraries only | `Ashlar.Kernel.sln` / `Ashlar.Runtime.sln` | Kernel.sln adds kernel test projects; Runtime.sln is the NuGet-publishable graph. |
 | ProdStyle test gate | `Ashlar.PrimeTime.slnf` (`make test-prime-time`) | Seven open `Ashlar.Tests.*` assemblies. |
 | Hosts as the application gate builds them | `application/Ashlar.Application.sln` | `Ashlar.API`, `Ashlar.CLI`, `Ashlar.Tests.CLI` — open only. |
-| Extractable product scaffolds | `products/Ashlar.Products.sln` | Workstation, cluster, cloud, native. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md). |
-| Demos | `Ashlar.Demos.sln` | Avalonia, Blazor, console clients. |
 | Commercial verticals | project paths under `commercial/` | Not in the quickstart; see [`LICENSING.md`](LICENSING.md). |
 
 ## Testing
@@ -450,8 +461,7 @@ bash scripts/run-cert-gate.sh
 # broader local CLI test runner path
 dotnet run --project application/src/Ashlar.CLI -- test local
 
-# extractable product scaffolds (same commands as products-gate)
-dotnet test products/Ashlar.Products.sln
+# distributed envelope / evidence contracts
 dotnet test src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj \
   --filter FullyQualifiedName~DistributedContractTests
 ```

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Ashlar.Abstractions;
 using Ashlar.Core.Application.Execution.Routing;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
 
@@ -17,6 +18,7 @@ public sealed class NcrCapabilityRouter : ICapabilityRouter
     private readonly RunPodBrick _runPodBrick;
     private readonly IOptions<RunPodBrickConfig> _config;
     private readonly ILogger<NcrCapabilityRouter> _logger;
+    private readonly IOptions<AshlarResolvedDeploymentProfileOptions>? _profile;
     private readonly PeerTrustPolicyResolver _peerTrustResolver;
 
     /// <summary>Initializes a new ncr capability router.</summary>
@@ -27,7 +29,8 @@ public sealed class NcrCapabilityRouter : ICapabilityRouter
         ILocalExecutor localExecutor,
         RunPodBrick runPodBrick,
         IOptions<RunPodBrickConfig> config,
-        ILogger<NcrCapabilityRouter> logger)
+        ILogger<NcrCapabilityRouter> logger,
+        IOptions<AshlarResolvedDeploymentProfileOptions>? deploymentProfile = null)
     {
         _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
         _peerSnapshot = peerSnapshot ?? throw new ArgumentNullException(nameof(peerSnapshot));
@@ -36,21 +39,32 @@ public sealed class NcrCapabilityRouter : ICapabilityRouter
         _runPodBrick = runPodBrick ?? throw new ArgumentNullException(nameof(runPodBrick));
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _profile = deploymentProfile;
         _peerTrustResolver = new PeerTrustPolicyResolver(
             _config.Value.PeerTrustPolicy,
             _config.Value.TrustedPeerIdsCsv,
             _config.Value.UntrustedPeerIdsCsv);
     }
 
+    private bool IsAirGapped => _profile?.Value.IsAirGapped == true;
+
     /// <summary>Resolve execution target.</summary>
     public ExecutionTarget ResolveExecutionTarget(JobRequirements requirements)
     {
         if (requirements.RemoteExecutionPreference == RemoteExecutionPreference.PeerNetworkOnly)
         {
+            if (IsAirGapped)
+            {
+                const string refused =
+                    "AirGapped: peer-network-only execution is unavailable; remote peers are not used on this profile.";
+                _logger.LogInformation("capability-routing decision=refused reason={Reason}", refused);
+                throw new InvalidOperationException(refused);
+            }
+
             return ResolveRemoteTarget(requirements, "Explicit peer-network execution requested.");
         }
 
-        if (requirements.RemoteExecutionPreference == RemoteExecutionPreference.PreferPeerNetwork)
+        if (!IsAirGapped && requirements.RemoteExecutionPreference == RemoteExecutionPreference.PreferPeerNetwork)
         {
             var peerRoutingEnabled = _config.Value.EnablePeerNetworkRouting;
             var hasEligiblePeers = _peerSnapshot.Candidates.Any(peer => IsPeerEligible(peer, requirements));
@@ -66,6 +80,13 @@ public sealed class NcrCapabilityRouter : ICapabilityRouter
             const string localReason = "Local capabilities satisfy VRAM, compute class, and queue-depth checks.";
             _logger.LogInformation("capability-routing decision=local reason={Reason}", localReason);
             return new ExecutionTarget.Local(_localExecutor, localReason);
+        }
+
+        if (IsAirGapped)
+        {
+            var airGappedReason = $"AirGapped: remote execution unavailable; running locally ({remoteReason})";
+            _logger.LogInformation("capability-routing decision=local reason={Reason}", airGappedReason);
+            return new ExecutionTarget.Local(_localExecutor, airGappedReason);
         }
 
         return ResolveRemoteTarget(requirements, remoteReason);

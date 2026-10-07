@@ -9,7 +9,7 @@ CI workflow **`.github/workflows/layer-boundary.yml`** enforces:
 | `master` / `main` / `runtime/*` | Head branch must **not** be named `application/*` |
 | `application/*` | Head branch must **not** be named `runtime/*` |
 
-Plural `applications/` (removed 2026-08-31) and `apps/` (host configs) are **not** covered by this gate; `dependency-boundary` forbids `src/` → `products/` (and legacy `applications/` paths). Extractable product scaffolds live under `products/`.
+Plural `applications/` (removed 2026-08-31) and `apps/` (host configs) are **not** covered by this gate; `dependency-boundary` forbids `src/` → `products/` (and legacy `applications/` paths). The extractable product scaffolds that lived under `products/` were parked on `archive/parked-2026-10-03`.
 
 **Enforcement status (2026-09-09):** `layer-boundary / verify` is **not** a required status check on `master` — branch protection requires `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, and `Readiness summary`, but not `layer-boundary` — so host PRs without an exemption merge with a red, non-required `verify`. See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) ("Layer boundary and what master actually enforces") and [`docs/CiGateInventory.md`](../CiGateInventory.md).
 

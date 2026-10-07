@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="9a7b780e-561d-49c3-b080-2a3313d89a4a" name="@c36702ac70af 2026-09-30 16:39:48" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-30T16:39:48.0276065+00:00" queuing="2026-09-30T16:39:48.0276065+00:00" start="2026-09-30T16:39:44.2760317+00:00" finish="2026-09-30T16:39:48.0348557+00:00" />
+  <TestSettings name="default" id="ca31c770-342d-4392-8e55-326771497aff">
+    <Deployment runDeploymentRoot="_c36702ac70af_2026-09-30_16_39_48" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="0b7f31c0-f09d-4cec-bd73-5202bdcd3afb" testId="badce8d3-ce6e-c1a3-9229-6d8a348f844f" testName="Ashlar.Commercial.Tests.Fleet.MeshTaskExecutionServiceTests.MigrateForCheckpointAsync_clears_assignment_and_sets_checkpoint" computerName="c36702ac70af" duration="00:00:00.0416790" startTime="2026-09-30T16:39:47.8391732+00:00" endTime="2026-09-30T16:39:47.8955143+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0b7f31c0-f09d-4cec-bd73-5202bdcd3afb" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Ashlar.Commercial.Tests.Fleet.MeshTaskExecutionServiceTests.MigrateForCheckpointAsync_clears_assignment_and_sets_checkpoint" storage="/repo/commercial/tests/ashlar.commercial.tests.fleet/bin/debug/net8.0/ashlar.commercial.tests.fleet.dll" id="badce8d3-ce6e-c1a3-9229-6d8a348f844f">
+      <Execution id="0b7f31c0-f09d-4cec-bd73-5202bdcd3afb" />
+      <TestMethod codeBase="/repo/commercial/tests/Ashlar.Commercial.Tests.Fleet/bin/Debug/net8.0/Ashlar.Commercial.Tests.Fleet.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Ashlar.Commercial.Tests.Fleet.MeshTaskExecutionServiceTests" name="MigrateForCheckpointAsync_clears_assignment_and_sets_checkpoint" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="badce8d3-ce6e-c1a3-9229-6d8a348f844f" executionId="0b7f31c0-f09d-4cec-bd73-5202bdcd3afb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.0+05679a7ab5 (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.43]   Discovering: Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:01.61]   Discovered:  Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.0+05679a7ab5 (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.19]   Discovering: Ashlar.Commercial.Tests.Fleet
+[xUnit.net 00:00:00.34]   Discovered:  Ashlar.Commercial.Tests.Fleet
+[xUnit.net 00:00:00.40]   Starting:    Ashlar.Commercial.Tests.Fleet
+[xUnit.net 00:00:00.53]   Finished:    Ashlar.Commercial.Tests.Fleet
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="c36702ac70af" outcome="Warning" timestamp="2026-09-30T16:39:46.6182255+00:00">
+        <Text>No test matches the given testcase filter `FullyQualifiedName~MeshTaskExecutionServiceTests.MigrateForCheckpointAsync` in /repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

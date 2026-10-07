@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.Autonomy;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.BackgroundAgents.Autonomy;
 
@@ -126,8 +127,10 @@ public sealed class OllamaProposalSource : IProposalSource
         if (_options.Think is { } think)
             body["think"] = think; // only when set: older daemons and non-thinking models reject an unknown field
 
-        using var response = await _http.PostAsJsonAsync(
-            $"{_options.BaseUrl.TrimEnd('/')}/api/generate", body, Json, cancellationToken).ConfigureAwait(false);
+        var url = $"{_options.BaseUrl.TrimEnd('/')}/api/generate";
+        // SPEC-007 EG-MDL-11, report-only: the objective, the gate's feedback and the previous source go to this daemon.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, "EG-MDL-11", url));
+        using var response = await _http.PostAsJsonAsync(url, body, Json, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadFromJsonAsync<GenerateResponse>(Json, cancellationToken).ConfigureAwait(false);
         var text = payload?.Response ?? string.Empty;

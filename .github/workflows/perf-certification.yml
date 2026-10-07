@@ -33,19 +33,43 @@ jobs:
           set -euo pipefail
           mkdir -p perf-results
           echo "{\"baseline\":\"${{ github.event.inputs.baseline }}\",\"runId\":\"${{ github.run_id }}\",\"sha\":\"${{ github.sha }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > perf-results/perf-certification-meta.json
+          # One invocation over the whole solution, so every test project runs (most match nothing).
+          # It used ONE LogFileName in ONE results directory, and each project's TRX overwrote the
+          # previous one ("WARNING: Overwriting results file"): the file that survived was whichever
+          # project finished last, and the metrics step below read that. LogFilePrefix names each TRX
+          # <prefix>_<tfm>_<yyyyMMddHHmmss>.trx, and leaving --results-directory unset keeps each
+          # project's under its own TestResults/, so two projects finishing in the same second cannot
+          # collide either (measured: two projects in one run both named theirs
+          # perf-certification_net8.0_20260930163958.trx). They are then gathered under perf-results/trx,
+          # one file per project and framework, and guarded in --solution mode: at least one project
+          # must have executed a test.
+          #
+          # The gather runs BEFORE the test's exit code is honoured. A failing run is the one whose
+          # results matter most, and under `set -e` a bare `dotnet test` would exit before the copy:
+          # the metrics step (if: always()) would then find no TRX and report 0 tests, 0 failed, and
+          # the uploaded artifact would carry none. `|| rc=$?` keeps the code; it is re-raised below.
+          rc=0
           dotnet test Ashlar.sln \
             --configuration Release \
-            --logger "trx;LogFileName=perf-certification.trx" \
-            --results-directory perf-results \
+            --logger "trx;LogFilePrefix=perf-certification" \
             --filter "FullyQualifiedName~Ashlar.Tests.Orchestration.Performance|FullyQualifiedName~Benchmark" \
-            --verbosity minimal
+            --verbosity minimal || rc=$?
+          mkdir -p perf-results/trx
+          while IFS= read -r -d '' trx; do
+            project="$(basename "$(dirname "$(dirname "$trx")")")"
+            cp "$trx" "perf-results/trx/${project}__$(basename "$trx")"
+          done < <(find . -path '*/TestResults/perf-certification_*.trx' -not -path './perf-results/*' -print0)
+          if [[ "$rc" -ne 0 ]]; then
+            echo "::error::dotnet test exited ${rc}; its TRX files are kept in perf-results/trx"
+            exit "$rc"
+          fi
+          bash scripts/ci/zero-test-guard.sh --solution perf-results/trx/*__perf-certification_*.trx
 
       - name: Extract perf metrics and check thresholds
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          TRX_FILE=$(find perf-results -name '*.trx' -print -quit 2>/dev/null || true)
           REPORT_FILE="perf-results/perf-certification-report.json"
 
           TOTAL=0
@@ -53,11 +77,16 @@ jobs:
           FAILED=0
           DURATION_MS=0
 
-          if [[ -n "$TRX_FILE" && -f "$TRX_FILE" ]]; then
-            TOTAL=$(grep -c '<UnitTestResult' "$TRX_FILE" 2>/dev/null || echo 0)
-            PASSED=$(grep -c 'outcome="Passed"' "$TRX_FILE" 2>/dev/null || echo 0)
-            FAILED=$(grep -c 'outcome="Failed"' "$TRX_FILE" 2>/dev/null || echo 0)
-          fi
+          # Summed over every project's TRX. This read ONE file (find -print -quit), and with every
+          # project writing the same name that file was whichever project finished last.
+          # `grep -c` prints 0 AND exits 1 on no match, so `|| echo 0` produced "0<newline>0"; `|| true`
+          # keeps the single 0.
+          for TRX_FILE in perf-results/trx/*.trx; do
+            [[ -f "$TRX_FILE" ]] || continue
+            TOTAL=$(( TOTAL + $(grep -c '<UnitTestResult' "$TRX_FILE" || true) ))
+            PASSED=$(( PASSED + $(grep -c 'outcome="Passed"' "$TRX_FILE" || true) ))
+            FAILED=$(( FAILED + $(grep -c 'outcome="Failed"' "$TRX_FILE" || true) ))
+          done
 
           PASS_RATE=0
           if [[ "$TOTAL" -gt 0 ]]; then

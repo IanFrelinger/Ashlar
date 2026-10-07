@@ -14,7 +14,7 @@ public class InMemoryVectorStoreTests
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(32);
         var emb = await gen.GenerateAsync("hello world", default);
-        await store.IndexAsync("doc1", "hello world", emb, null, default);
+        await store.IndexAsync("doc1", "hello world", emb, "Public", default);
 
         var queryEmb = await gen.GenerateAsync("hello world", default);
         var results = await store.SearchAsync(queryEmb, 5, 0.0, null, default);
@@ -30,8 +30,8 @@ public class InMemoryVectorStoreTests
     {
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(32);
-        await store.IndexAsync("doc1", "alpha beta", await gen.GenerateAsync("alpha beta", default), null, default);
-        await store.IndexAsync("doc2", "gamma delta", await gen.GenerateAsync("gamma delta", default), null, default);
+        await store.IndexAsync("doc1", "alpha beta", await gen.GenerateAsync("alpha beta", default), "Public", default);
+        await store.IndexAsync("doc2", "gamma delta", await gen.GenerateAsync("gamma delta", default), "Public", default);
 
         var queryEmb = await gen.GenerateAsync("alpha", default);
         var results = await store.SearchAsync(queryEmb, 5, 0.99, null, default);
@@ -44,7 +44,7 @@ public class InMemoryVectorStoreTests
     {
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(32);
-        await store.IndexAsync("doc1", "text", await gen.GenerateAsync("text", default), null, default);
+        await store.IndexAsync("doc1", "text", await gen.GenerateAsync("text", default), "Public", default);
         await store.RemoveAsync("doc1", default);
 
         var results = await store.SearchAsync(await gen.GenerateAsync("text", default), 5, 0.0, null, default);
@@ -56,7 +56,7 @@ public class InMemoryVectorStoreTests
     {
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(32);
-        await store.IndexAsync("doc1", "a", await gen.GenerateAsync("a", default), null, default);
+        await store.IndexAsync("doc1", "a", await gen.GenerateAsync("a", default), "Public", default);
         await store.ClearAsync(default);
 
         var results = await store.SearchAsync(await gen.GenerateAsync("a", default), 5, 0.0, null, default);
@@ -99,7 +99,7 @@ public class InMemoryVectorStoreTests
             "stale-doc",
             "hello world",
             await indexedGen.GenerateAsync("hello world", default),
-            null,
+            "Public",
             default);
 
         var queryGen = new TokenEmbeddingGenerator(32);
@@ -125,7 +125,7 @@ public class InMemoryVectorStoreTests
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(64);
         foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon"), ("c", "zeta eta theta") })
-            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), "Public", default);
 
         var unrankable = await gen.GenerateAsync("!!!", default);
         var refuse = async () => await store.SearchAsync(unrankable, 5, 0.0, null, default);
@@ -152,7 +152,7 @@ public class InMemoryVectorStoreTests
     {
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(64);
-        await store.IndexAsync("a", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), null, default);
+        await store.IndexAsync("a", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), "Public", default);
 
         var tiny = new float[64];
         Array.Fill(tiny, 1e-23f);
@@ -174,8 +174,8 @@ public class InMemoryVectorStoreTests
     {
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(64);
-        await store.IndexAsync("real", "gamma delta epsilon", await gen.GenerateAsync("gamma delta epsilon", default), null, default);
-        await store.IndexAsync("empty-file.log", "", await gen.GenerateAsync("", default), null, default);
+        await store.IndexAsync("real", "gamma delta epsilon", await gen.GenerateAsync("gamma delta epsilon", default), "Public", default);
+        await store.IndexAsync("empty-file.log", "", await gen.GenerateAsync("", default), "Public", default);
 
         var results = await store.SearchAsync(await gen.GenerateAsync("gamma delta epsilon", default), 5, 0.0, null, default);
 
@@ -192,7 +192,7 @@ public class InMemoryVectorStoreTests
         var store = new InMemoryVectorStore();
         var doc = new float[4] { 0f, 1f, 0f, 0f };
         var query = new float[4] { 1f, 0f, 0f, 0f };
-        await store.IndexAsync("orthogonal", "unrelated but real", doc, null, default);
+        await store.IndexAsync("orthogonal", "unrelated but real", doc, "Public", default);
 
         var results = await store.SearchAsync(query, 5, 0.0, null, default);
 
@@ -224,7 +224,7 @@ public class InMemoryVectorStoreTests
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(64);
         foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon") })
-            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), "Public", default);
 
         var refuse = async () => await store.SearchAsync(Filled(64, 1e20f), 5, 0.0, null, default);
         await refuse.Should().ThrowAsync<ArgumentException>();
@@ -234,7 +234,7 @@ public class InMemoryVectorStoreTests
         var unit = new float[64];
         unit[0] = 1f;
         var large = new InMemoryVectorStore();
-        await large.IndexAsync("real", "real document", unit, null, default);
+        await large.IndexAsync("real", "real document", unit, "Public", default);
         (await large.SearchAsync(Filled(64, 1e19f), 5, 0.0, null, default)).Should().ContainSingle();
     }
 
@@ -252,7 +252,7 @@ public class InMemoryVectorStoreTests
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(64);
         foreach (var (id, text) in new[] { ("a", "alpha beta gamma"), ("b", "gamma delta epsilon") })
-            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), null, default);
+            await store.IndexAsync(id, text, await gen.GenerateAsync(text, default), "Public", default);
 
         var refuse = async () => await store.SearchAsync(Filled(64, float.NaN), 5, 0.0, null, default);
         await refuse.Should().ThrowAsync<ArgumentException>();
@@ -271,9 +271,9 @@ public class InMemoryVectorStoreTests
     {
         var store = new InMemoryVectorStore();
         var gen = new TokenEmbeddingGenerator(64);
-        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), null, default);
-        await store.IndexAsync("nan", "malformed", Filled(64, float.NaN), null, default);
-        await store.IndexAsync("overflow", "malformed", Filled(64, 1e20f), null, default);
+        await store.IndexAsync("real", "alpha beta gamma", await gen.GenerateAsync("alpha beta gamma", default), "Public", default);
+        await store.IndexAsync("nan", "malformed", Filled(64, float.NaN), "Public", default);
+        await store.IndexAsync("overflow", "malformed", Filled(64, 1e20f), "Public", default);
 
         var results = await store.SearchAsync(await gen.GenerateAsync("alpha beta gamma", default), 5, 0.0, null, default);
 

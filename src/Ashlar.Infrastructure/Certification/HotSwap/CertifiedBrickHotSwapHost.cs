@@ -20,7 +20,8 @@ namespace Ashlar.Infrastructure.Certification.HotSwap;
 /// <list type="number">
 /// <item><description><b>Verify-at-load.</b> Every brick's certification record is re-verified
 /// against the exact source bytes being loaded (<see cref="CertificationTrustVerifier"/>
-/// with <see cref="CertificationVerifyOptions.Strict"/>). When a supplied PE matches
+/// with <see cref="CertificationVerifyOptions.Strict"/>, plus the signer set the operator pinned
+/// through <see cref="CertificationTrustPolicy"/>). When a supplied PE matches
 /// the record's <c>gate-emitted-artifact</c> hash, the artifact-bytes overload binds
 /// those bytes; otherwise the host rematerializes from wrapped source.</description></item>
 /// <item><description><b>Fail-closed swap.</b> Any verification, compile, load, or
@@ -60,6 +61,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     private readonly Ashlar.Core.Application.Autonomy.LoopPauseControl? _pauseControl;
     private readonly TimeSpan? _cadenceFloor;
     private readonly TimeProvider _clock;
+    private readonly CertificationVerifyOptions _verifyOptions;
 
     private BrickGeneration? _current;
     private int _generationCounter;
@@ -110,6 +112,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     /// <param name="pauseControl">Global pause (R6.2): while paused, autonomous swaps are refused; human-driven swaps proceed.</param>
     /// <param name="cadenceFloor">Minimum interval between autonomous swaps (R6.1) so the runtime never absorbs changes faster than watch windows clear.</param>
     /// <param name="clock">Clock for cadence decisions; system time when null.</param>
+    /// <param name="trustPolicy">Operator trust configuration supplying the pinned signer set; defaults to <see cref="CertificationTrustPolicy.Ambient"/>, which is the <c>Strict</c> preset itself when nothing is configured.</param>
     public CertifiedBrickHotSwapHost(
         ICertifiedBrickSwapProvenanceSink? provenanceSink = null,
         ILogger<CertifiedBrickHotSwapHost>? logger = null,
@@ -121,8 +124,13 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
         Ashlar.Core.Application.Autonomy.ILineageAuthority? lineageAuthority = null,
         Ashlar.Core.Application.Autonomy.LoopPauseControl? pauseControl = null,
         TimeSpan? cadenceFloor = null,
-        TimeProvider? clock = null)
+        TimeProvider? clock = null,
+        CertificationTrustPolicy? trustPolicy = null)
     {
+        // Strict plus whatever signer set the operator pinned. Resolved once, at construction: a
+        // host must not change its mind about which signers it accepts between generations, and a
+        // trust configuration it cannot parse must stop it here rather than at its first swap.
+        _verifyOptions = (trustPolicy ?? CertificationTrustPolicy.Ambient).Strict;
         _provenanceSink = provenanceSink;
         _logger = logger;
         _hmacKey = hmacKey;
@@ -389,7 +397,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
             BrickOutput? output = null;
             Exception? brickFault = null;
             DomainBrick? brick = null;
-            var startTicks = System.Diagnostics.Stopwatch.GetTimestamp();
+            var startTicks = _clock.GetTimestamp();
             try
             {
                 brick = generation.GetBrick(brickId)
@@ -425,7 +433,7 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
                 // generation that served it, not to whichever one is current by the time
                 // the counters are read.
                 var current = Volatile.Read(ref _watchCurrent);
-                var elapsed = System.Diagnostics.Stopwatch.GetTimestamp() - startTicks;
+                var elapsed = _clock.GetTimestamp() - startTicks;
                 var undeclared = output is null ? 0 : CountUndeclaredWrites(brick, output);
                 current?.Record(elapsed, brickFault is not null, undeclared);
                 var breachReasons = EvaluateWatch(current);
@@ -475,6 +483,19 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
     }
 
     /// <summary>
+    /// Timestamp ticks are not TimeSpan ticks, and the difference is silent on the machine most
+    /// likely to run this code by hand. Windows QPC reports a frequency of 10,000,000, which
+    /// happens to equal TimeSpan.TicksPerSecond, so a raw comparison against TimeSpan.Ticks reads
+    /// as correct on a developer box. On Linux .NET reports 1,000,000,000 — one tick per
+    /// nanosecond — so the same comparison is 100x out, and an operator's configured ceiling of
+    /// one second would fire at ten milliseconds. The gate and every container run on Linux.
+    /// The frequency must come from the same provider that produced the timestamps, which is why
+    /// this is an instance method reading _clock rather than Stopwatch directly.
+    /// </summary>
+    private TimeSpan TimestampTicksToDuration(long timestampTicks) =>
+        TimeSpan.FromSeconds((double)timestampTicks / _clock.TimestampFrequency);
+
+    /// <summary>
     /// Breach reasons when the watch thresholds are crossed; null otherwise (R5.2).
     /// Judges the stats the caller captured for the generation that served the invocation.
     /// </summary>
@@ -494,10 +515,14 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
         // The duration ceiling is absolute too: a first-generation deploy has no baseline
         // for the relative legs, and a pathological single invocation must not hide in a
         // healthy mean.
-        if (thresholds.MaxInvocationDuration is { } durationCap && maxLatencyTicks > durationCap.Ticks)
+        if (thresholds.MaxInvocationDuration is { } durationCap)
         {
-            reasons.Add($"an invocation took {TimeSpan.FromTicks(maxLatencyTicks).TotalMilliseconds:F0}ms, "
-                + $"exceeding the absolute ceiling of {durationCap.TotalMilliseconds:F0}ms");
+            var maxLatency = TimestampTicksToDuration(maxLatencyTicks);
+            if (maxLatency > durationCap)
+            {
+                reasons.Add($"an invocation took {maxLatency.TotalMilliseconds:F0}ms, "
+                    + $"exceeding the absolute ceiling of {durationCap.TotalMilliseconds:F0}ms");
+            }
         }
 
         if (invocations >= thresholds.MinInvocations && Volatile.Read(ref _watchBaseline) is { } baseline)
@@ -826,12 +851,12 @@ public sealed class CertifiedBrickHotSwapHost : IDisposable
                     request.SourceCode,
                     boundPe,
                     _hmacKey,
-                    CertificationVerifyOptions.Strict)
+                    _verifyOptions)
                 : CertificationTrustVerifier.Verify(
                     request.Record,
                     request.SourceCode,
                     _hmacKey,
-                    CertificationVerifyOptions.Strict);
+                    _verifyOptions);
             if (!trust.Trusted)
             {
                 refusals.Add(new BrickSwapRefusal

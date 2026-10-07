@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Validation.Models;
 using Ashlar.Core.Application.Validation.Ports;
 using Ashlar.Core.Application.Common.Models;
@@ -212,18 +213,24 @@ public class ValidationServiceAdapter : IValidationService
                     }
                     else
                     {
-                        switch (ClassifyCompletedRun(trxFile, recordedResults, run.Output))
+                        // The zero-execution rule is judged per project and on EXECUTED tests, not
+                        // on the NoTestsSelected arm alone: a project whose every test is skipped
+                        // records rows, classifies as ResultsRecorded, and would slip past a check
+                        // keyed on the empty-selection arm. Invalid evidence already fails the
+                        // project and is reported once, as itself.
+                        var evidence = ClassifyCompletedRun(trxFile, recordedResults, run.Output);
+                        var error = evidence == CompletedRunEvidence.InvalidEvidence
+                            ? InvalidEvidenceError(testProject.Name)
+                            : ZeroExecutionError(testProject.Name, filter, executed.Count, recordedResults - executed.Count);
+                        if (error is not null)
                         {
-                            case CompletedRunEvidence.NoTestsSelected:
-                                emptyProjects.Add(testProject.Name);
-                                _logger.LogInformation("{Project}: no tests selected (0 run)", testProject.Name);
-                                break;
-                            case CompletedRunEvidence.InvalidEvidence:
-                                var error = $"{testProject.Name}: test results are missing, unreadable or inconsistent; "
-                                    + "the run cannot be reported as passing.";
-                                evidenceErrors.Add(error);
-                                _logger.LogWarning("{Error}", error);
-                                break;
+                            evidenceErrors.Add(error);
+                            _logger.LogWarning("{Error}", error);
+                        }
+                        else if (evidence == CompletedRunEvidence.NoTestsSelected)
+                        {
+                            emptyProjects.Add(testProject.Name);
+                            _logger.LogInformation("{Project}: no tests selected (0 run)", testProject.Name);
                         }
                     }
                 }
@@ -244,7 +251,10 @@ public class ValidationServiceAdapter : IValidationService
                 }
             }
 
-            // Pass if no tests failed (even if no tests were run)
+            // Pass only when no test failed and every project produced usable evidence. A project
+            // that executed nothing in an unfiltered sweep is an evidence error (see
+            // ZeroExecutionError), so "no tests were run" no longer passes on its own; an empty
+            // selection under a caller's filter still does.
             var passed = totalTestsFailed == 0 && evidenceErrors.Count == 0;
 
             progress?.Report(new ProgressReport
@@ -255,16 +265,12 @@ public class ValidationServiceAdapter : IValidationService
                 TotalSteps = totalProjects
             });
 
-            var skippedSuffix = totalTestsSkipped > 0 ? $", {totalTestsSkipped} skipped" : string.Empty;
-            var evidenceSuffix = evidenceErrors.Count > 0 ? "; " + string.Join("; ", evidenceErrors) : string.Empty;
-            var emptySuffix = emptyProjects.Count > 0 ? "; no tests selected: " + string.Join(", ", emptyProjects) : string.Empty;
             return new ValidationResult
             {
                 Passed = passed,
-                Message = (passed
-                    ? $"Validation passed ({totalTestsPassed}/{totalTestsRun} tests{skippedSuffix})"
-                    : $"Validation failed ({totalTestsFailed}/{totalTestsRun} tests failed{skippedSuffix})")
-                    + evidenceSuffix + emptySuffix,
+                Message = DescribeOutcome(
+                    passed, totalTestsRun, totalTestsPassed, totalTestsFailed, totalTestsSkipped,
+                    evidenceErrors, emptyProjects),
                 TestsRun = totalTestsRun,
                 TestsPassed = totalTestsPassed,
                 TestsFailed = totalTestsFailed,
@@ -400,6 +406,83 @@ public class ValidationServiceAdapter : IValidationService
         }
     }
 
+    /// <summary>
+    /// Whether the caller narrowed the sweep. A blank filter is no filter: this is the same test
+    /// <see cref="CreateDotnetTestStartInfo"/> uses to decide whether to append the caller's
+    /// clause, so <c>--filter ""</c> cannot run an unfiltered sweep with the zero-execution rule
+    /// switched off.
+    /// </summary>
+    internal static bool CallerNarrowedTheSweep(string? filter) => !string.IsNullOrWhiteSpace(filter);
+
+    /// <summary>The evidence error for a project whose result evidence cannot be trusted.</summary>
+    internal static string InvalidEvidenceError(string projectName) =>
+        $"{projectName}: test results are missing, unreadable or inconsistent; "
+        + "the run cannot be reported as passing.";
+
+    /// <summary>
+    /// The evidence error for a discovered test project that executed no test in a sweep the
+    /// caller did not narrow, or null when the caller passed a filter or the project executed at
+    /// least one test. Skips beside an executed test are fine - a documented skip is not a red
+    /// test - so only a project whose EXECUTED count is zero fails, whether it selected nothing or
+    /// every test it selected was skipped.
+    /// </summary>
+    /// <remarks>
+    /// Policy, chosen conservatively: validate always excludes <c>Category=Stress</c> and
+    /// <c>Category=DockerOptional</c> (<see cref="CreateDotnetTestStartInfo"/>), so a project whose
+    /// every test carries one of those traits legitimately selects nothing, and it still fails
+    /// here. A sweep that reports "passed" for a project it ran nothing in is the lane-not-a-receipt
+    /// shape this repository keeps finding. A future all-Stress or all-DockerOptional test project
+    /// must therefore carry at least one test outside those categories (a fast structural or smoke
+    /// fact) so the sweep executes something in it. The same holds for a project whose every test
+    /// is SKIPPED wherever the sweep runs it: an integration suite made only of
+    /// <c>[OptInFact]</c> tests whose switch is unset, one made only of <c>[NotOnCiFact]</c> tests
+    /// under <c>CI=true</c>, or a suite skipped wholesale on one platform. It fails on the lane
+    /// where it executes nothing, and it must carry at least one test that runs there without the
+    /// dependency (a structural or wiring fact). There is deliberately no opt-out marker: an
+    /// opt-out is how a project goes quiet. A caller who narrows the sweep with a filter has chosen
+    /// the selection, so an empty selection stays a pass there and is reported as such. The rule is
+    /// the same whichever way the run was classified as empty: a zero-row TRX, or no TRX under the
+    /// project beside the console's "no test matches" line.
+    /// </remarks>
+    internal static string? ZeroExecutionError(string projectName, string? filter, int executed, int skipped)
+    {
+        if (CallerNarrowedTheSweep(filter) || executed > 0)
+            return null;
+
+        var why = skipped switch
+        {
+            0 => "it selected none, and validate always excludes Category=Stress and Category=DockerOptional",
+            1 => "its only selected test was skipped",
+            _ => $"all {skipped} of its selected tests were skipped",
+        };
+        return $"{projectName}: executed no tests in an unfiltered sweep ({why}); "
+            + "a discovered test project that runs nothing is not evidence of passing.";
+    }
+
+    /// <summary>
+    /// The one-line result validate reports. When nothing failed but a project produced no usable
+    /// evidence, the headline says so instead of "0/N tests failed", which reads as a
+    /// contradiction; the per-project reasons follow it in every case.
+    /// </summary>
+    internal static string DescribeOutcome(
+        bool passed, int testsRun, int testsPassed, int testsFailed, int testsSkipped,
+        IReadOnlyCollection<string> evidenceErrors, IReadOnlyCollection<string> emptyProjects)
+    {
+        var skippedSuffix = testsSkipped > 0 ? $", {testsSkipped} skipped" : string.Empty;
+        string headline;
+        if (passed)
+            headline = $"Validation passed ({testsPassed}/{testsRun} tests{skippedSuffix})";
+        else if (testsFailed > 0 || evidenceErrors.Count == 0)
+            headline = $"Validation failed ({testsFailed}/{testsRun} tests failed{skippedSuffix})";
+        else
+            headline = $"Validation failed ({testsPassed}/{testsRun} tests passed{skippedSuffix}, but "
+                + $"{evidenceErrors.Count} {(evidenceErrors.Count == 1 ? "project" : "projects")} produced no passing evidence)";
+
+        var evidenceSuffix = evidenceErrors.Count > 0 ? "; " + string.Join("; ", evidenceErrors) : string.Empty;
+        var emptySuffix = emptyProjects.Count > 0 ? "; no tests selected: " + string.Join(", ", emptyProjects) : string.Empty;
+        return headline + evidenceSuffix + emptySuffix;
+    }
+
     private static readonly System.Text.RegularExpressions.Regex PlaceholderToken =
         new("__[A-Za-z0-9]+__", System.Text.RegularExpressions.RegexOptions.Compiled);
 
@@ -440,7 +523,10 @@ public class ValidationServiceAdapter : IValidationService
 
     private static async Task<int> RunDotnetBuildProjectAsync(string csprojPath, CancellationToken ct)
     {
-        var p = Process.Start(CreateDotnetBuildStartInfo(csprojPath));
+        var startInfo = CreateDotnetBuildStartInfo(csprojPath);
+        // SPEC-007 EG-PROC-02, report-only: dotnet build restores implicitly, so it reaches the NuGet feeds.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", RestoreDestination(startInfo)));
+        var p = Process.Start(startInfo);
         if (p is null)
             return -1;
 
@@ -674,7 +760,10 @@ public class ValidationServiceAdapter : IValidationService
     private static async Task<DotnetTestRun> RunDotnetTestForValidateAsync(
         string csprojPath, string? framework, string? filter, bool streamOutput, CancellationToken ct)
     {
-        var p = Process.Start(CreateDotnetTestStartInfo(csprojPath, framework, filter, streamOutput));
+        var startInfo = CreateDotnetTestStartInfo(csprojPath, framework, filter, streamOutput);
+        // SPEC-007 EG-PROC-02, report-only: dotnet test --no-build restores nothing, so it stays on the host.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-02", RestoreDestination(startInfo)));
+        var p = Process.Start(startInfo);
         if (p is null)
             return new DotnetTestRun(-1, string.Empty);
 
@@ -727,6 +816,17 @@ public class ValidationServiceAdapter : IValidationService
         }
     }
 
+    /// <summary>
+    /// The EG-PROC-02 decision's destination, read off the argv that will run: an argument that is exactly
+    /// <c>--no-build</c> or <c>--no-restore</c> means nothing is restored, so <c>host:dotnet</c>; anything else
+    /// restores from the NuGet feeds, <c>nuget-feeds</c>. Only the restore is described: test code still runs with
+    /// the host's network.
+    /// </summary>
+    internal static string RestoreDestination(ProcessStartInfo startInfo) =>
+        startInfo.ArgumentList.Contains("--no-build") || startInfo.ArgumentList.Contains("--no-restore")
+            ? "host:dotnet"
+            : "nuget-feeds";
+
     internal static ProcessStartInfo CreateDotnetBuildStartInfo(string csprojPath)
     {
         var startInfo = CreateDotnetStartInfo(csprojPath);
@@ -742,7 +842,7 @@ public class ValidationServiceAdapter : IValidationService
     {
         ValidateFilterGrouping(filter);
         const string exclusions = "Category!=DockerOptional&Category!=Stress";
-        var effectiveFilter = string.IsNullOrWhiteSpace(filter) ? exclusions : $"({exclusions})&({filter})";
+        var effectiveFilter = CallerNarrowedTheSweep(filter) ? $"({exclusions})&({filter})" : exclusions;
         var startInfo = CreateDotnetStartInfo(csprojPath);
         startInfo.ArgumentList.Add("test");
         startInfo.ArgumentList.Add(csprojPath);

@@ -7,7 +7,7 @@ namespace Ashlar.Infrastructure.ParallelTesting;
 /// <summary>
 /// Spawns N dotnet test processes with different parameter sets.
 /// </summary>
-public sealed class DotNetInstanceSpawner : IInstanceSpawner
+internal sealed class DotNetInstanceSpawner : IInstanceSpawner
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<TestInstance>> SpawnAsync(int count, IReadOnlyList<ParameterSet> paramSets, string solutionOrProjectPath, CancellationToken cancellationToken = default)

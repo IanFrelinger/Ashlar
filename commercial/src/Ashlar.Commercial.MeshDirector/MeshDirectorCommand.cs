@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text;
 using System.Text.Json;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.Commercial.MeshDirector;
 
@@ -411,7 +412,9 @@ public sealed class MeshDirectorCommand : Command
     private static HttpClient CreateHttpClient(int timeoutSeconds)
     {
         var s = Math.Clamp(timeoutSeconds, 5, 3600);
-        return new HttpClient { Timeout = TimeSpan.FromSeconds(s) };
+        var client = EgressHttp.CreateClient(EgressFamilies.Http, "EG-HTTP-07");
+        client.Timeout = TimeSpan.FromSeconds(s);
+        return client;
     }
 
     private static async Task WriteResponseAsync(HttpResponseMessage resp, bool preferFormattedJson)

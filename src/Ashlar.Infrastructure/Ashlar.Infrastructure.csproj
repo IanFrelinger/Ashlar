@@ -1,7 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <Description>Default implementations behind Ashlar's application ports: CertificationGate with its mutation and witness runners, signed certification record stores, LLM provider factories, and their DI extensions. The certified-brick hot-swap host lives here too, behind the experimental ASHLAREXP001 opt-in.</Description>
+    <PackageTags>ashlar certification hot-swap adapters infrastructure</PackageTags>
+  </PropertyGroup>
+
+
     <ItemGroup>
+        <!-- UnitTestFrameworkBridge is internal (it compiles against xunit, which this package does
+             NOT ship), and the four test assemblies that drive it each need to see it. -->
         <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
+        <InternalsVisibleTo Include="Ashlar.Tests.Application" />
+        <InternalsVisibleTo Include="Ashlar.Tests.Domain" />
+        <InternalsVisibleTo Include="Ashlar.Tests.CLI" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -34,6 +45,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.AI.Abstractions" VersionOverride="10.10.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
         <PackageReference Include="Microsoft.Extensions.Http" />

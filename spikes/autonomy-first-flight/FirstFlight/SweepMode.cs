@@ -41,9 +41,39 @@ public static class SweepMode
             return 1;
         }
 
+        // Hoisted above the composition because the evidence archive is configured here as well as
+        // used by the recording proposer below. Same expression as before, one place.
+        var campaignDir = Environment.GetEnvironmentVariable("ASHLAR_CAMPAIGN_DIR")
+            ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(objectivesRoot))!, "campaign");
+        Directory.CreateDirectory(campaignDir);
+
         var services = new ServiceCollection();
         services.AddLogging(b => b.AddSimpleConsole(o => o.SingleLine = true).SetMinimumLevel(LogLevel.Information));
         services.AddCertificationGate();
+        // ============================================================================
+        // UNVERIFIED BY ANY GATE, deliberately, and this comment is the disclosure.
+        //
+        // `spikes/` is compiled by nothing in CI — no required check, no advisory check, and
+        // `Ashlar.sln` does not contain this project. So a GREEN GATE IS NOT EVIDENCE FOR THIS
+        // FILE: the EvidenceArchiveDirectory line below could be deleted, misspelled, or pointed at
+        // a directory nothing uploads, and every check in this repository would stay green while the
+        // sweep silently stopped producing the record a 3a ledger row cites.
+        //
+        // What IS covered, and where: the mechanism this line turns on lives entirely in `src/` and
+        // is merge-blocking through cert-gate — `CertificationEvidenceArchiveTests` (persist, re-read
+        // from disk, re-verify, the named refusals, the sidecar's field names),
+        // `AutonomousIterationHarnessTests` (the archive runs on the HELD path and the hold still
+        // blocks the swap) and `EvidenceArchiveCompositionConventionTests` (the archive is never
+        // the admission record store, and the composed harness gets one only when a directory is
+        // configured). The deliberate choice is that this file holds ONE configuration assignment
+        // and no logic, so there is as little here as possible to rot.
+        //
+        // No source grep from a workflow or a convention test guards this line, and that is also
+        // deliberate: the dogfood workflow deleted its last source-scanning precondition and kept
+        // three paragraphs about why any such check in that lane is suspect. What catches a broken
+        // wiring here is `classify_sweep_evidence` in `scripts/dogfood-continuous-proof.sh`, which
+        // treats an ABSENT sidecar as a GAP — so an unwired archive produces a GAP row, not a PASS.
+        // ============================================================================
         services.AddAshlarAutonomy(new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -53,6 +83,9 @@ public static class SweepMode
                 ["Ashlar:Autonomy:ExecuteCandidateInSession"] = "true",
                 // The whole point of the first run: certify everything, admit nothing.
                 ["Ashlar:Autonomy:HoldAdmission"] = "true",
+                // Persist each certification record, re-read it off disk and re-verify it. This is
+                // NOT an admission store: the hold above is untouched and nothing is swapped.
+                ["Ashlar:Autonomy:EvidenceArchiveDirectory"] = campaignDir,
                 ["Ashlar:Autonomy:SessionImage"] = sessionImage,
                 ["Ashlar:Autonomy:CadenceFloorSeconds"] = "0",
             })
@@ -105,9 +138,6 @@ public static class SweepMode
                 options.SystemPreamble = File.ReadAllText(preamblePath).Trim();
                 Console.WriteLine($"preamble: {preamblePath} ({options.SystemPreamble.Length} chars)");
             }
-            var campaignDir = Environment.GetEnvironmentVariable("ASHLAR_CAMPAIGN_DIR")
-                ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(objectivesRoot))!, "campaign");
-            Directory.CreateDirectory(campaignDir);
             var live = new OllamaProposalSource(
                 new HttpClient(),
                 options,
@@ -131,7 +161,8 @@ public static class SweepMode
             proposals);
 
         var started = DateTimeOffset.UtcNow;
-        var attempted = await loop.SweepAsync();
+        var outcome = await loop.SweepAsync();
+        var attempted = outcome.Attempted;
         var elapsed = DateTimeOffset.UtcNow - started;
 
         Console.WriteLine();
@@ -143,6 +174,18 @@ public static class SweepMode
         {
             Console.WriteLine("SWEEP: no objective was eligible — check for a witness and proposal beside each one");
             return 1;
+        }
+
+        // An objective that was charged but reached no verdict is an INFRASTRUCTURE FAULT, not a
+        // result, and it must not leave this process as success. Exit 2 is the script's
+        // "attempted one, no verdict" code; it used to be inferred by grepping the log for a
+        // warning template, because the exit code could not say it. Now it can.
+        if (outcome.Failed > 0)
+        {
+            Console.WriteLine(
+                $"SWEEP: {outcome.Failed} of {attempted} objective(s) reached no verdict — "
+                + "infrastructure fault, not a result; refusing to report this as a pass");
+            return 2;
         }
 
         Console.WriteLine("SWEEP: complete (see the iteration outcome logged above)");

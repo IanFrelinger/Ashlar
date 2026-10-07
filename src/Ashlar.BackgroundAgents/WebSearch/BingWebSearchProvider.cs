@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.BackgroundAgents.WebSearch;
 
@@ -51,6 +52,8 @@ public sealed class BingWebSearchProvider : IWebSearchProvider
 
         var count = Math.Clamp(maxResults, 1, 50);
         var uri = new Uri($"{_baseUrl.TrimEnd('/')}?q={Uri.EscapeDataString(query)}&count={count}");
+        // SPEC-007 EG-WEB-01, report-only: the query leaves in the URL; the record keeps only scheme, host and port.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, "EG-WEB-01", uri));
         try
         {
             var response = await _httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);

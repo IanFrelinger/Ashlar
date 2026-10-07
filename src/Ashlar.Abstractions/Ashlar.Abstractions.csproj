@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Ashlar's agent-execution ports: IAgent, ITool, IToolbox, IAgentMemory, IModel, IPolicy, plus barrier-level context, IAgentTransport, and endpoint-routing contracts shared across hosts and transports.</Description>
+    <PackageTags>ashlar abstractions agents interfaces contracts</PackageTags>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <LangVersion>12.0</LangVersion>
@@ -24,11 +30,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Ashlar.AI.Pipeline" />
     <InternalsVisibleTo Include="Ashlar.Hosting" />
     <InternalsVisibleTo Include="Ashlar.Mcp.Client" />
     <InternalsVisibleTo Include="Ashlar.Mcp.Server" />
+    <InternalsVisibleTo Include="Ashlar.Orchestration" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A" />
     <InternalsVisibleTo Include="Ashlar.Transport.A2A.Server" />
-    <InternalsVisibleTo Include="Ashlar.Tests.Products" />
   </ItemGroup>
 </Project>

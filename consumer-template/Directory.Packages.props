@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Must match a published Ashlar release (repo root VERSION when consuming from your fork). -->
-    <AshlarConsumerPackageVersion>0.1.2</AshlarConsumerPackageVersion>
+    <AshlarConsumerPackageVersion>0.2.0</AshlarConsumerPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Ashlar.Brick.Contracts" Version="$(AshlarConsumerPackageVersion)" />

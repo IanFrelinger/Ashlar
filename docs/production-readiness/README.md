@@ -27,6 +27,49 @@ This folder helps you **support every major production concern** in one place: r
 | Operators | [Operator deployment](OperatorDeployment.md) | Production install, upgrades, backups pointer |
 | Audience fit | [Catalog by deployment type](CatalogByDeploymentType.md) | SMB vs enterprise vs SaaS: which items matter most |
 
+## Evidence rule for readiness records (added 2026-09-30)
+
+> **Read this before trusting any PASS in this folder.** An audit on 2026-09-30 re-checked every
+> PASS in the `*Readiness-v1.md` sheets and in [Release sign-off v1](ReleaseSignOff-v1.md) against
+> what was true on each sheet's own date and SHA. Some rows held up. Others rested on a local run
+> that left no artifact, on a tier no CI workflow had run by then, or on a `dotnet test` step whose
+> filter selected no tests. `dotnet test` exits 0 when nothing matches, so a green step does not
+> show that a test ran. Those rows now carry a dated `[corrected 2026-09-30: …]` note in place.
+> Nothing was deleted or re-ticked.
+
+From 2026-09-30 on, these rules apply:
+
+- A row may read **PASS** only if it names a GitHub Actions run id or check run **on the SHA in
+  the sheet's header**. For a `dotnet test` leg, the row also gives the executed count from that
+  run's log.
+- Any other row reads **NOT RUN**, or **CARRIED FORWARD** with both SHAs: the one the cited run
+  tested, and the one the sheet is for. This includes a run on a different commit with the same
+  tree, such as a pull request head and the commit it merged as.
+- A readiness PASS must cite a `Readiness summary` run whose verdict is `verified`. A verdict of
+  `partial`, `not-verified` or `failed` does not count. #685 added these verdicts; each run shows
+  its verdict in the step summary and job outputs.
+- A local run counts as evidence only if its output is committed or attached beside the row.
+  `.ashlar/` (`.nexo/` before the rename) is gitignored, so a report left there does not count.
+- Nothing enforces this rule yet. No test or gate reads these tables. `scripts/rc-gate-tier-e.sh`,
+  which `make waterproofing-gate-full` runs, reports "sign-off: checked items found" for any
+  ticked line naming Product or Engineering. It still says that about
+  [Release sign-off v1](ReleaseSignOff-v1.md), whose Engineering tick is now annotated
+  UNSUPPORTED-AT-THE-TIME. Apply the rule by review until a check reads it.
+
+The corrections use four labels:
+
+- **SUPPORTED** names the run. If the run tested a different commit from the sheet's SHA, the
+  note says "carried forward", gives both SHAs as tested → sheet, and says why the run still
+  covers the row. If the two commits have the same tree, the note names the tree hash. If the
+  trees differ, the note says what differs, or that the files the row depends on are
+  byte-identical. A run that finished after the sheet was signed says "after sign-off".
+- **UNSUPPORTED-AT-THE-TIME** means the cited command could not have shown what the row claims,
+  even at the sheet's own SHA.
+- **LATER-DECAYED** means the row was true then and is not now. The note gives the date and cause.
+- **UNEVIDENCED** means a local run that nobody can inspect now. The tier's own workflow did not
+  run it, and no run found on the sheet's SHA or its parent ran the same commands. It is not
+  disproven, but under this rule the row reads NOT RUN.
+
 ## How to use this
 
 1. Read [Catalog by deployment type](CatalogByDeploymentType.md) and pick your lane.

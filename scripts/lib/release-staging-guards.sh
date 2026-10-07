@@ -176,3 +176,75 @@ assert_staging_configured() {
   echo "ASSERT staging feed: OK (${feed_url})"
   echo "ASSERT staging push secret: OK (NUGET_STAGING_API_KEY present)"
 }
+
+# The base version, with any prerelease or build suffix removed: 0.2.0-rc1 -> 0.2.0.
+base_semver() {
+  local ver
+  ver="$(normalize_semver "$1")"
+  ver="${ver%%-*}"
+  ver="${ver%%+*}"
+  printf '%s' "${ver}"
+}
+
+# Refuse a workflow_dispatch release whose version is a DIFFERENT release from the root VERSION.
+#
+# release.yml guarded tag pushes, and dispatches made from a tag, and nothing else. Dispatch from a
+# BRANCH satisfied neither condition and still publishes to nuget.org. Directory.Build.targets
+# stamps Version/AssemblyVersion/FileVersion from VERSION, while the nuget job takes its package
+# version from the input, and `-p:PackageVersion=` overrides PackageVersion but not Version - so an
+# unguarded dispatch ships nupkgs whose package version disagrees with the assemblies inside them.
+#
+# A PRERELEASE of the canonical version is allowed: cutting 0.2.0-rc1 from a branch while VERSION
+# reads 0.2.0 is the staging flow the input exists for. A different release is not.
+assert_dispatch_version_allowed() {
+  local requested base canonical root
+  requested="$(normalize_semver "$1")"
+  base="$(base_semver "$1")"
+  root="$(_release_staging_root)"
+
+  canonical="$(bash "${root}/scripts/resolve-canonical-package-version.sh" 2>/dev/null | tr -d '[:space:]')"
+  if [[ -z "${canonical}" ]]; then
+    echo "ABORT: could not resolve the canonical version from VERSION; refusing to publish." >&2
+    return 1
+  fi
+
+  if [[ "${base}" != "${canonical}" ]]; then
+    echo "ABORT: dispatch version ${requested} is not ${canonical} nor a prerelease of it." >&2
+    echo "       Assemblies are stamped from VERSION, so this publishes packages whose version" >&2
+    echo "       disagrees with their assemblies. Bump VERSION, or dispatch ${canonical}." >&2
+    return 1
+  fi
+
+  echo "ASSERT dispatch version: OK (${requested} is ${canonical} or a prerelease of it)"
+}
+
+# Refuse a release whose consumer pin still names the PREVIOUS release.
+#
+# ci/published-version is what consumer-template/Directory.Packages.props and CONSUMING.md pin a
+# stranger to. Nothing in the release path writes it, so after a release it kept naming the version
+# before - and the existing lint only checks the file parses, not that it is current. A stranger
+# copying the template would install one release behind, silently, forever.
+#
+# Enforced rather than automated on purpose: the release commit is where a human states what is
+# being shipped, and a workflow that rewrites the repository mid-publish is a worse hazard than a
+# guard that refuses.
+assert_consumer_pin_matches() {
+  local want root pinned
+  want="$(base_semver "$1")"
+  root="$(_release_staging_root)"
+
+  if [[ ! -f "${root}/ci/published-version" ]]; then
+    echo "ABORT: ci/published-version is missing; consumers have no version to pin." >&2
+    return 1
+  fi
+
+  pinned="$(tr -d '[:space:]' < "${root}/ci/published-version")"
+  if [[ "${pinned}" != "${want}" ]]; then
+    echo "ABORT: ci/published-version is ${pinned} but this release publishes ${want}." >&2
+    echo "       consumer-template pins ${pinned}, so a stranger copying it never receives this" >&2
+    echo "       release. Set ci/published-version to ${want} on the release commit." >&2
+    return 1
+  fi
+
+  echo "ASSERT consumer pin: OK (${want})"
+}

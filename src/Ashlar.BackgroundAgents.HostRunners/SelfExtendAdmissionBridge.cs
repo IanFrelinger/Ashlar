@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Certification.Ports;
 using Ashlar.Manifest;
 using Ashlar.Manifest.Admission;
@@ -282,8 +283,11 @@ public static class SelfExtendAdmissionBridge
                 logger.LogWarning("Self-extend gate: auto-share refused — {Reason}", claimReason);
                 return $"; auto-share refused: {claimReason}";
             }
+            var storeDir = MeshStore.Resolve(meshDir);
+            // SPEC-007 EG-MESH-01, report-only: auto-share places the package where peers pull from.
+            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
             var json = ExtensionPackaging.Pack(record, files, signer);
-            var dest = MeshStore.Publish(MeshStore.Resolve(meshDir), json);
+            var dest = MeshStore.Publish(storeDir, json);
             logger.LogInformation("Self-extend gate: shared to the mesh → {Dest}", dest);
             return $"; shared → {dest}";
         }

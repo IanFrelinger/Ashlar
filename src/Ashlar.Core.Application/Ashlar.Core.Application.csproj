@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <Description>Ashlar's application layer: the port interfaces infrastructure implements - ICertificationGate, ICertifiedBrickAdmission, IRollbackManager, IAgenticBrickEngine - with their request/result records, MediatR use-case handlers, and FluentValidation pipeline behaviors.</Description>
+    <PackageTags>ashlar application ports certification mediatr</PackageTags>
+  </PropertyGroup>
+
+
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>

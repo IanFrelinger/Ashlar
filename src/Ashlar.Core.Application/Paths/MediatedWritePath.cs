@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Paths;
+
 namespace Ashlar.Core.Application.Paths;
 
 /// <summary>
@@ -70,7 +72,10 @@ public static class MediatedWritePath
             : rootFull + Path.DirectorySeparatorChar;
         var fullPath = Path.GetFullPath(Path.Combine(rootFull, target));
 
-        if (!fullPath.StartsWith(rootWithSep, StringComparison.Ordinal))
+        // Strictly inside: the root itself is not a write target. Ordinal, deliberately, on every
+        // platform: a spelling that differs from the root only by case is refused as an escape
+        // rather than judged, which is the safe side for a floor.
+        if (!PathContainment.IsStrictlyWithin(fullPath, rootFull, StringComparison.Ordinal))
         {
             return $"'{target}' escapes the project root.";
         }
@@ -285,7 +290,7 @@ public static class MediatedWritePath
     private static bool TraversesReparsePoint(string targetFullPath, string rootFull)
     {
         var dir = Path.GetDirectoryName(targetFullPath);
-        while (dir != null && dir.Length > rootFull.Length && dir.StartsWith(rootFull, StringComparison.Ordinal))
+        while (dir != null && PathContainment.IsStrictlyWithin(dir, rootFull, StringComparison.Ordinal))
         {
             if (Directory.Exists(dir) && (File.GetAttributes(dir) & FileAttributes.ReparsePoint) != 0)
             {

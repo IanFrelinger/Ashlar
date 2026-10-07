@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Paths;
 using Ashlar.Core.Application.Execution.Ports;
 
 namespace Ashlar.Infrastructure.Execution.Scratch;
@@ -66,11 +67,9 @@ public sealed class WorkspacePathPolicy : IWorkspacePathPolicy
     public bool IsUnderRoot(string path)
     {
         if (_root is null) return true;
+        // GetFullPath first, so an unresolvable path still throws here as it always has.
         var full = System.IO.Path.GetFullPath(path);
-        var root = _root.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
-                   + System.IO.Path.DirectorySeparatorChar;
-        return full.StartsWith(root, StringComparison.OrdinalIgnoreCase)
-               || string.Equals(full, _root, StringComparison.OrdinalIgnoreCase);
+        return PathContainment.IsWithin(full, _root);
     }
 
     /// <inheritdoc />

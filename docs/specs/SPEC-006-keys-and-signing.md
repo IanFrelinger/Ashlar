@@ -101,6 +101,7 @@ New signed bytes get a context tag instead.
 | **Ledger course record** (SPEC-003 — not yet written) | canonical record + `prevSig` chain link | in the record; genesis = deploy course |
 | **Verify verdict** | digest of (manifest bytes, policy bytes, course results) | printed: `✓ VERIFIED · ed25519:9f3c…` |
 | **Certification record** (brick admission) | canonical `BuildPayload` minus both sig fields | `signature` (HMAC) + `ed25519Signature` / `ed25519PublicKey` |
+| **Gate signing activation** (`GateSigningActivation`) | canonical marker minus the sig fields | `Sig`, `Signer` on `{stateRoot}/gate-signing.json` — a sibling of `gates/`, never inside it |
 
 The certification-record row was missing until 2026-08-27, which is how S-4 came to govern
 an artifact class this table did not list.
@@ -135,6 +136,413 @@ Rules:
   reader drops the unknown field, the signature no longer verifies, and the fail-closed
   listing refuses to summarize) — upgrade every reader of a store before its writers start
   claiming.
+- **S-6** *(2026-09-15; rule body and residuals rewritten 2026-09-20)* **A removed gate-record
+  signature is corruption, and the STORE decides it, never the record.** S-1 covers a `sig` that
+  fails verification. From a record's own bytes a `sig` that was removed and one that never
+  existed are the same bytes, so whether a missing signature is corruption MUST be decided from
+  what the store is known to be — and that knowledge MUST NOT be derived from the record being
+  judged, which is the attacker's input.
+
+  **One posture, resolved once, serves every read.** `GateStore.ReadStoreAsync` parses `gates/`
+  once, hashes each record's canonical bytes, judges the signatures that are PRESENT, collects the
+  survivors as anchors, resolves exactly one `GateSignatureExpectation`, and applies it to every
+  record it lets out. `GetAsync`, `ListAsync`, `AdmittedInWindowAsync` and both write guards read
+  through it and MUST NOT resolve a second. Three independent resolutions is what this rule was
+  repaired from, and they disagreed: with `gate-signing.json` deleted, `GetAsync` returned a
+  stripped, state-flipped record that `ListAsync` beside it refused — and `DecideAsync` reads
+  through `GetAsync`, so `gates --admit` signed tampered content under the operator's key. Two
+  consequences are contract, not accident. A single-record read is no longer a single-file read:
+  one corrupt, stripped, re-signed, renamed or duplicated record anywhere under `gates/` refuses a
+  read of an unrelated record, and the refusal names the offending file rather than the one that
+  was asked for. And a single-record read resolves the record by the id INSIDE its bytes, never by
+  a file name and never from the filesystem's own case rules. When two files hold one id — possible
+  only in a store that has never been signed, because the file-name rule below binds them once it
+  is — the file NAMED for that id answers, and a read MUST NOT answer by directory enumeration
+  order. `Directory.EnumerateFiles` guarantees none, so `ParseAllAsync` imposes ordinal order by
+  path; without that, which record answers, which file a refusal names first, the tiebreak in
+  `ListAsync`'s `ProposedAt` sort and the order the inventory is minted in are all undefined. The
+  arbitrary winner is not a cosmetic flaw: `DecideAsync` reads through the single-record path, so a
+  planted file sorting first and carrying an honest record's id with a state of the attacker's
+  choosing makes the honest proposal permanently undecidable, with nothing overwritten and nothing
+  refused. Refusal is reserved for the genuinely ambiguous case, where several files claim an id
+  and none bears its name. S-2 still owns the unsigned store: `ListAsync` returns copies and
+  `AdmittedInWindowAsync` counts them, exactly as before this rule.
+
+  **Two anchors, neither of them the record being judged.** **(a)** Any record here whose
+  signature verifies AND comes from a key the reader's material vouches for — intrinsic proof the
+  store is signed. **(b)** The signed activation marker at `{stateRoot}/gate-signing.json`
+  (`GateSigningActivation`), honoured only when the reader's key material — `operator.pub` ∪
+  `trusted/*.pub`, via `OperatorKey.TrustedPublicKeysBase64`, never the records — vouches for its
+  signer, or, for a keyless reader, when a verifying record carries the same key. The pinning set
+  is key material only; deriving it from the records would accept whatever key an attacker
+  re-signed them all with. The marker lives beside `gates/`, never inside it, because `ListAsync`
+  globs `gates/*.json` and a marker there would brick every listing including the budget count.
+
+  **Grandfathering is MEMBERSHIP IN A SIGNED LIST, never a date.** The marker's signed payload is
+  `{ActivatedAt, Grandfathered}`, where `Grandfathered` names every unsigned record that existed at
+  activation by `(Proposal.Id, canonical sha256)`. An unsigned record in a store that expects
+  signatures MUST be refused unless the honoured inventory names that id AND pins that hash. A
+  grace floor compared against `GateRecord.DecidedAt` MUST NOT be the normative rule and MUST NOT
+  be reinstated: on an unsigned record `DecidedAt` is the attacker's own field, so a date floor
+  grandfathers anything back-dated below it and nothing has to be stripped at all — a brand-new
+  unsigned `Admitted` record dated one second under a floor readable off the store's own records
+  was grandfathered, listed, counted, and shown as a decision nobody made. The hash half is as
+  load-bearing as the id half: without it an id the operator authorized as `Held` can be edited
+  into an admission afterwards. The hash is over `CanonicalJson.Bytes(record)`, never over the file
+  as it sits on disk, so a reformat, a trailing newline or a `text=auto` normalisation cannot arm a
+  brick whose only exit is the command that re-mints the set. Null and empty are different answers
+  and both are needed: null means no marker fired and the weak derived floor applies, empty means
+  the operator authorized nothing — so the member is nullable and never `required`, or a
+  pre-inventory marker would raise a parse error instead of its named refusal. The inventory is
+  minted at exactly one place, `ActivateSigningAsync`, and afterwards may only SHRINK (`Amend`,
+  when a grandfathered record is decided under a key and so becomes signed). A set that has grown
+  is not an amendment, it is a re-blessing, and it belongs to the operator's verb.
+
+  **A record's file name MUST be the id inside its own signed bytes.** Whenever the store is
+  signed, or the record carries a signature, the file name MUST equal `{Proposal.Id}.json`. The id
+  is signed and the file name is not, and the self-extension budget counts files, because files are
+  all there are to count — so one legitimately signed admission copied to two more names read as
+  three admissions. This is also what keeps the inventory's key unique: two files cannot share one
+  name, so a duplicated id is unrepresentable rather than merely unlikely. Activation MUST refuse a
+  store that already violates this, before writing anything and while the store still reads, because
+  a marker minted over it would refuse every later read and `--repair` would re-mint the same broken
+  set. Scoped to a signed store or a signed record, so a never-signed store still behaves exactly as
+  S-2 says.
+
+  **The marker belongs to the operator, and so does the number.** A marker that is unsigned,
+  unparseable, non-verifying, or carrying no inventory is itself corruption and MUST be refused —
+  never honoured, never reinterpreted. Honouring an unsigned one would let anyone with write access
+  brick a keyless store by planting a far-past instant, and reading a missing inventory as
+  "grandfather everything" is the forgery the inventory exists to stop. Because that refusal is
+  total and `--repair` cannot read through it, each such refusal MUST name the two-step exit:
+  delete the marker, then re-mint. A marker that verifies but whose signer this reader does not
+  vouch for is somebody else's declaration about this store; the automatic write path MUST refuse
+  it by name, only the operator's verb may replace it, and the replacement MUST reach the operator
+  as its own sentence rather than folded into "already active". A keyed write MUST NOT grandfather:
+  it refuses and names the verb when records verify but the marker is gone (`--repair`), and when
+  unsigned records are on disk and the store has never been signed. The operator's PLAIN verb must
+  refuse the first of those too, or the refusal merely redirects the attack through the command the
+  operator is told to run — noting that the refusal keys off records whose signatures still verify,
+  which is a bound, not a defence, and the first residual below says what it costs. A keyless writer
+  MUST refuse to write an unsigned verdict into a store that is signed, or one that merely carries a
+  marker, naming `ashlar keys init` as the remedy and saying that deleting records from `gates/` is
+  not one. The activation instant never moves — not under repeated activation, not under key
+  rotation, not under `--repair` — and a re-mint over a deleted marker is dated at the earliest
+  instant the surviving signatures already prove, never at "now". Both operator verbs MUST print,
+  BEFORE their success line, how many unsigned records they are grandfathering and how many of those
+  are `Admitted`. An inventory minted without the operator seeing that number trades one invisible
+  forgery for another, and every other mechanism in this rule is downstream of that line being read.
+
+  Conformance. Four of these are carried by cert-gate: `GateSignatureExpectationTests` (the rule),
+  `GateRecordReadFunnelConventionTests` (one reader, one resolution point, one marker reader, and
+  grandfathering is a list rather than a timestamp), `GateStoreAnchorProvenanceConventionTests`
+  (every posture anchor has a row, and while every row is attacker-writable the residual below must
+  say so), and `GateSignatureResidualTests` (one executed attack per residual below).
+
+  The fifth is not, and this line used to claim it was. The deliberate contract reversal
+  `SignedGateStoreTests.A_keyless_store_refuses_to_decide_a_record_in_a_signed_store` lives in
+  `src/Ashlar.Tests.Kernel/Signing/`, and cert-gate builds and tests a single project -
+  `Ashlar.Tests.Infrastructure.csproj` (`scripts/run-cert-gate.sh`) - so no clause of
+  `CERT_GATE_FILTER` can reach another assembly. The repo's own generated graph already records
+  this: all 33 `src/Ashlar.Tests.Kernel/` entries in `docs/knowledge-graph.json` carry
+  `in_cert_gate_filter: false`.
+
+  The rule is still enforced, by `full-platform-readiness-gate`: its native lanes run
+  `ashlar ci verify` -> `ashlar validate`, whose unfiltered recursive sweep discovers the project
+  and runs it on Linux, macOS and Windows. Observed green three times in readiness run
+  36639604217 (master `f5846d3a`), 412 cases per lane. Two caveats a reader should carry, because
+  they are the difference between a lane and a receipt. Those heavy lanes are diff-conditional, and
+  a lane that is SKIPPED is counted as a pass by `readiness-summary`. Both readiness path lists now
+  route the code this rule is about - `src/Ashlar.Manifest/**`, `src/Ashlar.Policies.Dev/**`,
+  `src/Ashlar.Certification.Contracts/**` and `src/Ashlar.Analyzers/**` were added alongside
+  `src/Ashlar.Tests.Kernel/**` - so editing `GateStore` or `AdmissionGate` re-runs the 412 cases
+  that guard them. It did not before. A diff that touches none of those entries still skips the
+  lanes, which is the design; it is not evidence about this rule either way. And the sweep emits no
+  per-project count. Since 2026-09-30 an unfiltered sweep fails any discovered project that
+  executes zero tests (`ValidationServiceAdapter.ZeroExecutionError`), but that floor is one
+  executed test, not 412, so a green sweep still does not by itself prove these facts executed.
+  [corrected 2026-09-29; routing 2026-09-30; zero-execution floor 2026-09-30]
+
+  *Residuals, recorded rather than papered over. Every anchor this rule rests on is a file in the
+  state root, and each residual below is demonstrated by a fact in `GateSignatureResidualTests`
+  that performs the attack through the store's public API and asserts the store does NOT catch it —
+  except the last two, which say why no honest fact can exist. Closing one turns its fact red; the
+  fact, its row in that file's inventory, and the sentence here are deleted in the same commit.*
+
+  **The store's own account of itself lives in the directory being attacked.** An actor who strips
+  every signature and deletes `gate-signing.json` leaves no anchor in the state root at all, so the
+  store resolves to *never signed* and reads clean for every reader, keyed or keyless. There is no
+  keyed-reader advantage: a keyed reader holds public key material, not a memory of this store, and
+  the marker its key wrote is in the directory being attacked. With the expectation false, unsigned
+  records count toward the self-extension budget again, so a fabricated admission can deny it and a
+  deletion can free it exactly as before this rule existed. The refusal that stops the operator's
+  plain verb from re-minting over a deleted marker does not help here: it keys off records whose
+  signatures still VERIFY, and this actor drove that count to zero, so plain
+  `ashlar gates sign-activate` mints a fresh inventory over the stripped store and blesses it
+  permanently under the operator's own key. That guard stops the actor who was lazy. Two weak tells
+  remain: `ashlar gates` reports an operator key present against a store that has never been signed,
+  and the next keyed write refuses rather than re-activating, naming a verb whose printed
+  grandfather count should be zero on a store the operator believes has been signing. Closing this
+  needs evidence outside the state root, and §5's premise does not hold for every supported
+  configuration — `NativeBundle.StageApp` documents an operator who points `ASHLAR_KEY_DIR` inside
+  the project, and a path-keyed witness is lost by a clone, a remount or a move. An out-of-band
+  anchor is v2 work and MUST state which of those it survives before it is built.
+
+  **A marker transplanted from a sibling store under the same operator key is honoured.** It is
+  signed over its own payload, and the store identity S-7 put inside it is SELF-ASSERTED — a
+  transplanted marker names its own store consistently — so a reader cannot tell a marker it wrote
+  from one it did not. The inventory bounds a marker moved ALONE: it names the sibling's record ids,
+  so every unsigned record in the victim store is refused and the effect is denial of service
+  against an honestly-adopted store. A marker moved together with the records it names is not
+  bounded — those records are accepted verbatim, and an `Admitted` one among them spends the
+  victim's self-extension budget, because an expectation carrying an inventory counts the unsigned
+  records that survived it. An earlier draft of this paragraph called the transplant denial of
+  service and not acceptance of a forgery; that was wrong. (A note here predicted S-7 would close
+  this. It does not, and the prediction is corrected rather than quietly deleted: the identity S-7
+  adds lives IN THE MARKER, so when the marker travels the identity travels with it and the imported
+  records name exactly the store the imported marker declares. What S-7 bounds is a record moved
+  WITHOUT its marker into a store that has one of its own; a marker and its records moved together
+  are the whole-store copy that stays indistinguishable.)
+
+  **A store with no honoured marker has no store identity to deny a record that names another.**
+  S-7 put the store's identity inside a signed record's bytes, so a record copied from a sibling
+  store under the same operator key is refused by a store whose own honoured marker names a
+  different one. That identity is attested by the marker and by nothing else, AND only where the
+  reader holds key material that vouches for the marker's signature, so a victim that has none —
+  never signed, marker deleted, marker planted under a key this reader does not vouch for, or read by
+  a consumer holding no key material at all — cannot deny the copy: it verifies, pins, ANCHORS the
+  store it was copied into, creating an expectation where there was none against which every other
+  record there is then judged, and counts toward that store's self-extension budget. The file-name
+  rule does not catch it either: the copy keeps its own `{id}.json` name. This is the first residual
+  above biting a second time — the store's whole account of itself lives in the directory being
+  attacked — and closing it needs
+  an identity attested from OUTSIDE the state root, which is the same v2 work that residual names.
+  The KEYLESS case is a deliberate choice and not a fourth accident: a keyless reader honours a marker
+  that a record under the marker's own key corroborates, and an actor who can write the state root
+  writes both halves of that pair, so an identity taken from there would be the ATTACKER's — and the
+  records then refused as "copies" would be the store's own genuine verdicts, by the one command whose
+  remedy text says to delete them. A rule that lets an actor make a store disown what it really wrote
+  is worse than one that declines to protect a reader who brought no key material, so a keyless reader
+  binds no identity. This is the same rule the pinning set already obeys: key material only, never
+  derived from the records being judged.
+  Two further survivals are bounded and deliberately not demonstrated here: a record signed BEFORE
+  `StoreId` existed carries no field and is accepted in any store, because a record signed without
+  it cannot be distinguished from one written under any store, and `GateRecordStoreIdentityTests`
+  asserts that acceptance as the compatibility S-7 requires rather than as a hole; and a copy of an
+  ENTIRE store, records and marker together, carries a consistent identity and so remains
+  indistinguishable from the original.
+
+  **A grandfathered record is trusted for the bytes it had at activation and for nothing else.** It
+  is still unsigned. Activation mints the inventory from every record with no signature, reading the
+  store without judging it and with no test of provenance, so an actor who plants a fabricated
+  `Admitted` record BEFORE the operator activates has it grandfathered permanently, counted by
+  `AdmittedInWindowAsync`, and displayed by `ashlar gates --show` as a decision nobody made. Nothing
+  ever re-examines an entry; `Amend` can only shrink the set, and `--repair` re-mints the same set
+  over the current contents. The only control is the count both operator verbs print before their
+  success line, so the operator authorizes a number they can object to. An `ashlar gates sign-adopt`
+  that re-signs the grandfathered set under the operator's key and empties the inventory is the
+  closure, and is not built.
+
+  **A store with verifying records but no marker keeps date-based grandfathering.** Such a store
+  arises only from marker deletion. A keyed write into it refuses and names `--repair`, so this is a
+  READ-path residual only: no new verdict can be seated while the store is in that state. A read
+  still resolves a floor from the minimum `DecidedAt` over the records that still verify, and
+  `DecidedAt` on an unsigned record is the attacker's own input. Because the floor is the minimum
+  over the SURVIVORS it sits at or before the earliest record, so the earliest record can never be
+  dated by a derived anchor: stripping its signature leaves it grandfathered, readable, shown, and
+  editable in place. On this basis alone an unsigned record is excluded from `AdmittedInWindowAsync`,
+  so in that state it is listed and shown but never counted.
+
+  **Deleting a record outright raises the remaining self-extension budget, and erases a refusal.**
+  `AdmittedInWindowAsync` counts what is present and nothing records what should be, and `GetAsync`
+  reports a deleted record as an ABSENCE rather than as corruption, so a deleted `Held` proposal
+  vanishes from the queue with no tell at all. Worse than the budget: append-once is guarded by the
+  record file existing, so deleting a `Refused` record lets the same id be proposed, held and
+  admitted again — the administrative path SPEC-004 says does not exist — and the resulting
+  admission is signed by the operator's own key and indistinguishable from an honest one. A monotone
+  high-water mark enforced by refusing every read is not the answer: it turns one deletion into a
+  store-wide refusal whose only exit is an operator command that authorizes precisely the budget the
+  deletion was stealing. Only SPEC-003's chained append-only ledger closes this.
+
+  **A keyless reader is protected against an actor who cannot sign, and against nothing else.** With
+  no key material the marker is honoured when ANY record's signer matches it, so an actor who
+  re-signs every record under a key of their own and plants a matching marker supplies both anchors
+  at once: the store resolves to signed, the basis reads *corroborated by a record under the same
+  key*, and a fabricated `Admitted` record signed by that key verifies, pins against an empty
+  pinning set, and spends the budget. This is not the total-stripping residual above but its
+  opposite — an attacker who signs everything — and no bundle consumer can tell the two stores apart
+  without key material of its own. The corroboration path is deliberate: a keyless reader that
+  ignored every marker could not be given this protection at all, and one that honoured every marker
+  could be bricked by a plant. This sentence is what that choice costs.
+
+  **The trust root is a directory, and nothing signs it.** `OperatorKey.TrustedPublicKeysBase64`
+  unions `operator.pub` with every `trusted/*.pub` and recomputes that union from the filesystem in
+  every `GateStore` constructor, so an actor who can write the key directory adds a trusted signer
+  by dropping one file in — no key theft, no operator action — and every verify-and-pin leg in this
+  rule then passes for records they signed. `NativeBundle.StageApp` documents an operator who points
+  `ASHLAR_KEY_DIR` inside the project, which is exactly the configuration in which the governed
+  process can reach it; §5's premise that `keys/` is not written by the governed process does not
+  hold there. `trusted/` cannot simply be removed, because it is what makes key rotation keep
+  earlier records verifiable. The closure is a trust root the governed process cannot write, and it
+  is not built.
+
+  **A marker nobody can read halts every read and every write until it is deleted by hand.** The
+  posture is resolved on every operation, and a marker that is unparseable, unsigned or
+  non-verifying throws there — so one junk file written into the state root, with no key material at
+  all, refuses `GetAsync`, `ListAsync`, `AdmittedInWindowAsync` and both write paths.
+  `ashlar gates sign-activate --repair` does not recover it: repair reads through a MISSING
+  inventory, not through unreadable bytes, so it fails on the same file. The exit is two steps —
+  delete `gate-signing.json`, then `--repair`, which re-mints at the earliest instant the surviving
+  signatures already prove — and each of those refusals is REQUIRED above to name it, because a
+  product state with no named exit is not something this specification may record and walk away
+  from. What remains is a bounded outage, and it is the price of never honouring a marker this
+  machine cannot verify.
+
+  **One misnamed record file holds a store permanently un-signable.** This is the price of the
+  activation refusal required above, and it is a new exposure rather than an old one. Anyone who can
+  write `gates/` can drop a single file whose name is not the id inside it: reads keep working, so
+  nothing looks wrong, while `ashlar keys init` and `ashlar gates sign-activate` — with or without
+  `--repair` — both refuse until somebody finds and removes it, and the actor can put it back. The
+  attacker does not forge past the security upgrade; they deny it. Note also that the store gives
+  contradictory instructions in this state: the activation refusal says to rename or remove the
+  offending file, while the keyless write guard and the membership refusal both say that deleting
+  records from `gates/` is not the remedy. They are about different files — the planted one is not a
+  record this store ever wrote — but one operator can meet both in one session. The trade is still
+  right, because a pre-activation refusal that leaves the store readable and the files movable is
+  strictly better than a post-activation brick whose named remedy re-mints the same collision. A way
+  to adopt a store while quarantining a file it never wrote is the closure, and is not built.
+
+  **The reader's pinning set is ambient process state.** `GateStore` resolves `ASHLAR_KEY_DIR`, or
+  `~/.ashlar/keys`, inside its constructor, so which keys a store vouches for is a property of the
+  process that opened it: the same bytes on disk get two different verdicts under two key
+  directories, with nothing on disk changing in between. Tests pin the variable; the kernel still
+  reads it. Injecting the key directory is the right fix and is deferred because
+  `GateRecordReadFunnelConventionTests` identifies a keyless construction by counting constructor
+  arguments, so the injection MUST replace that gate before it lands.
+
+  **Nothing attests the activation instant: it is the clock the caller supplied, signed.**
+  `ActivateSigningAsync` takes the instant from its caller, both CLI call sites pass
+  `DateTimeOffset.UtcNow`, and the earliest-proven clamp only ever LOWERS it — so on a store with
+  nothing proven the caller's value is written verbatim into the marker and signed, and it verifies.
+  There is no external clock, no timestamping authority and no transparency log. §5 says so in
+  general; this is what it costs here.
+
+  **An operator whose key is stolen can mint any instant and bless any set.** §5's "no protection
+  against a compromised operator machine" covers the inventory and the marker's identity as well as
+  the records. This residual has NO executing fact and cannot honestly have one: the only test that
+  could be written would load the key, sign with it, and observe that the store accepts what the key
+  signed, which asserts that the system works rather than that it fails.
+  `GateSignatureResidualTests` carries the row with that reason written into it, and a companion
+  there refuses a row whose named fact does not exist and a fact that no row names, so the gap is
+  declared rather than inferred.
+
+  **A crash between the record and the amendment leaves a stale inventory entry.** A grandfathered
+  record that is decided under a key becomes signed, so `WriteAsync` moves the record into place and
+  then calls `Amend` to drop its inventory entry, which now pins bytes that are no longer on disk.
+  The store lock is `{stateRoot}/gates/.lock` and the marker is a sibling of `gates/`, so the
+  amendment runs outside the lock's protection: a crash, or an actor who deletes or holds the marker
+  in that window, leaves the entry behind, and restoring the pre-decision bytes then has them
+  accepted. It is downgrade-only, and the ordering was chosen deliberately because the reverse
+  leaves an unsigned record with no entry and refuses the whole store. This residual also has no
+  executing fact, for two reasons written into its row: reproducing the race needs a share-mode
+  denial that is not enforced identically on the cert-gate runner, which would make the fact green
+  where nobody is watching and red where someone is, and any non-racing reconstruction uses the
+  operator's key and lands back on the problem above. Re-attempting the amendment on the next keyed
+  write is the closure, and is not built.
+- **S-7** *(2026-09-27)* **A signed gate record belongs to ONE store, and says which one inside its
+  signed bytes.** `GateSigningActivation` carries a `StoreId`: 32 lowercase hex characters over 128
+  cryptographically random bits, minted when signing is activated, inside the marker's signed bytes.
+  Every record signed while an honoured marker carries one MUST carry that same value in ITS signed
+  bytes (`GateRecord.StoreId`), and a reader MUST refuse a record whose `StoreId` disagrees with the
+  identity named by a marker this reader BOTH honours AND holds key material for (the second half is
+  normative and is spelled out below) — before that record can anchor the store, be counted by
+  `AdmittedInWindowAsync`, or be read as a decision made there. Without this a signed record said
+  WHAT was decided and by WHICH key and nothing at all about WHERE, so one copied out of a sibling
+  store under the same operator key verified, pinned, anchored the store it was copied into and spent
+  that store's self-extension budget — and S-6's file-name leg did not catch it, because the copy
+  keeps its own `{id}.json` name.
+
+  **The identity is minted, never derived.** Not from the store's path: a path-keyed identity is lost
+  by a clone, a remount or a move, so it would refuse every record in a relocated store — a brick
+  delivered by an ordinary checkout. Not from the store's contents either: every input such a
+  derivation could reach is a file in the directory being attacked, and an actor who can write the
+  state root MUST NOT be able to COMPUTE the identity of the store they are copying into. It lives in
+  the marker because that is the one artefact in the state root the operator's key signs, which is
+  also what makes it travel with a bundle — and what bounds the rule, since a store with no marker
+  this reader honours has no identity at all. A reader MUST bind the identity only where it holds KEY
+  MATERIAL that vouches for the marker's signature: a keyless reader honours a marker corroborated by
+  a record under the marker's own key, an actor who can write the state root supplies both halves, and
+  an identity taken from there would be the attacker's — which would turn S-7 from a refusal of copies
+  into a way to make a store refuse its own genuine records. So a keyless consumer gets no S-7
+  protection. Both bounds are residuals recorded under S-6, not claims this rule may skip.
+
+  **It is stable, and a re-mint MUST NOT roll it.** Like `ActivatedAt`: repeated activation, key
+  rotation and `--repair` all KEEP the identity a vouched-for marker already carries, because every
+  record on disk names it and a fresh one would refuse them all — the one command an operator is told
+  to run must not brick the store it was reached for. Where there is no identity to keep (a marker
+  this caller cannot vouch for, a marker that was deleted, a marker minted before S-7), a re-mint
+  MUST carry forward the single identity the store's own VERIFYING records agree on, and mint a fresh
+  one only when nothing here names any; two disagreeing identities carry forward neither.
+
+  **What that inheritance costs, stated as what it actually takes.** ONE file, planted in `gates/`,
+  signed under a key this machine vouches for, plus the documented `--repair` verb. No marker
+  deletion, and no disagreement to trip the guard above. The reason it is that cheap is mechanical: a
+  record takes its identity from the honoured marker, so in a store whose marker predates S-7 none of
+  the store's OWN records can legitimately name one, and the only record that can is a copied one.
+  The vote is first-non-null-unopposed — a record naming no identity votes for nothing — so a single
+  identity-bearing file among any number of identity-less ones is unopposed and wins. An actor who can
+  write `gates/` therefore chooses which identity the store adopts the next time the operator runs
+  `ashlar gates sign-activate --repair`, which is the verb the store's own refusals print. Two
+  consequences, both worse than a single store: S-7 is then permanently disarmed for that pair, and
+  because every later record is signed naming the adopted identity, the UNTOUCHED sibling accepts
+  records from the compromised store — so a directory the actor cannot write to loses the protection
+  too. Removing the inheritance is NOT the obvious fix: a downgrade-then-upgrade re-mints through an
+  older binary that writes no identity, and that store's records then legitimately name the old one,
+  so a re-mint that refused to carry anything forward would brick it. The candidate closures —
+  unanimity among identity-bearing verifying records plus a count floor, or an explicit operator
+  ADOPT step that prints the identity and which files name it — are open, and this rule ships with
+  the cost disclosed rather than with a mechanism chosen in a hurry.
+
+  An earlier draft of this paragraph said it takes marker deletion plus the operator's verb, and that
+  while the store is in that state every read of it is refused. BOTH halves were false and are
+  corrected rather than quietly deleted. Deletion is not required, as above. And a store whose marker
+  is gone is not loud but SILENT: with no marker there is no identity bound, so the S-7 leg cannot
+  bite at all, and the copied admission is readable through `ListAsync` and `GetAsync` and — being
+  signed — is counted by `AdmittedInWindowAsync`, which is the residual above rather than a refusal.
+  `With_the_marker_deleted_the_earliest_record_cannot_be_dated_by_a_derived_anchor` and
+  `A_signed_admission_copied_into_a_store_with_no_marker_of_its_own_still_anchors_it` both pass today
+  and both demonstrate it.
+
+  **Compatibility is normative, and is S-5's mechanism again.** `CanonicalJson` omits nulls, so a
+  record signed before `StoreId` existed has no such field in the bytes its signature covers: adding
+  the member moved no existing record's canonical hash and invalidated no grandfather inventory
+  entry. A record carrying NO identity MUST keep verifying and MUST NOT be treated as a mismatch — it
+  cannot be distinguished from one written under any store, so records signed before S-7 stay
+  transplantable for their lifetime. A store with no identity likewise binds nothing. An unsigned
+  record never carries one: nothing attests it, and a value there would move the very hash the
+  grandfather inventory pins.
+
+  **The FORWARD direction does not hold, and that is worth one sentence here rather than a bug
+  report.** `CanonicalJson` serializes the typed value and `GateRecord` has no extension-data member,
+  so a pre-S-7 binary DROPS `StoreId` on deserialize and recomputes different bytes. It reports a
+  post-S-7 store's records as carrying a signature that does not verify, and a post-S-7 package as an
+  altered verdict. New artefacts are therefore unreadable to older readers, which is the ordinary cost
+  of adding a signed field — recorded so that nobody diagnoses a mixed-version lane as a forgery.
+
+  Conformance, in cert-gate: `GateRecordStoreIdentityTests` (the refusal; the compatibility; the
+  identity being under BOTH signatures, so it cannot be relabelled; its stability across repeated
+  activation, `--repair` over a deleted marker, a CONTESTED marker whose surviving record names
+  another store — the leg that pins the marker outranking the records, without which the stability
+  fact held equally against a build that read the records instead — and the replacement of a foreign
+  marker; the minted value's SHAPE, being 32 lowercase hex characters and distinct across mints, with
+  the entropy left to a review of the one line that mints it rather than claimed by a test that cannot
+  reach it; that a marker this reader IGNORES contributes no identity and a replaced foreign marker's
+  DECLARED identity is discarded, which is the half that stops the rule being inverted into a brick;
+  that a KEYLESS reader binds none and still reads its own records under a planted marker and record;
+  and that two disagreeing identities carry forward neither), with `GateSignatureResidualTests`
+  carrying what stays open — including the keyless bound, which has a row in that class's inventory
+  and an inverted fact of its own, because a fact asserting that the store still WORKS cannot go red
+  on the day the protection is regained.
 
 ## 5. What v1 explicitly does not claim
 
@@ -195,12 +603,40 @@ gap tracked rather than deniable. Currently unmet:
   `CertificationRecordSigner.Verify`) before any signature is examined. Conformance tests:
   `SchemaVersionFloorTests.DowngradedRecord_IsRefused_UnderTheFloor` and
   `LegitimateV2Record_StillVerifies_UnderTheFloor`.
-  **The default floor is 0**, so nothing refuses yet — S-2 keeps the default permissive, and
-  raising the floor is a separate, deliberate step once records have migrated. The MUST is
-  therefore *satisfiable*, not yet *enforced*.
-- **S-1, applied to a *missing* signature, and to a downgraded schema.** S-1 covers a `sig`
-  that fails verification. It does not cover one that was simply removed, and every
-  verification path enforces Ed25519 only `when present` — a condition the record's own
-  bytes control. Worse, the *payload lane itself* is chosen by an attacker-supplied field
-  (`if (record.SchemaVersion is null)`), and the legacy lane covers no Ed25519 fields at
-  all. See limitations 7 and 8 in `docs/certification-evidence.md`.
+  At implementation **the default floor was 0**, so nothing refused — S-2 kept the default
+  permissive, and raising the floor was left as a separate, deliberate step once records had
+  migrated. The MUST was then *satisfiable*, not yet *enforced*.
+
+  *Corrected 2026-10-04: the default floor is no longer 0.* `CertificationVerifyOptions.Default`
+  and `CertificationVerifyOptions.Strict` both set `MinimumSchemaVersion =
+  CertificationRecordData.TrustLoopSchemaVersion` (2) and `RequireEd25519Signature = true`, and
+  both tiers use `Default` when given no options. A legacy-lane record (null schema version,
+  counted as 0) is therefore refused under either preset — for an admitted PASS record
+  `CertificationTrustVerifier` reports `schema-version-below-floor`, and
+  `CertificationRecordSigner.Verify` returns false — unless the caller passes options with a
+  lower floor. `CertificationVerifyOptions.Legacy` (`new()`, floor 0) is the only preset with
+  one; `MinimumSchemaVersion` is a public `init`, so a caller can also build such options
+  itself, and the one production site that builds options outside the presets
+  (`CertificationTrustPolicy.Apply`) copies its basis preset's floor.
+  `SchemaVersionFloorTests.Presets_PinEveryStrictnessField` pins a floor of at least
+  `TrustLoopSchemaVersion` and a required Ed25519 signature on both `Default` and `Strict`, and
+  floor 0 on `Legacy`. The change shipped as a breaking change in 0.2.0 (`CHANGELOG.md`);
+  `docs/certification-evidence.md` limitations 7 and 8 date it 2026-09-06.
+- **S-1, applied to a downgraded certification-record schema.** S-1 covers a `sig` that
+  fails verification. For *certification records* the *payload lane itself* is chosen by an
+  attacker-supplied field (`if (record.SchemaVersion is null)`), and the legacy lane covers no
+  Ed25519 fields at all. See limitations 7 and 8 in `docs/certification-evidence.md`. This
+  bullet used to carry a second half — a `sig` that was simply *removed*, which every
+  verification path tolerated because it enforced Ed25519 only `when present`, a condition
+  the record's own bytes control. For **gate records** that half is now rule S-6 in §4 and
+  is enforced; the certification-record half stays here, unmet.
+
+- **S-2, reaffirmed against S-6.** Two degrade paths stay permissive by design, and the
+  conformance tests pin both: a store that has never been signed — no verifying record, no
+  marker — behaves exactly as before for every reader, keyed or not
+  (`Running_keys_init_on_an_unsigned_store_does_not_refuse_it`); and a keyless reader of a
+  store with no verifying record honours no marker, so nothing it can read is refused for
+  lacking a signature
+  (`A_planted_unsigned_marker_is_corruption_and_a_planted_foreign_marker_is_ignored`).
+  Signing is presence-activated, never half-on — and, once activated, never silently
+  half-off.

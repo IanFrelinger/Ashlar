@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Three ready-made IPolicy implementations that approve or deny agent tool calls: AllowAllPolicy, OutputPathSandboxed (rejects a call whose 'output' argument resolves outside the snapshot's OutputRoot), and PerfHeadroom (denies a tool once the elapsed times the host records for it exceed a budget).</Description>
+    <PackageTags>ashlar policies tool-calls sandbox governance</PackageTags>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>

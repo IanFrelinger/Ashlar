@@ -27,7 +27,7 @@ This document closes **Phase 0** of the federated mesh plan: a single primary wo
 
 Rows are **roles** in a mesh; columns are **capabilities** operators care about. “Via” indicates required wiring (env, compose, or code).
 
-| Capability | Full worker (`Ashlar.API` + `AddAshlar` Full/Server, adaptation on) | Headless worker (CLI + same kernel profile, no portal) | Director / control node (orchestrates others; may be same binary) | Edge / Lite (`Ashlar.Lite`, mobile MAUI) |
+| Capability | Full worker (`Ashlar.API` + `AddAshlar` Full/Server, adaptation on) | Headless worker (CLI + same kernel profile, no portal) | Director / control node (orchestrates others; may be same binary) | Edge / Lite (thin HTTP client such as `Ashlar.Client`, mobile MAUI) |
 |------------|-------------------------------------------------------------------|----------------------------------------------------------|-------------------------------------|----------------------------------------|
 | Advertise in mesh (`instances.json` / `ASHLAR_MESH_*`) | Yes — `ashlar mesh`, `ICapabilityAdvertisement` | Yes | Yes | Optional; often **client only** |
 | Publish brick catalog (`GET /api/bricks`) | Yes | Only if host exposes HTTP (not default CLI) | Yes if API hosted | No — not full **Brick** host |

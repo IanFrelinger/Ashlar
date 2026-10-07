@@ -8,6 +8,10 @@ on:
   pull_request:
   push:
     branches: [master, main]
+  # Merge queue. A required check that does not run on `merge_group` never reports, and the
+  # queue waits on it forever - so this is deliberately unfiltered, exactly like the
+  # `pull_request` trigger above.
+  merge_group:
   workflow_dispatch:
 
 concurrency:
@@ -17,7 +21,7 @@ concurrency:
 jobs:
   build-core:
     name: build-core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout

@@ -5,8 +5,15 @@
 /// </summary>
 internal static class AshlarDeploymentProfileEnvironment
 {
+    private static readonly object Gate = new();
+
     internal static string? ResolvedRaw { get; private set; }
 
+    /// <summary>
+    /// Notes the profile <c>AddAshlar</c> resolved. The strictest profile noted in the process wins (SPEC-007 PR 4,
+    /// default D5): once AirGapped has been noted nothing replaces it, and once SecureWorkstation has been noted only
+    /// AirGapped does. Among the other profiles the last one noted wins, as before.
+    /// </summary>
     internal static void NoteResolved(string canonical)
     {
         if (string.IsNullOrWhiteSpace(canonical))
@@ -14,10 +21,28 @@ internal static class AshlarDeploymentProfileEnvironment
             throw new ArgumentException("Resolved profile must be non-blank.", nameof(canonical));
         }
 
-        ResolvedRaw = canonical;
+        lock (Gate)
+        {
+            if (Strictness(canonical) >= Strictness(ResolvedRaw))
+            {
+                ResolvedRaw = canonical;
+            }
+        }
     }
 
-    internal static void ClearResolved() => ResolvedRaw = null;
+    internal static void ClearResolved() => RestoreResolved(null);
+
+    /// <summary>Sets the noted profile as given, bypassing the strictest-wins rule. For the reset seam only.</summary>
+    internal static void RestoreResolved(string? raw)
+    {
+        lock (Gate)
+        {
+            ResolvedRaw = raw;
+        }
+    }
+
+    private static int Strictness(string? raw) =>
+        IsAirGapped(raw) ? 2 : IsSecureWorkstation(raw) ? 1 : 0;
 
     internal static string? Effective(string? raw) =>
         string.IsNullOrEmpty(ResolvedRaw) ? raw : ResolvedRaw;

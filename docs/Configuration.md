@@ -25,7 +25,7 @@ The tables below list keys in `Ashlar:A:B` form with the `Ashlar__A__B` environm
 | `ASHLAR_MESH_API_KEY` | Optional **`X-Ashlar-Api-Key`** for director CLI | unset |
 | `ASHLAR_MESH_MUTATING_TOKEN` | Optional **`X-Ashlar-Mesh-Token`** for mutating mesh routes on the hub | unset |
 | `ASHLAR_MESH_PEER_REGISTRATION_KEY` | Per-peer fleet registration secret for **commercial mesh director CLI `register`** (when director requires distinct key) | unset |
-| `ASHLAR_DEPLOYMENT_PROFILE` | Hosting dependency profile for `AddAshlar()` module composition. Canonical values: `full`, `server`, `edge`, `air-gapped`, `secure-workstation` (alias `workstation`), `system`. Hyphens, underscores, and case fold (`airgapped`, `air_gapped`, `secure_workstation`). `air-gapped` is the slim offline profile (no trust/agents/observation). `secure-workstation` is the IDE daemon profile — not a synonym for air-gapped. The profile registers modules; trust still requires `ASHLAR_TRUST_ENABLED=1` or `AddAshlarWorkstation()`. | `full` |
+| `ASHLAR_DEPLOYMENT_PROFILE` | Hosting dependency profile for `AddAshlar()` module composition. Canonical values: `full`, `server`, `edge`, `air-gapped`, `secure-workstation` (alias `workstation`), `system`. Hyphens, underscores, and case fold (`airgapped`, `air_gapped`, `secure_workstation`). `air-gapped` is the slim offline profile (no trust/agents/observation). `secure-workstation` is the IDE daemon profile — not a synonym for air-gapped. The profile registers modules; trust still requires `ASHLAR_TRUST_ENABLED=1` or `TrustEnabled = true`. | `full` |
 | `ASHLAR_STRICT_MODE` | `1` or `true` = enable strict mode (fail-fast + verbose diagnostics for dev/CI; disable for production) | `false` |
 | `ASHLAR_AIRGAP` | `1` or `true` = air-gapped; no cloud calls | unset |
 | `ASHLAR_AIRGAP_PROBE` | `1` = probe network to detect air-gap | unset |
@@ -82,7 +82,7 @@ Containers: the API and CLI images set `ASHLAR_STATE_DIR=/data/state` (owned by 
 
 | Variable / config key | Description | Default |
 |-----------------------|-------------|---------|
-| `Ashlar__Api__EnableSwagger` | Serve `/swagger` (UI) and `/swagger/v1/swagger.json`. The document enumerates every mapped route and schema, so it is off outside `Development` unless set | `true` in `Development`, else `false` |
+| `Ashlar__Api__EnableSwagger` | Serve `/swagger` (UI) and `/swagger/v1/swagger.json`. The document enumerates every mapped route and schema, so it is off outside `Development` unless set. The commercial Fleet.Host honours the same key with the same default. `application/src/Ashlar.API/appsettings.Testing.json` sets it to `true` and the API, quickstart and fleet-host images all ship that file, so `ASPNETCORE_ENVIRONMENT=Testing` serves Swagger too (`docs/DEPLOYMENT.md`) | `true` in `Development`, else `false` |
 
 `GET /health` (liveness, constant 200) and `GET /ready` (readiness: 503 while the host is starting or shutting down, 200 in between) are always mapped, unauthenticated, and outside `/api`.
 
@@ -289,6 +289,45 @@ Three code paths reach Ollama — the default MEAI model path, the NCR serving b
 
 **Docker (models in containers):** `docker compose -f deploy/compose/docker-compose.ollama.yml up -d`, then `scripts/run-ollama-docker.ps1` / `scripts/run-ollama-docker.sh` to pull a tag. **Host-run Ashlar.API with Ollama in Docker (all platforms):** `scripts/start-ashlar-api-dev.ps1` or `scripts/start-ashlar-api-dev.sh` (waits for Ollama, sets `OLLAMA_*` + NCR URL, runs `dotnet run`). Use `-Pull` / `--pull` when the model is not yet local. **Phone / another device on the same LAN:** `-ListenLan` / `--listen-lan` binds `http://0.0.0.0:<port>`; browse `http://<host-LAN-IP>:8080` and allow the port in the host firewall. Default bind is loopback-only (`127.0.0.1`). Stop: `scripts/stop-ashlar-api-dev.ps1` / `.sh`.
 
+## Node Capability Runtime (NCR) hardware profile (`ASHLAR_*`)
+
+`EnvironmentHardwareProfiler` is the only `IHardwareProfiler` the shipped path registers
+(`NodeCapabilityRuntimeServiceCollectionExtensions`), and it is reached from Ashlar.Hosting kernel
+phase 01 whenever a deployment profile sets `IncludeNodeCapabilityRuntime: true`. **RAM is measured**
+(`GC.GetGCMemoryInfo`). **Everything else in the table below is read from the environment**, because
+there is no cross-platform way to read it — so on a node where nothing sets these, the profile
+describes a machine with no GPU, idle CPU, mains power and empty disks.
+
+> **Set `ASHLAR_TOTAL_VRAM_BYTES` on any node with a GPU.** It defaults to `0`, `AvailableVRAMBytes`
+> falls back to it, and both `LinuxPolicy` and `WindowsPolicy` require
+> `MinVRAMRequiredBytes <= AvailableVRAMBytes`. Two of the four models in `DefaultModelSuite` —
+> `llama3-8b` and `qwen-coder-7b` — declare `MinVRAMRequiredBytes` of 6 GiB, so with VRAM unreported
+> they are **silently unselectable** and the runtime falls back to `phi3-mini`. Nothing warns: an
+> unset knob and a genuinely GPU-less machine are indistinguishable to the profiler.
+
+| Variable | Meaning | Default when unset |
+|---|---|---|
+| `ASHLAR_TOTAL_VRAM_BYTES` | Total GPU memory, bytes. See the warning above. | `0` |
+| `ASHLAR_AVAILABLE_VRAM_BYTES` | Free GPU memory, bytes. Falls back to `ASHLAR_TOTAL_VRAM_BYTES` when `0`. | `0` |
+| `ASHLAR_CPU_UTIL_PERCENT` | Current CPU utilisation, 0–100. | `0` |
+| `ASHLAR_GPU_UTIL_PERCENT` | Current GPU utilisation, 0–100. | `0` |
+| `ASHLAR_ON_BATTERY` | `true` when running on battery. | `false` |
+| `ASHLAR_CHARGING` | `true` when the battery is charging. | `false` |
+| `ASHLAR_BATTERY_PERCENT` | Battery charge, 0–100. | `100` |
+| `ASHLAR_THERMAL_STATE` | `ThermalState` name: `Nominal`, `Fair`, `Serious`, `Critical`. | `Nominal` |
+| `ASHLAR_APP_STATE` | `AppState` name: `Foreground`, `Background`, `Suspended`. | `Foreground` |
+| `ASHLAR_USER_ACTIVE` | `true` when a user is actively at the machine. | `false` |
+| `ASHLAR_BACKGROUND_TASK_PERMISSION` | `true` when the OS permits background work. | `false` |
+| `ASHLAR_BATTERY_OPTIMIZATION_ENABLED` | `true` when the OS is throttling background work to save power. | `false` |
+| `ASHLAR_NETWORK_WIFI` | `true` when the active link is Wi-Fi. | `true` |
+| `ASHLAR_NETWORK_METERED` | `true` when the active link is metered. | `false` |
+| `ASHLAR_NETWORK_LATENCY_MS` | Average network latency, milliseconds. | `25` |
+| `ASHLAR_STORAGE_AVAILABLE_BYTES` | Free disk, bytes. | `0` |
+| `ASHLAR_STORAGE_TOTAL_BYTES` | Total disk, bytes. | `0` |
+
+Defaults above are read from `EnvironmentHardwareProfiler`; a value that fails to parse falls back to
+the same default rather than throwing.
+
 ### Node Capability Runtime (NCR) Ollama
 
 Desktop NCR uses its own options-bound Ollama endpoint for model serving.
@@ -344,6 +383,10 @@ For a **layered breakdown** of mesh capabilities (identity, registry, transport,
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `ASHLAR_MESH_DIR` | Root for this node's published packages and imported peer content. One level off yields an empty peer store with **no error**. | `<state>/mesh` |
+| `ASHLAR_MESH_SERVE_BIND` | Optional bind address for mesh serve (`ASHLAR_MESH_SERVE_PORT`). On AirGapped and SecureWorkstation an unset value is any-interface (`0.0.0.0`) and boot fails; `127.0.0.1`, `localhost` and `::1` succeed. Other profiles keep `ListenAnyIP` and do not apply this value. | unset |
+| `ASHLAR_TAILNET_CMD` | Command invoked to enumerate tailnet peers. See `docs/Federation.md` (F4). | unset (tailnet discovery off) |
+| `ASHLAR_TAILNET_REFRESH_SECONDS` | How often the tailnet peer list is re-read. | `300` |
 | `ASHLAR_MESH_PEER_ID` | Mesh peer identifier | random GUID |
 | `ASHLAR_MESH_INSTANCES_PATH` | Path to file-based mesh instance registry | unset |
 | `ASHLAR_TRUSTED_PEER_IDS` | Comma-separated peer IDs trusted for execution (mesh + RunPod/peer capability routing) | unset (all peers trusted) |
@@ -387,6 +430,7 @@ See `docs/runtime/ExecutionRouting.md` for detailed execution flow and resilienc
 | `ASHLAR_EPHEMERAL_MODELS` | `1` = use ephemeral Ollama container for LLM; container removed when session ends | unset |
 | `ASHLAR_EPHEMERAL_DB` | `postgres` = use ephemeral Postgres container for workflows/tests | unset |
 | `ASHLAR_TEST_EPHEMERAL` | `1` = run tests in ephemeral containers (no volume mounts) | unset |
+| `ASHLAR_TEST_NO_NETWORK` | `1` = run tests with no network access. | unset |
 
 ## Artifact Cleanup
 
@@ -406,12 +450,18 @@ See `docs/runtime/ExecutionRouting.md` for detailed execution flow and resilienc
 | `ASHLAR_AGENT_MODE_PATH` | Path to the file-based aggressiveness mode store (`{"Mode":"passive"|"semi-active"|"active"|"ambient"}`). This file is what ARMS the extender: missing file, unreadable JSON, `{}` or an unknown value all read as **Passive** (observe only, fail-closed); the effective mode is logged when it changes | `~/.ashlar/agent-mode.json` |
 | `ASHLAR_OBJECTIVES_ROOT` | Objective store root (`{status}/{id}.md` + witness/proposal siblings); read by `AddBackgroundAgents` and the Runtime Studio path resolver | `<cwd>/.ashlar/runtime-studio/objectives` |
 | `ASHLAR_FORGE_ROOT` | Forge change-proposal queue root | `<cwd>/.ashlar/runtime-studio/forge` |
+| `ASHLAR_FORGE_PROPOSED_TTL_HOURS` | How long a *proposed* change sits in the forge queue before expiry. | `72` |
+| `ASHLAR_FORGE_APPROVED_TTL_HOURS` | How long an *approved* change stays applicable before expiry. | `168` |
+| `ASHLAR_BUILD_BUDGET` | Wall-clock budget, seconds, for a build a policy will approve. Operator knob (`BuildTestBudget`). | policy default |
+| `ASHLAR_TEST_BUDGET` | Wall-clock budget, seconds, for a test run a policy will approve. Operator knob (`BuildTestBudget`). | policy default |
 | `ASHLAR_OBSERVATIONS_PATH` | Path to the shared `observations.jsonl` | `<cwd>/.ashlar/runtime-studio/observations.jsonl` |
 | `ASHLAR_CYCLE_EVENTS_PATH` | Path to `cycles.jsonl` (absolute or cwd-relative) | `<cwd>/.ashlar/runtime-studio/cycles.jsonl` |
 | `ASHLAR_DASHBOARD_AUTH_TOKEN` | Shared secret for `ashlar background-agent dashboard` (same as `--auth-token`); when set, requests need `?token=` or a Bearer header | unset (dashboard binds `127.0.0.1` only) |
 | `ASHLAR_SANDBOX_ROOT` | Sandbox root for confined tool paths (`PathAllowlist`, forge propose-change) when the world snapshot carries no `SandboxRoot`. Must be a SIBLING of `.ashlar/`, never inside it — `.ashlar/` is the governance and admission-ledger directory and is refused at the write edge; `scripts/sandbox/init-agent-sandbox.sh` creates `<repo>/agent-sandbox/` | unset |
 | `ASHLAR_PATH_ALLOWLIST_EXTRA` | Comma/semicolon-separated extra path prefixes appended to the confined toolbox allowlist (defaults: `src/`, `tests/`, `docs/`, `application/`). Widening only — the default allowlist cannot be narrowed from here — and never onto a governance prefix: an entry such as `.ashlar/host_apps/`, `scripts/`, or any `*.props` is dropped at construction and reported on `PathAllowlist.RejectedExtras`, because the governance floor in `ToolSandbox.TryResolveWritePath` would refuse every write beneath it anyway | unset |
 | `ASHLAR_EXTENSION_MAX_LINEAGE_DEPTH` | Extender ceiling (SX-AUDIT invariant D): max `ParentId` hops below a human-authored root an extender may sit and still extend. May only LOWER the built-in default. | 1 |
+| `ASHLAR_ANALYZER_SEVERITY_FLOOR` | Lowest analyzer severity that still refuses a candidate. May only TIGHTEN the built-in floor. | built-in floor |
+| `ASHLAR_GENERATION_DEPTH_CEILING` | Max generations a single autonomous loop may produce. May only LOWER the built-in ceiling. | built-in ceiling |
 | `ASHLAR_EXTENSION_MAX_UNATTENDED_CYCLES` | Extender ceiling: extend cycles since a human last armed the agent before it holds (re-arm: restart or `RearmExtension`). May only LOWER the default. | 8 |
 | `ASHLAR_EXTENSION_MAX_CYCLES_PER_HOUR` | Extender ceiling: extend cycles in any trailing hour. May only LOWER the default. | 4 |
 | `ASHLAR_OBSERVATION_DEGRADED_MODE` | `1` = start observation pipeline in degraded mode | unset |
@@ -441,7 +491,9 @@ Bound from the `Ashlar:Autonomy` section by `AddAshlarAutonomy(configuration)` �
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ASHLAR_CERT_DEV_HMAC_KEY` | HMAC key for signing **and verifying** brick and composition certification records (`CertificationRecordSigner`, `CompositionCertificationRecordSigner`, `Ashlar.Certification.Contracts.CertificationRecordSigning`). **Unset means the COMMITTED, PUBLIC dev key** `CertificationRecordSigning.DefaultDevKey`: anyone with the source can forge a record that verifies, so certificates then prove integrity against accident, not against an adversary. Both signers log a warning at construction while the dev key is in effect (`UsesDevKey`). Same-owner cross-project reuse works by sharing this value; cross-organization trust needs the Ed25519 key below or PKI | unset (dev key; warns) |
-| `ASHLAR_CERT_ED25519_KEY` | Base64 Ed25519 private key; when set, records are dual-signed and carry the public key. **`CertificationVerifyOptions.Default` and `.Strict` require Ed25519 signatures** (`RequireEd25519Signature = true`) and trust-loop schema v2+ (`MinimumSchemaVersion = 2`), fail-closed; only `.Legacy` accepts HMAC-only records (see limitations 7–8 **CLOSED** 2026-09-06 in `docs/certification-evidence.md`). **Trusted-key pinning exists** via `TrustedEd25519PublicKeys` but is optional; **without pinning, a self-consistent record signed with an attacker's own keypair still verifies** (limitation 1: dev HMAC under committed key remains forgeable). Limitation 9 is CLOSED as of 2026-09-13: a `CertificationRecordSigner` holding a real key now keys the composition lane too, through the shipped DI registration. Production paths use Strict | unset (HMAC-only) |
+| `ASHLAR_CERT_ED25519_KEY` | Base64 Ed25519 private key; when set, records are dual-signed and carry the public key. **`CertificationVerifyOptions.Default` and `.Strict` require Ed25519 signatures** (`RequireEd25519Signature = true`) and trust-loop schema v2+ (`MinimumSchemaVersion = 2`), fail-closed; only `.Legacy` accepts HMAC-only records (see limitations 7–8 **CLOSED** 2026-09-06 in `docs/certification-evidence.md`). **Trusted-key pinning is now configurable** — see `ASHLAR_CERT_TRUSTED_ED25519_KEYS` below — but it is still OPT-IN: **with no pinning set configured, a self-consistent record signed with an attacker's own keypair still verifies** (limitation 1: dev HMAC under committed key remains forgeable). Limitation 9 is CLOSED as of 2026-09-13: a `CertificationRecordSigner` holding a real key now keys the composition lane too, through the shipped DI registration. Production paths use Strict | unset (HMAC-only) |
+| `ASHLAR_CERT_TRUSTED_ED25519_KEYS` | Base64 raw 32-byte Ed25519 **PUBLIC** keys this host accepts as record signers, separated by commas, semicolons or whitespace (newlines included, so the list can be mounted as a multi-line secret). This is the switch that makes "signed" mean "signed by someone we accept": `CertificationRecordEd25519.VerifySignature` checks the signature against the public key the RECORD carries, so requiring a signature without pinning only forces an attacker to sign rather than strip. Read once per process by `CertificationTrustPolicy.Ambient`, which the record store, the certified brick registry, the hot-swap host, the composition constituent checker, the self-extend admission edge, the state-log verifier and the adaptation wiring all apply in place of the bare `Strict` preset. **There is deliberately no configuration path here for a private key** — that is the minting capability and belongs to the certifier. Present-but-unusable configuration (no keys, a blank entry, a non-Base64 value, a key that is not 32 raw bytes) throws `CertificationTrustConfigurationException` at resolution rather than degrading to an empty set, because an empty set reads as pinning OFF everywhere downstream. Keys are normalized to their canonical Base64 encoding, since enforcement is an ordinal string comparison against what the record carries | unset (**unpinned**: any keypair verifies) |
+| `ASHLAR_CERT_PINNING_REQUIRED` | Asserts that pinning must be in effect, so a deployment that expected it fails at startup instead of verifying unpinned for its lifetime. Accepts `1/true/yes/on` and `0/false/no/off`, case-insensitively. When it asserts pinning and `ASHLAR_CERT_TRUSTED_ED25519_KEYS` supplies no key, resolution throws. **A value that is neither — a typo, or a deployment template that rendered the variable with nothing substituted into it — also throws**, rather than being read as "not required": the switch that demands pinning must not be the thing that silently disables it. Only an ABSENT variable means "no assertion made" | unset (no assertion) |
 
 ## Workload scaling (`Ashlar:WorkloadScaling:*`, `ASHLAR_WORKLOAD_*`)
 
@@ -491,12 +543,74 @@ Bound from the `Ashlar:Barriers` section (`appsettings.json` or `Ashlar__Barrier
 |----------|-------------|---------|
 | `ASHLAR_ALLOW_MOCK` | `1` = enable mock/offline/mock-json/echo providers | unset |
 | `ASHLAR_LOCAL_MODEL_PATH` | Path to local ONNX/LLamaSharp model for `local` provider | unset |
+| `ASHLAR_LOCAL_CONTEXT_SIZE` | Context window, tokens, for the local model. | model default |
 | `ASHLAR_LOCAL_QUEUE_DEPTH` | Local execution queue depth for routing decisions | unset (auto) |
 | `ASHLAR_GPU_COMPUTE_CLASS` | GPU compute class label for NCR capability matching | unset |
 | `ASHLAR_LOAD_PREFERENCE` | Default load balancing preference | unset |
 | `ASHLAR_EXECUTION_REMOTE_URL` | Remote execution endpoint URL for hosting | unset |
 
 `ASHLAR_LOCAL_MODEL_PATH` alone is not enough to get the `local` provider: the GGUF weights are loaded by `LLamaSharp.Backend.Cpu`, which the `Ashlar.*` libraries reference with `PrivateAssets="all"` so that no consumer inherits its four same-named CPU-variant native payloads (they collide on `dotnet publish -r <rid>` with `NETSDK1152`). A deployable host opts in with its own `<PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.25.0" />`. Every deployable host in this repo does: `application/src/Ashlar.API` and `application/src/Ashlar.CLI` (which is why the shipped images keep the capability), `src/Ashlar.Mcp.Server.Host` and `src/Ashlar.Transport.Grpc.Server.Host` (the two standalone hosts of `docs/ProjectTiers.md`, neither of which is built by a Dockerfile — whoever publishes them chooses the mode), and `commercial/src/Ashlar.Commercial.Fleet.Host`. `Ashlar.Tests.Infrastructure` carries the same line so the model-loading tests can run real inference. A host you add is not on that list until you put it there. Missing the opt-in is never a build error, and `IsAvailable()` does not detect it — it only checks that `ASHLAR_LOCAL_MODEL_PATH` names an existing file. With the variable unset (the shipped default) routing simply never selects `local`; with it set but no backend present, the first execution fails at `LLamaWeights.LoadFromFile` and surfaces as `ModelUnavailableException` wrapping the missing native library. See [consumer-template/CONSUMING.md](../consumer-template/CONSUMING.md#local-model-inference-is-opt-in) for the consumer-side snippet, including the CPU-variant prune a RID publish needs.
+
+## Release preflight thresholds (`ASHLAR_RELEASE_*`, `ASHLAR_VISUAL_*`)
+
+These back the **default values of `ashlar ci release-bundle` command-line options**
+(`RuntimeCommand.Configure.cs`), so a flag always wins over the variable. Nothing in this repository
+sets them: every CI invocation passes the thresholds explicitly. They exist for an operator running
+`scripts/release-preflight-local.sh` who wants to tighten or relax a gate without editing a command
+line, and they were undiscoverable until now — each appeared in exactly one file, its own read site.
+
+| Variable | Backs | Default |
+|---|---|---|
+| `ASHLAR_RELEASE_PROVIDER` | `--provider` — model provider for the bundle run | `mock-json` |
+| `ASHLAR_RELEASE_MIN_PASS_RATE` | fallback for the core pass-rate floor | `0.85` |
+| `ASHLAR_RELEASE_CORE_MIN_PASS_RATE` | core lane pass-rate floor (wins over the above) | `ASHLAR_RELEASE_MIN_PASS_RATE`, else `0.85` |
+| `ASHLAR_RELEASE_MIN_TOTAL` | fallback for the core minimum sample size | `10` |
+| `ASHLAR_RELEASE_CORE_MIN_TOTAL` | core lane minimum sample size (wins over the above) | `ASHLAR_RELEASE_MIN_TOTAL`, else `10` |
+| `ASHLAR_RELEASE_HISTORY_WINDOW` | fallback for the core history window, runs | `20` |
+| `ASHLAR_RELEASE_CORE_HISTORY_WINDOW` | core lane history window (wins over the above) | `ASHLAR_RELEASE_HISTORY_WINDOW`, else `20` |
+| `ASHLAR_RELEASE_VISUAL_MIN_PASS_RATE` | visual lane pass-rate floor | `0.80` |
+| `ASHLAR_RELEASE_VISUAL_MIN_TOTAL` | visual lane minimum sample size | `8` |
+| `ASHLAR_RELEASE_VISUAL_HISTORY_WINDOW` | visual lane history window, runs | `20` |
+| `ASHLAR_VISUAL_PROMOTION_STREAK` | consecutive visual passes required to promote | `3` |
+| `ASHLAR_VISUAL_REQUIRED_MODE` | visual comparison mode | `auto` |
+| `ASHLAR_RELEASE_LANE_REPETITIONS` | times each lane is repeated | `1` |
+| `ASHLAR_RELEASE_SLO_NCR_RESOLUTION_MS` | NCR model-resolution SLO, ms | `250` |
+| `ASHLAR_RELEASE_SLO_NCR_LOAD_MS` | NCR model-load SLO, ms | `1000` |
+| `ASHLAR_RELEASE_SLO_NCR_OUTCOME_MS` | NCR outcome-recording SLO, ms | `1500` |
+| `ASHLAR_RELEASE_SLO_NCR_FAILURE_RATE` | NCR failure-rate ceiling | `0.2` |
+
+The three `CORE_` variables each fall back to their un-prefixed sibling before the built-in default,
+so setting `ASHLAR_RELEASE_MIN_TOTAL` alone moves the core lane and leaves the visual lane untouched.
+
+## Dogfood sweep and its proposer (`ASHLAR_SWEEP_*`, `ASHLAR_OLLAMA_*`, `ASHLAR_CAMPAIGN_DIR`)
+
+Read by `spikes/autonomy-first-flight/FirstFlight/SweepMode.cs`, which is what the scheduled dogfood
+canary runs. **`spikes/` is compiled by no solution**, so these are exercised by the sweep and by
+nothing else in CI — which is exactly why they were invisible.
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `ASHLAR_CAMPAIGN_DIR` | Where the sweep writes its campaign directory, including the certification evidence sidecar the ledger row cites. | `<objectives-root>/../campaign` |
+| `ASHLAR_SWEEP_PROPOSER` | `ollama` for a live model proposer; anything else uses the recorded proposals beside each objective. | unset (recorded proposals) |
+| `ASHLAR_SWEEP_MAX_OBJECTIVES` | Stop after this many objectives. Ignored unless it parses to a positive integer. | unlimited |
+| `ASHLAR_OLLAMA_MAX_TOKENS` | Token ceiling for the live proposer. Ignored unless positive. | provider default |
+| `ASHLAR_OLLAMA_TIMEOUT_MINUTES` | Per-request timeout for the live proposer. Ignored unless positive. | provider default |
+| `ASHLAR_OLLAMA_TEMPERATURE` | Sampling temperature for the live proposer. | provider default |
+| `ASHLAR_OLLAMA_THINK` | `true`/`false`: enable the model's thinking mode. | provider default |
+| `ASHLAR_OLLAMA_SYSTEM_PREAMBLE_FILE` | Path to operator house rules handed to the proposer as **data, never as a witness**. Silently ignored when the file does not exist. | unset |
+
+`ASHLAR_OLLAMA_BASE_URL` and `ASHLAR_OLLAMA_MODEL` are documented under the Ollama section above and
+default to `http://host.docker.internal:11434` and `codellama:7b` in this sweep.
+
+## `ASHLAR_CERT_NUGET_CONFIG`
+
+**Nothing in this repository reads this variable; several places deliberately clear it.**
+`CompositionDogfoodHarness`, four certification test fixtures and
+`tools/Ashlar.ExportCertifiedBrick` all call
+`Environment.SetEnvironmentVariable("ASHLAR_CERT_NUGET_CONFIG", null)` before doing work, so an
+ambient value on the machine cannot influence a certification run's package resolution. It is listed
+here because a knob that is silently neutralised should be discoverable — if you set it and nothing
+happens, that is why.
 
 ## Config File
 

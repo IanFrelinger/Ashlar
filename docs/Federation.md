@@ -23,8 +23,10 @@ multicast-discovered address, a tailnet — it is:
    in policy, or the operator's `keys trust` keychain — an empty trust set refuses everything,
    fail-closed), and
 3. **re-decided by the receiver's own gate under its own policy** — a `proposing` node **holds**
-   imported code for a human to seat; only a `self-extending` node auto-admits it (within budget,
-   canary-gated — see [`RunningASelfExtendingNode.md`](RunningASelfExtendingNode.md)).
+   imported code for a human to seat; only a `self-extending` node auto-admits it (within budget —
+   see [`RunningASelfExtendingNode.md`](RunningASelfExtendingNode.md)). An admitted import is
+   written to the tree without the post-apply canary; that canary runs only on the node's own
+   self-extend cycles, and only when a verifier is registered.
 
 Nothing about how a package travelled changes any of that. Discovering a peer is *presence*, never
 trust — a stranger's node on your LAN can announce itself and be pulled *from*, and its untrusted
@@ -44,6 +46,8 @@ Offer this node's published, signed packages read-only over HTTP:
 ASHLAR_MESH_SERVE_PORT=7420
 ASHLAR_NODE_NAME=study-node        # optional; defaults to the machine name
 ```
+
+On AirGapped and SecureWorkstation the serve address must be loopback or the daemon fails to boot. Set `ASHLAR_MESH_SERVE_BIND` to `127.0.0.1`, `localhost`, or `::1`. Leaving it unset is any-interface (`0.0.0.0`) and boot fails on those profiles. Other profiles keep `ListenAnyIP` and do not apply the bind.
 
 Three read-only endpoints:
 

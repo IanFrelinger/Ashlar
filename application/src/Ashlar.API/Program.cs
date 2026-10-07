@@ -62,13 +62,16 @@ using Ashlar.API.Middleware.Ingress;
 using Ashlar.API.Security;
 using Ashlar.Core.Application.Middleware.Ports;
 using Ashlar.Core.Application.Product.Ports;
+using Ashlar.Infrastructure;
 using Ashlar.Infrastructure.Product;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Contracts;
 using Ashlar.BackgroundAgents.Extending;
 using Ashlar.BackgroundAgents.HostRunners;
 using Ashlar.BackgroundAgents.Optimization;
 using Ashlar.BackgroundAgents.Testing;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.API.Protocols;
 using Ashlar.Hosting;
 using Ashlar.Hosting.Sdk.Extensions;
@@ -151,7 +154,7 @@ builder.Services.AddAshlarRuntimeRouting(builder.Configuration);
 // All four directions are feature-flagged off by default (Ashlar:Mcp:*, Ashlar:A2A:*); registering
 // them here only makes the surfaces *available*. AddAshlarA2ATransport must run before AddAshlar so
 // its scheme registration participates in the kernel's remote-transport composition.
-builder.Services.AddAshlarMcpServer(builder.Configuration).WithHttpTransport();
+builder.Services.AddAshlarMcpServer(builder.Configuration).WithAshlarHttpTransport();
 builder.Services.AddAshlarMcpClient(builder.Configuration);
 builder.Services.AddAshlarA2AServer(builder.Configuration);
 builder.Services.AddAshlarA2ATransport(builder.Configuration);
@@ -225,6 +228,15 @@ builder.Services.AddAshlar(options =>
     options.RegisterBackgroundAgentHostedService =
         builder.Configuration.GetValue("Ashlar:RegisterBackgroundAgentHostedService", defaultValue: true);
 });
+// SPEC-007 PR 4.10: on AirGapped and SecureWorkstation every inbound listener must bind loopback, or boot fails.
+// Empty urls are the host default (localhost) and are allowed. Responses on those connections stay unmediated until PR 5.
+builder.Services.AddAshlarInboundListenerValidation(
+    AshlarInboundListenerPolicy.CollectEndpoints(
+        builder.Configuration,
+        builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey)));
+// SPEC-007: AddAshlar has already installed the report-only egress guard on every IHttpClientFactory client in this
+// host, ashlar-sns-signing above included. This call is idempotent and adds nothing; it states the coverage here.
+builder.Services.AddAshlarEgressGuard();
 
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(RecordSmsYesApprovalCommand).Assembly));
@@ -237,6 +249,9 @@ builder.Services.AddMediatR(cfg =>
 var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 if (!string.IsNullOrWhiteSpace(otlpEndpoint))
 {
+    // SPEC-007 EG-TEL-01, report-only: decided once, at registration; the SDK owns the batch export after this.
+    // The name overload, never new Uri(...): a malformed endpoint must not fail startup here.
+    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Telemetry, "EG-TEL-01", otlpEndpoint));
     var otelServiceName = builder.Configuration["OTEL_SERVICE_NAME"];
     builder.Services.AddAshlarOpenTelemetry(metrics => metrics
         .AddAspNetCoreInstrumentation()

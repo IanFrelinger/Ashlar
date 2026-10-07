@@ -166,3 +166,18 @@ public sealed class LlamaSharpChatClient : IChatClient
         }
     }
 }
+
+/// <summary>
+/// Whether a chat client runs in process. It lives in this file because the egress convention (F5) keeps the
+/// <see cref="LlamaSharpChatClient"/> type name confined here and to the governed registrations; the egress destination
+/// resolver asks through this helper, by type, never by the provider name a client reports (SPEC-007 PR 4.1).
+/// </summary>
+internal static class InProcessChatClient
+{
+    /// <summary>
+    /// <see langword="true"/> when <paramref name="client"/> is, or delegates to, the in-process
+    /// <see cref="LlamaSharpChatClient"/>, which loads a local GGUF file and sends nothing out of the process.
+    /// </summary>
+    internal static bool IsLlamaSharp(IChatClient client) =>
+        client.GetService(typeof(LlamaSharpChatClient)) is LlamaSharpChatClient;
+}

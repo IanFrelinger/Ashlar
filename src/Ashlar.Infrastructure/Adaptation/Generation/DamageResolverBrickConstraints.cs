@@ -8,7 +8,7 @@ namespace Ashlar.Infrastructure.Adaptation.Generation;
 /// object renders the proposer instructions and backs ingest enforcement, so prompt
 /// and gate cannot drift.
 /// </summary>
-public static class DamageResolverBrickConstraints
+internal static class DamageResolverBrickConstraints
 {
     /// <summary>The manifest for generated DamageResolver-domain bricks.</summary>
     public static BrickConstraintManifest Default { get; } = new()

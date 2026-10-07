@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="782dfe90-9ce8-4d93-8dfe-38b7b72d2116" name="@c36702ac70af 2026-09-30 16:39:43" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-30T16:39:43.7574656+00:00" queuing="2026-09-30T16:39:43.7574657+00:00" start="2026-09-30T16:39:41.2464978+00:00" finish="2026-09-30T16:39:43.7657126+00:00" />
+  <TestSettings name="default" id="ed8da3c7-f6dc-4e4c-b31b-7431936585ee">
+    <Deployment runDeploymentRoot="_c36702ac70af_2026-09-30_16_39_43" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b4439678-8047-464d-a931-297bf91ad7fa" testId="71be0d7a-f0be-cfc8-6acb-2ee192e90b6f" testName="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ValidateSelection_MissingRequiredCapability_ReturnsActionableIssue" computerName="c36702ac70af" duration="00:00:00.0004032" startTime="2026-09-30T16:39:43.5958806+00:00" endTime="2026-09-30T16:39:43.5961207+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b4439678-8047-464d-a931-297bf91ad7fa" />
+    <UnitTestResult executionId="2c627dc8-943f-4153-8a54-e504b36d206b" testId="762fc3db-2023-a867-6803-eb4cfd6444e2" testName="Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture" computerName="c36702ac70af" duration="00:00:00.0010000" startTime="2026-09-30T16:39:43.5585939+00:00" endTime="2026-09-30T16:39:43.5593506+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2c627dc8-943f-4153-8a54-e504b36d206b">
+      <Output>
+        <ErrorInfo>
+          <Message>Run locally to regenerate damage-to-health-pipeline-batch.json</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="70bcf7e9-2eb8-4345-8215-3ad5cca4c4e0" testId="ebc7e551-87bc-1d9c-7c14-6a58bc0dcccc" testName="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ValidateSelection_DefaultPipelineDescriptors_ReturnsNoIssues" computerName="c36702ac70af" duration="00:00:00.0037912" startTime="2026-09-30T16:39:43.5919161+00:00" endTime="2026-09-30T16:39:43.5939905+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="70bcf7e9-2eb8-4345-8215-3ad5cca4c4e0" />
+    <UnitTestResult executionId="3e4f73cb-ccd3-49d3-9bee-06da8597cb99" testId="2c9f4fe0-195c-d71c-19f9-0c866d15a189" testName="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ComposeAsync_MissingDependencyAfterFiltering_ThrowsInvalidOperationException" computerName="c36702ac70af" duration="00:00:00.0250480" startTime="2026-09-30T16:39:43.5568162+00:00" endTime="2026-09-30T16:39:43.5902677+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3e4f73cb-ccd3-49d3-9bee-06da8597cb99" />
+    <UnitTestResult executionId="c59acb9c-5fde-456b-a33a-ac7a06eda38e" testId="c1901084-c426-1881-9cb1-60cd9611890f" testName="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ValidateSelection_IncompatibleComponents_ReturnsActionableIssue" computerName="c36702ac70af" duration="00:00:00.0014239" startTime="2026-09-30T16:39:43.5948107+00:00" endTime="2026-09-30T16:39:43.5955638+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c59acb9c-5fde-456b-a33a-ac7a06eda38e" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ValidateSelection_DefaultPipelineDescriptors_ReturnsNoIssues" storage="/repo/src/ashlar.tests.infrastructure/bin/debug/net8.0/ashlar.tests.infrastructure.dll" id="ebc7e551-87bc-1d9c-7c14-6a58bc0dcccc">
+      <Execution id="70bcf7e9-2eb8-4345-8215-3ad5cca4c4e0" />
+      <TestMethod codeBase="/repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests" name="ValidateSelection_DefaultPipelineDescriptors_ReturnsNoIssues" />
+    </UnitTest>
+    <UnitTest name="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ComposeAsync_MissingDependencyAfterFiltering_ThrowsInvalidOperationException" storage="/repo/src/ashlar.tests.infrastructure/bin/debug/net8.0/ashlar.tests.infrastructure.dll" id="2c9f4fe0-195c-d71c-19f9-0c866d15a189">
+      <Execution id="3e4f73cb-ccd3-49d3-9bee-06da8597cb99" />
+      <TestMethod codeBase="/repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests" name="ComposeAsync_MissingDependencyAfterFiltering_ThrowsInvalidOperationException" />
+    </UnitTest>
+    <UnitTest name="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ValidateSelection_MissingRequiredCapability_ReturnsActionableIssue" storage="/repo/src/ashlar.tests.infrastructure/bin/debug/net8.0/ashlar.tests.infrastructure.dll" id="71be0d7a-f0be-cfc8-6acb-2ee192e90b6f">
+      <Execution id="b4439678-8047-464d-a931-297bf91ad7fa" />
+      <TestMethod codeBase="/repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests" name="ValidateSelection_MissingRequiredCapability_ReturnsActionableIssue" />
+    </UnitTest>
+    <UnitTest name="Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture" storage="/repo/src/ashlar.tests.infrastructure/bin/debug/net8.0/ashlar.tests.infrastructure.dll" id="762fc3db-2023-a867-6803-eb4cfd6444e2">
+      <Execution id="2c627dc8-943f-4153-8a54-e504b36d206b" />
+      <TestMethod codeBase="/repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests" name="WriteDamageHealthBatchFixture" />
+    </UnitTest>
+    <UnitTest name="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests.ValidateSelection_IncompatibleComponents_ReturnsActionableIssue" storage="/repo/src/ashlar.tests.infrastructure/bin/debug/net8.0/ashlar.tests.infrastructure.dll" id="c1901084-c426-1881-9cb1-60cd9611890f">
+      <Execution id="c59acb9c-5fde-456b-a33a-ac7a06eda38e" />
+      <TestMethod codeBase="/repo/src/Ashlar.Tests.Infrastructure/bin/Debug/net8.0/Ashlar.Tests.Infrastructure.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Ashlar.Tests.Infrastructure.Tests.Composition.CompositionRegistryValidationTests" name="ValidateSelection_IncompatibleComponents_ReturnsActionableIssue" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="71be0d7a-f0be-cfc8-6acb-2ee192e90b6f" executionId="b4439678-8047-464d-a931-297bf91ad7fa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="762fc3db-2023-a867-6803-eb4cfd6444e2" executionId="2c627dc8-943f-4153-8a54-e504b36d206b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ebc7e551-87bc-1d9c-7c14-6a58bc0dcccc" executionId="70bcf7e9-2eb8-4345-8215-3ad5cca4c4e0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2c9f4fe0-195c-d71c-19f9-0c866d15a189" executionId="3e4f73cb-ccd3-49d3-9bee-06da8597cb99" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c1901084-c426-1881-9cb1-60cd9611890f" executionId="c59acb9c-5fde-456b-a33a-ac7a06eda38e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="5" executed="4" passed="4" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.0+05679a7ab5 (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.50]   Discovering: Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:01.22]   Discovered:  Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:01.26]   Starting:    Ashlar.Tests.Infrastructure
+[xUnit.net 00:00:01.29]       Run locally to regenerate damage-to-health-pipeline-batch.json
+[xUnit.net 00:00:01.33]   Finished:    Ashlar.Tests.Infrastructure
+Test 'Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture' was skipped in the test run.
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="c36702ac70af" outcome="Warning" timestamp="2026-09-30T16:39:43.5611292+00:00">
+        <Text>[xUnit.net 00:00:01.29]     Ashlar.Tests.Infrastructure.Tests.LocalFixtures.CompositionAcceptanceRateBatchFixtureGeneratorTests.WriteDamageHealthBatchFixture [SKIP]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

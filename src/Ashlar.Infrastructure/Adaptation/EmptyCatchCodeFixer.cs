@@ -9,7 +9,7 @@ namespace Ashlar.Infrastructure.Adaptation;
 /// <summary>
 /// Roslyn-based code fixer for EmptyCatch violations. Adds a trace statement to make the block non-empty.
 /// </summary>
-public sealed class EmptyCatchCodeFixer : ISourceCodeFixer
+internal sealed class EmptyCatchCodeFixer : ISourceCodeFixer
 {
     /// <inheritdoc />
     public Task<bool> TryFixAsync(Violation violation, CancellationToken cancellationToken = default)

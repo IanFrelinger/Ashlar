@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Paths;
 using Ashlar.Tools.Dev.Deltas;
 
 namespace Ashlar.Tools.Dev;
@@ -172,10 +173,7 @@ public sealed class RepoFsListTool : ITool
 
         var rootFull = Path.GetFullPath(root);
         var combined = Path.GetFullPath(Path.Combine(rootFull, normalized));
-        var rootWithSep = rootFull.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-            + Path.DirectorySeparatorChar;
-        if (!combined.StartsWith(rootWithSep, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(combined, rootFull, StringComparison.OrdinalIgnoreCase))
+        if (!PathContainment.IsWithin(combined, rootFull))
         {
             error = "resolved path escapes root";
             return false;

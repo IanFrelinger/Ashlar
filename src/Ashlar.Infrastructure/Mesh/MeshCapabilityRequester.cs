@@ -11,7 +11,7 @@ namespace Ashlar.Infrastructure.Mesh;
 /// capabilities from peers. Sends request via ILocalTransport and polls for response.
 /// Returns null if no peers have the capability or no response within timeout.
 /// </summary>
-public sealed class MeshCapabilityRequester : ICapabilityRequester
+internal sealed class MeshCapabilityRequester : ICapabilityRequester
 {
     private readonly ICapabilityAdvertisement _advertisement;
     private readonly ILocalTransport _transport;

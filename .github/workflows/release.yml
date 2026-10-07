@@ -72,20 +72,79 @@ jobs:
       - name: Dispatch on tag must match version input
         if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/')
         shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          IN="${{ inputs.version }}"
-          IN="${IN#v}"
+          IN="${IN_VERSION#v}"
           if [ "$TAG" != "$IN" ]; then
             echo "::error::When running Release from workflow_dispatch on tag ${GITHUB_REF_NAME}, input version must be **${TAG}** (you entered **${IN}**)."
             exit 1
           fi
           echo "OK: version input matches tag."
 
+      # THE CASE THE TWO GUARDS ABOVE BOTH MISS: workflow_dispatch from a BRANCH.
+      #
+      # The first is `if: github.ref_type == 'tag'`. The second is `if: workflow_dispatch AND
+      # startsWith(github.ref, 'refs/tags/')`. Dispatch from a branch satisfies neither, and that
+      # path publishes to nuget.org. Directory.Build.targets stamps Version/AssemblyVersion/
+      # FileVersion from the root VERSION file, while the nuget job takes package_version from the
+      # input - `-p:PackageVersion=` is a global property that overrides PackageVersion and NOT
+      # Version - so an unguarded dispatch ships nupkgs whose package version disagrees with the
+      # assemblies inside them. That is the same defect the tag guard exists to prevent, on the
+      # trigger nobody guarded.
+      #
+      # A prerelease of the canonical version is allowed, because cutting 0.2.0-rc1 from a branch
+      # while VERSION reads 0.2.0 is the staging flow this input was added for. What is refused is a
+      # DIFFERENT release: 0.9.9 while VERSION says 0.2.0.
+      - name: Dispatch from a branch must match root VERSION
+        if: github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=scripts/lib/release-staging-guards.sh
+          source scripts/lib/release-staging-guards.sh
+          if ! assert_dispatch_version_allowed "${IN_VERSION}"; then
+            echo "::error::Dispatching ${IN_VERSION} from ${GITHUB_REF_NAME} would publish packages whose version disagrees with their assemblies. See the ABORT lines above."
+            exit 1
+          fi
+
+      # ci/published-version is what consumer-template/Directory.Packages.props and CONSUMING.md
+      # pin strangers to. Nothing in the release path writes it, so after a release it still names
+      # the PREVIOUS one and every copied consumer template installs a version behind - silently,
+      # because the lint only checks the file is well-formed, not that it is current.
+      #
+      # It is enforced here rather than automated, for the same reason VERSION and CHANGELOG are:
+      # the release commit is where a human decides what is being shipped, and a workflow that
+      # rewrites the repo mid-publish is a bigger hazard than a guard that refuses.
+      - name: Consumer pin (ci/published-version) must name this release
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          IN_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=scripts/lib/release-staging-guards.sh
+          source scripts/lib/release-staging-guards.sh
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            WANT="${GITHUB_REF_NAME}"
+          else
+            WANT="${IN_VERSION}"
+          fi
+          if ! assert_consumer_pin_matches "${WANT}"; then
+            echo "::error::ci/published-version does not name this release; a stranger copying consumer-template would install the previous one. See the ABORT lines above."
+            exit 1
+          fi
+
+  # Ordered AFTER nuget on purpose. GHCR tags can be re-pointed or deleted; nuget.org packages
+  # can only be unlisted. Running the two in parallel let `:0.2.0` go permanent on one side
+  # while the other failed - which is how v0.1.2 carried a semver image tag and a red NuGet job.
   images:
     name: Container images (GHCR)
-    needs: [validate]
-    if: needs.validate.result == 'success'
+    needs: [validate, nuget]
+    if: needs.validate.result == 'success' && needs.nuget.result == 'success'
     uses: ./.github/workflows/reusable-container-publish.yml
     secrets: inherit
     with:
@@ -192,10 +251,17 @@ jobs:
   github-release:
     name: Draft GitHub Release
     needs: [validate, images, nuget]
+    # always(), gated on publication having BEGUN rather than on everything having succeeded.
+    # When a post-push check failed, `success()` skipped this job and the only copy of the
+    # nupkgs and nuget-publish-manifest.json was a 90-day Actions artifact - for packages that
+    # are permanent. That is how the v0.1.2 release page came to be assembled by hand. The
+    # release is created as a DRAFT, so running here after a failure publishes nothing.
     if: >-
-      success() &&
+      always() &&
       github.ref_type == 'tag' &&
-      vars.RELEASE_CREATE_GITHUB_RELEASE != 'false'
+      vars.RELEASE_CREATE_GITHUB_RELEASE != 'false' &&
+      needs.validate.result == 'success' &&
+      needs.nuget.outputs.publish_began == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -210,6 +276,10 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUGET_RESULT: ${{ needs.nuget.result }}
+          IMAGES_RESULT: ${{ needs.images.result }}
+          CLI_SHA_TAG: ${{ needs.images.outputs.cli_sha_tag }}
+          API_SHA_TAG: ${{ needs.images.outputs.api_sha_tag }}
         run: |
           TAG="${GITHUB_REF_NAME}"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
@@ -221,11 +291,21 @@ jobs:
           SNIP="$(mktemp)"
           bash scripts/changelog-snippet-for-release.sh > "$SNIP" || true
           {
+            if [ "${NUGET_RESULT}" != "success" ]; then
+              echo "> **This release did not complete cleanly.** NuGet publication began, but the"
+              echo "> nuget job ended \`${NUGET_RESULT}\` - see the run below. Packages may already be"
+              echo "> public on nuget.org. Do NOT publish this draft until that is resolved."
+              echo ""
+            fi
             echo "Automated draft for **${TAG}**."
             echo ""
             echo "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- NuGet: \`Ashlar.Hosting.Bundle\` **${VER}** (+ graph). Packages, symbols, \`nuget-publish-manifest.json\` and per-package \`.sha256.txt\` are attached as release assets (also in the \`nuget-packages-${VER}\` workflow artifact)."
-            echo "- Images: \`${{ needs.images.outputs.cli_sha_tag }}\`, \`${{ needs.images.outputs.api_sha_tag }}\`"
+            if [ "${IMAGES_RESULT}" = "success" ]; then
+              echo "- Images: \`${CLI_SHA_TAG}\`, \`${API_SHA_TAG}\`"
+            else
+              echo "- Images: **not published** (images job ended \`${IMAGES_RESULT}\`; it runs only after NuGet succeeds)."
+            fi
             echo ""
             cat "$SNIP"
             echo ""

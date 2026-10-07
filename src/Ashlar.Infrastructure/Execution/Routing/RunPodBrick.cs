@@ -14,16 +14,31 @@ public sealed class RunPodBrick : DomainBrick, IBrickExecutor
     private readonly IRunPodClient _runPodClient;
     private readonly IOptions<RunPodBrickConfig> _config;
     private readonly ILogger<RunPodBrick> _logger;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>Initializes a new run pod brick.</summary>
+    /// <remarks>
+    /// <paramref name="timeProvider"/> is the source of "now" for the job-completion deadline below.
+    /// Optional and defaulting to <see cref="TimeProvider.System"/>, so production wiring is
+    /// unchanged.
+    /// <para>It exists because that deadline is otherwise measured against real wall clock, which
+    /// makes any test of the polling loop a race with the machine it runs on rather than a statement
+    /// about this code. <c>CapabilityRoutingBrickTests.HappyPath_RemoteExecution</c> stubs a
+    /// two-entry status queue that completes in about 40ms and allows 2s for it; on a contended
+    /// macOS runner it consumed the whole 2s and returned <c>runpod.timeout</c>, failing the required
+    /// readiness gate with 5698/5699 passing. Injecting the clock makes that test a statement about
+    /// the loop.</para>
+    /// </remarks>
     public RunPodBrick(
         IRunPodClient runPodClient,
         IOptions<RunPodBrickConfig> config,
-        ILogger<RunPodBrick> logger)
+        ILogger<RunPodBrick> logger,
+        TimeProvider? timeProvider = null)
     {
         _runPodClient = runPodClient ?? throw new ArgumentNullException(nameof(runPodClient));
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _timeProvider = timeProvider ?? TimeProvider.System;
 
         Id = "generation.runpod";
         Name = "RunPod Generation";
@@ -134,9 +149,9 @@ public sealed class RunPodBrick : DomainBrick, IBrickExecutor
                 "runpod.lifecycle stage=dispatch_complete jobId={JobId}",
                 handle.JobId);
 
-            var deadline = DateTimeOffset.UtcNow + timeout;
+            var deadline = _timeProvider.GetUtcNow() + timeout;
             JobStatus? finalStatus = null;
-            while (DateTimeOffset.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
+            while (_timeProvider.GetUtcNow() < deadline && !cancellationToken.IsCancellationRequested)
             {
                 var statusResult = await _runPodClient.PollJobStatus(handle, cancellationToken).ConfigureAwait(false);
                 if (statusResult.IsFailure || statusResult.Value is null)

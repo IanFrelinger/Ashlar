@@ -13,10 +13,24 @@ namespace Ashlar.BackgroundAgents.Security;
 public sealed class SelfProducedBrickCertificationPolicy : IPolicy
 {
     private readonly ICertificationRecordStore _certificationStore;
+    private readonly CertificationVerifyOptions _verifyOptions;
 
-    public SelfProducedBrickCertificationPolicy(ICertificationRecordStore certificationStore)
+    /// <summary>Initializes the policy.</summary>
+    /// <param name="certificationStore">Store consulted for the written brick's record.</param>
+    /// <param name="trustPolicy">
+    /// Operator trust configuration supplying the pinned signer set. Defaults to
+    /// <see cref="CertificationTrustPolicy.Ambient"/>, so a host that configured
+    /// <c>ASHLAR_CERT_TRUSTED_ED25519_KEYS</c> pins this edge as well; with nothing configured
+    /// this is the <c>Strict</c> preset exactly as before. Without a pinning set, "certified"
+    /// here means only that the record is self-consistent, which a brick the agent signed with
+    /// its own keypair also is.
+    /// </param>
+    public SelfProducedBrickCertificationPolicy(
+        ICertificationRecordStore certificationStore,
+        CertificationTrustPolicy? trustPolicy = null)
     {
         _certificationStore = certificationStore ?? throw new ArgumentNullException(nameof(certificationStore));
+        _verifyOptions = (trustPolicy ?? CertificationTrustPolicy.Ambient).Strict;
     }
 
     public bool Approve(ToolCall call, WorldSnapshot s, out string reason)
@@ -57,7 +71,7 @@ public sealed class SelfProducedBrickCertificationPolicy : IPolicy
         var trust = CertificationTrustVerifier.Verify(
             CertificationRecordMapper.ToData(record),
             content,
-            options: CertificationVerifyOptions.Strict);
+            options: _verifyOptions);
         if (!trust.Trusted)
         {
             reason = $"Self-produced brick admission refused for '{brickId}': {trust.FailureCode} — {trust.Reason}";

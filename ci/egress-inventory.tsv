@@ -1,0 +1,92 @@
+# SPEC-007 egress inventory, pinned. Read and enforced by EgressGuardConventionTests (cert-gate).
+# Columns: path<TAB>marker<TAB>total<TAB>guarded<TAB>guarded_by<TAB>unguarded_reason<TAB>ids<TAB>note
+# One row per observed (path, marker), exact in both directions: a new or larger count fails F1, a row that no longer matches fails F2.
+# guarded_by: Wrapped (http.new, sdk.client) | Precedes (socket, process, door, telemetry, http.param) | Factory (http.register: AddAshlarEgressGuard( later in the same block) | -.
+# unguarded_reason: Factory (http.param fed only from IHttpClientFactory) | Upstream:<path> (http.param supplied only by <path>; http.register in a project that cannot reach Ashlar.Infrastructure, composed by the executable <path>) | Governance (the MEAI pairs F5 holds) | Exempt:<LocalOnly|Operator|Inbound|DataStore|LocalDaemon|ConsumerSdk|TestDouble|TestSeam> (ConsumerSdk only under src/Ashlar.Client/) | Exempt:GuardImpl (src/Ashlar.Abstractions/Security/Egress/ only) | -. Exempt reasons are final.
+# ids: EG-... rows of docs/EgressInventory.md, comma-separated, or -. F1, F2 and F3 print the observed rows in this form when they fail.
+application/src/Ashlar.API/Endpoints/IdeEndpoints.cs	http.new	1	1	Wrapped	-	EG-MDL-14	IDE tags endpoint: the fallback client when no IHttpClientFactory is registered, built by EgressHttp.CreateClient (:193)
+application/src/Ashlar.API/Middleware/Ingress/AwsSnsSmsWebhook.cs	http.param	1	0	-	Factory	EG-HTTP-03	SNS confirm/verify helper (:107) is called only with the ashlar-sns-signing factory client (:72)
+application/src/Ashlar.API/Program.cs	http.register	1	1	Factory	-	EG-HTTP-03	named client ashlar-sns-signing (:171); AddAshlarEgressGuard follows AddAshlar in the same top-level block (:232)
+application/src/Ashlar.API/Program.cs	telemetry	2	2	Precedes	-	EG-TEL-01	OTLP metrics and traces exporters (:252, :259); the EG-TEL-01 guard opens their block (:247), decided once at registration
+application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs	http.new	2	2	Wrapped	-	EG-MESH-04	static mTLS SocketsHttpHandler (:57), handed to EgressHttp.CreateClient for the pull client (:72)
+application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs	http.param	1	0	-	Upstream:application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs	EG-MESH-04	PullPeerOnceAsync takes the static EgressHttp pull client; its only production call is in this file (:166)
+application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshDiscoveryService.cs	socket	2	1	Precedes	Exempt:Inbound	EG-MESH-05	beacon sender (:253) after the EG-MESH-05 guard that opens AnnounceLoopAsync (:249); the listener (:191) is Exempt:Inbound
+application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs	door	1	1	Precedes	-	EG-MESH-03	package bytes to any peer that reaches the port (Results.Stream :316), after the EG-MESH-03 guard on the remote address (:313)
+application/src/Ashlar.CLI/Commands/BackgroundAgent/OperatorDashboardBackgroundAgentCommand.cs	process	2	0	-	Exempt:LocalOnly	EG-PROC-05	opens the dashboard URL in the local browser (:74)
+application/src/Ashlar.CLI/Commands/BackgroundAgent/TailnetPeerSource.cs	process	2	0	-	Exempt:LocalOnly	EG-MESH-06	tailscale status --json over local IPC (:164-176)
+application/src/Ashlar.CLI/Commands/BootstrapRuntime.cs	process	2	0	-	Exempt:Operator	EG-PROC-04	operator bootstrap: Ollama install script, Homebrew, apt (:343-367)
+application/src/Ashlar.CLI/Commands/CiCommand.cs	process	1	0	-	Exempt:Operator	EG-PROC-04	operator ci verb (:266)
+application/src/Ashlar.CLI/Commands/DockerCommand.cs	store	3	0	-	Exempt:LocalDaemon	EG-STORE-03	docker CLI verbs on the local daemon socket
+application/src/Ashlar.CLI/Commands/DogfoodTestCommand.cs	process	2	0	-	Exempt:Operator	EG-PROC-04	operator dogfood verb (:85-100)
+application/src/Ashlar.CLI/Commands/ExportCommand.cs	process	2	0	-	Exempt:Operator	EG-PROC-04	dotnet publish restore during export (:245-268)
+application/src/Ashlar.CLI/Commands/MeshCommand.cs	http.new	1	1	Wrapped	-	EG-HTTP-06	mesh health probe client to the operator's --url, built by EgressHttp.CreateClient (:372)
+application/src/Ashlar.CLI/Commands/MultiPlatformTestCommand.cs	process	2	0	-	Exempt:Operator	EG-PROC-04	operator multi-platform test verb: dotnet test restores from NuGet (:419-421); not in the scout's list
+application/src/Ashlar.CLI/Commands/NativeBundle.cs	door	1	1	Precedes	-	EG-FILE-01,EG-FILE-02	StageApp copies the project tree out (native and cloud bundles); its guard, with the caller's site (EG-FILE-01 or EG-FILE-02), runs before anything is copied
+application/src/Ashlar.CLI/Commands/PkgCommand.cs	door	4	4	Precedes	-	EG-MESH-01,EG-MESH-02	pkg export Pack (:94, MESH-02); publish (:390) and share Pack and Publish (:445, :461) (MESH-01); each after its guard
+application/src/Ashlar.CLI/Commands/ReleaseCommand.cs	process	5	0	-	Exempt:Operator	EG-PROC-04	operator release verb: git and gh workflow run
+application/src/Ashlar.CLI/Commands/Runtime/ExecuteHandler.cs	process	2	0	-	Exempt:Operator	EG-PROC-04	operator runtime execute verb (:189, :289)
+application/src/Ashlar.CLI/Commands/SelfExtendCommand.cs	process	1	0	-	Exempt:Operator	EG-PROC-04	operator self-extend verb (:923)
+application/src/Ashlar.CLI/Commands/TestMultiEnvCommand.cs	process	1	0	-	Exempt:Operator	EG-PROC-04	operator test-multi-env verb (:363)
+application/src/Ashlar.CLI/Commands/TestPortableCommand.cs	process	4	0	-	Exempt:Operator	EG-PROC-04	operator test-portable verb (:152-196)
+application/src/Ashlar.CLI/Commands/WorkflowCommand.cs	http.new	1	1	Wrapped	-	EG-HTTP-05	orchestrate client to discovered mesh peers, built by EgressHttp.CreateClient (:535)
+application/src/Ashlar.CLI/Commands/WorkflowCommand.cs	process	2	0	-	Exempt:Operator	EG-PROC-04	ollama pull for a workflow's model (:337-339)
+commercial/src/Ashlar.Commercial.Fleet.Api/CommercialFleetEndpoints.cs	door	1	0	-	Exempt:Inbound	EG-SRV-06	task-result download response (Results.File :499), a read-side decision
+commercial/src/Ashlar.Commercial.Fleet.Host/Program.cs	http.register	1	1	Factory	-	EG-HTTP-03	named client ashlar-sns-signing (:79); AddAshlarEgressGuard follows AddAshlar in the same top-level block (:131)
+commercial/src/Ashlar.Commercial.Fleet.Infrastructure/FleetServiceCollectionExtensions.cs	http.register	1	0	-	Upstream:commercial/src/Ashlar.Commercial.Fleet.Host/Program.cs	EG-EXE-05,EG-LAT-01,EG-LAT-04	MeshLab worker client (:116); the Fleet's factory also serves the knowledge-sync, network-bus and peer-pull clients; this project cannot reach Ashlar.Infrastructure, and Fleet.Host, the one executable that composes it, installs the guard
+commercial/src/Ashlar.Commercial.Fleet.Infrastructure/MeshLab/MeshLabWorkerExecutorClient.cs	http.param	3	0	-	Factory	EG-EXE-05	commercial copy: director and peer calls take the named factory client
+commercial/src/Ashlar.Commercial.MeshDirector/MeshDirectorCommand.cs	http.new	1	1	Wrapped	-	EG-HTTP-07	mesh director fleet client, built by EgressHttp.CreateClient (:415)
+src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs	sdk.client	3	0	-	Governance	EG-MDL-02	AmazonBedrockRuntimeClient (:39, :40) and AsIChatClient (:42); the SDK owns the HTTP; reached only through the governed cloud:bedrock registration, whose outermost layer is EgressGuardChatClient
+src/Ashlar.AI.Pipeline/Clients/OllamaHttpChatClient.cs	http.new	2	0	-	Governance	EG-MDL-01	default client to the resolved Ollama base URL and its HttpClientHandler with AllowAutoRedirect off (:170, SPEC-007 PR 4.1); reached only through the governed local:ollama registration, whose outermost layer is EgressGuardChatClient
+src/Ashlar.AI.Pipeline/Clients/OllamaHttpChatClient.cs	http.param	1	0	-	Governance	EG-MDL-01	constructor taking a caller's client (:34); built only inside the governed registrations F5 holds
+src/Ashlar.AI.Pipeline/MeaiPipelineServiceCollectionExtensions.cs	chat.register	7	0	-	Governance	EG-MDL-01,EG-MDL-02	keyed ollama/onnx/governed/Bedrock-tier registrations, the router, and the two leaf clients; F5 holds the four keyed registrations under UseAshlarGovernance (outermost EgressGuardChatClient), and the router dispatches only to them
+src/Ashlar.Abstractions/Security/Egress/EgressHttp.cs	http.new	3	0	-	Exempt:GuardImpl	-	the guard's own constructions: a raw client and handler behind EgressGuardHandler (:57, :78)
+src/Ashlar.Abstractions/Security/Egress/SynchronousSendRefusedOnNetstandard20Asset.cs	http.new	1	0	-	Exempt:GuardImpl	-	the guard's own construction on the netstandard2.0 asset: the invoker the synchronous-send hop forwards SendAsync through, below EgressGuardHandler (:46)
+src/Ashlar.Agents.TestKit/StubHttpMessageHandler.cs	http.new	1	0	-	Exempt:TestDouble	-	shipped test double: a client over its own stub handler (:183)
+src/Ashlar.BackgroundAgents.HostRunners/SelfExtendAdmissionBridge.cs	door	2	2	Precedes	-	EG-MESH-01	auto-share Pack and Publish (:289, :290), after the EG-MESH-01 guard on the resolved store (:288)
+src/Ashlar.BackgroundAgents/Autonomy/OllamaProposalSource.cs	http.param	1	1	Precedes	-	EG-MDL-11	experimental proposer takes an injected client into a private field; ProposeAsync's only send follows the EG-MDL-11 guard (:132)
+src/Ashlar.BackgroundAgents/WebSearch/BingWebSearchProvider.cs	http.param	1	1	Precedes	-	EG-WEB-01	Bing provider takes a caller's client into a private field; SearchAsync's only send follows the EG-WEB-01 guard (:56)
+src/Ashlar.Client/AshlarClient.cs	http.param	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client; covered by the guard handler when the consumer also calls AddAshlar or AddAshlarEgressGuard
+src/Ashlar.Client/ServiceCollectionExtensions.cs	http.register	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client registration (:20)
+src/Ashlar.Hosting/AshlarKernelRegistrar.Phases.cs	http.register	1	1	Factory	-	EG-EXE-04	named client AshlarExecution (:778); AddAshlarEgressGuard follows it in the same remote-URL block (:780)
+src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs	http.register	1	1	Factory	-	EG-EXE-01,EG-EXE-02,EG-EXE-03,EG-HTTP-01,EG-HTTP-02	AddAshlar's IHttpClientFactory (:136): the default client behind remote bricks, the peer executor and workflow webhooks; AddAshlarEgressGuard follows it (:139)
+src/Ashlar.Infrastructure/Adaptation/CoreVersionManager.cs	process	2	0	-	Exempt:LocalOnly	EG-PROC-05	git rev-parse (:43-51)
+src/Ashlar.Infrastructure/Adaptation/FileBasedSharedAdaptationStore.cs	door	1	1	Precedes	-	EG-MESH-07	BroadcastAsync writes promoted source into the shared directory, after the EG-MESH-07 guard (:57)
+src/Ashlar.Infrastructure/Adaptation/SneakernetTransport.cs	door	1	1	Precedes	-	EG-MESH-08	ExportAsync writes every shared adaptation to the --to path, after the EG-MESH-08 guard (:36)
+src/Ashlar.Infrastructure/Analysis/BrickAnalyzer/DotNetRegressionTestRunner.cs	process	2	0	-	Exempt:LocalOnly	EG-PROC-05	dotnet test --no-build (:43-55)
+src/Ashlar.Infrastructure/Execution/CompositeBrickRegistry.cs	http.param	1	0	-	Factory	EG-EXE-01	hands the default factory client to each RemoteBrick; fed only an IHttpClientFactory.CreateClient() result (RunPodCapabilityRoutingServiceCollectionExtensions.cs:104, AshlarFederatedBrickMeshServiceCollectionExtensions.cs:79)
+src/Ashlar.Infrastructure/Execution/Ephemeral/OllamaEphemeralLifecycle.cs	store	1	0	-	Exempt:LocalDaemon	EG-STORE-03	ephemeral Ollama container on the local daemon
+src/Ashlar.Infrastructure/Execution/HttpRemoteBrickCatalog.cs	http.param	1	0	-	Factory	EG-EXE-02	remote catalog takes a factory client (AshlarFederatedBrickMeshServiceCollectionExtensions.cs:72-76)
+src/Ashlar.Infrastructure/Execution/Ollama/OllamaProvider.cs	http.param	1	0	-	Upstream:src/Ashlar.Infrastructure/Execution/ProviderFactory.cs	EG-MDL-07	receives only the EgressHttp client ProviderFactory.cs:814 builds (its one construction, ProviderFactory.cs:823)
+src/Ashlar.Infrastructure/Execution/ProviderFactory.cs	http.new	2	2	Wrapped	-	EG-MDL-03,EG-MDL-04,EG-MDL-05,EG-MDL-06,EG-MDL-07,EG-MDL-08	static cloud client (:61, MDL-03..06, MDL-08) and the Ollama provider client (:814, MDL-07), both built by EgressHttp.CreateClient
+src/Ashlar.Infrastructure/Execution/ProviderFactory.cs	process	2	0	-	Exempt:LocalOnly	EG-PROC-05	ffmpeg frame encode (:705, :717)
+src/Ashlar.Infrastructure/Execution/RemoteBrick.cs	http.param	1	0	-	Upstream:src/Ashlar.Infrastructure/Execution/CompositeBrickRegistry.cs	EG-EXE-01	remote brick execute POST on the default factory client; constructed only in CompositeBrickRegistry.cs, from its Factory-routed client
+src/Ashlar.Infrastructure/Execution/Routing/RunPodHttpClient.cs	http.param	1	0	-	Factory	EG-MDL-09	typed client registered by AddHttpClient<IRunPodClient, RunPodHttpClient> (RunPodCapabilityRoutingServiceCollectionExtensions.cs:50); nothing else constructs it
+src/Ashlar.Infrastructure/Execution/Routing/Sdk/Extensions/RunPodCapabilityRoutingServiceCollectionExtensions.cs	http.register	1	1	Factory	-	EG-MDL-09	typed RunPod client (:50); AddAshlarEgressGuard follows it in the same block (:59)
+src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs	process	2	0	-	Exempt:Operator	EG-PROC-04	the operator process funnel (:60, :111); its callers choose the executable (a stated blind spot)
+src/Ashlar.Infrastructure/Maintenance/Adapters/DockerDesktopLifecycleAdapter.cs	process	8	0	-	Exempt:LocalOnly	EG-PROC-05	local Docker Desktop lifecycle commands
+src/Ashlar.Infrastructure/MeshLab/MeshLabServiceCollectionExtensions.cs	http.register	1	1	Factory	-	EG-EXE-05	MeshLab worker named client (:36); AddAshlarEgressGuard follows it, after the disabled-path return (:38)
+src/Ashlar.Infrastructure/MeshLab/MeshLabWorkerExecutorClient.cs	http.param	3	0	-	Factory	EG-EXE-05	director and peer calls take the named factory client
+src/Ashlar.Infrastructure/ModelArtifacts/DockerOllamaModelArtifactCatalogSource.cs	store	1	0	-	Exempt:LocalDaemon	EG-STORE-03	docker-Ollama catalog on the local daemon (:49)
+src/Ashlar.Infrastructure/ModelArtifacts/Sdk/Extensions/ModelArtifactCatalogServiceCollectionExtensions.cs	http.register	3	3	Factory	-	EG-MDL-13,EG-MDL-14	Ollama tags (:38) and docker-Ollama (:45) catalog clients (MDL-14); ollama.com library client (:50, MDL-13); one AddAshlarEgressGuard after the three (:58)
+src/Ashlar.Infrastructure/NodeCapabilityRuntime/Backends/OllamaModelServingBackend.cs	http.param	1	0	-	Factory	EG-MDL-10	NCR Ollama backend takes the named factory client (NodeCapabilityRuntimeServiceCollectionExtensions.cs:148-151)
+src/Ashlar.Infrastructure/NodeCapabilityRuntime/Sdk/Extensions/NodeCapabilityRuntimeServiceCollectionExtensions.cs	http.register	1	1	Factory	-	EG-MDL-10	NCR Ollama backend named client (:136); AddAshlarEgressGuard follows it in AddDesktopPolicyAndBackend (:142)
+src/Ashlar.Infrastructure/ParallelTesting/DotNetInstanceSpawner.cs	process	2	0	-	Exempt:LocalOnly	EG-PROC-05	dotnet run --no-build of a local instance (:46-58)
+src/Ashlar.Infrastructure/Persistence/Ephemeral/PostgresEphemeralLifecycle.cs	store	1	0	-	Exempt:LocalDaemon	EG-STORE-03	ephemeral Postgres container on the local daemon
+src/Ashlar.Infrastructure/Persistence/PostgresDatabaseProvisioner.cs	store	6	0	-	Exempt:DataStore	EG-STORE-01	Postgres admin connections for provisioning
+src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs	process	1	1	Precedes	-	EG-PROC-03,EG-EXE-06,EG-EXE-07,EG-EXE-08	the docker/kubectl/compose funnel (:20), after the EG-PROC-03 guard that opens RunAsync (:18)
+src/Ashlar.Infrastructure/Testing/Docker/DockerService.cs	store	1	0	-	Exempt:LocalDaemon	EG-STORE-03	test docker service on the local daemon
+src/Ashlar.Infrastructure/Testing/ExecutionPlatform/DockerExecutionPlatform.cs	store	1	0	-	Exempt:LocalDaemon	EG-STORE-03	docker execution platform on the local daemon
+src/Ashlar.Infrastructure/Testing/ExecutionPlatform/RemoteExecutionPlatform.cs	http.param	1	0	-	Factory	EG-EXE-04	takes the AshlarExecution named client (AshlarKernelRegistrar.Phases.cs:784-786)
+src/Ashlar.Infrastructure/Trust/CloudAvailabilityResolver.cs	http.new	1	1	Wrapped	-	EG-MDL-12	fallback probe client to api.openai.com, built by EgressHttp.CreateClient (:98)
+src/Ashlar.Infrastructure/Trust/CloudAvailabilityResolver.cs	http.param	1	0	-	Exempt:TestSeam	EG-MDL-12	constructor-injectable probe client is a test seam (:30)
+src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs	process	2	2	Precedes	-	EG-PROC-02	dotnet build (:529), which restores from NuGet, and dotnet test --no-build (:766), each after its EG-PROC-02 guard
+src/Ashlar.Ingress.AwsSns/ISnsSignatureVerifier.cs	http.param	1	0	-	Factory	EG-HTTP-03	verifier contract takes the signing-cert client; its only caller passes the ashlar-sns-signing factory client (AwsSnsSmsWebhook.cs:74)
+src/Ashlar.Ingress.AwsSns/SnsRsaSignatureVerifier.cs	http.param	1	0	-	Factory	EG-HTTP-03	fetches the SNS signing certificate on the caller's client, the ashlar-sns-signing factory client (AwsSnsSmsWebhook.cs:74)
+src/Ashlar.Ingress.DynamoDb/SmsIngressDynamoDbServiceCollectionExtensions.cs	sdk.client	1	0	-	Exempt:DataStore	EG-STORE-02	DynamoDB approval store client (:12)
+src/Ashlar.Mcp.Client/McpClientConnectionManager.cs	http.new	1	1	Wrapped	-	EG-XPT-06,EG-XPT-07	EgressHttp client handed to HttpClientTransport, which owns it (:330)
+src/Ashlar.Mcp.Client/McpClientConnectionManager.cs	sdk.client	2	2	Wrapped	-	EG-XPT-06,EG-XPT-07	HttpClientTransport over the EgressHttp client (:328) and McpClient.CreateAsync over it (:333)
+src/Ashlar.Tools.Dev/DotnetRunner.cs	process	2	2	Precedes	-	EG-PROC-01	dotnet.build/test/forge.build runner (:20, :28), after the EG-PROC-01 guard that opens RunAsync (:16)
+src/Ashlar.Transport.A2A/A2AAgentTransport.cs	http.new	1	1	Wrapped	-	EG-XPT-01,EG-XPT-02	per-authority client under the A2A SDK, built by EgressHttp.CreateClient (:169)
+src/Ashlar.Transport.A2A/A2AAgentTransport.cs	sdk.client	2	2	Wrapped	-	EG-XPT-01,EG-XPT-02	A2AClient (:82) and A2ACardResolver (:148) over the EgressHttp per-authority client
+src/Ashlar.Transport.Grpc/DefaultGrpcChannelFactory.cs	http.new	2	2	Wrapped	-	EG-XPT-03,EG-XPT-04,EG-XPT-05	gRPC channel handler: EgressHttp.Wrap over the configured new HttpClientHandler() (:76)
+src/Ashlar.Transport.Grpc/DefaultGrpcChannelFactory.cs	sdk.client	1	1	Wrapped	-	EG-XPT-03,EG-XPT-04,EG-XPT-05	GrpcChannel.ForAddress over the wrapped handler (:67)

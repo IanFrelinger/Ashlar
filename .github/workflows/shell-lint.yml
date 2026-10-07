@@ -18,22 +18,28 @@ on:
   pull_request:
     # Always run on PRs (no path filter) to serve as a fast required check.
     # Parse/lint errors in scripts/ would break ops; catch them early.
+  # Merge queue. A required check that does not run on `merge_group` never reports, and the
+  # queue waits on it forever - so this is deliberately unfiltered, exactly like the
+  # `pull_request` trigger above.
+  merge_group:
   workflow_dispatch:
 
 jobs:
   shell-lint:
     name: shell-lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
 
-      - name: bash -n over scripts/**/*.sh
+      - name: bash -n over scripts/, tests/ and .claude/hooks/ *.sh
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' files < <(find scripts tests -type f -name '*.sh' -print0 | sort -z)
-          echo "Syntax-checking ${#files[@]} shell scripts under scripts/"
+          # .claude/hooks holds the cloud-session SessionStart hook; a parse error there breaks docker
+          # setup in every cloud session and nothing else would notice.
+          mapfile -d '' files < <(find scripts tests .claude/hooks -type f -name '*.sh' -print0 | sort -z)
+          echo "Syntax-checking ${#files[@]} shell scripts under scripts/, tests/ and .claude/hooks/"
           rc=0
           for f in "${files[@]}"; do
             if ! bash -n "$f"; then
@@ -43,33 +49,11 @@ jobs:
           done
           exit "$rc"
 
-      - name: release guard tests
-        shell: bash
-        run: |
-          # These exercise scripts/lib/release-staging-guards.sh, which stands between a
-          # mislabelled package and nuget.org and was previously only exercised by a real
-          # release - three times in this repository's lifetime. Pure bash: no network, no
-          # dotnet, no container, so it belongs in a required check rather than a lane that
-          # runs monthly.
-          bash tests/scripts/release-guards.test.sh
-
-      - name: dogfood sweep verdict tests
-        shell: bash
-        run: |
-          # These decide whether a dogfood sweep that FAILED is allowed to be recorded as a pass.
-          # On 2026-09-14 it was: the sandbox image was absent, the objective died at `docker run`,
-          # and because AutonomyLoopService counts a throwing iteration as attempted, the sweep
-          # exited 0 and the workflow wrote PASS to the ledger that gates the autonomy claim
-          # (run 34889059104). The row reached no further than the runner only because the
-          # workflow cannot push to a protected branch. Pure bash - no dotnet, no container - so
-          # this belongs in a required check and not in the scheduled lane it guards.
-          bash tests/scripts/dogfood-sweep-verdict.test.sh
-
-      - name: shellcheck -S error over scripts/**/*.sh
+      - name: shellcheck -S error over scripts/ and .claude/hooks/ *.sh
         shell: bash
         run: |
           set -euo pipefail
-          # ubuntu-latest ships shellcheck; install only if the image ever drops it.
+          # The ubuntu-24.04 image ships shellcheck; install only if the image ever drops it.
           if ! command -v shellcheck >/dev/null 2>&1; then
             sudo apt-get update -qq
             sudo apt-get install -y -qq shellcheck
@@ -77,7 +61,7 @@ jobs:
           shellcheck --version
           # -S error keeps this quiet: only parse/semantic errors fail the lane,
           # style and warning findings do not.
-          find scripts -type f -name '*.sh' -print0 | sort -z | xargs -0 shellcheck -S error
+          find scripts .claude/hooks -type f -name '*.sh' -print0 | sort -z | xargs -0 shellcheck -S error
 
       # PyYAML deliberately NOT optional. A check that skips itself when a dependency is missing is
       # the same "healthy by never running" failure it exists to catch; the script exits non-zero
@@ -86,14 +70,21 @@ jobs:
         shell: bash
         run: python3 -c "import yaml" || python3 -m pip install --quiet --break-system-packages pyyaml
 
-      - name: Workflow files use contexts that exist where they use them
-        shell: bash
-        run: bash scripts/ci/verify-workflow-context-availability.sh
-
-      - name: Consumer path scan rejects forbidden paths and scan errors
-        shell: bash
-        run: bash scripts/ci/test-consumer-repo-path-guard.sh
 
       - name: Commercial receipt checker accepts real-shaped evidence and rejects bad files
         shell: bash
+        # Kept as its own step on purpose. CommercialReceiptRoutingTests pins this as a direct,
+        # unconditional command in a required job; discovery would not carry that guarantee.
         run: python3 scripts/ci/test-commercial-receipts.py
+
+      - name: Repository gates
+        shell: bash
+        run: |
+          # Every gate that is a bare invocation, DISCOVERED rather than listed. This step used to be
+          # one step per gate, appended to the same list, which became this repository's worst merge
+          # conflict - four consecutive pull requests conflicted on it and every resolution was
+          # identical. Adding a gate is now adding a file. The runner refuses if discovery returns
+          # fewer gates than its floor, so a glob that stops matching fails loudly instead of passing
+          # having run nothing, and it runs every gate before reporting rather than stopping at the
+          # first failure.
+          bash scripts/ci/run-repo-gates.sh

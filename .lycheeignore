@@ -11,3 +11,11 @@ https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
 
 # Vendor blog returns 503 to CI user agents intermittently (see docs/ICPResearchMemo.md).
 https://codebrewtools.com/blogs/ai-native-internal-developer-portals-2026
+
+# Claude artifact links in docs/handoff/HANDOFF.md (added 2026-08-22 by #362). These are PRIVATE
+# artifacts from the originating session: claude.ai answers an unauthenticated fetch with 403, so a
+# link checker can never verify them and is only measuring claude.ai's auth behaviour. They sat
+# unnoticed because this workflow's `push` trigger had not re-run over that file since 2026-09-10,
+# while the `pull_request` trigger has no path filter - so the first PR to reach it failed on a
+# defect that had been on master for five weeks.
+https://claude.ai/code/artifact/*

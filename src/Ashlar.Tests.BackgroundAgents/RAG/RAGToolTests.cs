@@ -43,6 +43,36 @@ public class RAGToolTests
         service.Verify(s => s.SearchAsync("test query", 5, 0.7, null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // The model cannot raise its own clearance. The agent's clearance comes from the snapshot; the
+    // model's maxSensitivityLevelName may only narrow it. It used to be the other way round -- the
+    // model's value won -- so a prompt injection that got the model to ask for TopSecret got it.
+    [Theory]
+    // agent clearance, model request, clearance searched at
+    [InlineData("Internal", "TopSecret", "Internal")]
+    [InlineData("Internal", "Bogus", "Internal")]
+    [InlineData("Internal", null, "Internal")]
+    [InlineData("Secret", "Public", "Public")]
+    [InlineData(null, "TopSecret", null)]
+    [InlineData(null, null, null)]
+    public async Task InvokeAsync_TheModelCanNarrowButNeverRaiseTheAgentsClearance(
+        string? agentClearance, string? requested, string? searchedAt)
+    {
+        var service = new Mock<IRAGService>();
+        service.Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<VectorSearchResult>());
+        var tool = new RAGTool(service.Object);
+        var args = requested is null
+            ? JsonSerializer.SerializeToElement(new { query = "plan" })
+            : JsonSerializer.SerializeToElement(new { query = "plan", maxSensitivityLevelName = requested });
+        var data = new Dictionary<string, object?>();
+        if (agentClearance is not null)
+            data["maxDataSensitivity"] = agentClearance;
+
+        await tool.InvokeAsync(new ToolCall("rag_search", args), new WorldSnapshot(0, data), default);
+
+        service.Verify(s => s.SearchAsync("plan", 5, 0.7, searchedAt, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // This tool is the caller that had to change with the stores. The query text arrives in the
     // model's own JSON arguments and is never validated, minScore likewise -- a model-supplied 0
     // overrides the safe default of 0.7 -- and the stores now REFUSE a query whose embedding has

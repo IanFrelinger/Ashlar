@@ -9,12 +9,15 @@ namespace Ashlar.Infrastructure.Execution.Models;
 /// <summary>
 /// A model wrapper that can hot-swap between an agentic provider-backed model and a deterministic fallback.
 /// Selection rules (in priority order):
-/// - If system messages contain "ashlar.model.prefer=deterministic" -> deterministic.
+/// - If system messages contain "ashlar.model.prefer=deterministic" -> deterministic; if a provider is also named
+///   (directive or ASHLAR_MODEL_PROVIDER), try provider-backed with it first and fall back to deterministic on failure.
 /// - Else if system messages contain "ashlar.model.provider=&lt;name&gt;" -> try provider-backed with that provider.
 /// - Else if env var ASHLAR_MODEL_PROVIDER is set -> try provider-backed with that provider.
-/// - Else -> deterministic.
+/// - Else -> throw <see cref="ModelUnavailableException"/>, or deterministic only when ASHLAR_ALLOW_MOCK=1.
 ///
-/// If provider-backed execution fails, it falls back to deterministic.
+/// If provider-backed execution fails, it falls back to deterministic only under
+/// "ashlar.model.prefer=deterministic" or when ASHLAR_ALLOW_MOCK=1; otherwise it throws
+/// <see cref="ModelUnavailableException"/>.
 /// </summary>
 public sealed class HotSwappableModel : IModel
 {

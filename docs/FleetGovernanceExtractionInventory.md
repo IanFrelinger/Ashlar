@@ -1,5 +1,14 @@
 # Fleet and mesh governance extraction inventory
 
+<!-- phantom-paths: historical-record -->
+
+> **The file paths below are PRE-EXTRACTION locations.** Fleet (Phases C-E) and networking
+> (Phase F) are complete, so most no longer exist at the path given - the code moved to
+> `commercial/`. They are left as written because this document's job is to record what moved
+> and from where; rewriting them to today's paths would destroy the record. The marker above
+> tells `scripts/check-docs-phantom-paths.sh` to stop checking them, which is why 63
+> stale-looking paths here are not a failing build.
+
 This inventory guided fleet and networking extraction. **Fleet (Phases C–E) and networking (Phase F) are complete** on `master`; remaining items are optional CLI splits and governance modules. It classifies fleet, mesh, and networking code before moving it so the commercial boundary stays reviewable.
 
 Classification terms:

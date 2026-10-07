@@ -25,6 +25,8 @@ This spec refactors the Trust & Information Architecture to **maximize reuse** o
   - `restricted` → **Confidential** or **Secret** (AllowsExternalLLM = false)
 - **`DataSensitivityLevels`** — no changes; use for classification output
 
+**Bridge to security labels (SPEC-007, outside this spec).** `DataSensitivityLabelBridge` maps a level onto an `Ashlar.Abstractions.Security.SecurityLabel` by `SensitivityValue` alone, level only (the flags `AllowsExternalLLM`, `AllowsWebSearch`, `RequiresLocalOnly` and `AllowsNetworkExports` are not carried): `ToDataLabel` for data (no level → `SystemHigh`), `TryToClearance` for an agent's clearance (no level → `Public`; resolve a clearance *name* with `ResolveClearance` first, so a registry floor below `Public` is refused, not widened). `TrustTierOrder.RecordLabel` / `CallerLabel` do the same for the RAG tier names. Nothing decides through either yet: `IDataSensitivityRegistry.CanAccess` and `TrustTierOrder.IsAllowed` still decide, so everything in this section is unchanged by it. The mapping rules are listed in `ci/cert-gate-assertions.md`. SPEC-007 also adds an egress guard, `Ashlar.Abstractions.Security.Egress.EgressGuard`, which decides whether the current label may be written to an outbound destination (`ReferenceMonitor.CanWrite`) and logs that decision. PR 3b routes every listed non-exempt outbound site through it: HTTP clients through `EgressHttp` or the factory handler that `AddAshlar` installs, MEAI chat targets through `EgressGuardChatClient` (the outermost layer, ahead of the policy gate), and the rest through explicit `Evaluate` calls. It is report-only and refuses nothing, so the existing gates are unchanged: `DataExfiltrationPolicy`, the MEAI policy gate and sanitiser, `SanitizingProviderFactory` and the deployment-profile option validators decide exactly as before. Every outbound path the guard is meant to cover is listed in `docs/EgressInventory.md`.
+
 ### New: Data Taxonomy (Only Addition)
 
 Add a **data taxonomy** that assigns a default sensitivity level *name* to each observed data type. This is a mapping layer, not a replacement for `IDataSensitivityRegistry`.
@@ -51,9 +53,11 @@ string? GetDefaultLevelForDataType(string dataType);
 | behavioral-patterns    | TopSecret       | Local-only                             |
 | user-declared-context  | (user-specified)| At declaration time                    |
 
-**Implementation:** `DataTaxonomy` reads from `DataTaxonomy.json` (versioned). Falls back to TopSecret for unknown types. Uses `IDataSensitivityRegistry.GetByName` to resolve level names.
+**Implementation:** `DataTaxonomy` (`src/Ashlar.BackgroundAgents/DataSensitivity/DataTaxonomy.cs`) reads from `DataTaxonomy.json` (versioned). Falls back to TopSecret for unknown types. It returns level names as plain strings and does not resolve them through `IDataSensitivityRegistry`. An entry whose value is `null` (the *inherits* and *user-specified* rows above) also resolves to TopSecret; no inheritance from sources and no declaration-time lookup is implemented.
 
-**Integration:** Classification engine calls `IDataTaxonomy` first (by data type), then `ISensitiveContentFilter.ShouldBlockQuery` for PII-in-content check. If PII detected → treat as Secret regardless of taxonomy.
+**Integration (planned, not implemented):** Classification engine calls `IDataTaxonomy` first (by data type), then `ISensitiveContentFilter.ShouldBlockQuery` for PII-in-content check. If PII detected → treat as Secret regardless of taxonomy.
+
+**Status (checked against the code on 2026-10-04):** there is no classification engine, and no production code calls `IDataTaxonomy`. `AddTrustServices` (`src/Ashlar.BackgroundAgents/ServiceCollectionExtensions.cs`) registers `DataTaxonomy` and passes it to `CloudSanitizationProxy` (`src/Ashlar.BackgroundAgents/Trust/CloudSanitizationProxy.cs`), which stores it and never reads it. The proxy runs `ShouldBlockQuery` on the prompt and blocks it when PII is found; it does not reclassify it as Secret.
 
 ---
 
@@ -80,7 +84,7 @@ SanitizationResult SanitizeForCloud(OutgoingContext context, CancellationToken c
 4. If blocked → throw or return error; do not call inner factory
 5. If allowed → replace context with sanitized version, then call inner factory
 6. Use `ISensitiveContentFilter.FilterQuery` on prompt text for PII redaction
-7. Use `IDataTaxonomy` + field heuristics to strip/replace `TopSecret` and `Secret` fields
+7. Use `IDataTaxonomy` + field heuristics to strip/replace `TopSecret` and `Secret` fields (not implemented: the proxy never consults the taxonomy and does no field-level stripping; see section 1)
 
 **Interface: `ISanitizationAuditLog`**
 ```csharp
@@ -174,18 +178,19 @@ bool ShouldObserve(string category, string sourceId, string? projectPath = null)
 
 ### Reuse
 
-- **`IExecutionContext.IsAirGapped`** — already used by BehaviorExecutor, UnderstandingBrick, ProviderFactory, etc.
-- **Provider selection** — mock/offline/echo when air-gapped
-- **`--airgap` CLI flags** — already present
+- **`IExecutionContext.IsAirGapped`** (`src/Ashlar.Brick.Contracts/Authoring/Execution/IExecutionContext.cs`) — when true, `BehaviorExecutor` (`src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs`) and `ImplementationChainResolver` (`src/Ashlar.Core.Domain/Bricks/ImplementationChainResolver.cs`) select only the deterministic implementation, and `NcrAgenticBrickEngine` sets `PrivacyBoundary.LocalOnly`. There is no `UnderstandingBrick` class, and `ProviderFactory` does not read the flag. Nothing sets it from `ASHLAR_AIRGAP` or the `AirGapped` deployment profile; the certification audit contexts (`src/Ashlar.Infrastructure/Certification/`) always report true.
+- **Provider selection** — not tied to air-gap. `ProviderFactory` (`src/Ashlar.Infrastructure/Execution/ProviderFactory.cs`) offers `mock`, `offline`, `mock-json` and `echo` only when `ASHLAR_ALLOW_MOCK=1`, whatever the air-gap state.
+- **`--airgap` CLI flags** — none exist. The nearest is `ashlar test multi-env --no-network` (`application/src/Ashlar.CLI/Commands/TestMultiEnvCommand.cs`), which runs test containers with `--network none`.
+- **`AirGapped` deployment profile** (`ASHLAR_DEPLOYMENT_PROFILE`) — selects kernel modules (`src/Ashlar.Hosting/AshlarServiceCollectionExtensions.Deployment.cs`). It leaves out runtime transport and the trust services, so under it the kernel registers neither the resolver below nor `SanitizingProviderFactory`.
 
 ### Implemented: `ICloudAvailabilityResolver`
 
 `ICloudAvailabilityResolver` (`Ashlar.Core.Application`) and `CloudAvailabilityResolver` (`Ashlar.Infrastructure`) resolve air-gap status at runtime:
-- Sources (priority order): env var → config file → network probe
-- Used at startup and optionally before cloud calls to refresh
-- When cloud unavailable, inject/ensure `IsAirGapped = true` in context
+- Sources (priority order): env var (`ASHLAR_AIRGAP`) → config file (`airGapped` in `ASHLAR_CONFIG_PATH`, default `~/.ashlar/config.json`) → network probe (only when `ASHLAR_AIRGAP_PROBE=1`); otherwise not air-gapped
+- Registered by `AddTrustServices`, but nothing outside tests calls `IsAirGappedAsync`: not at startup and not before cloud calls
+- Its result is not injected anywhere: no code sets `IsAirGapped = true` in an execution context or `OutgoingContext` from it
 
-**Sanitization when air-gapped:** `SanitizingProviderFactory` still runs classification and audit logging locally. It never dispatches when `IsAirGapped` is true (inner factory uses mock/offline). So the sanitization layer functions for audit even when cloud is off.
+**Sanitization when air-gapped:** `SanitizingProviderFactory` (`src/Ashlar.BackgroundAgents/Trust/SanitizingProviderFactory.cs`) does not read the execution context. `ExecuteLLMAsync` sets `OutgoingContext.IsAirGapped = false`, and the vision and video methods leave it at its default, `false`. Every LLM, vision and video call through it is therefore judged as cloud egress, and an allowed one is always dispatched to the inner factory; `IsProviderAvailable` and `EnsureOllamaReachableAsync` go straight to the inner factory without the proxy. When a direct caller of `CloudSanitizationProxy` passes `IsAirGapped = true`, the proxy allows the prompt with no filtering and no audit entry. There is no classification step.
 
 ---
 
@@ -220,7 +225,7 @@ IReadOnlyList<DataDecisionAuditEntry> GetRecent(int maxCount, DateTimeOffset? si
 The sections above define the target architecture. The phase list below reflects implementation status in the current codebase.
 
 ### Phase 1 — Classification + Sanitization (Extend Existing) — Implemented
-- Implemented `IDataTaxonomy` and `DataTaxonomy` with config file support
+- Implemented `IDataTaxonomy` and `DataTaxonomy` with config file support (registered by `AddTrustServices`; no production code calls it yet, see section 1)
 - Implemented `SanitizingProviderFactory` wrapping `IProviderFactory`
 - Implemented prompt PII filtering via `ISensitiveContentFilter`
 - Implemented `ICloudSanitizationProxy` and `ISanitizationAuditLog`
@@ -240,7 +245,7 @@ The sections above define the target architecture. The phase list below reflects
 
 ### Phase 4 — Audit Dashboard + Compliance — Implemented
 - Implemented `IDataDecisionAuditLog` support (or equivalent `ISanitizationAuditLog` extension)
-- Unified sanitization, boundary, and classification events
+- Unified sanitization, boundary, and classification events (the log accepts classification events, but nothing outside tests calls `LogClassification`)
 - Implemented compliance export (structured JSON, Markdown, CSV via `TrustCommand.AuditAsync`)
 - Implemented persistent boundary indicator and audit view (`TrustCommand.DashboardAsync`, `BoundaryAsync`)
 
@@ -262,7 +267,7 @@ The sections above define the target architecture. The phase list below reflects
 
 | New Component              | Depends On (Existing)                 |
 |---------------------------|----------------------------------------|
-| IDataTaxonomy             | IDataSensitivityRegistry               |
+| IDataTaxonomy             | (none)                                 |
 | SanitizingProviderFactory  | IProviderFactory, ISensitiveContentFilter |
 | ICloudSanitizationProxy   | IDataTaxonomy, ISensitiveContentFilter  |
 | IUserKnowledgeLogStore    | (none)                                 |

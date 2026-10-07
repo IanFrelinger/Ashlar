@@ -6,17 +6,23 @@ cd "$ROOT"
 
 INFRA="src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
 CLI="application/src/Ashlar.CLI/Ashlar.CLI.csproj"
+TRX_DIR="test-results/compat-gate-tier-c"
+rm -rf "$TRX_DIR"
 
 echo "== Compat Tier C: configuration override tests =="
 dotnet build "$INFRA" -v minimal
 dotnet test "$INFRA" -f net8.0 --no-build \
   --filter "FullyQualifiedName~PipelineServiceCollectionExtensionsTests.AddPipelineCompositionLayer_WithConfiguration" \
+  --logger "trx;LogFileName=configuration-override.trx" --results-directory "$TRX_DIR" \
   --blame-hang-timeout 60s --blame-hang-dump-type none
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/configuration-override.trx"
 
 echo "== Compat Tier C: hosting profile resolution =="
 dotnet test "$INFRA" -f net8.0 --no-build \
   --filter "FullyQualifiedName~KernelPhaseResolutionTests" \
+  --logger "trx;LogFileName=hosting-profile-resolution.trx" --results-directory "$TRX_DIR" \
   --blame-hang-timeout 180s --blame-hang-dump-type none
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/hosting-profile-resolution.trx"
 
 echo "== Compat Tier C: doctor smoke =="
 dotnet build "$CLI" -v minimal >/dev/null

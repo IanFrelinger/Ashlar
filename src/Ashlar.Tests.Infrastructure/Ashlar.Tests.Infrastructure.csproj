@@ -125,9 +125,28 @@
     <ProjectReference Include="..\Ashlar.Manifest\Ashlar.Manifest.csproj" />
     <ProjectReference Include="..\Ashlar.Bricks.Owasp\Ashlar.Bricks.Owasp.csproj" />
     <ProjectReference Include="..\Ashlar.Hosting\Ashlar.Hosting.csproj" />
+    <!-- SPEC-007 PR 4.10: the cert-gate twin composes MCP HTTP vs stdio. The server multi-targets net8.0. -->
+    <ProjectReference Include="..\Ashlar.Mcp.Server\Ashlar.Mcp.Server.csproj" />
     <ProjectReference Include="..\Ashlar.Ingress.DynamoDb\Ashlar.Ingress.DynamoDb.csproj" />
     <ProjectReference Include="..\Ashlar.Client\Ashlar.Client.csproj" />
   </ItemGroup>
+
+  <!-- SPEC-007 PR 4.2: the netstandard2.0 build of Ashlar.Abstractions, which .NET 5-7 apps resolve, for
+       EgressHttpNetstandard20TwinTests. This project compiles against the net8.0+ build (the reference above), so the
+       netstandard2.0 one is built, not referenced, and copied to abstractions-netstandard2.0/ in the output, where the
+       twin loads it into an AssemblyLoadContext of its own. Without this the netstandard2.0 asset runs in no required check. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj"
+                      SetTargetFramework="TargetFramework=netstandard2.0"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      OutputItemType="AshlarAbstractionsNetstandard20" />
+  </ItemGroup>
+  <Target Name="CopyAshlarAbstractionsNetstandard20" AfterTargets="CopyFilesToOutputDirectory">
+    <Error Condition="'@(AshlarAbstractionsNetstandard20)' == ''"
+           Text="The netstandard2.0 build of Ashlar.Abstractions was not resolved; EgressHttpNetstandard20TwinTests needs it." />
+    <Copy SourceFiles="@(AshlarAbstractionsNetstandard20)" DestinationFolder="$(OutDir)abstractions-netstandard2.0" SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <Compile Include="..\Ashlar.Hosting\GlobalUsings.Infrastructure.Sdk.cs" Link="GlobalUsings.Infrastructure.Sdk.cs" />

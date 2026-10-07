@@ -38,6 +38,11 @@ LEDGER="${ROOT}/docs/dogfood-ledger.md"
 #   1  refused on an unmet precondition, or attempted no objective at all
 #   2  attempted an objective, but the iteration errored before reaching any verdict - an
 #      infrastructure fault, not a result. This is NOT a PASS.
+#   3  the iteration reached a verdict but its record did not persist and re-verify under Strict -
+#      a loop-mechanics GAP, not a candidate failure. A row that cannot cite a record file and a
+#      signer fingerprint does not count toward unlock criterion 3a, whatever its Pass/Fail cell
+#      says, so this must not be folded into 0 (a PASS that outran its evidence) or into 2 (a
+#      record-verification gap reported as a sandbox infrastructure fault).
 run_canary_sweep() {
   local timestamp
   timestamp="$(date -u +%Y%m%d-%H%M%S)"
@@ -141,6 +146,13 @@ run_canary_sweep() {
   local verdict=0
   classify_sweep_log "${sweep_exit}" "${log_file}" || verdict=$?
 
+  # A verdict was reached. Now ask the second question, which is the one criterion 3a is about:
+  # did the record PERSIST and RE-VERIFY? The answer lives in the archive's sidecar, not in the
+  # log, and its absence is a GAP rather than a pass - see classify_sweep_evidence.
+  if [[ "${verdict}" -eq 0 ]]; then
+    classify_sweep_evidence "${run_campaign_dir}" || verdict=$?
+  fi
+
   case "${verdict}" in
     1)
       echo "SWEEP: the loop attempted no objective - see the log above for which precondition the harness rejected" | tee -a "${log_file}"
@@ -148,6 +160,13 @@ run_canary_sweep() {
     2)
       echo "SWEEP: the iteration did not reach a verdict: $(sweep_failure_reason "${log_file}")" | tee -a "${log_file}"
       echo "SWEEP: this is an infrastructure fault, not a result - refusing to report it as a pass" | tee -a "${log_file}"
+      ;;
+    3)
+      echo "SWEEP: the record did not persist-and-verify: $(sweep_evidence_reason "${run_campaign_dir}")" | tee -a "${log_file}"
+      echo "SWEEP: the iteration reached a verdict, but no reviewable record survives it - this is a loop-mechanics GAP, not a candidate failure" | tee -a "${log_file}"
+      ;;
+    0)
+      echo "SWEEP EVIDENCE: $(sweep_evidence_citation "${run_campaign_dir}")" | tee -a "${log_file}"
       ;;
   esac
 
@@ -165,13 +184,152 @@ run_canary_sweep() {
 #   1  refused, or attempted no objective
 #   2  attempted one, but the iteration errored before reaching any verdict
 #
-# The marker for 2 is AutonomyLoopService's "Objective {Id} failed ({Path}); continuing the sweep"
-# warning. That template carries a comment saying it is parsed here.
+# TWO SIGNALS, AND THEY MUST AGREE. SweepAsync now returns its failure count
+# (SweepOutcome.Failed) and SweepMode maps a nonzero one to exit 2, so the sweep can finally say
+# "I charged an objective that reached no verdict" in the one channel that cannot be reworded.
+# Before that it could not, and the ONLY signal was AutonomyLoopService's "Objective {Id} failed
+# ({Path}); continuing the sweep" warning — which is why run 34889059104 recorded a PASS.
+#
+# The grep stays as a cross-check, for two reasons. It catches a build whose exit code is wrong
+# or whose count regressed, which is the failure the exit code cannot self-report. And exit 0
+# beside a failure in the log means the two DISAGREE: one of them is lying, neither is safe to
+# prefer, so that is a 2. That branch is also what classifies an older binary correctly.
 classify_sweep_log() {
   local sweep_exit="$1" log_file="$2"
+  local log_says_failed=0
+  grep -q '; continuing the sweep' "${log_file}" 2>/dev/null && log_says_failed=1
+
+  # The sweep counted it. Authoritative, and checked first: a bare -ne 0 would call this a
+  # refusal and report the wrong KIND of failure.
+  [[ "${sweep_exit}" -eq 2 ]] && return 2
+
   [[ "${sweep_exit}" -ne 0 ]] && return 1
-  grep -q '; continuing the sweep' "${log_file}" 2>/dev/null && return 2
+
+  # Exit 0 and a failure in the log: they disagree, so refuse.
+  [[ "${log_says_failed}" -eq 1 ]] && return 2
   return 0
+}
+
+# --- the record's own verdict (unlock criterion 3a) -------------------------------------------
+#
+# The three functions below are PURE: no dotnet, no docker, no network, no clock. They are driven
+# directly by tests/scripts/dogfood-sweep-verdict.test.sh, which runs under required shell-lint and
+# is the only lane that can block a merge on shell behaviour.
+#
+# WHAT THEY READ. AutonomousIterationHarness, when composed with a CertificationEvidenceArchive,
+# writes one verdict sidecar per certified brick at <campaign>/<brickId>.evidence.json. Its field
+# names are FROZEN by CertificationEvidenceArchiveTests
+# .PersistAndReverify_WritesASidecarWithTheFieldNamesTheSweepScriptParses, so the two contracts
+# cannot drift silently in the direction of a false pass - a rename there makes every verdict here
+# a GAP, which is the safe direction.
+#
+# Parsed with grep and sed rather than jq: jq is not guaranteed on the runner, and a missing tool
+# would turn every row into a GAP for a reason that has nothing to do with the sweep.
+#
+# classify_sweep_log is left UNCHANGED on purpose. Its ten existing assertions include the verbatim
+# replayed log of run 34889059104 - the regression that wrote PASS for a sweep in which nothing ran -
+# and widening its signature to take a directory would put that fixture at risk for no gain.
+
+# Every verdict sidecar under a campaign directory, one path per line, sorted.
+_evidence_sidecars() {
+  local dir="${1:-}"
+  [[ -n "${dir}" && -d "${dir}" ]] || return 0
+  find "${dir}" -type f -name '*.evidence.json' 2>/dev/null | sort || true
+}
+
+# One QUOTED JSON field. Empty when absent, when its value is unquoted (null), or when it is "".
+_evidence_string() {
+  local file="${1:-}" name="${2:-}"
+  grep -o "\"${name}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "${file}" 2>/dev/null \
+    | head -1 | sed "s/^[^:]*:[[:space:]]*\"//; s/\"\$//" || true
+}
+
+# One UNQUOTED JSON scalar (true / false / null / a number). Empty when absent.
+_evidence_scalar() {
+  local file="${1:-}" name="${2:-}"
+  grep -o "\"${name}\"[[:space:]]*:[[:space:]]*[^\",}]*" "${file}" 2>/dev/null \
+    | head -1 | sed "s/^[^:]*:[[:space:]]*//" | tr -d '[:space:]' || true
+}
+
+# Did this run's record persist and re-verify?
+#
+#   0  exactly one sidecar, "verified": true, and a non-empty signerFingerprint AND recordPath
+#   3  anything else
+#
+# ABSENT MEANS 3, AND THAT CLAUSE IS THE WHOLE POINT. An archive that is never wired up, a spike
+# whose one configuration line was deleted (spikes/ is compiled by nothing, so no gate would say
+# so), a sidecar that was never written - all of them look identical from here, and all of them
+# must produce a GAP row. Without this clause every other guard in this change is decorative: the
+# sweep would keep exiting 0 and the ledger would keep recording PASS for a run with no reviewable
+# record, which is the pre-#630 failure pointed the other way.
+#
+# TWO OR MORE SIDECARS IS ALSO 3. A campaign directory is reused across reruns, and `head -1` over
+# two verdicts would silently let one run decide another's row. Ambiguous evidence is not evidence.
+#
+# An EMPTY signerFingerprint or recordPath is 3 as well: a ledger row cites those two strings, and a
+# citation to an empty string is not a citation.
+classify_sweep_evidence() {
+  local dir="${1:-}"
+  local count file
+
+  count="$(_evidence_sidecars "${dir}" | wc -l | tr -d '[:space:]')"
+  [[ "${count}" == "1" ]] || return 3
+
+  file="$(_evidence_sidecars "${dir}" | head -1)"
+  [[ "$(_evidence_scalar "${file}" verified)" == "true" ]] || return 3
+  [[ -n "$(_evidence_string "${file}" signerFingerprint)" ]] || return 3
+  [[ -n "$(_evidence_string "${file}" recordPath)" ]] || return 3
+  return 0
+}
+
+# Why classify_sweep_evidence said 3, in a sentence a ledger cell can carry.
+sweep_evidence_reason() {
+  local dir="${1:-}"
+  local count file code reason
+
+  count="$(_evidence_sidecars "${dir}" | wc -l | tr -d '[:space:]')"
+  if [[ "${count}" == "0" ]]; then
+    printf '%s' "no *.evidence.json under ${dir}: nothing persisted and re-verified a certification record, so this run left no artefact a row could cite (an archive that was never wired up looks exactly like this)"
+    return 0
+  fi
+  if [[ "${count}" != "1" ]]; then
+    printf '%s' "${count} *.evidence.json files under ${dir}: ambiguous evidence is not evidence, and picking one would let a rerun decide another run's verdict"
+    return 0
+  fi
+
+  file="$(_evidence_sidecars "${dir}" | head -1)"
+  code="$(_evidence_string "${file}" failureCode)"
+  reason="$(_evidence_string "${file}" failureReason)"
+  if [[ -n "${code}" ]]; then
+    printf '%s' "${code}: ${reason}" | cut -c1-400
+    return 0
+  fi
+  if [[ -z "$(_evidence_string "${file}" signerFingerprint)" ]]; then
+    printf '%s' "the record re-verified but the sidecar names no signer fingerprint, so a row built from it could not say who signed"
+    return 0
+  fi
+  if [[ -z "$(_evidence_string "${file}" recordPath)" ]]; then
+    printf '%s' "the record re-verified but the sidecar names no record path, so a row built from it could not cite the file"
+    return 0
+  fi
+  printf '%s' "the sidecar at ${file} does not report \"verified\": true and names no failure code"
+}
+
+# The one line a 3a-counting ledger row has to carry. Empty when there is no single sidecar.
+sweep_evidence_citation() {
+  local dir="${1:-}"
+  local count file
+
+  count="$(_evidence_sidecars "${dir}" | wc -l | tr -d '[:space:]')"
+  [[ "${count}" == "1" ]] || return 0
+
+  file="$(_evidence_sidecars "${dir}" | head -1)"
+  printf 'record=%s sha256=%s signer=%s pinned=%s dev-hmac=%s' \
+    "$(_evidence_string "${file}" recordPath)" \
+    "$(_evidence_string "${file}" recordSha256)" \
+    "$(_evidence_string "${file}" signerFingerprint)" \
+    "$(_evidence_scalar "${file}" pinningEnabled)" \
+    "$(_evidence_scalar "${file}" usesDevHmacKey)"
 }
 
 # The exception text from the first failed iteration, trimmed of its stack frames and capped so a

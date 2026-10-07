@@ -29,6 +29,7 @@ jobs:
           docker run --rm -v "${{ github.workspace }}/test-results/trust:/workspace/test-results" ashlar-trust:ubuntu bash -c \
             "cd /workspace && dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter 'FullyQualifiedName~Trust' --logger 'console;verbosity=minimal' --logger 'trx;LogFileName=trust-infra-ubuntu.trx' --results-directory /workspace/test-results && \
              dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj -f net10.0 --filter 'FullyQualifiedName~Trust' --logger 'console;verbosity=minimal' --logger 'trx;LogFileName=trust-bg-ubuntu.trx' --results-directory /workspace/test-results"
+          bash scripts/ci/zero-test-guard.sh test-results/trust/trust-infra-ubuntu.trx test-results/trust/trust-bg-ubuntu.trx
       - uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         continue-on-error: true
@@ -51,6 +52,7 @@ jobs:
           docker run --rm -v "${{ github.workspace }}/test-results/trust:/workspace/test-results" ashlar-trust:alpine bash -c \
             "cd /workspace && dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter 'FullyQualifiedName~Trust' --logger 'console;verbosity=minimal' --logger 'trx;LogFileName=trust-infra-alpine.trx' --results-directory /workspace/test-results && \
              dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj -f net10.0 --filter 'FullyQualifiedName~Trust' --logger 'console;verbosity=minimal' --logger 'trx;LogFileName=trust-bg-alpine.trx' --results-directory /workspace/test-results"
+          bash scripts/ci/zero-test-guard.sh test-results/trust/trust-infra-alpine.trx test-results/trust/trust-bg-alpine.trx
       - uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         continue-on-error: true
@@ -73,6 +75,7 @@ jobs:
           docker run --rm -v "${{ github.workspace }}/test-results/trust:/workspace/test-results" ashlar-trust:debian bash -c \
             "cd /workspace && dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net10.0 --filter 'FullyQualifiedName~Trust' --logger 'console;verbosity=minimal' --logger 'trx;LogFileName=trust-infra-debian.trx' --results-directory /workspace/test-results && \
              dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj -f net10.0 --filter 'FullyQualifiedName~Trust' --logger 'console;verbosity=minimal' --logger 'trx;LogFileName=trust-bg-debian.trx' --results-directory /workspace/test-results"
+          bash scripts/ci/zero-test-guard.sh test-results/trust/trust-infra-debian.trx test-results/trust/trust-bg-debian.trx
       - uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         continue-on-error: true

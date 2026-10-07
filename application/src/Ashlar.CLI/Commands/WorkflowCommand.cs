@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Mesh.Models;
 using Ashlar.Core.Application.Mesh.Ports;
 using Ashlar.CLI.Runtime;
@@ -531,7 +532,9 @@ public sealed partial class WorkflowCommand : Command
 
         try
         {
-            using var client = new HttpClient { BaseAddress = new Uri($"{normalizedEndpoint}/"), Timeout = TimeSpan.FromMinutes(3) };
+            using var client = EgressHttp.CreateClient(EgressFamilies.Http, "EG-HTTP-05");
+            client.BaseAddress = new Uri($"{normalizedEndpoint}/");
+            client.Timeout = TimeSpan.FromMinutes(3);
             var payload = new MeshOrchestrateRequest(
                 Request: request,
                 RuntimeSpecJson: runtimeSpecJson,

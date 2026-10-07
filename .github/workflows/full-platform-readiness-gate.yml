@@ -7,7 +7,7 @@
 #   3. Dry-run — `ashlar doctor --fix --dry-run --json` + `ashlar bootstrap apply --dry-run --json` + smoke tests
 #
 # Native runners: ubuntu, macOS, Windows
-# Container runners: Ubuntu, Alpine, Debian (Docker on ubuntu-latest)
+# Container runners: Ubuntu, Alpine, Debian (Docker on ubuntu-24.04)
 #
 # Trigger policy (see .github/workflows/README.md, docs/CiGateInventory.md):
 #   - pull_request: UNFILTERED on purpose. The `changes` job decides in-workflow whether any
@@ -44,6 +44,16 @@ on:
       - "src/Ashlar.Core.Application/**"
       - "src/Ashlar.Brick.Contracts/**"
       - "src/Ashlar.Policies/**"
+      # The code src/Ashlar.Tests.Kernel actually tests. Its 412 SPEC-006 admission and signing
+      # cases run only in the heavy lanes below, and those lanes are diff-conditional - so before
+      # these four entries, editing GateStore.cs or AdmissionGate.cs skipped the tests that guard
+      # them while editing the tests re-ran them. Ashlar.Analyzers is here because it is a
+      # build-time analyzer of Ashlar.Core.Application (OutputItemType="Analyzer"), so breaking it
+      # breaks the kernel suite's BUILD, not its assertions.
+      - "src/Ashlar.Manifest/**"
+      - "src/Ashlar.Policies.Dev/**"
+      - "src/Ashlar.Certification.Contracts/**"
+      - "src/Ashlar.Analyzers/**"
       - "src/Ashlar.Tools.Assembly/**"
       - "src/Ashlar.Tools.Dev/**"
       - "src/Ashlar.Transport.Grpc/**"
@@ -63,6 +73,43 @@ on:
       - "scripts/ci/test-commercial-receipts.py"
       - "src/Ashlar.Tests.Orchestration/**"
       - "src/Ashlar.Tests.Kernel/**"
+      # The rest of the ProjectReference closure of every test project `ashlar validate` discovers
+      # (the native lanes reach it through `ashlar ci verify`). Each directory below is built into
+      # at least one of those suites, so before this block editing it skipped the lanes that run
+      # them. ReadinessClosureConventionTests (cert-gate) recomputes the closure from the tree and
+      # fails naming any project directory or build input that either list does not cover.
+      - "application/src/Ashlar.API/**"
+      - "samples/hello-brick/HelloBrick/**"
+      - "samples/hello-brick/HelloBrick.Tests/**"
+      - "src/Ashlar.Adapters.Models/**"
+      - "src/Ashlar.Agents.TestKit/**"
+      - "src/Ashlar.Analyzers.Tests/**"
+      - "src/Ashlar.Authoring/**"
+      - "src/Ashlar.BackgroundAgents.HostRunners/**"
+      - "src/Ashlar.Bricks.Owasp/**"
+      - "src/Ashlar.Bricks.SqlProfile/**"
+      - "src/Ashlar.Certification.State/**"
+      - "src/Ashlar.Client/**"
+      - "src/Ashlar.Contracts/**"
+      - "src/Ashlar.Framework.Sdk/**"
+      - "src/Ashlar.Ingress.AwsSns/**"
+      - "src/Ashlar.Ingress.AwsSns.Tests/**"
+      - "src/Ashlar.Ingress.DynamoDb/**"
+      - "src/Ashlar.Ingress.DynamoDb.Tests/**"
+      - "src/Ashlar.Mcp.Client/**"
+      - "src/Ashlar.Mcp.Client.Tests/**"
+      - "src/Ashlar.Mcp.Server/**"
+      - "src/Ashlar.Mcp.Server.Tests/**"
+      - "src/Ashlar.Sdk/**"
+      - "src/Ashlar.Tests.Application/**"
+      - "src/Ashlar.Tests.Contracts/**"
+      - "src/Ashlar.Tests.Domain/**"
+      - "src/Ashlar.Tests.Transport/**"
+      - "src/Ashlar.Transport.A2A/**"
+      - "src/Ashlar.Transport.A2A.Server/**"
+      - "src/Ashlar.Transport.A2A.Server.Tests/**"
+      - "src/Ashlar.Transport.A2A.Tests/**"
+      - "src/Ashlar.Transport.Grpc.Server/**"
       - "scripts/pack-ashlar-hosting-graph.sh"
       - "scripts/pack-ashlar-hosting-graph.ps1"
       - "scripts/verify-stable-sdk-host-sample-packages.sh"
@@ -75,10 +122,24 @@ on:
       - "VERSION"
       - "Directory.Build.targets"
       - "Directory.Packages.props"
+      # Build inputs of that closure that are not project directories: nested Directory.Build.props
+      # that MSBuild imports implicitly, the root .editorconfig the compiler reads, and the files
+      # closure projects compile, embed or copy from outside their own directory (src/Ashlar.Compat
+      # is compiled into most of them through src/Directory.Build.props and Directory.Build.targets).
+      - ".editorconfig"
+      - "application/Directory.Build.props"
+      - "samples/Directory.Build.props"
+      - "src/Ashlar.Compat/**"
+      - "samples/templates/brick/**"
+      - "samples/physical-atom-cert/**"
+  # Merge queue. A required check that does not run on `merge_group` never reports, and the
+  # queue waits on it forever - so this is deliberately unfiltered, exactly like the
+  # `pull_request` trigger above.
+  merge_group:
   workflow_dispatch:
 
 concurrency:
-  group: full-platform-readiness-${{ github.event.pull_request.number || github.ref }}
+  group: full-platform-readiness-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -95,14 +156,15 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   changes:
     name: "Changes — core paths touched?"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
       run_heavy: ${{ steps.filter.outputs.run_heavy }}
     steps:
       - name: Checkout
-        if: github.event_name == 'pull_request'
+        # A merge-queue entry is pre-merge, like a PR, and has a base/head pair to diff.
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -112,12 +174,12 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
         run: |
           set -euo pipefail
 
-          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+          if [[ "$EVENT_NAME" != "pull_request" && "$EVENT_NAME" != "merge_group" ]]; then
             echo "Event is '$EVENT_NAME' (no PR base to diff against) — heavy lanes run unconditionally."
             echo "run_heavy=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -139,6 +201,13 @@ jobs:
             "src/Ashlar.Core.Application/**"
             "src/Ashlar.Brick.Contracts/**"
             "src/Ashlar.Policies/**"
+            # The code src/Ashlar.Tests.Kernel actually tests - see the matching note in the
+            # push trigger above. Editing GateStore.cs or AdmissionGate.cs used to skip the 412
+            # SPEC-006 cases that guard them.
+            "src/Ashlar.Manifest/**"
+            "src/Ashlar.Policies.Dev/**"
+            "src/Ashlar.Certification.Contracts/**"
+            "src/Ashlar.Analyzers/**"
             "src/Ashlar.Tools.Assembly/**"
             "src/Ashlar.Tools.Dev/**"
             "src/Ashlar.Transport.Grpc/**"
@@ -156,6 +225,40 @@ jobs:
             "scripts/ci/test-commercial-receipts.py"
             "src/Ashlar.Tests.Orchestration/**"
             "src/Ashlar.Tests.Kernel/**"
+            # The rest of the ProjectReference closure of the suites `ashlar validate` discovers - see
+            # the matching note in the push trigger above.
+            "application/src/Ashlar.API/**"
+            "samples/hello-brick/HelloBrick/**"
+            "samples/hello-brick/HelloBrick.Tests/**"
+            "src/Ashlar.Adapters.Models/**"
+            "src/Ashlar.Agents.TestKit/**"
+            "src/Ashlar.Analyzers.Tests/**"
+            "src/Ashlar.Authoring/**"
+            "src/Ashlar.BackgroundAgents.HostRunners/**"
+            "src/Ashlar.Bricks.Owasp/**"
+            "src/Ashlar.Bricks.SqlProfile/**"
+            "src/Ashlar.Certification.State/**"
+            "src/Ashlar.Client/**"
+            "src/Ashlar.Contracts/**"
+            "src/Ashlar.Framework.Sdk/**"
+            "src/Ashlar.Ingress.AwsSns/**"
+            "src/Ashlar.Ingress.AwsSns.Tests/**"
+            "src/Ashlar.Ingress.DynamoDb/**"
+            "src/Ashlar.Ingress.DynamoDb.Tests/**"
+            "src/Ashlar.Mcp.Client/**"
+            "src/Ashlar.Mcp.Client.Tests/**"
+            "src/Ashlar.Mcp.Server/**"
+            "src/Ashlar.Mcp.Server.Tests/**"
+            "src/Ashlar.Sdk/**"
+            "src/Ashlar.Tests.Application/**"
+            "src/Ashlar.Tests.Contracts/**"
+            "src/Ashlar.Tests.Domain/**"
+            "src/Ashlar.Tests.Transport/**"
+            "src/Ashlar.Transport.A2A/**"
+            "src/Ashlar.Transport.A2A.Server/**"
+            "src/Ashlar.Transport.A2A.Server.Tests/**"
+            "src/Ashlar.Transport.A2A.Tests/**"
+            "src/Ashlar.Transport.Grpc.Server/**"
             "scripts/pack-ashlar-hosting-graph.sh"
             "scripts/pack-ashlar-hosting-graph.ps1"
             "scripts/verify-stable-sdk-host-sample-packages.sh"
@@ -168,6 +271,13 @@ jobs:
             "VERSION"
             "Directory.Build.targets"
             "Directory.Packages.props"
+            # Implicit and cross-directory build inputs of that closure - see the push trigger above.
+            ".editorconfig"
+            "application/Directory.Build.props"
+            "samples/Directory.Build.props"
+            "src/Ashlar.Compat/**"
+            "samples/templates/brick/**"
+            "samples/physical-atom-cert/**"
           )
 
           if [[ -z "${BASE_SHA:-}" || -z "${HEAD_SHA:-}" ]]; then
@@ -222,13 +332,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             label: Linux
             setup_cmd: bash scripts/setup/setup.sh
-          - os: macos-latest
+          - os: macos-26
             label: macOS
             setup_cmd: bash scripts/setup/setup.sh
-          - os: windows-latest
+          - os: windows-2025-vs2026
             label: Windows
             setup_cmd: pwsh scripts/setup/setup.ps1 -Mode
 
@@ -330,7 +440,7 @@ jobs:
       # ci verify already builds/tests all three commercial projects through validate.
       # Inspect that sweep's receipts; do not run a duplicate commercial suite here.
       - name: Set up Python for commercial receipt verification
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -398,7 +508,7 @@ jobs:
     name: "${{ matrix.label }} (container) — setup · discover · dry-run"
     needs: changes
     if: needs.changes.outputs.run_heavy == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -498,7 +608,7 @@ jobs:
     name: "Docker CLI image — build · smoke · discover"
     needs: changes
     if: needs.changes.outputs.run_heavy == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -530,8 +640,8 @@ jobs:
     needs: changes
     # Production images are never built on PRs (kept from before the PR trigger existed);
     # on push/schedule/dispatch they additionally follow the shared run_heavy decision.
-    if: github.event_name != 'pull_request' && needs.changes.outputs.run_heavy == 'true'
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && needs.changes.outputs.run_heavy == 'true'
+    runs-on: ubuntu-24.04
     # Builds take ~1 minute each (layer cache); the smoke below is bounded at 2 minutes.
     # The previous 90-minute budget only ever measured how long a hung smoke could hang.
     timeout-minutes: 20
@@ -585,9 +695,21 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   readiness-summary:
     name: "Readiness summary"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [changes, native-platform, container-platform, docker-cli-image, docker-all-images]
     if: always()
+    # `verdict` distinguishes "every platform passed" from "no platform ran". Both exit 0 - this is a
+    # required context and failing on a skip would deadlock any PR that touches no core path - so the
+    # green tick alone cannot tell them apart. Anything that wants to CLAIM platform verification for
+    # a SHA (a release sign-off, a runbook step) must read this, not the check conclusion.
+    # Job outputs are visible only to later jobs in this run, and the step summary is not exposed
+    # through the Checks API (output.summary is null on this check run). The "Readiness verdict"
+    # annotation emitted below IS readable from outside the run; that is what
+    # scripts/release/readiness-verdict-for-sha.sh reads.
+    outputs:
+      verdict: ${{ steps.summary.outputs.verdict }}
+      lanes_ran: ${{ steps.summary.outputs.lanes_ran }}
+      lanes_skipped: ${{ steps.summary.outputs.lanes_skipped }}
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -595,6 +717,7 @@ jobs:
           path: all-artifacts
 
       - name: Summarize results
+        id: summary
         shell: bash
         run: |
           echo "## Full Platform Readiness Gate" >> "$GITHUB_STEP_SUMMARY"
@@ -616,11 +739,17 @@ jobs:
             echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
+          # A skipped lane is not a failure, but it is not evidence either. Counting both is what lets
+          # the verdict below separate "passed" from "never ran".
+          LANES_RAN=0
+          LANES_SKIPPED=0
+
           for job_status in "${{ needs.native-platform.result }}" "${{ needs.container-platform.result }}" "${{ needs.docker-cli-image.result }}" "${{ needs.docker-all-images.result }}"; do
             case "$job_status" in
-              success) ;;
+              success) LANES_RAN=$((LANES_RAN + 1)) ;;
               skipped)
-                echo "::notice::Job result was skipped (heavy lane not required for this event/diff); counted as a pass."
+                LANES_SKIPPED=$((LANES_SKIPPED + 1))
+                echo "::notice::Job result was skipped (heavy lane not required for this event/diff); not a failure, and not evidence."
                 ;;
               *)
                 # failure or cancelled
@@ -639,10 +768,43 @@ jobs:
           echo "| Docker API/quickstart/agent-server | ${{ needs.docker-all-images.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "$OVERALL" -eq 0 ]]; then
-            echo "**Result: ALL PLATFORMS PASSED**" >> "$GITHUB_STEP_SUMMARY"
-          else
+          if [[ "$OVERALL" -ne 0 ]]; then
+            VERDICT=failed
             echo "**Result: ONE OR MORE PLATFORMS FAILED**" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$LANES_RAN" -eq 0 ]]; then
+            # Green, and it proves nothing about any platform. Say so.
+            VERDICT=not-verified
+            echo "**Result: NOT VERIFIED — every platform lane was skipped, so no platform was exercised" \
+                 "on this commit.** This is a pass because nothing in the diff reaches the readiness" \
+                 "paths, not because the platforms were checked. Do not cite this run as platform" \
+                 "evidence for a release." >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$LANES_SKIPPED" -gt 0 ]]; then
+            VERDICT=partial
+            echo "**Result: PASSED — ${LANES_RAN} of $((LANES_RAN + LANES_SKIPPED)) lane groups ran;" \
+                 "${LANES_SKIPPED} skipped.** Only what ran is evidence." >> "$GITHUB_STEP_SUMMARY"
+          else
+            VERDICT=verified
+            echo "**Result: ALL PLATFORMS PASSED**" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          echo "Verdict: \`${VERDICT}\` (${LANES_RAN} lane group(s) ran, ${LANES_SKIPPED} skipped)." >> "$GITHUB_STEP_SUMMARY"
+
+          # Written BEFORE the exit so a failing run still publishes its verdict.
+          {
+            echo "verdict=${VERDICT}"
+            echo "lanes_ran=${LANES_RAN}"
+            echo "lanes_skipped=${LANES_SKIPPED}"
+          } >> "$GITHUB_OUTPUT"
+
+          # The one copy of the verdict anything outside this run can read through the API: an
+          # annotation on this check run (GET /repos/{owner}/{repo}/check-runs/{id}/annotations).
+          # The reader matches the title and parses the message field by field, so change neither
+          # without scripts/release/readiness-verdict-for-sha.py (its MESSAGE pattern) and
+          # tests/scripts/readiness-verdict.test.sh, which round-trips this exact line through the
+          # release sign-off. Emitted before the exit, like the outputs above, so a failing run
+          # publishes "failed" instead of nothing. At most five notices come from this step (four
+          # skipped lanes plus this one), well inside GitHub's annotation caps; an annotation over a
+          # cap is dropped silently, and the reader would then refuse the run as missing-annotation.
+          echo "::notice title=Readiness verdict::verdict=${VERDICT} lanes_ran=${LANES_RAN} lanes_skipped=${LANES_SKIPPED}"
 
           exit $OVERALL

@@ -130,4 +130,30 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
 
         act.Should().Throw<OptionsValidationException>().WithMessage("*MaxConcurrentToolCalls*");
     }
+
+    [Fact]
+    public void Enabled_http_transport_under_secure_workstation_fails_options_validation()
+    {
+        Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, "secure-workstation");
+        try
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddAshlarMcpServer(Config(
+                ($"{AshlarMcpServerOptions.SectionPath}:Enabled", "true"),
+                ($"{AshlarMcpServerOptions.SectionPath}:ServerName", "ashlar-http")))
+                .WithAshlarHttpTransport();
+            using var provider = services.BuildServiceProvider();
+
+            var act = () => provider.GetRequiredService<IOptions<AshlarMcpServerOptions>>().Value;
+
+            act.Should().Throw<OptionsValidationException>()
+                .WithMessage("*SecureWorkstation*")
+                .WithMessage("*HTTP*");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, null);
+        }
+    }
 }

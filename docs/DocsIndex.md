@@ -7,7 +7,7 @@ Documentation index for the Ashlar platform. Start here to find what you need.
 1. `docs/TesterQuickstart.md` — **the one lane for a first run**: clone → `dotnet build Ashlar.Kernel.sln` → `ashlar doctor` → run the API on loopback, submit one task, read its audit trail → run the certification gate. No Docker, no API keys, verified paths only.
 2. `README.md` — the front door: what Ashlar is (auditable workflows, certified artifacts, your infrastructure), the trust loop / certification section, and the Try / Develop / Deploy lanes (container-first; native paths are escape hatches).
 3. `docs/GettingStarted.md` — the longer tour after the quickstart: startup lanes, first pipeline, CLI commands, provider setup, testing.
-4. `docs/ProjectTiers.md` — **canonical repo map** by project tier: kernel, hosts, distribution, transport/protocols, extractable `products/` scaffolds, commercial satellites, and tests. Placement rule: [`docs/architecture/product-split.md`](architecture/product-split.md).
+4. `docs/ProjectTiers.md` — **canonical repo map** by project tier: kernel, hosts, distribution, transport/protocols, commercial satellites, and tests, plus what was parked and where. Placement rule: [`docs/architecture/product-split.md`](architecture/product-split.md).
 5. `docs/IntegratorGuide.md` — embedding Ashlar in your own host: SDK packages, brick/agent registration, trust configuration, compatibility matrix.
 6. `consumer-template/CONSUMING.md` — `nuget.config` + `Directory.Packages.props` template. The `Ashlar.*` graph has been on nuget.org since v0.1.1; pin `ci/published-version`. A staging feed remains optional for pre-release testing.
 7. `docs/DistributionModels.md` — how to **consume and ship** Ashlar (NuGet, HTTP, CLI, compose, mesh) and the **distribution-matrix** CI workflow.
@@ -21,7 +21,8 @@ Setup helpers (escape hatches, not the first-run path): `scripts/setup/setup.sh`
 
 The trust loop is how "certified" is a checkable claim: analyzer fence → witness → mutation testing → determinism, then a signed certificate bound to the artifact's content hash. The gate is CI-proven (`cert-gate` is one of the five required checks on `master`, with `build-core`, `shell-lint`, `lychee (README + docs)`, and `Readiness summary`); the autonomy loop on top of it is **experimental and ships in hold mode** (`HoldAdmission=true` — it certifies fully and admits nothing), and its evidence is local spike runs.
 
-- `docs/specs/SPEC-006-keys-and-signing.md` — keys and signing (**ACCEPTED** 2026-08-27); every "signed" claim in every other spec resolves here. `docs/specs/` currently holds this one file.
+- `docs/specs/SPEC-006-keys-and-signing.md` — keys and signing (**ACCEPTED** 2026-08-27); every "signed" claim in every other spec resolves here. `docs/specs/` holds this file and SPEC-007 below.
+- `docs/specs/SPEC-007-security-labels-and-reference-monitor.md` — security labels and the reference monitor (Bell–LaPadula: no read up, no write down), **PROPOSED** 2026-10-03, with an eight-PR sequence: the label lattice, bridges from the existing labels, an egress guard (report-only, then enforcing), clearances on subjects, trusted downgrade, labelled provisioned resources and a container execution host. Its status block, decisions log and open questions say what has merged (PRs 1, 2, 3a and 3b) and what is still open for the owner. The egress inventory it calls for is `docs/EgressInventory.md`.
 - `docs/InstanceLedger.md` — the instance ledger: durable course records and their signing story.
 - `docs/certification-evidence.md` — the **falsifiable proof ledger**: every ADMIT/REJECT with the test or spike and the CI run that proved it; "Known v0 limitations" at the end. Read this before judging any "certified" claim.
 - `docs/dogfood-ledger.md` — **dated pass/fail dogfood evidence** for autonomy marketing unlock: scheduled CI runs of Strict extend→certify→admit on canary objectives, automatically appended by `.github/workflows/dogfood-continuous-proof.yml`.
@@ -36,6 +37,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `samples/autonomy-objectives/README.md` — a complete tracked objective + witness + recorded model proposal, and how to feed it to the loop.
 - `spikes/README.md` — what each spike under `spikes/` is, which ledger rows cite it, and why none of them is a supported entry point; `spikes/autonomy-first-flight/run-first-flight.ps1` flies one real iteration (Docker + Ollama).
 - `scripts/run-cert-gate.sh` + `scripts/cert-gate-config.sh` — reproduce the CI `cert-gate` locally with the same filter.
+- **`docs/LearningHarness.md`** — **long-term design sketch (M7, post-M6):** autonomous experience → verified adaptation; four-loop harness (record → reflect → evaluate → promote), learning ladder (episodic memory through trust-kernel changes), evidence-chain requirements, fleet learning, and autonomy HOLD until dogfood unlock. Roadmap feature, not yet implemented.
 
 ## Operator / Production Readiness
 
@@ -61,7 +63,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `.github/workflows/onboarding-quickstart-gate.yml` — runs first-run onboarding commands in native + container lanes.
 - `.github/workflows/container-image-gate.yml` — container image buildability and smoke-run gate.
 - `.github/workflows/distribution-matrix-gate.yml` — **parallel** gates: NuGet local-pack consumer, CLI image + subcommand help smoke, API image + `curl` `/health` + `/api/status`, `Ashlar.Client` in-process test, pack-graph alignment (plus **weekly** schedule).
-- `docs/CiGateInventory.md` — one-row-per-workflow trigger map (57 files, including `products-gate`) and the enforced branch-protection state (five required checks: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`).
+- `docs/CiGateInventory.md` — one-row-per-workflow trigger map (61 files) and the enforced branch-protection state (five required checks: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`).
 - `.github/workflows/release.yml` — **one entry**: tag `v*.*.*` → GHCR (`nexo-cli`, `nexo-api`) + NuGet; run summary with pin lines.
 - `.github/workflows/container-image-publish.yml` — GHCR on **main** path-filtered pushes + manual (tags use `release.yml` only).
 - `.github/workflows/release-nuget.yml` — **NuGet-only** manual dispatch; after push to nuget.org, **Verify NuGet consumer** (same reusable job as **release.yml**).
@@ -111,7 +113,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/architecture/ProtocolIntegration-MCP-A2A.md` — MCP + A2A protocol adapters: MCP server bridge over `ITool` (allowlists, policy gate, stdio host), MCP client, A2A server core + client transport, and the `Ashlar.API` wiring (`/api/mcp`, `/api/a2a/{agentId}`; all feature-flagged off by default). MCP client and A2A refuse AirGapped **and** SecureWorkstation; local MCP server stays allowed on SecureWorkstation.
 - `docs/runtime/specs/README.md` — runtime spec documents.
 - `docs/runtime/benchmarks/README.md` — runtime benchmark goals and notes.
-- `apps/runtime-studio/README.md` — **hub** for the Runtime Studio agent-set JSON, CLI vs API-hosted background agents, and how the Director portal fits; anchor [How this fits](../apps/runtime-studio/README.md#how-runtime-studio-fits-with-ashlar-api).
+- `apps/runtime-studio/README.md` — **hub** for the Runtime Studio agent-set JSON, CLI vs API-hosted background agents, and how the Director portal fits; anchor [How this fits](../apps/runtime-studio/README.md#how-this-fits-one-config-flexible-hosts).
 - `docs/SelfHostedAgentServer.md` — `deploy/compose/docker-compose.agent-server.yml`: mounted workspace + env template `docs/config/agent-server.env.example`.
 - **`docs/Federation.md`** — hub-less **peer-to-peer sharing** of signed `.ashpkg` extensions (F1–F4): serve (`/mesh/v1/…`), pull from configured peers / a tailnet / LAN multicast discovery (`ashlar mesh lan`), and TLS/mTLS for a private fleet. Distinct from the commercial director/hub mesh. Config lives in `deploy/node.yml`.
 - `docs/GrpcHost.md` — `src/Ashlar.Transport.Grpc.Server.Host`: listen address, HTTP/2 (h2c vs TLS), the client-side `Ashlar:GrpcTransport` `/run/secrets/*` defaults, compose secrets shape.
@@ -135,6 +137,9 @@ The plans below describe programs that have since finished; they are kept as the
 
 - **`docs/marketing/positioning.md`** — **marketing positioning guide**: product name, one-liner, everyday frame ("receipts for AI actions" + "bouncer for new skills"), precision line (trust log + cert-gate), is/isn't clarity, what's live vs roadmap (Cloud = waitlist; autonomy = HOLD), funnel stages, visual lock, product naming, and messaging guardrails for sales/social consistency.
 - **`docs/marketing/claims-cheat-sheet.md`** — **Sales/Social claims lock**: product-locked marketing claims (always claim, soft claim, never claim), Dogfood unlock gates for Learn/autonomy, and public verbs. Status: Product-locked 2026-09-19.
+- **`docs/marketing/product-boundary.md`** — **CEO lock on product boundary**: Ashlar governs behavior, not intelligence. Defines core vs products-on-top, public language, architecture picture (propose → gate → admitted → package → receipt), commercial offers, and the autonomy HOLD covenant.
+- **`docs/marketing/friend-warm-script.md`** — **friend/warm close script**: BBQ/LinkedIn/founder warm intro script (15-second and 30-second versions), word choice guidance (plugin/recipe over skill/certified), and the gold line for explaining the value proposition in everyday language.
+- **`docs/marketing/landing-hero-handoff.md`** — **landing page hero copy**: H1, subtitle, CTAs, and support line for website landing hero. Autonomy HOLD; do not claim Cloud/Forge/Learn GA.
 - `assets/brand/BRAND.md` — the **brand kit**: palette, wordmark/icon SVG masters, NuGet/GitHub/social assets, and where each file gets wired; `docs/ashlar-terminal-style.md` — the CLI's **terminal style guide** (palette roles, glyph vocabulary, line format), implemented by the reference `assets/brand/AshlarConsole.cs`.
 - `docs/communications/linkedin-distribution-channels.md` — optional **LinkedIn** copy emphasizing **distribution channels** (NuGet, HTTP, CLI, Compose, mesh) with pointers to **`docs/DistributionModels.md`**.
 - `docs/Persistence.md` — persistence behavior and options.

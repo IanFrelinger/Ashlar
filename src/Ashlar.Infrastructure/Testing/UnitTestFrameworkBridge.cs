@@ -10,8 +10,20 @@ namespace Ashlar.Infrastructure.Testing;
 
 /// <summary>
 /// Runs concrete <see cref="UnitTestBase"/> types through <see cref="ITestRunner"/> so they appear in VSTest/xUnit.
+///
+/// <para><b>INTERNAL, and it has to be.</b> This type compiles against xunit, which
+/// Ashlar.Infrastructure references as <c>PrivateAssets=all; IncludeAssets=compile</c> - so the
+/// package declares no xunit dependency and ships no xunit assembly. It was public and packed in
+/// v0.1.0 through v0.1.2, which means every consumer who called <see cref="ExecuteUnitTestAsync"/>
+/// got a FileNotFoundException for xunit.core at runtime rather than a test result. The discovery
+/// method was no more usable: it special-cases the assembly names <c>Ashlar.Tests.Infrastructure</c>
+/// and <c>Ashlar.Tests.CLI</c>, this repository's own test assemblies.</para>
+///
+/// <para>So nothing outside this repository could have used it successfully, and it is reachable
+/// through <c>InternalsVisibleTo</c> by the four test assemblies that actually drive it.
+/// PackedSurfaceCompileOnlyDependencyTests keeps the next one of these from shipping.</para>
 /// </summary>
-public static class UnitTestFrameworkBridge
+internal static class UnitTestFrameworkBridge
 {
     /// <summary>
     /// Discovers concrete <see cref="UnitTestBase"/> types in <paramref name="assembly"/> (public only; skips nested private types).

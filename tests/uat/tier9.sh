@@ -49,7 +49,12 @@ say "9.2 the experimental surface is not in the stable PROMISE"
 # "the class name" / "Declared class name" inside [Experimental] files must not count as a
 # type called `name` (that matched constructor parameters in Shipped.txt after the v0.1.2
 # PublicAPI promotion).
+# Product code only. A TEST file can legitimately contain the text "[Experimental(" - a convention test
+# that polices the attribute does - and declare fixture classes beside it, and harvesting those names
+# reported the real, [Obsolete] AshlarSdkBuilder as an experimental type leaked into Ashlar.Sdk's
+# Shipped.txt. Test projects are every directory whose name contains "Tests".
 EXP_TYPES=$(grep -rl "\[Experimental(" --include=*.cs src/ 2>/dev/null \
+            | grep -vE '(^|/)[^/]*Tests[^/]*/' \
             | xargs -r grep -hE '^[[:space:]]*(public|internal|private|protected)?[[:space:]]*(sealed|abstract|static|partial|readonly|ref)*[[:space:]]*(class|record|interface|enum|struct)[[:space:]]+[A-Z][A-Za-z0-9_]*' 2>/dev/null \
             | grep -oE '(class|record|interface|enum|struct)[[:space:]]+[A-Z][A-Za-z0-9_]*' \
             | awk '{print $2}' | sort -u)
@@ -61,7 +66,12 @@ for t in $EXP_TYPES; do
   fi
 done
 EXP_COUNT=$(printf '%s\n' "$EXP_TYPES" | grep -c .)
-if [ -z "$LEAKED" ]; then
+# 82 [Experimental] types were declared in product code on 2026-10-01. A scan that finds far fewer has
+# lost its lens (a moved tree, a broken pattern), and "none leaked" from an empty list proves nothing.
+EXP_FLOOR=60
+if [ "$EXP_COUNT" -lt "$EXP_FLOOR" ]; then
+  result 9 experimental-not-promised FAIL "the scan found only $EXP_COUNT [Experimental] types (floor $EXP_FLOOR), so its PASS would mean nothing"
+elif [ -z "$LEAKED" ]; then
   result 9 experimental-not-promised PASS "none of the $EXP_COUNT [Experimental] types appear in any PublicAPI.Shipped.txt"
 else
   result 9 experimental-not-promised FAIL "experimental types in the stable promise:$LEAKED"

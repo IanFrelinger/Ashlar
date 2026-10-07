@@ -2,7 +2,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Ashlar.Abstractions;
 using Ashlar.Core.Application.ModelArtifacts.Ports;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.ModelArtifacts;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Backends;
 using Ashlar.Infrastructure.NodeCapabilityRuntime.Sdk.Extensions;
@@ -15,6 +17,12 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
     /// Registers <see cref="IModelArtifactCatalogService"/> and the default Ollama <c>/api/tags</c> source.
     /// Call <see cref="AddDockerOllamaModelArtifactCatalogSource"/> from desktop host registrations when Docker discovery is desired.
     /// </summary>
+    /// <remarks>
+    /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the three catalog clients
+    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
+    /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
+    /// </remarks>
     public static IServiceCollection AddModelArtifactCatalog(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -26,7 +34,15 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
         services.AddOptions<DockerOllamaModelArtifactCatalogOptions>()
             .Bind(configuration.GetSection(DockerOllamaModelArtifactCatalogOptions.SectionName));
         services.AddOptions<OllamaRemoteLibraryCatalogOptions>()
-            .Bind(configuration.GetSection(OllamaRemoteLibraryCatalogOptions.SectionName));
+            .Bind(configuration.GetSection(OllamaRemoteLibraryCatalogOptions.SectionName))
+            .Configure<IOptions<AshlarResolvedDeploymentProfileOptions>>((opts, profile) =>
+            {
+                // Property initializer stays true, so Full is unchanged. On AirGapped, an absent Enabled key
+                // defaults to false. An explicit Enabled value, and any later Configure, still win.
+                var enabled = configuration.GetSection(OllamaRemoteLibraryCatalogOptions.SectionName)["Enabled"];
+                if (enabled is null && profile.Value.IsAirGapped)
+                    opts.Enabled = false;
+            });
 
         services.AddHttpClient(OllamaTagsModelArtifactCatalogSource.HttpClientName, (sp, client) =>
         {
@@ -47,6 +63,8 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
             client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/", global::System.UriKind.Absolute);
             client.Timeout = opts.RequestTimeout <= TimeSpan.Zero ? TimeSpan.FromSeconds(60) : opts.RequestTimeout;
         });
+        // SPEC-007: report-only guard handler on the three catalog clients above (idempotent).
+        services.AddAshlarEgressGuard();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IModelArtifactCatalogSource, OllamaTagsModelArtifactCatalogSource>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IModelArtifactCatalogSource, OllamaRemoteLibraryModelArtifactCatalogSource>());

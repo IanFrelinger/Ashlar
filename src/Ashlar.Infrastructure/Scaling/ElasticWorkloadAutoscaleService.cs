@@ -10,7 +10,7 @@ namespace Ashlar.Infrastructure.Scaling;
 /// Periodically evaluates demand and calls the active <see cref="IWorkloadScaler"/>.
 /// Provider-agnostic: Kubernetes today, Compose/ECS tomorrow without changing this loop.
 /// </summary>
-public sealed class ElasticWorkloadAutoscaleService : BackgroundService
+internal sealed class ElasticWorkloadAutoscaleService : BackgroundService
 {
     private readonly IWorkloadScaler _scaler;
     private readonly IWorkloadDemandSignal _demand;

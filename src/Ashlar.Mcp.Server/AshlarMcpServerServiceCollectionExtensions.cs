@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
+using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -21,7 +22,8 @@ public static class AshlarMcpServerServiceCollectionExtensions
     /// <summary>
     /// Registers the MCP server bridge and the underlying MCP server. The returned
     /// <see cref="IMcpServerBuilder"/> still needs a transport chosen by the host:
-    /// <c>.WithHttpTransport()</c> (ModelContextProtocol.AspNetCore) for web hosts followed by
+    /// <c>.WithAshlarHttpTransport()</c> (which registers the HTTP marker, then <c>WithHttpTransport()</c>) for web
+    /// hosts followed by
     /// <see cref="AshlarMcpEndpointRouteBuilderExtensions.MapAshlarMcpEndpoint"/>, or
     /// <c>.WithStdioServerTransport()</c> for console hosts.
     /// </summary>
@@ -80,6 +82,18 @@ public static class AshlarMcpServerServiceCollectionExtensions
                 "No service provider available on the MCP request context; " +
                 "AddAshlarMcpServer must be used with the hosting integration.");
         return provider.GetRequiredService<AshlarMcpToolBridge>();
+    }
+
+    /// <summary>
+    /// HTTP transport for an Ashlar MCP server. Registers <see cref="AshlarMcpHttpTransportMarker"/> and then
+    /// the ModelContextProtocol HTTP transport. The third-party <c>WithHttpTransport</c> cannot register an
+    /// Ashlar marker; hosts that want the SecureWorkstation HTTP refusal call this instead.
+    /// </summary>
+    public static IMcpServerBuilder WithAshlarHttpTransport(this IMcpServerBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.AddSingleton(new AshlarMcpHttpTransportMarker());
+        return builder.WithHttpTransport();
     }
 
     private static string DefaultServerVersion() =>

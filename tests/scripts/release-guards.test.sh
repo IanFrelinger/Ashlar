@@ -21,6 +21,9 @@ GUARDS="${ROOT}/scripts/lib/release-staging-guards.sh"
 PASS=0
 FAIL=0
 
+# Bump when you add an assertion. See the check at the bottom for why.
+EXPECTED_ASSERTIONS=37
+
 ok()   { PASS=$((PASS + 1)); echo "  ok   — $1"; }
 bad()  { FAIL=$((FAIL + 1)); echo "  FAIL — $1"; echo "         $2"; }
 
@@ -109,6 +112,89 @@ for s in scripts/verify-nuget-org-package-visible.sh \
   fi
 done
 
+# Same throwaway root, plus a ci/published-version file, for the consumer-pin guard.
+in_fake_root_with_pin() {
+  local version_content="$1" pin_content="$2"; shift 2
+  local tmp; tmp="$(mktemp -d)"
+  mkdir -p "${tmp}/scripts/lib" "${tmp}/ci"
+  cp "${GUARDS}" "${tmp}/scripts/lib/"
+  cp "${ROOT}/scripts/resolve-canonical-package-version.sh" "${tmp}/scripts/"
+  printf '%s' "${version_content}" > "${tmp}/VERSION"
+  # "__NONE__" means the pin file is absent, a distinct case from a wrong one.
+  if [[ "${pin_content}" != "__NONE__" ]]; then
+    printf '%s' "${pin_content}" > "${tmp}/ci/published-version"
+  fi
+  local out exit_code
+  out="$(cd "${tmp}" && bash -c "source scripts/lib/release-staging-guards.sh; $*" 2>&1)"
+  exit_code=$?
+  rm -rf "${tmp}"
+  printf '%s|%s' "${exit_code}" "${out}"
+}
+
+echo "== base_semver =="
+for pair in "0.2.0:0.2.0" "v0.2.0-rc1:0.2.0" "0.2.0-rc.1:0.2.0" "0.2.0+build5:0.2.0"; do
+  input="${pair%%:*}"; want="${pair##*:}"
+  got="$(bash -c "source '${GUARDS}'; base_semver '${input}'")"
+  [[ "${got}" == "${want}" ]] && ok "base_semver ${input} -> ${want}" || bad "base_semver ${input} -> ${want}" "got '${got}'"
+done
+
+echo "== assert_dispatch_version_allowed (the trigger nobody guarded) =="
+# workflow_dispatch from a BRANCH satisfied neither existing guard and still publishes to
+# nuget.org. A prerelease of the canonical version is the staging flow and must be allowed; a
+# different release must not be.
+for v in "0.2.0" "v0.2.0" "0.2.0-rc1" "0.2.0-rc.1"; do
+  r="$(in_fake_root "0.2.0" "assert_dispatch_version_allowed '${v}'")"
+  [[ "${r%%|*}" == "0" ]] && ok "allows ${v} when VERSION is 0.2.0" || bad "allows ${v}" "exit ${r%%|*}: ${r#*|}"
+done
+for v in "0.9.9" "1.0.0" "0.2.1"; do
+  r="$(in_fake_root "0.2.0" "assert_dispatch_version_allowed '${v}'")"
+  if [[ "${r%%|*}" != "0" ]] && grep -q 'disagrees with their assemblies' <<<"${r#*|}"; then
+    ok "refuses ${v} when VERSION is 0.2.0, and says why"
+  else
+    bad "refuses ${v} when VERSION is 0.2.0" "exit ${r%%|*}: ${r#*|}"
+  fi
+done
+r="$(in_fake_root "" "assert_dispatch_version_allowed 0.2.0")"
+[[ "${r%%|*}" != "0" ]] && ok "refuses when VERSION is empty rather than publishing unversioned"   || bad "refuses when VERSION is empty" "exit 0"
+
+echo "== assert_consumer_pin_matches (the file no release updates) =="
+r="$(in_fake_root_with_pin "0.2.0" "0.2.0" "assert_consumer_pin_matches 0.2.0")"
+[[ "${r%%|*}" == "0" ]] && ok "accepts a pin naming this release" || bad "accepts a current pin" "exit ${r%%|*}: ${r#*|}"
+
+r="$(in_fake_root_with_pin "0.2.0" "0.2.0" "assert_consumer_pin_matches v0.2.0-rc1")"
+[[ "${r%%|*}" == "0" ]] && ok "a prerelease pins its base version" || bad "prerelease pins base" "exit ${r%%|*}: ${r#*|}"
+
+r="$(in_fake_root_with_pin "0.2.0" "0.1.2" "assert_consumer_pin_matches 0.2.0")"
+if [[ "${r%%|*}" != "0" ]] && grep -q 'never receives this' <<<"${r#*|}"; then
+  ok "refuses a pin still naming the PREVIOUS release, and says who it hurts"
+else
+  bad "refuses a stale pin" "exit ${r%%|*}: ${r#*|}"
+fi
+
+# Asserting the MESSAGE, not just the exit code. The lib runs under set -e, so reading an absent
+# file fails the function anyway - an exit-code-only assertion here passes whether or not the
+# explicit guard exists, and says nothing about what the operator is told. Measured: deleting the
+# guard left an exit-code-only version of this green.
+r="$(in_fake_root_with_pin "0.2.0" "__NONE__" "assert_consumer_pin_matches 0.2.0")"
+if [[ "${r%%|*}" != "0" ]] && grep -q 'consumers have no version to pin' <<<"${r#*|}"; then
+  ok "refuses when the pin file is absent, naming that as the reason"
+else
+  bad "refuses when the pin file is absent, naming that as the reason" "exit ${r%%|*}: ${r#*|}"
+fi
+
 echo
 echo "passed: ${PASS}   failed: ${FAIL}"
+
+# A partial run is not a pass. This file is the last thing between a mislabelled package and
+# nuget.org, and until now nothing asserted that all of it RAN: `set -uo pipefail` without -e means
+# an unbound variable or a bad path mid-file ends the script quietly, after which the summary prints
+# whatever it got to and exits 0.
+RAN=$((PASS + FAIL))
+if [[ "${RAN}" -ne "${EXPECTED_ASSERTIONS}" ]]; then
+  echo "FAIL - ran ${RAN} assertions, expected ${EXPECTED_ASSERTIONS}."
+  echo "       Either this file stopped early or assertions were added without bumping"
+  echo "       EXPECTED_ASSERTIONS at the top. A partial run is not a pass."
+  exit 1
+fi
+
 [[ "${FAIL}" -eq 0 ]] || exit 1

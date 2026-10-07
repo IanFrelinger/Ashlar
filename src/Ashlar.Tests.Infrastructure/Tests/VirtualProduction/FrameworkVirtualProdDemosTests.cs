@@ -8,7 +8,8 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.VirtualProduction;
 
 /// <summary>
-/// End-to-end parity with <c>docs/demos/</c> samples: real Kestrel pipeline + <see cref="IAshlarClient"/> over HTTP.
+/// End-to-end: real Kestrel pipeline + <see cref="IAshlarClient"/> over HTTP, the path the HTTP client
+/// demos used (parked on <c>archive/parked-2026-10-03</c>).
 /// Complements NCR routing harness tests (which isolate cloud/peers with test doubles).
 /// </summary>
 [Collection("Integration")]

@@ -32,8 +32,8 @@ Snapshot of this plan versus the repo today. **Implemented** = code exists; **Te
 | C.3 CI `continue-on-error` (test caching workflow) | Implemented | Docker build/test steps are gating; summary job fails on `test-caching` failure. |
 | C.4 PR / Issue Templates | Implemented | `.github/PULL_REQUEST_TEMPLATE.md` and `ISSUE_TEMPLATE/*.md` present. |
 | C.5 Self-Improvement as Background Agent | Implemented | `self-improver` role in `BackgroundAgentRegistry`. |
-| C.6 Trust Wiring in ImproveCommand | Implemented | `ASHLAR_TRUST_ENABLED=1` registers `SanitizingProviderFactory` in improve DI. |
-| C.6 (tests) | Remaining work | Add CLI test asserting sanitizing factory when trust + cloud provider configured, if missing. |
+| C.6 Trust Wiring in ImproveCommand | Implemented | `ASHLAR_TRUST_ENABLED=1` registers the trust composition (`AddTrustServices`) and `SanitizingProviderFactory` in improve DI, so the proxy has a PII content filter. Before the fail-closed change it was built with none and passed every prompt through. |
+| C.6 (tests) | Tested | [ImproveCommandTrustWiringTests.cs](../application/src/Ashlar.Tests.CLI/Tests/Commands/ImproveCommandTrustWiringTests.cs). |
 
 ---
 
@@ -168,7 +168,7 @@ These items establish the first end-to-end product experience and close the most
 - `.github/workflows/` — new or extended workflow for SDK sample CI
 - `docs/sdk.md` — classification table
 - `docs/SdkCompatibilityPolicy.md` — new
-- `src/Ashlar.Sdk/AshlarSdkBuilder.cs` — stability annotations
+- `src/Ashlar.Hosting/Sdk/Builders/AshlarSdkBuilder.cs` — stability annotations
 - `src/Ashlar.Abstractions/` — stability annotations on ports
 
 **Dependencies:** None — can be done in parallel.  
@@ -584,11 +584,11 @@ These are smaller items that should be addressed opportunistically alongside the
 
 ### C.6 Trust Wiring in `ImproveCommand`
 
-**Current state:** **Implemented** — when `ASHLAR_TRUST_ENABLED=1`, `ImproveCommand` registers `SanitizingProviderFactory` wrapping the inner `IProviderFactory`.
+**Current state:** **Implemented** — when `ASHLAR_TRUST_ENABLED=1`, `ImproveCommand` registers the kernel's trust composition (`AddTrustServices`) and a `SanitizingProviderFactory` wrapping the inner `IProviderFactory`. Before the fail-closed change (`CHANGELOG.md`, Unreleased) the proxy behind that factory was built with no content filter and passed every prompt through; it now filters PII, and a proxy with no filter blocks.
 
-**Tasks:** *(wiring complete; tests optional)*
+**Tasks:** *(complete)*
 1. Conditionally register `SanitizingProviderFactory` in `ImproveCommand`'s DI graph when trust is enabled. **Done** (`ASHLAR_TRUST_ENABLED` == `1`).
-2. Add a test that validates sanitization is active when improve is configured for cloud-backed fix generation. **Remaining** if not present.
+2. Add a test that validates sanitization is active when improve is configured for cloud-backed fix generation. **Done** for the DI graph: `ImproveCommandTrustWiringTests` resolves improve's provider registration and asserts that the proxy passes a clean prompt and blocks one carrying PII. No test drives a cloud provider end to end.
 
 **Files:** `application/src/Ashlar.CLI/Commands/ImproveCommand.cs`, `application/src/Ashlar.Tests.CLI/`  
 **Risk:** Low. Defensive wiring.

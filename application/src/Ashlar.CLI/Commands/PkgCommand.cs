@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using Ashlar.CLI.Output;
 using Ashlar.CLI.Packaging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.BackgroundAgents.Forge;
 using Ashlar.BackgroundAgents.HostRunners;
 using Ashlar.Manifest;
@@ -81,13 +82,15 @@ public sealed class PkgCommand : Command
                 return 1;
             }
 
-            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory);
+            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory, sealer);
             if (code != 0)
             {
                 return code;
             }
             var (record, files) = (gathered!, gatheredFiles!);
 
+            // SPEC-007 EG-MESH-02, report-only: the sealed package leaves through the --out file.
+            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, "EG-MESH-02", "file:" + outFile.FullName));
             var json = ExtensionPackaging.Pack(record, files, sealer);
             await File.WriteAllTextAsync(outFile.FullName, json);
 
@@ -110,9 +113,12 @@ public sealed class PkgCommand : Command
     /// extension cannot be packaged whole, 65 when the rows fail the admission's signed content
     /// claims — a verification refusal, same family as a package that fails its seal.
     /// </summary>
-    private static async Task<(int Code, GateRecord? Record, List<PackageFile>? Files)> GatherAsync(string id, DirectoryInfo directory)
+    private static async Task<(int Code, GateRecord? Record, List<PackageFile>? Files)> GatherAsync(string id, DirectoryInfo directory, SigningIdentity sealer)
     {
-        var store = new GateStore(Path.Combine(directory.FullName, ".ashlar"));
+        // The sealer is the operator identity both callers already loaded: this is the reader
+        // that decides what travels to ANOTHER node, so it reads with the identity that will seal —
+        // a stripped or re-signed admission must not leave the machine under the origin's seal.
+        var store = new GateStore(Path.Combine(directory.FullName, ".ashlar"), sealer);
         var record = await store.GetAsync(id);
         if (record is null)
         {
@@ -378,7 +384,10 @@ public sealed class PkgCommand : Command
             return 65;
         }
 
-        var dest = MeshStore.Publish(ResolveStore(store), json);
+        var storeDir = ResolveStore(store);
+        // SPEC-007 EG-MESH-01, report-only: peers pull from the store directory.
+        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
+        var dest = MeshStore.Publish(storeDir, json);
 
         Console.WriteLine($"  {Gold("✓ published to the mesh")}  {pkg!.Record.Proposal.Summary}");
         Console.WriteLine($"  {Dim($"sealed {Fp(pkg.SealSigner)} · {pkg.Files.Count} file(s)")}");
@@ -423,13 +432,16 @@ public sealed class PkgCommand : Command
                 return 1;
             }
 
-            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory);
+            var (code, gathered, gatheredFiles) = await GatherAsync(id, directory, sealer);
             if (code != 0)
             {
                 return code;
             }
             var (record, files) = (gathered!, gatheredFiles!);
 
+            var storeDir = ResolveStore(store);
+            // SPEC-007 EG-MESH-01, report-only: the sealed package goes to the store directory peers pull from.
+            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
             var json = ExtensionPackaging.Pack(record, files, sealer);
             // Same refusal shape as `pkg publish`: a package that does not verify is a 65, not an
             // operational error — share must hold every property export + publish had separately.
@@ -446,7 +458,7 @@ public sealed class PkgCommand : Command
                 Console.Error.WriteLine(reason);
                 return 65;
             }
-            var dest = MeshStore.Publish(ResolveStore(store), json);
+            var dest = MeshStore.Publish(storeDir, json);
 
             Console.WriteLine($"  {Gold("✓ shared to the mesh")}  {record.Proposal.Summary}");
             Console.WriteLine($"  {Dim($"{files.Count} file(s) · admitted by {record.Actor} · verdict {Fp(record.Signer)} · seal {Fp(sealer.PublicKeyBase64)}")}");

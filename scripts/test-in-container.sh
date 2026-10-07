@@ -104,7 +104,19 @@ REPO_MOUNT="$(to_host_path "${REPO}")"
 PATCH_MOUNT=()
 INNER_PATCH=""
 PATCH_DIR=""
-cleanup() { [[ -n "${PATCH_DIR}" ]] && rm -rf "${PATCH_DIR}"; }
+# This must not end on a command that can fail. `set -e` is active, and under it an EXIT trap whose
+# LAST command fails makes bash exit 1 and discard the status the script was about to exit with.
+# `[[ -n "" ]] && rm -rf ...` fails whenever --dirty was not passed, which is most runs.
+#
+# Measured before and after, because the cost was worse than a cosmetic 0 becoming 1: the && form
+# also FLATTENED a real failure, turning an inner `exit 3` into exit 1, so the harness could not
+# report what the command it ran actually returned. The if form ends on a success whether or not
+# there is anything to remove, and the pending status survives.
+cleanup() {
+  if [[ -n "${PATCH_DIR}" ]]; then
+    rm -rf "${PATCH_DIR}"
+  fi
+}
 trap cleanup EXIT
 
 if [[ "${DIRTY}" == "1" ]]; then

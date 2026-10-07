@@ -3,7 +3,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
+using Ashlar.Abstractions;
 using Ashlar.Abstractions.Routing;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Abstractions.Transport;
 using Ashlar.BackgroundAgents;
 using Ashlar.BackgroundAgents.Trust;
@@ -21,6 +23,7 @@ using Ashlar.Core.Application.Trust.Ports;
 using Ashlar.Core.Application.Validation.UseCases.RunValidation;
 using Ashlar.Infrastructure;
 using Ashlar.Infrastructure.Copilot;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.Ephemeral;
 using Ashlar.Infrastructure.Execution.LoadPolicy;
@@ -98,6 +101,12 @@ public static partial class AshlarServiceCollectionExtensions
     /// <c>ASHLAR_TRUST_ENABLED</c>, <c>ASHLAR_LOAD_PREFERENCE</c>,
     /// <c>ASHLAR_EXECUTION_REMOTE_URL</c>.
     /// </para>
+    /// <para>
+    /// It also composes the egress guard's mode (SPEC-007 PR 4), which is <c>report</c> on every profile; a mode
+    /// setting exists but is not yet supported. After <c>AddAshlar</c> has resolved AirGapped (or SecureWorkstation),
+    /// a later <c>AddAshlar</c> in the same process with a less strict profile does not lower the profile the
+    /// process notes: the remote-protocol validators, the egress guard and the container's own guard keep it.
+    /// </para>
     /// </summary>
     public static IServiceCollection AddAshlar(
         this IServiceCollection services,
@@ -106,8 +115,11 @@ public static partial class AshlarServiceCollectionExtensions
         var options = new AshlarHostingOptions();
         configure?.Invoke(options);
         ResolveStrictMode(options);
-        var deploymentProfile = ResolveDeploymentProfile(options);
-        AshlarDeploymentProfileEnvironment.NoteResolved(deploymentProfile switch
+        var deploymentProfile = ResolveDeploymentProfile(options, out var profileDefaulted);
+        // The hosting options object carries the profile this call resolved, including one that came from
+        // ASHLAR_DEPLOYMENT_PROFILE rather than the configure callback.
+        options.DeploymentProfile = deploymentProfile;
+        var canonicalProfile = deploymentProfile switch
         {
             AshlarDeploymentProfile.AirGapped => "air-gapped",
             AshlarDeploymentProfile.SecureWorkstation => "secure-workstation",
@@ -115,12 +127,27 @@ public static partial class AshlarServiceCollectionExtensions
             AshlarDeploymentProfile.Edge => "edge",
             AshlarDeploymentProfile.Server => "server",
             _ => "full"
-        });
+        };
+        // The strictest profile noted in the process wins (SPEC-007 PR 4, D5).
+        AshlarDeploymentProfileEnvironment.NoteResolved(canonicalProfile);
+        // Infrastructure and the MEAI pipeline read this options value. They never read the environment or
+        // Effective themselves. Captured after NoteResolved, so a later less-strict AddAshlar still records
+        // the strictest profile this process has noted.
+        var notedProfile = AshlarDeploymentProfileEnvironment.Effective(canonicalProfile) ?? canonicalProfile;
+        services.AddOptions<AshlarResolvedDeploymentProfileOptions>()
+            .Configure(resolved => resolved.Profile = notedProfile);
+        // SPEC-007 PR 4.6: ASHLAR_EGRESS_MODE is read once per process (here, or at the first decision of a process
+        // that never runs AddAshlar), and AshlarHostingOptions.EgressMode can only raise it.
+        var egressOverride = EgressEnforcement.NoteHostingOption(options.EgressMode);
         var modules = GetModuleSelection(deploymentProfile);
 
         services.AddSingleton(options.StrictMode);
 
         services.AddHttpClient();
+        // SPEC-007: the egress guard handler on every IHttpClientFactory client in this container, the host's own
+        // included (owner decision Q1 = A). Idempotent, so the kernel members below that call it add nothing.
+        services.AddAshlarEgressGuard();
+        BindComposedEgressGuard(services, canonicalProfile, profileDefaulted, egressOverride, options.EgressMode);
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .Build();

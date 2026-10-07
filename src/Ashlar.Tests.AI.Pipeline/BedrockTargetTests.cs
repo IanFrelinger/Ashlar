@@ -112,7 +112,7 @@ public sealed class BedrockTargetTests
         provider.GetService<Amazon.BedrockRuntime.IAmazonBedrockRuntime>().Should().BeNull();
         provider.GetService<Amazon.BedrockRuntime.AmazonBedrockRuntimeClient>().Should().BeNull();
         provider.GetRequiredKeyedService<IChatClient>(DefaultRouteCandidateTable.CloudBedrockFast)
-            .Should().BeOfType<PolicyGateChatClient>();
+            .Should().BeOfType<EgressGuardChatClient>();
     }
 
     [Fact]

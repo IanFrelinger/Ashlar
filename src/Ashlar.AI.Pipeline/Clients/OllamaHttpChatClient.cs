@@ -24,7 +24,7 @@ public sealed class OllamaHttpChatClient : IChatClient, IDisposable
     private readonly string _defaultModel;
     private readonly bool _ownsHttp;
 
-    /// <summary>Creates an Ollama HTTP chat client from pipeline options.</summary>
+    /// <summary>Creates an Ollama HTTP chat client from pipeline options. It does not follow redirects.</summary>
     public OllamaHttpChatClient(IOptions<MeaiPipelineOptions> options)
         : this(CreateHttpClient(options.Value), ResolveModel(options.Value), ownsHttp: true)
     {
@@ -160,10 +160,14 @@ public sealed class OllamaHttpChatClient : IChatClient, IDisposable
         return "user";
     }
 
+    // Redirects are not followed (SPEC-007 PR 4.1). The egress record names the base address, which is the first hop
+    // only: a 307 or 308 would re-send the whole conversation to wherever Location points, and no decision would name
+    // it. A redirect now reaches the caller as a failed call (EnsureSuccessStatusCode). An Ollama behind a redirecting
+    // proxy must be configured with its final URL.
     private static HttpClient CreateHttpClient(MeaiPipelineOptions options)
     {
         var baseUrl = ResolveBaseUrl(options);
-        return new HttpClient
+        return new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }, disposeHandler: true)
         {
             BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/"),
             Timeout = TimeSpan.FromSeconds(300),

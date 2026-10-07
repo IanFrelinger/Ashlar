@@ -1,5 +1,5 @@
-# Build stage follows global.json (SDK 10). The commercial Fleet.Host project still targets net8.0,
-# so the runtime stage stays on the 8.0 ASP.NET Core image (commercial/ is out of scope for the net10 move).
+# Build stage follows global.json (SDK 10). The commercial Fleet.Host project targets net10.0, so the
+# runtime stage is the 10.0 ASP.NET Core image.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 

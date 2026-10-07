@@ -43,11 +43,19 @@ The analyzers' RS0036 (missing nullable annotation in the API file) and RS0037 (
 
 #### Release step: promote Unshipped -> Shipped on tag
 
-Nothing has shipped yet, so **all** of the current surface (including the 438 lines `Ashlar.Brick.Contracts` had accumulated in its `Shipped.txt` before this policy was enforced) lives in `PublicAPI.Unshipped.txt`, and every `PublicAPI.Shipped.txt` contains only the `#nullable enable` header. This is deliberate: the first tag freezes a **reviewed** baseline rather than whatever happened to be public the day the analyzer was switched on.
+**This has happened.** `v0.1.0`, `v0.1.1` and `v0.1.2` are tagged and published, and the promotion ran: the reviewed surface now lives in `PublicAPI.Shipped.txt` (405 lines in `Ashlar.Abstractions`, 612 in `Ashlar.Brick.Contracts`, 31 in `Ashlar.Client`, 9 in `Ashlar.Sdk`, 5 in `Ashlar.Authoring`), and the promotion left every `PublicAPI.Unshipped.txt` at the bare `#nullable enable` header. Of `Ashlar.Brick.Contracts`' 612, 147 are the generative-profile ports (see "Code-brick authoring surface"), recorded straight into `Shipped.txt` because those types had shipped, untracked, since `v0.1.0`. The `0.2.0` release commit ran the promotion again, moving the six `Ashlar.Abstractions.Paths.PathContainment` lines into `Shipped.txt`, so every `Unshipped.txt` was back at the bare header. Since then `Ashlar.Abstractions` has added the `Ashlar.Abstractions.Security` surface (security labels and the reference monitor, SPEC-007 PR 1) and the `Ashlar.Abstractions.Security.Egress` surface (the report-only egress guard, its decision log and `EgressHttp`, SPEC-007 PR 3a) to its `Unshipped.txt`; whether each ships as stable or `[Experimental]` is decided before the next tag.
+
+So `Shipped.txt` is now a **promise already made**, not an empty file waiting for one. Read the paragraph above accordingly: additions go to `Unshipped.txt` and are promised at the next tag; a change to a line already in `Shipped.txt` is a break against published packages and needs the process in "Breaking change process" below.
+
+`Ashlar.Hosting.Bundle` is the exception, and deliberately: its `Shipped.txt` is header-only because a metapackage declares no surface of its own, and the analyzer is there to keep it that way.
+
+> This section described the pre-`v0.1.0` state for three releases after it stopped being true, which
+> is why `scripts/ci/verify-compat-policy-current.py` now fails the build if it says nothing has
+> shipped while `git tag` disagrees.
 
 When tagging `v0.1.0` (and every release after it), as part of "Before you tag" in `docs/RELEASE_RUNBOOK.md`:
 
-1. Review `PublicAPI.Unshipped.txt` in each stable-tier project. Anything that should not be promised gets made `internal` (or `[Experimental]`) **before** the tag.
+1. Review `PublicAPI.Unshipped.txt` in every project that carries PublicAPI files (the stable tier plus `Ashlar.Abstractions`). Anything that should not be promised gets made `internal` (or `[Experimental]`) **before** the tag.
 2. Move every line except the `#nullable enable` header from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`; leave `Unshipped.txt` with the header only.
 3. Commit as `chore(api): promote unshipped public API to shipped for vX.Y.Z` on the release commit.
 
@@ -67,6 +75,8 @@ The `ashlar new brick` code-brick path references `Ashlar.Authoring` and exposes
 - `Ashlar.Core.Domain.Bricks.ImplementationType`
 - `Ashlar.Core.Domain.Execution.IExecutionContext`
 
+`Ashlar.Brick.Contracts` also ships the generative-profile ports in `Ashlar.Core.Domain.Bricks.Ports`: `AgentProfile`, `AgentProfileCapabilities`, `GenerationTunables`, `BrickConstraintManifest`, `GenerationRequest`, `GeneratedArtifact`, `IArtifactDrafter`, `IDeterministicDrafter`, `ISandboxProvider`, `IDeploymentTarget`, `DeploymentApplyResult`, `IAcceptanceEvaluator`, `IAcceptanceGatedDeploymentTarget`, `DefaultAcceptanceEvaluator`, `AcceptanceDecision`, `AcceptanceContext`, `AcceptanceResult`, `DeploymentSmokeResult`. They have been public, unchanged, since `v0.1.0` and are stable-tier. A file-wide `#pragma warning disable RS0016` in each of their five source files used to keep them out of public-API tracking, so nothing enforced that promise; they are now in `PublicAPI.Shipped.txt`. In this repository, `DiagnosticSuppressionConventionTests` (cert-gate) fails any suppression of RS0016, RS0017, RS0026 or RS0027, and any CS0618 or ASHLAREXP001 disable that does not name the symbol it is for with a reason, other than two reviewed project-wide opt-ins and eight grandfathered pragmas. The check is lexical; its row in `ci/cert-gate-assertions.md` lists what it does not see.
+
 ### Experimental
 
 APIs are marked with the .NET [`Experimental`](https://learn.microsoft.com/dotnet/api/system.diagnostics.codeanalysis.experimentalattribute) attribute. They may change or be removed in any release, MINOR or PATCH, without a deprecation window. Consumers should treat them as preview-only and pin package versions if they take a dependency.
@@ -85,9 +95,86 @@ The diagnostic id and the help link it carries are defined once, in `Ashlar.Core
 
 `netstandard2.0` targets: `System.Diagnostics.CodeAnalysis.ExperimentalAttribute` is a `net8.0+` BCL type. `Ashlar.Core.Application` (multi-targeted `netstandard2.0;net8.0;net10.0`) compiles an internal polyfill of the attribute (`src/Ashlar.Compat/Polyfills/ExperimentalAttribute.cs`, linked into every `.NETStandard` inner build by `Directory.Build.targets`); the compiler recognises the attribute by its full name, so a `netstandard2.0` consumer gets the same `ASHLAREXP001` diagnostic as a `net8.0` one. Nothing is documented-only.
 
+### Substrate
+
+**Every package this repository publishes that is not in the Stable table above.** They are not
+frozen, and this tier does not pretend otherwise. What they promise is different in kind:
+
+> **A change to a substrate package's public surface is permitted in a minor release. Making one
+> silently is not.**
+
+**Why not simply promote them.** `Ashlar.Core.Application` declares 474 public types,
+`Ashlar.Infrastructure` 390, `Ashlar.Orchestration` 198 and `Ashlar.BackgroundAgents` 128 (counted as
+public type declarations in each project's sources). Freezing that at 0.2.0 would end meaningful refactoring, and it would be a promise made over a
+surface nobody yet maps accurately — an IL analysis run against this tree in September proposed 52
+`Ashlar.Infrastructure` types as unreferenced and the compiler rejected 9 of them, one of which had
+12 call sites the analysis could not see.
+
+**Why not leave them unpromised.** A consumer who builds their own repository on Ashlar lives in this
+tier. "May change in any release" is honest and useless to them: it tells them nothing about what an
+upgrade costs.
+
+**What this tier is worth to a consumer.** Not that an upgrade is safe, but that it is *knowable* —
+a minor release enumerates what moved, so the cost of upgrading can be read before it is paid rather
+than discovered during.
+
+#### What enforces it today, and what does not
+
+Stating this exactly, because a policy that claims enforcement it does not have is worse than one
+that claims none:
+
+| | Status |
+|---|---|
+| Surface changes recorded in `CHANGELOG.md` under `### Breaking` | **In force**, by review. `v0.2.0` records 41 `Ashlar.Infrastructure` types becoming internal. |
+| `PublicAPI.Shipped.txt` tracked for substrate packages, so a surface change appears as a reviewable diff | **Not yet.** Only the Stable tier and `Ashlar.Abstractions` carry these files. |
+| Release notes generated from the API diff between tags, rather than written by hand | **Not yet**, and it depends on the row above. |
+
+Until the second row lands, the promise rests on review rather than on a mechanism — which is
+precisely the shape this repository distrusts elsewhere, and the reason it is written down here as a
+gap rather than implied as coverage.
+
+#### A naming hazard, recorded rather than fixed
+
+Two substrate packages, and one assembly the release does not publish as a package, are named as if
+they were optional developer tooling and are not:
+
+| Package | Actually required by |
+|---|---|
+| `Ashlar.Tools.Assembly` | `Ashlar.Hosting` |
+| `Ashlar.Tools.Dev` | `Ashlar.Hosting`, `Ashlar.Mcp.Server.Host` |
+| `Ashlar.Policies.Dev` | `Ashlar.Runtime.Bundle`, `Ashlar.CLI` |
+
+The two `Ashlar.Tools.*` packages cannot be unpublished — `Ashlar.Hosting.Bundle` is a Stable-tier
+package and reaches both transitively, so removing them from the feed breaks restore for the tier that
+carries the strongest promise. Renaming them is a breaking change and belongs to a major. Recorded here
+so that a consumer reading `.Dev` on nuget.org does not conclude it is optional.
+
+`Ashlar.Policies.Dev` is not on nuget.org. No release pack step names it: `reusable-release-nuget.yml`
+packs the `Ashlar.Hosting` graph (`scripts/pack-ashlar-hosting-graph.sh`), which does not reference it,
+plus `Ashlar.Client`, `Ashlar.Sdk`, `Ashlar.Authoring` and the `Ashlar.CLI` tool. `Ashlar.Runtime.Bundle`
+is packed only by `scripts/pack-ashlar-runtime-graph.sh`, which no workflow runs, and is not published
+either. The assembly reaches users inside the `Ashlar.CLI` tool package, which embeds its project
+references.
+
+This is also worth stating plainly for the Stable tier: **its promise covers the API you call, not
+the dependency graph beneath it.** `Ashlar.Hosting.Bundle` declares no surface of its own and pulls a
+substrate graph; the guarantee is that `AddAshlar()` keeps working, not that nothing under it moves.
+
 ### Internal
 
-All other assemblies and packages are internal to the Ashlar repository and tooling. They are not covered by this compatibility promise unless explicitly promoted to a stable package. `Ashlar.Infrastructure.*`, `Ashlar.Core.Application.*` (outside the experimental namespace above) and `Ashlar.Hosting` internals may change in any release; the supported way to reach them is through the stable packages' entry points (`AddAshlar`, `IAshlarClient.InvokeAsync`, the authoring base types).
+Assemblies this repository does **not** publish: test projects, in-repo tooling, spikes, and the
+commercial tree. They are reachable only by a `ProjectReference` inside a checkout, they carry no
+promise of any kind, and they may change without a note.
+
+If an assembly is on nuget.org, it is not in this tier — it is Substrate, and the disclosure promise
+above applies to it. That distinction is the point of the split: "internal" previously covered both
+things a consumer could never see and things they could `dotnet add package`.
+
+## Target frameworks and the egress guard
+
+`Ashlar.Abstractions` ships a `netstandard2.0`, a `net8.0` and a `net10.0` asset. **Full egress-guard coverage needs the `net8.0` or later asset**: there the guard handler that `EgressHttp` builds evaluates every request it is handed, through `SendAsync` or a synchronous `Send` (redirects: see `docs/EgressInventory.md`). The `netstandard2.0` asset is for .NET Framework, classic Mono and Unity, which have no synchronous `HttpMessageHandler.Send`; on them it evaluates every request it is handed (redirects: see `docs/EgressInventory.md`). On every runtime, this asset puts an internal hop under the guard handler, so the `InnerHandler` of an `EgressHttp.Wrap` handler is that hop, not the caller's handler, and code that walks the chain through `DelegatingHandler.InnerHandler` stops at it (`docs/EgressInventory.md`, Known limits).
+
+Wherever the `netstandard2.0` asset runs on a runtime that has a synchronous `HttpMessageHandler.Send` (.NET 5 or later), it cannot override that `Send`. That is every .NET 5, 6 or 7 app, which binds this asset, and any other app that loads it on such a runtime, for example a `netcoreapp3.1` app rolled forward or a plugin loaded by path. There, a synchronous `HttpClient.Send` or `HttpMessageInvoker.Send` through an `EgressHttp` client or handler is **refused** with `NotSupportedException` before anything is sent, and no egress decision is recorded for it: the caller's exception is the only trace. `EgressHttp.CreateDelegatingHandler` throws `PlatformNotSupportedException`, and `SendAsync` is evaluated as everywhere else. This is a run-time refusal only: nothing stops such an app building against the asset. .NET 5, 6 and 7 are out of support, and Ashlar does not add an end-of-life target for them. `docs/EgressInventory.md` records the mechanism (SPEC-007 PR 4.2).
 
 ## Breaking change process
 

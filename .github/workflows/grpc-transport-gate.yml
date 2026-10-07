@@ -35,4 +35,6 @@ jobs:
           set -euo pipefail
           dotnet test src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj \
             --filter "Category=ProdStyle" \
+            --logger "trx;LogFileName=transport-prodstyle.trx" --results-directory test-results \
             --blame-hang-timeout 120s
+          bash scripts/ci/zero-test-guard.sh test-results/transport-prodstyle.trx

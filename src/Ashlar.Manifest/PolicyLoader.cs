@@ -41,7 +41,30 @@ public static class PolicyLoader
     /// </summary>
     public static readonly IReadOnlyList<string> AddableKinds = ["brick"];
 
-    private static readonly IDeserializer Deserializer = new DeserializerBuilder()
+    /// <summary>
+    /// A NEW deserializer for every parse. Never make this a shared static again.
+    ///
+    /// <para>YamlDotNet 13.7.1 (Directory.Packages.props) is not safe to share across threads.
+    /// Each deserializer owns one <c>DefaultObjectFactory</c>, which caches every type's
+    /// <c>[OnDeserializing]</c>/<c>[OnDeserialized]</c> lookup in a plain <c>Dictionary</c> and
+    /// writes it, unlocked, the first time it meets that type. When this was one static, two
+    /// threads doing their first parse of a process at the same moment wrote it together; the
+    /// corrupted insert threw, YamlDotNet wrapped that as "Exception during deserialization", and
+    /// this loader rejected a VALID policy as one that "could not be parsed". The self-extend gate
+    /// then failed closed on it. That was the intermittent red of
+    /// <c>SelfExtendAdmissionBridgeTests</c> and <c>ManifestContractTests</c> in the readiness
+    /// gate, and any process parsing two policies at once for the first time could hit it.</para>
+    ///
+    /// <para>Caching the <see cref="DeserializerBuilder"/> instead would NOT help: a builder hands
+    /// the same lazily created object factory to every <c>Build()</c>. Upstream made the cache
+    /// concurrent in YamlDotNet 16.1.0. A policy is parsed once per command or self-extend cycle, so a
+    /// fresh deserializer costs nothing that matters, and with nothing shared there is nothing to
+    /// race on. <c>YamlDeserializerNotSharedConventionTests</c> fails if any static field in this
+    /// assembly holds a YamlDotNet type, which covers every caching shape. The race itself is
+    /// reproduced by <c>PolicyLoaderColdStartConcurrencyTests</c>, which catches an eagerly shared
+    /// deserializer or builder but not a lazily assigned one.</para>
+    /// </summary>
+    private static IDeserializer NewDeserializer() => new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .Build();
 
@@ -71,7 +94,7 @@ public static class PolicyLoader
         AshlarPolicy? parsed;
         try
         {
-            parsed = Deserializer.Deserialize<AshlarPolicy>(yaml!);
+            parsed = NewDeserializer().Deserialize<AshlarPolicy>(yaml!);
         }
         catch (YamlException ex)
         {

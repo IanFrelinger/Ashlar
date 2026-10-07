@@ -14,6 +14,8 @@ trap 'rm -rf "$TMP_ROOT"' EXIT
 
 TEMPLATE_PATH="$TMP_ROOT/pipeline_gate_demo.json"
 RESUME_DB="$TMP_ROOT/ashlar_pipeline_gate_resume.db"
+TRX_DIR="test-results/kernel-gate-tier-b"
+rm -rf "$TRX_DIR"
 
 echo "== Tier B: build checks =="
 dotnet build src/Ashlar.Core.Application/Ashlar.Core.Application.csproj -f netstandard2.0 -v minimal
@@ -24,7 +26,9 @@ echo "== Tier B: pipeline lifecycle tests (net8) =="
 ASHLAR_ALLOW_MOCK=1 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -f net8.0 \
   --filter "FullyQualifiedName~PipelineTemplateValidatorTests|FullyQualifiedName~PipelineLifecycleE2ETests" \
   --blame-hang-timeout 180s --blame-hang-dump-type none \
+  --logger "trx;LogFileName=pipeline-lifecycle.trx" --results-directory "$TRX_DIR" \
   --logger "console;verbosity=minimal"
+bash scripts/ci/zero-test-guard.sh "$TRX_DIR/pipeline-lifecycle.trx"
 
 cat > "$TEMPLATE_PATH" <<'JSON'
 {

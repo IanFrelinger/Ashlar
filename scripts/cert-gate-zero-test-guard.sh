@@ -19,8 +19,12 @@ if [[ -z "${MIN_EXPECTED}" || "${MIN_EXPECTED}" -lt 1 ]]; then
   exit 1
 fi
 
-REPORTED="$(grep -oE 'total="[0-9]+"' "${TRX}" | head -1 | sed 's/total="//;s/"//')"
-REPORTED="${REPORTED:-0}"
+# `total` counts every result the TRX holds, SKIPPED ones included, and --list-tests lists a skipped
+# test too - so a skip moves both sides of this floor together and it cannot see one. That is not
+# this guard's job: cert-gate-skip-guard.sh pins total - executed to a committed baseline, and
+# run-cert-gate.sh runs it straight after this one. Read from the <Counters> element, not the first
+# `total="N"` in the file, which can be text a test printed (see cert_gate_trx_counter).
+REPORTED="$(cert_gate_trx_counter "${TRX}" total)"
 
 if [[ "${REPORTED}" -lt "${MIN_EXPECTED}" ]]; then
   echo "cert-gate matched fewer tests than expected (reported=${REPORTED}, expected>=${MIN_EXPECTED}) — filter is stale."

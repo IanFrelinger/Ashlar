@@ -11,7 +11,7 @@ namespace Ashlar.Infrastructure.Adaptation;
 /// <summary>
 /// Recompiles BrickManifest into deployable bricks. For known types, creates instances with config.
 /// </summary>
-public sealed class BrickRecompiler : IBrickRecompiler
+internal sealed class BrickRecompiler : IBrickRecompiler
 {
     private readonly IServiceProvider _services;
     private readonly ILogger<BrickRecompiler>? _logger;

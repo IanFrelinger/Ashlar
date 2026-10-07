@@ -8,8 +8,9 @@ The container scripts need a .NET 10 SDK *and* the real ASP.NET Core 8 runtime. 
 it rolls net8.0 onto ASP.NET Core 10 even when 8.0 is installed, and every HTTP-hosting
 test then fails with an exception that reads like a product bug.
 
-Docker layer-caches the build, so the first call costs a runtime download and every later
-call is effectively free.
+Docker layer-caches the build, so the first call costs pulling the base images (the SDK 10
+devcontainer and Microsoft's ASP.NET Core 8 runtime image) and every later call is
+effectively free.
 
 .PARAMETER Image
 Tag to build. Defaults to ashlar-devtest:local.
@@ -39,7 +40,7 @@ if (-not $needBuild) {
 
 if ($needBuild) {
     # Progress goes to the host stream so the tag returned to the pipeline stays clean.
-    Write-Host "ensure-devtest-image: building $Image (first build downloads the ASP.NET Core 8 runtime)..." -ForegroundColor Cyan
+    Write-Host "ensure-devtest-image: building $Image (first build pulls the SDK 10 and ASP.NET Core 8 runtime images)..." -ForegroundColor Cyan
     & docker build -t $Image -f (Join-Path $root ".docker/Dockerfile.devtest") (Join-Path $root ".docker") | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "docker build failed (exit $LASTEXITCODE)" }
 }

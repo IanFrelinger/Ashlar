@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Ashlar.Abstractions;
 using Ashlar.Abstractions.Routing;
 using Ashlar.AI.Pipeline;
@@ -23,6 +24,7 @@ using Ashlar.Core.Application.Testing.UseCases.RunTests;
 using Ashlar.Core.Application.Trust.Ports;
 using Ashlar.Core.Application.Maintenance.Ports;
 using Ashlar.Infrastructure.Copilot;
+using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.Environments;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.Ephemeral;
@@ -588,7 +590,8 @@ internal static partial class AshlarKernelRegistrar
                 chain = new AdaptiveProviderFactory(
                     chain,
                     sp.GetRequiredService<ILoadPolicy>(),
-                    sp.GetService<Microsoft.Extensions.Logging.ILogger<AdaptiveProviderFactory>>());
+                    sp.GetService<Microsoft.Extensions.Logging.ILogger<AdaptiveProviderFactory>>(),
+                    sp.GetService<IOptions<AshlarResolvedDeploymentProfileOptions>>());
             }
 
             return chain;
@@ -775,6 +778,8 @@ internal static partial class AshlarKernelRegistrar
             {
                 string baseUrl = executionRemoteUrl.TrimEnd('/') + "/";
                 services.AddHttpClient("AshlarExecution", c => c.BaseAddress = new Uri(baseUrl));
+                // SPEC-007: report-only guard handler on this client (a no-op after AddAshlar, which already installed it).
+                services.AddAshlarEgressGuard();
                 services.AddSingleton<Ashlar.Infrastructure.Testing.ExecutionPlatform.IExecutionPlatform>(sp =>
                 {
                     IHttpClientFactory factory = sp.GetRequiredService<IHttpClientFactory>();

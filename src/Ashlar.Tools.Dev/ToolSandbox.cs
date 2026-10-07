@@ -1,4 +1,5 @@
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Paths;
 using Ashlar.Core.Application.Paths;
 
 namespace Ashlar.Tools.Dev;
@@ -129,7 +130,7 @@ public static class ToolSandbox
 
         // GetFullPath has already collapsed any "..", so this catches traversal without
         // needing to pattern-match on the raw string.
-        if (!IsWithin(candidate, root))
+        if (!PathContainment.IsWithin(candidate, root))
         {
             reason = $"REJECTED: path traversal outside the sandbox root not permitted: {relativePath}";
             return false;
@@ -200,21 +201,4 @@ public static class ToolSandbox
 
         return true;
     }
-
-    private static bool IsWithin(string candidate, string root)
-    {
-        var normalisedRoot = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        if (string.Equals(candidate, normalisedRoot, PathComparison))
-        {
-            return true;
-        }
-
-        return candidate.StartsWith(normalisedRoot + Path.DirectorySeparatorChar, PathComparison)
-            || candidate.StartsWith(normalisedRoot + Path.AltDirectorySeparatorChar, PathComparison);
-    }
-
-    private static StringComparison PathComparison =>
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
 }

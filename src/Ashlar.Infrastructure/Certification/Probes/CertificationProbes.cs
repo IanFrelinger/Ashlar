@@ -8,7 +8,7 @@ namespace Ashlar.Infrastructure.Certification.Probes;
 /// history, exactly as the integration plan prescribes. Every probe reads only the failed
 /// decision and its request; none can change a verdict.
 /// </summary>
-public static class CertificationProbeCatalog
+internal static class CertificationProbeCatalog
 {
     /// <summary>The default probes the gate runs on rejection.</summary>
     public static IReadOnlyList<IDiagnosticProbe> Default { get; } = new IDiagnosticProbe[]
@@ -59,7 +59,7 @@ public sealed class MutationSurvivorProbe : IDiagnosticProbe
 /// Analyzer failures: groups the verbatim findings by rule id so the repair loop sees
 /// which rule dominates. The verbatim messages themselves stay on the record (A3.1).
 /// </summary>
-public sealed class AnalyzerFindingGroupProbe : IDiagnosticProbe
+internal sealed class AnalyzerFindingGroupProbe : IDiagnosticProbe
 {
     /// <inheritdoc />
     public string FailureCheck => "analyzer";
@@ -95,7 +95,7 @@ public sealed class AnalyzerFindingGroupProbe : IDiagnosticProbe
 /// The non-compiling candidate class (the vacuous-mutation-kill hole's neighbor): pulls
 /// the first compiler error forward as the single fix target.
 /// </summary>
-public sealed class NonCompilingCandidateProbe : IDiagnosticProbe
+internal sealed class NonCompilingCandidateProbe : IDiagnosticProbe
 {
     /// <inheritdoc />
     public string FailureCheck => "analyzer";

@@ -87,6 +87,61 @@ public sealed class ImproveCommand : Command
         });
     }
 
+    /// <summary>
+    /// Registers the provider-factory chain the improve loop uses, sanitized when
+    /// <paramref name="trustEnabled"/>.
+    /// </summary>
+    /// <remarks>
+    /// With trust enabled this used to register <c>CloudSanitizationProxy</c> by type alone. Its
+    /// constructor takes every dependency as optional, so DI built it with NO content filter, NO
+    /// taxonomy and NO audit log, and the proxy then passed every prompt through unaudited: the
+    /// trust switch wrapped the provider in a sanitizer that sanitized nothing. It now takes the
+    /// same trust composition the kernel uses (<c>AddTrustServices</c>, provider registration
+    /// skipped because this method builds that chain itself), which supplies the filter, the
+    /// taxonomy and the audit log. The proxy also refuses outright when it has no filter, so a
+    /// future registration that drops the filter blocks cloud calls instead of silently allowing them.
+    /// </remarks>
+    internal static void RegisterProviderFactories(IServiceCollection serviceCollection, bool trustEnabled)
+    {
+        serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.ProviderFactory>();
+
+        if (trustEnabled)
+        {
+            Ashlar.BackgroundAgents.ServiceCollectionExtensions.AddTrustServices(
+                serviceCollection,
+                useSanitizingProviderFactory: false,
+                skipProviderRegistration: true);
+
+            // Register ONE SanitizingProviderFactory wrapping Infrastructure ProviderFactory
+            // Infrastructure chain stays Infrastructure; adapt at edge for Application port
+            serviceCollection.AddSingleton<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>(sp =>
+            {
+                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
+                return new Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory(
+                    infraFactory,
+                    sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>());
+            });
+
+            // Dual-register: SAME Sanitizing instance for both Infra and App ports
+            serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
+                sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
+            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(
+                sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
+        }
+        else
+        {
+            // Trust disabled: Infrastructure gets bare factory, Application gets adapter
+            serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
+                sp => sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>());
+            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
+            {
+                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>();
+                return new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
+            });
+        }
+    }
+
     private static async Task ExecuteAsync(string? path, bool dryRun, string autonomy = "supervised", bool yes = false, bool skipRegression = false, string? storePathOverride = null, bool self = false, string? holdoutFilter = null, bool fromObservation = false, int observationDays = 7)
     {
         var repoRoot = RepoPathResolver.FindRepoRoot();
@@ -107,41 +162,7 @@ public sealed class ImproveCommand : Command
             .AddSelfContextInfrastructure(storePath)
             .AddSharedAdaptationCache();
 
-        serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.ProviderFactory>();
-        
-        if (trustEnabled)
-        {
-            serviceCollection.AddSingleton<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy,
-                Ashlar.BackgroundAgents.Trust.CloudSanitizationProxy>();
-            
-            // Register ONE SanitizingProviderFactory wrapping Infrastructure ProviderFactory
-            // Infrastructure chain stays Infrastructure; adapt at edge for Application port
-            serviceCollection.AddSingleton<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>(sp =>
-            {
-                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>();
-                return new Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory(
-                    infraFactory,
-                    sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.ICloudSanitizationProxy>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>>());
-            });
-            
-            // Dual-register: SAME Sanitizing instance for both Infra and App ports
-            serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
-                sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
-            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(
-                sp => sp.GetRequiredService<Ashlar.BackgroundAgents.Trust.SanitizingProviderFactory>());
-        }
-        else
-        {
-            // Trust disabled: Infrastructure gets bare factory, Application gets adapter
-            serviceCollection.AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory>(
-                sp => sp.GetRequiredService<Ashlar.Infrastructure.Execution.ProviderFactory>());
-            serviceCollection.AddSingleton<Ashlar.Core.Application.Execution.Ports.IProviderFactory>(sp =>
-            {
-                var infraFactory = sp.GetRequiredService<Ashlar.Infrastructure.Execution.IProviderFactory>();
-                return new Ashlar.Infrastructure.Adapters.ProviderFactoryAdapter(infraFactory);
-            });
-        }
+        RegisterProviderFactories(serviceCollection, trustEnabled);
 
         if (self)
         {

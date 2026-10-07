@@ -8,7 +8,7 @@ namespace Ashlar.Infrastructure.Maintenance.Adapters;
 /// Platform-specific: macOS (osascript), Windows (taskkill), Linux (systemctl/pkill).
 /// Only registered when ASHLAR_BLOB_LIFECYCLE=docker.
 /// </summary>
-public sealed class DockerDesktopLifecycleAdapter : IBlobStorageLifecycle
+internal sealed class DockerDesktopLifecycleAdapter : IBlobStorageLifecycle
 {
     private readonly ILogger<DockerDesktopLifecycleAdapter> _logger;
 

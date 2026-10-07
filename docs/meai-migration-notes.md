@@ -110,7 +110,7 @@ Agents / ToolCallingAgent / Orchestration
 | `DataExfiltrationPolicy` | `src/Ashlar.BackgroundAgents/Security/DataExfiltrationPolicy.cs` | Tool-call policy: blocks LLM/search when sensitivity forbids |
 | `SupportDiagnosticsExporter` | `application/src/Ashlar.API/Security/` | Redacts sensitive **config** keys (not LLM prompts) |
 
-**Behavior today (CloudSanitizationProxy):** air-gapped → pass-through; else PII detected → **block**; filterable PII → **redact**; taxonomy may further constrain. Not yet policy-pack-driven per destination target (Phase 2 must make this policy-driven: redact / block / pass by target).
+**Behavior today (CloudSanitizationProxy):** air-gapped → pass-through; else no content filter configured → **block**; PII detected → **block**; filterable PII → **redact**. The taxonomy is accepted but not consulted. Not yet policy-pack-driven per destination target (Phase 2 must make this policy-driven: redact / block / pass by target).
 
 **Noise:** `SanitizeXmlName`, `SanitizeIdentifier`, Unity `SanitizeClassName` — unrelated to LLM egress.
 
@@ -223,7 +223,7 @@ No `Startup.cs`. Feature flags are **Options + env**, not Microsoft.FeatureManag
 | `src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs` | `AddAshlar` / `AddAshlarProfile` |
 | `src/Ashlar.Hosting/AshlarKernelRegistrar.cs` + `.Phases.cs` | Ordered phases |
 | `src/Ashlar.Hosting/ModuleSelection.cs` | Profile gates (`IncludeBackgroundAgentRag`, `IncludeTrustServices`, …) |
-| `src/Ashlar.Hosting/AshlarHostingOptions.cs` | `TrustEnabled`, hosted-agent flags, etc. |
+| `src/Ashlar.Hosting/Sdk/Options/AshlarHostingOptions.cs` | `TrustEnabled`, hosted-agent flags, etc. |
 
 ### AI-relevant kernel phases
 
@@ -281,7 +281,7 @@ No `Startup.cs`. Feature flags are **Options + env**, not Microsoft.FeatureManag
 
 ```
 UseAshlarGovernance() →
-  PolicyGate → Sanitizing → Auditing → [UseFunctionInvocation()] → provider IChatClient
+  EgressGuard (report-only) → PolicyGate → Sanitizing → Auditing → [UseFunctionInvocation()] → provider IChatClient
 ```
 
 Router (Phase 3) sits **outside** per-target stacks and is itself wrapped in Auditing.
