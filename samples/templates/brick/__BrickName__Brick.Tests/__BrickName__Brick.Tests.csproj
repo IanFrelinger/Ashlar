@@ -13,7 +13,7 @@
     <!-- Scaffolded output is standalone, so these are inline rather than centrally managed,
          and a bump to Directory.Packages.props leaves them behind unless they are edited too.
          ScaffoldedTemplatePinConventionTests fails when they and the central pins disagree. -->
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
     <PackageReference Include="FluentAssertions" Version="8.10.0" />
