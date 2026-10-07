@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Ashlar.Core.Application.Execution.Routing;
 using Ashlar.Core.Application.Mesh;
 using Ashlar.Core.Application.Mesh.Models;
@@ -33,7 +34,10 @@ public static class RunPodCapabilityRoutingServiceCollectionExtensions
         if (configuration is null) throw new ArgumentNullException(nameof(configuration));
 
         services.AddOptions<RunPodBrickConfig>()
-            .Bind(configuration.GetSection(RunPodBrickConfig.SectionName));
+            .Bind(configuration.GetSection(RunPodBrickConfig.SectionName))
+            .ValidateOnStart();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<RunPodBrickConfig>, ValidateAirGappedRunPodOptions>());
 
         services.TryAddSingleton<IInstanceDiscovery>(sp =>
         {

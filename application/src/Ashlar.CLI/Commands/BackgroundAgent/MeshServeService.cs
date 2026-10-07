@@ -1,13 +1,18 @@
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Ashlar.CLI.Packaging;
+using Ashlar.Abstractions;
 using Ashlar.Abstractions.Security.Egress;
+using Ashlar.Infrastructure;
 using Ashlar.Manifest.Signing;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
@@ -17,7 +22,8 @@ namespace Ashlar.CLI.Commands.BackgroundAgent;
 /// a requirement that clients present a cert the fleet CA signed).</summary>
 public sealed record MeshServeSettings(
     int Port, string PublishedDir, string NodeName,
-    string? TlsCertPath = null, string? TlsKeyPath = null, bool RequireClientCert = false, string? CaPath = null)
+    string? TlsCertPath = null, string? TlsKeyPath = null, bool RequireClientCert = false, string? CaPath = null,
+    string? BindAddress = null)
 {
     /// <summary>True when a server certificate is configured (endpoint is HTTPS).</summary>
     public bool Tls => !string.IsNullOrWhiteSpace(TlsCertPath) && !string.IsNullOrWhiteSpace(TlsKeyPath);
@@ -126,12 +132,17 @@ public sealed class MeshServeService : BackgroundService
 {
     private readonly MeshServeSettings _settings;
     private readonly ILogger<MeshServeService> _logger;
+    private readonly AshlarResolvedDeploymentProfileOptions? _profile;
 
     /// <summary>Creates the mesh serve service.</summary>
-    public MeshServeService(MeshServeSettings settings, ILogger<MeshServeService> logger)
+    public MeshServeService(
+        MeshServeSettings settings,
+        ILogger<MeshServeService> logger,
+        IOptions<AshlarResolvedDeploymentProfileOptions>? deploymentProfile = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _profile = deploymentProfile?.Value;
     }
 
     /// <inheritdoc />
@@ -141,6 +152,18 @@ public sealed class MeshServeService : BackgroundService
         {
             _logger.LogInformation("Mesh serve disabled (no valid port).");
             return;
+        }
+
+        // A null bind is ListenAnyIP (0.0.0.0). On AirGapped and SecureWorkstation that fails boot
+        // instead of being rewritten to loopback. Thrown outside the start catch so the host stops.
+        var bindCandidate = string.IsNullOrWhiteSpace(_settings.BindAddress) ? "0.0.0.0" : _settings.BindAddress;
+        var loopbackRefusal = AshlarInboundListenerPolicy.Refusal(_profile, new[] { bindCandidate });
+        if (loopbackRefusal is not null)
+        {
+            _logger.LogError(
+                "Mesh serve refusing to start on :{Port} — {Error}",
+                _settings.Port, loopbackRefusal);
+            throw new InvalidOperationException(loopbackRefusal);
         }
 
         // Fail CLOSED on a half-configured private-fleet TLS setup. A node asked to require client
@@ -212,6 +235,67 @@ public sealed class MeshServeService : BackgroundService
         return null;
     }
 
+    private void ConfigureListen(Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions listen)
+    {
+        if (!_settings.Tls)
+            return;
+
+        var serverCert = MeshTls.LoadCertWithKey(_settings.TlsCertPath!, _settings.TlsKeyPath!);
+        listen.UseHttps(https =>
+        {
+            https.ServerCertificate = serverCert;
+            if (_settings.RequireClientCert)
+            {
+                if (string.IsNullOrWhiteSpace(_settings.CaPath))
+                {
+                    throw new InvalidOperationException(
+                        "mTLS requires a CA bundle (ASHLAR_MESH_SERVE_CA) to validate client certs against.");
+                }
+                var ca = MeshTls.LoadCaBundle(_settings.CaPath);
+                https.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
+                https.ClientCertificateValidation = (cert, _, _) => MeshTls.ChainsToCa(cert, ca);
+            }
+        });
+    }
+
+    private void ListenLoopback(KestrelServerOptions kestrel, Action<Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions> configure)
+    {
+        var host = BindHost(_settings.BindAddress);
+        if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            kestrel.ListenLocalhost(_settings.Port, configure);
+            return;
+        }
+
+        if (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address))
+        {
+            kestrel.Listen(address, _settings.Port, configure);
+            return;
+        }
+
+        kestrel.ListenLocalhost(_settings.Port, configure);
+    }
+
+    private static string BindHost(string? bind)
+    {
+        if (string.IsNullOrWhiteSpace(bind))
+            return "localhost";
+
+        var text = bind.Trim();
+        if (!text.Contains("://", StringComparison.Ordinal))
+            text = "http://" + text;
+        if (Uri.TryCreate(text, UriKind.Absolute, out var uri))
+        {
+            var host = uri.IdnHost;
+            if (host.Length >= 2 && host[0] == '[' && host[^1] == ']')
+                return host[1..^1];
+            if (host.Length > 0)
+                return host;
+        }
+
+        return bind.Trim();
+    }
+
     private WebApplication BuildApp()
     {
         var builder = WebApplication.CreateSlimBuilder();
@@ -226,28 +310,10 @@ public sealed class MeshServeService : BackgroundService
             // Kestrel aborts a connection that reads slower than its default MinResponseDataRate —
             // this is the built-in defence against the slow/non-reading client that a raw HttpListener
             // loop had to guard by hand.
-            k.ListenAnyIP(_settings.Port, listen =>
-            {
-                if (_settings.Tls)
-                {
-                    var serverCert = MeshTls.LoadCertWithKey(_settings.TlsCertPath!, _settings.TlsKeyPath!);
-                    listen.UseHttps(https =>
-                    {
-                        https.ServerCertificate = serverCert;
-                        if (_settings.RequireClientCert)
-                        {
-                            if (string.IsNullOrWhiteSpace(_settings.CaPath))
-                            {
-                                throw new InvalidOperationException(
-                                    "mTLS requires a CA bundle (ASHLAR_MESH_SERVE_CA) to validate client certs against.");
-                            }
-                            var ca = MeshTls.LoadCaBundle(_settings.CaPath);
-                            https.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
-                            https.ClientCertificateValidation = (cert, _, _) => MeshTls.ChainsToCa(cert, ca);
-                        }
-                    });
-                }
-            });
+            if (_profile?.RequiresLoopback == true)
+                ListenLoopback(k, ConfigureListen);
+            else
+                k.ListenAnyIP(_settings.Port, ConfigureListen);
         });
 
         var app = builder.Build();

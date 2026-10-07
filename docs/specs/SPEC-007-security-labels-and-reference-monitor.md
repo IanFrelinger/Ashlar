@@ -135,6 +135,18 @@ The status line above and the starting prompt are the owner's, as written; the s
   a tool that egresses before the scope ends is decided at the pre-read mark. That is a known limit for a runner whose
   floor is below `SystemHigh`. The owner can reverse it. Reversing it, so an open scope counted as `SystemHigh`,
   would turn the leak's `LevelTooLow` into `SystemHighData`, because a mark only rises.
+- **PR 4.10** (#720) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
+  `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
+  every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
+  an explicit peer-network-only request fails with an explained error and is not sent to a peer or to RunPod.
+  `AdaptiveProviderFactory` does not try OpenAI or Azure on AirGapped, for LLM calls or single-image vision.
+  Boot refuses, on AirGapped only, a non-empty `BrickHost:RemoteCatalogBaseUrls`,
+  `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and
+  `Ashlar:Meai:Bedrock:Enabled=true`. The ollama.com catalog defaults off on AirGapped when `Enabled` is unset.
+  SecureWorkstation refuses MCP over HTTP and still boots stdio; AirGapped still refuses an enabled MCP server
+  whether or not the transport is HTTP. On both profiles an API listener or mesh serve that does not bind
+  loopback fails boot (`127.0.0.1`, `localhost` and `::1` succeed). Responses on inbound connections are not
+  mediated until PR 5's CanRead at the server seams.
 
 ---
 
@@ -256,7 +268,7 @@ SystemHigh                     the top element
 | Retrieval labels | `src/Ashlar.AI.Pipeline/Rag/TrustTierOrder.cs` | Records ranked by tier; blank or unknown ranks as `TopSecret` |
 | Egress sanitising | `src/Ashlar.AI.Pipeline/Governance/`, `src/Ashlar.BackgroundAgents/Trust/` | `SanitizingChatClient`, `CloudSanitizationProxy`, a sanitisation audit log |
 | Principles | `docs/TrustAndInformationArchitecture.md` | Default restrictive, fail closed, inferred facts inherit the most restrictive label |
-| Deployment profiles | `src/Ashlar.Abstractions/AshlarDeploymentProfileEnvironment.cs` | Both `AirGapped` and `SecureWorkstation` refuse the MCP client and A2A; `AirGapped` also refuses the MCP server |
+| Deployment profiles | `src/Ashlar.Abstractions/AshlarDeploymentProfileEnvironment.cs` | Both `AirGapped` and `SecureWorkstation` refuse the MCP client and A2A; `AirGapped` also refuses the MCP server. `SecureWorkstation` refuses MCP over HTTP and still allows stdio (PR 4.10) |
 | Isolation tiers | `src/Ashlar.Abstractions/Execution/AgentExecutionIsolationLevel.cs` | `InProcess`, `OutOfProcess`, `ContainerPooled`, `ContainerPerAgent` |
 | Docker sandboxes | `src/Ashlar.Infrastructure/Execution/Sandbox/` | Session runner, command runner, session reaper |
 | Sealed skills | `src/Ashlar.Infrastructure/Certification/CertifiedBrickActivator.cs` | Hash check, `IlImportFence`, then `Assembly.Load` |

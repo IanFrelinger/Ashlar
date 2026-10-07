@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Ashlar.Abstractions;
 using Ashlar.Infrastructure.Execution.LoadPolicy;
 
 using Ashlar.Core.Application.Execution.Ports;
@@ -14,17 +16,24 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
     private readonly IProviderFactory _inner;
     private readonly ILoadPolicy _loadPolicy;
     private readonly ILogger<AdaptiveProviderFactory>? _logger;
+    private readonly IOptions<AshlarResolvedDeploymentProfileOptions>? _profile;
 
     /// <summary>Initializes a new adaptive provider factory.</summary>
     public AdaptiveProviderFactory(
         IProviderFactory inner,
         ILoadPolicy loadPolicy,
-        ILogger<AdaptiveProviderFactory>? logger = null)
+        ILogger<AdaptiveProviderFactory>? logger = null,
+        IOptions<AshlarResolvedDeploymentProfileOptions>? deploymentProfile = null)
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _loadPolicy = loadPolicy ?? throw new ArgumentNullException(nameof(loadPolicy));
         _logger = logger;
+        _profile = deploymentProfile;
     }
+
+    private bool IsAirGapped => _profile?.Value.IsAirGapped == true;
+
+    private static bool IsLocalProvider(string name) => name is "ollama" or "local";
 
     /// <inheritdoc />
     public bool IsProviderAvailable(string provider) => _inner.IsProviderAvailable(provider);
@@ -44,9 +53,12 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
                 "No model available. Ensure local model (Ollama) is running or server (OpenAI/Azure) is configured.");
         }
 
-        var providersToTry = resolved == "ollama" || resolved == "local"
-            ? new[] { resolved, "openai", "azure" }
-            : new[] { resolved, "ollama", "local" };
+        // Air-gapped never escalates to OpenAI or Azure, including when the resolved name is itself a cloud provider.
+        var providersToTry = IsAirGapped
+            ? IsLocalProvider(resolved) ? new[] { resolved } : Array.Empty<string>()
+            : resolved == "ollama" || resolved == "local"
+                ? new[] { resolved, "openai", "azure" }
+                : new[] { resolved, "ollama", "local" };
 
         Exception? lastEx = null;
         foreach (var p in providersToTry)
@@ -83,6 +95,8 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
             throw new ModelUnavailableException("No vision model available.");
 
         var providersToTry = new[] { resolved, "ollama", "openai", "azure" };
+        if (IsAirGapped)
+            providersToTry = WithoutOpenAiOrAzure(providersToTry);
         Exception? lastEx = null;
         foreach (var p in providersToTry.Distinct())
         {
@@ -137,4 +151,8 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
     /// <inheritdoc />
     public Task EnsureOllamaReachableAsync(bool requireVisionModel, CancellationToken cancellationToken = default)
         => _inner.EnsureOllamaReachableAsync(requireVisionModel, cancellationToken);
+
+    /// <summary>Drops cloud vision providers. Air-gapped single-image vision calls this; nothing else does.</summary>
+    private static string[] WithoutOpenAiOrAzure(string[] providers) =>
+        providers.Where(static name => name is not "openai" and not "azure").ToArray();
 }

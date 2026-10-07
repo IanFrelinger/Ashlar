@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ashlar.Core.Domain.Execution;
@@ -27,7 +28,11 @@ public static class AshlarFederatedBrickMeshServiceCollectionExtensions
         if (services is null) throw new ArgumentNullException(nameof(services));
         if (configuration is null) throw new ArgumentNullException(nameof(configuration));
 
-        services.AddOptions<BrickHostOptions>().Bind(configuration.GetSection(BrickHostOptions.SectionName));
+        services.AddOptions<BrickHostOptions>()
+            .Bind(configuration.GetSection(BrickHostOptions.SectionName))
+            .ValidateOnStart();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<BrickHostOptions>, ValidateAirGappedBrickHostOptions>());
 
         services.AddSingleton<IBrickRegistry>(sp =>
         {

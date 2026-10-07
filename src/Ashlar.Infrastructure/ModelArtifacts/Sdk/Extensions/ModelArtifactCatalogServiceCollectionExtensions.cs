@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Ashlar.Abstractions;
 using Ashlar.Core.Application.ModelArtifacts.Ports;
 using Ashlar.Infrastructure.Egress;
 using Ashlar.Infrastructure.ModelArtifacts;
@@ -33,7 +34,15 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
         services.AddOptions<DockerOllamaModelArtifactCatalogOptions>()
             .Bind(configuration.GetSection(DockerOllamaModelArtifactCatalogOptions.SectionName));
         services.AddOptions<OllamaRemoteLibraryCatalogOptions>()
-            .Bind(configuration.GetSection(OllamaRemoteLibraryCatalogOptions.SectionName));
+            .Bind(configuration.GetSection(OllamaRemoteLibraryCatalogOptions.SectionName))
+            .Configure<IOptions<AshlarResolvedDeploymentProfileOptions>>((opts, profile) =>
+            {
+                // Property initializer stays true, so Full is unchanged. On AirGapped, an absent Enabled key
+                // defaults to false. An explicit Enabled value, and any later Configure, still win.
+                var enabled = configuration.GetSection(OllamaRemoteLibraryCatalogOptions.SectionName)["Enabled"];
+                if (enabled is null && profile.Value.IsAirGapped)
+                    opts.Enabled = false;
+            });
 
         services.AddHttpClient(OllamaTagsModelArtifactCatalogSource.HttpClientName, (sp, client) =>
         {

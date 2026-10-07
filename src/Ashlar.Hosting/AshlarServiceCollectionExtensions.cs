@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
+using Ashlar.Abstractions;
 using Ashlar.Abstractions.Routing;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Abstractions.Transport;
@@ -115,6 +116,9 @@ public static partial class AshlarServiceCollectionExtensions
         configure?.Invoke(options);
         ResolveStrictMode(options);
         var deploymentProfile = ResolveDeploymentProfile(options, out var profileDefaulted);
+        // The hosting options object carries the profile this call resolved, including one that came from
+        // ASHLAR_DEPLOYMENT_PROFILE rather than the configure callback.
+        options.DeploymentProfile = deploymentProfile;
         var canonicalProfile = deploymentProfile switch
         {
             AshlarDeploymentProfile.AirGapped => "air-gapped",
@@ -126,6 +130,12 @@ public static partial class AshlarServiceCollectionExtensions
         };
         // The strictest profile noted in the process wins (SPEC-007 PR 4, D5).
         AshlarDeploymentProfileEnvironment.NoteResolved(canonicalProfile);
+        // Infrastructure and the MEAI pipeline read this options value. They never read the environment or
+        // Effective themselves. Captured after NoteResolved, so a later less-strict AddAshlar still records
+        // the strictest profile this process has noted.
+        var notedProfile = AshlarDeploymentProfileEnvironment.Effective(canonicalProfile) ?? canonicalProfile;
+        services.AddOptions<AshlarResolvedDeploymentProfileOptions>()
+            .Configure(resolved => resolved.Profile = notedProfile);
         // SPEC-007 PR 4.6: ASHLAR_EGRESS_MODE is read once per process (here, or at the first decision of a process
         // that never runs AddAshlar), and AshlarHostingOptions.EgressMode can only raise it.
         var egressOverride = EgressEnforcement.NoteHostingOption(options.EgressMode);

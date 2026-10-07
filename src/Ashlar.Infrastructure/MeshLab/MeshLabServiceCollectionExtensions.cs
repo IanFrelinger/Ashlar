@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Ashlar.Infrastructure.Egress;
 
 namespace Ashlar.Infrastructure.MeshLab;
@@ -25,7 +26,10 @@ public static class MeshLabServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.AddOptions<MeshLabWorkerExecutorOptions>()
-            .Bind(configuration.GetSection(MeshLabWorkerExecutorOptions.SectionPath));
+            .Bind(configuration.GetSection(MeshLabWorkerExecutorOptions.SectionPath))
+            .ValidateOnStart();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<MeshLabWorkerExecutorOptions>, ValidateAirGappedMeshLabWorkerOptions>());
 
         var enabled = configuration.GetValue(
             $"{MeshLabWorkerExecutorOptions.SectionPath}:Enabled",
