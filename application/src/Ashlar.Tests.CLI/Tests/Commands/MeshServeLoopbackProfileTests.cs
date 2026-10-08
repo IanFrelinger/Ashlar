@@ -64,9 +64,11 @@ public sealed class MeshServeLoopbackProfileTests : IDisposable
         try
         {
             var address = IPAddress.Parse(bind);
+            if (address.IsIPv4MappedToIPv6)
+                address = address.MapToIPv4();
             await WaitUntilListeningAsync(address, port);
             IsListening(address, port).Should().BeTrue("mesh serve keeps serving, on loopback");
-            var host = address.AddressFamily == AddressFamily.InterNetworkV6 ? $"[{bind}]" : bind;
+            var host = address.AddressFamily == AddressFamily.InterNetworkV6 ? $"[{address}]" : address.ToString();
             using var client = new HttpClient { BaseAddress = new Uri($"http://{host}:{port}/") };
             using var hello = await client.GetAsync("/mesh/v1/hello");
             hello.StatusCode.Should().Be(HttpStatusCode.OK);

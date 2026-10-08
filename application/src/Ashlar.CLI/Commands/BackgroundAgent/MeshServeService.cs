@@ -269,7 +269,7 @@ public sealed class MeshServeService : BackgroundService
 
         if (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address))
         {
-            kestrel.Listen(address, _settings.Port, configure);
+            kestrel.Listen(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address, _settings.Port, configure);
             return;
         }
 
