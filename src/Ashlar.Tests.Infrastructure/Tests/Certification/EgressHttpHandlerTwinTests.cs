@@ -378,12 +378,18 @@ public sealed class EgressHttpHandlerTwinTests
         {
             var outer = HandlerOf(client);
             outer.GetType().Name.Should().Be(GuardHandlerTypeName);
-            outer.Should().BeAssignableTo<DelegatingHandler>()
-                .Which.InnerHandler.Should().BeOfType<HttpClientHandler>("the handler new HttpClient() uses");
+            var redirect = outer.Should().BeAssignableTo<DelegatingHandler>().Which.InnerHandler;
+            redirect.Should().NotBeNull();
+            redirect!.GetType().Name.Should().Be("EgressRedirectHandler");
+            redirect.Should().BeAssignableTo<DelegatingHandler>().Which.InnerHandler
+                .Should().BeOfType<HttpClientHandler>("the handler new HttpClient() uses")
+                .Which.AllowAutoRedirect.Should().BeFalse();
         }
 
-        HandlerOf(overInner).Should().BeAssignableTo<DelegatingHandler>()
-            .Which.InnerHandler.Should().BeOfType<StubHandler>();
+        var overRedirect = HandlerOf(overInner).Should().BeAssignableTo<DelegatingHandler>().Which.InnerHandler;
+        overRedirect.Should().NotBeNull();
+        overRedirect!.GetType().Name.Should().Be("EgressRedirectHandler");
+        overRedirect.Should().BeAssignableTo<DelegatingHandler>().Which.InnerHandler.Should().BeOfType<StubHandler>();
     }
 
     [Fact]

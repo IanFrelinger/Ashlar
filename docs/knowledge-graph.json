@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 773,
-    "declared_facts": 4884,
+    "test_files_declaring_facts": 774,
+    "declared_facts": 4902,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5187,6 +5187,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 5,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRedirectTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 18,
       "in_cert_gate_filter": true
     },
     {
