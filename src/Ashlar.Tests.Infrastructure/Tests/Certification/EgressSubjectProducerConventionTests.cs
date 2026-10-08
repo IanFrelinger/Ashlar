@@ -159,6 +159,16 @@ public sealed class EgressSubjectProducerConventionTests
             "fixture.cs | Nested");
     }
 
+    [Theory]
+    [InlineData("using L = Ashlar.Abstractions.Security.Egress.IEgressLabelledTool;")]
+    [InlineData("global using L = global::Ashlar.Abstractions.Security.Egress.IEgressLabelledTool;")]
+    public void A_labelled_tool_alias_is_rejected_before_it_can_hide_an_implementer(string directive)
+    {
+        var (_, aliases) = DirectivesIn("fixture.cs", directive + " sealed class Rogue : L { }");
+        aliases.Should().Equal("fixture.cs | L",
+            "a syntactic implementer scan cannot resolve aliases, so aliases of the trusted marker must fail the convention");
+    }
+
     private sealed record Site(string Pin, string Call, string Floor, bool IsUsing, bool InIterator);
 
     private sealed record ScanResult(List<Site> Sites, List<string> StaticImports, List<string> Aliases, List<string> Implementers, int Scanned);

@@ -329,6 +329,21 @@ public sealed class EgressProducerTwinTests
         RAGTool.MapHitLabel("Secret", registry).Should().Be(SecurityLabel.SystemHigh);
     }
 
+    [Theory]
+    [InlineData("Secret", "Public")]
+    [InlineData("Public", "Secret")]
+    [InlineData("TopSecret", "Internal")]
+    [InlineData("top-secret", "Public")]
+    public async Task A_registry_cannot_remap_a_canonical_hit_to_a_different_primitive(string name, string replacement)
+    {
+        var registry = new AliasingSensitivityRegistry(name, DataSensitivityLevels.FromName(replacement));
+        TrustTierOrder.RecordLabel(name).Should().NotBe(TrustTierOrder.RecordLabel(replacement));
+        var rag = new StubRag { Hits = [new VectorSearchResult("doc-1", "chunk", 0.9, name)] };
+        var run = await RunAgentAsync(new RAGTool(rag, sensitivityRegistry: registry));
+        run.Mark.Current.Should().Be(SecurityLabel.SystemHigh,
+            "the registry's primitive must agree with the stored canonical tier; a remap is not a data label");
+    }
+
     [Fact]
     public async Task RAGTools_own_egress_during_its_call_is_decided_at_SystemHigh()
     {
