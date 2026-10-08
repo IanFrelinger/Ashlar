@@ -240,6 +240,8 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
     [InlineData("::", false)]
     [InlineData("http://[::]:5000", false)]
     [InlineData("unix:///tmp/ashlar.sock", false)]
+    [InlineData("unix://localhost/tmp/ashlar.sock", false)]
+    [InlineData("npipe://localhost/pipe/ashlar", false)]
     [InlineData("npipe://./pipe/ashlar", false)]
     [InlineData("https://example.com", false)]
     public void Loopback_spellings_are_classified(string endpoint, bool expected)
