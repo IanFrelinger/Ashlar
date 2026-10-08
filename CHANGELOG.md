@@ -214,7 +214,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   Credentialed, unknown, already-started or immutable transports retain their own redirects, so only a
   changed final origin can be reported afterwards. Composite and netstandard2.0 chains avoid duplicate
   followers. Factory binding restores a removed guard (7303), leaves normal logging scopes quiet, and warns
-  once per unknown client/type on AG/SW (7304). SNS clients use the configure-existing `NeverFollowRedirects`
+  once per unknown client/type on AG/SW (7304). Explicit no-follow policy follows the named client's request through shared primaries and existing followers without changing another client's policy. SNS clients use the configure-existing `NeverFollowRedirects`
   helper; Bedrock's `RuntimeConfig` disables SDK redirects. Real Kestrel, API and Fleet twins cover these paths.
   Decisions remain report-only by default; recording an enforcing guard's refusal does not stop a send until
   PR 4.7. See EgressInventory for custom-header, DNS, transport-ownership and post-send limits.

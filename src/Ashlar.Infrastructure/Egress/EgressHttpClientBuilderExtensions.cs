@@ -20,12 +20,15 @@ public static class EgressHttpClientBuilderExtensions
     /// <para>It uses the configure-existing <c>ConfigurePrimaryHttpMessageHandler</c> overload, so the primary handler
     /// stays the one the factory and the client's other configuration chose; it only turns that handler's
     /// <c>AllowAutoRedirect</c> off. The egress redirect filter, which runs after every configuration action, reads that
-    /// setting and so does not follow either. A primary that is neither an <see cref="HttpClientHandler"/> nor a
-    /// <see cref="SocketsHttpHandler"/> is left as it is.</para>
+    /// setting and so does not follow either. A named-client marker also makes Ashlar's follower return redirects
+    /// when another client already mediated the shared primary, or when this client wraps an existing follower.
+    /// The marker applies only to this client's requests; other clients keep their own redirect policy. A primary
+    /// that is neither an <see cref="HttpClientHandler"/> nor a <see cref="SocketsHttpHandler"/> is left as it is.</para>
     /// </remarks>
     public static IHttpClientBuilder NeverFollowRedirects(this IHttpClientBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.AddSingleton(new EgressNoFollowClient(builder.Name));
         return builder.ConfigurePrimaryHttpMessageHandler(static (primary, _) =>
         {
             if (primary is HttpClientHandler handler)
@@ -35,3 +38,6 @@ public static class EgressHttpClientBuilderExtensions
         });
     }
 }
+
+/// <summary>Names a factory client whose requests must never be followed by Ashlar's redirect mediator.</summary>
+internal sealed record EgressNoFollowClient(string Name);

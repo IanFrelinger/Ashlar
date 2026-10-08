@@ -107,7 +107,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   only a changed final authority can be reported afterwards. Factory binding restores a removed guard,
   mediates composite primaries and avoids duplicate followers; unknown-type warning 7304 is AG/SW-only,
   once per client/type, and a normal logging scope emits no relocation warning. The SNS clients use the
-  configure-existing `NeverFollowRedirects` helper, and Bedrock's `RuntimeConfig` disables SDK redirects.
+  configure-existing `NeverFollowRedirects` helper, whose named-client request flag also stops an already-shared follower without changing other clients. Bedrock's `RuntimeConfig` disables SDK redirects.
   Decisions remain report-only by default; an explicit enforcing guard can record `Refused`, but the route
   acts on it only in PR 4.7. The netstandard2.0 synchronous-send hop still refuses before the follower runs.
 - **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,

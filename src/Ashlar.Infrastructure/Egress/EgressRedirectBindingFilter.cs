@@ -13,14 +13,17 @@ internal sealed class EgressRedirectBindingFilter : IHttpMessageHandlerBuilderFi
 {
     private static readonly ConcurrentDictionary<string, byte> NamedUnknownPrimaries = new(StringComparer.Ordinal);
     private readonly ILogger _logger;
+    private readonly HashSet<string> _neverFollowNames;
 
     /// <summary>Logs on the <c>Ashlar.Egress</c> category.</summary>
     /// <param name="loggerFactory">The logger factory.</param>
     /// <exception cref="ArgumentNullException"><paramref name="loggerFactory"/> is <see langword="null"/>.</exception>
-    public EgressRedirectBindingFilter(ILoggerFactory loggerFactory)
+    public EgressRedirectBindingFilter(ILoggerFactory loggerFactory, IEnumerable<EgressNoFollowClient> neverFollowClients)
     {
         ArgumentNullException.ThrowIfNull(loggerFactory);
+        ArgumentNullException.ThrowIfNull(neverFollowClients);
         _logger = loggerFactory.CreateLogger("Ashlar.Egress");
+        _neverFollowNames = neverFollowClients.Select(client => client.Name).ToHashSet(StringComparer.Ordinal);
     }
 
     /// <inheritdoc />
@@ -39,6 +42,7 @@ internal sealed class EgressRedirectBindingFilter : IHttpMessageHandlerBuilderFi
         var primary = builder.PrimaryHandler;
         var guard = EgressServiceCollectionExtensions.ResolveGuardAndActivateLogging(builder);
         var site = EgressServiceCollectionExtensions.FactorySitePrefix + builder.Name;
+        var neverFollow = _neverFollowNames.Contains(builder.Name ?? string.Empty);
         if (primary is not null)
         {
             builder.PrimaryHandler = EgressRedirects.InsertAbovePrimary(primary, EgressFamilies.HttpFactory, site, guard, followCrossHost: true);
@@ -71,6 +75,7 @@ internal sealed class EgressRedirectBindingFilter : IHttpMessageHandlerBuilderFi
                 "Factory client {Client} removed the egress guard handler; it was re-inserted at the front.",
                 builder.Name);
             var guardHandler = (EgressGuardHandler)EgressHttp.CreateDelegatingHandler(EgressFamilies.HttpFactory, site, guard);
+            guardHandler.NeverFollowRedirects = neverFollow;
             handlers.Insert(0, guardHandler);
             guardHandler.UnmediatedRedirectWarning = Warn;
             return;
@@ -87,7 +92,10 @@ internal sealed class EgressRedirectBindingFilter : IHttpMessageHandlerBuilderFi
         }
 
         if (handlers[0] is EgressGuardHandler atFront)
+        {
             atFront.UnmediatedRedirectWarning = Warn;
+            atFront.NeverFollowRedirects = neverFollow;
+        }
     }
 
     private static HttpMessageHandler Tail(HttpMessageHandler handler)

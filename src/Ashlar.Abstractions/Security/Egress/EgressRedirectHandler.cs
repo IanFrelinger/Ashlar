@@ -49,7 +49,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (!_settings.Follow)
+        if (!_settings.Follow || EgressEvaluatedAuthority.RequiresNoRedirects(request))
         {
             EnsureEvaluated(request);
             return base.SendAsync(request, cancellationToken);
@@ -62,7 +62,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     /// <inheritdoc />
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (!_settings.Follow)
+        if (!_settings.Follow || EgressEvaluatedAuthority.RequiresNoRedirects(request))
         {
             EnsureEvaluated(request);
             return base.Send(request, cancellationToken);
@@ -474,6 +474,11 @@ internal static class EgressEvaluatedAuthority
 #if NET5_0_OR_GREATER
     private static readonly HttpRequestOptionsKey<Authority> Key = new("Ashlar.Egress.EvaluatedAuthority");
     private static readonly HttpRequestOptionsKey<bool> SameOriginKey = new("Ashlar.Egress.RequireSameOrigin");
+    private static readonly HttpRequestOptionsKey<bool> NoRedirectsKey = new("Ashlar.Egress.RequireNoRedirects");
+
+    internal static void RequireNoRedirects(HttpRequestMessage request) => request.Options.Set(NoRedirectsKey, true);
+
+    internal static bool RequiresNoRedirects(HttpRequestMessage request) => request is not null && request.Options.TryGetValue(NoRedirectsKey, out var required) && required;
 
     internal static void RequireSameOrigin(HttpRequestMessage request) => request.Options.Set(SameOriginKey, true);
 
@@ -489,6 +494,11 @@ internal static class EgressEvaluatedAuthority
 #else
     private const string Key = "Ashlar.Egress.EvaluatedAuthority";
     private const string SameOriginKey = "Ashlar.Egress.RequireSameOrigin";
+    private const string NoRedirectsKey = "Ashlar.Egress.RequireNoRedirects";
+
+    internal static void RequireNoRedirects(HttpRequestMessage request) => request.Properties[NoRedirectsKey] = true;
+
+    internal static bool RequiresNoRedirects(HttpRequestMessage request) => request is not null && request.Properties.TryGetValue(NoRedirectsKey, out var value) && value is true;
 
     internal static void RequireSameOrigin(HttpRequestMessage request) => request.Properties[SameOriginKey] = true;
 
