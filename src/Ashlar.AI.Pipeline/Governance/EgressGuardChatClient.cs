@@ -42,7 +42,9 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
     private readonly string? _defaultModelId;
     private readonly bool _responsesAreReads;
 
-    /// <summary>Creates the guard layer around an inner client.</summary>
+    /// <summary>Creates the legacy targetless guard layer around an inner client.</summary>
+    /// <remarks>This overload does not classify responses as reads. Governed target construction uses the
+    /// four-argument overload so unknown keys are treated conservatively.</remarks>
     /// <param name="innerClient">The client this layer delegates to.</param>
     /// <param name="request">What each call is reported as, or <see langword="null"/> for an in-process target.</param>
     /// <param name="guard">The guard; <see langword="null"/> means <see cref="EgressGuard.ProcessDefault"/>.</param>

@@ -33,7 +33,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// self-extend records its agent as the subject at <see cref="SecurityLabel.SystemHigh"/>.
 /// </summary>
 /// <remarks>
-/// <para><b>The leak skeleton</b> (the §5 done-when, in report mode). A test runner enters
+/// <para><b>The leak skeleton</b> (the Â§5 done-when, in report mode). A test runner enters
 /// <c>agent:leak-&lt;guid&gt;</c> at <see cref="SecurityLabel.Public"/> and runs a real <see cref="ToolCallingAgent"/>
 /// over a real <see cref="RAGTool"/>, <see cref="MeaiVectorDataRagAdapter"/> and <see cref="VectorDataRagService"/>,
 /// with the model behind the governed <c>local:ollama</c> MEAI client, whose scripted inner client says it dials an
@@ -234,7 +234,7 @@ public sealed class EgressProducerTwinTests
         "Public", "public", " PUBLIC ",
         "Internal", "internal", "\tInternal\n",
         "Confidential", "confidential ", " CONFIDENTIAL",
-        "Secret", "secret", " Secret ", "SECRET", " Secret",
+        "Secret", "secret", " Secret ", "SECRET", "Â Secret",
         "TopSecret", "topsecret", " TOPSECRET ",
         "top-secret", "Top-Secret", " top-secret ",
         "Top Secret", "top_secret", "Unclassified", "Restricted", "SystemHigh",
@@ -364,7 +364,7 @@ public sealed class EgressProducerTwinTests
     [InlineData("Top Secret", 4)] // a primitive's display name, which the registry does not refuse
     [InlineData("UltraSecret", 5)] // above every primitive
     [InlineData("Open", -1)] // a sub-Public floor, which ToDataLabel alone maps to Public
-    [InlineData("ſecret", 1)] // long s: a spelling TrustTierOrder may rank as Secret while FromName does not resolve it, so the registry serves the custom level
+    [InlineData("Å¿ecret", 1)] // long s: a spelling TrustTierOrder may rank as Secret while FromName does not resolve it, so the registry serves the custom level
     public async Task RAGTool_labels_a_hit_at_a_custom_level_SystemHigh_whatever_its_name_or_value(string name, int value)
     {
         var registry = new DataSensitivityRegistry();
@@ -384,12 +384,12 @@ public sealed class EgressProducerTwinTests
 
     public static TheoryData<string, bool> NonAsciiTierNames() => new()
     {
-        { "İnternal", true }, // LATIN CAPITAL LETTER I WITH DOT ABOVE: ToLowerInvariant gives i, ToUpperInvariant does not give I
-        { "ſecret", false }, // LATIN SMALL LETTER LONG S: ToUpperInvariant gives S, ToLowerInvariant does not give s
-        { "Konfidential", true }, // KELVIN SIGN
-        { "Ｓecret", true }, // FULLWIDTH LATIN CAPITAL LETTER S
-        { "Secret​", true }, // ZERO WIDTH SPACE, which Trim does not remove
-        { "Secret ", true }, // NO-BREAK SPACE, which Trim removes
+        { "Ä°nternal", true }, // LATIN CAPITAL LETTER I WITH DOT ABOVE: ToLowerInvariant gives i, ToUpperInvariant does not give I
+        { "Å¿ecret", false }, // LATIN SMALL LETTER LONG S: ToUpperInvariant gives S, ToLowerInvariant does not give s
+        { "â„ªonfidential", true }, // KELVIN SIGN
+        { "ï¼³ecret", true }, // FULLWIDTH LATIN CAPITAL LETTER S
+        { "Secretâ€‹", true }, // ZERO WIDTH SPACE, which Trim does not remove
+        { "SecretÂ ", true }, // NO-BREAK SPACE, which Trim removes
     };
 
     [Theory]
@@ -425,7 +425,7 @@ public sealed class EgressProducerTwinTests
         var tool = new HostileLabelledTool();
         var run = await RunAgentAsync(tool);
 
-        tool.Invoked.Should().Equal("Report", "the surface a labelled tool is handed has nothing parameterless to call: no Complete, no Dispose");
+        tool.Invoked.Should().Equal(["Report"], "the surface a labelled tool is handed has nothing parameterless to call: no Complete, no Dispose");
         run.Cycle.StoppedReason.Should().Be("error");
         run.Mark.Current.Should().Be(
             SecurityLabel.SystemHigh, "nothing the tool holds can complete the read, so its throw counts as SystemHigh whatever it reported");
@@ -440,7 +440,7 @@ public sealed class EgressProducerTwinTests
         typeof(IDisposable).IsAssignableFrom(surface).Should().BeFalse("a labelled tool must not be able to end the read");
         typeof(ReadScope).IsAssignableFrom(surface).Should().BeFalse();
         surface.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Select(m => m.Name)
-            .Should().Equal("Report", "Report, and nothing else");
+            .Should().Equal(["Report"], "Report, and nothing else");
         surface.GetProperties(BindingFlags.Public | BindingFlags.Instance).Should().BeEmpty("no way back to the scope");
         surface.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Should().BeEmpty("only a scope makes one");
         typeof(IEgressLabelledTool).GetMethod(nameof(IEgressLabelledTool.ReportRead))!.GetParameters().Select(p => p.ParameterType)

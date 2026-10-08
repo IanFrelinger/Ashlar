@@ -160,13 +160,12 @@ public sealed class RAGTool : ITool, IEgressLabelledTool
         if (level is null)
             return SecurityLabel.SystemHigh;
 
-        foreach (var primitive in DataSensitivityLevels.All)
-        {
-            if (ReferenceEquals(level, primitive))
-                return level.ToDataLabel();
-        }
-
-        return SecurityLabel.SystemHigh;
+        // A host registry may remap even a canonical spelling to a different primitive. Only the
+        // primitive belonging to this stored name agrees with the pipeline's record label.
+        var primitive = DataSensitivityLevels.FromName(trimmed);
+        return primitive is not null && ReferenceEquals(level, primitive)
+            ? primitive.ToDataLabel()
+            : SecurityLabel.SystemHigh;
     }
 
     // Match TrustTierOrder's spelling comparison before consulting a registry, whose aliases or

@@ -19,15 +19,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Added
 
-- **SPEC-007 PR 4.5: subject producers, still report-only.** The self-extend runner enters `agent:<id>` at
-  `SystemHigh` around the cycle and the post-cycle admission and auto-share. Egress records for that cycle go from
-  `no-subject` to `subject:agent:<id>` at `SystemHigh`. Nothing refuses, and no send changes. `ToolCallingAgent`
-  begins a read around each tool call. Only a tool that implements `IEgressLabelledTool` may report; `RAGTool` is
-  the only one, and it reports each hit's canonical label, or `Public` when the search read nothing. Any other tool,
-  and a tool that throws, counts as `SystemHigh`. A `peer:` chat response is observed as `SystemHigh` after it
-  returns. A model response is not a read. An open read still counts only when the scope ends, which is a known
-  limit when a runner's floor is below `SystemHigh` (the owner can reverse it). The labelled-tool marker is recorded
-  in `PublicAPI.Unshipped.txt`.
+- **SPEC-007 PR 4.5 / 4.5b: subject producers, still report-only.** Self-extend declares `agent:<id>` at
+  `SystemHigh` around the cycle, admission and auto-share. Every tool call has an open read frame pinned at
+  `SystemHigh`, implementing the owner’s 2026-10-06 rule; Scenario B records `SystemHighData`. The flow returns
+  to the reported result only after in-order disposal, while work created inside the read keeps its pinned frame.
+  `IEgressLabelledTool` receives a `ReadReporter` with only `Report`, so a tool cannot complete or end its own read.
+  `RAGTool` reports canonical hit labels, empty results as `Public`, and custom or unknown levels as `SystemHigh`.
+  Only the stores’ typed pre-read refusal counts as read-nothing; arbitrary exception messages cannot obtain that
+  classification by copying its diagnostic. Governed targets other than `local:`/`cloud:` observe `SystemHigh`
+  before each streamed update and on completion or fault, including synchronous policy denial. Production frame
+  entries and labelled-tool implementers are pinned by convention facts. The changed reporting signature and
+  new `ReadReporter` are recorded in `PublicAPI.Unshipped.txt`.
 
 - **`Ashlar.Abstractions.Security`: Bell-LaPadula security labels and reference-monitor decisions.**
   `SecurityLevel` orders `Public < Internal < Confidential < Secret < TopSecret`, with the names and

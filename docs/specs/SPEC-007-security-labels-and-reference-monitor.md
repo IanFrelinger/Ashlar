@@ -130,16 +130,20 @@ The status line above and the starting prompt are the owner's, as written; the s
   (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
   reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
   appears unlisted.
-- **PR 4.5** (#721), still report-only. `SelfExtendRunnerAdapter.RunAsync` enters `agent:<id>` at `SystemHigh`
-  around the cycle and the post-cycle admission and auto-share, because the snapshot carries unlabelled carry-over.
-  Records go from `no-subject` to `subject:agent:<id>` at `SystemHigh`. Nothing refuses. `ToolCallingAgent` begins a
-  read around each tool call and accepts `Report` only from `IEgressLabelledTool`; in #721 the only labelled tool
-  is `RAGTool`, which reports each hit's canonical label and `Public` when it read nothing. An unlabelled tool, or a
-  tool that throws, is `SystemHigh`. A response from a `peer:` chat target is observed as `SystemHigh` after it
-  returns; a model endpoint is not a read. An open read scope still observes only when it ends (the merged 4.4 rule):
-  a tool that egresses before the scope ends is decided at the pre-read mark. That is a known limit for a runner whose
-  floor is below `SystemHigh`. The owner can reverse it. Reversing it, so an open scope counted as `SystemHigh`,
-  would turn the leak's `LevelTooLow` into `SystemHighData`, because a mark only rises.
+- **PR 4.5** (#721, `9b2ea56f4`), with **PR 4.5b** producer hardening, still report-only.
+  `SelfExtendRunnerAdapter.RunAsync` enters `agent:<id>` at `SystemHigh` around the cycle, admission and
+  auto-share because its snapshot carries unlabelled carry-over. `ToolCallingAgent` begins a read around every
+  tool call. The owner’s 2026-10-06 rule is implemented: every decision inside an open read is `SystemHigh`,
+  including a labelled tool’s own egress, until disposal. The read frame stays pinned at `SystemHigh` for work
+  that inherited it; in-order disposal observes the result before restoring the enclosing flow. A read frame
+  never supplies a subject id. Scenario B now expects `SystemHighData`; it differs from C5 by site and family.
+  Only `IEgressLabelledTool` may report through `ReadReporter`, which exposes neither completion nor disposal.
+  `RAGTool` is the sole production implementer. It reports the join of canonical hit labels; custom levels and
+  unknown spellings are `SystemHigh`. Empty results and the stores’ typed pre-read unrankable-query refusal
+  report `Public`; other store exceptions remain unreported. A governed target other than `local:` or `cloud:`
+  is treated as agent-backed: completion, faults, synchronous policy denials and each streamed update observe
+  `SystemHigh`. Model responses are not reads. Producer convention facts pin `Enter`/`BeginRead`, their floors,
+  enclosing methods, in-order `using` shape, absence of iterators, and the labelled-tool implementer list.
 - **PR 4.10** (#720) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
   `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
@@ -450,6 +454,7 @@ were not the owner's are in the next section.
 | 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
 | 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
 | 2026-10-06 | PR 4 (4.2) | **A synchronous `Send` refused on the `netstandard2.0` asset leaves no decision record; the exception is the only signal.** This amends the PR 4 design's default D31, which wanted the hop to publish a `NoDecision` record so the refusal reaches the operator log. No Ashlar code runs when the runtime refuses that `Send`, so a record could only be published when a client is built, which would claim a refused egress where none happened, or from a process-wide `AppDomain.FirstChanceException` hook, which runs on every exception in the host. The `NotSupportedException` reaches the caller, whose own error handling logs it. The accepted cost: under `AirGapped` or `SecureWorkstation` enforcement, such a refusal never appears in Ashlar's egress log. Ashlar's own hosts bind `net8.0` or `net10.0` and are unaffected; only an app that binds the `netstandard2.0` asset on .NET 5 or later is. |
+| 2026-10-08 | PR 4 (4.5b, D16) | **Governed responses from every non-model target are unlabelled reads until PR 5.** The owner accepted the review recommendation to include every key other than `local:` and `cloud:` (trimmed, case-insensitive), including unknown or null keys. Observe `SystemHigh` on completion, fault, synchronous throw, before each streamed update and at stream end. Host clients registered under `local:` or `cloud:` remain a trusted host boundary; the legacy three-argument targetless `EgressGuardChatClient` overload retains its existing non-reader behavior. This does not settle the separate §8 policy questions. |
 
 ## Design as merged (added 2026-10-04)
 

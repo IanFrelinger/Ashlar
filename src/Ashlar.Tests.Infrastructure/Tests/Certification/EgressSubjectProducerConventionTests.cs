@@ -26,7 +26,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para><b>What counts as production.</b> The egress inventory production trees, pruning build output, dot
 /// directories, nested checkouts and test projects by csproj content, never by directory name. Shipped TestKit
 /// sources remain in scope. A tripwire, not a proof: delegates and reflection are not seen; aliases and static
-/// imports of EgressSubject fail the scan.</para>
+/// imports of EgressSubject, and aliases of IEgressLabelledTool, fail the scan.</para>
 /// </remarks>
 [Trait("Category", "Certification")]
 public sealed class EgressSubjectProducerConventionTests
@@ -82,7 +82,7 @@ public sealed class EgressSubjectProducerConventionTests
         var scan = Scan();
 
         scan.StaticImports.Should().BeEmpty("a using static of EgressSubject would hide a frame entry from this scan");
-        scan.Aliases.Should().BeEmpty("a using alias of EgressSubject would hide a frame entry from this scan");
+        scan.Aliases.Should().BeEmpty("an alias of EgressSubject or IEgressLabelledTool would hide a frame entry or trusted reader from this scan");
         scan.Sites.Should().NotBeEmpty();
         scan.Sites.Should().AllSatisfy(s =>
         {
@@ -165,7 +165,7 @@ public sealed class EgressSubjectProducerConventionTests
     public void A_labelled_tool_alias_is_rejected_before_it_can_hide_an_implementer(string directive)
     {
         var (_, aliases) = DirectivesIn("fixture.cs", directive + " sealed class Rogue : L { }");
-        aliases.Should().Equal("fixture.cs | L",
+        aliases.Should().Equal(["fixture.cs | L"],
             "a syntactic implementer scan cannot resolve aliases, so aliases of the trusted marker must fail the convention");
     }
 
@@ -212,7 +212,7 @@ public sealed class EgressSubjectProducerConventionTests
         return scanned;
     }
 
-    // A `using static …EgressSubject;` (the file) and every `using X = …EgressSubject;` (the file and the alias).
+    // A `using static â€¦EgressSubject;` (the file) and every `using X = â€¦EgressSubject;` (the file and the alias).
     private static (List<string> StaticImports, List<string> Aliases) DirectivesIn(string relative, string text)
     {
         var staticImports = new List<string>();
@@ -220,12 +220,10 @@ public sealed class EgressSubjectProducerConventionTests
         var unit = CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot();
         foreach (var directive in unit.DescendantNodes().OfType<UsingDirectiveSyntax>())
         {
-            if (directive.Name?.ToString().EndsWith("EgressSubject", StringComparison.Ordinal) != true)
-                continue;
-
-            if (directive.StaticKeyword != default)
+            var name = directive.Name is null ? null : SimpleName(directive.Name);
+            if (name == "EgressSubject" && directive.StaticKeyword != default)
                 staticImports.Add(relative);
-            else if (directive.Alias is not null)
+            else if (name is "EgressSubject" or "IEgressLabelledTool" && directive.Alias is not null)
                 aliases.Add($"{relative} | {directive.Alias.Name.Identifier.ValueText}");
         }
 
