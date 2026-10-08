@@ -7,6 +7,7 @@ using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.AI.Pipeline;
 using Ashlar.AI.Pipeline.Clients;
+using Ashlar.AI.Pipeline.Embeddings;
 using Ashlar.AI.Pipeline.Governance;
 using Ashlar.AI.Pipeline.Models;
 using Ashlar.AI.Pipeline.Rag;
@@ -14,6 +15,7 @@ using Ashlar.BackgroundAgents.Agents;
 using Ashlar.BackgroundAgents.DataSensitivity;
 using Ashlar.BackgroundAgents.HostRunners;
 using Ashlar.BackgroundAgents.RAG;
+using Ashlar.BackgroundAgents.WebSearch;
 using Ashlar.Hosting.Meai;
 using Ashlar.Runtime;
 using FluentAssertions;
@@ -96,6 +98,53 @@ public sealed class EgressProducerTwinTests
     }
 
     // ---- ToolCallingAgent: every tool call is a read ----------------------------------------------------------------
+
+    [Fact]
+    public async Task Scenario_B_real_RAG_then_web_search_records_SystemHighData_and_differs_from_C5_by_site_and_family()
+    {
+        var id = Guid.NewGuid().ToString("N")[..12];
+        var canary = "CANARY-" + id;
+        var host = "search-" + id + ".example";
+        var subject = "agent:scenario-b-" + id;
+        using var embeddings = new TokenHashEmbeddingGenerator();
+        var rag = new VectorDataRagService(
+            new InProcessChunkCollection("scenario-b-" + id), embeddings, new InMemoryChatInvocationAuditor());
+        await rag.IndexAsync("secret-" + id, canary, trustTier: "Secret");
+        using var sent = new CapturingSearchHandler();
+        using var http = new HttpClient(sent);
+        var sink = new HostDecisionSink(host);
+        using var subscription = EgressDecisionLog.Subscribe(sink);
+        var registry = new CapabilityRegistry();
+        registry.Register(new RAGTool(new MeaiVectorDataRagAdapter(rag)));
+        registry.Register(new WebSearchTool(new BingWebSearchProvider(http, "test-key", "https://" + host + "/search")));
+        var model = new DecidingModel(
+            Calls((RAGTool.DefaultId, new { query = canary, minScore = 0 })),
+            Calls((WebSearchTool.DefaultId, new { query = canary })), Done());
+        var snapshot = new WorldSnapshot(0, new Dictionary<string, object?> { ["maxDataSensitivity"] = "Secret" });
+        using (EgressSubject.Enter(subject, new HighWaterMark(SecurityLabel.Public)))
+        {
+            var cycle = await new ToolCallingAgent("scenario-b", model, NullLogger<ToolCallingAgent>.Instance)
+                .RunCycleAsync(snapshot, registry, new PolicyEngine([]), null, null, CancellationToken.None);
+            cycle.StoppedReason.Should().Be("empty");
+            cycle.ToolCallsExecuted.Should().Be(2);
+        }
+
+        var decision = sink.Decisions.Should().ContainSingle().Subject;
+        decision.CurrentBasis.Should().Be(SubjectPrefix + subject);
+        decision.Current.Should().Be(SecurityLabel.SystemHigh);
+        decision.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        decision.Family.Should().Be(EgressFamilies.WebSearch);
+        decision.Site.Should().Be("EG-WEB-01");
+        decision.DestinationClass.Should().Be(EgressDestinationClass.WebSearch);
+        sent.Uri!.Query.Should().Contain(canary, "the report-only path still sends the canary");
+
+        EgressDecision control;
+        using (EgressSubject.Enter("agent:c5-" + id, new HighWaterMark(SecurityLabel.SystemHigh)))
+            control = new EgressGuard("full").Evaluate(new EgressRequest(EgressFamilies.ModelMeai, "EG-MDL-01", Remote));
+        control.Access.Reason.Should().Be(decision.Access.Reason);
+        control.Site.Should().NotBe(decision.Site);
+        control.Family.Should().NotBe(decision.Family);
+    }
 
     [Fact]
     public async Task An_unlabelled_tool_result_counts_as_SystemHigh_for_the_next_model_call()
@@ -942,6 +991,32 @@ public sealed class EgressProducerTwinTests
         {
             denyReason = null;
             return true;
+        }
+    }
+
+    private sealed class CapturingSearchHandler : HttpMessageHandler
+    {
+        internal Uri? Uri { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Uri = request.RequestUri;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"webPages\":{\"value\":[]}}"),
+            });
+        }
+    }
+
+    private sealed class HostDecisionSink(string host) : IEgressDecisionSink
+    {
+        private readonly ConcurrentQueue<EgressDecision> _decisions = new();
+        internal IReadOnlyList<EgressDecision> Decisions => _decisions.ToArray();
+
+        public void Record(EgressDecision decision)
+        {
+            if (decision.Destination.Contains(host, StringComparison.Ordinal))
+                _decisions.Enqueue(decision);
         }
     }
 }
