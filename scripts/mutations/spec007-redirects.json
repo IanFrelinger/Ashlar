@@ -204,7 +204,7 @@
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
-        "Differential_fragment_and_redirect_limit_match_SocketsHttpHandler"
+        "EgressRedirectDifferentialHardeningTests.The_follower_does_what_the_runtime_does(name: \"limit-exceeded\")"
       ]
     },
     {
