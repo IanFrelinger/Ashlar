@@ -360,7 +360,7 @@ internal static class EgressRedirects
         }
     }
 
-    private static HttpMessageHandler Decider(HttpMessageHandler inner, string family, string site, IEgressGuard? guard, bool followCrossHost) =>
+    private static EgressRedirectHandler Decider(HttpMessageHandler inner, string family, string site, IEgressGuard? guard, bool followCrossHost) =>
         new EgressRedirectHandler(inner, family, site, guard, new RedirectSettings(false, 50, followCrossHost));
 
     private static bool CanReplaceInner(DelegatingHandler parent)
