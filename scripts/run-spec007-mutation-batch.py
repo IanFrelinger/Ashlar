@@ -5,6 +5,7 @@ Capture complete stdout with --archive-stdout, then use
 decode-spec007-mutation-evidence.py on the host. Without that flag --output must
 be on an external writable mount. No --no-build or alternate runner is supported.
 Fixture tests may import these functions on the host without invoking dotnet.
+Run manually: python tests/scripts/spec007-mutation-runner.test.py
 If expected_failures is supplied, it is a nonempty list of test-name fragments:
 EVERY fragment must match at least one actual failed test (not merely any fragment).
 """
