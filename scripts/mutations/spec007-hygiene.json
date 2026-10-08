@@ -19,7 +19,7 @@
       "id": "loopback-http-ports",
       "file": "src/Ashlar.Infrastructure/AshlarInboundListenerPolicy.cs",
       "old": "            AddPorts(\"http\", configuration[\"http_ports\"]);\n            AddPorts(\"https\", configuration[\"https_ports\"]);",
-      "new": "            // mutation: ignore port-only binding",
+      "new": "            AddPorts(\"http\", null);\n            AddPorts(\"https\", null);",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "framework": "net10.0",
       "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
@@ -62,7 +62,7 @@
       "framework": "net10.0",
       "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
       "expected_failures": [
-        "What_Kestrel_bound_is_checked_after_the_server_starts"
+        "Airgapped_profile_api_host_starts_with_an_idle_endpoint_health_monitor"
       ]
     },
     {

@@ -233,6 +233,8 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
     [Theory]
     [InlineData("::1", true)]
     [InlineData("::ffff:127.0.0.1", true)]
+    [InlineData("::ffff:127.0.0.2", true)]
+    [InlineData("http://[::ffff:127.0.0.2]:5000", true)]
     [InlineData("[::1]", true)]
     [InlineData("http://[::1]:5000", true)]
     [InlineData("localhost", true)]
