@@ -31,7 +31,7 @@ public sealed class DeploymentProfileReadConventionTests
                 calls.Add(path);
         }
         scanned.Should().BeGreaterThan(300);
-        calls.Should().Equal("src/Ashlar.Mcp.Server/AshlarMcpServerServiceCollectionExtensions.cs",
+        calls.Should().Equal(new[] { "src/Ashlar.Mcp.Server/AshlarMcpServerServiceCollectionExtensions.cs" },
             "only the wrapper may call the third-party transport directly; the validator also detects that transport at runtime");
     }
 
