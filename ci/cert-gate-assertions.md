@@ -70,10 +70,10 @@ away, can see what they would be turning off.
 | **Infrastructure and application hosts obtain deployment profiles through resolved options, and production HTTP MCP callers use the Ashlar wrapper.** Roslyn source scans cover at least 300 production files and refuse profile-source identifiers/string literals in Infrastructure, API and CLI, or SDK HTTP transport invocations outside the wrapper. Fixture theories pin whitespace, aliases/static imports, conditional access and comments. Reflection, dynamically composed variable names and inactive preprocessor branches are outside this syntax convention. | `DeploymentProfileReadConventionTests` | A new direct environment reader can disagree with the strictest profile noted by Hosting; a new MCP caller can bypass the host integration convention. Runtime SDK-handler detection separately protects direct HTTP registrations. |
 
 The gate also carries the certification gate's own teeth, the hot-swap host, the adversarial
-campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 136 `.cs` files in
-`src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-08 (139 entries in all; the
+campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 137 `.cs` files in
+`src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-08 (140 entries in all; the
 other three are golden JSON fixtures). This figure read 31, then 68, then 82, then 111, then 113,
-then 120, then 125, then 127, then 128, then 131, then 132, then 135, before it read 136; count it
+then 120, then 125, then 127, then 128, then 131, then 132, then 135, then 136, before it read 137; count it
 rather than quoting it. The
 table above is only the *conventions*: assertions about how the repository is allowed to be shaped,
 which have no other home and which nothing else would catch.
