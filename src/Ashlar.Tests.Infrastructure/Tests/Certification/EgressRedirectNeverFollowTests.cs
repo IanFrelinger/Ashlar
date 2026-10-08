@@ -13,11 +13,15 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 public sealed class EgressRedirectNeverFollowTests
 {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task Never_follow_wins_after_another_wrapper_remembers_the_shared_primary(bool factoryFirst, bool clearHandlers)
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public async Task Never_follow_wins_after_another_wrapper_remembers_the_shared_primary(bool factoryFirst, bool clearHandlers, bool synchronous)
     {
         var name = "never-shared-" + Guid.NewGuid().ToString("N");
         var primary = new RedirectingPrimary();
@@ -35,13 +39,15 @@ public sealed class EgressRedirectNeverFollowTests
         var recorder = new Recorder("factory:" + name);
         using var subscription = EgressDecisionLog.Subscribe(recorder);
 
-        using var stopped = await restricted.GetAsync("https://first.example/start");
+        using var stopRequest = new HttpRequestMessage(HttpMethod.Get, "https://first.example/start");
+        using var stopped = synchronous ? restricted.Send(stopRequest) : await restricted.SendAsync(stopRequest);
 
         stopped.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect, "the client's explicit no-follow policy overrides the primary's remembered original setting");
         primary.Requests.Should().ContainSingle().Which.Should().Be("https://first.example/start");
         recorder.Decisions.Select(d => d.Destination).Should().Equal("https://first.example");
 
-        using var followed = await ordinary.GetAsync("https://first.example/start");
+        using var followRequest = new HttpRequestMessage(HttpMethod.Get, "https://first.example/start");
+        using var followed = synchronous ? ordinary.Send(followRequest) : await ordinary.SendAsync(followRequest);
         followed.StatusCode.Should().Be(HttpStatusCode.OK, "no-follow belongs to the restricted client, not the shared primary's remembered policy");
         primary.Requests.Should().Equal("https://first.example/start", "https://first.example/start", "https://second.example/target");
     }
@@ -92,14 +98,19 @@ public sealed class EgressRedirectNeverFollowTests
     {
         public List<string> Requests { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(Answer(request));
+
+        protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken) => Answer(request);
+
+        private HttpResponseMessage Answer(HttpRequestMessage request)
         {
             Requests.Add(request.RequestUri!.AbsoluteUri);
             var response = new HttpResponseMessage(request.RequestUri.Host == "first.example"
                 ? HttpStatusCode.TemporaryRedirect : HttpStatusCode.OK) { RequestMessage = request };
             if (response.StatusCode == HttpStatusCode.TemporaryRedirect)
                 response.Headers.Location = new Uri("https://second.example/target");
-            return Task.FromResult(response);
+            return response;
         }
     }
 
