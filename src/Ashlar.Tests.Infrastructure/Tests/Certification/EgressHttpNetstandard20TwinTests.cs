@@ -135,13 +135,13 @@ public sealed class EgressHttpNetstandard20TwinTests
 
         // The chain is walked through DelegatingHandler.InnerHandler and, at the hop, which is not a DelegatingHandler,
         // through its internal Inner: the step a handler-chain walker (SPEC-007 PR 4.3's redirect flip) takes there.
-        var overHttpClientHandler = GuardHandlerTypeName + " > " + HopTypeName + " > " + nameof(HttpClientHandler);
-        var overStub = GuardHandlerTypeName + " > " + HopTypeName + " > StubHandler";
+        var overHttpClientHandler = GuardHandlerTypeName + " > " + HopTypeName + " > EgressRedirectHandler > " + nameof(HttpClientHandler);
+        var overStub = GuardHandlerTypeName + " > " + HopTypeName + " > EgressRedirectHandler > StubHandler";
         observed["shape.client-process-default"].Should().Be(overHttpClientHandler, "CreateClient(family, site) is the guard over the hop over an HttpClientHandler");
         observed["shape.client-with-guard"].Should().Be(overHttpClientHandler);
         observed["shape.client-over-inner"].Should().Be(overStub);
         observed["shape.wrap"].Should().Be(overStub);
-        observed["inner.client-over-inner"].Should().Be(true, "the hop's Inner is the caller's own handler instance");
+        observed["inner.client-over-inner"].Should().Be(true, "the chain ends at the caller's own handler; the redirect handler sits above it");
         observed["inner.wrap"].Should().Be(true);
     }
 
@@ -519,12 +519,12 @@ public static class Netstandard20Driver
     /// <summary>
     /// The handlers from <paramref name="outer"/> inward: through <see cref="DelegatingHandler.InnerHandler"/>, and
     /// through the hop's internal <c>Inner</c>, which a walker of the chain needs because the hop is not a
-    /// <see cref="DelegatingHandler"/>. At most four, so a chain that loops still ends.
+    /// <see cref="DelegatingHandler"/>. At most eight, so a chain that loops still ends.
     /// </summary>
     private static List<HttpMessageHandler> Chain(HttpMessageHandler outer)
     {
         var chain = new List<HttpMessageHandler>();
-        for (HttpMessageHandler? handler = outer; handler is not null && chain.Count < 4; handler = Next(handler))
+        for (HttpMessageHandler? handler = outer; handler is not null && chain.Count < 8; handler = Next(handler))
             chain.Add(handler);
         return chain;
     }

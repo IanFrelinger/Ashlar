@@ -6,10 +6,15 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// </summary>
 /// <remarks>
 /// <para><b>Report-only guarantees.</b> It evaluates every <c>SendAsync</c> (and, on net8.0 and later, every
-/// <c>Send</c>) exactly once, before handing the request on. It never reads or buffers
+/// <c>Send</c>) before handing the request on. A redirect hop, or a URI rewritten before the primary sends, is
+/// evaluated again. It never reads or buffers
 /// <see cref="HttpRequestMessage.Content"/>, never reads, adds or changes a header, and returns the inner handler's
 /// response instance unchanged. A guard that throws (a custom <see cref="IEgressGuard"/> may) is swallowed and
-/// counted, so it never reaches the caller; an exception from the inner handler is not caught.</para>
+/// counted, so it never reaches the caller; an exception from the inner handler is not caught. After the response,
+/// if <see cref="HttpResponseMessage.RequestMessage"/> names a different authority than the one evaluated for this
+/// send, that authority is evaluated too: a primary Ashlar could not stop from following has already sent, and the
+/// warning says the body may already have gone. Report mode does not throw and does not set
+/// <see cref="EgressDecision.Refused"/>.</para>
 /// <para><b>Refused, not evaluated, on the netstandard2.0 asset.</b> That asset, which .NET 5-7 apps resolve, cannot
 /// override the synchronous <c>HttpMessageHandler.Send</c>: netstandard2.0 has no such member. A synchronous
 /// <c>HttpClient.Send</c> or <c>HttpMessageInvoker.Send</c> therefore reaches the inherited
@@ -49,11 +54,21 @@ internal sealed class EgressGuardHandler : DelegatingHandler
     /// <summary>How many times a guard threw while a request was being evaluated; each throw was swallowed.</summary>
     internal static long GuardFaults => Interlocked.Read(ref _guardFaults);
 
+    /// <summary>
+    /// Called when a primary followed a URI the guard had not evaluated. Null on an <see cref="EgressHttp"/> client,
+    /// which traces the warning; the factory filter sets it to the <c>Ashlar.Egress</c> logger.
+    /// </summary>
+    internal Action<string>? UnmediatedRedirectWarning { get; set; }
+
+    /// <summary>Counts a guard fault swallowed by this handler or by the redirect handler under it.</summary>
+    internal static void RecordGuardFault() => Interlocked.Increment(ref _guardFaults);
+
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Report(request);
-        return base.SendAsync(request, cancellationToken);
+        var send = base.SendAsync(request, cancellationToken);
+        return FinishAsync(request, send);
     }
 
 #if NET5_0_OR_GREATER
@@ -61,9 +76,18 @@ internal sealed class EgressGuardHandler : DelegatingHandler
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Report(request);
-        return base.Send(request, cancellationToken);
+        var response = base.Send(request, cancellationToken);
+        FinishSend(request, response);
+        return response;
     }
 #endif
+
+    private async Task<HttpResponseMessage> FinishAsync(HttpRequestMessage request, Task<HttpResponseMessage> send)
+    {
+        var response = await send.ConfigureAwait(false);
+        FinishSend(request, response);
+        return response;
+    }
 
     // Reads RequestUri and nothing else from the request. A null request is not a send: the base handler refuses it.
     private void Report(HttpRequestMessage? request)
@@ -73,17 +97,55 @@ internal sealed class EgressGuardHandler : DelegatingHandler
 
         try
         {
-            var uri = request.RequestUri;
-            var egress = uri is null
-                ? new EgressRequest(_family, _site, EgressDestinations.UnknownDestination)
-                : new EgressRequest(_family, _site, uri);
-            _ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);
+            Evaluate(request.RequestUri);
         }
 #pragma warning disable CA1031 // A custom guard may throw; report-only means the send goes ahead unchanged, so the fault is counted.
         catch (Exception)
 #pragma warning restore CA1031
         {
-            Interlocked.Increment(ref _guardFaults);
+            RecordGuardFault();
         }
+
+        EgressEvaluatedAuthority.Stamp(request, request.RequestUri);
+    }
+
+    private void FinishSend(HttpRequestMessage? request, HttpResponseMessage response) =>
+        ReportIfResponseAuthorityDiffers(request, response);
+
+    private void ReportIfResponseAuthorityDiffers(HttpRequestMessage? request, HttpResponseMessage response)
+    {
+        if (request is null || response.RequestMessage is null)
+            return;
+
+        var followed = response.RequestMessage.RequestUri;
+        if (EgressEvaluatedAuthority.Matches(request, followed))
+            return;
+
+        try
+        {
+            Evaluate(followed);
+        }
+#pragma warning disable CA1031 // Report-only: a fault while recording the followed authority does not change the response.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            RecordGuardFault();
+        }
+
+        EgressEvaluatedAuthority.Stamp(request, followed);
+        var message = "The followed URI's authority " + EgressEvaluatedAuthority.Describe(followed)
+            + " differs from the one evaluated before the send; the body may already have gone.";
+        if (UnmediatedRedirectWarning is { } warn)
+            warn(message);
+        else
+            System.Diagnostics.Trace.TraceWarning(message);
+    }
+
+    private void Evaluate(Uri? uri)
+    {
+        var egress = uri is null
+            ? new EgressRequest(_family, _site, EgressDestinations.UnknownDestination)
+            : new EgressRequest(_family, _site, uri);
+        _ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);
     }
 }

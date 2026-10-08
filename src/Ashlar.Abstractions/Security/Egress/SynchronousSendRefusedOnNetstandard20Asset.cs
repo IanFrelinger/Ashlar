@@ -22,8 +22,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// was refused. On .NET Framework, classic Mono and Unity, which have no synchronous <c>Send</c>, nothing is
 /// refused: the hop only forwards.</para>
 /// <para><b>Asynchronous sends are unchanged.</b> <c>SendAsync</c> is forwarded through an owned
-/// <see cref="HttpMessageInvoker"/> with the same request, token and response instances; the guard handler above has
-/// already evaluated it exactly once. Disposing the hop disposes the inner handler. Under an outer
+/// <see cref="HttpMessageInvoker"/> with the same request, token and response instances; the guard handler above
+/// evaluated the request before this hop, and a redirect or a rewritten URI is evaluated again below it. Disposing the hop disposes the inner handler. Under an outer
 /// <see cref="HttpMessageInvoker"/> (not an <see cref="HttpClient"/>) on .NET 5-7, the runtime's request telemetry
 /// may count such a send twice.</para>
 /// <para><b>Walking the chain.</b> Because the hop is not a <see cref="DelegatingHandler"/>, a walker of the handler
