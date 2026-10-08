@@ -31,9 +31,11 @@ public static class EgressHttpClientBuilderExtensions
         builder.Services.AddSingleton(new EgressNoFollowClient(builder.Name));
         return builder.ConfigurePrimaryHttpMessageHandler(static (primary, _) =>
         {
-            if (primary is HttpClientHandler handler)
+            // A shared primary may already have sent after Ashlar disabled it. Even assigning false again would
+            // throw once it has started; the named-client flag handles its existing follower without a setter.
+            if (primary is HttpClientHandler handler && handler.AllowAutoRedirect)
                 handler.AllowAutoRedirect = false;
-            else if (primary is SocketsHttpHandler sockets)
+            else if (primary is SocketsHttpHandler sockets && sockets.AllowAutoRedirect)
                 sockets.AllowAutoRedirect = false;
         });
     }
