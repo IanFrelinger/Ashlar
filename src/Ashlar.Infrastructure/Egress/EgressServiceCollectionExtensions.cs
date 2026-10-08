@@ -18,15 +18,20 @@ namespace Ashlar.Infrastructure.Egress;
 /// <para><b>Outermost.</b> The handler is inserted at the front of the client's additional handlers. Client defaults
 /// run before any client's own configuration, so every handler added with <c>AddHttpMessageHandler</c> (retry and
 /// resilience handlers among them), whether in an earlier default or in the client's own registration, runs inside
-/// the guard, and one send is one decision. Only configuration that itself inserts at the front after this, or a
-/// handler-builder filter, can sit outside it; the factory's own logging scope handler does.</para>
+/// the guard, and one send is one decision until a redirect or a rewritten URI is evaluated again. Only
+/// configuration that itself inserts at the front after this, or a handler-builder filter, can sit outside it; the
+/// factory's own logging scope handler does. A filter registered here, before the logging filter, sees the primary
+/// after those actions and, when the primary is an <c>HttpClientHandler</c> or <c>SocketsHttpHandler</c>, turns
+/// <c>AllowAutoRedirect</c> off and puts the redirect handler directly above it.</para>
 /// <para><b>Per-client site.</b> A factory client's decision site is <c>factory:</c> plus the client's name; the
 /// unnamed default client's name is empty, so its site is <c>factory:</c>. The defaults builder has no client name,
 /// and the <c>IHttpClientBuilder</c> methods that see the handler builder are obsolete, so the binding adds an
 /// action to <see cref="HttpClientFactoryOptions.HttpMessageHandlerBuilderActions"/> for every client name through
 /// the defaults builder's own service collection, and reads the name from the handler builder as each client's
 /// handlers are built.</para>
-/// <para><b>Report-only.</b> Nothing here refuses, throws on a send or changes a request. Building a handler resolves
+/// <para><b>Report-only.</b> Nothing here refuses a send or throws from a decision. The guard handler does not change
+/// the request. The redirect handler, when it follows, does: it updates the URI and may change the method, drop the
+/// content and clear <c>Authorization</c>. Building a handler resolves
 /// <see cref="IEgressGuard"/> and activates <see cref="EgressDecisionLoggerSubscription"/>; if either fails, the client
 /// is still built, with <see cref="EgressGuard.ProcessDefault"/>, and the decisions still reach the
 /// <c>Ashlar-Egress</c> event source.</para>
@@ -60,6 +65,11 @@ public static class EgressServiceCollectionExtensions
         services.TryAddSingleton<EgressDecisionLoggerSubscription>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EgressDecisionLoggerActivator>());
 
+        // Registered before ConfigureHttpClientDefaults, which is what first calls AddHttpClient and registers the
+        // logging filter. Filters run last-registered outermost, so this filter's post-next step sees the primary
+        // after the client's builder actions and before the logging filter inserts its scope handler at index 0.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, EgressRedirectBindingFilter>());
+
         services.ConfigureHttpClientDefaults(defaults => defaults.Services.ConfigureAll<HttpClientFactoryOptions>(
             options => options.HttpMessageHandlerBuilderActions.Add(handlers => handlers.AdditionalHandlers.Insert(
                 0,
@@ -73,7 +83,7 @@ public static class EgressServiceCollectionExtensions
 
     // Runs each time a factory client's handlers are built. Nothing here may stop the client being built, so a
     // failure leaves the guard at ProcessDefault (a null guard) and the records on the event source only.
-    private static IEgressGuard? ResolveGuardAndActivateLogging(HttpMessageHandlerBuilder handlers)
+    internal static IEgressGuard? ResolveGuardAndActivateLogging(HttpMessageHandlerBuilder handlers)
     {
         IServiceProvider services;
         try

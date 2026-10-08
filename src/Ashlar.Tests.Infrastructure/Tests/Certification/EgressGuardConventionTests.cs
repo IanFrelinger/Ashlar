@@ -204,7 +204,9 @@ public sealed partial class EgressGuardConventionTests
     /// with no outbound path, <c>ReadScope.cs</c>: 2,135 files, 150 occurrences, as measured in the devtest container
     /// with all four merged. SPEC-007 PR 4.10 adds seven files with no outbound path (the resolved-profile options,
     /// four AirGapped boot validators, the inbound-listener policy and the MCP HTTP marker): 2,142 files, 150 occurrences.
-    /// SPEC-007 PR 4.5 adds <c>IEgressLabelledTool.cs</c>, which constructs no HTTP client: 2,143 files, 150 occurrences.
+    /// SPEC-007 PR 4.3 adds the redirect handler and the factory binding filter, neither of which
+    /// constructs an HTTP client: 2,144 files, 150 occurrences. SPEC-007 PR 4.5 adds
+    /// <c>IEgressLabelledTool.cs</c>, which constructs no HTTP client: 2,145 files, 150 occurrences.
     /// Set far enough below to survive ordinary deletions; a scan that stops reading the tree
     /// falls through them. Re-measure and restate when a PR moves them.
     /// </summary>

@@ -35,9 +35,14 @@ public sealed class AwsBedrockChatClientFactory : IBedrockChatClientFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
 
         // Construct privately — never AddSingleton<IAmazonBedrockRuntime>.
+        // AllowAutoRedirect is ClientConfig's; the SDK client follows unless it is off. No Ashlar follower runs inside the SDK.
         IAmazonBedrockRuntime runtime = string.IsNullOrWhiteSpace(_options.Region)
-            ? new AmazonBedrockRuntimeClient()
-            : new AmazonBedrockRuntimeClient(RegionEndpoint.GetBySystemName(_options.Region.Trim()));
+            ? new AmazonBedrockRuntimeClient(new AmazonBedrockRuntimeConfig { AllowAutoRedirect = false })
+            : new AmazonBedrockRuntimeClient(new AmazonBedrockRuntimeConfig
+            {
+                RegionEndpoint = RegionEndpoint.GetBySystemName(_options.Region.Trim()),
+                AllowAutoRedirect = false,
+            });
 
         return runtime.AsIChatClient(modelId);
     }
