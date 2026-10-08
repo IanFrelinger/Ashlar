@@ -27,6 +27,20 @@ This file lists every path by which a request or data leaves an Ashlar process, 
 
 - **Within-call egress (owner decision 2026-10-06; not yet implemented — PR 4.5b).** The owner decided that while a read scope is open and unreported, every egress on the flows inside it is decided at `SystemHigh` (Scenario B → `SystemHighData`). Master still observes only when the scope ends (PR 4.4 rule left in place by #721); a cert-gate twin pins the pre-read mark. The production self-extend floor is already `SystemHigh`, so today's exposure is zero bytes until a runner declares a lower floor.
 
+
+- **PR 4.10b hygiene hardening.** The API validates `urls`, `Kestrel:Endpoints:*:Url`, and port-only
+  `http_ports`/`https_ports` wildcard candidates before binding. A hosted lifecycle verifier also checks actual
+  Kestrel addresses after start. Bare and bracketed IPv6 loopback, including mapped IPv4 loopback, are accepted;
+  mesh serve still faults for a missing/non-loopback bind. AirGapped multi-frame vision rejects a cloud resolve
+  before passing any frames to the inner provider. A later options `Configure` cannot lower the `AddAshlar`
+  snapshot because `PostConfigure` reasserts it. SecureWorkstation refuses the SDK HTTP MCP transport even if a
+  host bypasses `WithAshlarHttpTransport`; stdio remains allowed. Convention tests pin the profile readers and
+  production wrapper callers.
+  **Known limits:** the post-bind check runs after sockets open, so code-added listeners have a short start-up
+  window. A Full container composed before AirGapped was noted keeps its captured Full profile (G15); replacing
+  the options service, mutating the options object, or registering a later `PostConfigure` remains host-controlled.
+  Bedrock is refused by boot/options validation and first keyed-client resolution, not during composition.
+
 **Profiles.**
 
 | Code | Profile |

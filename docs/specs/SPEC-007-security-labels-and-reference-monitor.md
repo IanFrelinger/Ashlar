@@ -159,6 +159,22 @@ The status line above and the starting prompt are the owner's, as written; the s
   `urls` is unset (Known limit until PR 4.10b). Responses on inbound connections are not mediated until PR 5's
   CanRead at the server seams.
 
+
+- **PR 4.10b** hardens the live AirGapped/SecureWorkstation inbound rule. Port-only `http_ports` and
+  `https_ports` settings expand to wildcard listeners when `urls` is absent and fail pre-bind validation.
+  The API also checks `IServerAddressesFeature` after Kestrel starts, including listeners configured in code.
+  Bare `::1`, bracketed `[::1]`, and IPv4-mapped loopback are accepted; non-HTTP listener schemes are refused.
+  Mesh serve keeps the fail-boot rule for a missing or non-loopback bind; an explicit loopback bind serves locally.
+  AirGapped multi-frame vision refuses a nonlocal resolved provider before the inner factory receives frames.
+  `PostConfigure` reasserts the strictest profile captured by `AddAshlar`, so later `Configure` callbacks cannot
+  lower it. MCP validation detects the SDK's HTTP handler as well as the Ashlar wrapper marker. Certification
+  conventions pin the profile-reader boundary and production HTTP MCP callers.
+  **Known limits:** a listener added in code has a window between socket binding and the post-start refusal;
+  a container composed before a stricter process profile was noted keeps its captured profile. These options
+  remain mutable objects, and host code that replaces the options service or installs a later `PostConfigure`
+  can override them. Bedrock still refuses at `ValidateOnStart` or first options/keyed-client resolution,
+  rather than during `AddAshlar`/`BuildServiceProvider`. Responses on inbound connections await PR 5.
+
 ---
 
 ## 1. Why
