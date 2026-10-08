@@ -723,7 +723,9 @@ public sealed class EgressGuardDecisionTests
         names.Should().HaveCount(payload.Count).And.Contain("destination").And.Contain("detail");
         for (var i = 0; i < payload.Count; i++)
         {
-            if (names[i] is "sequence" or "at")
+            // sequence/at are counters/timestamps. ref is a random 64-bit hex id (see EgressDecision.Ref) —
+            // not derived from the destination — so a digit-only credential piece can collide by chance.
+            if (names[i] is "sequence" or "at" or "ref")
                 continue;
             Convert.ToString(payload[i], CultureInfo.InvariantCulture).Should().NotContainAny(
                 pieces, "the {0} field must carry no piece of the credential in {1}", names[i], name);

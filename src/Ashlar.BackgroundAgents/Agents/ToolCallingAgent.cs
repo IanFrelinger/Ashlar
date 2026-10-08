@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Runtime;
 
@@ -231,14 +232,27 @@ public sealed class ToolCallingAgent : IAgent
                     }
 
                     ToolResult result;
-                    try
+                    using (var read = EgressSubject.BeginRead())
                     {
-                        result = await tools.InvokeAsync(call, snapshot, loopCt).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-                    {
-                        stoppedReason = "deadline";
-                        throw;
+                        try
+                        {
+                            result = await tools.InvokeAsync(call, snapshot, loopCt).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                        {
+                            stoppedReason = "deadline";
+                            throw;
+                        }
+
+                        // Only a tool that declares itself labelled may report. Anything else stays
+                        // unreported, so disposing the scope observes SystemHigh (SPEC-007 PR 4.5).
+                        if (tools is CapabilityRegistry registry
+                            && registry.Find(call.Id) is IEgressLabelledTool labelled)
+                        {
+                            labelled.ReportRead(read, result);
+                        }
+
+                        read.Complete();
                     }
 
                     deltas.Add(policies.Sign(result.Delta));
