@@ -48,30 +48,34 @@ public sealed class MeshServeLoopbackProfileTests : IDisposable
     }
 
     [Theory]
-    [InlineData("air-gapped")]
-    [InlineData("secure-workstation")]
-    public async Task On_a_loopback_only_profile_mesh_serve_serves_on_loopback_and_nowhere_else(string profile)
+    [InlineData("air-gapped", "127.0.0.1")]
+    [InlineData("secure-workstation", "127.0.0.1")]
+    [InlineData("air-gapped", "::1")]
+    [InlineData("secure-workstation", "::ffff:127.0.0.1")]
+    public async Task On_a_loopback_only_profile_mesh_serve_serves_on_loopback_and_nowhere_else(string profile, string bind)
     {
         var port = FreePort();
         var service = new MeshServeService(
-            new MeshServeSettings(port, _published, "q6-node", BindAddress: "127.0.0.1"),
+            new MeshServeSettings(port, _published, "q6-node", BindAddress: bind),
             NullLogger<MeshServeService>.Instance,
             Options.Create(new AshlarResolvedDeploymentProfileOptions { Profile = profile }));
 
         await service.StartAsync(CancellationToken.None);
         try
         {
-            await WaitUntilListeningAsync(IPAddress.Loopback, port);
-            IsListening(IPAddress.Loopback, port).Should().BeTrue("mesh serve keeps serving, on loopback");
-            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}/") };
+            var address = IPAddress.Parse(bind);
+            await WaitUntilListeningAsync(address, port);
+            IsListening(address, port).Should().BeTrue("mesh serve keeps serving, on loopback");
+            var host = address.AddressFamily == AddressFamily.InterNetworkV6 ? $"[{bind}]" : bind;
+            using var client = new HttpClient { BaseAddress = new Uri($"http://{host}:{port}/") };
             using var hello = await client.GetAsync("/mesh/v1/hello");
             hello.StatusCode.Should().Be(HttpStatusCode.OK);
 
             // The point of Q6: a peer on another host cannot reach it. Every non-loopback address of this machine refuses.
             var lan = NonLoopbackIPv4Addresses();
             lan.Should().NotBeEmpty("the twin needs a non-loopback address to show the listener is not on it");
-            foreach (var address in lan)
-                IsListening(address, port).Should().BeFalse($"mesh serve must not listen on {address} under {profile}");
+            foreach (var lanAddress in lan)
+                IsListening(lanAddress, port).Should().BeFalse($"mesh serve must not listen on {lanAddress} under {profile}");
         }
         finally
         {
