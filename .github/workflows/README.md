@@ -12,9 +12,11 @@ the summary of the 62 files (counted 2026-09-29) is:
   label-driven, `release-staging-on-label`. `full-platform-readiness-gate` filters
   paths *inside* the workflow (a `changes` job) so its `Readiness summary` check always reports:
   heavy platform lanes run only when a core path changed, otherwise the summary passes in ~1 min.
-- **18 run on `push` and/or `schedule` only** (path-filtered, `master`/`main`/`cursor/**`), all with
-  `workflow_dispatch` as well — post-merge signals such as `compose-gate`, `grpc-transport-gate`,
-  `onboarding-docs-guard`, `container-image-publish`.
+  Its `push:` trigger is `master`/`main` only (not `cursor/**`) so tip pushes on agent branches do
+  not start a second full platform matrix alongside the PR run.
+- **18 run on `push` and/or `schedule` only** (path-filtered, typically `master`/`main`/`cursor/**`),
+  all with `workflow_dispatch` as well — post-merge signals such as `compose-gate`,
+  `grpc-transport-gate`, `onboarding-docs-guard`, `container-image-publish`.
 - **18 are `workflow_dispatch` only** (`mesh-lab-tls-gate` joined them 2026-09-13), including
   `cross-platform-tests` and `prod-dry-run-pr` despite their names: run them from the
   Actions tab or with `gh workflow run "<Workflow name>" --ref <branch>`.
@@ -69,6 +71,21 @@ adds ~1 min when no core path changed and the full platform matrix (~20 min) whe
 
 **Done (repo admin):** `build-core`, `shell-lint`, `lychee (README + docs)` and `Readiness summary`
 are in the `master` branch protection rule alongside `cert-gate` (see above).
+
+### Faster multi-PR merges (process + optional admin)
+
+`strict: true` makes every merge leave every other open PR BEHIND, so a fan-out of
+readiness-touching PRs pays the heavy matrix once per tip. Prefer:
+
+1. **Stack** core-path series (each PR’s base is the previous tip) so CI runs once.
+2. **Split** the queue: land non-`READINESS_PATHS` PRs first (~1 min Readiness), then one stack.
+3. **One settled tip** before waiting — conflicts, knowledge-graph regen, PR-body tokens — every
+   `synchronize` restarts the matrix.
+4. **Squash-merge into `master`** unless history must be preserved (SPEC series may use merge commits).
+
+**Merge queue (admin):** the readiness `changes` job already handles `merge_group`. Enabling a
+GitHub merge queue on `master` (Settings → Rules → Ruleset / merge queue, require the same five
+checks) removes the manual rebase loop. Agents cannot change that setting; a human admin must.
 
 Path-filtered workflows cannot be made required
 without an always-report job — a required context that never reports blocks the merge.

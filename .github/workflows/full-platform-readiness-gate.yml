@@ -16,7 +16,10 @@
 #     This is what lets "Readiness summary" become a required status check later without
 #     deadlock: a required context that never reports leaves a PR at "Expected — Waiting for
 #     status" forever, and enforce_admins=true means nobody can bypass it.
-#   - push (master/main/cursor/**), schedule, workflow_dispatch: always run the heavy lanes.
+#   - push (master/main only), schedule, workflow_dispatch: always run the heavy lanes.
+#     cursor/** is intentionally NOT on push: branch protection only needs the PR check, and
+#     a second full matrix on every agent tip push doubled runner load and queued Windows/macOS
+#     behind itself. merge_group is supported in the `changes` job for a future merge queue.
 name: Full Platform Readiness Gate
 
 on:
@@ -27,7 +30,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [master, main, "cursor/**"]
+    branches: [master, main]
     # KEEP IN SYNC with READINESS_PATHS in the `changes` job below. YAML anchors do not work
     # across `on:` and `jobs:` in GitHub Actions, so the list is duplicated by necessity.
     paths:

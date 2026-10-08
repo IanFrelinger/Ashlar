@@ -11,6 +11,25 @@ These five checks run on every PR and always report a status, so they are safe a
 - Branch from the latest `master`, keep branches short-lived (days, not weeks), one concern per branch.
 - Name branches `<type>/<topic>` using the same types as Conventional Commits: `feat/…`, `fix/…`, `docs/…`, `chore/…`, `ci/…`, `refactor/…`, `test/…`. For multi-PR efforts, put the epic name at the front of the topic so related branches sort together: `feat/trust-loop-hot-swap`, `feat/trust-loop-fence-probe`. Do **not** name a head branch `application/*` when it targets `master` (the layer-boundary gate rejects that pairing).
 - Everything lands through a PR into `master`. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) **by convention** — `type(scope): subject`, WHY in the body — there is no commitlint hook or workflow enforcing it; `scripts/changelog-snippet-for-release.sh` relies on the convention to draft release notes. Merged head branches are deleted automatically.
+- **Merge into `master` with squash** unless a series needs preserved merge commits. Prefer one method per sweep so rebases stay boring.
+
+### Landing several PRs without paying Readiness N times
+
+Branch protection is `strict` (must be up to date with `master`) and `enforce_admins`, so each
+merge makes every other open PR BEHIND and forces another CI cycle. The expensive part is usually
+the Full Platform Readiness heavy lanes (~40 minutes when a core path changed), not `cert-gate`.
+
+1. **Stack core-path series.** For SPEC / kernel / hosting / CLI work, open PRs as a chain: PR N+1’s
+   base is PR N’s head branch (not `master`). CI runs on the tip once; merges become fast-forwards
+   or cheap updates instead of N full readiness matrices.
+2. **Split by cost.** Merge PRs that do not touch readiness core paths first (`Readiness summary`
+   passes in ~1 minute). Save readiness-touching work for one stacked series.
+3. **Push once, then wait.** Resolve conflicts, regenerate `docs/knowledge-graph.{json,md}`
+   (`scripts/knowledge-graph/resolve-rebase-conflict.sh` during a rebase), settle PR-body tokens
+   (`[coordinated-integration]`, `[skip-prod-style]`), then one push. Every tip update restarts the
+   platform matrix.
+4. **Do not expect a second readiness run on `cursor/**` pushes.** Branch protection uses the PR
+   check; the workflow’s `push:` trigger is `master`/`main` only so agent tips do not double-fire.
 - Spikes that should not merge get an `archive/spike-<name>` tag on their tip, then the branch is deleted — the work stays reachable without cluttering the branch list.
 - Releases are tags on `master`: bump `VERSION`, move the `[Unreleased]` notes in `CHANGELOG.md` under the new version heading, tag `vX.Y.Z`, and publish a GitHub Release (`scripts/changelog-snippet-for-release.sh` drafts the notes). Release branches (`release/x.y`) only appear if an old version ever needs long-term patch support.
 
