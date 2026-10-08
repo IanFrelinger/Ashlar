@@ -1,0 +1,355 @@
+{
+  "schema": 1,
+  "prepared_against": "4912f88fd28ee6f5160bce8c4199f5c168b7fb85",
+  "note": "Prepared only; no verdict is implied. All 29 exact replacements must be rerun on the final integrated shipping tree. Each mutation runs the complete Egress selection. m24 removes both spelling and primitive-name checks because the second independently rejects aliases.",
+  "mutations": [
+    {
+      "id": "m01-begin-read-does-not-enter",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressSubject.cs",
+      "old": "        Active.Value = read;",
+      "new": "        // MUTATION: never enter the read frame",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_frame_entered_inside_an_open_read_never_decides_below_SystemHigh"
+      ]
+    },
+    {
+      "id": "m02-live-does-not-skip-read",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressSubject.cs",
+      "old": "(frame.IsDisposed || frame._isRead)",
+      "new": "frame.IsDisposed",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_decision_inside_an_open_read_is_named_by_the_nearest_live_subject_frame_never_by_the_read"
+      ]
+    },
+    {
+      "id": "m03-read-frame-observes-outward",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressSubject.cs",
+      "old": "if (Mark is not null && !_isRead)",
+      "new": "if (Mark is not null)",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_completed_read_observes_only_what_it_reported"
+      ]
+    },
+    {
+      "id": "m04-complete-before-tool-invoke",
+      "file": "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs",
+      "old": "                    using (var read = EgressSubject.BeginRead())\n                    {\n                        try",
+      "new": "                    using (var read = EgressSubject.BeginRead())\n                    {\n                        read.Complete();\n                        try",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_labelled_tool_that_reports_and_then_throws_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m05-labelled-tool-never-reports",
+      "file": "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs",
+      "old": "                            labelled.ReportRead(read.Reporter, result);",
+      "new": "                            _ = labelled; // MUTATION: suppress report",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "RAGTool_labels_a_hit_exactly_as_TrustTierOrder_RecordLabel_does"
+      ]
+    },
+    {
+      "id": "m06-rag-does-not-report-hits",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "                    read.Report(MapHitLabel(hit.SensitivityLevelName, _sensitivityRegistry));",
+      "new": "                    _ = MapHitLabel(hit.SensitivityLevelName, _sensitivityRegistry);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "RAGTool_labels_a_hit_exactly_as_TrustTierOrder_RecordLabel_does"
+      ]
+    },
+    {
+      "id": "m07-unknown-tier-public",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "        if (string.IsNullOrWhiteSpace(name))\n            return SecurityLabel.SystemHigh;",
+      "new": "        if (string.IsNullOrWhiteSpace(name))\n            return SecurityLabel.Public;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "RAGTool_labels_a_hit_exactly_as_TrustTierOrder_RecordLabel_does"
+      ]
+    },
+    {
+      "id": "m08-rag-does-not-trim",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "        var trimmed = name.Trim();",
+      "new": "        var trimmed = name;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "RAGTool_labels_a_hit_exactly_as_TrustTierOrder_RecordLabel_does"
+      ]
+    },
+    {
+      "id": "m09-rag-accepts-custom-same-level",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "ReferenceEquals(level, primitive)",
+      "new": "level.SensitivityValue == primitive.SensitivityValue",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_registry_custom_object_with_a_canonical_name_still_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m10-refusal-not-read-nothing",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "                read.Report(SecurityLabel.Public); // read nothing: refused",
+      "new": "                // MUTATION: omit refusal report",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "RAGTool_reports_read_nothing_for_no_hits_and_for_the_stores_unrankable_query_refusal"
+      ]
+    },
+    {
+      "id": "m11-empty-hits-not-read-nothing",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "                read.Report(SecurityLabel.Public); // read nothing: no hit",
+      "new": "                // MUTATION: omit empty-hit report",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "RAGTool_reports_read_nothing_for_no_hits_and_for_the_stores_unrankable_query_refusal"
+      ]
+    },
+    {
+      "id": "m12-no-target-is-agent-backed",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "        var key = targetKey?.Trim();\n        return key is null\n            || !(key.StartsWith(\"local:\", StringComparison.OrdinalIgnoreCase)\n                || key.StartsWith(\"cloud:\", StringComparison.OrdinalIgnoreCase));",
+      "new": "        return false;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_response_from_a_peer_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m13-stream-observed-only-at-end",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "                ObserveResponse();\n                yield return update;",
+      "new": "                yield return update;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_streamed_response_from_a_peer_counts_as_SystemHigh_before_the_caller_sees_it"
+      ]
+    },
+    {
+      "id": "m14-selfextend-no-frame",
+      "file": "src/Ashlar.BackgroundAgents.HostRunners/SelfExtendRunnerAdapter.cs",
+      "old": "            using (EgressSubject.Enter(\"agent:\" + resolvedAgentId, new HighWaterMark(SecurityLabel.SystemHigh)))",
+      "new": "        // MUTATION: no subject frame",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "Production_self_extend_records_its_agent_as_the_subject_at_SystemHigh"
+      ]
+    },
+    {
+      "id": "m15-selfextend-public-floor",
+      "file": "src/Ashlar.BackgroundAgents.HostRunners/SelfExtendRunnerAdapter.cs",
+      "old": "new HighWaterMark(SecurityLabel.SystemHigh)))",
+      "new": "new HighWaterMark(SecurityLabel.Public)))",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "No_production_runner_declares_a_floor_below_SystemHigh"
+      ]
+    },
+    {
+      "id": "m16-selfextend-not-using",
+      "file": "src/Ashlar.BackgroundAgents.HostRunners/SelfExtendRunnerAdapter.cs",
+      "old": "            using (EgressSubject.Enter(\"agent:\" + resolvedAgentId, new HighWaterMark(SecurityLabel.SystemHigh)))",
+      "new": "            _ = EgressSubject.Enter(\"agent:\" + resolvedAgentId, new HighWaterMark(SecurityLabel.SystemHigh));",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "Every_production_frame_entry_is_a_using_in_a_method_that_is_not_an_iterator"
+      ]
+    },
+    {
+      "id": "m17-every-target-is-agent-backed",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "        var key = targetKey?.Trim();\n        return key is null\n            || !(key.StartsWith(\"local:\", StringComparison.OrdinalIgnoreCase)\n                || key.StartsWith(\"cloud:\", StringComparison.OrdinalIgnoreCase));",
+      "new": "        return true;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_model_response_is_not_a_read"
+      ]
+    },
+    {
+      "id": "m18-stream-end-not-observed",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "                yield return update;\n            }\n        }\n        finally\n        {\n            ObserveResponse();\n        }",
+      "new": "                yield return update;\n            }\n        }\n        finally\n        {\n            GC.KeepAlive(updates);\n        }",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_streamed_response_with_no_updates_from_a_peer_still_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m19-response-end-not-observed",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "            return await call.ConfigureAwait(false);\n        }\n        finally\n        {\n            ObserveResponse();\n        }",
+      "new": "            return await call.ConfigureAwait(false);\n        }\n        finally\n        {\n            GC.KeepAlive(call);\n        }",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_response_from_a_peer_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m20-synchronous-response-throw-not-observed",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "            call = base.GetResponseAsync(messages, options, cancellationToken);\n        }\n        catch\n        {\n            ObserveResponse();",
+      "new": "            call = base.GetResponseAsync(messages, options, cancellationToken);\n        }\n        catch\n        {",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_call_to_an_agent_backed_target_that_the_policy_denies_still_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m21-synchronous-stream-throw-not-observed",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "            updates = base.GetStreamingResponseAsync(messages, options, cancellationToken);\n        }\n        catch\n        {\n            ObserveResponse();",
+      "new": "            updates = base.GetStreamingResponseAsync(messages, options, cancellationToken);\n        }\n        catch\n        {",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_call_to_an_agent_backed_target_that_the_policy_denies_still_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m22-production-tool-declares-labelled",
+      "file": "src/Ashlar.Tools.Dev/RepoFsReadTool.cs",
+      "old": "public sealed class RepoFsReadTool : ITool\n{",
+      "new": "public sealed class RepoFsReadTool : ITool, Ashlar.Abstractions.Security.Egress.IEgressLabelledTool\n{\n    public void ReportRead(Ashlar.Abstractions.Security.Egress.ReadReporter report, ToolResult result) =>\n        report.Report(Ashlar.Abstractions.Security.SecurityLabel.Public);\n",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "Only_RAGTool_declares_itself_labelled_in_production"
+      ]
+    },
+    {
+      "id": "m23-all-argument-exceptions-read-nothing",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "ReadNothing = VectorMath.IsUnrankableQuery(ex),",
+      "new": "ReadNothing = true,",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_stores_other_ArgumentException_is_not_read_nothing"
+      ]
+    },
+    {
+      "id": "m24-no-canonical-spelling-check",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "        var trimmed = name.Trim();\n        if (!CanonicalSpellings.Any(canonical => string.Equals(canonical, trimmed, StringComparison.OrdinalIgnoreCase)))\n            return SecurityLabel.SystemHigh;\n\n        var level = registry.GetByName(trimmed);\n        if (level is null)\n            return SecurityLabel.SystemHigh;\n\n        // A host registry may remap even a canonical spelling to a different primitive. Only the\n        // primitive belonging to this stored name agrees with the pipeline's record label.\n        var primitive = DataSensitivityLevels.FromName(trimmed);\n        return primitive is not null && ReferenceEquals(level, primitive)\n            ? primitive.ToDataLabel()\n            : SecurityLabel.SystemHigh;",
+      "new": "        var trimmed = name.Trim();\n        var level = registry.GetByName(trimmed);\n        if (level is null)\n            return SecurityLabel.SystemHigh;\n\n        // A host registry may remap even a canonical spelling to a different primitive. Only the\n        // primitive belonging to this stored name agrees with the pipeline's record label.\n        var primitive = DataSensitivityLevels.All.FirstOrDefault(candidate => ReferenceEquals(level, candidate));\n        return primitive is not null && ReferenceEquals(level, primitive)\n            ? primitive.ToDataLabel()\n            : SecurityLabel.SystemHigh;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_registry_alias_cannot_label_a_name_the_pipeline_treats_as_unlabelled"
+      ]
+    },
+    {
+      "id": "m25-production-egresssubject-alias",
+      "file": "src/Ashlar.BackgroundAgents.HostRunners/PlannerScratchpad.cs",
+      "old": "using System.Globalization;",
+      "new": "using ES = Ashlar.Abstractions.Security.Egress.EgressSubject;\nusing System.Globalization;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "Every_production_frame_entry_is_a_using_in_a_method_that_is_not_an_iterator"
+      ]
+    },
+    {
+      "id": "m26-report-completes-read",
+      "file": "src/Ashlar.Abstractions/Security/Egress/ReadReporter.cs",
+      "old": "    public void Report(SecurityLabel label) => _scope.Report(label);",
+      "new": "    public void Report(SecurityLabel label)\n    {\n        _scope.Report(label);\n        _scope.Complete();\n    }",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_labelled_tool_that_reports_and_then_throws_counts_as_SystemHigh"
+      ]
+    },
+    {
+      "id": "m27-rag-accepts-wrong-canonical-primitive",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "var primitive = DataSensitivityLevels.FromName(trimmed);",
+      "new": "var primitive = DataSensitivityLevels.All.FirstOrDefault(candidate => ReferenceEquals(level, candidate));",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_registry_cannot_remap_a_canonical_hit_to_a_different_primitive"
+      ]
+    },
+    {
+      "id": "m28-production-labelled-marker-alias",
+      "file": "src/Ashlar.Tools.Dev/RepoFsReadTool.cs",
+      "old": "using System.Text.Json;",
+      "new": "using L = Ashlar.Abstractions.Security.Egress.IEgressLabelledTool;\nusing System.Text.Json;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "Every_production_frame_entry_is_a_using_in_a_method_that_is_not_an_iterator"
+      ]
+    },
+    {
+      "id": "m29-unrankable-message-spoof",
+      "file": "src/Ashlar.BackgroundAgents/RAG/VectorMath.cs",
+      "old": "internal static bool IsUnrankableQuery(ArgumentException ex) => ex is UnrankableQueryException;",
+      "new": "internal static bool IsUnrankableQuery(ArgumentException ex) => ex.Message.StartsWith(UnrankableQueryMessage, StringComparison.Ordinal);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Egress",
+      "expected_failures": [
+        "A_store_cannot_label_its_own_exception_read_nothing_by_copying_the_unrankable_diagnostic"
+      ]
+    }
+  ]
+}
