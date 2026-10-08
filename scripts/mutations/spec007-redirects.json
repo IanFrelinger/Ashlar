@@ -1,0 +1,403 @@
+{
+  "schema": 1,
+  "prepared_against": "831a2f5b88b3197f64260d8842352d38b7f5f4fc",
+  "note": "Prepared only; no mutation run evidence. Revalidate every exact replacement on the integrated shipping SHA. m16 never existed in the historical 25-mutant lane.",
+  "mutations": [
+    {
+      "id": "m1-per-authority-decision-dropped",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "request.Options.TryGetValue(Key, out var stamped) && stamped.Equals(Authority.From(request.RequestUri));",
+      "new": "request.Options.TryGetValue(Key, out var stamped);",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_rewriter_between_guard_and_primary_is_evaluated_for_the_rewritten_host"
+      ]
+    },
+    {
+      "id": "m2-egresshttp-installs-no-follower",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressHttp.cs",
+      "old": "var withRedirect = EgressRedirects.InsertAbovePrimary(inner, family, site, guard, followCrossHost: false);",
+      "new": "var withRedirect = inner;",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "EgressHttp_same_host_redirect_records_a_second_decision"
+      ]
+    },
+    {
+      "id": "m3-factory-filter-installs-no-follower",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressRedirectBindingFilter.cs",
+      "old": "builder.PrimaryHandler = EgressRedirects.InsertAbovePrimary(primary, EgressFamilies.HttpFactory, site, guard, followCrossHost: true);",
+      "new": "builder.PrimaryHandler = primary;",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Factory_cross_host_redirect_is_followed_and_re_evaluated"
+      ]
+    },
+    {
+      "id": "m4-guard-handler-not-restored",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressRedirectBindingFilter.cs",
+      "old": "if (index < 0)",
+      "new": "if (index < 0) return;\n        if (index < 0)",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Clear_still_has_one_guard_handler_and_exactly_one_decision"
+      ]
+    },
+    {
+      "id": "m5-p2-cross-origin-followed",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "if ((!_settings.FollowCrossHost || EgressEvaluatedAuthority.RequiresSameOrigin(request))\n            && !EgressEvaluatedAuthority.SameOrigin(requestUri, header))",
+      "new": "if ((!_settings.FollowCrossHost || EgressEvaluatedAuthority.RequiresSameOrigin(request))\n            && !EgressEvaluatedAuthority.SameOrigin(requestUri, header) && _settings.MaxAutomaticRedirections < 0)",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "P2_does_not_forward_API_key_headers_to_another_scheme_or_port"
+      ]
+    },
+    {
+      "id": "m6-https-to-http-followed",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "if (IsHttpsToHttp(requestUri, header))",
+      "new": "if (IsHttpsToHttp(header, requestUri))",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Differential_https_to_http_is_not_followed"
+      ]
+    },
+    {
+      "id": "m7-authorization-not-cleared",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "        request.Headers.Authorization = null;\n",
+      "new": "",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Differential_authorization_is_cleared_on_a_followed_redirect"
+      ]
+    },
+    {
+      "id": "m8-post-send-check-dropped-async",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
+      "old": "        var response = await send.ConfigureAwait(false);\n        FinishSend(request, response);",
+      "new": "        var response = await send.ConfigureAwait(false);",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Unknown_primary_followed_authority_is_evaluated_after_the_send"
+      ]
+    },
+    {
+      "id": "m9-original-setting-forgotten",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "return new RedirectSettings(original.Follow, original.MaxAutomaticRedirections, followCrossHost);",
+      "new": "var forgotten = ReadAndDisable(primary);\n            return new RedirectSettings(forgotten.Follow, forgotten.MaxAutomaticRedirections, followCrossHost);",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_shared_primary_keeps_its_original_setting_on_later_wrappers"
+      ]
+    },
+    {
+      "id": "m10-method-rewrite-dropped",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "return method == HttpMethod.Post;",
+      "new": "return false;",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Differential_status_method_and_body_match_SocketsHttpHandler"
+      ]
+    },
+    {
+      "id": "m11-walker-stops-at-the-hop",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "                current = hop.Inner;",
+      "new": "                current = hop;",
+      "filter": "FullyQualifiedName~EgressHttpNetstandard20TwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "On_the_netstandard20_asset_the_follower_is_found_through_the_hop_and_follows_a_same_origin_redirect"
+      ]
+    },
+    {
+      "id": "m12-credentials-ignored",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "case HttpClientHandler http when http.Credentials is null:",
+      "new": "case HttpClientHandler http:",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_primary_with_credentials_or_of_an_unknown_type_is_left_as_it_is"
+      ]
+    },
+    {
+      "id": "m13-api-sns-follows",
+      "file": "application/src/Ashlar.API/Program.cs",
+      "old": ".NeverFollowRedirects();",
+      "new": ";",
+      "filter": "FullyQualifiedName~EgressApiHostProdStyleTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "TheSnsSigningClient_NeverFollowsARedirect_OverTheFactorysOwnPrimaryHandler"
+      ]
+    },
+    {
+      "id": "m14-fleet-sns-follows",
+      "file": "commercial/src/Ashlar.Commercial.Fleet.Host/Program.cs",
+      "old": ".NeverFollowRedirects();",
+      "new": ";",
+      "filter": "FullyQualifiedName~EgressFleetHostTwinTests",
+      "framework": "net10.0",
+      "project": "commercial/tests/Ashlar.Commercial.Tests.Fleet.Host/Ashlar.Commercial.Tests.Fleet.Host.csproj",
+      "expected_failures": [
+        "TheSnsSigningClient_NeverFollowsARedirect_OverTheFactorysOwnPrimaryHandler"
+      ]
+    },
+    {
+      "id": "m15-bedrock-follows",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = false }",
+      "new": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = true }",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect"
+      ]
+    },
+    {
+      "id": "m17-unknown-primary-warning-inverted",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressRedirectBindingFilter.cs",
+      "old": "&& (guard as EgressGuard ?? EgressGuard.ProcessDefault).ProfileEnforcesByDefault())",
+      "new": "&& !(guard as EgressGuard ?? EgressGuard.ProcessDefault).ProfileEnforcesByDefault())",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "On_AirGapped_an_unknown_factory_primary_is_named_in_a_warning_and_on_Full_it_is_not"
+      ]
+    },
+    {
+      "id": "m18-redirect-limit-off-by-one",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "    private async Task<HttpResponseMessage> FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken)\n    {\n        EnsureEvaluated(request);\n        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        var redirects = 0;\n        while (TryGetRedirect(request, response, out var location))\n        {\n            redirects++;\n            if (redirects > _settings.MaxAutomaticRedirections)\n                break;\n\n            if (cancellationToken.IsCancellationRequested)\n            {\n                response.Dispose();\n                cancellationToken.ThrowIfCancellationRequested();\n            }\n\n            var status = response.StatusCode;\n            response.Dispose();\n            ApplyRedirect(request, status, location);\n            EvaluateHop(request);\n            response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        }\n\n        return response;\n    }\n",
+      "new": "    private async Task<HttpResponseMessage> FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken)\n    {\n        EnsureEvaluated(request);\n        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        var redirects = 0;\n        while (TryGetRedirect(request, response, out var location))\n        {\n            redirects++;\n            if (redirects > _settings.MaxAutomaticRedirections + 1)\n                break;\n\n            if (cancellationToken.IsCancellationRequested)\n            {\n                response.Dispose();\n                cancellationToken.ThrowIfCancellationRequested();\n            }\n\n            var status = response.StatusCode;\n            response.Dispose();\n            ApplyRedirect(request, status, location);\n            EvaluateHop(request);\n            response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        }\n\n        return response;\n    }\n",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Differential_fragment_and_redirect_limit_match_SocketsHttpHandler"
+      ]
+    },
+    {
+      "id": "m19-no-note-treated-as-decided",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "request.Options.TryGetValue(Key, out var stamped) && stamped.Equals(Authority.From(request.RequestUri));",
+      "new": "!request.Options.TryGetValue(Key, out var stamped) || stamped.Equals(Authority.From(request.RequestUri));",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_handler_that_sends_a_fresh_request_is_still_decided_at_the_cost_of_a_duplicate"
+      ]
+    },
+    {
+      "id": "m20-hop-decided-by-process-default",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "_ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);",
+      "new": "_ = EgressGuard.ProcessDefault.Evaluate(egress);",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Every_hop_is_decided_by_the_guard_the_guard_handler_uses_not_the_process_default"
+      ]
+    },
+    {
+      "id": "m21-started-primary-as-if-flipped",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "        {\n            allow = false;\n        }\n\n        return new RedirectSettings",
+      "new": "        {\n            allow = true;\n        }\n\n        return new RedirectSettings",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_primary_that_has_already_sent_keeps_following_on_its_own_and_the_final_authority_is_decided_after_the_send"
+      ]
+    },
+    {
+      "id": "m22-known-primary-by-exact-type",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "case HttpClientHandler http when http.Credentials is null:",
+      "new": "case HttpClientHandler http when http.GetType() == typeof(HttpClientHandler) && http.Credentials is null:",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Factory_cross_host_redirect_is_followed_and_re_evaluated"
+      ]
+    },
+    {
+      "id": "m23-composite-primary-skipped",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressRedirectBindingFilter.cs",
+      "old": "builder.PrimaryHandler = EgressRedirects.InsertAbovePrimary(primary, EgressFamilies.HttpFactory, site, guard, followCrossHost: true);",
+      "new": "if (primary is HttpClientHandler or SocketsHttpHandler)\n                builder.PrimaryHandler = EgressRedirects.InsertAbovePrimary(primary, EgressFamilies.HttpFactory, site, guard, followCrossHost: true);",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_composite_factory_primary_is_followed_at_its_tail_and_its_own_rewrite_is_decided"
+      ]
+    },
+    {
+      "id": "m24-cancellation-between-hops-ignored",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "    private async Task<HttpResponseMessage> FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken)\n    {\n        EnsureEvaluated(request);\n        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        var redirects = 0;\n        while (TryGetRedirect(request, response, out var location))\n        {\n            redirects++;\n            if (redirects > _settings.MaxAutomaticRedirections)\n                break;\n\n            if (cancellationToken.IsCancellationRequested)\n            {\n                response.Dispose();\n                cancellationToken.ThrowIfCancellationRequested();\n            }\n\n            var status = response.StatusCode;\n            response.Dispose();\n            ApplyRedirect(request, status, location);\n            EvaluateHop(request);\n            response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        }\n\n        return response;\n    }\n",
+      "new": "    private async Task<HttpResponseMessage> FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken)\n    {\n        EnsureEvaluated(request);\n        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        var redirects = 0;\n        while (TryGetRedirect(request, response, out var location))\n        {\n            redirects++;\n            if (redirects > _settings.MaxAutomaticRedirections)\n                break;\n\n\n            var status = response.StatusCode;\n            response.Dispose();\n            ApplyRedirect(request, status, location);\n            EvaluateHop(request);\n            response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        }\n\n        return response;\n    }\n",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_token_cancelled_after_the_first_hop_stops_the_follower_before_the_next_hop_is_sent_or_decided"
+      ]
+    },
+    {
+      "id": "m25-intermediate-response-not-disposed",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "    private async Task<HttpResponseMessage> FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken)\n    {\n        EnsureEvaluated(request);\n        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        var redirects = 0;\n        while (TryGetRedirect(request, response, out var location))\n        {\n            redirects++;\n            if (redirects > _settings.MaxAutomaticRedirections)\n                break;\n\n            if (cancellationToken.IsCancellationRequested)\n            {\n                response.Dispose();\n                cancellationToken.ThrowIfCancellationRequested();\n            }\n\n            var status = response.StatusCode;\n            response.Dispose();\n            ApplyRedirect(request, status, location);\n            EvaluateHop(request);\n            response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        }\n\n        return response;\n    }\n",
+      "new": "    private async Task<HttpResponseMessage> FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken)\n    {\n        EnsureEvaluated(request);\n        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        var redirects = 0;\n        while (TryGetRedirect(request, response, out var location))\n        {\n            redirects++;\n            if (redirects > _settings.MaxAutomaticRedirections)\n                break;\n\n            if (cancellationToken.IsCancellationRequested)\n            {\n                response.Dispose();\n                cancellationToken.ThrowIfCancellationRequested();\n            }\n\n            var status = response.StatusCode;\n            ApplyRedirect(request, status, location);\n            EvaluateHop(request);\n            response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);\n        }\n\n        return response;\n    }\n",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "An_intermediate_redirect_response_is_disposed_when_the_hop_is_followed"
+      ]
+    },
+    {
+      "id": "m26-follower-follows-into-the-host-boundary",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "if (!InsideHostBoundary(requestUri) && InsideHostBoundary(header))",
+      "new": "if (!InsideHostBoundary(requestUri) && InsideHostBoundary(header) && _settings.MaxAutomaticRedirections < 0)",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_redirect_from_outside_the_host_boundary_into_it_is_returned_unfollowed_with_the_hop_recorded"
+      ]
+    },
+    {
+      "id": "m27-unknown-warning-not-deduplicated",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressRedirectBindingFilter.cs",
+      "old": "if (NamedUnknownPrimaries.TryAdd(builder.Name + \"\\u0000\" + type, 0))",
+      "new": "if (NamedUnknownPrimaries.TryAdd(builder.Name + \"\\u0000\" + type, 0) || type.Length > 0)",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "An_unknown_primary_type_is_warned_once_per_client_across_factory_rebuilds"
+      ]
+    },
+    {
+      "id": "m28-nested-P2-flag-ignored",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "(!_settings.FollowCrossHost || EgressEvaluatedAuthority.RequiresSameOrigin(request))",
+      "new": "(!_settings.FollowCrossHost)",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "P2_around_a_factory_pipeline_restricts_only_that_request_without_changing_shared_P1"
+      ]
+    },
+    {
+      "id": "m29-sockets-credentials-ignored",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "case SocketsHttpHandler sockets when sockets.Credentials is null:",
+      "new": "case SocketsHttpHandler sockets:",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Credentialed_primaries_keep_the_runtime_redirect_policy"
+      ]
+    },
+    {
+      "id": "m30-primary-auto-redirect-not-disabled",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "http.AllowAutoRedirect = false;",
+      "new": "http.AllowAutoRedirect = true;",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_CreateClient_primary_AllowAutoRedirect_reads_false"
+      ]
+    },
+    {
+      "id": "m31-filter-before-factory-logging",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressServiceCollectionExtensions.cs",
+      "old": "        services.ConfigureHttpClientDefaults(defaults => defaults.Services.ConfigureAll<HttpClientFactoryOptions>(\n            options => options.HttpMessageHandlerBuilderActions.Add(handlers => handlers.AdditionalHandlers.Insert(\n                0,\n                EgressHttp.CreateDelegatingHandler(\n                    EgressFamilies.HttpFactory,\n                    FactorySitePrefix + handlers.Name,\n                    ResolveGuardAndActivateLogging(handlers))))));\n\n        // AddHttpClient's logging filter was registered by ConfigureHttpClientDefaults. Filters run in registration\n        // order around next: our post-next step runs before logging adds its outer scope handler. A normal client\n        // therefore needs no relocation and emits no false removed/moved-handler warning.\n        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, EgressRedirectBindingFilter>());\n",
+      "new": "        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, EgressRedirectBindingFilter>());\n\n        services.ConfigureHttpClientDefaults(defaults => defaults.Services.ConfigureAll<HttpClientFactoryOptions>(\n            options => options.HttpMessageHandlerBuilderActions.Add(handlers => handlers.AdditionalHandlers.Insert(\n                0,\n                EgressHttp.CreateDelegatingHandler(\n                    EgressFamilies.HttpFactory,\n                    FactorySitePrefix + handlers.Name,\n                    ResolveGuardAndActivateLogging(handlers))))));\n\n        // AddHttpClient's logging filter was registered by ConfigureHttpClientDefaults. Filters run in registration\n        // order around next: our post-next step runs before logging adds its outer scope handler. A normal client\n        // therefore needs no relocation and emits no false removed/moved-handler warning.\n\n",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Factory_filter_order_warns_only_when_client_configuration_removed_the_guard"
+      ]
+    },
+    {
+      "id": "m32-per-hop-decision-dropped",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
+      "old": "    private void EvaluateHop(HttpRequestMessage request)\n    {",
+      "new": "    private void EvaluateHop(HttpRequestMessage request)\n    {\n        if (EgressEvaluatedAuthority.Matches(request)) return;",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "EgressHttp_same_host_redirect_records_a_second_decision"
+      ]
+    },
+    {
+      "id": "m33-client-no-follow-marker-dropped",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressHttpClientBuilderExtensions.cs",
+      "old": "builder.Services.AddSingleton(new EgressNoFollowClient(builder.Name));",
+      "new": "// mutation: client-specific no-follow marker omitted",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Never_follow_wins_after_another_wrapper_remembers_the_shared_primary"
+      ]
+    },
+    {
+      "id": "m34-started-sockets-redundant-setter",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressHttpClientBuilderExtensions.cs",
+      "old": "primary is SocketsHttpHandler sockets && sockets.AllowAutoRedirect",
+      "new": "primary is SocketsHttpHandler sockets",
+      "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_no_follow_client_can_share_a_primary_that_Ashlar_already_disabled_and_started"
+      ]
+    }
+  ]
+}
