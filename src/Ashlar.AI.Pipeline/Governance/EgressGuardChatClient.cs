@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.AI;
@@ -16,18 +17,21 @@ namespace Ashlar.AI.Pipeline.Governance;
 /// an inner layer throws synchronously (PolicyGate's denial) still leaves this call synchronously, as it did before.</para>
 /// <para>A <see langword="null"/> request (the in-process LLamaSharp client under <c>local:onnx</c>) delegates without
 /// deciding.</para>
-/// <para><b>Peer responses (SPEC-007 PR 4.5).</b> A response from a target whose key starts with <c>peer:</c>,
-/// in any case, is another agent's output. It is unlabelled until PR 5, so after the response returns — or faults —
-/// the layer observes <see cref="SecurityLabel.SystemHigh"/>. The decision for this call was already recorded, at
-/// the mark from before the response. Model endpoints (<c>local:</c>, <c>cloud:</c>) are not a read. With no frame,
-/// the observe does nothing. An inner layer that throws synchronously, as PolicyGate does, still leaves this call
-/// synchronously and is not observed: no response came back.</para>
 /// <para><b>Ollama cloud models</b> (SPEC-007 PR 4.1). A model whose id ends in <c>-cloud</c> or <c>:cloud</c>, in any
 /// case, runs on ollama.com: the local Ollama daemon relays the conversation there. A call with such a model is
 /// recorded as an external model at <c>https://ollama.com</c>, under the target's site, whatever the target's own
 /// destination. The model is the call's <see cref="ChatOptions.ModelId"/>, or, when that is blank, the inner client's
 /// <see cref="ChatClientMetadata.DefaultModelId"/>, which is the model the default Ollama client sends. The rule is
 /// unconditional: a wrong guess only records a model with that ending as leaving the host.</para>
+/// <para><b>A response from an agent-backed target is a read</b> (SPEC-007 PR 4.5). A model's response is derived
+/// from the prompt, which the caller already holds, so it is not a read. A <c>peer:</c> target, or any target whose key
+/// names no model endpoint (neither <c>local:</c> nor <c>cloud:</c>), may be backed by an agent whose own data is not
+/// derived from our prompt, and until PR 5 carries a label on responses that data is unlabelled: when such a call
+/// ends, however it ends (a faulted task or stream, a synchronous throw under this layer such as PolicyGate's deny),
+/// this layer observes <see cref="SecurityLabel.SystemHigh"/> into the caller's frames (<see cref="EgressSubject.Observe"/>).
+/// A streamed response observes it before each update reaches the caller, and when the stream ends. Nothing in a chat
+/// client says whether an agent answers, so the rule is keyed on the target key: a host's own inner client under a
+/// <c>local:</c> or <c>cloud:</c> key is the host's trusted base. With no frame on the caller's flow it changes nothing.</para>
 /// </remarks>
 public sealed class EgressGuardChatClient : DelegatingChatClient
 {
@@ -36,33 +40,30 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
 
     private readonly IEgressGuard _guard;
     private readonly string? _defaultModelId;
-    private readonly string? _targetKey;
+    private readonly bool _responsesAreReads;
 
-    /// <summary>Creates the guard layer around an inner client. No target key, so a response is not a read.</summary>
+    /// <summary>Creates the guard layer around an inner client.</summary>
     /// <param name="innerClient">The client this layer delegates to.</param>
     /// <param name="request">What each call is reported as, or <see langword="null"/> for an in-process target.</param>
     /// <param name="guard">The guard; <see langword="null"/> means <see cref="EgressGuard.ProcessDefault"/>.</param>
     public EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard = null)
-        : this(innerClient, request, guard, targetKey: null)
+        : this(innerClient, request, guard, responsesAreReads: false)
     {
     }
 
-    /// <summary>Creates the guard layer around an inner client for a governed target key.</summary>
-    /// <param name="innerClient">The client this layer delegates to.</param>
-    /// <param name="request">What each call is reported as, or <see langword="null"/> for an in-process target.</param>
-    /// <param name="guard">The guard; <see langword="null"/> means <see cref="EgressGuard.ProcessDefault"/>.</param>
-    /// <param name="targetKey">
-    /// The governed chat target. A key that starts with <c>peer:</c> observes <see cref="SecurityLabel.SystemHigh"/>
-    /// after a response. Model endpoints are not reads. Required, so this overload does not collide with the
-    /// three-argument constructor.
-    /// </param>
+    /// <summary>Creates the guard layer around the inner client of the target <paramref name="targetKey"/>.</summary>
     public EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard, string? targetKey)
+        : this(innerClient, request, guard, IsAgentBacked(targetKey))
+    {
+    }
+
+    private EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard, bool responsesAreReads)
         : base(innerClient)
     {
         Request = request;
         _guard = guard ?? EgressGuard.ProcessDefault;
         _defaultModelId = DefaultModelIdOf(innerClient);
-        _targetKey = targetKey;
+        _responsesAreReads = responsesAreReads;
     }
 
     /// <summary>
@@ -78,8 +79,21 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         CancellationToken cancellationToken = default)
     {
         Decide(options);
-        var pending = base.GetResponseAsync(messages, options, cancellationToken);
-        return ObservesAgentBackedResponse ? ObserveAfterAsync(pending) : pending;
+        if (!_responsesAreReads)
+            return base.GetResponseAsync(messages, options, cancellationToken);
+
+        Task<ChatResponse> call;
+        try
+        {
+            call = base.GetResponseAsync(messages, options, cancellationToken);
+        }
+        catch
+        {
+            ObserveResponse();
+            throw;
+        }
+
+        return ObservedAsync(call);
     }
 
     /// <inheritdoc />
@@ -89,39 +103,69 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         CancellationToken cancellationToken = default)
     {
         Decide(options);
-        var pending = base.GetStreamingResponseAsync(messages, options, cancellationToken);
-        return ObservesAgentBackedResponse ? ObserveStream(pending) : pending;
+        if (!_responsesAreReads)
+            return base.GetStreamingResponseAsync(messages, options, cancellationToken);
+
+        IAsyncEnumerable<ChatResponseUpdate> updates;
+        try
+        {
+            updates = base.GetStreamingResponseAsync(messages, options, cancellationToken);
+        }
+        catch
+        {
+            ObserveResponse();
+            throw;
+        }
+
+        return ObservedAsync(updates, cancellationToken);
     }
 
-    // A peer response is another agent's output. Model endpoints are not. Request null (in-process local:onnx)
-    // is not a response that left a model endpoint we record, and it is not observed.
-    private bool ObservesAgentBackedResponse =>
-        Request is not null
-        && !string.IsNullOrWhiteSpace(_targetKey)
-        && _targetKey.Trim().StartsWith("peer:", StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// <see langword="true"/> unless <paramref name="targetKey"/> names a model endpoint (<c>local:</c> or
+    /// <c>cloud:</c>, ignoring case): a <c>peer:</c> target, or one of no known kind, may be backed by an agent.
+    /// </summary>
+    internal static bool IsAgentBacked(string? targetKey)
+    {
+        var key = targetKey?.Trim();
+        return key is null
+            || !(key.StartsWith("local:", StringComparison.OrdinalIgnoreCase)
+                || key.StartsWith("cloud:", StringComparison.OrdinalIgnoreCase));
+    }
 
-    private static async Task<ChatResponse> ObserveAfterAsync(Task<ChatResponse> pending)
+    // An agent-backed target's response is unlabelled data the caller has now read (until PR 5 labels responses).
+    private static void ObserveResponse() => EgressSubject.Observe(SecurityLabel.SystemHigh);
+
+    // Runs on the caller's flow (an async method keeps the context it was called with), so the observation reaches the
+    // caller's frames, however the call ends.
+    private static async Task<ChatResponse> ObservedAsync(Task<ChatResponse> call)
     {
         try
         {
-            return await pending.ConfigureAwait(false);
+            return await call.ConfigureAwait(false);
         }
         finally
         {
-            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            ObserveResponse();
         }
     }
 
-    private static async IAsyncEnumerable<ChatResponseUpdate> ObserveStream(IAsyncEnumerable<ChatResponseUpdate> pending)
+    // An iterator's body runs on its consumer's flow, so each observation reaches the frames of the flow that is about
+    // to see the update; the finally covers the end of the stream, a fault, and a consumer that stops early.
+    private static async IAsyncEnumerable<ChatResponseUpdate> ObservedAsync(
+        IAsyncEnumerable<ChatResponseUpdate> updates,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         try
         {
-            await foreach (var update in pending.ConfigureAwait(false))
+            await foreach (var update in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
+            {
+                ObserveResponse();
                 yield return update;
+            }
         }
         finally
         {
-            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            ObserveResponse();
         }
     }
 

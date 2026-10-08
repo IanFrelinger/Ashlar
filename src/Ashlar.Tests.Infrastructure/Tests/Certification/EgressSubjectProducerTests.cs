@@ -30,8 +30,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// which is what the production floor records.</para>
 /// <para><b>What this does not compose.</b> Not the full <c>EgressEnforcementLeakTests</c> switch (that is 4.11).
 /// Not <c>MeaiBackedModel</c> or <c>AddAshlarMeaiPipeline</c>, not <c>VectorDataRagService</c>, not enforcing mode,
-/// not the Bing scenario and not the redirect scenario. The model and the RAG store are fakes. An open read scope
-/// still observes only when it ends (the merged 4.4 rule); a within-call egress is a separate fact.</para>
+/// not the Bing scenario and not the redirect scenario. The model and the RAG store are fakes; the companion
+/// <see cref="EgressProducerTwinTests"/> covers the real RAG and Bing paths. An open read decides SystemHigh;
+/// disposing the scope observes its reported result into the enclosing subject frames.</para>
 /// </remarks>
 [Trait("Category", "Certification")]
 public sealed class EgressSubjectProducerTests
@@ -301,7 +302,7 @@ public sealed class EgressSubjectProducerTests
     }
 
     [Fact]
-    public void A_peer_call_that_throws_synchronously_is_not_observed()
+    public void A_peer_call_that_throws_synchronously_is_observed_at_SystemHigh()
     {
         var guard = new EgressGuard("full");
         var request = new EgressRequest(EgressFamilies.ModelMeai, "meai:peer:node-7", "meai:peer:node-7");
@@ -312,8 +313,8 @@ public sealed class EgressSubjectProducerTests
             Action call = () => _ = peer.GetResponseAsync("hello");
             call.Should().Throw<InvalidOperationException>();
             var after = guard.Evaluate(new EgressRequest(EgressFamilies.ModelMeai, "after-deny", RemoteUri));
-            after.Current.Should().Be(SecurityLabel.Public);
-            after.Access.Allowed.Should().BeTrue();
+            after.Current.Should().Be(SecurityLabel.SystemHigh);
+            after.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
         }
     }
 
@@ -460,7 +461,7 @@ public sealed class EgressSubjectProducerTests
             return Task.FromResult(new ToolResult(new ActionDelta(s.Tick, s.Tick + 1, ["during"]), "payload"));
         }
 
-        public void ReportRead(ReadScope read, ToolResult result) => read.Report(Secret);
+        public void ReportRead(ReadReporter read, ToolResult result) => read.Report(Secret);
     }
 
     private sealed class PonyLevel : IDataSensitivityLevel

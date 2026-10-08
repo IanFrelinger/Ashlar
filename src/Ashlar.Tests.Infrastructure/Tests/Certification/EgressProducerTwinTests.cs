@@ -320,6 +320,16 @@ public sealed class EgressProducerTwinTests
     }
 
     [Fact]
+    public void A_registry_custom_object_with_a_canonical_name_still_counts_as_SystemHigh()
+    {
+        var custom = new ConfigurableSensitivityLevel("Secret", "Secret", 3,
+            AllowsExternalLLM: true, AllowsWebSearch: true, RequiresLocalOnly: false,
+            AllowsNetworkExports: true, "a custom object, not the canonical primitive");
+        var registry = new AliasingSensitivityRegistry("Secret", custom);
+        RAGTool.MapHitLabel("Secret", registry).Should().Be(SecurityLabel.SystemHigh);
+    }
+
+    [Fact]
     public async Task RAGTools_own_egress_during_its_call_is_decided_at_SystemHigh()
     {
         var rag = new StubRag { Hits = [new VectorSearchResult("doc-1", "chunk", 0.9, "Public")], DecideWhileSearching = true };
@@ -816,7 +826,7 @@ public sealed class EgressProducerTwinTests
         public Task<ToolResult> InvokeAsync(ToolCall toolCall, WorldSnapshot s, CancellationToken ct) =>
             Task.FromResult(new ToolResult(new ActionDelta(s.Tick, s.Tick + 1, [Id]), new { text = "labelled result" }));
 
-        public void ReportRead(ReadScope report, ToolResult result)
+        public void ReportRead(ReadReporter report, ToolResult result)
         {
             report.Report(SecurityLabel.Public);
             throw new InvalidOperationException("read, reported, then threw");
@@ -840,7 +850,7 @@ public sealed class EgressProducerTwinTests
         public Task<ToolResult> InvokeAsync(ToolCall toolCall, WorldSnapshot s, CancellationToken ct) =>
             Task.FromResult(new ToolResult(new ActionDelta(s.Tick, s.Tick + 1, [Id]), new { text = "labelled result" }));
 
-        public void ReportRead(ReadScope report, ToolResult result)
+        public void ReportRead(ReadReporter report, ToolResult result)
         {
             // Report first, then try to complete or end the read through whatever the surface offers, then throw: on a
             // surface that could complete the read, the agent's scope would end completed and reported, at Public.
@@ -1039,12 +1049,12 @@ public sealed class EgressProducerTwinTests
         }
     }
 
-    private sealed class AliasingSensitivityRegistry(string alias) : IDataSensitivityRegistry
+    private sealed class AliasingSensitivityRegistry(string alias, IDataSensitivityLevel? replacement = null) : IDataSensitivityRegistry
     {
         private readonly DataSensitivityRegistry _inner = new();
         public void Register(IDataSensitivityLevel level) => _inner.Register(level);
         public bool Unregister(string name) => _inner.Unregister(name);
-        public IDataSensitivityLevel? GetByName(string? name) => name == alias ? DataSensitivityLevels.Public : _inner.GetByName(name);
+        public IDataSensitivityLevel? GetByName(string? name) => name == alias ? replacement ?? DataSensitivityLevels.Public : _inner.GetByName(name);
         public IReadOnlyList<IDataSensitivityLevel> GetAll() => _inner.GetAll();
         public bool CanAccess(IDataSensitivityLevel agentLevel, IDataSensitivityLevel dataLevel) => _inner.CanAccess(agentLevel, dataLevel);
     }
