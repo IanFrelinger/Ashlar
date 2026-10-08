@@ -17,6 +17,7 @@ internal sealed class EgressRedirectBindingFilter : IHttpMessageHandlerBuilderFi
 
     /// <summary>Logs on the <c>Ashlar.Egress</c> category.</summary>
     /// <param name="loggerFactory">The logger factory.</param>
+    /// <param name="neverFollowClients">Named clients with an explicit no-follow redirect policy.</param>
     /// <exception cref="ArgumentNullException"><paramref name="loggerFactory"/> is <see langword="null"/>.</exception>
     public EgressRedirectBindingFilter(ILoggerFactory loggerFactory, IEnumerable<EgressNoFollowClient> neverFollowClients)
     {
