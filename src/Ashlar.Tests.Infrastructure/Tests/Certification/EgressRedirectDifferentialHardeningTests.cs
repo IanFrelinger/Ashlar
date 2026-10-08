@@ -154,6 +154,33 @@ public sealed class EgressRedirectDifferentialHardeningTests : IClassFixture<Egr
     }
 
     [Fact]
+    public async Task A_no_follow_client_can_share_a_primary_that_Ashlar_already_disabled_and_started()
+    {
+        var token = NewToken();
+        var primary = Primary(maxRedirects: 50);
+        var services = new ServiceCollection();
+        services.AddAshlarEgressGuard();
+        services.AddHttpClient("ordinary").ConfigurePrimaryHttpMessageHandler(() => primary);
+        services.AddHttpClient("never").ConfigurePrimaryHttpMessageHandler(() => primary).NeverFollowRedirects();
+        using var provider = services.BuildServiceProvider();
+        var factory = provider.GetRequiredService<IHttpClientFactory>();
+        using var ordinary = factory.CreateClient("ordinary");
+        using (var warm = await ordinary.GetAsync(new Uri($"http://127.0.0.1:{_server.HttpPort}/{token}/warm")))
+            warm.StatusCode.Should().Be(HttpStatusCode.OK);
+        primary.AllowAutoRedirect.Should().BeFalse("Ashlar disabled the primary before its first real send");
+
+        using var restricted = factory.CreateClient("never");
+        var start = new Uri($"http://127.0.0.1:{_server.HttpPort}/{token}/r/302?to={Uri.EscapeDataString($"/{token}/target")}");
+        using var stopped = await restricted.GetAsync(start);
+
+        stopped.StatusCode.Should().Be(HttpStatusCode.Found, "an already-disabled immutable primary needs no second setter call");
+        _server.For(token).Should().HaveCount(2, "only the warmup and the original restricted request were sent");
+        using var followed = await ordinary.GetAsync(start);
+        followed.StatusCode.Should().Be(HttpStatusCode.OK, "the ordinary client still uses the original remembered follow policy");
+        _server.For(token).Should().HaveCount(4);
+    }
+
+    [Fact]
     public async Task A_redirect_to_a_scheme_other_than_http_or_https_is_returned_not_followed()
     {
         var token = NewToken();
