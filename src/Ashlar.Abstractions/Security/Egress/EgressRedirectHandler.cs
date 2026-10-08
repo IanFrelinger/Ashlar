@@ -14,10 +14,12 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// one, and a synchronous <c>Send</c> throws from that hop before this handler runs.</para>
 /// <para>It follows only when the primary originally had <c>AllowAutoRedirect</c> true, at most that primary's
 /// <c>MaxAutomaticRedirections</c>. An <see cref="EgressHttp"/> client follows only the same origin (scheme, host
-/// and port; P2). A factory client follows across origins (P1). Neither route follows a redirect from outside the
-/// host boundary into it (including link-local addresses); that attempted hop is recorded and the 3xx is returned
+/// and port; P2). A factory client follows across origins (P1). This follower never follows a redirect from outside
+/// the host boundary into it (including link-local addresses); that attempted hop is recorded and the 3xx is returned
 /// (owner decision 2026-10-06, O2). HTTPS to HTTP, and any scheme other than http or https, is returned to the caller.
 /// Evaluation records decisions; until PR 4.7 the route does not act on <see cref="EgressDecision.Refused"/>.</para>
+/// <para>Transports whose redirects Ashlar could not disable keep their own behaviour. The guard can report a
+/// changed final authority afterwards, but cannot prevent an inward hop already sent by such a transport.</para>
 /// </remarks>
 internal sealed class EgressRedirectHandler : DelegatingHandler
 {
@@ -75,7 +77,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         EnsureEvaluated(request);
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         var redirects = 0;
-        while (TryGetRedirect(request.RequestUri, response, out var location))
+        while (TryGetRedirect(request, response, out var location))
         {
             redirects++;
             if (redirects > _settings.MaxAutomaticRedirections)
@@ -103,7 +105,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         EnsureEvaluated(request);
         var response = base.Send(request, cancellationToken);
         var redirects = 0;
-        while (TryGetRedirect(request.RequestUri, response, out var location))
+        while (TryGetRedirect(request, response, out var location))
         {
             redirects++;
             if (redirects > _settings.MaxAutomaticRedirections)
@@ -173,8 +175,9 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         _ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);
     }
 
-    private bool TryGetRedirect(Uri? requestUri, HttpResponseMessage response, out Uri location)
+    private bool TryGetRedirect(HttpRequestMessage request, HttpResponseMessage response, out Uri location)
     {
+        var requestUri = request.RequestUri;
         location = null!;
         if (requestUri is null || !requestUri.IsAbsoluteUri || !IsRedirect(response.StatusCode))
             return false;
@@ -203,7 +206,8 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         if (IsHttpsToHttp(requestUri, header))
             return false;
 
-        if (!_settings.FollowCrossHost && !EgressEvaluatedAuthority.SameOrigin(requestUri, header))
+        if ((!_settings.FollowCrossHost || EgressEvaluatedAuthority.RequiresSameOrigin(request))
+            && !EgressEvaluatedAuthority.SameOrigin(requestUri, header))
             return false;
 
         location = header;
@@ -469,6 +473,11 @@ internal static class EgressEvaluatedAuthority
 
 #if NET5_0_OR_GREATER
     private static readonly HttpRequestOptionsKey<Authority> Key = new("Ashlar.Egress.EvaluatedAuthority");
+    private static readonly HttpRequestOptionsKey<bool> SameOriginKey = new("Ashlar.Egress.RequireSameOrigin");
+
+    internal static void RequireSameOrigin(HttpRequestMessage request) => request.Options.Set(SameOriginKey, true);
+
+    internal static bool RequiresSameOrigin(HttpRequestMessage request) => request.Options.TryGetValue(SameOriginKey, out var required) && required;
 
     internal static void Stamp(HttpRequestMessage request, Uri? uri) => request.Options.Set(Key, Authority.From(uri));
 
@@ -479,6 +488,11 @@ internal static class EgressEvaluatedAuthority
         request.Options.TryGetValue(Key, out var stamped) && stamped.Equals(Authority.From(uri));
 #else
     private const string Key = "Ashlar.Egress.EvaluatedAuthority";
+    private const string SameOriginKey = "Ashlar.Egress.RequireSameOrigin";
+
+    internal static void RequireSameOrigin(HttpRequestMessage request) => request.Properties[SameOriginKey] = true;
+
+    internal static bool RequiresSameOrigin(HttpRequestMessage request) => request.Properties.TryGetValue(SameOriginKey, out var value) && value is true;
 
     internal static void Stamp(HttpRequestMessage request, Uri? uri) => request.Properties[Key] = Authority.From(uri);
 

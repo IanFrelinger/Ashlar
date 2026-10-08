@@ -8,7 +8,8 @@ namespace Ashlar.Infrastructure.Egress;
 public static class EgressHttpClientBuilderExtensions
 {
     /// <summary>
-    /// The client never follows a redirect: a 3xx response is returned to the caller. For a client whose destination
+    /// A client over a known factory primary never follows a redirect: a 3xx response is returned to the caller.
+    /// Unknown primary types keep their own behaviour. For a client whose destination
     /// was checked before the send (the SNS signing-certificate fetch checks the certificate URL's host), where any
     /// redirect would reach a host that was never checked.
     /// </summary>

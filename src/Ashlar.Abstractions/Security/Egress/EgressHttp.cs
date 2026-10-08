@@ -147,9 +147,9 @@ public static class EgressHttp
 #pragma warning disable CA2000 // Ownership passes inward: the guard handler owns the redirect handler (and, on netstandard2.0, the hop), which owns inner.
         var withRedirect = EgressRedirects.InsertAbovePrimary(inner, family, site, guard, followCrossHost: false);
 #if NETSTANDARD2_0
-        return new EgressGuardHandler(SynchronousSendRefusedOnNetstandard20Asset.Over(withRedirect), family, site, guard);
+        return new EgressGuardHandler(SynchronousSendRefusedOnNetstandard20Asset.Over(withRedirect), family, site, guard) { RestrictRedirectsToSameOrigin = true };
 #else
-        return new EgressGuardHandler(withRedirect, family, site, guard);
+        return new EgressGuardHandler(withRedirect, family, site, guard) { RestrictRedirectsToSameOrigin = true };
 #endif
 #pragma warning restore CA2000
     }
