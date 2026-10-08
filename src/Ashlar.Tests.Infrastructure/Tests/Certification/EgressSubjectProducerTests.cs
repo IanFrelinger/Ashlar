@@ -200,7 +200,7 @@ public sealed class EgressSubjectProducerTests
     }
 
     [Fact]
-    public async Task An_egress_during_the_tool_call_is_decided_at_the_pre_read_mark()
+    public async Task A_tools_own_egress_during_its_call_is_decided_at_SystemHigh()
     {
         var guard = new EgressGuard("full");
         var during = new EgressDuringReadTool(guard);
@@ -218,10 +218,10 @@ public sealed class EgressSubjectProducerTests
         during.During.Should().NotBeNull();
         var mid = during.During!;
         mid.CurrentBasis.Should().Be("subject:agent:during");
-        mid.Current.Should().Be(SecurityLabel.Public,
-            "an open scope observes only when it ends, so this send is still at the floor");
-        mid.Access.Allowed.Should().BeTrue();
-        mid.Access.Reason.Should().NotBe(AccessDenialReason.SystemHighData);
+        mid.Current.Should().Be(SecurityLabel.SystemHigh,
+            "an open read pins every inner decision at SystemHigh until disposal");
+        mid.Access.Allowed.Should().BeFalse();
+        mid.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
         mid.Access.Reason.Should().NotBe(AccessDenialReason.LevelTooLow);
 
         model.Decisions.Should().HaveCount(2);
@@ -405,7 +405,7 @@ public sealed class EgressSubjectProducerTests
             string query, int maxResults, double minScore, string? maxSensitivityLevelName, CancellationToken cancellationToken = default)
         {
             if (_refuse)
-                throw new ArgumentException("zero magnitude");
+                throw VectorMath.UnrankableQuery("query");
             return Task.FromResult(_hits);
         }
 
