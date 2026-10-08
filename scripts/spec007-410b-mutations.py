@@ -5,6 +5,7 @@ Every mutant changes one exact source fragment, observes test assertion failures
 restores the tracked source, proves a clean tree, and reruns the same twins green.
 The harness clone is disposable; logs stream to the caller for durable evidence.
 """
+import argparse
 import re
 import subprocess
 from pathlib import Path
@@ -38,6 +39,11 @@ def clean():
     print("== git status --porcelain: empty ==", flush=True)
 
 
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--baseline-only", action="store_true", help="run net10/net8 infrastructure and net10 CLI twins, without mutation")
+parser.add_argument("--ids", help="comma-separated mutant identifiers; default: all")
+args = parser.parse_args()
+
 clean()
 sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 for project, filter_text in [(INFRA, FILTER), (CLI, CLI_FILTER)]:
@@ -48,6 +54,9 @@ for project, filter_text in [(INFRA, FILTER), (CLI, CLI_FILTER)]:
 rc, failed, passed, total = run(framework="net8.0")
 if rc or failed:
     raise RuntimeError("net8.0 baseline is not green")
+
+if args.baseline_only:
+    raise SystemExit(0)
 
 mutants = [
     ("api-missing-addresses", "application/src/Ashlar.API/Security/LoopbackListenerVerifier.cs", "if (_profile?.Value.RequiresLoopback == true && (addresses is null || addresses.Count == 0))", "if (_profile?.Value.RequiresLoopback == true && addresses is { Count: < 0 })", INFRA),
@@ -70,6 +79,13 @@ mutants = [
     ("mesh-anyip", "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs", "ListenLoopback(k, ConfigureListen);", "k.ListenAnyIP(_settings.Port, ConfigureListen);", CLI),
     ("mesh-refusal", "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs", "if (loopbackRefusal is not null)", 'if (loopbackRefusal == "mutation")', CLI),
 ]
+
+if args.ids:
+    selected = set(args.ids.split(","))
+    unknown = selected - {mutation[0] for mutation in mutants}
+    if unknown:
+        raise ValueError("unknown mutant ids: " + ", ".join(sorted(unknown)))
+    mutants = [mutation for mutation in mutants if mutation[0] in selected]
 
 for ident, filename, old, new, project in mutants:
     clean()
