@@ -205,21 +205,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Changed
 
-- **Automatic redirects on Ashlar HTTP clients are followed by Ashlar, one hop at a time (SPEC-007 PR 4.3).**
-  Still report-only: `EgressDecision.Refused` stays false and a decision does not stop a send. On every
-  `HttpClientHandler` or `SocketsHttpHandler` Ashlar builds or binds, `AllowAutoRedirect` reads false. The
-  per-hop behaviour is Ashlar's follower, using the primary's own previous settings (whether it followed, and
-  its maximum): a relative `Location` is resolved and keeps the fragment; HTTPS to HTTP and any scheme other
-  than http or https is returned; 301, 302 and 303 on POST become GET and drop the content (303 keeps HEAD);
-  307 and 308 keep the method and content; `Authorization` is cleared on a followed redirect. An `EgressHttp`
-  client follows only a same-host redirect (P2) and returns a cross-host 3xx without requesting the second
-  host. Every factory client follows a cross-host redirect and each hop is evaluated again (P1). A primary
-  type Ashlar cannot flip is left alone; if the response URI's authority is not the one evaluated before the
-  send, that authority is evaluated after the response and a warning says the body may already have gone.
-  The SNS signing clients (`ashlar-sns-signing` on the API host and the commercial fleet host) set
-  `AllowAutoRedirect` false on the existing primary and do not follow. The Bedrock runtime client sets
-  `AmazonBedrockRuntimeConfig.AllowAutoRedirect` false; the SDK still owns that HTTP stack, so a redirect it
-  followed anyway is not re-evaluated inside the SDK. The default MEAI Ollama client is unchanged from PR 4.1.
+- **HTTP redirect boundaries hardened (SPEC-007 PR 4.3/4.3b).** `EgressHttp` follows only the same
+  origin (scheme, host and port; P2), and factory clients follow across origins (P1). On both routes, Ashlar’s
+  follower returns a remote redirect into Host or link-local unfollowed and record the attempted hop (owner O2, 2026-10-06).
+  The follower preserves the primary's original setting and limit, resolves relative locations and fragments,
+  refuses HTTPS-to-HTTP and non-HTTP targets, rewrites methods as the runtime does, clears `Authorization`,
+  disposes intermediate responses, and checks cancellation before another hop. Each followed hop is decided.
+  Credentialed, unknown, already-started or immutable transports retain their own redirects, so only a
+  changed final origin can be reported afterwards. Composite and netstandard2.0 chains avoid duplicate
+  followers. Factory binding restores a removed guard (7303), leaves normal logging scopes quiet, and warns
+  once per unknown client/type on AG/SW (7304). SNS clients use the configure-existing `NeverFollowRedirects`
+  helper; Bedrock's `RuntimeConfig` disables SDK redirects. Real Kestrel, API and Fleet twins cover these paths.
+  Decisions remain report-only by default; recording an enforcing guard's refusal does not stop a send until
+  PR 4.7. See EgressInventory for custom-header, DNS, transport-ownership and post-send limits.
 - **AirGapped stays on local execution, and AirGapped and SecureWorkstation inbound listeners must bind loopback (SPEC-007 PR 4.10).**
   The egress guard is still report-only. Responses on inbound connections are not mediated until PR 5's CanRead
   at the server seams. What this release enforces at boot and at routing:

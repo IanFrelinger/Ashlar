@@ -97,11 +97,19 @@ The status line above and the starting prompt are the owner's, as written; the s
   or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
   decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
   record published when a client is built would report a refused egress where none happened.
-- **PR 4.3** (#722): known primaries Ashlar builds or binds have `AllowAutoRedirect` false, and an internal
-  follower applies that primary's own redirect settings. An `EgressHttp` client follows only a same-host redirect
-  (P2); a factory client follows a cross-host redirect and each hop is evaluated again (P1). HTTPS to HTTP is not
-  followed. `Authorization` is cleared on a followed redirect. Report-only: `Refused` stays false. On the
-  netstandard2.0 asset the synchronous-send hop is unchanged and still throws before the follower runs.
+- **PR 4.3** (#722, merge `904cf909a`; hardened in PR 4.3b): an unstarted, credential-free known
+  primary has `AllowAutoRedirect` false and an internal follower applies its original settings. `EgressHttp`
+  follows only the same origin (scheme, host and port; P2); factory clients follow across origins (P1).
+  On both routes, Ashlar’s follower returns an outside-to-Host or link-local redirect unfollowed and records the hop (owner O2,
+  2026-10-06), including `*.localhost`, unix and npipe. HTTPS to HTTP and non-HTTP schemes are not followed.
+  Every followed hop is decided again, including a same-origin hop; `Authorization` is cleared. Credentials,
+  unknown primary types, already-started handlers and immutable chains keep their transport's behaviour;
+  only a changed final authority can be reported afterwards. Factory binding restores a removed guard,
+  mediates composite primaries and avoids duplicate followers; unknown-type warning 7304 is AG/SW-only,
+  once per client/type, and a normal logging scope emits no relocation warning. The SNS clients use the
+  configure-existing `NeverFollowRedirects` helper, and Bedrock's `RuntimeConfig` disables SDK redirects.
+  Decisions remain report-only by default; an explicit enforcing guard can record `Refused`, but the route
+  acts on it only in PR 4.7. The netstandard2.0 synchronous-send hop still refuses before the follower runs.
 - **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
