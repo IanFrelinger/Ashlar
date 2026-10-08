@@ -343,6 +343,16 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
         act.Should().Throw<OptionsValidationException>().WithMessage("*SecureWorkstation*HTTP*");
     }
 
+    [Fact]
+    public void The_legacy_MCP_validator_constructor_keeps_its_marker_only_contract()
+    {
+        using var provider = Compose(AshlarDeploymentProfile.SecureWorkstation);
+        var options = new AshlarMcpServerOptions { Enabled = true, ServerName = "legacy-stdio" };
+        new ValidateAshlarMcpServerOptions().Validate(null, options).Succeeded.Should().BeTrue();
+        new ValidateAshlarMcpServerOptions(new[] { new AshlarMcpHttpTransportMarker() })
+            .Validate(null, options).Failed.Should().BeTrue();
+    }
+
     private static ServiceProvider Compose(AshlarDeploymentProfile profile, Action<IServiceCollection>? after = null)
     {
         EgressProcessStateScope.Reset();

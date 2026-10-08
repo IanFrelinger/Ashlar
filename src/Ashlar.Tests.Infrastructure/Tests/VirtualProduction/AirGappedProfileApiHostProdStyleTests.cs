@@ -1,6 +1,10 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http.Features;
+using Ashlar.API.Security;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Ashlar.Abstractions;
@@ -201,4 +205,38 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             (await act.Should().ThrowAsync<Exception>()).Which.ToString().Should().Contain("loopback");
         }
     }
+    [Theory]
+    [InlineData("air-gapped", false, false)]
+    [InlineData("air-gapped", true, false)]
+    [InlineData("secure-workstation", false, false)]
+    [InlineData("secure-workstation", true, false)]
+    [InlineData("full", false, true)]
+    [InlineData("full", true, true)]
+    public async Task A_restricted_server_without_published_addresses_fails_closed(string profile, bool featurePresent, bool succeeds)
+    {
+        using var server = new UnreportedServer(featurePresent);
+        var verifier = new LoopbackListenerVerifier(server,
+            Options.Create(new AshlarResolvedDeploymentProfileOptions { Profile = profile }));
+        var act = () => verifier.StartedAsync(CancellationToken.None);
+        if (succeeds)
+            await act.Should().NotThrowAsync();
+        else
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*no bound addresses*");
+    }
+
+    private sealed class UnreportedServer : IServer
+    {
+        public UnreportedServer(bool featurePresent)
+        {
+            if (featurePresent)
+                Features.Set<IServerAddressesFeature>(new ServerAddressesFeature());
+        }
+
+        public IFeatureCollection Features { get; } = new FeatureCollection();
+        public Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken cancellationToken) where TContext : notnull
+            => Task.CompletedTask;
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public void Dispose() { }
+    }
+
 }

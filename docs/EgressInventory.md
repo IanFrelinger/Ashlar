@@ -30,7 +30,7 @@ This file lists every path by which a request or data leaves an Ashlar process, 
 
 - **PR 4.10b hygiene hardening.** The API validates `urls`, `Kestrel:Endpoints:*:Url`, and port-only
   `http_ports`/`https_ports` wildcard candidates before binding. A hosted lifecycle verifier also checks actual
-  Kestrel addresses after start. Bare and bracketed IPv6 loopback, including mapped IPv4 loopback, are accepted;
+  Kestrel addresses after start; missing/empty published addresses fail closed on AG/SW. Bare and bracketed IPv6 loopback, including mapped IPv4 loopback, are accepted;
   mesh serve still faults for a missing/non-loopback bind. AirGapped multi-frame vision rejects a cloud resolve
   before passing any frames to the inner provider. A later options `Configure` cannot lower the `AddAshlar`
   snapshot because `PostConfigure` reasserts it. SecureWorkstation refuses the SDK HTTP MCP transport even if a

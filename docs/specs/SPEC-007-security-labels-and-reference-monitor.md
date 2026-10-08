@@ -162,7 +162,7 @@ The status line above and the starting prompt are the owner's, as written; the s
 
 - **PR 4.10b** hardens the live AirGapped/SecureWorkstation inbound rule. Port-only `http_ports` and
   `https_ports` settings expand to wildcard listeners when `urls` is absent and fail pre-bind validation.
-  The API also checks `IServerAddressesFeature` after Kestrel starts, including listeners configured in code.
+  The API also checks `IServerAddressesFeature` after Kestrel starts, including listeners configured in code; missing/empty published addresses fail closed on AG/SW.
   Bare `::1`, bracketed `[::1]`, and IPv4-mapped loopback are accepted; non-HTTP listener schemes are refused.
   Mesh serve keeps the fail-boot rule for a missing or non-loopback bind; an explicit loopback bind serves locally.
   AirGapped multi-frame vision refuses a nonlocal resolved provider before the inner factory receives frames.

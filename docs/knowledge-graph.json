@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 779,
-    "declared_facts": 4936,
+    "declared_facts": 4940,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4780,7 +4780,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AirGappedSecureWorkstationHygieneCertificationTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 17,
+      "declared_facts": 18,
       "in_cert_gate_filter": true
     },
     {
@@ -5102,7 +5102,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/DeploymentProfileReadConventionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 2,
+      "declared_facts": 4,
       "in_cert_gate_filter": true
     },
     {
@@ -7188,7 +7188,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/AirGappedProfileApiHostProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.VirtualProduction",
-      "declared_facts": 7,
+      "declared_facts": 8,
       "in_cert_gate_filter": false
     },
     {

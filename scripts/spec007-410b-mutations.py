@@ -15,8 +15,8 @@ FILTER = "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests
 CLI_FILTER = "FullyQualifiedName~MeshServeLoopbackProfileTests"
 
 
-def run(project=INFRA, filter_text=FILTER):
-    command = ["dotnet", "test", project, "--framework", "net10.0", "--filter", filter_text, "--nologo", "-v", "minimal"]
+def run(project=INFRA, filter_text=FILTER, framework="net10.0"):
+    command = ["dotnet", "test", project, "--framework", framework, "--filter", filter_text, "--nologo", "-v", "minimal"]
     print("== runner: " + " ".join(command), flush=True)
     result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     print(result.stdout, flush=True)
@@ -45,7 +45,12 @@ for project, filter_text in [(INFRA, FILTER), (CLI, CLI_FILTER)]:
     if rc or failed:
         raise RuntimeError("baseline is not green")
 
+rc, failed, passed, total = run(framework="net8.0")
+if rc or failed:
+    raise RuntimeError("net8.0 baseline is not green")
+
 mutants = [
+    ("api-missing-addresses", "application/src/Ashlar.API/Security/LoopbackListenerVerifier.cs", "if (_profile?.Value.RequiresLoopback == true && (addresses is null || addresses.Count == 0))", "if (_profile?.Value.RequiresLoopback == true && addresses is { Count: < 0 })", INFRA),
     ("loopback-http-ports", "src/Ashlar.Infrastructure/AshlarInboundListenerPolicy.cs", '            AddPorts("http", configuration["http_ports"]);\n            AddPorts("https", configuration["https_ports"]);', "            // mutation: ignore port-only binding", INFRA),
     ("api-prebind", "application/src/Ashlar.API/Program.cs", 'AshlarInboundListenerPolicy.CollectEndpoints(\n        builder.Configuration,\n        builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey))', "Array.Empty<string>()", INFRA),
     ("api-postbind", "application/src/Ashlar.API/Security/LoopbackListenerVerifier.cs", "var violation = AshlarInboundListenerPolicy.Refusal(_profile?.Value, addresses);", "string? violation = null;", INFRA),

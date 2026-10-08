@@ -8,8 +8,9 @@ namespace Ashlar.API.Security;
 
 /// <summary>
 /// Fails the API's start when, on AirGapped or SecureWorkstation, Kestrel bound a non-loopback address (SPEC-007 PR
-/// 4.10, owner decision Q6). It runs after the server has started, so it sees every listener, including one a host
-/// adds in code; the configuration check in <c>Program.cs</c> refuses the configured ones before anything binds.
+/// 4.10, owner decision Q6). It checks the server's published addresses after start, including Kestrel listeners
+/// added in code, and fails closed if a restricted host publishes no addresses. The configuration check in
+/// <c>Program.cs</c> refuses configured non-loopback listeners before anything binds.
 /// </summary>
 internal sealed class LoopbackListenerVerifier : IHostedLifecycleService
 {
@@ -28,7 +29,9 @@ internal sealed class LoopbackListenerVerifier : IHostedLifecycleService
     /// <inheritdoc />
     public Task StartedAsync(CancellationToken cancellationToken)
     {
-        var addresses = _server.Features.Get<IServerAddressesFeature>()?.Addresses ?? (ICollection<string>)[];
+        var addresses = _server.Features.Get<IServerAddressesFeature>()?.Addresses;
+        if (_profile?.Value.RequiresLoopback == true && (addresses is null || addresses.Count == 0))
+            throw new InvalidOperationException("Cannot verify loopback listeners: the server published no bound addresses.");
         var violation = AshlarInboundListenerPolicy.Refusal(_profile?.Value, addresses);
         return violation is null ? Task.CompletedTask : throw new InvalidOperationException(violation);
     }

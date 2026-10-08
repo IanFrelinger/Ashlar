@@ -1,14 +1,15 @@
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
-/// SPEC-007 PR 4.10 (design §2.7): the deployment profile reaches Infrastructure and the application hosts only as the
-/// value <c>AddAshlar</c> registers (<c>AshlarResolvedDeploymentProfileOptions</c>); none of them
-/// reads <c>AshlarDeploymentProfileEnvironment</c> or <c>ASHLAR_DEPLOYMENT_PROFILE</c> itself. Until PR 4.3 this was a
-/// compile-time fact (Abstractions granted no <c>InternalsVisibleTo</c> to Infrastructure); 4.3 grants it, so from then
-/// on the rule is this convention.
+/// SPEC-007 PR 4.10b: source syntax pins the resolved-profile and HTTP MCP integration conventions.
+/// Identifiers include alias/static imports, and invocation names are independent of whitespace.
+/// This is a source convention, not a defense against reflection or dynamically constructed names.
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class DeploymentProfileReadConventionTests
@@ -17,70 +18,75 @@ public sealed class DeploymentProfileReadConventionTests
     public void Production_HTTP_MCP_callers_use_the_Ashlar_transport_wrapper()
     {
         var root = TestPaths.FindRepoRoot();
-        var calls = new List<string>();
-        var scanned = 0;
-        foreach (var relative in new[] { "src", "application/src", "commercial" })
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(root, relative), "*.cs", SearchOption.AllDirectories))
-        {
-            var path = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
-            if (path.Split('/').Any(p => p is "bin" or "obj" || p.Contains("Tests", StringComparison.Ordinal) || p == "tests"))
-                continue;
-            scanned++;
-            if (File.ReadLines(file).Any(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal) &&
-                line.Contains(".WithHttpTransport(", StringComparison.Ordinal)))
-                calls.Add(path);
-        }
-        scanned.Should().BeGreaterThan(300);
+        var files = ProductionFiles(root, new[] { "src", "application/src", "commercial" }).ToArray();
+        files.Length.Should().BeGreaterThan(300, "the scan must read the production tree");
+        var calls = files.Where(file => CallsSdkHttpTransport(Parse(File.ReadAllText(file))))
+            .Select(file => Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/'));
         calls.Should().Equal(new[] { "src/Ashlar.Mcp.Server/AshlarMcpServerServiceCollectionExtensions.cs" },
-            "only the wrapper may call the third-party transport directly; the validator also detects that transport at runtime");
+            "only the wrapper may call the third-party transport directly; runtime validation also detects HTTP");
     }
 
-    private static readonly string[] Roots =
-    [
-        Path.Combine("src", "Ashlar.Infrastructure"),
-        Path.Combine("application", "src", "Ashlar.API"),
-        Path.Combine("application", "src", "Ashlar.CLI"),
-    ];
-
-    private static readonly string[] Forbidden = ["AshlarDeploymentProfileEnvironment.", "ASHLAR_DEPLOYMENT_PROFILE"];
-
-    /// <summary>Non-vacuity floor: the three roots hold far more production files than this.</summary>
-    private const int ScannedFilesFloor = 300;
-
     [Fact]
-    public void Infrastructure_the_API_and_the_CLI_never_read_the_profile_source()
+    public void Infrastructure_the_API_and_the_CLI_never_reference_the_profile_source()
     {
         var root = TestPaths.FindRepoRoot();
-        var scanned = 0;
-        var offenders = new List<string>();
-        foreach (var relative in Roots)
+        var files = ProductionFiles(root, new[] { "src/Ashlar.Infrastructure", "application/src/Ashlar.API", "application/src/Ashlar.CLI" }).ToArray();
+        files.Length.Should().BeGreaterThanOrEqualTo(300, "the scan must read all three production roots");
+        var offenders = files.Where(file => ReferencesProfileSource(Parse(File.ReadAllText(file))))
+            .Select(file => Path.GetRelativePath(root, file));
+        offenders.Should().BeEmpty("these layers obtain the deployment profile through resolved options from Hosting");
+    }
+
+    [Theory]
+    [InlineData("class C { object P = AshlarDeploymentProfileEnvironment . Effective(\"full\"); }", true)]
+    [InlineData("using P = Ashlar.Abstractions.AshlarDeploymentProfileEnvironment; class C { object X = P.Effective(\"full\"); }", true)]
+    [InlineData("using static Ashlar.Abstractions.AshlarDeploymentProfileEnvironment; class C { object X = Effective(\"full\"); }", true)]
+    [InlineData("class C { object X = Environment.GetEnvironmentVariable(\"ASHLAR_DEPLOYMENT_PROFILE\"); }", true)]
+    [InlineData("// AshlarDeploymentProfileEnvironment.Effective and ASHLAR_DEPLOYMENT_PROFILE\nclass C { }", false)]
+    [InlineData("class C { object X = options.Value.Profile; }", false)]
+    public void Profile_source_syntax_fixtures(string code, bool expected)
+        => ReferencesProfileSource(Parse(code)).Should().Be(expected);
+
+    [Theory]
+    [InlineData("builder . WithHttpTransport ();", true)]
+    [InlineData("WithHttpTransport(builder);", true)]
+    [InlineData("Alias.WithHttpTransport(builder);", true)]
+    [InlineData("builder?.WithHttpTransport();", true)]
+    [InlineData("builder.WithAshlarHttpTransport();", false)]
+    [InlineData("// builder.WithHttpTransport();", false)]
+    public void MCP_invocation_syntax_fixtures(string code, bool expected)
+        => CallsSdkHttpTransport(Parse(code)).Should().Be(expected);
+
+    private static SyntaxNode Parse(string source) => CSharpSyntaxTree.ParseText(source).GetRoot();
+
+    private static bool ReferencesProfileSource(SyntaxNode root) =>
+        root.DescendantNodes().OfType<IdentifierNameSyntax>()
+            .Any(name => name.Identifier.ValueText == "AshlarDeploymentProfileEnvironment") ||
+        root.DescendantNodes().OfType<LiteralExpressionSyntax>()
+            .Any(literal => literal.IsKind(SyntaxKind.StringLiteralExpression) && literal.Token.ValueText == "ASHLAR_DEPLOYMENT_PROFILE");
+
+    private static bool CallsSdkHttpTransport(SyntaxNode root) =>
+        root.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(call =>
+            (call.Expression switch
+            {
+                MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
+                MemberBindingExpressionSyntax member => member.Name.Identifier.ValueText,
+                SimpleNameSyntax name => name.Identifier.ValueText,
+                _ => null,
+            }) == "WithHttpTransport");
+
+    private static IEnumerable<string> ProductionFiles(string root, IEnumerable<string> roots)
+    {
+        foreach (var relative in roots)
         {
             var directory = Path.Combine(root, relative);
             Directory.Exists(directory).Should().BeTrue($"{relative} is a scan root");
             foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
             {
                 var parts = Path.GetRelativePath(root, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                if (parts.Contains("bin") || parts.Contains("obj"))
-                    continue;
-                scanned++;
-                var lineNumber = 0;
-                foreach (var line in File.ReadLines(file))
-                {
-                    lineNumber++;
-                    var code = line.TrimStart();
-                    if (code.StartsWith("//", StringComparison.Ordinal))
-                        continue; // a doc or line comment may name the variable to say that it is not read
-                    foreach (var token in Forbidden)
-                    {
-                        if (code.Contains(token, StringComparison.Ordinal))
-                            offenders.Add($"{Path.GetRelativePath(root, file)}:{lineNumber}: {token}");
-                    }
-                }
+                if (!parts.Any(part => part is "bin" or "obj" or "tests" || part.Contains("Tests", StringComparison.Ordinal)))
+                    yield return file;
             }
         }
-
-        scanned.Should().BeGreaterThanOrEqualTo(ScannedFilesFloor, "the scan must read the tree");
-        offenders.Should().BeEmpty(
-            "the profile reaches Infrastructure, Ashlar.API and Ashlar.CLI only as the AshlarResolvedDeploymentProfileOptions value AddAshlar registers (SPEC-007 PR 4.10, design §2.7)");
     }
 }

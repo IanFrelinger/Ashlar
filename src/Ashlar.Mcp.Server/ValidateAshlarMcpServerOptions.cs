@@ -19,12 +19,13 @@ public sealed class ValidateAshlarMcpServerOptions : IValidateOptions<AshlarMcpS
     /// Creates the validator. DI supplies every <see cref="AshlarMcpHttpTransportMarker"/>; stdio registers none.
     /// </summary>
     public ValidateAshlarMcpServerOptions(IEnumerable<AshlarMcpHttpTransportMarker>? httpTransports = null)
-        : this(httpTransports, null)
     {
+        _httpTransport = httpTransports is not null && httpTransports.Any();
     }
 
     /// <summary>Creates the validator with the container's transport-registration query.</summary>
     public ValidateAshlarMcpServerOptions(IEnumerable<AshlarMcpHttpTransportMarker>? httpTransports, IServiceProviderIsService? services)
+        : this(httpTransports)
     {
         var handler = Type.GetType("ModelContextProtocol.AspNetCore.StreamableHttpHandler, ModelContextProtocol.AspNetCore", throwOnError: false);
         // The wrapper marker and the SDK's actual transport registration both identify HTTP. If the SDK changes
