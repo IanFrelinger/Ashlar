@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 776,
-    "declared_facts": 4915,
+    "test_files_declaring_facts": 777,
+    "declared_facts": 4918,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4747,6 +4747,13 @@
       "namespace": "Ashlar.Tests.Infrastructure.Tests.CLI",
       "declared_facts": 11,
       "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AdmissionGateDemoTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 3,
+      "in_cert_gate_filter": true
     },
     {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AdversarialCorpusTests.cs",
