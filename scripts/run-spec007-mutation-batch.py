@@ -8,6 +8,8 @@ Fixture tests may import these functions on the host without invoking dotnet.
 Run manually: python tests/scripts/spec007-mutation-runner.test.py
 If expected_failures is supplied, it is a nonempty list of test-name fragments:
 EVERY fragment must match at least one actual failed test (not merely any fragment).
+An xUnit RunInfo Error is accepted only for its single-line [FAIL] diagnostic
+when the entire test name matches an independently validated Failed result.
 """
 import argparse
 import base64
@@ -87,7 +89,17 @@ def read_result(path, returncode, console=""):
     if summary.get("outcome") != ("Failed" if failures else "Completed"):
         raise InvalidRun("aborted or inconsistent run summary")
     for info in summary.findall("./{*}RunInfos/{*}RunInfo"):
-        if info.get("outcome") not in ("Passed", "Completed", "Warning"):
+        if info.get("outcome") in ("Passed", "Completed", "Warning"):
+            continue
+        # xUnit repeats ordinary assertion failures as Error RunInfos. Allow
+        # only that observed diagnostic, including the complete theory case;
+        # a crashed/aborted runner or an unrelated error still invalidates it.
+        texts = info.findall("./{*}Text")
+        diagnostic = re.fullmatch(
+            r"\[xUnit\.net [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+\][ \t]+([^\r\n]+) \[FAIL\]",
+            texts[0].text or "") if len(texts) == 1 and len(texts[0]) == 0 else None
+        if (info.get("outcome") != "Error" or diagnostic is None
+                or diagnostic.group(1) not in failures):
             raise InvalidRun("run-level failure is not a mutation kill")
     if (returncode == 0) != (not failures):
         raise InvalidRun("process exit and test results disagree")
