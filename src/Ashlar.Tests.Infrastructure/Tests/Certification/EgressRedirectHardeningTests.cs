@@ -184,6 +184,33 @@ public sealed class EgressRedirectHardeningTests
     }
 
     [Fact]
+    public async Task P2_around_a_factory_pipeline_restricts_only_that_request_without_changing_shared_P1()
+    {
+        var name = "nested-policies-" + NewId();
+        var primary = new RedirectingClientHandler(new Recorder(_ => false), request =>
+            request.RequestUri!.Host == "first.example"
+                ? Redirect(HttpStatusCode.TemporaryRedirect, "https://second.example/target")
+                : null);
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(Guard);
+        services.AddAshlarEgressGuard();
+        services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => primary);
+        using var provider = services.BuildServiceProvider();
+        var pipeline = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler(name);
+        using var restricted = EgressHttp.CreateClient(pipeline, EgressFamilies.Http, NewSite(), Guard);
+
+        using var stopped = await restricted.GetAsync("https://first.example/start");
+        stopped.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect, "the outer EgressHttp route promises full-origin P2");
+        primary.Sends.Should().ContainSingle();
+        Chain(HandlerOf(restricted)).Count(h => h.GetType().Name == FollowerTypeName).Should().Be(1);
+
+        using var factory = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+        using var followed = await factory.GetAsync("https://first.example/start");
+        followed.StatusCode.Should().Be(HttpStatusCode.OK, "a different request through the shared factory pipeline retains P1");
+        primary.Sends.Should().HaveCount(3);
+    }
+
+    [Fact]
     public void On_AirGapped_an_unknown_factory_primary_is_named_in_a_warning_and_on_Full_it_is_not()
     {
         foreach (var (profile, expected) in new[] { ("air-gapped", 1), ("full", 0) })
