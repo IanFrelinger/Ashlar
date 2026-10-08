@@ -17,6 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — SPEC-007 PR 4.10b inbound and hygiene hardening
+
+- AirGapped/SecureWorkstation refuse port-only wildcard API listeners before binding and verify actual Kestrel
+  addresses after start. Bare IPv6 and mapped loopback binds work; mesh serve keeps its explicit-bind fail-boot rule.
+- AirGapped multi-frame vision rejects a cloud resolution before sending frames. The resolved profile's
+  `PostConfigure` prevents ordinary later options configuration from lowering the captured profile.
+- SecureWorkstation also detects direct SDK MCP HTTP registration. Added runtime twins and profile/MCP conventions.
+- Recorded the post-bind window, composition snapshot, host-controlled options overrides, and Bedrock's
+  boot/first-resolution validation timing; inbound response mediation remains PR 5.
+
+
 ### Added
 
 - **CI: Full Platform Readiness no longer push-triggers on `cursor/**`.** Branch protection uses the PR
