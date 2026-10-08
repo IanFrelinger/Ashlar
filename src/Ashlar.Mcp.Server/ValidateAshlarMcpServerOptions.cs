@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ashlar.Mcp.Server;
 
@@ -17,9 +18,13 @@ public sealed class ValidateAshlarMcpServerOptions : IValidateOptions<AshlarMcpS
     /// <summary>
     /// Creates the validator. DI supplies every <see cref="AshlarMcpHttpTransportMarker"/>; stdio registers none.
     /// </summary>
-    public ValidateAshlarMcpServerOptions(IEnumerable<AshlarMcpHttpTransportMarker>? httpTransports = null)
+    public ValidateAshlarMcpServerOptions(IEnumerable<AshlarMcpHttpTransportMarker>? httpTransports = null, IServiceProviderIsService? services = null)
     {
-        _httpTransport = httpTransports is not null && httpTransports.Any();
+        var handler = Type.GetType("ModelContextProtocol.AspNetCore.StreamableHttpHandler, ModelContextProtocol.AspNetCore", throwOnError: false);
+        // The wrapper marker and the SDK's actual transport registration both identify HTTP. If the SDK changes
+        // its marker or DI cannot be queried, fail closed on SecureWorkstation; the stdio twin pins this contract.
+        _httpTransport = (httpTransports is not null && httpTransports.Any()) ||
+            services is null || handler is null || services.IsService(handler);
     }
 
     /// <inheritdoc />

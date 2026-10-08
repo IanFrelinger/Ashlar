@@ -135,7 +135,8 @@ public static partial class AshlarServiceCollectionExtensions
         // the strictest profile this process has noted.
         var notedProfile = AshlarDeploymentProfileEnvironment.Effective(canonicalProfile) ?? canonicalProfile;
         services.AddOptions<AshlarResolvedDeploymentProfileOptions>()
-            .Configure(resolved => resolved.Profile = notedProfile);
+            .Configure(resolved => resolved.Profile = notedProfile)
+            .PostConfigure(resolved => resolved.Profile = notedProfile);
         // SPEC-007 PR 4.6: ASHLAR_EGRESS_MODE is read once per process (here, or at the first decision of a process
         // that never runs AddAshlar), and AshlarHostingOptions.EgressMode can only raise it.
         var egressOverride = EgressEnforcement.NoteHostingOption(options.EgressMode);
