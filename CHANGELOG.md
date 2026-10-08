@@ -17,7 +17,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
-### Fixed — SPEC-007 PR 4.10b inbound and hygiene hardening
+### Fixed — SPEC-007 PR 4.10b inbound and hygiene hardening (#725)
 
 - AirGapped/SecureWorkstation refuse port-only wildcard API listeners before binding and verify actual Kestrel
   addresses after start. Bare IPv6 and mapped loopback binds work; mesh serve keeps its explicit-bind fail-boot rule.
@@ -253,8 +253,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - MCP over HTTP fails boot on SecureWorkstation. Stdio still boots. AirGapped still refuses an enabled MCP
     server. Hosts select HTTP with `WithAshlarHttpTransport` (it registers the marker, then `WithHttpTransport`).
   - On AirGapped and SecureWorkstation, API urls (`ASPNETCORE_URLS` and `Kestrel:Endpoints:*:Url`) and mesh serve
-    must bind loopback or boot fails. `127.0.0.1`, `localhost` and `[::1]` succeed (bare `::1` is refused by
-    URI parsing); `0.0.0.0`, `+` and `*` fail.
+    must bind loopback or boot fails. `127.0.0.1`, `localhost` and `[::1]` succeed; `0.0.0.0`, `+` and `*` fail.
+    Bare `::1` was refused by URI parsing in PR 4.10; PR 4.10b adds support.
     An empty url list is the host default and is allowed. Mesh serve reads optional `ASHLAR_MESH_SERVE_BIND`;
     unset on these profiles is any-interface and fails boot rather than being rewritten.
 
