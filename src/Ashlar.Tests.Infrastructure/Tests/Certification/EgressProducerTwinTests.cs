@@ -301,6 +301,25 @@ public sealed class EgressProducerTwinTests
     }
 
     [Fact]
+    public async Task A_store_cannot_label_its_own_exception_read_nothing_by_copying_the_unrankable_diagnostic()
+    {
+        var message = VectorMath.UnrankableQuery("embedding").Message + " CANARY-from-store";
+        var run = await RunAgentAsync(new RAGTool(new StubRag { Throw = new ArgumentException(message) }));
+        run.Mark.Current.Should().Be(SecurityLabel.SystemHigh,
+            "matching a diagnostic prefix cannot prove a store read nothing before it threw");
+    }
+
+    [Fact]
+    public void A_registry_alias_cannot_label_a_name_the_pipeline_treats_as_unlabelled()
+    {
+        const string alias = "host-public-alias";
+        var registry = new AliasingSensitivityRegistry(alias);
+        TrustTierOrder.RecordLabel(alias).Should().Be(SecurityLabel.SystemHigh);
+        RAGTool.MapHitLabel(alias, registry).Should().Be(SecurityLabel.SystemHigh,
+            "only canonical spellings may be mapped, even if a host registry resolves an alias to a primitive");
+    }
+
+    [Fact]
     public async Task RAGTools_own_egress_during_its_call_is_decided_at_SystemHigh()
     {
         var rag = new StubRag { Hits = [new VectorSearchResult("doc-1", "chunk", 0.9, "Public")], DecideWhileSearching = true };
@@ -1018,5 +1037,15 @@ public sealed class EgressProducerTwinTests
             if (decision.Destination.Contains(host, StringComparison.Ordinal))
                 _decisions.Enqueue(decision);
         }
+    }
+
+    private sealed class AliasingSensitivityRegistry(string alias) : IDataSensitivityRegistry
+    {
+        private readonly DataSensitivityRegistry _inner = new();
+        public void Register(IDataSensitivityLevel level) => _inner.Register(level);
+        public bool Unregister(string name) => _inner.Unregister(name);
+        public IDataSensitivityLevel? GetByName(string? name) => name == alias ? DataSensitivityLevels.Public : _inner.GetByName(name);
+        public IReadOnlyList<IDataSensitivityLevel> GetAll() => _inner.GetAll();
+        public bool CanAccess(IDataSensitivityLevel agentLevel, IDataSensitivityLevel dataLevel) => _inner.CanAccess(agentLevel, dataLevel);
     }
 }
