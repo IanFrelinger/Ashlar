@@ -8,7 +8,10 @@ Read automatically by Claude Code at the start of every session in this reposito
   `scripts/test-in-container.sh`. It needs a clone, not a worktree (`.git` is a file in a worktree).
 - **Five required checks**, with `strict` and `enforce_admins` on master: `cert-gate`, `build-core`,
   `shell-lint`, `lychee (README + docs)`, `Readiness summary`. Every merge makes every other open PR
-  BEHIND, so merges are serial; a day-one red blocks every PR in the repository.
+  BEHIND, so merges are serial; a day-one red blocks every PR in the repository. For multi-PR
+  sweeps: stack readiness-touching series (base = previous tip), land non-core-path PRs first, push
+  one settled tip then wait. Full Platform Readiness does **not** push-trigger on `cursor/**` (PR
+  only) — see `CONTRIBUTING.md` ("Landing several PRs…").
 - `shell-lint` runs `scripts/ci/run-repo-gates.sh`, which **auto-discovers** `tests/scripts/*.test.sh`,
   `scripts/ci/test-*.{sh,py}`, `scripts/ci/verify-*.{sh,py}` and
   `scripts/knowledge-graph/verify-*-current.py` and runs each one **bare**, with no arguments. A script
@@ -16,7 +19,8 @@ Read automatically by Claude Code at the start of every session in this reposito
   with the reason.
 - `docs/knowledge-graph.{json,md}` are **generated** and byte-compared inside `shell-lint`. Regenerate
   with `python scripts/knowledge-graph/build-knowledge-graph.py` **after** `git add` — the builder reads
-  `git ls-files`, so an untracked new file is invisible to it.
+  `git ls-files`, so an untracked new file is invisible to it. Mid-rebase KG conflicts:
+  `bash scripts/knowledge-graph/resolve-rebase-conflict.sh`, then `git rebase --continue`.
 - A new blocking convention test needs its row in `ci/cert-gate-assertions.md` in the same change.
 - `.github/workflows/full-platform-readiness-gate.yml` holds the same glob list **twice** (`on.push.paths`
   and the `READINESS_PATHS` bash array). A cert-gate test asserts the two are equal as sequences.

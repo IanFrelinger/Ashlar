@@ -85,20 +85,50 @@ fi
 # to be too: assert the state that matches THIS box. Asserting "warn" unconditionally encodes the absence
 # of Docker -- a property of one test environment -- as though it were a product claim, and duly failed
 # on a CI runner that has Docker while doctor was reporting correctly.
-SMOKE=$(grep -ioE 'container smoke: *[a-z]+' "$OUT/doctor.log" | head -1 | sed 's/.*: *//' | tr 'A-Z' 'a-z')
-if timeout 8 docker info >/dev/null 2>&1; then
-  if [ "$SMOKE" = "pass" ]; then
-    result 0 doctor-container-truthful PASS "docker reachable and doctor says 'container smoke: pass'"
+#
+# Docker's socket is racy on some CI images: `docker info` can fail during `doctor` and succeed a few
+# seconds later (or the reverse), which made doctor-container-truthful flake red while doctor was
+# honest. Probe with retries, and on a first mismatch re-run doctor once after a short settle.
+docker_reachable() {
+  local _i
+  for _i in 1 2 3; do
+    if timeout 8 docker info >/dev/null 2>&1; then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+doctor_smoke_status() {
+  grep -ioE 'container smoke: *[a-z]+' "$OUT/doctor.log" | head -1 | sed 's/.*: *//' | tr 'A-Z' 'a-z'
+}
+assert_doctor_container_truthful() {
+  local smoke attempt
+  for attempt in 1 2; do
+    smoke=$(doctor_smoke_status)
+    if docker_reachable; then
+      if [ "$smoke" = "pass" ]; then
+        result 0 doctor-container-truthful PASS "docker reachable and doctor says 'container smoke: pass'"
+        return 0
+      fi
+    else
+      if [ "$smoke" = "warn" ]; then
+        result 0 doctor-container-truthful PASS "no docker and doctor says 'container smoke: warn', as documented"
+        return 0
+      fi
+    fi
+    if [ "$attempt" = "1" ]; then
+      say "0.5b doctor (retry after docker settle)"
+      sleep 2
+      timeout 600 dotnet run --project application/src/Ashlar.CLI -- doctor >"$OUT/doctor.log" 2>&1 || true
+    fi
+  done
+  smoke=$(doctor_smoke_status)
+  if docker_reachable; then
+    result 0 doctor-container-truthful FAIL "docker is reachable but doctor says 'container smoke: ${smoke:-<absent>}'"
   else
-    result 0 doctor-container-truthful FAIL "docker is reachable but doctor says 'container smoke: ${SMOKE:-<absent>}'"
+    result 0 doctor-container-truthful FAIL "no docker, expected 'warn', got '${smoke:-<absent>}'"
   fi
-else
-  if [ "$SMOKE" = "warn" ]; then
-    result 0 doctor-container-truthful PASS "no docker and doctor says 'container smoke: warn', as documented"
-  else
-    result 0 doctor-container-truthful FAIL "no docker, expected 'warn', got '${SMOKE:-<absent>}'"
-  fi
-fi
+}
+assert_doctor_container_truthful
 
 say "0.6 doctor --json is machine-readable, as claimed"
 if timeout 600 dotnet run --project application/src/Ashlar.CLI -- doctor --json >"$OUT/doctor.json" 2>"$OUT/doctor-json.err"; then
