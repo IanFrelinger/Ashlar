@@ -71,7 +71,7 @@ $r | Select-Object taskId, success, summary
 The route is `POST /api/copilot/task` (`application/src/Ashlar.API/Endpoints/AshlarEndpoints.cs`); the body is `CopilotTaskRequest(string Task, int AuditCount = 25)` (`application/src/Ashlar.API/Endpoints/CopilotTaskRequest.cs`). The response is `CopilotTaskResponse`: `taskId`, `tenantId` (`default` unless you send `X-Ashlar-Tenant`), `success`, `summary` (for example `1 agent(s) executed`), `output` (per-agent results), `isTrustPaused`, and `recentAudit`. Two things to know when reading it:
 
 - With the mock provider the `output` text is deterministic scaffolding (a "fallback decomposition"), not model output. The point of this page is the **record**, not the prose. To route to a real model, set `ASHLAR_OLLAMA_BASE_URL` / `OPENAI_API_KEY` instead of `ASHLAR_ALLOW_MOCK` (see `docs/Configuration.md`).
-- `recentAudit` holds the entries recorded **before** this task (the handler snapshots the log, then records the task), so it is `[]` on your first call and shows the previous task on the second.
+- ~~`recentAudit` holds the entries recorded **before** this task (the handler snapshots the log, then records the task), so it is `[]` on your first call and shows the previous task on the second.~~ **[Fixed 2026-09-20]** `recentAudit` now includes this task's audit entry — the handler logs the task entry before reading the recent audit, so your first call shows the `CopilotTask` entry immediately.
 
 Now read the trail the task left:
 
