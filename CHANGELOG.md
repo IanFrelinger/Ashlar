@@ -255,7 +255,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - On AirGapped and SecureWorkstation, API urls (`ASPNETCORE_URLS` and `Kestrel:Endpoints:*:Url`) and mesh serve
     must bind loopback or boot fails. `127.0.0.1`, `localhost` and `[::1]` succeed; `0.0.0.0`, `+` and `*` fail.
     Bare `::1` was refused by URI parsing in PR 4.10; PR 4.10b adds support.
-    An empty url list is the host default and is allowed. Mesh serve reads optional `ASHLAR_MESH_SERVE_BIND`;
+    PR 4.10 allowed an empty configured URL list. PR 4.10b also checks port-only configuration and verifies
+    actual bound addresses; missing or empty published addresses fail closed on AG/SW. Mesh serve reads `ASHLAR_MESH_SERVE_BIND`;
     unset on these profiles is any-interface and fails boot rather than being rewritten.
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**

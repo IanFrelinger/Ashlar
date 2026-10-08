@@ -198,7 +198,7 @@ All rows in this table are `Unscanned:Inbound`. Responses on inbound connections
 
 | ID | Where | What leaves | Gates today |
 |---|---|---|---|
-| EG-SRV-01 | MCP over HTTP: `src/Ashlar.Mcp.Server/AshlarMcpToolBridge.cs:122`; `application/src/Ashlar.API/Program.cs:157`, `:402` | Tool output, for example `repo.fs.read` file contents | AirGapped refuses an enabled MCP server. SecureWorkstation refuses HTTP transport (`ValidateAshlarMcpServerOptions`, marker from `WithAshlarHttpTransport`) and still allows stdio (`AshlarDeploymentProfileEnvironment.cs:75-80`). PR 4.10. Responses are not mediated until PR 5. |
+| EG-SRV-01 | MCP over HTTP: `src/Ashlar.Mcp.Server/AshlarMcpToolBridge.cs:122`; `application/src/Ashlar.API/Program.cs:157`, `:402` | Tool output, for example `repo.fs.read` file contents | AirGapped refuses an enabled MCP server. SecureWorkstation refuses HTTP transport (`ValidateAshlarMcpServerOptions`, the wrapper marker or DI detection of the SDK handler) and still allows stdio (`AshlarDeploymentProfileEnvironment.cs:75-80`). PR 4.10; direct SDK detection added in 4.10b (#725). Responses are not mediated until PR 5. |
 | EG-SRV-02 | MCP over stdio: `src/Ashlar.Mcp.Server.Host/Program.cs:47` | `RepoFsRead`/`RepoFsList` output to the IDE process | Refuses AG only. SecureWorkstation stdio still boots (PR 4.10). Responses are not mediated until PR 5. |
 | EG-SRV-03 | A2A server: `src/Ashlar.Transport.A2A.Server/AshlarA2AAgentHandler.cs:75` | Local agent output, agent cards | Refuses AG and SW (`ValidateAshlarA2AServerOptions.cs:25`); exposure allowlist |
 | EG-SRV-04 | gRPC server: `AgentTransportServiceImpl.cs:177-190` | Agent output map | Barrier validation only |

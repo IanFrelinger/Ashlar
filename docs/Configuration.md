@@ -384,7 +384,7 @@ For a **layered breakdown** of mesh capabilities (identity, registry, transport,
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ASHLAR_MESH_DIR` | Root for this node's published packages and imported peer content. One level off yields an empty peer store with **no error**. | `<state>/mesh` |
-| `ASHLAR_MESH_SERVE_BIND` | Optional bind address for mesh serve (`ASHLAR_MESH_SERVE_PORT`). On AirGapped and SecureWorkstation an unset value is any-interface (`0.0.0.0`) and boot fails; `127.0.0.1`, `localhost` and `[::1]` succeed (bare `::1` is refused by URI parsing). Other profiles keep `ListenAnyIP` and do not apply this value. | unset |
+| `ASHLAR_MESH_SERVE_BIND` | Optional bind address for mesh serve (`ASHLAR_MESH_SERVE_PORT`). On AirGapped and SecureWorkstation an unset value is any-interface (`0.0.0.0`) and boot fails; `127.0.0.1`, `localhost`, bare/bracketed IPv6 loopback and IPv4-mapped loopback succeed. Other profiles keep `ListenAnyIP` and do not apply this value. | unset |
 | `ASHLAR_TAILNET_CMD` | Command invoked to enumerate tailnet peers. See `docs/Federation.md` (F4). | unset (tailnet discovery off) |
 | `ASHLAR_TAILNET_REFRESH_SECONDS` | How often the tailnet peer list is re-read. | `300` |
 | `ASHLAR_MESH_PEER_ID` | Mesh peer identifier | random GUID |

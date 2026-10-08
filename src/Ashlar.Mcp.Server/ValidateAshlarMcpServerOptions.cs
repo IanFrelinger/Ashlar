@@ -16,7 +16,8 @@ public sealed class ValidateAshlarMcpServerOptions : IValidateOptions<AshlarMcpS
     private readonly bool _httpTransport;
 
     /// <summary>
-    /// Creates the validator. DI supplies every <see cref="AshlarMcpHttpTransportMarker"/>; stdio registers none.
+    /// Creates the compatible marker-only validator; stdio registers no <see cref="AshlarMcpHttpTransportMarker"/>.
+    /// Hosting uses the overload that also queries the SDK's transport registration.
     /// </summary>
     public ValidateAshlarMcpServerOptions(IEnumerable<AshlarMcpHttpTransportMarker>? httpTransports = null)
     {

@@ -21,8 +21,9 @@ public sealed class AshlarInboundListenerOptions
 public static class AshlarInboundListenerPolicy
 {
     /// <summary>
-    /// True for <c>localhost</c>, <c>127.0.0.1</c> and <c>[::1]</c> (and other <see cref="IPAddress.IsLoopback"/> addresses).
-    /// Bare <c>::1</c> is not accepted (URI parsing requires brackets). <c>0.0.0.0</c>, <c>+</c>, <c>*</c> and any other host are not loopback. A value with no scheme is read as HTTP.
+    /// True for <c>localhost</c>, IPv4 loopback, and bare or bracketed IPv6 loopback, including IPv4-mapped forms.
+    /// Bare IP literals are checked directly; other values without a scheme are read as HTTP.
+    /// Only HTTP(S) URI forms are accepted. Wildcards and non-loopback addresses are refused.
     /// </summary>
     public static bool IsLoopbackEndpoint(string endpoint)
     {
