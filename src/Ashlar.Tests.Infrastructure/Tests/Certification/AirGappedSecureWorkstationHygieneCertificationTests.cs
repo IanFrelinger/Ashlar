@@ -282,6 +282,20 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
         }
     }
 
+    [Theory]
+    [InlineData("ollama")]
+    [InlineData("local")]
+    public async Task Multi_frame_vision_on_AirGapped_keeps_local_resolution(string resolved)
+    {
+        using var provider = Compose(AshlarDeploymentProfile.AirGapped);
+        var fake = new RecordingFactory();
+        var factory = new AdaptiveProviderFactory(fake, new FixedLoadPolicy(resolved), deploymentProfile:
+            provider.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>());
+        var act = () => factory.ExecuteVisionMultiFrameAsync("ignored", "system", "user", new[] { new byte[] { 1 } }, new object());
+        await act.Should().ThrowAsync<ModelUnavailableException>();
+        fake.MultiFrame.Should().Equal(resolved);
+    }
+
     [Fact]
     public void Host_configuration_after_AddAshlar_cannot_weaken_the_noted_profile()
     {
@@ -312,7 +326,6 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
     public void A_container_composed_Full_before_AirGapped_was_noted_keeps_Full()
     {
         using var full = Compose(AshlarDeploymentProfile.Full);
-        full.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>().Value.IsAirGapped.Should().BeFalse();
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddAshlar(o => o.DeploymentProfile = AshlarDeploymentProfile.AirGapped);

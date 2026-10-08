@@ -82,6 +82,9 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
         using var response = await client.GetAsync("/health");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        factory.Services.GetServices<IHostedService>().Should().ContainSingle(
+            s => s.GetType().FullName == "Ashlar.API.Security.LoopbackListenerVerifier",
+            "the production API must register the post-bind verifier");
         factory.Services.GetServices<IHostedService>()
             .Should().ContainSingle(s => s is EndpointHealthMonitor,
                 "the routing registration is profile-independent; only the transport is gated");
