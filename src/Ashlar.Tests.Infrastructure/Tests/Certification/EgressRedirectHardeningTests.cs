@@ -19,6 +19,37 @@ public sealed class EgressRedirectHardeningTests
     private const string FollowerTypeName = "EgressRedirectHandler";
     private static readonly EgressGuard Guard = new("full");
 
+    [Fact]
+    public void A_shared_primary_keeps_its_original_setting_on_later_wrappers()
+    {
+        var primary = new HttpClientHandler();
+        using var first = EgressHttp.CreateClient(primary, EgressFamilies.Http, NewSite(), Guard);
+        using var second = EgressHttp.CreateClient(primary, EgressFamilies.Http, NewSite(), Guard);
+
+        primary.AllowAutoRedirect.Should().BeFalse();
+        Follower(Chain(HandlerOf(first))[1]).Follows.Should().BeTrue();
+        Follower(Chain(HandlerOf(second))[1]).Follows.Should().BeTrue("the later wrapper remembers that Ashlar disabled the primary");
+    }
+
+    [Fact]
+    public void An_unknown_primary_type_is_warned_once_per_client_across_factory_rebuilds()
+    {
+        var name = "rebuild-" + NewId();
+        var logs = new CapturingLoggerProvider();
+        for (var i = 0; i < 2; i++)
+        {
+            var services = new ServiceCollection();
+            services.AddLogging(b => b.AddProvider(logs));
+            services.AddSingleton<IEgressGuard>(new EgressGuard("secure-workstation"));
+            services.AddAshlarEgressGuard();
+            services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => new RecordingPrimary(new Recorder(_ => false)));
+            using var provider = services.BuildServiceProvider();
+            using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+        }
+
+        logs.Entries.Where(e => e.EventId.Id == 7304 && e.Message.Contains(name, StringComparison.Ordinal)).Should().ContainSingle();
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
