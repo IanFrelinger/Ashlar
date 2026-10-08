@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.BackgroundAgents.DataSensitivity;
 
 namespace Ashlar.BackgroundAgents.RAG;
@@ -15,7 +17,7 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// be the other way round -- the model's value won and the agent's was only a fallback -- so a
 /// prompt injection that talked the model into asking for TopSecret got TopSecret.
 /// </remarks>
-public sealed class RAGTool : ITool
+public sealed class RAGTool : ITool, IEgressLabelledTool
 {
     /// <summary>
     /// Default tool id.
@@ -96,13 +98,64 @@ public sealed class RAGTool : ITool
             var refusal = new[] { $"RAG search REFUSED: query='{query}' cannot be ranked. {ex.Message}" };
             return new ToolResult(
                 new ActionDelta(tick, tick + 1, refusal),
-                new { Refused = true, Reason = ex.Message });
+                new RagRefusal(Refused: true, Reason: ex.Message));
         }
 
         var log = new[] { $"RAG search: query='{query}', results={results.Count}" };
         var delta = new ActionDelta(tick, tick + 1, log);
-        var payload = results.Select(r => new { r.Id, r.Text, r.Score, r.SensitivityLevelName }).ToList();
+        var payload = results.Select(r => new RagHit(r.Id, r.Text, r.Score, r.SensitivityLevelName)).ToList();
         return new ToolResult(delta, payload);
+    }
+
+    /// <summary>
+    /// Reports the label of every hit, or <see cref="SecurityLabel.Public"/> when the search read nothing
+    /// (no hit, or the unrankable-query refusal). Canonical names are the five primitive levels plus
+    /// <c>top-secret</c>, any case, trimmed. Anything else is <see cref="SecurityLabel.SystemHigh"/>.
+    /// </summary>
+    public void ReportRead(ReadScope read, ToolResult result)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+        switch (result?.Payload)
+        {
+            case RagRefusal:
+                read.Report(SecurityLabel.Public); // read nothing: refused
+                return;
+            case IReadOnlyList<RagHit> hits when hits.Count == 0:
+                read.Report(SecurityLabel.Public); // read nothing: no hit
+                return;
+            case IReadOnlyList<RagHit> hits:
+                foreach (var hit in hits)
+                    read.Report(MapHitLabel(hit.SensitivityLevelName, _sensitivityRegistry));
+                return;
+            default:
+                read.Report(SecurityLabel.SystemHigh);
+                return;
+        }
+    }
+
+    /// <summary>
+    /// The data label of one hit name: trim, <see cref="IDataSensitivityRegistry.GetByName"/>, and
+    /// <see cref="DataSensitivityLabelBridge.ToDataLabel"/> only when the level is one of
+    /// <see cref="DataSensitivityLevels.All"/>. Anything else, a custom level included, is
+    /// <see cref="SecurityLabel.SystemHigh"/>.
+    /// </summary>
+    internal static SecurityLabel MapHitLabel(string? name, IDataSensitivityRegistry registry)
+    {
+        ArgumentNullException.ThrowIfNull(registry);
+        if (string.IsNullOrWhiteSpace(name))
+            return SecurityLabel.SystemHigh;
+
+        var level = registry.GetByName(name.Trim());
+        if (level is null)
+            return SecurityLabel.SystemHigh;
+
+        foreach (var primitive in DataSensitivityLevels.All)
+        {
+            if (ReferenceEquals(level, primitive))
+                return level.ToDataLabel();
+        }
+
+        return SecurityLabel.SystemHigh;
     }
 
     /// <summary>
@@ -138,6 +191,10 @@ public sealed class RAGTool : ITool
             return new RAGSearchArgs();
         }
     }
+
+    private sealed record RagHit(string Id, string Text, double Score, string? SensitivityLevelName);
+
+    private sealed record RagRefusal(bool Refused, string Reason);
 
     private sealed class RAGSearchArgs
     {

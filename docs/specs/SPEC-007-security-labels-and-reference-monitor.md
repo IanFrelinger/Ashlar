@@ -57,7 +57,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   - 4.2 the synchronous `Send` gap;
   - 4.3 redirects;
   - 4.4 frame semantics: monotone nesting, `Observe`, read scopes;
-  - 4.5 subject producers at the agent runners, report-only. Obligation carried from 4.4: every production
+  - 4.5 subject producers at the agent runners, report-only (#721). Obligation carried from 4.4: every production
     `EgressSubject.Enter` is a `using` on the flow that enters it (never inside an async helper, whose frame does not
     reach the flow that awaits it), disposed in order, since a flow that disposes frames out of order stays inside the
     outer one (its chain grows with each repetition, and what it reads later raises the subject's shared mark). Work a
@@ -130,6 +130,16 @@ The status line above and the starting prompt are the owner's, as written; the s
   (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
   reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
   appears unlisted.
+- **PR 4.5** (#721), still report-only. `SelfExtendRunnerAdapter.RunAsync` enters `agent:<id>` at `SystemHigh`
+  around the cycle and the post-cycle admission and auto-share, because the snapshot carries unlabelled carry-over.
+  Records go from `no-subject` to `subject:agent:<id>` at `SystemHigh`. Nothing refuses. `ToolCallingAgent` begins a
+  read around each tool call and accepts `Report` only from `IEgressLabelledTool`; in #721 the only labelled tool
+  is `RAGTool`, which reports each hit's canonical label and `Public` when it read nothing. An unlabelled tool, or a
+  tool that throws, is `SystemHigh`. A response from a `peer:` chat target is observed as `SystemHigh` after it
+  returns; a model endpoint is not a read. An open read scope still observes only when it ends (the merged 4.4 rule):
+  a tool that egresses before the scope ends is decided at the pre-read mark. That is a known limit for a runner whose
+  floor is below `SystemHigh`. The owner can reverse it. Reversing it, so an open scope counted as `SystemHigh`,
+  would turn the leak's `LevelTooLow` into `SystemHighData`, because a mark only rises.
 - **PR 4.10** (#720) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
   `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
