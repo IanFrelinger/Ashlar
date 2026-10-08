@@ -35,6 +35,18 @@ def trx(outcomes=('Passed','Failed','NotExecuted')):
     ET.SubElement(summary, 'Counters', total=str(len(outcomes)), executed=str(sum(x!='NotExecuted' for x in outcomes)), passed=str(outcomes.count('Passed')), failed=str(outcomes.count('Failed')), notExecuted=str(outcomes.count('NotExecuted')), error='0', timeout='0', aborted='0', inProgress='0', completed='0')
     return root
 
+def run_info(root, text, outcome='Error'):
+    summary = root.find('ResultSummary')
+    infos = summary.find('RunInfos')
+    if infos is None:
+        infos = ET.SubElement(summary, 'RunInfos')
+    ET.SubElement(ET.SubElement(infos, 'RunInfo', outcome=outcome), 'Text').text = text
+
+# The adapter emitted this exact diagnostic in the real 4.10b smoke run. The
+# result name includes theory arguments; comparing just its method is unsafe.
+XUNIT_FAILURE_NAME = 'Ashlar.Tests.Infrastructure.Tests.VirtualProduction.AirGappedProfileApiHostProdStyleTests.A_restricted_server_without_published_addresses_fails_closed(profile: "air-gapped", featurePresent: False, succeeds: False)'
+XUNIT_FAILURE_TEXT = '[xUnit.net 00:00:05.03]     ' + XUNIT_FAILURE_NAME + ' [FAIL]'
+
 class ResultFixtures(unittest.TestCase):
     def check(self, root, code=1, console=''):
         with tempfile.TemporaryDirectory() as tmp:
@@ -73,6 +85,44 @@ class ResultFixtures(unittest.TestCase):
     def test_run_level_error(self):
         root=trx(); ET.SubElement(ET.SubElement(root.find('ResultSummary'),'RunInfos'),'RunInfo',outcome='Error')
         with self.assertRaises(runner.InvalidRun): self.check(root)
+    def test_xunit_failure_diagnostic_matches_failed_result_exactly(self):
+        root=trx(); root.find('Results')[1].set('testName',XUNIT_FAILURE_NAME)
+        run_info(root,XUNIT_FAILURE_TEXT)
+        self.assertEqual(self.check(root)['failures'],[XUNIT_FAILURE_NAME])
+    def test_xunit_failure_diagnostic_cannot_name_passing_test(self):
+        root=trx(); root.find('Results')[0].set('testName',XUNIT_FAILURE_NAME)
+        run_info(root,XUNIT_FAILURE_TEXT)
+        with self.assertRaises(runner.InvalidRun): self.check(root)
+    def test_xunit_failure_diagnostic_cannot_name_another_theory_case(self):
+        root=trx(); root.find('Results')[1].set('testName',XUNIT_FAILURE_NAME.replace('False','True',1))
+        run_info(root,XUNIT_FAILURE_TEXT)
+        with self.assertRaises(runner.InvalidRun): self.check(root)
+    def test_xunit_failure_diagnostic_cannot_hide_runner_failure(self):
+        for text in (XUNIT_FAILURE_TEXT+'\nTest host crashed',
+                     'Test host crashed\n'+XUNIT_FAILURE_TEXT,
+                     XUNIT_FAILURE_TEXT+' extra',
+                     XUNIT_FAILURE_TEXT.replace('[xUnit.net','[OtherAdapter'),
+                     XUNIT_FAILURE_TEXT.replace('[FAIL]','[ABORT]')):
+            with self.subTest(text=text):
+                root=trx(); root.find('Results')[1].set('testName',XUNIT_FAILURE_NAME)
+                run_info(root,text)
+                with self.assertRaises(runner.InvalidRun): self.check(root)
+    def test_xunit_failure_diagnostic_does_not_allow_aborted_runinfo(self):
+        root=trx(); root.find('Results')[1].set('testName',XUNIT_FAILURE_NAME)
+        run_info(root,XUNIT_FAILURE_TEXT,'Aborted')
+        with self.assertRaises(runner.InvalidRun): self.check(root)
+    def test_xunit_failure_diagnostic_does_not_allow_additional_error(self):
+        root=trx(); root.find('Results')[1].set('testName',XUNIT_FAILURE_NAME)
+        run_info(root,XUNIT_FAILURE_TEXT); run_info(root,'Test host crashed')
+        with self.assertRaises(runner.InvalidRun): self.check(root)
+    def test_green_cannot_include_xunit_failure_diagnostic(self):
+        root=trx(('Passed',)); root.find('Results')[0].set('testName',XUNIT_FAILURE_NAME)
+        run_info(root,XUNIT_FAILURE_TEXT)
+        with self.assertRaises(runner.InvalidRun): self.check(root,0)
+    def test_xunit_failure_diagnostic_does_not_override_compiler_error(self):
+        root=trx(); root.find('Results')[1].set('testName',XUNIT_FAILURE_NAME)
+        run_info(root,XUNIT_FAILURE_TEXT)
+        with self.assertRaises(runner.InvalidRun): self.check(root,1,'/repo/F.cs(1,2): error CS1001: missing name')
     def test_incomplete_individual_result(self):
         root=trx(); root.find('Results')[1].set('outcome','InProgress')
         with self.assertRaises(runner.InvalidRun): self.check(root)
