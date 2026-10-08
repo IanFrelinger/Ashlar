@@ -42,7 +42,7 @@ public sealed class MeshServeLoopbackProfileTests : IDisposable
         var act = async () =>
         {
             await service.StartAsync(CancellationToken.None);
-            await service.ExecuteTask!;
+            await service.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(3));
         };
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*loopback*");
     }
