@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.BackgroundAgents.Agents;
 using Ashlar.BackgroundAgents.Configuration;
 using Ashlar.BackgroundAgents.DataSensitivity;
@@ -243,6 +245,11 @@ public sealed class SelfExtendRunnerAdapter : ISelfExtendRunner
             // through the policy engine and feeding observations back into the conversation.
             // The previous single-turn AgentHost path was unable to chain list → read → write
             // because tool results never reached the LLM after the first round.
+            // Floor is SystemHigh: the snapshot carries unlabelled carry-over. This using is on the
+            // flow that enters it, covers the cycle and the post-cycle admission and auto-share, and
+            // does not span a yield return. Overloads that await this method do not enter.
+            using (EgressSubject.Enter("agent:" + resolvedAgentId, new HighWaterMark(SecurityLabel.SystemHigh)))
+            {
             var memory = tools.MemoryFor(agent);
             var cycle = await agent
                 .RunCycleAsync(snapshot, tools, policies, onRejected: null, memory, cancellationToken)
@@ -301,6 +308,7 @@ public sealed class SelfExtendRunnerAdapter : ISelfExtendRunner
                 cycle.Iterations,
                 cycle.StoppedReason,
                 gateOutcome);
+            }
         }
         catch (Exception ex)
         {

@@ -8,7 +8,8 @@ namespace Ashlar.BackgroundAgents.DataSensitivity;
 /// on data (<see cref="ToDataLabel"/>) and once as a clearance (<see cref="TryToClearance"/>).
 /// </summary>
 /// <remarks>
-/// <para><b>A bridge only.</b> Nothing consults it yet. <see cref="DataSensitivityRegistry.CanAccess"/>,
+/// <para><b>A bridge only.</b> <c>RAGTool</c> calls <see cref="ToDataLabel"/> when it reports a hit whose level is
+/// one of the five primitives (SPEC-007 PR 4.5). <see cref="DataSensitivityRegistry.CanAccess"/>,
 /// <see cref="DataSensitivityFallbacks"/>, the markers and the RAG filters decide exactly as they did before it
 /// existed, and none of them calls this class or <see cref="ReferenceMonitor"/>. A cert-gate parity test holds the
 /// two decisions together: for levels whose <see cref="IDataSensitivityLevel.SensitivityValue"/> lies in 0 to 4,

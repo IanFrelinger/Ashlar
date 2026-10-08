@@ -19,6 +19,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Added
 
+- **SPEC-007 PR 4.5: subject producers, still report-only.** The self-extend runner enters `agent:<id>` at
+  `SystemHigh` around the cycle and the post-cycle admission and auto-share. Egress records for that cycle go from
+  `no-subject` to `subject:agent:<id>` at `SystemHigh`. Nothing refuses, and no send changes. `ToolCallingAgent`
+  begins a read around each tool call. Only a tool that implements `IEgressLabelledTool` may report; `RAGTool` is
+  the only one, and it reports each hit's canonical label, or `Public` when the search read nothing. Any other tool,
+  and a tool that throws, counts as `SystemHigh`. A `peer:` chat response is observed as `SystemHigh` after it
+  returns. A model response is not a read. An open read still counts only when the scope ends, which is a known
+  limit when a runner's floor is below `SystemHigh` (the owner can reverse it). The labelled-tool marker is recorded
+  in `PublicAPI.Unshipped.txt`.
+
 - **`Ashlar.Abstractions.Security`: Bell-LaPadula security labels and reference-monitor decisions.**
   `SecurityLevel` orders `Public < Internal < Confidential < Secret < TopSecret`, with the names and
   values of the primitive `DataSensitivityLevels`. `SecurityLabel` adds a set of compartments and a

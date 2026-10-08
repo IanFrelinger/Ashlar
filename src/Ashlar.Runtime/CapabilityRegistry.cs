@@ -22,6 +22,16 @@ public sealed class CapabilityRegistry : IToolbox
     /// <summary>Registers a tool for agent invocation.</summary>
     public void Register(ITool tool) => _tools[tool.Id] = tool;
 
+    /// <summary>The tool registered under <paramref name="id"/>, or <see langword="null"/> when none is.</summary>
+    public ITool? Find(string? id)
+    {
+        // string.IsNullOrEmpty does not narrow id on the netstandard2.0 asset, so TryGetValue
+        // would be CS8604 there. Null and empty both miss, as IsNullOrEmpty did.
+        if (id is null || id.Length == 0)
+            return null;
+        return _tools.TryGetValue(id, out var tool) ? tool : null;
+    }
+
     /// <summary>Returns schemas for all registered tools.</summary>
     public IEnumerable<ToolSchema> Schemas() => _tools.Values.Select(t => t.Schema);
 
