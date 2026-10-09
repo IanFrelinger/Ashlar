@@ -86,6 +86,10 @@ public sealed class EgressRefusalDiagnosticsTests
         entry.Fields["ModeBasis"].Should().Be(decision.ModeBasis);
         entry.Fields["Detail"].Should().Be(decision.Access.Detail);
         entry.Fields["Current"].Should().Be(decision.Current.ToString());
+        entry.Fields["At"].Should().Be(decision.At);
+        entry.Fields["DestinationBasis"].Should().Be(decision.DestinationBasis);
+        entry.Fields["Allowed"].Should().Be(false);
+        entry.Fields["Refused"].Should().Be(true);
     }
 
     [Fact]

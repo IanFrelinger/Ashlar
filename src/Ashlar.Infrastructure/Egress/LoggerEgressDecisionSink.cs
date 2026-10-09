@@ -34,7 +34,8 @@ public sealed class LoggerEgressDecisionSink : IEgressDecisionSink, IDisposable
         "Egress {Outcome} site={Site} family={Family} dest={Destination} class={DestinationClass} "
         + "destLabel={DestinationLabel} current={Current} ({CurrentBasis}) reason={Reason} detail={Detail} "
         + "profile={Profile} enforcesByDefault={ProfileEnforcesByDefault} fault={Fault} seq={Sequence} "
-        + "mode={Mode} modeBasis={ModeBasis} ref={Ref}";
+        + "mode={Mode} modeBasis={ModeBasis} ref={Ref} at={At} destBasis={DestinationBasis} "
+        + "allowed={Allowed} refused={Refused}";
 
     /// <summary>The outcome when the star property would allow the egress.</summary>
     internal const string WouldAllow = "would-allow";
@@ -120,7 +121,11 @@ public sealed class LoggerEgressDecisionSink : IEgressDecisionSink, IDisposable
             decision.Sequence,
             decision.Mode,
             decision.ModeBasis,
-            decision.Ref);
+            decision.Ref,
+            decision.At,
+            decision.DestinationBasis,
+            access.Allowed,
+            decision.Refused);
     }
 
     private void Expire((string Site, AccessDenialReason Reason) key, RefusalWindow window)
