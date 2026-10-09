@@ -17,6 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — SPEC-007 PR 4.10b inbound and hygiene hardening (#725)
+
+- AirGapped/SecureWorkstation refuse port-only wildcard API listeners before binding and verify actual Kestrel
+  addresses after start. Bare IPv6 and mapped loopback binds work; mesh serve keeps its explicit-bind fail-boot rule.
+- AirGapped multi-frame vision rejects a cloud resolution before sending frames. The resolved profile's
+  `PostConfigure` prevents ordinary later options configuration from lowering the captured profile.
+- SecureWorkstation also detects direct SDK MCP HTTP registration. Added runtime twins and profile/MCP conventions.
+- Recorded the post-bind window, composition snapshot, host-controlled options overrides, and Bedrock's
+  boot/first-resolution validation timing; inbound response mediation remains PR 5.
+
+
 ### Added
 
 - **CI: Full Platform Readiness no longer push-triggers on `cursor/**`.** Branch protection uses the PR
@@ -240,9 +251,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - MCP over HTTP fails boot on SecureWorkstation. Stdio still boots. AirGapped still refuses an enabled MCP
     server. Hosts select HTTP with `WithAshlarHttpTransport` (it registers the marker, then `WithHttpTransport`).
   - On AirGapped and SecureWorkstation, API urls (`ASPNETCORE_URLS` and `Kestrel:Endpoints:*:Url`) and mesh serve
-    must bind loopback or boot fails. `127.0.0.1`, `localhost` and `[::1]` succeed (bare `::1` is refused by
-    URI parsing); `0.0.0.0`, `+` and `*` fail.
-    An empty url list is the host default and is allowed. Mesh serve reads optional `ASHLAR_MESH_SERVE_BIND`;
+    must bind loopback or boot fails. `127.0.0.1`, `localhost` and `[::1]` succeed; `0.0.0.0`, `+` and `*` fail.
+    Bare `::1` was refused by URI parsing in PR 4.10; PR 4.10b adds support.
+    PR 4.10 allowed an empty configured URL list. PR 4.10b also checks port-only configuration and verifies
+    actual bound addresses; missing or empty published addresses fail closed on AG/SW. Mesh serve reads `ASHLAR_MESH_SERVE_BIND`;
     unset on these profiles is any-interface and fails boot rather than being rewritten.
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**

@@ -87,7 +87,8 @@ public static class AshlarMcpServerServiceCollectionExtensions
     /// <summary>
     /// HTTP transport for an Ashlar MCP server. Registers <see cref="AshlarMcpHttpTransportMarker"/> and then
     /// the ModelContextProtocol HTTP transport. The third-party <c>WithHttpTransport</c> cannot register an
-    /// Ashlar marker; hosts that want the SecureWorkstation HTTP refusal call this instead.
+    /// Ashlar marker; DI validation also queries the SDK transport registration. An enabled HTTP server is refused
+    /// on SecureWorkstation, and any enabled MCP server is refused on AirGapped. Full permits either transport.
     /// </summary>
     public static IMcpServerBuilder WithAshlarHttpTransport(this IMcpServerBuilder builder)
     {

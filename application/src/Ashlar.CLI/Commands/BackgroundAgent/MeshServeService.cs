@@ -267,21 +267,23 @@ public sealed class MeshServeService : BackgroundService
             return;
         }
 
-        if (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address))
+        if (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address))
         {
-            kestrel.Listen(address, _settings.Port, configure);
+            kestrel.Listen(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address, _settings.Port, configure);
             return;
         }
 
-        kestrel.ListenLocalhost(_settings.Port, configure);
+        throw new InvalidOperationException("The validated mesh bind is not a loopback address.");
     }
 
     private static string BindHost(string? bind)
     {
         if (string.IsNullOrWhiteSpace(bind))
-            return "localhost";
+            throw new InvalidOperationException("A loopback mesh bind must be explicit.");
 
         var text = bind.Trim();
+        if (IPAddress.TryParse(text, out var literal))
+            return literal.ToString();
         if (!text.Contains("://", StringComparison.Ordinal))
             text = "http://" + text;
         if (Uri.TryCreate(text, UriKind.Absolute, out var uri))

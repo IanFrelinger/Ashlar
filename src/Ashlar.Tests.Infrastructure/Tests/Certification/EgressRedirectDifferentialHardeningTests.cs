@@ -498,7 +498,14 @@ public sealed class EgressRedirectDifferentialHardeningTests : IClassFixture<Egr
             using var rsa = RSA.Create(2048);
             var request = new CertificateRequest("CN=localhost", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") }, critical: false));
-            return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            // Persist through PFX so the private key survives for Schannel/Kestrel on Windows.
+            using var created = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            var pfx = created.Export(X509ContentType.Pfx);
+#if NET9_0_OR_GREATER
+            return X509CertificateLoader.LoadPkcs12(pfx, password: null, X509KeyStorageFlags.Exportable);
+#else
+            return new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.Exportable);
+#endif
         }
 
         private async Task HandleAsync(HttpContext context)

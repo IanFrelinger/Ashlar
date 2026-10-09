@@ -230,11 +230,13 @@ builder.Services.AddAshlar(options =>
         builder.Configuration.GetValue("Ashlar:RegisterBackgroundAgentHostedService", defaultValue: true);
 });
 // SPEC-007 PR 4.10: on AirGapped and SecureWorkstation every inbound listener must bind loopback, or boot fails.
-// Empty urls are the host default (localhost) and are allowed. Responses on those connections stay unmediated until PR 5.
+// Port-only settings bind every interface. Verify configured addresses now and actual addresses after Kestrel starts.
+// Responses on those connections stay unmediated until PR 5.
 builder.Services.AddAshlarInboundListenerValidation(
     AshlarInboundListenerPolicy.CollectEndpoints(
         builder.Configuration,
         builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey)));
+builder.Services.AddHostedService<Ashlar.API.Security.LoopbackListenerVerifier>();
 // SPEC-007: AddAshlar has already installed the report-only egress guard on every IHttpClientFactory client in this
 // host, ashlar-sns-signing above included. This call is idempotent and adds nothing; it states the coverage here.
 builder.Services.AddAshlarEgressGuard();
