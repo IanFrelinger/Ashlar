@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 777,
-    "declared_facts": 4918,
+    "test_files_declaring_facts": 779,
+    "declared_facts": 4940,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2768,6 +2768,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshServeLoopbackProfileTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/MeshTlsTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
@@ -4773,7 +4780,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AirGappedSecureWorkstationHygieneCertificationTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 9,
+      "declared_facts": 18,
       "in_cert_gate_filter": true
     },
     {
@@ -5089,6 +5096,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 23,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/DeploymentProfileReadConventionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 4,
       "in_cert_gate_filter": true
     },
     {
@@ -7174,7 +7188,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/AirGappedProfileApiHostProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.VirtualProduction",
-      "declared_facts": 2,
+      "declared_facts": 8,
       "in_cert_gate_filter": false
     },
     {

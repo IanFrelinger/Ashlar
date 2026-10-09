@@ -7,7 +7,7 @@ using Ashlar.Abstractions;
 
 namespace Ashlar.Infrastructure;
 
-/// <summary>Endpoints an Ashlar host binds for inbound traffic. Empty means the host default, which is loopback.</summary>
+/// <summary>Configured endpoints an Ashlar host may bind. Actual bound addresses also require verification.</summary>
 public sealed class AshlarInboundListenerOptions
 {
     /// <summary>URLs and bind addresses the host will listen on.</summary>
@@ -21,8 +21,9 @@ public sealed class AshlarInboundListenerOptions
 public static class AshlarInboundListenerPolicy
 {
     /// <summary>
-    /// True for <c>localhost</c>, <c>127.0.0.1</c> and <c>[::1]</c> (and other <see cref="IPAddress.IsLoopback"/> addresses).
-    /// Bare <c>::1</c> is not accepted (URI parsing requires brackets). <c>0.0.0.0</c>, <c>+</c>, <c>*</c> and any other host are not loopback. A value with no scheme is read as HTTP.
+    /// True for <c>localhost</c>, IPv4 loopback, and bare or bracketed IPv6 loopback, including IPv4-mapped forms.
+    /// Bare IP literals are checked directly; other values without a scheme are read as HTTP.
+    /// Only HTTP(S) URI forms are accepted. Wildcards and non-loopback addresses are refused.
     /// </summary>
     public static bool IsLoopbackEndpoint(string endpoint)
     {
@@ -34,9 +35,13 @@ public static class AshlarInboundListenerPolicy
             return false;
 
         if (!text.Contains("://", StringComparison.Ordinal))
+        {
+            if (IPAddress.TryParse(text, out var literal))
+                return IsLoopbackAddress(literal);
             text = "http://" + text;
+        }
 
-        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri))
+        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
             return false;
 
         var host = uri.IdnHost;
@@ -46,12 +51,15 @@ public static class AshlarInboundListenerPolicy
         if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        return IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address);
+        return IPAddress.TryParse(host, out var address) && IsLoopbackAddress(address);
     }
+
+    private static bool IsLoopbackAddress(IPAddress address) =>
+        IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address);
 
     /// <summary>
     /// An explained refusal when <paramref name="profile"/> requires loopback and any endpoint is not,
-    /// otherwise null. An empty endpoint list is the host default and is allowed.
+    /// otherwise null. An empty configured list needs a post-bind check; it does not establish loopback.
     /// </summary>
     public static string? Refusal(AshlarResolvedDeploymentProfileOptions? profile, IEnumerable<string>? endpoints)
     {
@@ -71,7 +79,8 @@ public static class AshlarInboundListenerPolicy
 
     /// <summary>
     /// Server urls (<c>ASPNETCORE_URLS</c> / the host <c>urls</c> setting, semicolon-separated) plus
-    /// <c>Kestrel:Endpoints:*:Url</c>.
+    /// <c>Kestrel:Endpoints:*:Url</c>. With no server urls, <c>http_ports</c>/<c>https_ports</c> expand to wildcard
+    /// addresses, matching ASP.NET Core's port-only binding defaults.
     /// </summary>
     public static IReadOnlyList<string> CollectEndpoints(IConfiguration configuration, string? serverUrls)
     {
@@ -83,6 +92,12 @@ public static class AshlarInboundListenerPolicy
                 list.Add(part);
         }
 
+        else
+        {
+            AddPorts("http", configuration["http_ports"]);
+            AddPorts("https", configuration["https_ports"]);
+        }
+
         foreach (var child in configuration.GetSection("Kestrel:Endpoints").GetChildren())
         {
             var url = child["Url"];
@@ -91,6 +106,12 @@ public static class AshlarInboundListenerPolicy
         }
 
         return list;
+
+        void AddPorts(string scheme, string? ports)
+        {
+            foreach (var port in (ports ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                list.Add($"{scheme}://*:{port}");
+        }
     }
 }
 

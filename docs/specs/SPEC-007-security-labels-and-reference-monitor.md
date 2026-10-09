@@ -149,15 +149,30 @@ The status line above and the starting prompt are the owner's, as written; the s
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
   an explicit peer-network-only request fails with an explained error and is not sent to a peer or to RunPod.
   `AdaptiveProviderFactory` does not try OpenAI or Azure on AirGapped, for LLM calls or single-image vision
-  (multi-frame vision may still send to a cloud resolve — Known limit until PR 4.10b). Boot refuses, on AirGapped
+  (PR 4.10b, #725, also refuses a cloud resolve for multi-frame vision). Boot refuses, on AirGapped
   only, a non-empty `BrickHost:RemoteCatalogBaseUrls`, `Ashlar:RunPod:EnablePeerNetworkRouting=true`,
   `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and `Ashlar:Meai:Bedrock:Enabled=true`. The ollama.com catalog
   defaults off on AirGapped when `Enabled` is unset. SecureWorkstation refuses MCP over HTTP and still boots stdio;
   AirGapped still refuses an enabled MCP server whether or not the transport is HTTP. On both profiles an API
-  listener or mesh serve that does not bind loopback fails boot (`127.0.0.1`, `localhost` and `[::1]` succeed;
-  bare `::1` is refused by URI parsing — use the bracketed form). `ASPNETCORE_HTTP_PORTS` is not yet collected when
-  `urls` is unset (Known limit until PR 4.10b). Responses on inbound connections are not mediated until PR 5's
+  listener or mesh serve that does not bind loopback fails boot (`127.0.0.1`, `localhost` and `[::1]` succeed).
+  PR 4.10b adds bare/mapped IPv6 loopback, port-only settings and post-bind verification. Responses on inbound
+  connections are not mediated until PR 5's
   CanRead at the server seams.
+
+- **PR 4.10b** (#725) hardens the live AirGapped/SecureWorkstation inbound rule. Port-only `http_ports` and
+  `https_ports` settings expand to wildcard listeners when `urls` is absent and fail pre-bind validation.
+  The API also checks `IServerAddressesFeature` after Kestrel starts, including listeners configured in code; missing/empty published addresses fail closed on AG/SW.
+  Bare `::1`, bracketed `[::1]`, and IPv4-mapped loopback are accepted; non-HTTP listener schemes are refused.
+  Mesh serve keeps the fail-boot rule for a missing or non-loopback bind; an explicit loopback bind serves locally.
+  AirGapped multi-frame vision refuses a nonlocal resolved provider before the inner factory receives frames.
+  `PostConfigure` reasserts the strictest profile captured by `AddAshlar`, so later `Configure` callbacks cannot
+  lower it. MCP validation detects the SDK's HTTP handler as well as the Ashlar wrapper marker. Certification
+  conventions pin the profile-reader boundary and production HTTP MCP callers.
+  **Known limits:** a listener added in code has a window between socket binding and the post-start refusal;
+  a container composed before a stricter process profile was noted keeps its captured profile. These options
+  remain mutable objects, and host code that replaces the options service or installs a later `PostConfigure`
+  can override them. Bedrock still refuses at `ValidateOnStart` or first options/keyed-client resolution,
+  rather than during `AddAshlar`/`BuildServiceProvider`. Responses on inbound connections await PR 5.
 
 ---
 

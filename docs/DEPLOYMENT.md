@@ -54,6 +54,16 @@ The API images (`.docker/Dockerfile.api`, `Dockerfile.quickstart`, `Dockerfile.f
 - **Swagger** (`/swagger`, `/swagger/v1/swagger.json`) is on in the `Development` environment or when `Ashlar__Api__EnableSwagger=true`, and otherwise off; the images set no `ASPNETCORE_ENVIRONMENT`, so unless a deployment sets one they run as `Production` with it off. `Dockerfile.fleet-host` honours the same key (it used to serve Swagger in every environment). One exception: `ASPNETCORE_ENVIRONMENT=Testing` also turns it on in all three images, because `application/src/Ashlar.API/appsettings.Testing.json` sets the key and every image ships that file (the fleet-host image through its ProjectReference to Ashlar.API). Do not run an image in `Testing`.
 - **Kubernetes:** `ASHLAR_DEPLOYMENT_PROFILE` must be one of `full`, `server`, `edge`, `air-gapped`, `secure-workstation` (alias `workstation`), `system`. Underscores and collapsed forms also parse (`air_gapped`, `secure_workstation`). `AddAshlar` refuses anything else at startup. `air-gapped` is **not** the IDE workstation profile — use `secure-workstation`, with `ASHLAR_TRUST_ENABLED=1` (the profile registers trust services but does not enable them). The mesh-worker sample uses `server`.
 
+
+On **AirGapped** and **SecureWorkstation**, the API's listeners must bind loopback. The image default
+`ASPNETCORE_URLS=http://+:8080` fails boot; clearing it alone is insufficient because the base image's
+`ASPNETCORE_HTTP_PORTS=8080` also binds every interface. Set an explicit loopback URL, for example
+`ASPNETCORE_URLS=http://127.0.0.1:8080`. This is loopback inside the container; publishing a Docker port does
+not make that listener reachable from another container or the host. The portal compose path therefore needs
+an appropriate profile/network design before use on AG/SW. Configured addresses are checked before bind;
+code-added listeners are checked after Kestrel starts and have a short bind-to-refusal window. Mesh serve
+requires an explicit loopback `ASHLAR_MESH_SERVE_BIND` on these profiles; leaving it unset fails the daemon.
+
 ## Runtime state (`ASHLAR_STATE_DIR`)
 
 LiteDB stores and snapshots (`ashlar-patterns.db`, `ashlar-adaptation.db`, `ashlar-adaptation-audit.db`, `ashlar-copilot-tasks.db`, `ashlar-execution.db`, `ashlar-test-failures.db`, `ashlar-snapshots/`) default to **`<repo or app root>/.ashlar/state/`** (gitignored) unless `Ashlar:PatternStorePath` / `--store-path` names an explicit location. Set **`ASHLAR_STATE_DIR`** (absolute, or relative to that root) to move the whole directory. The images set `ASHLAR_STATE_DIR=/data/state`, and the portal and agent-server stacks mount the **`ashlar-state`** named volume there, so state survives `docker compose up --force-recreate` and never lands in a bind-mounted repo. Existing installs that already have `ashlar-*.db` at the repo root keep using them until you move the files into `.ashlar/state/` (see `docs/Configuration.md`, "Runtime state").

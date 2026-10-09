@@ -126,7 +126,7 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         CancellationToken cancellationToken = default)
     {
         var resolved = _loadPolicy.ResolveProvider(_inner);
-        if (string.IsNullOrEmpty(resolved))
+        if (string.IsNullOrEmpty(resolved) || (IsAirGapped && !IsLocalProvider(resolved)))
             throw new ModelUnavailableException("No vision model available.");
 
         try

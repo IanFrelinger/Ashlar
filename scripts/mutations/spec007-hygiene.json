@@ -1,0 +1,259 @@
+{
+  "schema": 1,
+  "prepared_against": "49c34b3baeb5ca3b989058fe2e3e66b35d152dc6",
+  "note": "Prepared only. No mutation verdict is implied; rerun and revalidate against the final integrated tree.",
+  "mutations": [
+    {
+      "id": "api-missing-addresses",
+      "file": "application/src/Ashlar.API/Security/LoopbackListenerVerifier.cs",
+      "old": "if (_profile?.Value.RequiresLoopback == true && (addresses is null || addresses.Count == 0))",
+      "new": "if (_profile?.Value.RequiresLoopback == true && addresses is { Count: < 0 })",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "A_restricted_server_without_published_addresses_fails_closed"
+      ]
+    },
+    {
+      "id": "loopback-http-ports",
+      "file": "src/Ashlar.Infrastructure/AshlarInboundListenerPolicy.cs",
+      "old": "            AddPorts(\"http\", configuration[\"http_ports\"]);\n            AddPorts(\"https\", configuration[\"https_ports\"]);",
+      "new": "            AddPorts(\"http\", null);\n            AddPorts(\"https\", null);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Port_only_configuration_is_non_loopback_but_urls_take_precedence"
+      ]
+    },
+    {
+      "id": "api-prebind",
+      "file": "application/src/Ashlar.API/Program.cs",
+      "old": "AshlarInboundListenerPolicy.CollectEndpoints(\n        builder.Configuration,\n        builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey))",
+      "new": "Array.Empty<string>()",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "A_non_loopback_listener_fails_boot"
+      ]
+    },
+    {
+      "id": "api-postbind",
+      "file": "application/src/Ashlar.API/Security/LoopbackListenerVerifier.cs",
+      "old": "var violation = AshlarInboundListenerPolicy.Refusal(_profile?.Value, addresses);",
+      "new": "string? violation = null;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "What_Kestrel_bound_is_checked_after_the_server_starts"
+      ]
+    },
+    {
+      "id": "api-verifier-wiring",
+      "file": "application/src/Ashlar.API/Program.cs",
+      "old": "builder.Services.AddHostedService<Ashlar.API.Security.LoopbackListenerVerifier>();",
+      "new": "// mutation: omit post-bind verifier",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Airgapped_profile_api_host_starts_with_an_idle_endpoint_health_monitor"
+      ]
+    },
+    {
+      "id": "loopback-ipv6",
+      "file": "src/Ashlar.Infrastructure/AshlarInboundListenerPolicy.cs",
+      "old": "return IsLoopbackAddress(literal);",
+      "new": "return false;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Loopback_spellings_are_classified"
+      ]
+    },
+    {
+      "id": "listener-scheme",
+      "file": "src/Ashlar.Infrastructure/AshlarInboundListenerPolicy.cs",
+      "old": " || uri.Scheme is not (\"http\" or \"https\")",
+      "new": "",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Loopback_spellings_are_classified"
+      ]
+    },
+    {
+      "id": "adaptive-multiframe",
+      "file": "src/Ashlar.Infrastructure/Execution/AdaptiveProviderFactory.cs",
+      "old": " || (IsAirGapped && !IsLocalProvider(resolved))",
+      "new": "",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Multi_frame_vision_on_AirGapped_refuses_a_cloud_resolve"
+      ]
+    },
+    {
+      "id": "profile-postconfigure",
+      "file": "src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs",
+      "old": ".PostConfigure(resolved => resolved.Profile = notedProfile)",
+      "new": ".PostConfigure(resolved => { })",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Host_configuration_after_AddAshlar_cannot_weaken_the_noted_profile"
+      ]
+    },
+    {
+      "id": "d5-strictest",
+      "file": "src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs",
+      "old": "var notedProfile = AshlarDeploymentProfileEnvironment.Effective(canonicalProfile) ?? canonicalProfile;",
+      "new": "var notedProfile = canonicalProfile;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "A_later_weaker_AddAshlar_keeps_the_AirGapped_routing"
+      ]
+    },
+    {
+      "id": "mcp-direct-http",
+      "file": "src/Ashlar.Mcp.Server/ValidateAshlarMcpServerOptions.cs",
+      "old": "services.IsService(handler)",
+      "new": "false",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Mcp_direct_HTTP_transport_also_fails_boot_on_SecureWorkstation"
+      ]
+    },
+    {
+      "id": "validator-bedrock",
+      "file": "src/Ashlar.AI.Pipeline/ValidateAirGappedMeaiBedrockOptions.cs",
+      "old": "_profile.Value.IsAirGapped && options.Bedrock.Enabled",
+      "new": "!_profile.Value.IsAirGapped && options.Bedrock.Enabled",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Opt_in_remote_paths_fail_boot_on_air_gapped_and_stay_allowed_on_full"
+      ]
+    },
+    {
+      "id": "validator-brickhost",
+      "file": "src/Ashlar.Infrastructure/Execution/ValidateAirGappedBrickHostOptions.cs",
+      "old": "if (!_profile.Value.IsAirGapped)",
+      "new": "if (_profile.Value.IsAirGapped)",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Opt_in_remote_paths_fail_boot_on_air_gapped_and_stay_allowed_on_full"
+      ]
+    },
+    {
+      "id": "validator-meshlab",
+      "file": "src/Ashlar.Infrastructure/MeshLab/ValidateAirGappedMeshLabWorkerOptions.cs",
+      "old": "_profile.Value.IsAirGapped && options.Enabled",
+      "new": "!_profile.Value.IsAirGapped && options.Enabled",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Opt_in_remote_paths_fail_boot_on_air_gapped_and_stay_allowed_on_full"
+      ]
+    },
+    {
+      "id": "router-peer-refusal",
+      "file": "src/Ashlar.Infrastructure/Execution/Routing/NcrCapabilityRouter.cs",
+      "old": "throw new InvalidOperationException(refused);",
+      "new": "return ResolveRemoteTarget(requirements, refused);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Peer_network_only_on_air_gapped_is_refused"
+      ]
+    },
+    {
+      "id": "profile-reader-convention",
+      "file": "src/Ashlar.Infrastructure/Execution/AdaptiveProviderFactory.cs",
+      "old": "_inner = inner ?? throw new ArgumentNullException(nameof(inner));",
+      "new": "_inner = inner ?? throw new ArgumentNullException(nameof(inner));\n        _ = Environment.GetEnvironmentVariable(\"ASHLAR_DEPLOYMENT_PROFILE\");",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Infrastructure_the_API_and_the_CLI_never_reference_the_profile_source"
+      ]
+    },
+    {
+      "id": "mcp-callers-convention",
+      "file": "application/src/Ashlar.API/Program.cs",
+      "old": ".WithAshlarHttpTransport()",
+      "new": ".WithHttpTransport()",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Production_HTTP_MCP_callers_use_the_Ashlar_transport_wrapper"
+      ]
+    },
+    {
+      "id": "mesh-anyip",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs",
+      "old": "ListenLoopback(k, ConfigureListen);",
+      "new": "k.ListenAnyIP(_settings.Port, ConfigureListen);",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~MeshServeLoopbackProfileTests",
+      "expected_failures": [
+        "On_a_loopback_only_profile_mesh_serve_serves_on_loopback_and_nowhere_else"
+      ]
+    },
+    {
+      "id": "mesh-refusal",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs",
+      "old": "if (loopbackRefusal is not null)",
+      "new": "if (loopbackRefusal == \"mutation\")",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~MeshServeLoopbackProfileTests",
+      "expected_failures": [
+        "Missing_or_non_loopback_bind_faults_mesh_serve"
+      ]
+    },
+    {
+      "id": "loopback-mapped-address",
+      "file": "src/Ashlar.Infrastructure/AshlarInboundListenerPolicy.cs",
+      "old": "IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address);",
+      "new": "IPAddress.IsLoopback(address);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
+      "expected_failures": [
+        "Loopback_spellings_are_classified"
+      ]
+    },
+    {
+      "id": "mesh-mapped-socket",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs",
+      "old": "kestrel.Listen(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address, _settings.Port, configure);",
+      "new": "kestrel.Listen(address, _settings.Port, configure);",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~MeshServeLoopbackProfileTests",
+      "expected_failures": [
+        "On_a_loopback_only_profile_mesh_serve_serves_on_loopback_and_nowhere_else"
+      ]
+    }
+  ]
+}

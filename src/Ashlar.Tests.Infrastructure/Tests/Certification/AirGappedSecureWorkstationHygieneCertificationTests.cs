@@ -230,6 +230,132 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
             .Should().NotBeNull().And.Contain("loopback");
     }
 
+    [Theory]
+    [InlineData("::1", true)]
+    [InlineData("::ffff:127.0.0.1", true)]
+    [InlineData("::ffff:127.0.0.2", true)]
+    [InlineData("http://[::ffff:127.0.0.2]:5000", true)]
+    [InlineData("[::1]", true)]
+    [InlineData("http://[::1]:5000", true)]
+    [InlineData("localhost", true)]
+    [InlineData("127.0.0.2", true)]
+    [InlineData("::", false)]
+    [InlineData("http://[::]:5000", false)]
+    [InlineData("unix:///tmp/ashlar.sock", false)]
+    [InlineData("unix://localhost/tmp/ashlar.sock", false)]
+    [InlineData("npipe://localhost/pipe/ashlar", false)]
+    [InlineData("npipe://./pipe/ashlar", false)]
+    [InlineData("https://example.com", false)]
+    public void Loopback_spellings_are_classified(string endpoint, bool expected)
+        => AshlarInboundListenerPolicy.IsLoopbackEndpoint(endpoint).Should().Be(expected);
+
+    [Fact]
+    public void Port_only_configuration_is_non_loopback_but_urls_take_precedence()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["http_ports"] = "8080; 8081",
+            ["https_ports"] = "8443",
+        }).Build();
+        var endpoints = AshlarInboundListenerPolicy.CollectEndpoints(config, null);
+        endpoints.Should().Equal("http://*:8080", "http://*:8081", "https://*:8443");
+        ExpectListenerRefusal(AshlarDeploymentProfile.AirGapped, endpoints);
+        AshlarInboundListenerPolicy.CollectEndpoints(config, "http://localhost:5000")
+            .Should().Equal("http://localhost:5000");
+    }
+
+    [Theory]
+    [InlineData("openai")]
+    [InlineData("azure")]
+    public async Task Multi_frame_vision_on_AirGapped_refuses_a_cloud_resolve(string resolved)
+    {
+        foreach (var profile in new[] { AshlarDeploymentProfile.AirGapped, AshlarDeploymentProfile.Full })
+        {
+            using var provider = Compose(profile);
+            var fake = new RecordingFactory();
+            var factory = new AdaptiveProviderFactory(fake, new FixedLoadPolicy(resolved), deploymentProfile:
+                provider.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>());
+            var act = () => factory.ExecuteVisionMultiFrameAsync("ignored", "system", "user", new[] { new byte[] { 1 } }, new object());
+            await act.Should().ThrowAsync<ModelUnavailableException>();
+            if (profile == AshlarDeploymentProfile.AirGapped)
+                fake.MultiFrame.Should().BeEmpty("AirGapped must refuse before sending frames to the provider");
+            else
+                fake.MultiFrame.Should().Equal(resolved);
+        }
+    }
+
+    [Theory]
+    [InlineData("ollama")]
+    [InlineData("local")]
+    public async Task Multi_frame_vision_on_AirGapped_keeps_local_resolution(string resolved)
+    {
+        using var provider = Compose(AshlarDeploymentProfile.AirGapped);
+        var fake = new RecordingFactory();
+        var factory = new AdaptiveProviderFactory(fake, new FixedLoadPolicy(resolved), deploymentProfile:
+            provider.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>());
+        var act = () => factory.ExecuteVisionMultiFrameAsync("ignored", "system", "user", new[] { new byte[] { 1 } }, new object());
+        await act.Should().ThrowAsync<ModelUnavailableException>();
+        fake.MultiFrame.Should().Equal(resolved);
+    }
+
+    [Fact]
+    public void Host_configuration_after_AddAshlar_cannot_weaken_the_noted_profile()
+    {
+        using var provider = Compose(AshlarDeploymentProfile.AirGapped, services =>
+            services.Configure<AshlarResolvedDeploymentProfileOptions>(o => o.Profile = "full"));
+        provider.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>().Value.IsAirGapped.Should().BeTrue();
+        provider.GetRequiredService<ICapabilityRouter>()
+            .ResolveExecutionTarget(new JobRequirements { IsOvernightOrBackground = true })
+            .Should().BeOfType<ExecutionTarget.Local>();
+    }
+
+    [Fact]
+    public void A_later_weaker_AddAshlar_keeps_the_AirGapped_routing()
+    {
+        EgressProcessStateScope.Reset();
+        using var airgapped = Compose(AshlarDeploymentProfile.AirGapped);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAshlar(o => o.DeploymentProfile = AshlarDeploymentProfile.Full);
+        using var full = services.BuildServiceProvider();
+        full.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>().Value.IsAirGapped.Should().BeTrue();
+        full.GetRequiredService<ICapabilityRouter>()
+            .ResolveExecutionTarget(new JobRequirements { IsOvernightOrBackground = true })
+            .Should().BeOfType<ExecutionTarget.Local>();
+    }
+
+    [Fact]
+    public void A_container_composed_Full_before_AirGapped_was_noted_keeps_Full()
+    {
+        using var full = Compose(AshlarDeploymentProfile.Full);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAshlar(o => o.DeploymentProfile = AshlarDeploymentProfile.AirGapped);
+        using var airgapped = services.BuildServiceProvider();
+        full.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>().Value.IsAirGapped.Should().BeFalse();
+        airgapped.GetRequiredService<IOptions<AshlarResolvedDeploymentProfileOptions>>().Value.IsAirGapped.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Mcp_direct_HTTP_transport_also_fails_boot_on_SecureWorkstation()
+    {
+        using var provider = Compose(AshlarDeploymentProfile.SecureWorkstation, services =>
+            services.AddAshlarMcpServer(McpEnabled()).WithHttpTransport());
+        var act = () => provider.GetRequiredService<IOptions<AshlarMcpServerOptions>>().Value;
+        act.Should().Throw<OptionsValidationException>().WithMessage("*SecureWorkstation*HTTP*");
+    }
+
+    [Fact]
+    public void The_legacy_MCP_validator_constructor_keeps_its_marker_only_contract()
+    {
+        using var provider = Compose(AshlarDeploymentProfile.SecureWorkstation, services =>
+            services.AddAshlarMcpServer(McpEnabled()).WithAshlarHttpTransport());
+        var options = new AshlarMcpServerOptions { Enabled = true, ServerName = "legacy-stdio" };
+        new ValidateAshlarMcpServerOptions().Validate(null, options).Succeeded.Should().BeTrue();
+        new ValidateAshlarMcpServerOptions(provider.GetServices<AshlarMcpHttpTransportMarker>())
+            .Validate(null, options).Failed.Should().BeTrue();
+    }
+
     private static ServiceProvider Compose(AshlarDeploymentProfile profile, Action<IServiceCollection>? after = null)
     {
         EgressProcessStateScope.Reset();
@@ -324,6 +450,8 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
 
         public List<string> Vision { get; } = new();
 
+        public List<string> MultiFrame { get; } = new();
+
         public bool IsProviderAvailable(string provider) => true;
 
         public Task<string> ExecuteLLMAsync(
@@ -344,7 +472,10 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
         public Task<string> ExecuteVisionMultiFrameAsync(
             string provider, string systemPrompt, string userPrompt, IReadOnlyList<byte[]> frameBytes, object config,
             CancellationToken cancellationToken = default)
-            => throw new InvalidOperationException(provider);
+        {
+            MultiFrame.Add(provider);
+            throw new InvalidOperationException(provider);
+        }
 
         public Task<string> ExecuteVideoAsync(
             string systemPrompt, string userPrompt, IReadOnlyList<byte[]> frameBytes, object config,
