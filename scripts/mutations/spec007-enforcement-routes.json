@@ -158,6 +158,18 @@
       "expected_failures": [
         "The_netstandard20_asset_enforces_async_policy_refusals_before_the_transport"
       ]
+    },
+    {
+      "id": "r14-startup-claims-records-only",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+      "new": "Records only: the guard refuses nothing yet (SPEC-007 PR 4).",
+      "filter": "FullyQualifiedName~The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted"
+      ]
     }
   ]
 }
