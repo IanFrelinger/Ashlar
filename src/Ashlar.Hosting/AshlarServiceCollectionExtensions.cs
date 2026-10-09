@@ -134,8 +134,11 @@ public static partial class AshlarServiceCollectionExtensions
         // Effective themselves. Captured after NoteResolved, so a later less-strict AddAshlar still records
         // the strictest profile this process has noted.
         var notedProfile = AshlarDeploymentProfileEnvironment.Effective(canonicalProfile) ?? canonicalProfile;
+        // Options Configure callbacks always run before PostConfigure, so a host's later Configure cannot
+        // weaken this composition snapshot. A container composed before a stricter profile was noted keeps its snapshot.
         services.AddOptions<AshlarResolvedDeploymentProfileOptions>()
-            .Configure(resolved => resolved.Profile = notedProfile);
+            .Configure(resolved => resolved.Profile = notedProfile)
+            .PostConfigure(resolved => resolved.Profile = notedProfile);
         // SPEC-007 PR 4.6: ASHLAR_EGRESS_MODE is read once per process (here, or at the first decision of a process
         // that never runs AddAshlar), and AshlarHostingOptions.EgressMode can only raise it.
         var egressOverride = EgressEnforcement.NoteHostingOption(options.EgressMode);

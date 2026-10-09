@@ -22,7 +22,7 @@
 # registry, which the base image needs anyway. The -noble tag is the same Ubuntu 24.04 as the base,
 # so the runtime's native dependencies (ICU, OpenSSL) are the OS versions Microsoft ships it on, and
 # both tags are multi-arch, so an arm64 host gets arm64 bits from both stages. The end state is
-# unchanged: SDK 10, the real 8.0 runtime, and jq. host/fxr is not copied: the dotnet muxer always
+# SDK 10, the real 8.0 runtime, jq, and Python's full standard library. host/fxr is not copied: the dotnet muxer always
 # loads the newest hostfxr, which is the SDK's 10.x, and that resolves net8.0 apps onto the 8.0
 # frameworks copied here.
 #
@@ -42,9 +42,11 @@ RUN dotnet --list-runtimes \
  && dotnet --list-runtimes | grep -q '^Microsoft\.NETCore\.App 8\.' \
  && dotnet --list-runtimes | grep -q '^Microsoft\.AspNetCore\.App 8\.'
 
-# jq, for asserting on --format-json output from scenario scripts.
+# jq asserts on scenario JSON. The base carries only python3-minimal; the full
+# standard library is needed for JSON manifests, TRX parsing and evidence archives.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends jq \
+ && apt-get install -y --no-install-recommends jq python3 \
+ && python3 -c 'import dataclasses, json, tarfile, xml.etree.ElementTree' \
  && rm -rf /var/lib/apt/lists/*
 
 # DOTNET_ROLL_FORWARD is deliberately NOT set here. With 8.0 present, rolling forward is the
