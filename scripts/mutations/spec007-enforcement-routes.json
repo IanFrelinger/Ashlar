@@ -170,6 +170,18 @@
       "expected_failures": [
         "The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted"
       ]
+    },
+    {
+      "id": "r15-opaque-redirect-warning-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
+      "old": "WarnUnmediatedRedirect(followed);",
+      "new": "// Mutation: discard the post-send warning.",
+      "filter": "FullyQualifiedName~An_opaque_redirect_refusal_disposes_the_response_and_warns_that_the_body_may_have_gone",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "An_opaque_redirect_refusal_disposes_the_response_and_warns_that_the_body_may_have_gone"
+      ]
     }
   ]
 }

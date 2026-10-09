@@ -134,14 +134,31 @@ internal sealed class EgressGuardHandler : DelegatingHandler
             response.Dispose();
             throw;
         }
+        finally
+        {
+            WarnUnmediatedRedirect(followed);
+        }
 
         EgressEvaluatedAuthority.Stamp(request, followed);
+    }
+
+    private void WarnUnmediatedRedirect(Uri? followed)
+    {
         var message = "The followed URI's authority " + EgressEvaluatedAuthority.Describe(followed)
             + " differs from the one evaluated before the send; the body may already have gone.";
-        if (UnmediatedRedirectWarning is { } warn)
-            warn(message);
-        else
-            System.Diagnostics.Trace.TraceWarning(message);
+        try
+        {
+            if (UnmediatedRedirectWarning is { } warn)
+                warn(message);
+            else
+                System.Diagnostics.Trace.TraceWarning(message);
+        }
+#pragma warning disable CA1031 // A diagnostic callback cannot replace the policy refusal or change a response.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            EgressDecisionLog.RecordSinkFault();
+        }
     }
 
     private void Evaluate(Uri? uri)

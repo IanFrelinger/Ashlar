@@ -16,6 +16,56 @@ public sealed class EgressRouteEnforcementTests
 {
     private static readonly Uri Remote = new("https://remote.example/private?credential=canary");
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task An_opaque_redirect_refusal_disposes_the_response_and_warns_that_the_body_may_have_gone(bool sync, bool loggerThrows)
+    {
+        var inner = new OpaqueRedirectHandler();
+        using var handler = EgressHttp.Wrap(inner, EgressFamilies.Http, "route-opaque", new EgressGuard("full", "enforce"));
+        var warnings = new List<string>();
+        Action<string> warn = message =>
+        {
+            warnings.Add(message);
+            if (loggerThrows) throw new InvalidOperationException("logger failure");
+        };
+        handler.GetType().GetProperty("UnmediatedRedirectWarning",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.SetValue(handler, warn);
+        using var invoker = new HttpMessageInvoker(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/allowed");
+        var error = await Record.ExceptionAsync(async () =>
+        {
+            using var response = sync ? invoker.Send(request, CancellationToken.None)
+                : await invoker.SendAsync(request, CancellationToken.None);
+        });
+        error.Should().BeOfType<EgressRefusedException>();
+        inner.Sends.Should().Be(1, "the opaque transport has already sent before its final URI is known");
+        inner.Body.Disposed.Should().BeTrue();
+        warnings.Should().ContainSingle().Which.Should().Contain("the body may already have gone");
+    }
+
+    private sealed class OpaqueRedirectHandler : HttpMessageHandler
+    {
+        public int Sends { get; private set; }
+        public DisposalContent Body { get; } = new();
+        protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Sends++;
+            return new(HttpStatusCode.OK) { RequestMessage = new HttpRequestMessage(HttpMethod.Get, Remote), Content = Body };
+        }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(Send(request, cancellationToken));
+    }
+
+    private sealed class DisposalContent : ByteArrayContent
+    {
+        public DisposalContent() : base(Array.Empty<byte>()) { }
+        public bool Disposed { get; private set; }
+        protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
+    }
+
     [Fact]
     public void A_reentrant_publish_skip_is_counted_and_cannot_bypass_enforcement()
     {
