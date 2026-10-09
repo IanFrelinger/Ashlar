@@ -3,7 +3,9 @@ using System.Diagnostics.Tracing;
 using System.Reflection;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Infrastructure.Egress;
+using Ashlar.AI.Pipeline.Governance;
 using FluentAssertions;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -12,6 +14,59 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 [Trait("Category", "Certification")]
 public sealed class EgressRefusalDiagnosticsTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw(bool chat, bool throws)
+    {
+        var capture = new Capture();
+        using var factory = LoggerFactory.Create(b => b.SetMinimumLevel(LogLevel.Trace).AddProvider(capture));
+        var provider = new ResolutionProvider(factory, throws);
+        var counterName = throws ? "ResolutionFaults" : "ResolutionMissing";
+        var counter = typeof(EgressGuard).GetProperty(counterName, BindingFlags.Static | BindingFlags.NonPublic);
+        counter.Should().NotBeNull();
+        var before = (long)counter!.GetValue(null)!;
+        IEgressGuard? guard;
+        if (chat)
+        {
+            var resolve = typeof(AshlarGovernanceChatClientBuilderExtensions).GetMethod("ResolveEgressGuard",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            guard = (IEgressGuard?)resolve.Invoke(null, [provider]);
+        }
+        else
+        {
+            guard = EgressServiceCollectionExtensions.ResolveGuardAndActivateLogging(new ResolutionBuilder(provider));
+        }
+        guard.Should().BeSameAs(EgressGuard.ProcessDefault);
+        ((long)counter.GetValue(null)!).Should().BeGreaterThan(before);
+        var entry = capture.Entries.Should().ContainSingle().Which;
+        entry.Event.Id.Should().Be(7303);
+        entry.Level.Should().Be(throws ? LogLevel.Warning : LogLevel.Debug);
+        entry.Fields["Resolution"].Should().Be(throws ? "failed" : "unregistered");
+        entry.Fields["Fault"].Should().Be(throws ? typeof(InvalidOperationException).FullName : "none");
+    }
+
+    private sealed class ResolutionProvider(ILoggerFactory factory, bool throws) : IServiceProvider
+    {
+        public object? GetService(Type serviceType)
+        {
+            if (serviceType == typeof(ILoggerFactory)) return factory;
+            if (serviceType == typeof(IEgressGuard) && throws) throw new InvalidOperationException("private host details");
+            return null;
+        }
+    }
+
+    private sealed class ResolutionBuilder(IServiceProvider services) : HttpMessageHandlerBuilder
+    {
+        public override string? Name { get; set; }
+        public override HttpMessageHandler PrimaryHandler { get; set; } = null!;
+        public override IList<DelegatingHandler> AdditionalHandlers { get; } = new List<DelegatingHandler>();
+        public override IServiceProvider Services => services;
+        public override HttpMessageHandler Build() => throw new NotSupportedException();
+    }
+
     [Fact]
     public void Enforced_refusals_are_visible_at_Warning_with_the_full_operator_record()
     {

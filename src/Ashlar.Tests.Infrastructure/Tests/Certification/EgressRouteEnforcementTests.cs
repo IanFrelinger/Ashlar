@@ -17,6 +17,65 @@ public sealed class EgressRouteEnforcementTests
     private static readonly Uri Remote = new("https://remote.example/private?credential=canary");
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Chat_refusal_reaches_the_auditor_and_an_audit_fault_cannot_mask_it(bool streaming, bool auditFault)
+    {
+        var inner = new CountingChatClient();
+        var guard = new CapturingGuard(new EgressGuard("full", "enforce"));
+        var auditor = new CapturingAuditor(auditFault);
+        using var client = new EgressGuardChatClient(inner,
+            new EgressRequest(EgressFamilies.ModelMeai, "route-audit", Remote), guard, "cloud:test", auditor);
+        Action call = () =>
+        {
+            if (streaming) _ = client.GetStreamingResponseAsync(Array.Empty<ChatMessage>());
+            else _ = client.GetResponseAsync(Array.Empty<ChatMessage>());
+        };
+        call.Should().Throw<EgressRefusedException>().Which.Decision.Should().BeSameAs(guard.Decision);
+        inner.Calls.Should().Be(0);
+        var record = auditor.Seen.Should().ContainSingle().Which;
+        record.Outcome.Should().Be("denied");
+        record.ReasonCode.Should().Be("egress_refused");
+        record.TargetKey.Should().Be("cloud:test");
+        record.EgressDecision.Should().BeSameAs(guard.Decision);
+    }
+
+    [Fact]
+    public async Task Http_async_refusal_is_a_faulted_task_even_when_a_decision_sink_throws()
+    {
+        using var subscription = EgressDecisionLog.Subscribe(new ThrowingSink());
+        var inner = new CountingHandler();
+        using var handler = EgressHttp.Wrap(inner, EgressFamilies.Http, "route-async-fault",
+            new EgressGuard("full", "enforce"));
+        using var invoker = new HttpMessageInvoker(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Get, Remote);
+        Task<HttpResponseMessage>? task = null;
+        Action call = () => task = invoker.SendAsync(request, CancellationToken.None);
+        call.Should().NotThrow();
+        task.Should().NotBeNull();
+        Func<Task> awaitCall = async () => await task!;
+        await awaitCall.Should().ThrowAsync<EgressRefusedException>();
+        inner.Sends.Should().Be(0);
+    }
+
+    private sealed class ThrowingSink : IEgressDecisionSink
+    {
+        public void Record(EgressDecision decision) => throw new InvalidOperationException("sink failure");
+    }
+
+    private sealed class CapturingAuditor(bool throws) : IChatInvocationAuditor
+    {
+        public List<ChatInvocationAuditRecord> Seen { get; } = [];
+        public void Record(ChatInvocationAuditRecord record)
+        {
+            Seen.Add(record);
+            if (throws) throw new InvalidOperationException("audit failure");
+        }
+    }
+
+    [Theory]
     [InlineData(false, "enforce", 0)]
     [InlineData(true, "enforce", 0)]
     [InlineData(false, "report", 1)]

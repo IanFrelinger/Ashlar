@@ -42,6 +42,45 @@ public sealed class EgressGuard : IEgressGuard
     internal const string FaultedCurrentBasis = "not resolved: the evaluation faulted";
 
     private static long _sequence;
+    private static long _resolutionFaults;
+    private static long _resolutionMissing;
+
+    internal static long ResolutionFaults => Interlocked.Read(ref _resolutionFaults);
+    internal static long ResolutionMissing => Interlocked.Read(ref _resolutionMissing);
+
+    // A failed DI lookup must retain process enforcement. Diagnostics cannot stop client construction.
+    internal static IEgressGuard ResolveForRoute(Func<IEgressGuard?> resolve, Action<bool, string?> diagnose)
+    {
+        string? fault = null;
+        try
+        {
+            var guard = resolve();
+            if (guard is not null)
+                return guard;
+        }
+#pragma warning disable CA1031 // Host DI faults fall back to process policy and are counted and diagnosed.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            fault = ex.GetType().FullName ?? ex.GetType().Name;
+        }
+
+        if (fault is null)
+            Interlocked.Increment(ref _resolutionMissing);
+        else
+            Interlocked.Increment(ref _resolutionFaults);
+        try
+        {
+            diagnose(fault is not null, fault);
+        }
+#pragma warning disable CA1031 // Diagnostics must not change the fallback guard.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            EgressDecisionLog.RecordSinkFault();
+        }
+        return ProcessDefault;
+    }
 
     private readonly string? _deploymentProfile;
     private readonly string? _egressMode;

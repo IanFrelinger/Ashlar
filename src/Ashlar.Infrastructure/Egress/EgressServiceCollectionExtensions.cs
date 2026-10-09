@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Ashlar.Infrastructure.Egress;
 
@@ -81,37 +82,28 @@ public static class EgressServiceCollectionExtensions
         return services;
     }
 
-    // Runs each time a factory client's handlers are built. Nothing here may stop the client being built, so a
-    // failure leaves the guard at ProcessDefault (a null guard) and the records on the event source only.
+    // Runs each time a factory client's handlers are built. Resolution failures retain process enforcement.
     internal static IEgressGuard? ResolveGuardAndActivateLogging(HttpMessageHandlerBuilder handlers)
     {
-        IServiceProvider services;
-        try
+        IServiceProvider? services = null;
+        return EgressGuard.ResolveForRoute(() =>
         {
             services = handlers.Services;
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-
-        try
-        {
-            _ = services.GetService<EgressDecisionLoggerSubscription>();
-        }
-        catch (Exception)
-        {
-            // The logger subscription could not be built; the decisions still go to the event source.
-        }
-
-        try
-        {
+            try
+            {
+                _ = services.GetService<EgressDecisionLoggerSubscription>();
+            }
+            catch (Exception)
+            {
+                // The logger subscription could not be built; the decisions still go to the event source.
+            }
             return services.GetService<IEgressGuard>();
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+        }, (faulted, fault) =>
+            services?.GetService<ILoggerFactory>()?.CreateLogger("Ashlar.Egress").Log(
+                faulted ? LogLevel.Warning : LogLevel.Debug,
+                new EventId(7303, "EgressGuardFallback"),
+                "Egress guard resolution {Resolution}; using ProcessDefault; fault={Fault}",
+                faulted ? "failed" : "unregistered", fault ?? "none"));
     }
 
     /// <summary>Marks a collection <see cref="AddAshlarEgressGuard"/> has already run on.</summary>

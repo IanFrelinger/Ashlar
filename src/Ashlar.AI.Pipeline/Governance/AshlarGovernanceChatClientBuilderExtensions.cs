@@ -1,6 +1,7 @@
 using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Ashlar.AI.Pipeline.Governance;
 
@@ -55,17 +56,14 @@ public static class AshlarGovernanceChatClientBuilderExtensions
         return builder;
     }
 
-    // Report-only: nothing here may stop the keyed client being built, so a failure leaves the guard at
-    // EgressGuard.ProcessDefault (a null guard), as the factory handler in AddAshlarEgressGuard does.
+    // Construction survives a missing or broken host registration, retaining process-default enforcement.
     private static IEgressGuard? ResolveEgressGuard(IServiceProvider services)
     {
-        try
-        {
-            return services.GetService<IEgressGuard>();
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+        return EgressGuard.ResolveForRoute(() => services.GetService<IEgressGuard>(), (faulted, fault) =>
+            services.GetService<ILoggerFactory>()?.CreateLogger("Ashlar.Egress").Log(
+                faulted ? LogLevel.Warning : LogLevel.Debug,
+                new EventId(7303, "EgressGuardFallback"),
+                "Egress guard resolution {Resolution}; using ProcessDefault; fault={Fault}",
+                faulted ? "failed" : "unregistered", fault ?? "none"));
     }
 }
