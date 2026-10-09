@@ -182,6 +182,18 @@
       "expected_failures": [
         "An_opaque_redirect_refusal_disposes_the_response_and_warns_that_the_body_may_have_gone"
       ]
+    },
+    {
+      "id": "r16-warning-window-merges-reasons",
+      "file": "src/Ashlar.Infrastructure/Egress/LoggerEgressDecisionSink.cs",
+      "old": "var key = (decision.Site, decision.Access.Reason);",
+      "new": "var key = (decision.Site, Reason: AccessDenialReason.NoDecision);",
+      "filter": "FullyQualifiedName~Windows_are_independent_per_site_and_reason",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Windows_are_independent_per_site_and_reason"
+      ]
     }
   ]
 }

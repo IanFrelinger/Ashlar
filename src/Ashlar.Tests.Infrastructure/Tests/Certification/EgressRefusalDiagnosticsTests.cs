@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Tracing;
 using System.Reflection;
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Infrastructure.Egress;
 using Ashlar.AI.Pipeline.Governance;
@@ -118,7 +119,7 @@ public sealed class EgressRefusalDiagnosticsTests
     }
 
     [Fact]
-    public void Windows_are_independent_per_site_and_disposal_flushes_counts_and_releases_timers()
+    public void Windows_are_independent_per_site_and_reason_and_disposal_flushes_counts_and_releases_timers()
     {
         var capture = new Capture();
         using var factory = LoggerFactory.Create(b => b.SetMinimumLevel(LogLevel.Trace).AddProvider(capture));
@@ -128,6 +129,14 @@ public sealed class EgressRefusalDiagnosticsTests
         sink.Record(Refused("two"));
         sink.Record(Refused("one"));
         capture.Entries.Count(e => e.Event.Id == 7301).Should().Be(2);
+        using (EgressSubject.Enter("diagnostic-window", new HighWaterMark(SecurityLabel.Secret)))
+        {
+            var otherReason = Refused("one");
+            otherReason.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+            sink.Record(otherReason);
+        }
+        capture.Entries.Count(e => e.Event.Id == 7301).Should().Be(3,
+            "a different reason at the same site starts its own window");
         var owner = (object)sink as IDisposable;
         owner.Should().NotBeNull();
         owner!.Dispose();
