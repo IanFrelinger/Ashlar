@@ -186,7 +186,7 @@ public sealed class EgressHttpHandlerTwinTests
     }
 
     [Fact]
-    public void A_null_request_is_not_a_send_and_is_refused_as_before()
+    public async Task A_null_request_is_not_a_send_and_is_refused_as_before()
     {
         var site = NewSite();
         var sink = new SiteSink(site);
@@ -202,9 +202,10 @@ public sealed class EgressHttpHandlerTwinTests
             modifiers: null);
         sendAsync.Should().NotBeNull();
 
-        var act = () => sendAsync!.Invoke(handler, [null, CancellationToken.None]);
+        var task = (Task<HttpResponseMessage>)sendAsync!.Invoke(handler, [null, CancellationToken.None])!;
+        var act = async () => await task;
 
-        act.Should().Throw<TargetInvocationException>().WithInnerException<ArgumentNullException>();
+        await act.Should().ThrowAsync<ArgumentNullException>();
         sink.Seen.Should().BeEmpty("no request, no decision");
     }
 

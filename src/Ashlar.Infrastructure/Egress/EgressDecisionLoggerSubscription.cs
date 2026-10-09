@@ -17,6 +17,7 @@ namespace Ashlar.Infrastructure.Egress;
 public sealed class EgressDecisionLoggerSubscription : IDisposable
 {
     private readonly IDisposable _subscription;
+    private readonly LoggerEgressDecisionSink _sink;
 
     /// <summary>Subscribes a sink that writes to the <c>Ashlar.Egress</c> logger of <paramref name="loggerFactory"/>.</summary>
     /// <param name="loggerFactory">The logger factory.</param>
@@ -24,9 +25,14 @@ public sealed class EgressDecisionLoggerSubscription : IDisposable
     public EgressDecisionLoggerSubscription(ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(loggerFactory);
-        _subscription = EgressDecisionLog.Subscribe(new LoggerEgressDecisionSink(loggerFactory));
+        _sink = new LoggerEgressDecisionSink(loggerFactory);
+        _subscription = EgressDecisionLog.Subscribe(_sink);
     }
 
     /// <summary>Unsubscribes the sink. Disposing twice does nothing.</summary>
-    public void Dispose() => _subscription.Dispose();
+    public void Dispose()
+    {
+        _subscription.Dispose();
+        _sink.Dispose();
+    }
 }

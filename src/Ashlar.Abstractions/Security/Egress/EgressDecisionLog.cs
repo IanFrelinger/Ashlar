@@ -25,6 +25,9 @@ public static class EgressDecisionLog
     /// <summary>How many times a sink or the event source threw while recording; each throw was swallowed.</summary>
     internal static long SinkFaults => Interlocked.Read(ref _sinkFaults);
 
+    /// <summary>Counts a sink failure outside the synchronous publish fence, such as a summary timer.</summary>
+    internal static void RecordSinkFault() => Interlocked.Increment(ref _sinkFaults);
+
     /// <summary>How many records were not published because a publish was already running on that thread.</summary>
     internal static long ReentrantSkips => Interlocked.Read(ref _reentrantSkips);
 
