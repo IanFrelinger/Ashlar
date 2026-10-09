@@ -25,7 +25,7 @@ public sealed class EgressRefusedException : Exception
     public string Ref => Decision.Ref;
 
     /// <summary>The stable error code, distinct from transport failures.</summary>
-    public string ErrorCode => "EGRESS_REFUSED";
+    public string ErrorCode { get; } = "EGRESS_REFUSED";
 
     private static string MessageFor(EgressDecision decision)
     {

@@ -97,7 +97,7 @@ public sealed class EgressGuard : IEgressGuard
         return ProcessDefault.EvaluateCore(request, fault);
     }
 
-    private EgressDecision EvaluateCore(EgressRequest request, string? externalFault)
+    private EgressDecision EvaluateCore(EgressRequest? request, string? externalFault)
     {
         var sequence = Interlocked.Increment(ref _sequence);
         var at = DateTimeOffset.UtcNow;
