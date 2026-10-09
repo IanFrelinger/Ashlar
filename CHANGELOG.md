@@ -17,7 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
-### Fixed — SPEC-007 PR 4.10b inbound and hygiene hardening (#725)
+### Fixed — integrated security records and local repository checks
+
+- Re-measured SPEC-007 after #738, #739 and #740: 2,148 production files, 149 outbound occurrences,
+  67 inventory documentation rows, and 142 certification C# files. Corrected superseded PR references
+  and source citations; the scan's non-vacuity thresholds are unchanged.
+- The devtest image includes PyYAML, which the workflow and runner-pin repository checks require.
+  Rebuild an existing cached image with `ASHLAR_DEVTEST_REBUILD=1 bash scripts/ensure-devtest-image.sh`.
+
+### Fixed — SPEC-007 PR 4.10b inbound and hygiene hardening (#738)
 
 - AirGapped/SecureWorkstation refuse port-only wildcard API listeners before binding and verify actual Kestrel
   addresses after start. Bare IPv6 and mapped loopback binds work; mesh serve keeps its explicit-bind fail-boot rule.

@@ -44,9 +44,10 @@ RUN dotnet --list-runtimes \
 
 # jq asserts on scenario JSON. The base carries only python3-minimal; the full
 # standard library is needed for JSON manifests, TRX parsing and evidence archives.
+# PyYAML is required by the repository's workflow and runner-pin gates, just as in CI.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends jq python3 \
- && python3 -c 'import dataclasses, json, tarfile, xml.etree.ElementTree' \
+ && apt-get install -y --no-install-recommends jq python3 python3-yaml \
+ && python3 -c 'import dataclasses, json, tarfile, xml.etree.ElementTree, yaml' \
  && rm -rf /var/lib/apt/lists/*
 
 # DOTNET_ROLL_FORWARD is deliberately NOT set here. With 8.0 present, rolling forward is the
