@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 784,
-    "declared_facts": 5022,
+    "test_files_declaring_facts": 786,
+    "declared_facts": 5035,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5179,7 +5179,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressHttpNetstandard20TwinTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 9,
+      "declared_facts": 10,
       "in_cert_gate_filter": true
     },
     {
@@ -5243,6 +5243,20 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 18,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRefusalDiagnosticsTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 6,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRouteEnforcementTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 6,
       "in_cert_gate_filter": true
     },
     {
