@@ -75,13 +75,12 @@ are in the `master` branch protection rule alongside `cert-gate` (see above).
 ### Faster multi-PR merges (process + optional admin)
 
 `strict: true` makes every merge leave every other open PR BEHIND, so a fan-out of
-readiness-touching PRs pays the heavy matrix once per tip. Prefer:
+readiness-touching PRs pays the heavy matrix once per tip update. Prefer:
 
-1. **Stack** core-path series (each PR’s base is the previous tip) so CI runs once.
-2. **Split** the queue: land non-`READINESS_PATHS` PRs first (~1 min Readiness), then one stack.
-3. **One settled tip** before waiting — conflicts, knowledge-graph regen, PR-body tokens — every
-   `synchronize` restarts the matrix.
-4. **Squash-merge into `master`** unless history must be preserved (SPEC series may use merge commits).
+1. **Split** the queue: land non-`READINESS_PATHS` PRs first (~1 min Readiness).
+2. **One settled tip** before waiting — conflicts, knowledge-graph regen, PR-body tokens — every
+   `synchronize` restarts the matrix (~30–40 min when core paths changed).
+3. **Squash-merge into `master`** by default.
 
 **Merge queue (admin):** the readiness `changes` job already handles `merge_group`. Enabling a
 GitHub merge queue on `master` (Settings → Rules → Ruleset / merge queue, require the same five

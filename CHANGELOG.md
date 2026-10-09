@@ -19,15 +19,21 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Added
 
+- **CI: Full Platform Readiness no longer push-triggers on `cursor/**`.** Branch protection uses the PR
+  `Readiness summary` check; tip pushes on agent branches had been starting a second heavy matrix. Also:
+  `scripts/knowledge-graph/resolve-rebase-conflict.sh` for mid-rebase KG conflicts, two shell-lint gates that pin
+  the push-branch list and the helper, and a more race-tolerant `doctor-container-truthful` UAT probe.
+
 - **SPEC-007 PR 4.5: subject producers, still report-only.** The self-extend runner enters `agent:<id>` at
   `SystemHigh` around the cycle and the post-cycle admission and auto-share. Egress records for that cycle go from
   `no-subject` to `subject:agent:<id>` at `SystemHigh`. Nothing refuses, and no send changes. `ToolCallingAgent`
   begins a read around each tool call. Only a tool that implements `IEgressLabelledTool` may report; `RAGTool` is
   the only one, and it reports each hit's canonical label, or `Public` when the search read nothing. Any other tool,
   and a tool that throws, counts as `SystemHigh`. A `peer:` chat response is observed as `SystemHigh` after it
-  returns. A model response is not a read. An open read still counts only when the scope ends, which is a known
-  limit when a runner's floor is below `SystemHigh` (the owner can reverse it). The labelled-tool marker is recorded
-  in `PublicAPI.Unshipped.txt`.
+  returns. A model response is not a read. An open read still counts only when the scope ends (PR 4.4 rule); the
+  owner decided on 2026-10-06 that an open unreported scope should decide at `SystemHigh` (Scenario B →
+  `SystemHighData`) — not yet implemented, tracked in PR 4.5b. The labelled-tool marker is recorded in
+  `PublicAPI.Unshipped.txt`.
 
 - **`Ashlar.Abstractions.Security`: Bell-LaPadula security labels and reference-monitor decisions.**
   `SecurityLevel` orders `Public < Internal < Confidential < Secret < TopSecret`, with the names and
@@ -169,10 +175,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   subject; a task, timer, registration or continuation the publisher created and the callback starts
   or triggers keeps the publisher's frame, since each captures the flow where it is created, and a
   thread or `System.Timers.Timer` the callback created and the publisher starts runs in the
-  publisher's frame, since it captures the flow where it is started. Still report-only, and no production code enters a frame
-  or begins a read yet, so no recorded decision changes; the agent producers come in PR 4.5. The new
-  public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, and the behaviour is pinned by
-  cert-gate tests listed in `ci/cert-gate-assertions.md`.
+  publisher's frame, since it captures the flow where it is started. Still report-only. Until PR 4.5
+  no production code entered a frame or began a read, so no recorded decision changed then; the agent
+  producers are in PR 4.5. The new public API is in `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`,
+  and the behaviour is pinned by cert-gate tests listed in `ci/cert-gate-assertions.md`.
 - **A Claude Code cloud session sets docker up by itself.** A new SessionStart hook,
   `.claude/hooks/session-start.sh` (registered in `.claude/settings.json`), runs only when
   `CLAUDE_CODE_REMOTE=true`: it starts `dockerd` if it is not running, writes a session-local
@@ -234,7 +240,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - MCP over HTTP fails boot on SecureWorkstation. Stdio still boots. AirGapped still refuses an enabled MCP
     server. Hosts select HTTP with `WithAshlarHttpTransport` (it registers the marker, then `WithHttpTransport`).
   - On AirGapped and SecureWorkstation, API urls (`ASPNETCORE_URLS` and `Kestrel:Endpoints:*:Url`) and mesh serve
-    must bind loopback or boot fails. `127.0.0.1`, `localhost` and `::1` succeed; `0.0.0.0`, `+` and `*` fail.
+    must bind loopback or boot fails. `127.0.0.1`, `localhost` and `[::1]` succeed (bare `::1` is refused by
+    URI parsing); `0.0.0.0`, `+` and `*` fail.
     An empty url list is the host default and is allowed. Mesh serve reads optional `ASHLAR_MESH_SERVE_BIND`;
     unset on these profiles is any-interface and fails boot rather than being rewritten.
 

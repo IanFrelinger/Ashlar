@@ -47,7 +47,7 @@ ASHLAR_MESH_SERVE_PORT=7420
 ASHLAR_NODE_NAME=study-node        # optional; defaults to the machine name
 ```
 
-On AirGapped and SecureWorkstation the serve address must be loopback or the daemon fails to boot. Set `ASHLAR_MESH_SERVE_BIND` to `127.0.0.1`, `localhost`, or `::1`. Leaving it unset is any-interface (`0.0.0.0`) and boot fails on those profiles. Other profiles keep `ListenAnyIP` and do not apply the bind.
+On AirGapped and SecureWorkstation the serve address must be loopback or the daemon fails to boot. Set `ASHLAR_MESH_SERVE_BIND` to `127.0.0.1`, `localhost`, or `[::1]` (bare `::1` is refused by URI parsing). Leaving it unset is any-interface (`0.0.0.0`) and boot fails on those profiles. Other profiles keep `ListenAnyIP` and do not apply the bind.
 
 Three read-only endpoints:
 

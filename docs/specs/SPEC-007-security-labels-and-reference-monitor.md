@@ -8,7 +8,7 @@ in §8 rather than guessing.
 
 Master at the time of writing: `0960774` (#704 and #705 merged).
 
-## Status (2026-10-05)
+## Status (2026-10-08)
 
 *Added when the spec was committed. Everything else is the owner's text of 2026-10-03, with these additions, each
 marked: test names next to the §2 MUSTs (labelled **Enforced by**, as §7 asks), a status column in §5, the sections
@@ -46,7 +46,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
   unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record
   (the owner's 2026-10-06 amendment of D31). PR 3b found two more (`docs/EgressInventory.md`): redirects that the
-  primary handler follows are not evaluated, which stays open until 4.3, and a few records could read Host for a
+  primary handler follows are not evaluated (closed by PR 4.3, #722, `904cf909a`, with the host-boundary exception
+  still outstanding — owner O2, decisions log, tracked for PR 4.3b), and a few records could read Host for a
   remote peer (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client,
   EG-MESH-07/08 with a `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no longer read Host.
 - **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
@@ -130,36 +131,38 @@ The status line above and the starting prompt are the owner's, as written; the s
   inside the callback, such as each subscriber's `Task.Run`, keeps no subject; a task, timer, registration or
   continuation the publisher created and the callback starts or triggers keeps the publisher's frame, since each
   captures the flow where it is created, and a thread or `System.Timers.Timer` captures it where it is started.
-  Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
-  `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
+  Report-only. Until PR 4.5 no production code entered a frame; the producers are in PR 4.5. **Amended PR 4 design:**
+  its `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
   the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
   `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant
   exposes every Abstractions internal to Orchestration; 4.6's convention fact
   (`ProcessGlobalEnvironmentConventionTests.Only_AddAshlar_and_the_reset_seam_reach_the_process_egress_state`)
   reads every source file, Orchestration's included, so no new caller of the reset seam or the mode latch setters
   appears unlisted.
-- **PR 4.5** (#721), still report-only. `SelfExtendRunnerAdapter.RunAsync` enters `agent:<id>` at `SystemHigh`
-  around the cycle and the post-cycle admission and auto-share, because the snapshot carries unlabelled carry-over.
-  Records go from `no-subject` to `subject:agent:<id>` at `SystemHigh`. Nothing refuses. `ToolCallingAgent` begins a
-  read around each tool call and accepts `Report` only from `IEgressLabelledTool`; in #721 the only labelled tool
-  is `RAGTool`, which reports each hit's canonical label and `Public` when it read nothing. An unlabelled tool, or a
-  tool that throws, is `SystemHigh`. A response from a `peer:` chat target is observed as `SystemHigh` after it
-  returns; a model endpoint is not a read. An open read scope still observes only when it ends (the merged 4.4 rule):
-  a tool that egresses before the scope ends is decided at the pre-read mark. That is a known limit for a runner whose
-  floor is below `SystemHigh`. The owner can reverse it. Reversing it, so an open scope counted as `SystemHigh`,
-  would turn the leak's `LevelTooLow` into `SystemHighData`, because a mark only rises.
-- **PR 4.10** (#720) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
+- **PR 4.5** (#721, `9b2ea56f4`), still report-only. `SelfExtendRunnerAdapter.RunAsync` enters `agent:<id>` at
+  `SystemHigh` around the cycle and the post-cycle admission and auto-share, because the snapshot carries unlabelled
+  carry-over. Records go from `no-subject` to `subject:agent:<id>` at `SystemHigh`. Nothing refuses.
+  `ToolCallingAgent` begins a read around each tool call and accepts `Report` only from `IEgressLabelledTool`; in
+  #721 the only labelled tool is `RAGTool`, which reports each hit's canonical label and `Public` when it read
+  nothing. An unlabelled tool, or a tool that throws, is `SystemHigh`. A response from a `peer:` chat target is
+  observed as `SystemHigh` after it returns; a model endpoint is not a read. **Owner decision 2026-10-06 (not yet
+  implemented on master; tracked in PR 4.5b):** while a read scope is open and unreported, every egress decided on
+  the flows inside it is decided at `SystemHigh` (Scenario B's expected reason becomes `SystemHighData`). Master
+  still observes only when the scope ends (the merged 4.4 rule); a cert-gate twin still pins the pre-read mark.
+- **PR 4.10** (#720, `02fa27f1d`) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
   `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
   an explicit peer-network-only request fails with an explained error and is not sent to a peer or to RunPod.
-  `AdaptiveProviderFactory` does not try OpenAI or Azure on AirGapped, for LLM calls or single-image vision.
-  Boot refuses, on AirGapped only, a non-empty `BrickHost:RemoteCatalogBaseUrls`,
-  `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and
-  `Ashlar:Meai:Bedrock:Enabled=true`. The ollama.com catalog defaults off on AirGapped when `Enabled` is unset.
-  SecureWorkstation refuses MCP over HTTP and still boots stdio; AirGapped still refuses an enabled MCP server
-  whether or not the transport is HTTP. On both profiles an API listener or mesh serve that does not bind
-  loopback fails boot (`127.0.0.1`, `localhost` and `::1` succeed). Responses on inbound connections are not
-  mediated until PR 5's CanRead at the server seams.
+  `AdaptiveProviderFactory` does not try OpenAI or Azure on AirGapped, for LLM calls or single-image vision
+  (multi-frame vision may still send to a cloud resolve — Known limit until PR 4.10b). Boot refuses, on AirGapped
+  only, a non-empty `BrickHost:RemoteCatalogBaseUrls`, `Ashlar:RunPod:EnablePeerNetworkRouting=true`,
+  `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and `Ashlar:Meai:Bedrock:Enabled=true`. The ollama.com catalog
+  defaults off on AirGapped when `Enabled` is unset. SecureWorkstation refuses MCP over HTTP and still boots stdio;
+  AirGapped still refuses an enabled MCP server whether or not the transport is HTTP. On both profiles an API
+  listener or mesh serve that does not bind loopback fails boot (`127.0.0.1`, `localhost` and `[::1]` succeed;
+  bare `::1` is refused by URI parsing — use the bracketed form). `ASPNETCORE_HTTP_PORTS` is not yet collected when
+  `urls` is unset (Known limit until PR 4.10b). Responses on inbound connections are not mediated until PR 5's
+  CanRead at the server seams.
 
 ---
 
@@ -438,8 +441,9 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 answer of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
-were not the owner's are in the next section.
+applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 and phase C answers of 2026-10-06. None of them
+answers a §8 question; §8 stands as written. Design choices that merged with those PRs but were not the owner's are
+in the next section.
 
 | Date | Applies to | Decision |
 |---|---|---|
@@ -458,6 +462,9 @@ were not the owner's are in the next section.
 | 2026-10-05 | PR 4 (Q7, open question D) | **A refusal names its category and nothing about the data's label.** The refused subject (the model, agent memory, the exception message) gets the reason category, site, family, destination class and a random reference. Operators get the full `Detail` and the sequence number. Remote parties get a fixed text and the reference. |
 | 2026-10-05 | PR 4 (Q8, open question C) | **v1 labels carry the level only.** The four sensitivity flags are not caveats, and PR 4 maps only the five canonical level names. The first producer that labels data from a custom `IDataSensitivityLevel` applies a fail-closed normalisation: the lowest built-in level whose flags are no more permissive. `ORCON` and REL TO stay out of scope, and §8 Q1 stays open. |
 | 2026-10-06 | PR 4 (4.2) | **A synchronous `Send` refused on the `netstandard2.0` asset leaves no decision record; the exception is the only signal.** This amends the PR 4 design's default D31, which wanted the hop to publish a `NoDecision` record so the refusal reaches the operator log. No Ashlar code runs when the runtime refuses that `Send`, so a record could only be published when a client is built, which would claim a refused egress where none happened, or from a process-wide `AppDomain.FirstChanceException` hook, which runs on every exception in the host. The `NotSupportedException` reaches the caller, whose own error handling logs it. The accepted cost: under `AirGapped` or `SecureWorkstation` enforcement, such a refusal never appears in Ashlar's egress log. Ashlar's own hosts bind `net8.0` or `net10.0` and are unaffected; only an app that binds the `netstandard2.0` asset on .NET 5 or later is. |
+| 2026-10-06 | PR 4 (4.5) | **While a read scope is open and unreported, every egress decided on the flows inside it is decided at `SystemHigh`, for every tool, `RAGTool` included (no labelled-tool exemption).** This answers the read-scope question the PR 4.4 phase carried to PR 4.5: a scope observes its result only when it ends, so without this a tool that reads and then egresses within one call was decided at the mark from before the read. Once the scope ends, the frames it was begun in hold what it observed: the reported label if it completed and reported, else `SystemHigh`, as PR 4.4 already does. The accepted cost: under a runner floor below `SystemHigh`, a tool's own egress during its call is refused once the guard enforces. In the PR 4 design's §5 leak test, Scenario B's expected reason changes from `LevelTooLow` to `SystemHighData`; control C4's inner send during a tool call is decided at `SystemHigh` too. Scenario B and control C5 then share a reason and differ by site and family, which the leak test must assert. **Implemented in:** not yet on master (PR #721 left the 4.4 observe-on-dispose rule and pinned it); tracked in PR 4.5b. |
+| 2026-10-06 | PR 4 (Q8 clarified) | **In PR 4, RAG maps a custom `IDataSensitivityLevel` to `SystemHigh` (D15 stands); Q8's C3 normalisation ("the lowest built-in level whose flags are no more permissive") is deferred** to the first producer that labels data from a custom level on purpose. **Implemented in:** #721 (`RAGTool.MapHitLabel`: non-canonical levels → `SystemHigh`). |
+| 2026-10-06 | PR 4 (4.3, O2) | **A redirect hop from outside the host boundary into it is never followed.** When the redirect follower holds a 3xx whose `Location` names the host boundary (loopback, `localhost` and `*.localhost`, `unix`, `npipe`, as a decision classifies Host, plus a link-local address) and the request came from an authority outside it, the hop is not followed, for factory (P1) clients as much as for `EgressHttp` (P2): the hop is decided and the 3xx is returned. Reason: a remote peer must not bounce a request, body included, to a local service. Cost: a host client behind a remote that legitimately redirects to a local service gets the 3xx. The rest of P1 stands. **Implemented in:** PR 4.3b (this change; #722 followed cross-host without the exception). |
 
 ## Design as merged (added 2026-10-04)
 
