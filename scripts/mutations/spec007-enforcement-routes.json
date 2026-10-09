@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Initial 4.7 route controls. Prepared replacements are not evidence until the runner proves red, restoration and green on a named commit. Logging/audit and fault-resolution controls will be added with those parts of 4.7.",
+  "note": "SPEC-007 4.7 controls. A replacement is not evidence until the runner proves assertion failures, byte restoration, clean status and green on the named commit.",
   "mutations": [
     {
       "id": "r1-refusal-helper-disabled",
@@ -10,7 +10,10 @@
       "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
-      "expected_failures": ["Http_refuses_before_the_inner_handler_while_report_mode_delegates", "Chat_refuses_synchronously_before_call_or_stream_creation"]
+      "expected_failures": [
+        "Http_refuses_before_the_inner_handler_while_report_mode_delegates",
+        "Chat_refuses_synchronously_before_call_or_stream_creation"
+      ]
     },
     {
       "id": "r2-http-decision-discarded",
@@ -20,7 +23,9 @@
       "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
-      "expected_failures": ["Http_refuses_before_the_inner_handler_while_report_mode_delegates"]
+      "expected_failures": [
+        "Http_refuses_before_the_inner_handler_while_report_mode_delegates"
+      ]
     },
     {
       "id": "r3-chat-decision-discarded",
@@ -30,7 +35,9 @@
       "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
-      "expected_failures": ["Chat_refuses_synchronously_before_call_or_stream_creation"]
+      "expected_failures": [
+        "Chat_refuses_synchronously_before_call_or_stream_creation"
+      ]
     },
     {
       "id": "r4-host-fault-replaced-with-ordinary-decision",
@@ -40,7 +47,93 @@
       "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
-      "expected_failures": ["A_throwing_or_null_returning_host_guard_obeys_the_process_mode"]
+      "expected_failures": [
+        "A_throwing_or_null_returning_host_guard_obeys_the_process_mode"
+      ]
+    },
+    {
+      "id": "r5-refusal-warning-hidden",
+      "file": "src/Ashlar.Infrastructure/Egress/LoggerEgressDecisionSink.cs",
+      "old": "var level = decision.Refused ? LogLevel.Warning : LogLevel.Debug;",
+      "new": "var level = LogLevel.Debug;",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Enforced_refusals_are_visible_at_Warning"
+      ]
+    },
+    {
+      "id": "r6-summary-not-scheduled",
+      "file": "src/Ashlar.Infrastructure/Egress/LoggerEgressDecisionSink.cs",
+      "old": "null, WindowLength, Timeout.InfiniteTimeSpan",
+      "new": "null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Repeated_refusals_have_one_warning_then_a_counted_summary"
+      ]
+    },
+    {
+      "id": "r7-event-two-hidden",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEventSource.cs",
+      "old": "[Event(RefusedEventId, Level = EventLevel.Warning)]",
+      "new": "[Event(RefusedEventId, Level = EventLevel.Verbose)]",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refusal_event_two_is_visible_to_Warning_only_listeners"
+      ]
+    },
+    {
+      "id": "r8-chat-refusal-audit-lost",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "EgressDecision = decision,",
+      "new": "EgressDecision = null,",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Chat_refusal_reaches_the_auditor"
+      ]
+    },
+    {
+      "id": "r9-resolution-counter-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "Interlocked.Increment(ref _resolutionFaults);",
+      "new": "Interlocked.Read(ref _resolutionFaults);",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw"
+      ]
+    },
+    {
+      "id": "r10-http-fallback-warning-hidden",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressServiceCollectionExtensions.cs",
+      "old": "faulted ? LogLevel.Warning : LogLevel.Debug",
+      "new": "LogLevel.Debug",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw"
+      ]
+    },
+    {
+      "id": "r11-chat-fallback-warning-hidden",
+      "file": "src/Ashlar.AI.Pipeline/Governance/AshlarGovernanceChatClientBuilderExtensions.cs",
+      "old": "faulted ? LogLevel.Warning : LogLevel.Debug",
+      "new": "LogLevel.Debug",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw"
+      ]
     }
   ]
 }
