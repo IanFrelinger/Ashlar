@@ -24,8 +24,7 @@
       "framework": "net10.0",
       "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
       "expected_failures": [
-        "Port_only_configuration_is_non_loopback_but_urls_take_precedence",
-        "The_port_only_binding_fails_boot_on_AirGapped"
+        "Port_only_configuration_is_non_loopback_but_urls_take_precedence"
       ]
     },
     {
@@ -37,8 +36,7 @@
       "framework": "net10.0",
       "filter": "FullyQualifiedName~AirGappedSecureWorkstationHygieneCertificationTests|FullyQualifiedName~AirGappedProfileApiHostProdStyleTests|FullyQualifiedName~DeploymentProfileReadConventionTests",
       "expected_failures": [
-        "A_non_loopback_listener_fails_boot",
-        "The_port_only_binding_fails_boot_on_AirGapped"
+        "A_non_loopback_listener_fails_boot"
       ]
     },
     {
