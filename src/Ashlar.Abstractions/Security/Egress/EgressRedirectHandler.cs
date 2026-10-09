@@ -13,10 +13,13 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// handler, then the primary. On netstandard2.0 the synchronous-send hop stays between the guard handler and this
 /// one, and a synchronous <c>Send</c> throws from that hop before this handler runs.</para>
 /// <para>It follows only when the primary originally had <c>AllowAutoRedirect</c> true, at most that primary's
-/// <c>MaxAutomaticRedirections</c>. An <see cref="EgressHttp"/> client does not follow a redirect whose host differs
-/// from the current request (P2). A factory client does, and the next send is evaluated (P1). HTTPS to HTTP, and any
-/// scheme other than http or https, is returned to the caller. Report-only: evaluation records a decision and does
-/// not throw, and <see cref="EgressDecision.Refused"/> stays false.</para>
+/// <c>MaxAutomaticRedirections</c>. An <see cref="EgressHttp"/> client follows only the same origin (scheme, host
+/// and port; P2). A factory client follows across origins (P1). This follower never follows a redirect from outside
+/// the host boundary into it (including link-local addresses); that attempted hop is recorded and the 3xx is returned
+/// (owner decision 2026-10-06, O2). HTTPS to HTTP, and any scheme other than http or https, is returned to the caller.
+/// Evaluation records decisions; until PR 4.7 the route does not act on <see cref="EgressDecision.Refused"/>.</para>
+/// <para>Transports whose redirects Ashlar could not disable keep their own behaviour. The guard can report a
+/// changed final authority afterwards, but cannot prevent an inward hop already sent by such a transport.</para>
 /// </remarks>
 internal sealed class EgressRedirectHandler : DelegatingHandler
 {
@@ -46,7 +49,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (!_settings.Follow)
+        if (!_settings.Follow || EgressEvaluatedAuthority.RequiresNoRedirects(request))
         {
             EnsureEvaluated(request);
             return base.SendAsync(request, cancellationToken);
@@ -59,7 +62,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     /// <inheritdoc />
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (!_settings.Follow)
+        if (!_settings.Follow || EgressEvaluatedAuthority.RequiresNoRedirects(request))
         {
             EnsureEvaluated(request);
             return base.Send(request, cancellationToken);
@@ -74,11 +77,17 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         EnsureEvaluated(request);
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         var redirects = 0;
-        while (TryGetRedirect(request.RequestUri, response, out var location))
+        while (TryGetRedirect(request, response, out var location))
         {
             redirects++;
             if (redirects > _settings.MaxAutomaticRedirections)
                 break;
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                response.Dispose();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
 
             var status = response.StatusCode;
             response.Dispose();
@@ -96,11 +105,17 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         EnsureEvaluated(request);
         var response = base.Send(request, cancellationToken);
         var redirects = 0;
-        while (TryGetRedirect(request.RequestUri, response, out var location))
+        while (TryGetRedirect(request, response, out var location))
         {
             redirects++;
             if (redirects > _settings.MaxAutomaticRedirections)
                 break;
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                response.Dispose();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
 
             var status = response.StatusCode;
             response.Dispose();
@@ -160,8 +175,9 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         _ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);
     }
 
-    private bool TryGetRedirect(Uri? requestUri, HttpResponseMessage response, out Uri location)
+    private bool TryGetRedirect(HttpRequestMessage request, HttpResponseMessage response, out Uri location)
     {
+        var requestUri = request.RequestUri;
         location = null!;
         if (requestUri is null || !requestUri.IsAbsoluteUri || !IsRedirect(response.StatusCode))
             return false;
@@ -177,13 +193,21 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         if (!string.IsNullOrEmpty(requestFragment) && string.IsNullOrEmpty(header.Fragment))
             header = new UriBuilder(header) { Fragment = requestFragment }.Uri;
 
+        // O2 precedes the scheme/P2 checks: unix/npipe and an HTTPS-to-loopback HTTP attempt must be recorded too.
+        if (!InsideHostBoundary(requestUri) && InsideHostBoundary(header))
+        {
+            RecordUnfollowed(header);
+            return false;
+        }
+
         if (!IsHttpOrHttps(header))
             return false;
 
         if (IsHttpsToHttp(requestUri, header))
             return false;
 
-        if (!_settings.FollowCrossHost && !SameHost(requestUri, header))
+        if ((!_settings.FollowCrossHost || EgressEvaluatedAuthority.RequiresSameOrigin(request))
+            && !EgressEvaluatedAuthority.SameOrigin(requestUri, header))
             return false;
 
         location = header;
@@ -221,8 +245,24 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         string.Equals(from.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
         && string.Equals(to.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase);
 
-    private static bool SameHost(Uri left, Uri right) =>
-        string.Equals(left.Host, right.Host, StringComparison.OrdinalIgnoreCase);
+    private static bool InsideHostBoundary(Uri uri) =>
+        EgressDestinations.IsInsideHost(uri) || EgressDestinations.IsLinkLocalHost(uri.Host);
+
+    // An attempted inward hop gets a record without stamping the request: the response still belongs to the
+    // original authority, and the post-send check must not mistake that original response for another redirect.
+    private void RecordUnfollowed(Uri destination)
+    {
+        try
+        {
+            Evaluate(destination);
+        }
+#pragma warning disable CA1031 // The inward redirect remains unfollowed even if a custom reporting guard throws.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            EgressGuardHandler.RecordGuardFault();
+        }
+    }
 
     private static bool RequestRequiresForceGet(HttpStatusCode status, HttpMethod method)
     {
@@ -261,6 +301,7 @@ internal sealed class RedirectSettings
 internal static class EgressRedirects
 {
     private static readonly ConditionalWeakTable<HttpMessageHandler, RedirectSettings> Memory = new();
+    private static readonly object Gate = new();
 
     internal static HttpMessageHandler InsertAbovePrimary(
         HttpMessageHandler inner,
@@ -269,96 +310,128 @@ internal static class EgressRedirects
         IEgressGuard? guard,
         bool followCrossHost)
     {
-        HttpMessageHandler? parent = null;
+        DelegatingHandler? parent = null;
         var current = inner;
-        while (current is DelegatingHandler delegating && delegating.InnerHandler is not null)
+        var underHop = false;
+        for (var depth = 0; depth < 64; depth++)
         {
-            parent = current;
-            current = delegating.InnerHandler;
+            if (current is EgressRedirectHandler)
+                return inner;
+
+            if (current is DelegatingHandler delegating && delegating.InnerHandler is { } next)
+            {
+                parent = delegating;
+                current = next;
+                continue;
+            }
+#if NETSTANDARD2_0
+            if (current is SynchronousSendRefusedOnNetstandard20Asset hop)
+            {
+                underHop = true;
+                current = hop.Inner;
+                continue;
+            }
+#endif
+            break;
         }
+
+        // The hop owns an immutable invoker. A started parent cannot be spliced either. Keep such a chain intact;
+        // the decider and the guard's post-send check record it without taking over the primary's redirects.
+        if (underHop || (parent is not null && !CanReplaceInner(parent)))
+            return Decider(inner, family, site, guard, followCrossHost);
 
         var settings = RememberAndDisable(current, followCrossHost);
 #pragma warning disable CA2000 // Ownership passes to the caller or to the parent handler's InnerHandler.
         var redirect = new EgressRedirectHandler(current, family, site, guard, settings);
 #pragma warning restore CA2000
-        if (parent is not DelegatingHandler parentHandler)
+        if (parent is null)
             return redirect;
 
-        parentHandler.InnerHandler = redirect;
-        return inner;
+        try
+        {
+            parent.InnerHandler = redirect;
+            return inner;
+        }
+        catch (InvalidOperationException)
+        {
+            // The parent started between the probe and the splice. Do not re-enable a primary that another wrapper
+            // may already be mediating; fail closed to returning its redirects rather than following outside it.
+            return Decider(inner, family, site, guard, followCrossHost);
+        }
+    }
+
+    private static EgressRedirectHandler Decider(HttpMessageHandler inner, string family, string site, IEgressGuard? guard, bool followCrossHost) =>
+        new EgressRedirectHandler(inner, family, site, guard, new RedirectSettings(false, 50, followCrossHost));
+
+    private static bool CanReplaceInner(DelegatingHandler parent)
+    {
+        try
+        {
+            parent.InnerHandler = parent.InnerHandler!;
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     internal static RedirectSettings RememberAndDisable(HttpMessageHandler primary, bool followCrossHost)
     {
         SecurityGuard.ThrowIfNull(primary, nameof(primary));
-        if (Memory.TryGetValue(primary, out var existing))
-            return existing;
+        lock (Gate)
+        {
+            if (!Memory.TryGetValue(primary, out var original))
+            {
+                original = ReadAndDisable(primary);
+                Memory.Add(primary, original);
+            }
 
-        var created = ReadAndDisable(primary, followCrossHost);
-        Memory.Add(primary, created);
-        return created;
+            // The primary's original redirect settings are shared; the P1/P2 policy belongs to this wrapper.
+            return new RedirectSettings(original.Follow, original.MaxAutomaticRedirections, followCrossHost);
+        }
     }
 
-    private static RedirectSettings ReadAndDisable(HttpMessageHandler primary, bool followCrossHost)
+    private static RedirectSettings ReadAndDisable(HttpMessageHandler primary)
     {
-        bool? allow = null;
+        var allow = false;
         var max = 50;
         try
         {
             switch (primary)
             {
-                case HttpClientHandler http:
+                case HttpClientHandler http when http.Credentials is null:
                     allow = http.AllowAutoRedirect;
                     max = http.MaxAutomaticRedirections;
+                    if (allow)
+                        http.AllowAutoRedirect = false;
                     break;
 #if !NETSTANDARD2_0
-                case SocketsHttpHandler sockets:
+                case SocketsHttpHandler sockets when sockets.Credentials is null:
                     allow = sockets.AllowAutoRedirect;
                     max = sockets.MaxAutomaticRedirections;
+                    if (allow)
+                        sockets.AllowAutoRedirect = false;
                     break;
 #endif
             }
         }
-#pragma warning disable CA1031 // A handler that cannot be read fails closed: the follower does not follow.
+#pragma warning disable CA1031 // A started, unsupported or unreadable primary keeps its own behaviour; we never follow for it.
         catch (Exception)
 #pragma warning restore CA1031
         {
-            allow = null;
+            allow = false;
         }
 
-        if (allow is not null)
-        {
-            try
-            {
-                switch (primary)
-                {
-                    case HttpClientHandler http:
-                        http.AllowAutoRedirect = false;
-                        break;
-#if !NETSTANDARD2_0
-                    case SocketsHttpHandler sockets:
-                        sockets.AllowAutoRedirect = false;
-                        break;
-#endif
-                }
-            }
-#pragma warning disable CA1031 // A started handler's setter throws; the remembered value still decides whether we follow.
-            catch (Exception)
-#pragma warning restore CA1031
-            {
-            }
-        }
-
-        if (max < 0)
-            max = 0;
-
-        return new RedirectSettings(allow == true, max, followCrossHost);
+        return new RedirectSettings(allow, Math.Max(0, max), false);
     }
 }
 
 /// <summary>The authority the guard last evaluated, stored on the request so a later hop can see that it changed.</summary>
 internal static class EgressEvaluatedAuthority
 {
+    internal static bool SameOrigin(Uri left, Uri right) => Authority.From(left).Equals(Authority.From(right));
+
     private readonly struct Authority : IEquatable<Authority>
     {
         private Authority(string? scheme, string? host, int port)
@@ -400,6 +473,16 @@ internal static class EgressEvaluatedAuthority
 
 #if NET5_0_OR_GREATER
     private static readonly HttpRequestOptionsKey<Authority> Key = new("Ashlar.Egress.EvaluatedAuthority");
+    private static readonly HttpRequestOptionsKey<bool> SameOriginKey = new("Ashlar.Egress.RequireSameOrigin");
+    private static readonly HttpRequestOptionsKey<bool> NoRedirectsKey = new("Ashlar.Egress.RequireNoRedirects");
+
+    internal static void RequireNoRedirects(HttpRequestMessage request) => request.Options.Set(NoRedirectsKey, true);
+
+    internal static bool RequiresNoRedirects(HttpRequestMessage request) => request is not null && request.Options.TryGetValue(NoRedirectsKey, out var required) && required;
+
+    internal static void RequireSameOrigin(HttpRequestMessage request) => request.Options.Set(SameOriginKey, true);
+
+    internal static bool RequiresSameOrigin(HttpRequestMessage request) => request.Options.TryGetValue(SameOriginKey, out var required) && required;
 
     internal static void Stamp(HttpRequestMessage request, Uri? uri) => request.Options.Set(Key, Authority.From(uri));
 
@@ -410,6 +493,16 @@ internal static class EgressEvaluatedAuthority
         request.Options.TryGetValue(Key, out var stamped) && stamped.Equals(Authority.From(uri));
 #else
     private const string Key = "Ashlar.Egress.EvaluatedAuthority";
+    private const string SameOriginKey = "Ashlar.Egress.RequireSameOrigin";
+    private const string NoRedirectsKey = "Ashlar.Egress.RequireNoRedirects";
+
+    internal static void RequireNoRedirects(HttpRequestMessage request) => request.Properties[NoRedirectsKey] = true;
+
+    internal static bool RequiresNoRedirects(HttpRequestMessage request) => request is not null && request.Properties.TryGetValue(NoRedirectsKey, out var value) && value is true;
+
+    internal static void RequireSameOrigin(HttpRequestMessage request) => request.Properties[SameOriginKey] = true;
+
+    internal static bool RequiresSameOrigin(HttpRequestMessage request) => request.Properties.TryGetValue(SameOriginKey, out var value) && value is true;
 
     internal static void Stamp(HttpRequestMessage request, Uri? uri) => request.Properties[Key] = Authority.From(uri);
 

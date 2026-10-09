@@ -77,13 +77,7 @@ builder.Services.AddAshlarRuntimeRouting(builder.Configuration);
 
 builder.Services.AddSingleton<IAshlarIngressAccessor, HttpAshlarIngressAccessor>();
 builder.Services.AddHttpClient("ashlar-sns-signing", c => c.Timeout = TimeSpan.FromSeconds(15))
-    .ConfigurePrimaryHttpMessageHandler(static (handler, _) =>
-    {
-        if (handler is HttpClientHandler httpClientHandler)
-            httpClientHandler.AllowAutoRedirect = false;
-        else if (handler is SocketsHttpHandler socketsHttpHandler)
-            socketsHttpHandler.AllowAutoRedirect = false;
-    });
+    .NeverFollowRedirects();
 builder.Services.AddSingleton<ISnsSignatureVerifier, SnsRsaSignatureVerifier>();
 builder.Services.AddRateLimiter(static o =>
 {

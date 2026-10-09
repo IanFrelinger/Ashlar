@@ -98,14 +98,19 @@ The status line above and the starting prompt are the owner's, as written; the s
   or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
   decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
   record published when a client is built would report a refused egress where none happened.
-- **PR 4.3** (#722, `904cf909a`): known primaries Ashlar builds or binds have `AllowAutoRedirect` false, and an
-  internal follower applies that primary's own redirect settings. An `EgressHttp` client follows only a same-host
-  redirect (P2); a factory client follows a cross-host redirect and each hop is evaluated again (P1). HTTPS to HTTP
-  is not followed. `Authorization` is cleared on a followed redirect. Report-only: `Refused` stays false in report
-  mode. On the netstandard2.0 asset the synchronous-send hop is unchanged and still throws before the follower runs.
-  **Known limit until PR 4.3b:** owner decision O2 (2026-10-06) — never follow a redirect from outside the host
-  boundary into it — is not yet implemented; a factory client may still follow into loopback / `*.localhost` /
-  link-local (see decisions log).
+- **PR 4.3** (#722, merge `904cf909a`; hardened in PR 4.3b): an unstarted, credential-free known
+  primary has `AllowAutoRedirect` false and an internal follower applies its original settings. `EgressHttp`
+  follows only the same origin (scheme, host and port; P2); factory clients follow across origins (P1).
+  On both routes, Ashlar’s follower returns an outside-to-Host or link-local redirect unfollowed and records the hop (owner O2,
+  2026-10-06), including `*.localhost`, unix and npipe. HTTPS to HTTP and non-HTTP schemes are not followed.
+  Every followed hop is decided again, including a same-origin hop; `Authorization` is cleared. Credentials,
+  unknown primary types, already-started handlers and immutable chains keep their transport's behaviour;
+  only a changed final authority can be reported afterwards. Factory binding restores a removed guard,
+  mediates composite primaries and avoids duplicate followers; unknown-type warning 7304 is AG/SW-only,
+  once per client/type, and a normal logging scope emits no relocation warning. The SNS clients use the
+  configure-existing `NeverFollowRedirects` helper, whose named-client request flag also stops an already-shared follower without changing other clients. Bedrock's `RuntimeConfig` disables SDK redirects.
+  Decisions remain report-only by default; an explicit enforcing guard can record `Refused`, but the route
+  acts on it only in PR 4.7. The netstandard2.0 synchronous-send hop still refuses before the follower runs.
 - **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
@@ -474,7 +479,7 @@ in the next section.
 | 2026-10-06 | PR 4 (4.2) | **A synchronous `Send` refused on the `netstandard2.0` asset leaves no decision record; the exception is the only signal.** This amends the PR 4 design's default D31, which wanted the hop to publish a `NoDecision` record so the refusal reaches the operator log. No Ashlar code runs when the runtime refuses that `Send`, so a record could only be published when a client is built, which would claim a refused egress where none happened, or from a process-wide `AppDomain.FirstChanceException` hook, which runs on every exception in the host. The `NotSupportedException` reaches the caller, whose own error handling logs it. The accepted cost: under `AirGapped` or `SecureWorkstation` enforcement, such a refusal never appears in Ashlar's egress log. Ashlar's own hosts bind `net8.0` or `net10.0` and are unaffected; only an app that binds the `netstandard2.0` asset on .NET 5 or later is. |
 | 2026-10-06 | PR 4 (4.5) | **While a read scope is open and unreported, every egress decided on the flows inside it is decided at `SystemHigh`, for every tool, `RAGTool` included (no labelled-tool exemption).** This answers the read-scope question the PR 4.4 phase carried to PR 4.5: a scope observes its result only when it ends, so without this a tool that reads and then egresses within one call was decided at the mark from before the read. Once the scope ends, the frames it was begun in hold what it observed: the reported label if it completed and reported, else `SystemHigh`, as PR 4.4 already does. The accepted cost: under a runner floor below `SystemHigh`, a tool's own egress during its call is refused once the guard enforces. In the PR 4 design's §5 leak test, Scenario B's expected reason changes from `LevelTooLow` to `SystemHighData`; control C4's inner send during a tool call is decided at `SystemHigh` too. Scenario B and control C5 then share a reason and differ by site and family, which the leak test must assert. **Implemented in:** not yet on master (PR #721 left the 4.4 observe-on-dispose rule and pinned it); tracked in PR 4.5b. |
 | 2026-10-06 | PR 4 (Q8 clarified) | **In PR 4, RAG maps a custom `IDataSensitivityLevel` to `SystemHigh` (D15 stands); Q8's C3 normalisation ("the lowest built-in level whose flags are no more permissive") is deferred** to the first producer that labels data from a custom level on purpose. **Implemented in:** #721 (`RAGTool.MapHitLabel`: non-canonical levels → `SystemHigh`). |
-| 2026-10-06 | PR 4 (4.3, O2) | **A redirect hop from outside the host boundary into it is never followed.** When the redirect follower holds a 3xx whose `Location` names the host boundary (loopback, `localhost` and `*.localhost`, `unix`, `npipe`, as a decision classifies Host, plus a link-local address) and the request came from an authority outside it, the hop is not followed, for factory (P1) clients as much as for `EgressHttp` (P2): the hop is decided and the 3xx is returned. Reason: a remote peer must not bounce a request, body included, to a local service. Cost: a host client behind a remote that legitimately redirects to a local service gets the 3xx. The rest of P1 stands. **Implemented in:** not yet on master (#722 follows cross-host without this exception); tracked in PR 4.3b. |
+| 2026-10-06 | PR 4 (4.3, O2) | **A redirect hop from outside the host boundary into it is never followed.** When the redirect follower holds a 3xx whose `Location` names the host boundary (loopback, `localhost` and `*.localhost`, `unix`, `npipe`, as a decision classifies Host, plus a link-local address) and the request came from an authority outside it, the hop is not followed, for factory (P1) clients as much as for `EgressHttp` (P2): the hop is decided and the 3xx is returned. Reason: a remote peer must not bounce a request, body included, to a local service. Cost: a host client behind a remote that legitimately redirects to a local service gets the 3xx. The rest of P1 stands. **Implemented in:** PR 4.3b (this change; #722 followed cross-host without the exception). |
 
 ## Design as merged (added 2026-10-04)
 

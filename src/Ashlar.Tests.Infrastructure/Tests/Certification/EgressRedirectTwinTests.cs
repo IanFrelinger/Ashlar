@@ -254,12 +254,13 @@ public sealed class EgressRedirectTwinTests
     }
 
     [Fact]
-    public async Task Unknown_primary_logs_a_warning_naming_the_type()
+    public async Task Unknown_primary_on_AirGapped_logs_a_warning_naming_the_type()
     {
         var name = "redirect-unknown-" + Guid.NewGuid().ToString("N");
         var capture = new WarningCapture();
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning).AddProvider(capture));
+        services.AddSingleton<IEgressGuard>(new EgressGuard("air-gapped"));
         services.AddAshlarEgressGuard();
         services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => new FollowingUnknownPrimary(new Uri("https://example/landed")));
 

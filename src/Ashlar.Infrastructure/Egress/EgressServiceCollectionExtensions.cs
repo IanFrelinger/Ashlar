@@ -20,7 +20,7 @@ namespace Ashlar.Infrastructure.Egress;
 /// resilience handlers among them), whether in an earlier default or in the client's own registration, runs inside
 /// the guard, and one send is one decision until a redirect or a rewritten URI is evaluated again. Only
 /// configuration that itself inserts at the front after this, or a handler-builder filter, can sit outside it; the
-/// factory's own logging scope handler does. A filter registered here, before the logging filter, sees the primary
+/// factory's own logging scope handler does. A filter registered here, after the logging filter, sees the primary
 /// after those actions and, when the primary is an <c>HttpClientHandler</c> or <c>SocketsHttpHandler</c>, turns
 /// <c>AllowAutoRedirect</c> off and puts the redirect handler directly above it.</para>
 /// <para><b>Per-client site.</b> A factory client's decision site is <c>factory:</c> plus the client's name; the
@@ -65,11 +65,6 @@ public static class EgressServiceCollectionExtensions
         services.TryAddSingleton<EgressDecisionLoggerSubscription>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EgressDecisionLoggerActivator>());
 
-        // Registered before ConfigureHttpClientDefaults, which is what first calls AddHttpClient and registers the
-        // logging filter. Filters run last-registered outermost, so this filter's post-next step sees the primary
-        // after the client's builder actions and before the logging filter inserts its scope handler at index 0.
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, EgressRedirectBindingFilter>());
-
         services.ConfigureHttpClientDefaults(defaults => defaults.Services.ConfigureAll<HttpClientFactoryOptions>(
             options => options.HttpMessageHandlerBuilderActions.Add(handlers => handlers.AdditionalHandlers.Insert(
                 0,
@@ -77,6 +72,11 @@ public static class EgressServiceCollectionExtensions
                     EgressFamilies.HttpFactory,
                     FactorySitePrefix + handlers.Name,
                     ResolveGuardAndActivateLogging(handlers))))));
+
+        // AddHttpClient's logging filter was registered by ConfigureHttpClientDefaults. Filters run in registration
+        // order around next: our post-next step runs before logging adds its outer scope handler. A normal client
+        // therefore needs no relocation and emits no false removed/moved-handler warning.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, EgressRedirectBindingFilter>());
 
         return services;
     }
