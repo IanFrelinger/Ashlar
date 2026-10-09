@@ -110,7 +110,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   once per client/type, and a normal logging scope emits no relocation warning. The SNS clients use the
   configure-existing `NeverFollowRedirects` helper, whose named-client request flag also stops an already-shared follower without changing other clients. Bedrock's `RuntimeConfig` disables SDK redirects.
   Decisions remain report-only by default; an explicit enforcing guard can record `Refused`, but the route
-  acts on it only in PR 4.7. The netstandard2.0 synchronous-send hop still refuses before the follower runs.
+  acts on it in PR 4.7 before sending the refused hop. The netstandard2.0 synchronous-send hop still refuses before the follower runs.
 - **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
@@ -119,6 +119,14 @@ The status line above and the starting prompt are the owner's, as written; the s
   earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
   convention fact pins. The guard refuses nothing yet; the netstandard2.0 asset's synchronous-`Send` refusal
   (PR 4.2) is the runtime's and holds in every mode.
+- **PR 4.7** implements opt-in refusal at HTTP and governed MEAI routes. `EgressRefusedException` carries the
+  operator decision and a redacted message; `Refuses` and `ThrowIfRefused` expose the route contract. HTTP async
+  returns a faulted task, synchronous HTTP throws before sending, and MEAI throws before obtaining a task or
+  stream. Host guard faults produce `NoDecision` under process policy. DI fallbacks are counted and visible
+  (Warning for a throw, Debug for an absent registration). Refusals log at Warning, with five-minute counted
+  summaries, EventSource event 2, and the MEAI audit record. Sink failures and re-entrant logging cannot bypass
+  refusal. The netstandard2.0 asynchronous route also enforces. Catch-all and remote surfaces (4.8), explicit
+  sites (4.9), and the default switch (4.11) remain separate work; every profile still defaults to report.
 - **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
