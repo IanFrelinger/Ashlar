@@ -129,7 +129,7 @@ public sealed class EgressRefusalDiagnosticsTests
         sink.Record(Refused("two"));
         sink.Record(Refused("one"));
         capture.Entries.Count(e => e.Event.Id == 7301).Should().Be(2);
-        using (EgressSubject.Enter("diagnostic-window", new HighWaterMark(SecurityLabel.Secret)))
+        using (EgressSubject.Enter("diagnostic-window", new HighWaterMark(new SecurityLabel(SecurityLevel.Secret))))
         {
             var otherReason = Refused("one");
             otherReason.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
