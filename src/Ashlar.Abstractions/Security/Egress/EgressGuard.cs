@@ -141,7 +141,8 @@ public sealed class EgressGuard : IEgressGuard
         {
             (profile, enforces) = DescribeProfile(deploymentProfile);
 
-            SecurityGuard.ThrowIfNull(request, nameof(request));
+            if (request is null)
+                throw new ArgumentNullException(nameof(request));
             family = EgressDestinations.Bound(request.Family);
             site = EgressDestinations.Bound(request.Site);
 
