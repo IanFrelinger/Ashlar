@@ -2,9 +2,11 @@ namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
 /// The HTTP adapter: a <see cref="DelegatingHandler"/> that evaluates the requests it sends with the egress guard,
-/// then sends them unchanged. The remarks say which sends are covered on which asset.
+/// then sends them unchanged only in report mode or when allowed. The remarks describe asset coverage.
 /// </summary>
 /// <remarks>
+/// <para>Under enforcement a refusal faults <c>SendAsync</c> or throws from <c>Send</c> before the inner
+/// handler runs. Host guard faults are recorded as NoDecision and use the process mode.</para>
 /// <para><b>Report-only guarantees.</b> It evaluates every <c>SendAsync</c> (and, on net8.0 and later, every
 /// <c>Send</c>) before handing the request on. A redirect hop, or a URI rewritten before the primary sends, is
 /// evaluated again. It never reads or buffers

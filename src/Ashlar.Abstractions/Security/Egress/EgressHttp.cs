@@ -8,8 +8,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// request is sent. A redirect the follower takes, or a URI rewritten before the primary sends, is evaluated again.
 /// The guard handler never reads the request content. The follower, when it follows, clears
 /// <c>Authorization</c> and may change the method and drop the content, which is what
-/// <c>SocketsHttpHandler</c> does. It returns the final response instance. The decision is recorded and the guard
-/// refuses nothing (SPEC-007 PR 3); the one refusal, below, is the netstandard2.0 asset's, not the guard's.</para>
+/// <c>SocketsHttpHandler</c> does. It returns the final response instance in report mode or when allowed.
+/// Under enforcement a refused decision throws <see cref="EgressRefusedException"/> before sending.</para>
 /// <para><b>Refused on the netstandard2.0 asset.</b> That asset, which .NET 5-7 apps resolve, cannot override the
 /// synchronous <c>HttpMessageHandler.Send</c>, so it cannot evaluate a synchronous send. On a runtime that has one
 /// (.NET 5 and later), a synchronous <c>HttpClient.Send</c> or <c>HttpMessageInvoker.Send</c> through a client or

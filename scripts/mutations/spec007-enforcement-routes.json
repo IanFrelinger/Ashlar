@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "note": "Initial 4.7 route controls. Prepared replacements are not evidence until the runner proves red, restoration and green on a named commit. Logging/audit and fault-resolution controls will be added with those parts of 4.7.",
+  "mutations": [
+    {
+      "id": "r1-refusal-helper-disabled",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressDecision.cs",
+      "old": "if (Refused)\n            throw new EgressRefusedException(this);",
+      "new": "if (Refused && Mode.Length == 0)\n            throw new EgressRefusedException(this);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": ["Http_refuses_before_the_inner_handler_while_report_mode_delegates", "Chat_refuses_synchronously_before_call_or_stream_creation"]
+    },
+    {
+      "id": "r2-http-decision-discarded",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
+      "old": "EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();",
+      "new": "_ = EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": ["Http_refuses_before_the_inner_handler_while_report_mode_delegates"]
+    },
+    {
+      "id": "r3-chat-decision-discarded",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "decision.ThrowIfRefused();",
+      "new": "_ = decision.Refused;",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": ["Chat_refuses_synchronously_before_call_or_stream_creation"]
+    },
+    {
+      "id": "r4-host-fault-replaced-with-ordinary-decision",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "access = externalFault is null ? ReferenceMonitor.CanWrite(current, destinationLabel) : default;",
+      "new": "access = ReferenceMonitor.CanWrite(current, destinationLabel);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": ["A_throwing_or_null_returning_host_guard_obeys_the_process_mode"]
+    }
+  ]
+}

@@ -6,9 +6,9 @@ using Microsoft.Extensions.AI;
 namespace Ashlar.AI.Pipeline.Governance;
 
 /// <summary>
-/// Outermost governance middleware (SPEC-007 PR 3): records one report-only egress decision for the target's
-/// destination on every call, then delegates unchanged. It never refuses and never reads the messages, and a guard
-/// that throws never reaches the caller.
+/// Outermost governance middleware: decides egress for the target before calling the inner client or creating
+/// its stream. A refusal under enforcement throws a redacted policy exception; report mode delegates unchanged.
+/// It never reads the messages. Host guard faults become NoDecision records under the process mode.
 /// </summary>
 /// <remarks>
 /// <para>It is the first <c>Use()</c> in <see cref="AshlarGovernanceChatClientBuilderExtensions.UseAshlarGovernance"/>,

@@ -64,8 +64,8 @@ public sealed class EgressDecision
 
     /// <summary>
     /// The mode the decision was made in: <c>report</c> or <c>enforce</c>. <see cref="ModeBasis"/> says what decided
-    /// it. Until SPEC-007 PR 4.11 every profile defaults to <c>report</c>, and until PR 4.7 no route acts on the mode,
-    /// so an <c>enforce</c> record says what would have been refused, not that a send stopped.
+    /// it. Until SPEC-007 PR 4.11 every profile defaults to <c>report</c>. HTTP and governed model routes enforce
+    /// refusals; explicit sites are converted separately in PR 4.9. A decision alone does not prove a send stopped.
     /// </summary>
     public string Mode { get; }
 
@@ -143,7 +143,7 @@ public sealed class EgressDecision
 
     /// <summary>
     /// What a route must do with the egress: <see langword="true"/> when <see cref="Mode"/> is <c>enforce</c> and
-    /// <see cref="Access"/> does not allow it, a fault included. Until SPEC-007 PR 4.7 no route acts on it.
+    /// <see cref="Access"/> does not allow it, a fault included. Routes honor it before sending.
     /// </summary>
     public bool Refused { get; }
 

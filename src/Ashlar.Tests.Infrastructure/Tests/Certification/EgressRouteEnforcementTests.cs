@@ -74,12 +74,13 @@ public sealed class EgressRouteEnforcementTests
         using var setting = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", mode);
         using var state = new EgressProcessStateScope(reset: true);
         var faulty = new FaultyGuard(returnsNull);
+        var normallyAllowed = new Uri("http://127.0.0.1:11434");
         Exception? error;
         if (chat)
         {
             var inner = new CountingChatClient();
             using var client = new EgressGuardChatClient(inner,
-                new EgressRequest(EgressFamilies.ModelMeai, "route-fault-chat", Remote), faulty);
+                new EgressRequest(EgressFamilies.ModelMeai, "route-fault-chat", normallyAllowed), faulty);
             error = await Record.ExceptionAsync(() => client.GetResponseAsync(Array.Empty<ChatMessage>()));
             inner.Calls.Should().Be(calls);
         }
@@ -87,7 +88,7 @@ public sealed class EgressRouteEnforcementTests
         {
             var inner = new CountingHandler();
             using var client = EgressHttp.CreateClient(inner, EgressFamilies.Http, "route-fault-http", faulty);
-            error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync(Remote); });
+            error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync(normallyAllowed); });
             inner.Sends.Should().Be(calls);
         }
 

@@ -17,7 +17,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// and port; P2). A factory client follows across origins (P1). This follower never follows a redirect from outside
 /// the host boundary into it (including link-local addresses); that attempted hop is recorded and the 3xx is returned
 /// (owner decision 2026-10-06, O2). HTTPS to HTTP, and any scheme other than http or https, is returned to the caller.
-/// Evaluation records decisions; until PR 4.7 the route does not act on <see cref="EgressDecision.Refused"/>.</para>
+/// A refused decision under enforcement stops the hop before sending; report mode continues to record only.</para>
 /// <para>Transports whose redirects Ashlar could not disable keep their own behaviour. The guard can report a
 /// changed final authority afterwards, but cannot prevent an inward hop already sent by such a transport.</para>
 /// </remarks>

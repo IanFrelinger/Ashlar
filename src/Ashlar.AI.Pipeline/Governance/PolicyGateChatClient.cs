@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 namespace Ashlar.AI.Pipeline.Governance;
 
 /// <summary>
-/// Outermost enforcing middleware, just inside the report-only <see cref="EgressGuardChatClient"/>: denies targets not
+/// Target-policy middleware, just inside <see cref="EgressGuardChatClient"/>: denies targets not
 /// permitted by the access policy.
 /// </summary>
 public sealed class PolicyGateChatClient : DelegatingChatClient
