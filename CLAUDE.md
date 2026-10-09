@@ -9,9 +9,9 @@ Read automatically by Claude Code at the start of every session in this reposito
 - **Five required checks**, with `strict` and `enforce_admins` on master: `cert-gate`, `build-core`,
   `shell-lint`, `lychee (README + docs)`, `Readiness summary`. Every merge makes every other open PR
   BEHIND, so merges are serial; a day-one red blocks every PR in the repository. For multi-PR
-  sweeps: stack readiness-touching series (base = previous tip), land non-core-path PRs first, push
-  one settled tip then wait. Full Platform Readiness does **not** push-trigger on `cursor/**` (PR
-  only) — see `CONTRIBUTING.md` ("Landing several PRs…").
+  sweeps: land non-core-path PRs first, push one settled tip then wait (every tip update restarts
+  Readiness). Full Platform Readiness does **not** push-trigger on `cursor/**` (PR only) — see
+  `CONTRIBUTING.md` ("Landing several PRs…").
 - `shell-lint` runs `scripts/ci/run-repo-gates.sh`, which **auto-discovers** `tests/scripts/*.test.sh`,
   `scripts/ci/test-*.{sh,py}`, `scripts/ci/verify-*.{sh,py}` and
   `scripts/knowledge-graph/verify-*-current.py` and runs each one **bare**, with no arguments. A script

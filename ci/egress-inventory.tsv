@@ -6,8 +6,8 @@
 # ids: EG-... rows of docs/EgressInventory.md, comma-separated, or -. F1, F2 and F3 print the observed rows in this form when they fail.
 application/src/Ashlar.API/Endpoints/IdeEndpoints.cs	http.new	1	1	Wrapped	-	EG-MDL-14	IDE tags endpoint: the fallback client when no IHttpClientFactory is registered, built by EgressHttp.CreateClient (:193)
 application/src/Ashlar.API/Middleware/Ingress/AwsSnsSmsWebhook.cs	http.param	1	0	-	Factory	EG-HTTP-03	SNS confirm/verify helper (:107) is called only with the ashlar-sns-signing factory client (:72)
-application/src/Ashlar.API/Program.cs	http.register	1	1	Factory	-	EG-HTTP-03	named client ashlar-sns-signing (:171); AddAshlarEgressGuard follows AddAshlar in the same top-level block (:239)
-application/src/Ashlar.API/Program.cs	telemetry	2	2	Precedes	-	EG-TEL-01	OTLP metrics and traces exporters (:252, :259); the EG-TEL-01 guard opens their block (:247), decided once at registration
+application/src/Ashlar.API/Program.cs	http.register	1	1	Factory	-	EG-HTTP-03	named client ashlar-sns-signing (:172); AddAshlarEgressGuard follows AddAshlar in the same top-level block (:246)
+application/src/Ashlar.API/Program.cs	telemetry	2	2	Precedes	-	EG-TEL-01	OTLP metrics and traces exporters (:266, :273); the EG-TEL-01 guard opens their block (:261), decided once at registration
 application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs	http.new	2	2	Wrapped	-	EG-MESH-04	static mTLS SocketsHttpHandler (:57), handed to EgressHttp.CreateClient for the pull client (:72)
 application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs	http.param	1	0	-	Upstream:application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs	EG-MESH-04	PullPeerOnceAsync takes the static EgressHttp pull client; its only production call is in this file (:166)
 application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshDiscoveryService.cs	socket	2	1	Precedes	Exempt:Inbound	EG-MESH-05	beacon sender (:253) after the EG-MESH-05 guard that opens AnnounceLoopAsync (:249); the listener (:191) is Exempt:Inbound
