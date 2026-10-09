@@ -249,7 +249,7 @@ public sealed class ToolCallingAgent : IAgent
                         if (tools is CapabilityRegistry registry
                             && registry.Find(call.Id) is IEgressLabelledTool labelled)
                         {
-                            labelled.ReportRead(read, result);
+                            labelled.ReportRead(read.Reporter, result);
                         }
 
                         read.Complete();

@@ -6,8 +6,9 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// and is observed as <see cref="SecurityLabel.SystemHigh"/> when the scope ends.
 /// </summary>
 /// <remarks>
-/// The scope is not ambient. A tool cannot reach it except through this method, and the holder decides
-/// which tools may call it. In PR 4 the only labelled tool is <c>RAGTool</c>.
+/// The scope is not ambient and is never handed to a tool. The holder accepts reports through a
+/// <see cref="ReadReporter"/>, which cannot complete or dispose the scope. In PR 4 the only labelled
+/// production tool is <c>RAGTool</c>; host implementations are part of the host's trusted base.
 /// </remarks>
 public interface IEgressLabelledTool
 {
@@ -15,7 +16,7 @@ public interface IEgressLabelledTool
     /// Reports the label of everything <paramref name="result"/> carries into <paramref name="read"/>, before
     /// the holder completes the scope. A read that returned nothing reports <see cref="SecurityLabel.Public"/>.
     /// </summary>
-    /// <param name="read">The scope the holder began around this tool call. Still open.</param>
+    /// <param name="read">The report-only channel for the still-open scope around this tool call.</param>
     /// <param name="result">What the tool returned.</param>
-    void ReportRead(ReadScope read, ToolResult result);
+    void ReportRead(ReadReporter read, ToolResult result);
 }

@@ -98,7 +98,10 @@ public sealed class RAGTool : ITool, IEgressLabelledTool
             var refusal = new[] { $"RAG search REFUSED: query='{query}' cannot be ranked. {ex.Message}" };
             return new ToolResult(
                 new ActionDelta(tick, tick + 1, refusal),
-                new RagRefusal(Refused: true, Reason: ex.Message));
+                new RagRefusal(Refused: true, Reason: ex.Message)
+                {
+                    ReadNothing = VectorMath.IsUnrankableQuery(ex),
+                });
         }
 
         var log = new[] { $"RAG search: query='{query}', results={results.Count}" };
@@ -112,13 +115,17 @@ public sealed class RAGTool : ITool, IEgressLabelledTool
     /// (no hit, or the unrankable-query refusal). Canonical names are the five primitive levels plus
     /// <c>top-secret</c>, any case, trimmed. Anything else is <see cref="SecurityLabel.SystemHigh"/>.
     /// </summary>
-    public void ReportRead(ReadScope read, ToolResult result)
+    public void ReportRead(ReadReporter read, ToolResult result)
     {
         ArgumentNullException.ThrowIfNull(read);
         switch (result?.Payload)
         {
-            case RagRefusal:
+            case RagRefusal { ReadNothing: true }:
                 read.Report(SecurityLabel.Public); // read nothing: refused
+                return;
+            case RagRefusal:
+                // A store may have read data before throwing, and its exception message is in the result.
+                // Only the stores' typed, pre-read unrankable-query refusal proves that nothing was read.
                 return;
             case IReadOnlyList<RagHit> hits when hits.Count == 0:
                 read.Report(SecurityLabel.Public); // read nothing: no hit
@@ -145,18 +152,26 @@ public sealed class RAGTool : ITool, IEgressLabelledTool
         if (string.IsNullOrWhiteSpace(name))
             return SecurityLabel.SystemHigh;
 
-        var level = registry.GetByName(name.Trim());
+        var trimmed = name.Trim();
+        if (!CanonicalSpellings.Any(canonical => string.Equals(canonical, trimmed, StringComparison.OrdinalIgnoreCase)))
+            return SecurityLabel.SystemHigh;
+
+        var level = registry.GetByName(trimmed);
         if (level is null)
             return SecurityLabel.SystemHigh;
 
-        foreach (var primitive in DataSensitivityLevels.All)
-        {
-            if (ReferenceEquals(level, primitive))
-                return level.ToDataLabel();
-        }
-
-        return SecurityLabel.SystemHigh;
+        // A host registry may remap even a canonical spelling to a different primitive. Only the
+        // primitive belonging to this stored name agrees with the pipeline's record label.
+        var primitive = DataSensitivityLevels.FromName(trimmed);
+        return primitive is not null && ReferenceEquals(level, primitive)
+            ? primitive.ToDataLabel()
+            : SecurityLabel.SystemHigh;
     }
+
+    // Match TrustTierOrder's spelling comparison before consulting a registry, whose aliases or
+    // Unicode folding must not label data below the pipeline's treatment of the same stored tier.
+    private static readonly string[] CanonicalSpellings =
+        ["Public", "Internal", "Confidential", "Secret", "TopSecret", "top-secret"];
 
     /// <summary>
     /// The agent's clearance, narrowed (never widened) by what the model asked for. Null -- the
@@ -194,7 +209,11 @@ public sealed class RAGTool : ITool, IEgressLabelledTool
 
     private sealed record RagHit(string Id, string Text, double Score, string? SensitivityLevelName);
 
-    private sealed record RagRefusal(bool Refused, string Reason);
+    private sealed record RagRefusal(bool Refused, string Reason)
+    {
+        [System.Text.Json.Serialization.JsonIgnore]
+        internal bool ReadNothing { get; init; }
+    }
 
     private sealed class RAGSearchArgs
     {
