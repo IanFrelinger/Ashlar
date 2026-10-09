@@ -25,7 +25,7 @@ public sealed class EgressRouteEnforcementTests
     {
         var transport = new CountingHandler();
         var guard = new CapturingGuard(new EgressGuard("full", mode));
-        using var client = EgressHttp.CreateClient(transport, EgressFamilies.HttpRaw, "route-http", guard);
+        using var client = EgressHttp.CreateClient(transport, EgressFamilies.Http, "route-http", guard);
         using var request = new HttpRequestMessage(HttpMethod.Post, Remote);
         var error = await Record.ExceptionAsync(async () =>
         {
@@ -86,7 +86,7 @@ public sealed class EgressRouteEnforcementTests
         else
         {
             var inner = new CountingHandler();
-            using var client = EgressHttp.CreateClient(inner, EgressFamilies.HttpRaw, "route-fault-http", faulty);
+            using var client = EgressHttp.CreateClient(inner, EgressFamilies.Http, "route-fault-http", faulty);
             error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync(Remote); });
             inner.Sends.Should().Be(calls);
         }
