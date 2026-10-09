@@ -8,7 +8,7 @@ in §8 rather than guessing.
 
 Master at the time of writing: `0960774` (#704 and #705 merged).
 
-## Status (2026-10-05)
+## Status (2026-10-08)
 
 *Added when the spec was committed. Everything else is the owner's text of 2026-10-03, with these additions, each
 marked: test names next to the §2 MUSTs (labelled **Enforced by**, as §7 asks), a status column in §5, the sections
@@ -46,7 +46,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
   unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record
   (the owner's 2026-10-06 amendment of D31). PR 3b found two more (`docs/EgressInventory.md`): redirects that the
-  primary handler follows are not evaluated, which stays open until 4.3, and a few records could read Host for a
+  primary handler follows are not evaluated (closed by PR 4.3, #722, `904cf909a`, with the host-boundary exception
+  still outstanding — owner O2, decisions log, tracked for PR 4.3b), and a few records could read Host for a
   remote peer (EG-MESH-03 behind a local proxy or tunnel, EG-MDL-01 with a custom `local:` inner client,
   EG-MESH-07/08 with a `//127.0.0.1/…` path). PR 4.1 closes the third gap: those records no longer read Host.
 - **PR 4 plan** (2026-10-05). A design pass found that no production code enters an `EgressSubject` frame. Turning
@@ -97,11 +98,14 @@ The status line above and the starting prompt are the owner's, as written; the s
   or later. The refusal publishes no decision record (the owner's 2026-10-06 amendment of the design's D31,
   decisions log): no Ashlar code runs on that path, short of a process-wide first-chance-exception hook, and a
   record published when a client is built would report a refused egress where none happened.
-- **PR 4.3** (#722): known primaries Ashlar builds or binds have `AllowAutoRedirect` false, and an internal
-  follower applies that primary's own redirect settings. An `EgressHttp` client follows only a same-host redirect
-  (P2); a factory client follows a cross-host redirect and each hop is evaluated again (P1). HTTPS to HTTP is not
-  followed. `Authorization` is cleared on a followed redirect. Report-only: `Refused` stays false. On the
-  netstandard2.0 asset the synchronous-send hop is unchanged and still throws before the follower runs.
+- **PR 4.3** (#722, `904cf909a`): known primaries Ashlar builds or binds have `AllowAutoRedirect` false, and an
+  internal follower applies that primary's own redirect settings. An `EgressHttp` client follows only a same-host
+  redirect (P2); a factory client follows a cross-host redirect and each hop is evaluated again (P1). HTTPS to HTTP
+  is not followed. `Authorization` is cleared on a followed redirect. Report-only: `Refused` stays false in report
+  mode. On the netstandard2.0 asset the synchronous-send hop is unchanged and still throws before the follower runs.
+  **Known limit until PR 4.3b:** owner decision O2 (2026-10-06) — never follow a redirect from outside the host
+  boundary into it — is not yet implemented; a factory client may still follow into loopback / `*.localhost` /
+  link-local (see decisions log).
 - **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
@@ -122,8 +126,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   inside the callback, such as each subscriber's `Task.Run`, keeps no subject; a task, timer, registration or
   continuation the publisher created and the callback starts or triggers keeps the publisher's frame, since each
   captures the flow where it is created, and a thread or `System.Timers.Timer` captures it where it is started.
-  Report-only, and no production code enters a frame yet. **Amended PR 4 design:** its
-  `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
+  Report-only. Until PR 4.5 no production code entered a frame; the producers are in PR 4.5. **Amended PR 4 design:**
+  its `InternalsVisibleTo` list for `Ashlar.Abstractions` (decision D9 in `_handoff/spec-007-pr4/DESIGN-4-final.md` on
   the `claude/spec-007-pr4-workspace` branch: `Ashlar.AI.Pipeline` and `Ashlar.Infrastructure`) gains
   `Ashlar.Orchestration`, for the internal `EgressSubject.RunDetached` at the `AgentBus` dispatch point. The grant
   exposes every Abstractions internal to Orchestration; 4.6's convention fact
@@ -148,14 +152,16 @@ The status line above and the starting prompt are the owner's, as written; the s
   `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
   an explicit peer-network-only request fails with an explained error and is not sent to a peer or to RunPod.
-  `AdaptiveProviderFactory` does not try OpenAI or Azure on AirGapped, for LLM calls or single-image vision.
-  Boot refuses, on AirGapped only, a non-empty `BrickHost:RemoteCatalogBaseUrls`,
-  `Ashlar:RunPod:EnablePeerNetworkRouting=true`, `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and
-  `Ashlar:Meai:Bedrock:Enabled=true`. The ollama.com catalog defaults off on AirGapped when `Enabled` is unset.
-  SecureWorkstation refuses MCP over HTTP and still boots stdio; AirGapped still refuses an enabled MCP server
-  whether or not the transport is HTTP. On both profiles an API listener or mesh serve that does not bind
-  loopback fails boot (`127.0.0.1`, `localhost` and `::1` succeed). Responses on inbound connections are not
-  mediated until PR 5's CanRead at the server seams.
+  `AdaptiveProviderFactory` does not try OpenAI or Azure on AirGapped, for LLM calls or single-image vision
+  (multi-frame vision may still send to a cloud resolve — Known limit until PR 4.10b). Boot refuses, on AirGapped
+  only, a non-empty `BrickHost:RemoteCatalogBaseUrls`, `Ashlar:RunPod:EnablePeerNetworkRouting=true`,
+  `Ashlar:MeshLab:WorkerExecutor:Enabled=true` and `Ashlar:Meai:Bedrock:Enabled=true`. The ollama.com catalog
+  defaults off on AirGapped when `Enabled` is unset. SecureWorkstation refuses MCP over HTTP and still boots stdio;
+  AirGapped still refuses an enabled MCP server whether or not the transport is HTTP. On both profiles an API
+  listener or mesh serve that does not bind loopback fails boot (`127.0.0.1`, `localhost` and `[::1]` succeed;
+  bare `::1` is refused by URI parsing — use the bracketed form). `ASPNETCORE_HTTP_PORTS` is not yet collected when
+  `urls` is unset (Known limit until PR 4.10b). Responses on inbound connections are not mediated until PR 5's
+  CanRead at the server seams.
 
 ---
 
@@ -434,8 +440,9 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 answer of 2026-10-06. None of them answers a §8 question; §8 stands as written. Design choices that merged with those PRs but
-were not the owner's are in the next section.
+applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 and phase C answers of 2026-10-06. None of them
+answers a §8 question; §8 stands as written. Design choices that merged with those PRs but were not the owner's are
+in the next section.
 
 | Date | Applies to | Decision |
 |---|---|---|

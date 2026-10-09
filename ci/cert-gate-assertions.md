@@ -72,7 +72,8 @@ The gate also carries the certification gate's own teeth, the hot-swap host, the
 campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 138 `.cs` files in
 `src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-08 (141 entries in all; the
 other three are golden JSON fixtures). This figure read 31, then 68, then 82, then 111, then 113,
-then 120, then 125, then 127, then 128, then 131, then 132, before it read 135; count it rather than quoting it. The
+then 120, then 125, then 127, then 128, then 131, then 132, then 135, before it read 136; count it
+rather than quoting it. The
 table above is only the *conventions*: assertions about how the repository is allowed to be shaped,
 which have no other home and which nothing else would catch.
 
