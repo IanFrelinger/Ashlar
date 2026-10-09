@@ -60,6 +60,12 @@ internal sealed class EgressGuardHandler : DelegatingHandler
     /// </summary>
     internal Action<string>? UnmediatedRedirectWarning { get; set; }
 
+    /// <summary>Preserves P2 when this EgressHttp guard surrounds an existing factory P1 follower.</summary>
+    internal bool RestrictRedirectsToSameOrigin { get; set; }
+
+    /// <summary>Preserves this factory client's explicit no-follow policy through a shared redirect follower.</summary>
+    internal bool NeverFollowRedirects { get; set; }
+
     /// <summary>Counts a guard fault swallowed by this handler or by the redirect handler under it.</summary>
     internal static void RecordGuardFault() => Interlocked.Increment(ref _guardFaults);
 
@@ -94,6 +100,11 @@ internal sealed class EgressGuardHandler : DelegatingHandler
     {
         if (request is null)
             return;
+
+        if (RestrictRedirectsToSameOrigin)
+            EgressEvaluatedAuthority.RequireSameOrigin(request);
+        if (NeverFollowRedirects)
+            EgressEvaluatedAuthority.RequireNoRedirects(request);
 
         try
         {

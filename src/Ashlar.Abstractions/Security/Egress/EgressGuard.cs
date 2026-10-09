@@ -172,6 +172,24 @@ public sealed class EgressGuard : IEgressGuard
         return decision;
     }
 
+    /// <summary>
+    /// <see langword="true"/> when the profile this guard decides under, read as <see cref="Evaluate"/> reads it, is
+    /// AirGapped or SecureWorkstation, or cannot be read (fail closed). For warnings only; it decides nothing.
+    /// </summary>
+    internal bool ProfileEnforcesByDefault()
+    {
+        try
+        {
+            return DescribeProfile(ReadProfile()).EnforcesByDefault;
+        }
+#pragma warning disable CA1031 // A profile that cannot be read is treated as the strictest, so the warning it gates is given.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return true;
+        }
+    }
+
     // A guard built with a profile uses it as given. Otherwise the profile is the effective value the remote-protocol
     // option validators read: the strictest one AddAshlar noted in this process, else the variable.
     private string? ReadProfile() =>

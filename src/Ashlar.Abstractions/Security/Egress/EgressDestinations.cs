@@ -192,8 +192,38 @@ internal static class EgressDestinations
         if (!uri.IsAbsoluteUri)
             throw new ArgumentException("A relative URI names no destination host.", nameof(uri));
 
-        insideHost = !IsFileScheme(uri.Scheme) && (IsHostScheme(uri.Scheme) || IsLoopbackHost(uri.Host));
+        insideHost = IsInsideHost(uri);
         return Bound(uri.GetComponents(UriComponents.SchemeAndServer, UriFormat.UriEscaped));
+    }
+
+    /// <summary>
+    /// <see langword="true"/> when the absolute <paramref name="uri"/> names the host boundary as a decision records
+    /// it: a <c>unix</c> or <c>npipe</c> scheme, or a loopback host (<see cref="IsLoopbackHost"/>); never a
+    /// <c>file</c> URI, and never a relative one.
+    /// </summary>
+    internal static bool IsInsideHost(Uri uri) =>
+        uri.IsAbsoluteUri && !IsFileScheme(uri.Scheme) && (IsHostScheme(uri.Scheme) || IsLoopbackHost(uri.Host));
+
+    /// <summary>
+    /// <see langword="true"/> when <paramref name="host"/> is a link-local IP address (<c>169.254.0.0/16</c>, or
+    /// IPv6 <c>fe80::/10</c>, in brackets or not; an IPv4-mapped IPv6 address is read as its IPv4). A decision records
+    /// such a host as a network export, not as the host boundary; the redirect follower treats it as inside the
+    /// boundary for the purpose of never following a hop into it (owner decision 2026-10-06). Nothing is resolved.
+    /// </summary>
+    internal static bool IsLinkLocalHost(string? host)
+    {
+        var bare = Unbracket(host);
+        if (bare.Length == 0 || !IPAddress.TryParse(bare, out var address))
+            return false;
+
+        if (address.IsIPv4MappedToIPv6)
+            address = address.MapToIPv4();
+
+        if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            return address.IsIPv6LinkLocal;
+
+        var bytes = address.GetAddressBytes();
+        return bytes.Length == 4 && bytes[0] == 169 && bytes[1] == 254;
     }
 
     private static string DescribeName(string? name, out bool insideHost)

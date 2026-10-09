@@ -5,11 +5,16 @@ using Ashlar.Infrastructure.Egress;
 using Ashlar.Tests.Infrastructure.Helpers;
 using Ashlar.Tests.Infrastructure.Helpers.VirtualProduction;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.VirtualProduction;
@@ -32,6 +37,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.VirtualProduction;
 /// thread that runs Program.cs, so the decision is found by its site and its unique destination host. When the
 /// exporters' clients come from the factory they also record <c>factory:</c> decisions to the same host; the site
 /// filter leaves those out.</para>
+/// <para><b>Redirects</b> (SPEC-007 PR 4.3). The <c>ashlar-sns-signing</c> client never follows one: against a
+/// loopback server that answers 302, over the factory's own primary handler, it returns the 302.</para>
 /// <para>Program.cs reads every switch through <c>builder.Configuration</c>, so the values are injected with
 /// <c>UseSetting</c> only; no process environment variable is touched.</para>
 /// </remarks>
@@ -93,6 +100,24 @@ public sealed class EgressApiHostProdStyleTests
     }
 
     [Fact(Timeout = TestTimeouts.HostTouching)]
+    public async Task TheSnsSigningClient_NeverFollowsARedirect_OverTheFactorysOwnPrimaryHandler()
+    {
+        // SPEC-007 PR 4.3: the signing-certificate fetch is checked against its host before the send, so a redirect
+        // would reach a host nobody checked. A loopback server answers 302; the client returns it and never asks for
+        // the target. The primary handler is the factory's own (no test default replaces it), so the runtime would
+        // follow on its own, and the egress redirect follower would follow for it, unless Program.cs turns it off.
+        await using var server = await LoopbackRedirectServer.StartAsync();
+        using var factory = new AshlarApiWebApplicationFactory();
+        await AssertHealthyAsync(factory);
+
+        using var client = factory.Services.GetRequiredService<IHttpClientFactory>().CreateClient(SnsSigningClient);
+        using var response = await client.GetAsync(new Uri($"http://127.0.0.1:{server.Port}/a"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found, "the SNS signing client returns the redirect");
+        server.Paths.Should().Equal(new[] { "/a" }, "the redirect target is never asked for");
+    }
+
+    [Fact(Timeout = TestTimeouts.HostTouching)]
     public async Task AnOtlpEndpoint_RecordsOneEgTel01Decision_WithoutUserinfoPathOrQuery()
     {
         var host = $"egress-twin-{Guid.NewGuid():N}.invalid";
@@ -114,6 +139,53 @@ public sealed class EgressApiHostProdStyleTests
         decision.Destination.Should().Be($"https://{host}:4318", "userinfo, path and query never reach a record");
         decision.DestinationClass.Should().Be(EgressDestinationClass.NetworkExport);
         decision.Fault.Should().BeNull();
+    }
+
+    /// <summary>A loopback Kestrel: <c>/a</c> answers 302 to <c>/b</c>, anything else 200; it keeps every path asked for.</summary>
+    private sealed class LoopbackRedirectServer : IAsyncDisposable
+    {
+        private readonly WebApplication _app;
+        private readonly ConcurrentQueue<string> _paths;
+
+        private LoopbackRedirectServer(WebApplication app, ConcurrentQueue<string> paths, int port)
+        {
+            _app = app;
+            _paths = paths;
+            Port = port;
+        }
+
+        public int Port { get; }
+
+        public IReadOnlyList<string> Paths => _paths.ToArray();
+
+        public static async Task<LoopbackRedirectServer> StartAsync()
+        {
+            var paths = new ConcurrentQueue<string>();
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Production", ContentRootPath = AppContext.BaseDirectory });
+            builder.Logging.ClearProviders();
+            builder.WebHost.ConfigureKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+            var app = builder.Build();
+            app.Run(context =>
+            {
+                paths.Enqueue(context.Request.Path.Value ?? string.Empty);
+                if (context.Request.Path == "/a")
+                {
+                    context.Response.StatusCode = StatusCodes.Status302Found;
+                    context.Response.Headers.Location = "/b";
+                }
+
+                return Task.CompletedTask;
+            });
+            await app.StartAsync();
+            var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+            return new LoopbackRedirectServer(app, paths, new Uri(address).Port);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await _app.StopAsync();
+            await _app.DisposeAsync();
+        }
     }
 
     private static async Task AssertHealthyAsync(WebApplicationFactory<Program> factory)
