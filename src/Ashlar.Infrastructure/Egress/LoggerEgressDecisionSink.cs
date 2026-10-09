@@ -48,7 +48,7 @@ public sealed class LoggerEgressDecisionSink : IEgressDecisionSink, IDisposable
 
     private static readonly EventId DecisionEventId = new(DecisionEventIdValue, DecisionEventName);
     private static readonly EventId RefusedEventId = new(7301, "EgressRefused");
-    private static readonly EventId SummaryEventId = new(7302, "EgressRefusalsSuppressed");
+    private static readonly EventId SummaryEventId = new(7305, "EgressRefusalsSuppressed");
     private static readonly TimeSpan WindowLength = TimeSpan.FromMinutes(5);
 
     private readonly ILogger _logger;

@@ -101,7 +101,7 @@ public static class EgressServiceCollectionExtensions
         }, (faulted, fault) =>
             services?.GetService<ILoggerFactory>()?.CreateLogger("Ashlar.Egress").Log(
                 faulted ? LogLevel.Warning : LogLevel.Debug,
-                new EventId(7303, "EgressGuardFallback"),
+                new EventId(7306, "EgressGuardFallback"),
                 "Egress guard resolution {Resolution}; using ProcessDefault; fault={Fault}",
                 faulted ? "failed" : "unregistered", fault ?? "none"));
     }

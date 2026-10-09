@@ -42,7 +42,7 @@ public sealed class EgressRefusalDiagnosticsTests
         guard.Should().BeSameAs(EgressGuard.ProcessDefault);
         ((long)counter.GetValue(null)!).Should().BeGreaterThan(before);
         var entry = capture.Entries.Should().ContainSingle().Which;
-        entry.Event.Id.Should().Be(7303);
+        entry.Event.Id.Should().Be(7306);
         entry.Level.Should().Be(throws ? LogLevel.Warning : LogLevel.Debug);
         entry.Fields["Resolution"].Should().Be(throws ? "failed" : "unregistered");
         entry.Fields["Fault"].Should().Be(throws ? typeof(InvalidOperationException).FullName : "none");
@@ -109,7 +109,7 @@ public sealed class EgressRefusalDiagnosticsTests
 
         var summary = capture.Entries.Should().HaveCount(2).And.Subject.Last();
         summary.Level.Should().Be(LogLevel.Warning);
-        summary.Event.Id.Should().Be(7302);
+        summary.Event.Id.Should().Be(7305);
         summary.Fields["SuppressedCount"].Should().Be(2L);
         summary.Fields["Site"].Should().Be("window");
         clock.ActiveTimers.Should().Be(0);
@@ -134,7 +134,7 @@ public sealed class EgressRefusalDiagnosticsTests
         owner.Dispose();
         clock.ActiveTimers.Should().Be(0);
         clock.Advance(TimeSpan.FromMinutes(10));
-        capture.Entries.Count(e => e.Event.Id == 7302).Should().Be(1);
+        capture.Entries.Count(e => e.Event.Id == 7305).Should().Be(1);
         capture.Entries.Last().Fields["SuppressedCount"].Should().Be(1L);
     }
 
