@@ -16,6 +16,37 @@ public sealed class EgressRouteEnforcementTests
 {
     private static readonly Uri Remote = new("https://remote.example/private?credential=canary");
 
+    [Fact]
+    public void A_reentrant_publish_skip_is_counted_and_cannot_bypass_enforcement()
+    {
+        var inner = new CountingHandler();
+        using var client = EgressHttp.CreateClient(inner, EgressFamilies.Http, "route-reentrant-inner",
+            new EgressGuard("full", "enforce"));
+        var counter = typeof(EgressDecisionLog).GetProperty("ReentrantRefusalSkips",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        counter.Should().NotBeNull();
+        var before = (long)counter!.GetValue(null)!;
+        Exception? refusal = null;
+        var calls = 0;
+        using var subscription = EgressDecisionLog.Subscribe(new CallbackSink(decision =>
+        {
+            if (decision.Site != "route-reentrant-outer") return;
+            calls++;
+            using var request = new HttpRequestMessage(HttpMethod.Get, Remote);
+            refusal = Record.Exception(() => { using var response = client.Send(request); });
+        }));
+        new EgressGuard("full", "report").Evaluate(new EgressRequest(EgressFamilies.Http, "route-reentrant-outer", Remote));
+        calls.Should().Be(1);
+        refusal.Should().BeOfType<EgressRefusedException>();
+        inner.Sends.Should().Be(0);
+        ((long)counter.GetValue(null)!).Should().BeGreaterThan(before);
+    }
+
+    private sealed class CallbackSink(Action<EgressDecision> callback) : IEgressDecisionSink
+    {
+        public void Record(EgressDecision decision) => callback(decision);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]

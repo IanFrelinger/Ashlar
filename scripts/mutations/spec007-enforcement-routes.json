@@ -134,6 +134,30 @@
       "expected_failures": [
         "Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw"
       ]
+    },
+    {
+      "id": "r12-reentrant-refusal-counter-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressDecisionLog.cs",
+      "old": "Interlocked.Increment(ref _reentrantRefusalSkips);",
+      "new": "Interlocked.Read(ref _reentrantRefusalSkips);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_reentrant_publish_skip_is_counted_and_cannot_bypass_enforcement"
+      ]
+    },
+    {
+      "id": "r13-netstandard-enforcement-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
+      "old": "EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();",
+      "new": "#if NETSTANDARD2_0\n        _ = EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress);\n#else\n        EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();\n#endif",
+      "filter": "FullyQualifiedName~The_netstandard20_asset_enforces_async_policy_refusals_before_the_transport",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_netstandard20_asset_enforces_async_policy_refusals_before_the_transport"
+      ]
     }
   ]
 }

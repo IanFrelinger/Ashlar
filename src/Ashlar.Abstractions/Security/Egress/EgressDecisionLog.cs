@@ -18,6 +18,10 @@ public static class EgressDecisionLog
     private static Subscription[] _subscriptions = Array.Empty<Subscription>();
     private static long _sinkFaults;
     private static long _reentrantSkips;
+    private static long _reentrantRefusalSkips;
+
+    /// <summary>Refusal records skipped during a re-entrant publish; routes still enforce these decisions.</summary>
+    internal static long ReentrantRefusalSkips => Interlocked.Read(ref _reentrantRefusalSkips);
 
     [ThreadStatic]
     private static bool _publishing;
@@ -55,6 +59,8 @@ public static class EgressDecisionLog
         if (_publishing)
         {
             Interlocked.Increment(ref _reentrantSkips);
+            if (decision.Refused)
+                Interlocked.Increment(ref _reentrantRefusalSkips);
             return;
         }
 
