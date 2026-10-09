@@ -72,7 +72,32 @@ public sealed class EgressGuard : IEgressGuard
     public static EgressGuard ProcessDefault { get; } = new();
 
     /// <inheritdoc />
-    public EgressDecision Evaluate(EgressRequest request)
+    public EgressDecision Evaluate(EgressRequest request) => EvaluateCore(request, externalFault: null);
+
+    // A host implementation can throw or violate the non-null return contract. The process mode determines
+    // whether that failed evaluation stops the route; never substitute an ordinary allow decision for a fault.
+    internal static EgressDecision EvaluateForRoute(IEgressGuard guard, EgressRequest request)
+    {
+        string fault;
+        try
+        {
+            var decision = guard.Evaluate(request);
+            if (decision is not null)
+                return decision;
+            fault = typeof(InvalidOperationException).FullName!;
+        }
+#pragma warning disable CA1031 // Host guard faults become recorded NoDecision results; enforcement happens outside this catch.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            fault = ex.GetType().FullName ?? ex.GetType().Name;
+        }
+
+        EgressGuardHandler.RecordGuardFault();
+        return ProcessDefault.EvaluateCore(request, fault);
+    }
+
+    private EgressDecision EvaluateCore(EgressRequest request, string? externalFault)
     {
         var sequence = Interlocked.Increment(ref _sequence);
         var at = DateTimeOffset.UtcNow;
@@ -110,7 +135,7 @@ public sealed class EgressGuard : IEgressGuard
         var current = SecurityLabel.SystemHigh;
         var currentBasis = FaultedCurrentBasis;
         var access = default(AccessDecision);
-        string? fault = null;
+        string? fault = externalFault;
 
         try
         {
@@ -125,7 +150,7 @@ public sealed class EgressGuard : IEgressGuard
 
             (current, currentBasis) = EgressSubject.Resolve();
 
-            access = ReferenceMonitor.CanWrite(current, destinationLabel);
+            access = externalFault is null ? ReferenceMonitor.CanWrite(current, destinationLabel) : default;
         }
 #pragma warning disable CA1031 // Evaluate never throws by contract: any failure becomes the record's Fault and the caller proceeds.
         catch (Exception ex)

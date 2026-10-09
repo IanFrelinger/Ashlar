@@ -70,11 +70,11 @@ internal sealed class EgressGuardHandler : DelegatingHandler
     internal static void RecordGuardFault() => Interlocked.Increment(ref _guardFaults);
 
     /// <inheritdoc />
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Report(request);
         var send = base.SendAsync(request, cancellationToken);
-        return FinishAsync(request, send);
+        return await FinishAsync(request, send).ConfigureAwait(false);
     }
 
 #if NET5_0_OR_GREATER
@@ -106,16 +106,7 @@ internal sealed class EgressGuardHandler : DelegatingHandler
         if (NeverFollowRedirects)
             EgressEvaluatedAuthority.RequireNoRedirects(request);
 
-        try
-        {
-            Evaluate(request.RequestUri);
-        }
-#pragma warning disable CA1031 // A custom guard may throw; report-only means the send goes ahead unchanged, so the fault is counted.
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            RecordGuardFault();
-        }
+        Evaluate(request.RequestUri);
 
         EgressEvaluatedAuthority.Stamp(request, request.RequestUri);
     }
@@ -136,11 +127,10 @@ internal sealed class EgressGuardHandler : DelegatingHandler
         {
             Evaluate(followed);
         }
-#pragma warning disable CA1031 // Report-only: a fault while recording the followed authority does not change the response.
-        catch (Exception)
-#pragma warning restore CA1031
+        catch (EgressRefusedException)
         {
-            RecordGuardFault();
+            response.Dispose();
+            throw;
         }
 
         EgressEvaluatedAuthority.Stamp(request, followed);
@@ -157,6 +147,6 @@ internal sealed class EgressGuardHandler : DelegatingHandler
         var egress = uri is null
             ? new EgressRequest(_family, _site, EgressDestinations.UnknownDestination)
             : new EgressRequest(_family, _site, uri);
-        _ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);
+        EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();
     }
 }

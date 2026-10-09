@@ -27,7 +27,8 @@ public static class AshlarGovernanceChatClientBuilderExtensions
 
         // First Use = outermost → the egress guard records the attempt before PolicyGate decides it.
         builder.Use((inner, sp) =>
-            new EgressGuardChatClient(inner, MeaiEgressDestination.Resolve(targetKey, sp, inner), ResolveEgressGuard(sp), targetKey));
+            new EgressGuardChatClient(inner, MeaiEgressDestination.Resolve(targetKey, sp, inner), ResolveEgressGuard(sp), targetKey,
+                sp.GetRequiredService<IChatInvocationAuditor>()));
 
         builder.Use((inner, sp) =>
         {

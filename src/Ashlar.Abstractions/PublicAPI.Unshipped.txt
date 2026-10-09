@@ -145,3 +145,13 @@ Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.RequiresLoopback.get 
 const Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.AirGapped = "air-gapped" -> string!
 const Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.Full = "full" -> string!
 const Ashlar.Abstractions.AshlarResolvedDeploymentProfileOptions.SecureWorkstation = "secure-workstation" -> string!
+Ashlar.Abstractions.Security.Egress.EgressDecision.Refuses.get -> bool
+Ashlar.Abstractions.Security.Egress.EgressDecision.ThrowIfRefused() -> Ashlar.Abstractions.Security.Egress.EgressDecision!
+Ashlar.Abstractions.Security.Egress.EgressRefusedException
+Ashlar.Abstractions.Security.Egress.EgressRefusedException.EgressRefusedException(Ashlar.Abstractions.Security.Egress.EgressDecision! decision) -> void
+Ashlar.Abstractions.Security.Egress.EgressRefusedException.Decision.get -> Ashlar.Abstractions.Security.Egress.EgressDecision!
+Ashlar.Abstractions.Security.Egress.EgressRefusedException.Reason.get -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.Egress.EgressRefusedException.Site.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressRefusedException.Sequence.get -> long
+Ashlar.Abstractions.Security.Egress.EgressRefusedException.Ref.get -> string!
+Ashlar.Abstractions.Security.Egress.EgressRefusedException.ErrorCode.get -> string!

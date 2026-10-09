@@ -147,6 +147,18 @@ public sealed class EgressDecision
     /// </summary>
     public bool Refused { get; }
 
+    /// <summary>Whether a route must refuse this decision; an alias of <see cref="Refused"/>.</summary>
+    public bool Refuses => Refused;
+
+    /// <summary>Throws a redacted policy refusal when enforcing, otherwise returns this same decision.</summary>
+    /// <exception cref="EgressRefusedException">The decision requires the route to stop.</exception>
+    public EgressDecision ThrowIfRefused()
+    {
+        if (Refused)
+            throw new EgressRefusedException(this);
+        return this;
+    }
+
     /// <summary>
     /// A random 64-bit reference for this decision, as 16 lowercase hex digits (<c>unavailable</c> if none could be
     /// drawn). It joins what a refused party is shown to the operator's record. Unlike <see cref="Sequence"/>, it says
