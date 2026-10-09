@@ -205,7 +205,7 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             (await act.Should().ThrowAsync<Exception>()).Which.ToString().Should().Contain("loopback");
         }
     }
-    [Theory]
+    [Theory(Timeout = TestTimeouts.HostTouching)]
     [InlineData("air-gapped", false, false)]
     [InlineData("air-gapped", true, false)]
     [InlineData("secure-workstation", false, false)]
