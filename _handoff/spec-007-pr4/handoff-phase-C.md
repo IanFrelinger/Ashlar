@@ -1,186 +1,96 @@
-# spec-007-pr4 handoff: phase C paused mid-flight, to be continued in Cursor
+# SPEC-007 PR 4 handoff: end of phase C, start of phase D
 
-*Written 2026-10-06 at 22:36 UTC. Phase C was **paused by the owner at 20:41 UTC with nothing merged**; this handoff is written for an agent in Cursor to finish phase C. Start with the prompt in §9. The storage branch is `claude/spec-007-pr4-workspace`, folder `_handoff/spec-007-pr4/`; fetch with `bash scripts/handoff-fetch.sh --workstream spec-007-pr4` (or read the files on GitHub).*
+*Written 2026-10-09 ~22:40 UTC near the end of phase C. Start the next thread with the prompt in §9, or with `/start-phase spec-007-pr4`.*
 
 ## 0. How we work: one thread per phase
 
 This workstream runs one phase per thread (`_handoff/phases/README.md`):
-- a phase ends with a handoff written from `_handoff/phases/HANDOFF-TEMPLATE.md`, published to the storage branch with `scripts/handoff-publish.sh`, sent to the owner;
-- a phase starts by fetching the handoff (`scripts/handoff-fetch.sh --workstream spec-007-pr4`), checking it against the live repo, restating the phase, then executing it.
+- end each phase with `/handoff spec-007-pr4 C`;
+- start each phase with `/start-phase spec-007-pr4`.
 
-This is a **mid-phase pause**, not a phase end: the phase C exit criteria (§1) are not met. The continuing agent resumes phase C where §4 says each lane stopped. Every in-flight branch is pushed (§4; nothing lives only in the paused container).
-
-**For the Cursor agent specifically (read before anything else):**
-- `CLAUDE.md` binds you too: **never run `dotnet` on the host**; build and test in the devtest container through `scripts/test-in-container.sh` (bash) or `scripts/test-in-container.ps1` (PowerShell), which test **committed** state of a **clone** (not a worktree). `scripts/ensure-devtest-image.sh` builds the image. `scripts/mutation-check.sh` and `scripts/ci/run-repo-gates.sh` are bash: on Windows run them under WSL or Git Bash with `shellcheck` and `python` on `PATH`.
-- Three lane branches exist on GitHub with substantial, partly verified work (§4). Continue them; do not restart from master. Each lane's exact state (what is done, what was verified on which head, what is not yet done, the remaining steps in order) is in `state-4.3.md`, `state-4.10.md`, `state-4.5.md` on the storage branch, written read-only from the clones at the pause.
-- Commit attribution: the existing commits carry Claude Code trailers (`Co-Authored-By: Claude Fable 5.1 …`, `Claude-Session: …`). Keep them on the commits that exist; **do not add Claude trailers to your own commits** — use your own attribution. The prepared squash messages `squash-msg-4.3.txt` and `commit-4.10-msg.txt` (storage branch) end with Claude trailers: drop those lines if you squash.
-- Agent-bus identity: `_handoff/bus/PROTOCOL.md` allows `From: grok|claude`. Posting `handoff`/`done` for the phase C PRs from Cursor needs the owner's call on the header (§3, open question P1). Until then, do not post on #695.
-- Model identifiers never go into commits, PR bodies, code or docs.
+The handoff is published to `claude/spec-007-pr4-workspace`, sent to the owner, and the owner is notified. Push every in-flight branch to GitHub before writing the handoff.
 
 ## 1. Where things stand
 
-- **Master:** `de41a8ac8` (#716, PR 4.4). Unchanged since the phase B handoff; `git log de41a8ac..origin/master` is empty.
-- **Merged in this workstream (all before phase C):**
+- **Master:** `bc1777dfc` (#740 squash-merged).
+- **Merged this phase / remediation after Cursor phase C:**
 
-| PR | What | Merge commit |
+| PR | What | Merge SHA |
 |---|---|---|
-| #706 | SPEC-007 PR 1: label lattice and `ReferenceMonitor` | `0f9642ec2` |
-| #707 | PR 2: bridges from the existing labels | `f1f2cff48` |
-| #709 | PR 3a: report-only egress guard, inventory, convention test | `c257aa684` |
-| #710 | Dev workflow: SessionStart hook, devtest image, `scripts/mutation-check.sh` | `ea0674e53` |
-| #711 | PR 3b: every listed outbound site routed to the guard, report-only | `8ec674d2a` |
-| #712 | drift-711 | `9abb491d3` |
-| #713 | The eight PR 4 owner decisions and the PR 4 plan (phase A) | `79e988c31` |
-| #715 | drift-713 | `ce9885e2f` |
-| #714 | The phase/handoff procedure | `5ff00a4af` |
-| #717 | PR 4.1: Host-reading records name the remote party; Ollama cloud models; no redirects in `OllamaHttpChatClient` | `bbc5d7146` |
-| #718 | PR 4.6: mode plumbing (resolver, `Mode`/`ModeBasis`/`Refused`/`Ref`, strictest profile wins, latch, reset seam, startup line) | `3196ba11c` |
-| #719 | PR 4.2: synchronous `Send` on the netstandard2.0 asset refused before anything is sent; no record (D31 amended) | `ad3d570b2` |
-| #716 | PR 4.4: frame semantics (no-skip frames, `Observe`, read scopes, callback-shaped `RunDetached` at AgentBus) | `de41a8ac8` |
+| #720 | SPEC-007 PR 4.10 AG/SW hygiene | `02fa27f1d` |
+| #722 | SPEC-007 PR 4.3 redirects | `904cf909a` (merge commit) |
+| #721 | SPEC-007 PR 4.5 producers | `9b2ea56f4` |
+| #723 | CI: no readiness double-fire on `cursor/**` | `095ba46e2` |
+| #724 | R1 records honesty (2026-10-06 decisions) | `de03fa7c6` |
+| #738 | 4.10b AG/SW inbound + hygiene | `bceb1ba21` |
+| #739 | 4.3b never follow into Host (O2) | `9c56ecc1a` |
+| #740 | 4.5b open-read → SystemHigh | `bc1777dfc` |
 
-- **Merged this phase: none.** Open PRs from this workstream: **none** (no PR has been opened for any phase C lane). Open PRs in the repo are Dependabot #689–#693 (held by Grok), #698–#703 and #647 (unclaimed), and old `cursor/*` branches #636–#644.
-- **Readiness verdict for master `de41a8ac`:** `verified` (4 lanes run, 0 skipped; `Readiness summary` check run 112399479783; Grok confirmed all 35 check runs green at 17:28Z).
-- **Agent-bus (#695):** nothing open for Claude. Last message 17:28Z (Grok, `drift-716` clean; "waiting for your phase B handoff and the first phase C PR"). The phase B handoff was published at 17:45Z. Nothing has been posted about phase C.
-- **Phase C exit criteria: not met.** None of 4.3, 4.10, 4.5 is merged; no `handoff`/`done` posted; no drift audit yet. **Blocker:** the owner paused the thread at 20:41Z to move the work to Cursor. Nothing else blocks: no lane is waiting on a decision (§3).
+- **Superseded drafts closed:** #725, #727, #726 (Codex tips harvested onto `cursor/spec-007-*-d476`).
+- **Readiness verdict for master's head:** tip `bc1777dfc` — PR tip `af999cc92` had Readiness summary SUCCESS; master-push readiness may still be catching up (re-check with `scripts/release/readiness-verdict-for-sha.sh`).
+- **Agent-bus (#695):** silent since 2026-10-06; Cursor token cannot comment (HTTP 403). Drafts: `scratchpad/bus-backfill-2026-10-09.md` (also attach). Paste when issue-write is available.
+- **This phase's exit criteria:** three 2026-10-06 owner decisions recorded (R1) and implemented (4.5b open-read, 4.3b O2; O1/RAG already in #721); AG/SW inbound hardened (4.10b); false stacking/FF claim removed. Met: #740 on master `bc1777dfc`; required checks were green on tip `af999cc92`.
 
 ## 2. Read these first
 
-**In the repo (master `de41a8ac`):**
-- `CLAUDE.md`: never run `dotnet` on the host; five required checks; serial merges; mutation-check every behaviour change; the agent-bus loop.
-- `docs/specs/SPEC-007-security-labels-and-reference-monitor.md`: status (4.1/4.2/4.4/4.6 lines; the 4.4 line still lacks its merge SHA `de41a8ac` — 4.3 adds it), decisions log (the eight 2026-10-05 rows and the 2026-10-06 D31 row; the phase C rows are on the lane branches, not yet on master), open questions A–E, the **4.5 obligation** in the 4.4 line.
-- `src/Ashlar.Abstractions/Security/Egress/EgressSubject.cs` and `ReadScope.cs` class remarks: the 4.4 frame rules and "Known limits (fail closed)".
-- `docs/EgressInventory.md`, `ci/egress-inventory.tsv` (86 rows / 150 occurrences on master), `ci/cert-gate-assertions.md` rows 56 and 64–67 and the Certification count paragraph (131 `.cs` / 134 entries on master).
-- `_handoff/bus/PROTOCOL.md`; `_handoff/phases/README.md`.
-
-**On the storage branch `claude/spec-007-pr4-workspace`, folder `_handoff/spec-007-pr4/`** (never merge this branch):
-- `handoff.md` (this file), `handoff-phase-C.md` (same), `handoff-phase-B.md`, `handoff-phase-A.md`.
-- `state-4.3.md`, `state-4.10.md`, `state-4.5.md`: **the exact state of each lane at the pause** (written read-only from the clones; `state-4.5.md` §6 checks every integrator instruction one by one) — commits, what is implemented against the design row, every verified run with its head and counts, every mutation line, records done/not, the integrator's instructions implemented/not, open attack/records/critic items, placeholders left in the body, expected conflicts, and the remaining steps in order. Start each lane from its file.
-- `pr-4.3-body.md`, `pr-4.10-body.md`, `pr-4.5-body.md`: the PR body drafts; `frag-*.md` are 4.5's drafted body sections (model, deviations, testing, records, …) to substitute for its `{{…}}` placeholders (each begins with a "Resume state" section from the earlier container restart; replace it with the final evidence before opening the PR).
-- `INTEGRATION-NOTES-C.md`: every owner and integrator decision of phase C, with reasons; queued items; the progress log.
-- `PHASE-C-LANE-BRIEF.md`: the lane procedure phase C followed (clone, twin first, records, container verification, mutation-check, adversarial self-check, squash, push, body). Paths in it are this container's scratchpad; map `$SP/c-<lane>` to your clone.
-- `attack-4.3.md`, `attack-4.5.md`, `attack-4.10.md`: adversarial attack lists (26 / 25 / ~38 items) with twins and mutations; `records-4.3.md`, `records-4.5.md`, `records-4.10.md`: every record and count each PR must touch, with `file:line` on master; `phase-C-critic.md`: the completeness critic — §1 uncovered requirements (G1–G11), §3 which questions were genuine (O1–O3, all answered) vs already decided, §4 what the model does not cover, §5 cross-lane conflicts (G12–G19) and the certain three-way conflicts, §6 the pull-forward items per lane (most already applied by the lanes; `state-*.md` says which).
-- `REPORT.md`, `frame-model-readscope.py`, `frame-model-pins-readscope.py`, `gen-report.py`: the 4.5 model check (the 4.4 frame model extended to read frames; 41,755,599 sequences, four broken variants caught in 2–5 ops, 4.4's 1,900,357 reproduced). Re-run with `python3 frame-model-readscope.py` (see REPORT.md §4 for the bounds and CPU times).
-- `DESIGN-4-final.md`: the authoritative PR 4 design, **amended at this pause** for the owner's open-read-scope decision (§5 Scenario B reason, controls C4 and C5; a note under the title lists every amendment); `design-4.5-amendment.md` is the diff; `DESIGN-4-final.before-4.5.md` the pre-amendment copy.
-- `verify-lane.js`: the adversarial verification workflow this thread prepared (four lenses: records, design, write-down, mutation evidence; then a synthesis). It is a Claude Code Workflow script; in Cursor, use it as the **checklist** for the adversarial check of each lane (§5 step 6), lens by lens.
-- `LANE-RULES.md`, `PHASE-B-LANE-BRIEF.md`, `INTEGRATION-NOTES.md`, `pr-4.1/4.2/4.4/4.6-body.md`, `BRIEF.md`, `scout-S1…S5.md`, `waveA-*`, `frame-model-noskip.py`, `frame-model-wd-callback.py`, `frame-model-pins.py`: phase A/B material.
-- `squash-msg-4.3.txt`, `commit-4.10-msg.txt`: prepared commit messages (drop the Claude trailers if you use them).
+- **In the repo:** `CLAUDE.md`, `docs/specs/SPEC-007-security-labels-and-reference-monitor.md` (decisions log), `docs/EgressInventory.md`, `ci/cert-gate-assertions.md`, `CONTINUITY.md`.
+- **On the storage branch:** prior pause handoff; lane branches `claude/spec-007-pr4-{4.3-redirects,4.5-producers,4.10-agsw}` (archive after content confirmed on master). Publish `ws/design-4.5-amendment.md` if not already on the storage branch.
 
 ## 3. Decisions
 
-**Owner decisions (all recorded in SPEC-007's decisions log on master unless marked "on branch"):**
-- 2026-10-05, Q1–Q8 (#713): AG/SW enforce at 4.11 with an SW-only break-glass; runner-declared floors (self-extend at SystemHigh); child processes off-host unless sandboxed; only file exports leave AG/SW before PR 6; every factory client enforced, opt-out list in `Configure<EgressGuardOptions>`, AG ignores it, naming Ashlar's own clients fails boot; inbound loopback-only and no MCP over HTTP on SW; refusal surface D-b with a random `ref`; labels carry the level only (C1; C3 for the first producer of custom levels).
-- 2026-10-06, 4.2 / D31 amendment (#716): no decision record for a synchronous `Send` refused on the ns2.0 asset.
-- **2026-10-06, phase C (on the lane branches, dated rows to land with their PRs):**
-  1. **Read scopes (4.5):** while a read scope is open and unreported, every egress decided on the flows inside it is decided at SystemHigh, for every tool, RAGTool included. Scenario B's expected reason becomes `SystemHighData`.
-  2. **Q8 clarification (4.5, critic O1):** D15 stands — a custom `IDataSensitivityLevel` read through RAG is SystemHigh in PR 4; Q8's C3 normalisation applies to the first producer that labels data from a custom level on purpose (PR 5 territory).
-  3. **Redirects into Host (4.3, critic O2):** a hop from a non-Host authority to a Host authority (loopback, `localhost`/`*.localhost`, link-local, unix, npipe) is never followed, for factory (P1) and `EgressHttp` (P2) clients alike; the hop is recorded and the 3xx returned to the caller. Reason: the local-service CSRF path `MeshAutoPullService` already names. Cost: a host client behind a remote that legitimately redirects to a local service gets the 3xx. Implemented in 4.3 at `4d8860c5`.
-  4. **Mesh serve on AG/SW (4.10, critic O3):** resolved without asking by following the owner's recorded Q6 text literally — bind loopback and keep serving, not "refuse to serve". Implemented in 4.10 at `696d3819`.
+Recorded in SPEC-007 decisions log (R1 + code PRs):
+1. **2026-10-06 open-read → SystemHigh** (Scenario B → `SystemHighData`) — implemented in #740 / 4.5b.
+2. **2026-10-06 Q8 clarified / O1** — custom RAG levels → SystemHigh; C3 deferred — implemented in #721.
+3. **2026-10-06 O2** — never follow redirect into Host — implemented in #739.
 
-**Integrator decisions this phase** (each to be recorded in its PR body; the owner can object; full reasons in `INTEGRATION-NOTES-C.md`):
-- 4.5: the read frame is **pinned** (SystemHigh for life; monotone; flips two 4.4 twins by name); the **basis** inside an open read is the nearest live subject frame; a scope is **open until disposed** (Report+Complete before Dispose lowers nothing); limit (a) wording extended to read frames; **G5**: the labelled tool gets a report-only `ReadReporter`, never the scope.
-- 4.3: no enforcing route lands in 4.3 (`Refused = true` recorded, the send proceeds, as every route until 4.7; the enforcement twins are listed "for 4.7"); the ns2.0 hop stays and the walker steps through its `Inner`; Bedrock's SDK config gets `AllowAutoRedirect = false`; parity clears `Authorization` only (custom credential headers are a Known limit).
-- 4.10: Bedrock refused at composition time inside `AddAshlar(AirGapped)` (stricter than `ValidateOnStart`); the "Infrastructure never reads `Effective`" rule becomes a convention fact once 4.3's `InternalsVisibleTo Ashlar.Infrastructure` lands (G9/G12).
-
-**Open questions:**
-- **P1 (owner, needed before the first phase C PR is posted on #695):** which bus identity the Cursor agent posts under. The protocol allows `From: grok|claude`. Options: post as `claude` (the development role continues; say "from Cursor" in the body), or extend `PROTOCOL.md` with the new agent name in a one-line PR first. Recommendation: post as `claude` with the note; Grok audits the merge regardless of who posts.
-- **Due in 4.7, integrator or owner:** the startup line when a host's own `IEgressGuard` is the container's guard (from phase B).
-- Still open, not blocking: SPEC-007 open questions A, B, E; phase B §8 Q1–Q6.
-- **No lane is blocked on a decision.** Everything the lanes asked was answered (critic §3 lists the "already decided" items with their citations; record them in the PR bodies, do not re-ask).
+Owner Q1–Q9 from the 2026-10-08 review were **not answered** in this remediation. Defaults taken in code PRs where a choice was required to land:
+- Q1 mesh serve: fail-boot without loopback bind (literal Q6).
+- Q4 multi-frame on AG: refuse cloud resolve (4.10b).
+- Q5 profile options: `PostConfigure` reasserts strictest.
+- Q6 D16: observe non-`local:`/`cloud:` (4.5b D16 row 2026-10-08).
+- Q2 merge method / Q3 bus identity / Q7–Q9: still open.
 
 ## 4. Plan and live status
 
 | Phase | Scope | Ends when |
 |---|---|---|
-| A (done) | Design, owner decisions, wave A built and checked, the procedure | met |
-| B (done) | 4.1 #717, 4.6 #718, 4.2 #719, 4.4 #716 merged | met |
-| **C (paused, resume here)** | **4.3 (redirects), 4.5 (producers, report-only), 4.10 (AG and SW hygiene)** | All three merged; `done` posted; drift asks fixed or queued; master readiness `verified` |
-| D | 4.7 (refusal surface on the routes), then 4.8 (catch-alls and trust-boundary exits) | Both merged |
-| E | 4.9 (17 explicit sites incl. EG-MDL-07, operator verbs, child processes, CLI exit 77) | Merged |
-| F | 4.11, the switch, with `EgressEnforcementLeakTests`; SPEC-007 shows PR 4 merged | Merged, master `verified` |
-| G | Security follow-ups, the dead MEAI allow-list, the PR 5 design | Owner's choice |
+| A–B | … prior | done (pause handoff) |
+| **C** | Owner decisions + phase C PRs + records honesty | **done when #740 on master + readiness verified** |
+| **D** | PR 4.7 / 4.8 enforcement path | starts after C exit criteria |
 
-**Every work item** (all three branches on `origin`, all based on master `de41a8ac`, local == pushed at the pause; nothing uncommitted):
+Work items: all listed in §1. Lane branches: keep until archive-tag after #740.
 
-| PR | Branch @ SHA | Commits | Diff | State at the pause |
-|---|---|---|---|---|
-| 4.3 | `claude/spec-007-pr4-4.3-redirects` @ `4d8860c5` | 2 (`906bdda7` squashed main commit; `4d8860c5` owner O2 + cancellation/disposal/late-primary twins) | 33 files, +2745/−105 | built; most verified; **see below** |
-| 4.10 | `claude/spec-007-pr4-4.10-agsw` @ `696d3819` | 12 WIP commits (no trailers) | 33 files, +1749/−52 | built; partly verified; **see below** |
-| 4.5 | `claude/spec-007-pr4-4.5-producers` @ `91d3b48c` | 7 commits (`f51322ea` main + 6 follow-ups) | 22 files, +2036/−75 | built; partly verified; **see below** |
+## 5. How to do the next phase's routine work
 
-**4.3 at `4d8860c5`** (full detail: `state-4.3.md`, §1–§10).
-- *Built:* `EgressRedirectHandler` + `EgressHopEvaluation` (Abstractions), `EgressRedirectFilter` + `NeverFollowRedirects` (Infrastructure), `EgressGuardHandler`/`EgressHttp` changes, IVT `Ashlar.Infrastructure` and `Ashlar.Tests.Infrastructure` (AI.Pipeline), both SNS `Program.cs` never follow, Bedrock `RuntimeConfig` never follows, the ns2.0 hop walked through; owner O2 (never follow into Host) in the second commit; twins: `EgressRedirectTwinTests` (28 cases), `EgressRedirectDifferentialTests` (29 cases over loopback Kestrel), ns2.0, SNS, Bedrock; records (SPEC-007 incl. the 4.4 SHA and the O2 decisions row, CHANGELOG, EgressInventory, TSV, cert-gate row 64 + count paragraph 133/136, floors comment 2,139/149/67).
-- *Verified* — but at `906bdda7` (the first commit), **not at `4d8860c5`:** full cert-gate **2818/2818**, skip guard 0; the 11 egress classes 499/499 on net8.0 and net10.0; Transport 7/7; API prod-style 4/4 and Fleet 2/2 (net10.0); Abstractions clean on 3 TFMs; repo gates 26/26; red-first at `824fff1c` (Infrastructure 18 red / 45; SNS twins 1 red each). Mutations **m1–m6 KILLED** at `906bdda7` (red 9, 11, 29, 1, 2, 2 of 85; green 85/85 each).
-- *Not verified:* **nothing has run at `4d8860c5`** (O2 theory ×4 + factory fact, G1/G2/G3 twins, differential inward fact, and production changes in `EgressRedirectHandler.NextHop`/`EgressHopEvaluation`); the committed knowledge graph is **stale** (regeneration changes `declared_facts` 4905 → 4910, so `shell-lint` would fail); m7 killed mid-build, **m8–m26 never run** (incl. m24 cancellation, m25 disposal, m26 O2); `MeshLanPartyTests` control not run; `build-core` not run (the body argues only two csproj IVT lines changed).
-- *Body:* Resume-state preamble (:3–32) to delete; stale "cert-gate on `906bdda7`" (:87); twin count 27 → 28 (:61); `{{MUTATIONS}}` (:95); checklist boxes (:202–208) claim things not yet done; "(this PR)" at body :148 and SPEC-007 :129.
-- *Remaining, in order* (`state-4.3.md` §10): regenerate KG + repo gates → squash with `squash-msg-4.3.txt` (own attribution) → Abstractions 3 TFMs + 11 egress classes net8.0/net10.0 with F6/F8 (expect `ScannedFiles=2139 ExaminedOccurrences=149 DocsRows=67`) + Transport → API/Fleet net10.0 → `MeshLanPartyTests` → the 25 mutations (`mut/batch-a..d.sh`; watch m8, m17) → full cert-gate (expect ~2826; measure) → optional build-core → fix the body → PR `[coordinated-integration]` → bus (after P1).
-- *Note:* `gh pr list` (GraphQL) was refused in this session's environment; `gh api` REST worked.
-
-**4.10 at `696d3819`** (full detail: `state-4.10.md`, §1–§10).
-- *Built:* `ResolvedDeploymentProfile` singleton registered by `AddAshlar` from the strictest noted profile (Infrastructure, API and mesh serve read it; nothing there reads `Effective`); `NcrCapabilityRouter` Local on AG with the AG reason, explicit `PeerNetworkOnly` refused; `AdaptiveProviderFactory` never tries openai/azure (LLM, single-image vision), multi-frame refuses a cloud resolve; four options-bound `ValidateOnStart` validators (BrickHost remote catalogs, RunPod peer routing, MeshLab worker executor, Bedrock) plus a composition-time Bedrock refusal and a first-resolution refusal where no boot runs; ollama.com catalog off by default on AG; MCP over HTTP fails boot on SW (marker service), stdio boots; API refuses a non-loopback configured listener before Kestrel binds and fails start on a non-loopback bound address (`LoopbackListenerVerifier`, `IHostedLifecycleService`); **mesh serve binds loopback on AG/SW (literal Q6, commit `696d3819`)**; `DeploymentProfileReadConventionTests` (G9/G12 convention fact); `AirGappedHygieneTests` (65 tests) in `EnvironmentVariables` with the 4.6 reset seam (D41); records (SPEC-007 bullet, CHANGELOG, EgressInventory AG section, TSV notes rows 14/51, **two** cert-gate rows :68 `AirGappedHygieneTests` and :69 `DeploymentProfileReadConventionTests`, count paragraph 133/136, floors 2,139/150/67, `docs/DEPLOYMENT.md`, release notes).
-- *Verified* at earlier heads: red-first `8ba6d176` 13 red / 16; last green `792a8875` net8.0 73/73 (AG twin + convention classes); net10.0 at `a0bc0cb1` Infrastructure 57/57, Tests.CLI 33/33, Mcp.Server.Tests 42/42; repo gates 26/26 at `6d862586`; base cert-gate 2763/2763. Mutations **11 KILLED** (8 at `b8ebea42`, 3 at `792a8875`), 0 survived.
-- *Not verified:* **no container run on `696d3819`** (the literal-Q6 `MeshServeService` change, the new `MeshServeLoopbackProfileTests` and `DeploymentProfileReadConventionTests`, records); **no full cert-gate has ever completed on a branch head** (`certgate-1.log` killed at 2075 passed / 0 failed before `AirGappedHygieneTests`); **build-core never run** although `Ashlar.Tests.Infrastructure.csproj` gained a `ProjectReference` to `Ashlar.Mcp.Server` (the body claims it ran — false today); **17 mutations still to run** (13 of them already cited by name in the body's attack table); `router-peer-refusal` partial (red 1/65, green killed); `mesh-return`/`mesh-return-certgate` mutants are INVALID at HEAD (the `ProfileError` text they mutate is gone) and their empty work dirs would be skipped silently; the literal-Q6 mesh twin needs a non-loopback IPv4 in the devtest container (`MeshServeLoopbackProfileTests.cs:84-85`) — unverified there.
-- *Stale text after the mesh change:* `LoopbackListenerPolicy.cs:17-18` still says "refuses to serve"; the body still lists `MeshServeService.ProfileError` and says both 132/135 and 133/136; `commit-4.10-msg.txt` still says "refuses to serve". None of the 12 WIP commits carries a trailer; body placeholders `COUNTS_PLACEHOLDER`, `MUTATION_TABLE_PLACEHOLDER`, `NOT_OBSERVED_PLACEHOLDER`; Resume-state section at the top.
-- *Remaining, in order* (`state-4.10.md` §10): hygiene commit (the three stale texts, KG regen) → clean the mutation workspace (delete the four stale work dirs; drop the invalid/duplicate lines from `run-batch-2.sh`/`run-batch-3.sh`) → the 17 mutations (`run-batch-2.sh B/C`, `run-batch-3.sh`, `run-batch-4.sh`, ~2 h, every line KILLED) → `logs-4.10/final-verify.sh REF` (full cert-gate + F6/F8, net8.0 neighbours, net10.0 touched incl. the never-run mesh twin, build-core, repo gates) → fill the body → squash (`commit-4.10-msg.txt`, mesh sentence rewritten, own attribution) → **after 4.3 merges:** merge master (conflicts listed in critic §5.1), restate TSV 149 / sdk.client 8, count paragraph (expect 135/138), re-run `AirGappedHygieneTests` for Warning 7304 (G13) and `EgressKernelFactoryTwinTests` (G19), cert-gate + F6/F8, net10.0, repo gates → PR `[coordinated-integration]` → bus. Because 4.10 adds **two** cert-gate rows (68, 69), 4.5's row becomes **70**.
-
-**4.5 at `91d3b48c`** (full detail: `state-4.5.md`, §1–§10; its §6 checks every integrator instruction one by one).
-- *Built (7 commits, every one with Claude trailers):* `f51322ea` the main change — `EgressSubject.BeginRead` enters a **read's frame** pinned at SystemHigh (a shared static `ReadMark`, never lowered; `Frame.Live` skips read frames so the nearest live subject frame names the decision; `ReadScope.Dispose` observes the result outward, then leaves the frame by the no-skip rule); `ToolCallingAgent` wraps every tool call in a read scope and hands a report-only `ReadReporter` (G5; sealed, one public method `Report`, not `IDisposable`) to a tool implementing the new public marker `ILabelledTool`, served directly by a `CapabilityRegistry`; `RAGTool` implements it (trim → a spelling `TrustTierOrder` ranks → `registry.GetByName` → in `DataSensitivityLevels.All` → `ToDataLabel`; else SystemHigh, custom levels included (O1); "read nothing" for no hits and `VectorMath.UnrankableQuery`, any other `ArgumentException` unreported); `EgressGuardChatClient` observes SystemHigh after agent-backed responses (streamed: before each update reaches the caller and at the end); `SelfExtendRunnerAdapter.RunAsync` enters `agent:<id>` at SystemHigh around claim, toolbox, snapshot, cycle, admission and auto-share (obligation (d) checked at both production entries); `EgressSubjectProducerConventionTests` (floor pin, syntax fixture, alias spellings); `EgressProducerTwinTests` (~69 cases in 29 methods incl. the leak skeleton, G8 paired records, the hostile labelled tool); `EgressSubjectReadScopeTests` +6 twins and **the two 4.4 flips by name** (`A_completed_read_with_no_report_observes_SystemHigh`, `A_read_observes_into_every_live_frame_of_its_chain_from_whatever_flow_it_ends_on` → `SystemHighData`), named in row 66. Records done: SPEC-007 status line and the dated decisions-log row (open-read rule; O1 "Q8 clarified" at `:448`), CHANGELOG, `docs/EgressInventory.md` producers section (G6/G7/G14 sentences, MCP-pump caveat; `:220` → `:224`), the three "not yet" sentences, cert-gate row 68 + count paragraph 133/136, `PublicAPI.Unshipped.txt` (+5: `ILabelledTool`, `ReadReporter`…), knowledge graph **current at head** (`declared_facts` 4915); `design-4.5-amendment.md` drafted (applied to the stored design at this pause). Integrator decisions all implemented (pinned, basis, open until disposed, limit (a) wording); `ws/frag/*.md` hold the drafted body sections (model, deviations, testing, …) not yet substituted into the body.
-- *Verified:* red-first `4ef20937` **45 red / 60**; `04ea9cfb` egress filter 499/499 net8.0; `36f2a132` F6 `ScannedFiles=2136 ExaminedOccurrences=150`, BackgroundAgents 649 passed / 1 skipped, AI.Pipeline 107/107; `f1ddae98` filter **504/504 net8.0 and net10.0**, repo gates 26/26; `d465aa33` (pre-squash head ≡ `f51322ea`) filter **510/510 both TFMs** (settles the `[unverified]` AsyncLocal fact — `An_awaited_read_that_throws_observes_SystemHigh` green with the read frame present); `4500574a`/`f51322ea` **full cert-gate 2817/2817**, skip guard 0, repo gates 26/26; attack-list twins red-first at `24a1d2a1`: **only 1 of 15 red** (`A_stores_other_ArgumentException_is_not_read_nothing`) — the canonical-spelling fix was never observed failing and rests on mutations m24/m08/m09; mutations at `f51322ea`: **m01 7/510, m02 3/510, m03 36/510, m05 26/510, m06 31/510, m14 3/510, m15 3/510 KILLED** (green 510/510 each), **m04 INVALID** (did not compile). Abstractions 0 warnings on 3 TFMs at every head tried up to `a5e5ac92`.
-- *Not verified:* **nothing at head `91d3b48c`** — the three later filter runs (`0983db60`, `a5e5ac92` killed; `a07cbf80` lost its result to a `grep || true`), `final-verify.sh` and `chain-b.sh` never ran; the G5 `ReadReporter` fix has **no red-first run** (prepared: `chain-b.sh` step 1 against `t-g5` = `c71fcc3c`) and its mutation **m26 not run**; **18 planned mutations never run** (m07–m13, m16–m26); `m05.old` and `m22.new` no longer match head's code, m04 needs a compiling mutant; F5 and the non-flips (`CloudBedrock_DeniedByPolicyGate_…`, `AThrowingCustomGuard_…` ×2) last green in the `4500574a` cert-gate, stale after `e4fdf582` changed `EgressGuardChatClient.cs`; **floors record stale**: the comment and row 64 say 2,136 (for `ILabelledTool.cs` alone) but `ReadReporter.cs` was added in `651effb0`, so F6 should print 2,137 (measure); `Ashlar.Tests.Orchestration` never run.
-- *Body:* 11 top-level `{{…}}` placeholders plus ~19 inside `ws/frag/*.md`; a Resume-state section citing pre-squash SHAs; "row 68" wording (becomes **70** after 4.10's two rows — `state-4.5.md` assumed one); a pre-ticked checklist to untick or satisfy.
-- *Remaining, in order* (`state-4.5.md` §10): re-author m05/m22/m04 → fix the floors records after measuring F6 → G5 red-first (1 run) → egress filter + Abstractions ×3 at head (1 run; do not pipe `dotnet test` through `grep || true`) → `mut-4.5/final-verify.sh 91d3b48c` (full cert-gate + the other projects incl. Orchestration, F5/F6/F8, the flips and non-flips by name; 2 runs) → repo gates → the ~26 mutation checks (19 never run + re-run the 7 at head; ≤6 per invocation) → fill the body from `ws/frag/*.md` with real counts (`{{KG_FACTS}}` 4915) → **after 4.3 and 4.10 merge:** merge master (row 64 → TSV 86/149/48, sdk.client 8; row 68 → 70; count paragraph 136/139; SPEC-007 bullet order and the decisions-log intro sentence; CHANGELOG `### Added`; EgressInventory `:3`/producers slot/Known limits), regenerate KG, re-measure floors (1 run), cert-gate + filter on the merged head (2 runs), repo gates → squash to one commit (own attribution; never push the twins-alone or g5-twin-alone trees) → PR → bus.
-
-**The rest of phase C, spelled out (order 4.3 → 4.10 → 4.5):**
-1. **4.3:** finish per `state-4.3.md`; adversarial check (§5 step 6, `verify-lane.js` as the checklist, `attack-4.3.md`/`records-4.3.md`/critic items closed or answered in the body); squash message from `squash-msg-4.3.txt` (own attribution); open the PR `[coordinated-integration]` (both SNS `Program.cs` files change); commit "(this PR)" → "(#N)" in SPEC-007; post `handoff` on #695 (after P1); merge on five green; post `done` with the SHA; read the readiness verdict.
-2. **4.10:** merge master (now with 4.3) into the branch; resolve the certain conflicts (critic §5.1: `ci/cert-gate-assertions.md` row 64 and the count paragraph, the floors comment, `CHANGELOG.md` `### Changed`, `docs/EgressInventory.md` `:3`/per-PR section/Known limits/EG-MDL-02 row, SPEC-007 bullet anchor); restate TSV 149 / sdk.client 8 (G17); re-run `AirGappedHygieneTests` for Warning 7304 side effects (G13); regenerate the knowledge graph after `git add`; finish per `state-4.10.md` (never-run items: mutations, build-core, full cert-gate on the final head); squash (`commit-4.10-msg.txt`, own attribution); adversarial check; PR `[coordinated-integration]`; handoff; merge; done.
-3. **4.5:** merge master (with 4.3 and 4.10); same conflict set plus the decisions-log intro sentence (~`:405-406`, both 4.3 and 4.5 edit it) and the cert-gate row number (4.5's row becomes 69 if 4.10 added 68); finish per `state-4.5.md`; adversarial check; PR; handoff; merge; done.
-4. **After the last merge:** re-measure once in the container and restate the row-64 line, the floors comment and the count paragraph (critic §6 item 16) if they drifted; confirm master readiness `verified`; read #695 for Grok's `drift-<pr>` asks and fix or queue them; then write the phase C handoff (phase D starts with 4.7 and 4.8).
-
-## 5. How to finish a lane (routine)
-
-1. **Clone.** `git clone -q https://github.com/IanFrelinger/Ashlar <work>/<lane>` and `git checkout <lane branch>`. One agent per clone. Never test in a worktree.
-2. **Build / fix.** Twin first; for a behaviour change commit the twin alone and show it red in the container, then the change, green. Push after every commit.
-3. **Update.** `git fetch origin master && git merge origin/master`; resolve; recount (Certification count paragraph with `git ls-files src/Ashlar.Tests.Infrastructure/Tests/Certification`; TSV sums for row 64 with `awk` over `ci/egress-inventory.tsv`; the `EgressGuardConventionTests` floors comment re-measured in the container — F6 prints the counts); `git add -A`, then `python scripts/knowledge-graph/build-knowledge-graph.py`, commit.
-4. **Verify in the container only** (`bash scripts/test-in-container.sh --repo <clone> …`; never pipe through `head`; keep the logs): full cert-gate on net8.0 (`-- bash scripts/run-cert-gate.sh`); the touched test classes on net8.0 and net10.0 (`--framework`, `--filter`, `--project`); `build-core` when a project reference or TFM changed (4.10 added a `ProjectReference`); `Ashlar.Abstractions` on netstandard2.0/net8.0/net10.0 when it changed (4.3 and 4.5 change it; `TreatWarningsAsErrors`, `AnalysisMode=All`, PublicAPI analyzers); repo gates on the host, `bash scripts/ci/run-repo-gates.sh` with `shellcheck` on `PATH` — **all 26** must pass.
-5. **Mutation-check** each behaviour change with `scripts/mutation-check.sh` on the committed head (usage in the script header: `--file --old --new --filter --id --repo --ref`); quote each summary line verbatim in the PR body; `INVALID … reason=red-no-tests` means the mutant did not compile — pick another.
-6. **Adversarial check**, two lenses at least: code/write-down (work through `attack-<lane>.md`; every item closed with a citation or recorded as a Known limit) and records/evidence (every number in the body recomputed; `records-<lane>.md` items present; knowledge graph byte-identical after regeneration; `[coordinated-integration]` iff non-test code under `application/` changed). `verify-lane.js` spells out four lenses and what each checks. Repair; repeat until clean.
-7. **Open the PR** from the body draft (fill the placeholders; the body quotes real counts, says what was not observed failing, and lists every mutation line verbatim); then commit "(this PR)" → "(#N)" in SPEC-007 and push.
-8. **Post** `Kind: handoff`, `About: pr-<n>` on #695 (what changed, what was verified, which records it touches) — after P1 is answered.
-9. **Merge** (squash) on the five required checks green (`cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`) unless Grok posted `block`; post `Kind: done` with the merge SHA. The next lane is now behind: merge master into it (step 3).
+1. Build/test only via `scripts/test-in-container.sh`.
+2. Mutation-check every behavioural change; quote `mutation …: KILLED red=failed:…` lines in the PR body.
+3. Bus: `Kind: handoff` before merge, `Kind: done` after (From: `claude` until PROTOCOL gains `cursor`).
+4. Squash-merge by default; required five green under `strict`.
+5. After each merge, expect every other PR BEHIND; land non-core-path first; one settled tip then wait.
 
 ## 6. Environment facts
 
-- **Container harness:** the devtest image is `ashlar-devtest:local` (`scripts/ensure-devtest-image.sh`; the SessionStart hook builds it in a cloud session). `scripts/test-in-container.sh` mounts the clone read-only and re-clones inside, so only committed state is tested unless `--dirty`. A full cert-gate run takes ~10–15 minutes on 4 CPUs; a mutation check (clone, red run, green run) ~10 minutes.
-- **Repo gates are 26** (`scripts/ci/run-repo-gates.sh` auto-discovers `tests/scripts/*.test.sh`, `scripts/ci/test-*`, `scripts/ci/verify-*`, `scripts/knowledge-graph/verify-*-current.py`; a script needing arguments goes in its `EXCLUDED` list with the reason). Shellcheck: `pip install shellcheck-py==0.9.0.6` works.
-- **Knowledge graph:** `docs/knowledge-graph.{json,md}` are generated and byte-compared in `shell-lint`; regenerate after `git add` (the builder reads `git ls-files`).
-- **Readiness:** a PR's best verdict is `partial`; master pushes give `verified`. Read the `Readiness verdict` annotation on the `Readiness summary` check run (`gh api repos/IanFrelinger/Ashlar/check-runs/<id>/annotations`); a superseded head's summary reports `failure` when a newer push cancels it — not a real failure.
-- **Known pre-existing failures** in Tests.Infrastructure (net8.0): `DogfoodBlock8Tests.ParallelTestMatrix…`, two `DogfoodBlock8ComposedTests`; `RuntimeStudioBlackBoxPlaygroundTests.Prod_cli_objectives…` is flaky under load. `CloudBedrock_TheRuntimeClientNeverFollowsARedirect(region: "")` failed once in 4.3's cert-gate because the container has no AWS region; the lane added a config seam — `state-4.3.md` says whether the re-run was green.
-- **xUnit 2.9.3** runs `DisableParallelization` collections (`EnvironmentVariables`) after the parallel ones; 4.6's process-global seams and the AG/SW twins (D41) depend on it.
-- **Cert-gate counts:** 2763 on master `de41a8ac`; 2802 on 4.3's `b9785a55`; the lanes' latest counts are in `state-*.md`. Certification folder on master: 131 `.cs` / 134 entries; TSV 86 rows / 150 occurrences; floors 2,135 / 150 / 67. After 4.3: TSV 149 occurrences, `sdk.client` 8.
-- **Learned this phase:** the cloud container restarted mid-phase (~18:45Z) and killed every running process; the scratchpad survived. Push after every commit. Running three lanes plus scouts on 4 CPUs worked with one container run per lane at a time.
-- **Two copies of `Ashlar.Abstractions` in one process** (plugin ALCs): the second `Ashlar-Egress` EventSource goes dark (Known limit, 4.2).
+- Five required checks: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`.
+- Layer-boundary `verify` fails advisory when a PR targeting master touches `application/` (runtime/kernel-first rule) — did not block #738/#739.
+- UAT `k8s-manifests-parse` and Compose ephemeral lane have been advisory red / flake on some tips.
+- Windows differential HTTPS needs PFX-persisted certs (fixed in #739 tip).
+- Bus issue comments from Cursor integration token: 403.
 
 ## 7. Queued work
 
-**Within PR 4 (carried):**
-- **4.7:** `EgressRefusedException`, `Refuses`/`ThrowIfRefused`; the ILogger sink (event 7300) gains Mode/ModeBasis/Ref, 7301 reserved for EgressRefused; the two 4.3 enforcement twins (stub and differential) flip to a thrown refusal; the startup-line question.
-- **4.9:** 17 explicit sites incl. EG-MDL-07's cloud decision in `OllamaProvider` refusing before `SendAsync`.
-- **4.11:** Scenario B's reason is `SystemHighData` (amended design §5); Scenario C(ii) is the redirect end state; `AddAshlar(AirGapped)` with Bedrock on now throws at composition (4.10); 4.6 finding 6 (`ProcessDefault` re-reads the profile per decision; G15); the D6 twin list; flip `An_explicit_profile_is_reported_and_does_not_change_the_decision`'s AG/SW rows.
-- **Model checker:** reuse `frame-model-readscope.py` for any later frame-semantics change; show a broken variant caught first.
-
-**Follow-ups outside PR 4 (from this phase's scouts; owner's choice):**
-- Route Bedrock's SDK HTTP through `EgressHttp` via AWS's `HttpClientFactory` seam (retires the reconstructed-host Known limit); custom credential headers (`X-Ashlar-Api-Key`) following an allowed cross-host hop; UDP discovery, the gRPC host and Fleet.Host inbound surfaces under Q6 (ask on the bus); EG-MDL-08 video left to the guard on AG; the MCP SDK's send flow (does it send on the caller's flow? decides the wording "records go from `no-subject` to `subject:agent:<id>`").
-- From phase B: the gRPC open relay (`AgentTransportServiceImpl.cs:173`); the commercial Fleet task-result download (`CommercialFleetEndpoints.cs:495-499`); a deny-list on `mcp:` tool ids in `DataExfiltrationPolicy`; the dead MEAI cloud allow-list after 4.11; SNS signing-cert host check admits `*.amazonaws.com`; `CloudSanitizationProxy` skips sanitising on a wire-supplied `IsAirGapped`; `docs/Configuration.md:168` drift; `OllamaProvider.BuildChatPayload` extra `}`; the earlier task cards (orchestrator transport under non-Full profiles; A2A registry agents; `RemoteBrick` `hostBaseUrl` SSRF; agent `RequireLocalOnly` and the `mcp:` policy; `ASHLAR_SHARED_ADAPTATIONS_PATH` ignored).
+- Paste bus backfill (`scratchpad/bus-backfill-2026-10-09.md`) + done for #738/#739/#740.
+- Phase C handoff publish (this file) + notify owner.
+- Archive-tag lane branches after harvest confirmed.
+- R2: re-measure floors / TSV / cert counts once after #740.
+- Owner Q2, Q3, Q7–Q9 still open.
+- Phase D: 4.7 enforcement twins (including those listed "for 4.7" in the review).
 
 ## 8. Ways of working the owner has endorsed
 
-- One phase per thread, ending with a handoff; a pause mid-phase is also a handoff (this one).
-- Lanes and checks: build in parallel lanes, each followed by adversarial checks (two lenses), repair until clean, then integrate, verify against a base, mutation-check, merge serially.
-- Ask the owner (recommended option first) only for real decisions: policy, security posture, compatibility, or a default the owner accepted. Otherwise take the fail-closed design default and record it in the PR body. This phase asked three questions (read scopes, O1, O2) and resolved the rest by citation.
-- PR bodies give real counts, say what was not observed failing, and quote each mutation's verbatim summary line.
-- For concurrency semantics, prefer the simplest rule with a one-line invariant, backed by a model checker shown to catch a broken variant (4.4; 4.5's read frame).
-- More parallel capacity when the owner asks for it: more clones, one agent per clone, one container run per lane at a time (CPU is the ceiling); scouts (attack lists, records checklists, model checks, a completeness critic) run beside the builders and cost no build CPU.
-- Proceduralize repeatable work: commands, templates and tested scripts over memory.
+- One thread per phase; handoffs on storage branch.
+- Claude merges on green; Grok drift-audits (when bus posts exist).
+- Squash preferred; stacking does **not** skip Readiness under `strict` (R1 corrected the false claim).
 
-## 9. Starting prompt for the continuing agent
+## 9. Starting prompt for the next phase
 
-> Continue **phase C** of spec-007-pr4 from where it was paused. Read this handoff in full, starting with §0 (the Cursor-specific notes), then `state-4.3.md`, `state-4.10.md` and `state-4.5.md` on `claude/spec-007-pr4-workspace`. Check §1 against the live repo (master `de41a8ac`, the three lane branches at their SHAs, #695). Phase C finishes and merges PR 4.3 (redirects), 4.10 (AG and SW hygiene) and 4.5 (producers, report-only), in that order: finish each lane per its state file, run the adversarial check, open the PR, post `handoff` and `done` on #695 (after the owner answers P1 on the bus identity), merge serially, merging master into the next lane after each merge. Phase C ends when all three are merged, Grok's drift asks are fixed or queued, and master's readiness verdict after the last merge is `verified`. Build and test only in the devtest container (`scripts/test-in-container.sh` / `.ps1`); never run `dotnet` on the host. If anything the owner has not decided blocks you, ask instead of choosing. When the phase is done, write the phase C handoff from `_handoff/phases/HANDOFF-TEMPLATE.md`, publish it with `scripts/handoff-publish.sh --workstream spec-007-pr4 --phase C`, and notify the owner.
+> Execute **phase D** of `spec-007-pr4`. Run `/start-phase spec-007-pr4`, or read this handoff in full, starting with §0. Scope: SPEC-007 PR 4.7 (and 4.8 as scoped in the design) — enforcement routes that act on `Refused`, building on the 4.3b enforcement twins and the open-read/`SystemHighData` Scenario B expectation. Build and test only through `scripts/test-in-container.sh`. If anything the owner has not decided blocks you, ask instead of choosing. When the phase is done, run `/handoff spec-007-pr4 D` and notify me.
