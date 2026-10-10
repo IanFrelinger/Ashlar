@@ -47,7 +47,7 @@ public sealed class DockerCommandMissingMethodTests : IDisposable
             "docker", "build",
             "--dockerfile", Path.Combine(_dir, "Dockerfile"),
             "--tag", "ashlar-missing-method:test",
-            "--context", _dir).ConfigureAwait(false);
+            "--context", _dir);
     }
 
     [Fact(Timeout = 60_000)]
@@ -57,7 +57,7 @@ public sealed class DockerCommandMissingMethodTests : IDisposable
             "Running Docker Container",
             "docker", "run",
             "--image", "ashlar-missing-method:test",
-            "--command", "echo", "hi").ConfigureAwait(false);
+            "--command", "echo", "hi");
     }
 
     [Fact(Timeout = 60_000)]
@@ -65,7 +65,7 @@ public sealed class DockerCommandMissingMethodTests : IDisposable
     {
         await AssertPastCreateClient(
             "Cleaning Docker Resources",
-            "docker", "clean").ConfigureAwait(false);
+            "docker", "clean");
     }
 
     private static async Task AssertPastCreateClient(string header, params string[] args)
