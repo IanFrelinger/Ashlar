@@ -149,7 +149,7 @@ public class BackgroundAgentConfigLoader
         }
 
         // Validate sensitivity level exists
-        var sensitivityLevel = _sensitivityRegistry.GetByName(config.MaxDataSensitivity);
+        var sensitivityLevel = SensitivityLimits.Resolve(_sensitivityRegistry, config.MaxDataSensitivity);
         if (sensitivityLevel == null)
         {
             throw new InvalidOperationException($"Agent {config.Id} has unknown sensitivity level: {config.MaxDataSensitivity}");
@@ -209,7 +209,7 @@ public class BackgroundAgentConfigLoader
     private void ProcessConfig(BackgroundAgentConfig config, bool exfiltrationPolicySectionPresent)
     {
         // Get sensitivity level to determine defaults
-        var sensitivityLevel = _sensitivityRegistry.GetByName(config.MaxDataSensitivity);
+        var sensitivityLevel = SensitivityLimits.Resolve(_sensitivityRegistry, config.MaxDataSensitivity);
         if (sensitivityLevel == null)
         {
             throw new InvalidOperationException($"Unknown sensitivity level: {config.MaxDataSensitivity}");

@@ -46,6 +46,15 @@ public class BackgroundAgentSpecBuilderGapCoverageTests
         act.Should().Throw<ArgumentException>().WithMessage("*Unknown sensitivity level*");
     }
 
+    [Fact]
+    public void BuildSpec_accepts_an_explicit_SystemHigh_limit()
+    {
+        var config = BaseConfig();
+        config.MaxDataSensitivity = "SystemHigh";
+        new BackgroundAgentSpecBuilder(new DataSensitivityRegistry()).BuildSpec(config)
+            .Description.Should().Contain("Max Sensitivity: SystemHigh");
+    }
+
     [Theory]
     [InlineData("monitor", "Infrastructure")]
     [InlineData("analyzer", "CodeGeneration")]

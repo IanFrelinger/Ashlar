@@ -186,10 +186,12 @@ public sealed class RAGTool : ITool, IEgressLabelledTool
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(requested) || _sensitivityRegistry.GetByName(requested) is not { } requestedLevel)
+        if (string.IsNullOrWhiteSpace(requested) || SensitivityLimits.Resolve(_sensitivityRegistry, requested) is not { } requestedLevel)
             return agentClearance;
 
-        return requestedLevel.SensitivityValue < _sensitivityRegistry.ResolveClearance(agentClearance).SensitivityValue
+        var agentLimit = SensitivityLimits.Resolve(_sensitivityRegistry, agentClearance)
+            ?? _sensitivityRegistry.ResolveClearance(agentClearance);
+        return requestedLevel.SensitivityValue < agentLimit.SensitivityValue
             ? requestedLevel.Value
             : agentClearance;
     }

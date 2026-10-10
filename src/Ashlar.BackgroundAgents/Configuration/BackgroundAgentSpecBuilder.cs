@@ -43,7 +43,7 @@ public class BackgroundAgentSpecBuilder
         config.RAG?.ValidateProvider(config.Id);
 
         // Get sensitivity level to include in parameters
-        var sensitivityLevel = _sensitivityRegistry.GetByName(config.MaxDataSensitivity);
+        var sensitivityLevel = SensitivityLimits.Resolve(_sensitivityRegistry, config.MaxDataSensitivity);
         if (sensitivityLevel == null)
         {
             throw new ArgumentException($"Unknown sensitivity level: {config.MaxDataSensitivity}", nameof(config));

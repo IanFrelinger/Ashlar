@@ -52,6 +52,10 @@ public class RAGToolTests
     [InlineData("Internal", "Bogus", "Internal")]
     [InlineData("Internal", null, "Internal")]
     [InlineData("Secret", "Public", "Public")]
+    [InlineData("SystemHigh", "Secret", "Secret")]
+    [InlineData("SystemHigh", "SystemHigh", "SystemHigh")]
+    [InlineData("SystemHigh", null, "SystemHigh")]
+    [InlineData("TopSecret", "SystemHigh", "TopSecret")]
     [InlineData(null, "TopSecret", null)]
     [InlineData(null, null, null)]
     public async Task InvokeAsync_TheModelCanNarrowButNeverRaiseTheAgentsClearance(

@@ -115,8 +115,8 @@ public static class AgentPolicyNarrowingValidator
         string childLevelName,
         IDataSensitivityRegistry sensitivityRegistry)
     {
-        var parentLevel = sensitivityRegistry.GetByName(parentLevelName);
-        var childLevel = sensitivityRegistry.GetByName(childLevelName);
+        var parentLevel = SensitivityLimits.Resolve(sensitivityRegistry, parentLevelName);
+        var childLevel = SensitivityLimits.Resolve(sensitivityRegistry, childLevelName);
         if (parentLevel is null || childLevel is null)
         {
             throw new InvalidOperationException(

@@ -32,6 +32,22 @@ public class BackgroundAgentConfigLoaderGapCoverageTests
     };
 
     [Fact]
+    public async Task SystemHigh_limit_defaults_to_all_local_only_restrictions()
+    {
+        var values = ValidAgentBase();
+        values["BackgroundAgents:Agents:0:MaxDataSensitivity"] = "SystemHigh";
+        values["BackgroundAgents:Agents:0:Schedule:Type"] = "Continuous";
+        var config = (await CreateLoader(new ConfigurationBuilder().AddInMemoryCollection(values).Build())
+            .LoadAsync(default)).Single();
+        config.MaxDataSensitivity.Should().Be("SystemHigh");
+        config.ExfiltrationPolicy.MaxAllowedLevel.Should().Be("SystemHigh");
+        config.ExfiltrationPolicy.BlockExternalLLMs.Should().BeTrue();
+        config.ExfiltrationPolicy.BlockWebSearch.Should().BeTrue();
+        config.ExfiltrationPolicy.BlockNetworkExports.Should().BeTrue();
+        config.ExfiltrationPolicy.RequireLocalOnly.Should().BeTrue();
+    }
+
+    [Fact]
     public void Constructor_rejects_null_dependencies()
     {
         var config = new ConfigurationBuilder().Build();

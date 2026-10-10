@@ -59,6 +59,19 @@ public sealed class AgentPolicyNarrowingValidatorTests
         act.Should().NotThrow();
     }
 
+    [Theory]
+    [InlineData("SystemHigh", "SystemHigh", true)]
+    [InlineData("SystemHigh", "Secret", true)]
+    [InlineData("TopSecret", "SystemHigh", false)]
+    public void Explicit_SystemHigh_limits_preserve_parent_narrowing(string parentLimit, string childLimit, bool allowed)
+    {
+        var parent = Config("parent", null, parentLimit, parentLimit);
+        var child = Config("child", "parent", childLimit, childLimit);
+        Action act = () => Validate(child, parent);
+        if (allowed) act.Should().NotThrow();
+        else act.Should().Throw<InvalidOperationException>().WithMessage("*exceeds parent*");
+    }
+
     private static void Validate(BackgroundAgentConfig child, BackgroundAgentConfig parent) =>
         AgentPolicyNarrowingValidator.ValidateOrThrow(
             child,
