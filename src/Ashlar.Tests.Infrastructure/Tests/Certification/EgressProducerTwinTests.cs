@@ -113,7 +113,8 @@ public sealed class EgressProducerTwinTests : IDisposable
         var subject = "agent:scenario-b-" + id;
         using var embeddings = new TokenHashEmbeddingGenerator();
         var rag = new VectorDataRagService(
-            new InProcessChunkCollection("scenario-b-" + id), embeddings, new InMemoryChatInvocationAuditor());
+            new InProcessChunkCollection("scenario-b-" + id), embeddings, new InMemoryChatInvocationAuditor(),
+            new SubjectClearanceAuthority(new Dictionary<string, string?> { [subject] = "Secret" }));
         await rag.IndexAsync("secret-" + id, canary, trustTier: "Secret");
         using var sent = new CapturingSearchHandler();
         using var http = new HttpClient(sent);
@@ -735,6 +736,7 @@ public sealed class EgressProducerTwinTests : IDisposable
 
         var services = new ServiceCollection();
         services.AddSingleton<IEgressGuard>(guard);
+        services.AddSingleton(new SubjectClearanceAuthority(new Dictionary<string, string?> { [subject] = "Secret" }));
         services.AddAshlarMeaiPipeline(
             ollamaInnerFactory: _ => chat,
             onnxInnerFactory: _ => new FakeChatClient(),

@@ -585,9 +585,9 @@ answered on 2026-10-05 for PR 4; A, B and E are still open, and none blocked a m
   clearance `SystemHigh`. Who, if anyone, holds `SystemHigh`? PR 2 pins the difference on both sides, the legacy
   allow and the label refusal:
   - for trust tiers, both in one test:
-    `TrustTierLabelBridgeTests.TheDivergenceCell_AnUnlabelledRecord_IsServedToTopSecretToday_ButRefusedOverLabels`;
+    `TrustTierLabelBridgeTests.TheFormerDivergenceCell_AnUnlabelledRecord_IsRefusedToTopSecret`;
   - for data sensitivity, one test per side:
-    `DataSensitivityLabelBridgeTests.IntendedDivergence_LegacyResolvesUnlabelledData_ToALevelATopSecretAgentCanRead`
+    `DataSensitivityLabelBridgeTests.FormerDivergence_ReadPathRefusesUnlabelledData_ToTopSecret`
     (legacy) and
     `DataSensitivityLabelBridgeTests.IntendedDivergence_BridgeLabelsUnlabelledData_SystemHigh_WhichATopSecretClearanceCannotRead`
     (labels).

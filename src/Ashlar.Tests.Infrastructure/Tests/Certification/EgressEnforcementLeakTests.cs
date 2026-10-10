@@ -120,7 +120,8 @@ public sealed class EgressEnforcementLeakTests : IDisposable
         }));
         var auditor = new InMemoryChatInvocationAuditor();
         using var embeddings = new TokenHashEmbeddingGenerator();
-        var rag = new VectorDataRagService(new InProcessChunkCollection("web-leak-" + id), embeddings, auditor);
+        var rag = new VectorDataRagService(new InProcessChunkCollection("web-leak-" + id), embeddings, auditor,
+            new SubjectClearanceAuthority(new Dictionary<string, string?> { [subject] = "Secret" }));
         await rag.IndexAsync(id, canary, trustTier: "Secret");
         using var transport = new SearchHandler();
         using var http = new HttpClient(transport);
@@ -453,7 +454,8 @@ public sealed class EgressEnforcementLeakTests : IDisposable
         using var decisionLogging = new EgressDecisionLoggerSubscription(loggerFactory);
         var auditor = new InMemoryChatInvocationAuditor();
         using var embeddings = new TokenHashEmbeddingGenerator();
-        var rag = new VectorDataRagService(new InProcessChunkCollection("leak-" + id), embeddings, auditor);
+        var rag = new VectorDataRagService(new InProcessChunkCollection("leak-" + id), embeddings, auditor,
+            new SubjectClearanceAuthority(new Dictionary<string, string?> { [subject] = clearance }));
         await rag.IndexAsync(id, canary + " lives in the vault", trustTier: tier);
         var chat = new ScriptedChatClient(new Uri("http://" + host + ":11434"),
             Calls(RAGTool.DefaultId, new { query = canary + " lives in the vault", minScore = 0 }), Done());
