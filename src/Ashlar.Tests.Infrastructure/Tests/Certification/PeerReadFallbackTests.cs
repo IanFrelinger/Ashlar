@@ -84,6 +84,23 @@ public sealed class PeerReadFallbackTests
         attempts.Should().Be(1);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Provider_selection_and_availability_preserve_nested_read_refusals(bool availability)
+    {
+        var refusal = new ReadRefusedException(AccessDenialReason.SystemHighData);
+        var inner = new Mock<IProviderFactory>();
+        inner.Setup(x => x.IsProviderAvailable(It.IsAny<string>())).Throws(Wrapped(refusal));
+        var policy = new Mock<ILoadPolicy>();
+        if (availability) policy.Setup(x => x.ResolveProvider(inner.Object)).Returns("ollama");
+        else policy.Setup(x => x.ResolveProvider(inner.Object)).Throws(Wrapped(refusal));
+        var factory = new AdaptiveProviderFactory(inner.Object, policy.Object);
+        var error = await Record.ExceptionAsync(() => factory.ExecuteLLMAsync("ignored", "system", "user", new object()));
+        error.Should().BeSameAs(refusal);
+        inner.Verify(x => x.ExecuteLLMAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Fact]
     public async Task Read_refusal_never_retries_even_with_an_always_transient_host_classifier()
     {

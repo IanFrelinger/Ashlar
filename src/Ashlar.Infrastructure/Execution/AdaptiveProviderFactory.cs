@@ -176,6 +176,11 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
     private bool IsAvailable(string provider)
     {
         try { return _inner.IsProviderAvailable(provider); }
+        catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+        {
+            ReadRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
         {
             ProviderRefusalScope.Record(refusal);
@@ -186,6 +191,11 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
     private string? ResolveProvider()
     {
         try { return _loadPolicy.ResolveProvider(_inner); }
+        catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+        {
+            ReadRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
         {
             ProviderRefusalScope.Record(refusal);
