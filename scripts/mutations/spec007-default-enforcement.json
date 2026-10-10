@@ -121,6 +121,90 @@
       "expected_failures": [
         "A_protected_client_opt_out_fails_actual_host_start"
       ]
+    },
+    {
+      "id": "leak-m01-chat-discards",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "decision.ThrowIfRefused();",
+      "new": "_ = decision;",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
+      ]
+    },
+    {
+      "id": "leak-m02-rag-no-report",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "read.Report(MapHitLabel(hit.SensitivityLevelName, _sensitivityRegistry));",
+      "new": "_ = MapHitLabel(hit.SensitivityLevelName, _sensitivityRegistry);",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
+      ]
+    },
+    {
+      "id": "leak-m03-sw-reports",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "airGapped || secureWorkstation ? EnforceMode : ReportMode",
+      "new": "airGapped ? EnforceMode : ReportMode",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
+      ]
+    },
+    {
+      "id": "leak-m04-always-refuse",
+      "file": "src/Ashlar.Abstractions/Security/ReferenceMonitor.cs",
+      "old": "return Decide(source: current, receiver: destination, isRead: false);",
+      "new": "return AccessDecision.Deny(AccessDenialReason.LevelTooLow, \"mutation refuses every write\");",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
+      ]
+    },
+    {
+      "id": "leak-m07-stop-error",
+      "file": "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs",
+      "old": "refused++;\n            stoppedReason = \"egress_refused\";",
+      "new": "refused++;\n            stoppedReason = \"error\";",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
+      ]
+    },
+    {
+      "id": "leak-m08-message-detail",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusedException.cs",
+      "old": "+ $\"family={decision.Family}; class={decision.DestinationClass}; ref={decision.Ref}\"",
+      "new": "+ $\"family={decision.Family}; class={decision.DestinationClass}; ref={decision.Ref}; {decision.Access.Detail}\"",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
+      ]
+    },
+    {
+      "id": "leak-m09-unknown-public",
+      "file": "src/Ashlar.BackgroundAgents/RAG/RAGTool.cs",
+      "old": "if (string.IsNullOrWhiteSpace(name))\n            return SecurityLabel.SystemHigh;",
+      "new": "if (string.IsNullOrWhiteSpace(name))\n            return SecurityLabel.Public;",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
+      ]
     }
   ]
 }
