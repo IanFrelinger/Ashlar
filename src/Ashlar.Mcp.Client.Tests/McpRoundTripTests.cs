@@ -132,14 +132,21 @@ public sealed class McpRoundTripTests
         var tool = manager.GetTools().Should().ContainSingle().Subject;
         harness.ClientWriteFailure = new OperationCanceledException("private-cancellation-canary");
         using var args = JsonDocument.Parse("""{"value":"allowed"}""");
-        var error = await Record.ExceptionAsync(() => tool.InvokeAsync(new ToolCall(tool.Id, args.RootElement),
-            WorldSnapshot.ForRepo("X:/repo"), ct));
+        ToolResult? result = null;
+        var error = await Record.ExceptionAsync(async () =>
+        {
+            result = await tool.InvokeAsync(new ToolCall(tool.Id, args.RootElement), WorldSnapshot.ForRepo("X:/repo"), ct);
+        });
         if (grant == "SystemHigh")
-            error.Should().NotBeOfType<ReadRefusedException>();
+        {
+            error.Should().BeNull("the authorized caller receives the protocol failure as a tool result");
+            result!.Payload.Should().BeOfType<McpToolFailure>();
+        }
         else
         {
             error.Should().BeOfType<ReadRefusedException>();
             error!.ToString().Should().NotContain("private-cancellation-canary");
+            result.Should().BeNull();
         }
     }
 
