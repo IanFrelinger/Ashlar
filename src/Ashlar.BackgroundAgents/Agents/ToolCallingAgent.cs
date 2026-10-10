@@ -123,9 +123,10 @@ public sealed class ToolCallingAgent : IAgent
         }
         catch (Exception ex) when (ReadRefusal.Find(ex) is { } refusal)
         {
-            stoppedReason = "read_refused";
-            try { memory?.Write(new EventRecord(DateTimeOffset.UtcNow, Name, "read.refused", refusal.Message)); }
+            try { mem.Write(new EventRecord(DateTimeOffset.UtcNow, Name, "read.refused", refusal.Message)); }
             catch (Exception) { /* An audit fault cannot replace or disclose a refused response. */ }
+            ReadRefusal.ThrowIfPresent(ex);
+            throw;
         }
         catch (ModelUnavailableException)
         {
@@ -302,7 +303,12 @@ public sealed class ToolCallingAgent : IAgent
             stoppedReason = "egress_refused";
             RecordRefusal(memory, refusal);
         }
-
+        catch (Exception ex) when (ReadRefusal.Find(ex) is { } refusal)
+        {
+            stoppedReason = "read_refused";
+            try { memory?.Write(new EventRecord(DateTimeOffset.UtcNow, Name, "read.refused", refusal.Message)); }
+            catch (Exception) { /* An audit fault cannot replace or disclose a refused response. */ }
+        }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             stoppedReason = "deadline";

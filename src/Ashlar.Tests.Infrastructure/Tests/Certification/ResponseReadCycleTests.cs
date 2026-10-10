@@ -12,6 +12,31 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 public sealed class ResponseReadCycleTests
 {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Single_turn_preserves_read_refusal_even_when_audit_fails(bool wrapped, bool auditFault)
+    {
+        var model = new RefusingModel(true, wrapped);
+        var tools = new CapabilityRegistry();
+        tools.Register(new RefusingTool(wrapped));
+        var events = new List<EventRecord>();
+        var memory = new Mock<IAgentMemory>();
+        memory.Setup(m => m.Write(It.IsAny<EventRecord>())).Callback<EventRecord>(e =>
+        {
+            events.Add(e);
+            if (auditFault) throw new IOException("audit-private-canary");
+        });
+        var error = await Record.ExceptionAsync(() => new ToolCallingAgent("read-test", model).ThinkAsync(
+            new AgentObservation(WorldSnapshot.ForRepo("/repo")), tools, memory.Object, default));
+        error.Should().BeOfType<ReadRefusedException>();
+        error!.ToString().Should().NotContain("private-canary");
+        events.Should().ContainSingle(e => e.EventType == "read.refused");
+        model.Calls.Should().Be(1);
+    }
+
+    [Theory]
     [InlineData(false, false, false)]
     [InlineData(true, false, false)]
     [InlineData(false, true, false)]
