@@ -158,3 +158,4 @@ Ashlar.Abstractions.Security.Egress.EgressRefusedException.ErrorCode.get -> stri
 Ashlar.Abstractions.Security.SubjectClearanceAuthority
 Ashlar.Abstractions.Security.SubjectClearanceAuthority.SubjectClearanceAuthority(System.Collections.Generic.IReadOnlyDictionary<string!, string?>! policyCeilings, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? hostLimits = null) -> void
 Ashlar.Abstractions.Security.SubjectClearanceAuthority.Resolve(string? subjectId) -> Ashlar.Abstractions.Security.SecurityLabel!
+Ashlar.Abstractions.Security.SubjectClearanceAuthority.ResolveCurrent() -> Ashlar.Abstractions.Security.SecurityLabel!

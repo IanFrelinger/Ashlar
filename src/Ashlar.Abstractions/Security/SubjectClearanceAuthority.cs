@@ -33,6 +33,12 @@ public sealed class SubjectClearanceAuthority
     public SecurityLabel Resolve(string? subjectId) =>
         subjectId is not null && _grants.TryGetValue(subjectId, out var label) ? label : SecurityLabel.Public;
 
+    /// <summary>
+    /// Resolves the current runner-owned subject flow. Nested subjects intersect their grants;
+    /// absent, detached, or expired subject flows receive Public. Observing data never grants clearance.
+    /// </summary>
+    public SecurityLabel ResolveCurrent() => Egress.EgressSubject.ResolveClearance(this);
+
     private static Dictionary<string, SecurityLabel> Parse(IReadOnlyDictionary<string, string?> values, string parameter)
     {
         var result = new Dictionary<string, SecurityLabel>(StringComparer.Ordinal);

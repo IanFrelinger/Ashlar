@@ -110,7 +110,7 @@ public static class EgressSubject
         if (string.IsNullOrWhiteSpace(subjectId))
             throw new ArgumentException("A subject id must not be empty or white space.", nameof(subjectId));
 
-        var frame = Frame.ForSubject(SubjectBasisPrefix + EgressDestinations.Bound(subjectId), mark, Active.Value);
+        var frame = Frame.ForSubject(SubjectBasisPrefix + EgressDestinations.Bound(subjectId), subjectId, mark, Active.Value);
         Active.Value = frame;
         return frame;
     }
@@ -214,6 +214,10 @@ public static class EgressSubject
     /// <summary>The current label on this async flow and where it came from.</summary>
     internal static (SecurityLabel Current, string Basis) Resolve() => Frame.Resolve(Active.Value);
 
+    // Read authority uses exact identities, never the bounded diagnostic Basis or a high-water mark.
+    internal static SecurityLabel ResolveClearance(SubjectClearanceAuthority authority) =>
+        Frame.ResolveClearance(Active.Value, authority);
+
     /// <summary>
     /// A subject frame; a read's frame, whose mark is <see cref="SecurityLabel.SystemHigh"/> and which never names a
     /// decision; or a detachment, which has no mark and ends the chain.
@@ -231,15 +235,17 @@ public static class EgressSubject
         private readonly bool _isRead;
         private int _state;
 
-        private Frame(string basis, HighWaterMark? mark, Frame? previous, bool isRead = false)
+        private Frame(string basis, HighWaterMark? mark, Frame? previous, bool isRead = false, string? subjectId = null)
         {
             Basis = basis;
+            SubjectId = subjectId;
             Mark = mark;
             _previous = previous;
             _isRead = isRead;
         }
 
         internal string Basis { get; }
+        private string? SubjectId { get; }
 
         /// <summary>The subject's mark, or <see langword="null"/> for a detachment.</summary>
         internal HighWaterMark? Mark { get; }
@@ -249,8 +255,25 @@ public static class EgressSubject
         // its mark yet. (The label does not depend on it: Resolve reads a disposed frame's mark too.)
         private bool IsDisposed => Volatile.Read(ref _state) == Disposed;
 
-        internal static Frame ForSubject(string basis, HighWaterMark mark, Frame? previous) =>
-            new(basis, mark, previous);
+        internal static Frame ForSubject(string basis, string subjectId, HighWaterMark mark, Frame? previous) =>
+            new(basis, mark, previous, subjectId: subjectId);
+
+        internal static SecurityLabel ResolveClearance(Frame? chain, SubjectClearanceAuthority authority)
+        {
+            SecurityLabel? clearance = null;
+            for (var frame = chain; frame is not null && frame.Mark is not null; frame = frame._previous)
+            {
+                if (frame._isRead)
+                    continue;
+                // Work which outlives a subject's scope loses its grant. Keeping a disposed frame's
+                // high-water mark for egress does not keep its read authority alive.
+                if (frame.IsDisposed)
+                    return SecurityLabel.Public;
+                var grant = authority.Resolve(frame.SubjectId);
+                clearance = clearance is null ? grant : clearance.Meet(grant);
+            }
+            return clearance ?? SecurityLabel.Public;
+        }
 
         // A read's frame: SystemHigh for every flow inside it, so a decision made while the read has not ended, or by
         // work created inside it, is made at the top. Only BeginRead makes one, and only its ReadScope disposes it.
