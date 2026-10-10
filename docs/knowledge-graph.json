@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 156,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 810,
-    "declared_facts": 5196,
+    "test_files_declaring_facts": 811,
+    "declared_facts": 5203,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -3538,14 +3538,14 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/Configuration/BackgroundAgentConfigLoaderGapCoverageTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Configuration",
-      "declared_facts": 20,
+      "declared_facts": 21,
       "in_cert_gate_filter": false
     },
     {
       "file": "src/Ashlar.Tests.BackgroundAgents/Configuration/BackgroundAgentSpecBuilderGapCoverageTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Configuration",
-      "declared_facts": 5,
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
@@ -3769,7 +3769,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/RAG/RAGToolTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.RAG",
-      "declared_facts": 6,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -3867,7 +3867,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/Security/AgentPolicyNarrowingValidatorTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Security",
-      "declared_facts": 3,
+      "declared_facts": 5,
       "in_cert_gate_filter": false
     },
     {
@@ -4946,6 +4946,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 13,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/CanonicalRagRegistryBoundaryTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 2,
       "in_cert_gate_filter": true
     },
     {
