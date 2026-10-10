@@ -134,10 +134,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
   work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
   The default switch (4.11) remains separate work.
-- **PR 4.9 (implementation; verification in progress)** acts on all17 original explicit decisions and the additional
+- **PR 4.9 (implementation; verification in progress)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
-  local admission and local promotion while suppressing the refused export. CLI exits77, IDE SSE uses fixed remote
+  local admission, local promotion and existing export bundles while suppressing the refused export. CLI exits 77, IDE SSE uses fixed remote
   text and a random reference, and optional discovery/pull paths log redacted refusals. Working-tree execution
   is NetworkExport even with --no-build/--no-restore; Docker Host classification requires a local daemon and
   recognized network-off/no-pull run arguments. Docker API build/run/start is separately guarded. F10 requires
