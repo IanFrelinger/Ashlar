@@ -148,6 +148,7 @@ public sealed class PeerBrickResponseReadTests
     {
         PeerId = id, Endpoint = "https://" + id + "/", AvailableVramBytes = 8192, ComputeClass = GpuComputeClass.High,
         QueueDepth = queue, CapturedAt = DateTimeOffset.UtcNow,
+        TrustTier = Ashlar.Core.Application.Mesh.Models.PeerTrustTier.Trusted,
     };
     private static RunPodJobPayload Payload() => new() { ModelId = "m", Prompt = "hello" };
     private static JobRequirements Requirements() => new() { ModelId = "m", MinimumVramBytes = 1, ComputeClass = GpuComputeClass.Low };
