@@ -9,7 +9,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
 /// SPEC-007 PR 2: <see cref="TrustTierOrder.RecordLabel"/> and <see cref="TrustTierOrder.CallerLabel"/> map the RAG
-/// trust tiers onto <see cref="SecurityLabel"/> without changing a single decision the tiers make today.
+/// trust tiers onto <see cref="SecurityLabel"/> with PR5 canonical read enforcement.
 /// </summary>
 /// <remarks>
 /// <para><b>What is held together.</b> A known tier, in any spelling <see cref="TrustTierOrder.TryRank"/> accepts,
@@ -22,8 +22,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// tier name produces a SystemHigh clearance. So exactly one family of cells disagrees: an unlabelled record against a
 /// TopSecret caller (and, for the re-index downgrade rule, an unlabelled stored record re-indexed at TopSecret). Those
 /// cells are pinned on both sides here, so the difference cannot widen, vanish or move without a test going red. The
-/// bridge is not wired into <see cref="TrustTierOrder.IsAllowed"/>, the search filter or the downgrade check; these
-/// tests pin the semantics a later caller inherits, not enforcement anywhere.</para>
+/// bridge now governs <see cref="TrustTierOrder.IsAllowed"/> and retrieval. Only the downgrade check
+/// retains the rank rule; its separate divergence remains pinned for PR6.</para>
 /// <para><b>Oracle.</b> The expected ranks come from the tables in this file, not from the code under test, so a
 /// change to <see cref="TrustTierOrder.TryRank"/> that moved a spelling would show here as well as in its own
 /// tests.</para>
@@ -191,7 +191,7 @@ public sealed class TrustTierLabelBridgeTests
     /// TopSecret caller. The expected answers come from this file's tables, so the cell counts are exact.
     /// </summary>
     [Fact]
-    public void ReadDecisions_MatchIsAllowed_InEveryCellButTheUnlabelledTopSecretOne()
+    public void ReadDecisions_MatchIsAllowed_InEveryCell()
     {
         var mismatches = new List<string>();
         int cells = 0, divergent = 0, bothAllowed = 0, bothRefused = 0;
@@ -202,7 +202,7 @@ public sealed class TrustTierLabelBridgeTests
             {
                 cells++;
                 var cell = "record " + Show(recordText) + " x caller " + Show(callerText);
-                var legacyExpected = (recordRank ?? TopRank) <= (callerRank ?? 0);
+                var legacyExpected = recordRank is not null && recordRank.Value <= (callerRank ?? 0);
                 var legacy = TrustTierOrder.IsAllowed(recordText, callerText);
                 var decision = ReferenceMonitor.CanRead(
                     TrustTierOrder.CallerLabel(callerText), TrustTierOrder.RecordLabel(recordText));
@@ -214,9 +214,9 @@ public sealed class TrustTierLabelBridgeTests
                 if (isDivergenceCell)
                 {
                     divergent++;
-                    if (!legacy || decision.Allowed || decision.Reason != AccessDenialReason.SystemHighData)
+                    if (legacy || decision.Allowed || decision.Reason != AccessDenialReason.SystemHighData)
                     {
-                        mismatches.Add(cell + ": expected IsAllowed true and CanRead refused with SystemHighData, got "
+                        mismatches.Add(cell + ": expected IsAllowed false and CanRead refused with SystemHighData, got "
                             + legacy + " and " + decision);
                     }
 
@@ -246,7 +246,7 @@ public sealed class TrustTierLabelBridgeTests
         cells.Should().Be(AllNames.Length * AllNames.Length);
         divergent.Should().Be(
             UnknownNames.Length * KnownSpellings.Count(known => known.Rank == TopRank),
-            "exactly the unlabelled-record x TopSecret-caller cells diverge");
+            "the formerly divergent unlabelled-record x TopSecret cells are all exercised");
         bothAllowed.Should().BeGreaterThan(0);
         bothRefused.Should().BeGreaterThan(0);
         (divergent + bothAllowed + bothRefused).Should().Be(cells);
@@ -254,12 +254,12 @@ public sealed class TrustTierLabelBridgeTests
 
     [Theory]
     [MemberData(nameof(UnknownNameCases))]
-    public void TheDivergenceCell_AnUnlabelledRecord_IsServedToTopSecretToday_ButRefusedOverLabels(string? record)
+    public void TheFormerDivergenceCell_AnUnlabelledRecord_IsRefusedToTopSecret(string? record)
     {
         foreach (var topSecret in new[] { "TopSecret", "top-secret", " TOPSECRET " })
         {
-            TrustTierOrder.IsAllowed(record, topSecret).Should().BeTrue(
-                "today an unlabelled record {0} ranks TopSecret and a {1} caller reads it", Show(record), Show(topSecret));
+            TrustTierOrder.IsAllowed(record, topSecret).Should().BeFalse(
+                "PR5 reads use labels: unlabelled record {0} requires an explicit SystemHigh grant", Show(record));
 
             var decision = ReferenceMonitor.CanRead(
                 TrustTierOrder.CallerLabel(topSecret), TrustTierOrder.RecordLabel(record));
@@ -403,7 +403,7 @@ public sealed class TrustTierLabelBridgeTests
 
     /// <summary>The read-decision parity of the matrix, over generated pairs of names.</summary>
     [Fact]
-    public void AnyPair_ReadDecisionMatchesIsAllowed_ExceptAnUnlabelledRecordAgainstATopSecretCaller()
+    public void AnyPair_ReadDecisionMatchesIsAllowed_IncludingUnlabelledRecords()
     {
         var divergent = 0;
 
@@ -417,7 +417,7 @@ public sealed class TrustTierLabelBridgeTests
                 if (!TrustTierOrder.TryRank(record, out _) && TrustTierOrder.CallerRank(caller) == TopRank)
                 {
                     Interlocked.Increment(ref divergent);
-                    legacy.Should().BeTrue();
+                    legacy.Should().BeFalse();
                     decision.Allowed.Should().BeFalse();
                     decision.Reason.Should().Be(AccessDenialReason.SystemHighData);
                 }

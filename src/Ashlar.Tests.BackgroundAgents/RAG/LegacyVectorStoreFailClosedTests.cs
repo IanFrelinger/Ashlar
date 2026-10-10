@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using FluentAssertions;
 using Ashlar.BackgroundAgents.DataSensitivity;
 using Ashlar.BackgroundAgents.RAG;
@@ -24,6 +26,7 @@ public sealed class LegacyVectorStoreFailClosedTests
     [MemberData(nameof(Stores))]
     public async Task An_omitted_clearance_is_the_floor_not_everything(string kind)
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, null, ("pub", "Public"), ("sec", "Secret"));
 
         (await Ids(store.Value, null)).Should().BeEquivalentTo(new[] { "pub" });
@@ -37,6 +40,7 @@ public sealed class LegacyVectorStoreFailClosedTests
     [MemberData(nameof(Stores))]
     public async Task An_unrecognised_clearance_is_the_floor_not_everything(string kind)
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, null, ("pub", "Public"), ("sec", "Secret"));
 
         (await Ids(store.Value, "Unclassified")).Should().BeEquivalentTo(new[] { "pub" });
@@ -44,46 +48,52 @@ public sealed class LegacyVectorStoreFailClosedTests
 
     [Theory]
     [MemberData(nameof(Stores))]
-    public async Task An_unmarked_document_is_served_only_to_the_top_clearance(string kind)
+    public async Task An_unmarked_document_requires_an_explicit_SystemHigh_grant(string kind)
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, null, ("pub", "Public"), ("unmarked", null));
 
         (await Ids(store.Value, null)).Should().BeEquivalentTo(new[] { "pub" });
         (await Ids(store.Value, "Secret")).Should().BeEquivalentTo(new[] { "pub" });
 
         var top = await store.Value.SearchAsync(await Embed(), 10, 0.0, "TopSecret", default);
-        top.Select(r => r.Id).Should().BeEquivalentTo(new[] { "pub", "unmarked" });
-        top.Single(r => r.Id == "unmarked").SensitivityLevelName.Should().BeNull("no label is invented for an unmarked document");
+        top.Select(r => r.Id).Should().BeEquivalentTo(new[] { "pub" });
+        (await Ids(store.Value, "SystemHigh")).Should().BeEquivalentTo(new[] { "pub", "unmarked" });
     }
 
     [Theory]
     [MemberData(nameof(Stores))]
-    public async Task A_document_with_an_unknown_label_is_served_only_to_the_top_clearance(string kind)
+    public async Task A_document_with_an_unknown_label_requires_SystemHigh(string kind)
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, null, ("pub", "Public"), ("odd", "Bogus"));
 
         (await Ids(store.Value, "Secret")).Should().BeEquivalentTo(new[] { "pub" });
-        (await Ids(store.Value, "TopSecret")).Should().BeEquivalentTo(new[] { "pub", "odd" });
+        (await Ids(store.Value, "TopSecret")).Should().BeEquivalentTo(new[] { "pub" });
+        (await Ids(store.Value, "SystemHigh")).Should().BeEquivalentTo(new[] { "pub", "odd" });
     }
 
     // With a custom level registered ABOVE TopSecret, "most restrictive" is that level, not
     // TopSecret: an unmarked document is out of reach of a TopSecret caller too.
     [Theory]
     [MemberData(nameof(Stores))]
-    public async Task The_most_restrictive_level_is_the_registrys_highest_not_a_fixed_name(string kind)
+    public async Task A_custom_level_above_TopSecret_does_not_grant_SystemHigh(string kind)
     {
         var registry = new DataSensitivityRegistry();
         registry.Register(new ConfigurableSensitivityLevel("Codeword", "Codeword", 10, false, false, true, false, "above TopSecret"));
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, registry, ("unmarked", null));
 
         (await Ids(store.Value, "TopSecret")).Should().BeEmpty();
-        (await Ids(store.Value, "Codeword")).Should().BeEquivalentTo(new[] { "unmarked" });
+        (await Ids(store.Value, "Codeword")).Should().BeEmpty();
+        (await Ids(store.Value, "SystemHigh")).Should().BeEquivalentTo(new[] { "unmarked" });
     }
 
     [Theory]
     [MemberData(nameof(Stores))]
     public async Task Reindexing_an_id_at_a_lower_label_is_refused_and_the_stored_label_survives(string kind)
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, null, ("/kb/plan.md", "Secret"));
 
         var downgrade = async () => await store.Value.IndexAsync("/kb/plan.md", Text, await Embed(), "Public", default);
@@ -99,6 +109,7 @@ public sealed class LegacyVectorStoreFailClosedTests
     [MemberData(nameof(Stores))]
     public async Task Reindexing_an_unmarked_id_with_a_real_label_is_a_downgrade_too(string kind)
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, null, ("/kb/unmarked.md", null));
 
         var relabel = async () => await store.Value.IndexAsync("/kb/unmarked.md", Text, await Embed(), "Internal", default);
@@ -111,6 +122,7 @@ public sealed class LegacyVectorStoreFailClosedTests
     [MemberData(nameof(Stores))]
     public async Task Reindexing_at_the_same_or_a_higher_label_is_accepted(string kind)
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var store = await Seed(kind, null, ("/kb/plan.md", "Internal"));
 
         await store.Value.IndexAsync("/kb/plan.md", Text, await Embed(), "internal", default);
@@ -128,11 +140,12 @@ public sealed class LegacyVectorStoreFailClosedTests
 
     private static async Task<StoreHandle> Seed(string kind, IDataSensitivityRegistry? registry, params (string Id, string? Label)[] docs)
     {
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:rag"] = "SystemHigh" });
         IVectorStore store = kind switch
         {
-            "memory" => new InMemoryVectorStore(registry),
+            "memory" => new InMemoryVectorStore(registry, authority),
             "sqlite" => new SqliteVectorStore(
-                Path.Combine(Path.GetTempPath(), $"rag_failclosed_{Guid.NewGuid():N}.db"), registry),
+                Path.Combine(Path.GetTempPath(), $"rag_failclosed_{Guid.NewGuid():N}.db"), registry, authority),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
 

@@ -20,7 +20,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// (above 4 to TopSecret, below 0 to no clearance at all).</para>
 /// <para><b>Level only.</b> Every bridged label is bare, and the four flags do not move it.</para>
 /// <para><b>The one intended divergence</b> is pinned on both sides by
-/// <see cref="IntendedDivergence_LegacyResolvesUnlabelledData_ToALevelATopSecretAgentCanRead"/> and
+/// <see cref="FormerDivergence_ReadPathRefusesUnlabelledData_ToTopSecret"/> and
 /// <see cref="IntendedDivergence_BridgeLabelsUnlabelledData_SystemHigh_WhichATopSecretClearanceCannotRead"/>: the
 /// legacy path resolves unlabelled data to TopSecret, which a TopSecret agent reads, while the bridge makes it
 /// SystemHigh, which it does not. Nothing enforces through the bridge yet. The change that switches enforcement to
@@ -441,18 +441,17 @@ public sealed class DataSensitivityLabelBridgeTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("NoSuchLevel")]
-    public void IntendedDivergence_LegacyResolvesUnlabelledData_ToALevelATopSecretAgentCanRead(string? label)
+    public async Task FormerDivergence_ReadPathRefusesUnlabelledData_ToTopSecret(string? label)
     {
         var registry = new DataSensitivityRegistry();
-
-        var resolved = registry.ResolveLabel(label);
-        resolved.Should().BeSameAs(DataSensitivityLevels.TopSecret);
-        registry.CanAccess(DataSensitivityLevels.TopSecret, resolved).Should().BeTrue(
-            "legacy enforcement serves unlabelled data to a TopSecret agent; switching enforcement must change this");
-
-        // The trap the bridge documents: feed the legacy fallback into the bridge and SystemHigh is lost.
-        resolved.ToDataLabel().Should().Be(new SecurityLabel(SecurityLevel.TopSecret));
-        resolved.ToDataLabel().IsSystemHigh.Should().BeFalse();
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["agent:top"] = "TopSecret" });
+        var store = new Ashlar.BackgroundAgents.RAG.InMemoryVectorStore(registry, authority);
+        await store.IndexAsync("unlabelled", "private", new[] { 1f }, label);
+        await store.IndexAsync("public", "public", new[] { 1f }, "Public");
+        using var subject = Ashlar.Abstractions.Security.Egress.EgressSubject.Enter("agent:top", new HighWaterMark());
+        var hits = await store.SearchAsync(new[] { 1f }, 10, 0, "TopSecret");
+        hits.Select(h => h.Id).Should().BeEquivalentTo(new[] { "public" },
+            "PR5 reads use canonical labels; TopSecret no longer reads unlabelled data");
     }
 
     /// <summary>

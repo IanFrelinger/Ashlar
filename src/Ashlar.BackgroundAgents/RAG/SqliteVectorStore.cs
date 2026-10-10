@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using System.Runtime.InteropServices;
 using Microsoft.Data.Sqlite;
 using Ashlar.BackgroundAgents.DataSensitivity;
@@ -20,6 +21,7 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
 {
     private readonly string _connectionString;
     private readonly IDataSensitivityRegistry _sensitivityRegistry;
+    private readonly SubjectClearanceAuthority _clearances;
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
 
@@ -36,7 +38,8 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
     /// <param name="connectionStringOrPath">SQLite connection string or file path (e.g. "Data Source=rag.db").</param>
     /// <param name="sensitivityRegistry">Registry that orders sensitivity levels. When null, a registry
     /// of the five primitive levels is used, so filtering is never switched off by omission.</param>
-    public SqliteVectorStore(string connectionStringOrPath, IDataSensitivityRegistry? sensitivityRegistry = null)
+    /// <param name="clearances">Trusted operator/host grants. Absent means every subject is Public.</param>
+    public SqliteVectorStore(string connectionStringOrPath, IDataSensitivityRegistry? sensitivityRegistry = null, SubjectClearanceAuthority? clearances = null)
     {
         if (string.IsNullOrWhiteSpace(connectionStringOrPath))
             throw new ArgumentNullException(nameof(connectionStringOrPath));
@@ -44,6 +47,7 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
             ? connectionStringOrPath
             : $"Data Source={connectionStringOrPath}";
         _sensitivityRegistry = sensitivityRegistry ?? new DataSensitivityRegistry();
+        _clearances = clearances ?? new SubjectClearanceAuthority(new Dictionary<string, string?>());
     }
 
     /// <inheritdoc />
@@ -111,7 +115,7 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
 
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
 
-        var clearance = _sensitivityRegistry.ResolveClearance(maxSensitivityLevelName);
+        var clearance = RagSensitivity.EffectiveClearance(_sensitivityRegistry, maxSensitivityLevelName, _clearances);
 
         var results = new List<VectorSearchResult>();
 
@@ -128,7 +132,7 @@ public sealed class SqliteVectorStore : IVectorStore, IAsyncDisposable
             var blob = (byte[]?)reader.GetValue(2);
             var sensitivityLevelName = reader.IsDBNull(3) ? null : reader.GetString(3);
 
-            if (!RagSensitivity.CanRead(_sensitivityRegistry, clearance, sensitivityLevelName))
+            if (!RagSensitivity.CanRead(_sensitivityRegistry, clearance, _clearances, sensitivityLevelName))
                 continue;
 
             if (blob == null || blob.Length == 0)

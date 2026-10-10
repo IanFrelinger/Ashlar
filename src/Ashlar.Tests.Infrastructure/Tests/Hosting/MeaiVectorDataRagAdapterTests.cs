@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.AI.Pipeline.Embeddings;
 using Ashlar.AI.Pipeline.Governance;
 using Ashlar.AI.Pipeline.Rag;
@@ -21,6 +23,7 @@ public sealed class MeaiVectorDataRagAdapterTests
     [Fact]
     public async Task Search_without_a_clearance_is_the_floor_and_is_audited_as_omitted_not_as_TopSecret()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         var (adapter, auditor) = Create();
         await adapter.IndexAsync("pub", Text, "Public");
         await adapter.IndexAsync("sec", Text, "Secret");
@@ -39,8 +42,9 @@ public sealed class MeaiVectorDataRagAdapterTests
     }
 
     [Fact]
-    public async Task Index_without_a_label_is_unmarked_and_served_only_to_the_top_clearance()
+    public async Task Index_without_a_label_requires_an_explicit_SystemHigh_grant()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         var (adapter, _) = Create();
         await adapter.IndexAsync("/kb/notes.md", Text, sensitivityLevelName: null);
 
@@ -49,13 +53,15 @@ public sealed class MeaiVectorDataRagAdapterTests
         (await adapter.SearchAsync("incident playbook", 10, 0.0, "Secret")).Should().BeEmpty();
 
         var top = await adapter.SearchAsync("incident playbook", 10, 0.0, "TopSecret");
-        top.Should().ContainSingle().Which.SensitivityLevelName.Should().BeNull(
-            "IRAGService reports an unmarked document as null, and the adapter invents no label for it");
+        top.Should().BeEmpty("TopSecret cannot read SystemHigh data");
+        (await adapter.SearchAsync("incident playbook", 10, 0.0, "SystemHigh"))
+            .Should().ContainSingle().Which.SensitivityLevelName.Should().BeNull("the stored label remains unmarked");
     }
 
     [Fact]
     public async Task Index_over_an_existing_id_at_a_lower_label_is_refused()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         var (adapter, _) = Create();
         await adapter.IndexAsync("/kb/plan.md", Text, "Secret");
 
@@ -70,7 +76,8 @@ public sealed class MeaiVectorDataRagAdapterTests
     {
         var auditor = new InMemoryChatInvocationAuditor();
         var collection = new InProcessVectorStore().GetCollection<string, ChunkRecord>(VectorDataRagService.DefaultCollectionName);
-        var rag = new VectorDataRagService(collection, new TokenHashEmbeddingGenerator(), auditor);
+        var rag = new VectorDataRagService(collection, new TokenHashEmbeddingGenerator(), auditor,
+            new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:rag"] = "SystemHigh" }));
         return (new MeaiVectorDataRagAdapter(rag), auditor);
     }
 }

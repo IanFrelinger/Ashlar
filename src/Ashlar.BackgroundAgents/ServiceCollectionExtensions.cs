@@ -152,7 +152,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IVectorStore>(sp =>
         {
             var registry = sp.GetService<IDataSensitivityRegistry>();
-            return new InMemoryVectorStore(registry);
+            return new InMemoryVectorStore(registry, sp.GetService<Ashlar.Abstractions.Security.SubjectClearanceAuthority>());
         });
         services.TryAddSingleton<IRAGService, RAGService>();
         services.TryAddSingleton<IKnowledgeBaseIndexer, KnowledgeBaseIndexer>();

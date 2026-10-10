@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using System.Collections.Concurrent;
 using Ashlar.BackgroundAgents.DataSensitivity;
 
@@ -8,8 +9,8 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// </summary>
 /// <remarks>
 /// <para><b>Search always filters, and fails closed.</b> A null, blank or unknown clearance is the
-/// registry's FLOOR (Public for the primitives), and an unmarked or unknown document label is its
-/// MOST RESTRICTIVE level -- see <see cref="DataSensitivityFallbacks"/>. This store used to apply
+/// registry's FLOOR (Public for the primitives). The requested level only narrows trusted policy/host
+/// clearance. Unmarked or unknown data is SystemHigh, requiring an explicit trusted grant. This store used to apply
 /// no filter at all unless BOTH a registry was supplied AND the clearance resolved, and it returned
 /// every unmarked document to every caller.</para>
 /// <para><b>Re-indexing never lowers a label.</b> <see cref="IndexAsync"/> refuses to replace an
@@ -19,6 +20,7 @@ public sealed class InMemoryVectorStore : IVectorStore
 {
     private readonly ConcurrentDictionary<string, (string Text, float[] Embedding, string? SensitivityLevelName)> _documents = new();
     private readonly IDataSensitivityRegistry _sensitivityRegistry;
+    private readonly SubjectClearanceAuthority _clearances;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InMemoryVectorStore"/> class.
@@ -26,9 +28,11 @@ public sealed class InMemoryVectorStore : IVectorStore
     /// <param name="sensitivityRegistry">Registry that orders sensitivity levels. When null, a
     /// registry of the five primitive levels is used, so filtering is never switched off by
     /// omission.</param>
-    public InMemoryVectorStore(IDataSensitivityRegistry? sensitivityRegistry = null)
+    /// <param name="clearances">Trusted operator/host grants. Absent means every subject is Public.</param>
+    public InMemoryVectorStore(IDataSensitivityRegistry? sensitivityRegistry = null, SubjectClearanceAuthority? clearances = null)
     {
         _sensitivityRegistry = sensitivityRegistry ?? new DataSensitivityRegistry();
+        _clearances = clearances ?? new SubjectClearanceAuthority(new Dictionary<string, string?>());
     }
 
     /// <inheritdoc />
@@ -72,14 +76,14 @@ public sealed class InMemoryVectorStore : IVectorStore
         if (!VectorMath.IsRankable(embedding))
             throw VectorMath.UnrankableQuery(nameof(embedding));
 
-        var clearance = _sensitivityRegistry.ResolveClearance(maxSensitivityLevelName);
+        var clearance = RagSensitivity.EffectiveClearance(_sensitivityRegistry, maxSensitivityLevelName, _clearances);
 
         var querySpan = embedding.AsSpan();
         var results = new List<VectorSearchResult>();
 
         foreach (var (docId, doc) in _documents)
         {
-            if (!RagSensitivity.CanRead(_sensitivityRegistry, clearance, doc.SensitivityLevelName))
+            if (!RagSensitivity.CanRead(_sensitivityRegistry, clearance, _clearances, doc.SensitivityLevelName))
                 continue;
 
             // Skip a document that cannot be ranked against this query rather than scoring it --

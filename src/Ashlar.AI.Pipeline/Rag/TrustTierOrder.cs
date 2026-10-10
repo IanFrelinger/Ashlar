@@ -94,9 +94,8 @@ public static class TrustTierOrder
     /// <para><b>The one intended difference from <see cref="RecordRank"/>.</b> An unlabelled or
     /// unrecognised record ranks at <see cref="MostRestrictive"/> there, which a TopSecret caller may read;
     /// here it is <see cref="SecurityLabel.SystemHigh"/>, which only a SystemHigh clearance may read
-    /// (<see cref="ReferenceMonitor.CanRead"/>). It is stricter, and it is not wired into
-    /// <see cref="IsAllowed"/>, the search filter or the re-index downgrade check, which still use
-    /// ranks.</para>
+    /// (<see cref="ReferenceMonitor.CanRead"/>). PR5 applies this rule in <see cref="IsAllowed"/>
+    /// and retrieval. The re-index downgrade check still uses ranks until the downgrade workstream.</para>
     /// <para><b>Level only.</b> The label carries no compartments and no caveats. A tier name has none to
     /// give, and the flags of the BackgroundAgents data-sensitivity levels (<c>AllowsExternalLLM</c>,
     /// <c>AllowsWebSearch</c>, <c>RequiresLocalOnly</c>, <c>AllowsNetworkExports</c>) are not carried; a
@@ -161,7 +160,7 @@ public static class TrustTierOrder
 
     /// <summary>True when the record's tier is at or below the caller's max tier.</summary>
     public static bool IsAllowed(string? recordTier, string? callerMaxTier) =>
-        RecordRank(recordTier) <= CallerRank(callerMaxTier);
+        ReferenceMonitor.CanRead(CallerLabel(callerMaxTier), RecordLabel(recordTier)).Allowed;
 
     /// <summary>Rank of a RECORD label. Kept for source compatibility; say which side you mean.</summary>
     [Obsolete("A caller and a record fail closed in opposite directions. Use RecordRank for a label or CallerRank for a clearance.")]

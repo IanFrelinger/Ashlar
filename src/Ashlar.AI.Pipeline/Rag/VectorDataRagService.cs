@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.VectorData;
 using Ashlar.AI.Pipeline.Embeddings;
@@ -15,23 +16,26 @@ public sealed class VectorDataRagService
     private readonly VectorStoreCollection<string, ChunkRecord> _collection;
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddings;
     private readonly IChatInvocationAuditor _auditor;
+    private readonly SubjectClearanceAuthority _clearances;
 
     /// <summary>Creates a RAG façade over a VectorData collection.</summary>
     public VectorDataRagService(
         VectorStoreCollection<string, ChunkRecord> collection,
         IEmbeddingGenerator<string, Embedding<float>> embeddings,
-        IChatInvocationAuditor auditor)
+        IChatInvocationAuditor auditor,
+        SubjectClearanceAuthority? clearances = null)
     {
         _collection = collection ?? throw new ArgumentNullException(nameof(collection));
         _embeddings = embeddings ?? throw new ArgumentNullException(nameof(embeddings));
         _auditor = auditor ?? throw new ArgumentNullException(nameof(auditor));
+        _clearances = clearances ?? new SubjectClearanceAuthority(new Dictionary<string, string?>());
     }
 
     /// <summary>Indexes a chunk (embed + upsert).</summary>
     /// <remarks>
     /// <para><b>An omitted tier is unlabelled, not Public.</b> It is stored as the empty string
-    /// and <see cref="TrustTierOrder.RecordRank"/> ranks it at the top, so it is served only to
-    /// the top clearance. The parameter used to default to "Public", which published every chunk
+    /// and the read bridge classifies it SystemHigh, so only an explicitly granted SystemHigh
+    /// subject may retrieve it. The parameter used to default to "Public", which published every chunk
     /// whose caller forgot to classify it.</para>
     /// <para><b>Re-indexing never lowers a label.</b> Upserting an existing key at a LOWER tier than
     /// the one it is stored at is refused (and audited as <c>rag:index</c> / <c>denied</c>): the
@@ -108,10 +112,17 @@ public sealed class VectorDataRagService
     {
         var embedding = await EmbedAsync(query, cancellationToken).ConfigureAwait(false);
         var (appliedTier, basis) = TrustTierOrder.ResolveCaller(callerMaxTrustTier);
-        var maxRank = TrustTierOrder.CallerRank(appliedTier);
+        var requested = callerMaxTrustTier == "SystemHigh" ? SecurityLabel.SystemHigh
+            : TrustTierOrder.CallerLabel(callerMaxTrustTier);
+        var clearance = _clearances.ResolveCurrent().Meet(requested);
+        if (callerMaxTrustTier == "SystemHigh")
+            basis = TrustTierOrder.BasisExplicit;
+        if (!clearance.Equals(requested))
+            basis = "policy-bounded";
+        appliedTier = clearance.ToString();
         var options = new VectorSearchOptions<ChunkRecord>
         {
-            Filter = r => TrustTierOrder.RecordRank(r.TrustTier) <= maxRank,
+            Filter = r => ReferenceMonitor.CanRead(clearance, TrustTierOrder.RecordLabel(r.TrustTier)).Allowed,
             ScoreThreshold = minScore,
         };
 
@@ -119,7 +130,9 @@ public sealed class VectorDataRagService
         await foreach (var hit in _collection.SearchAsync(embedding, top, options, cancellationToken)
             .ConfigureAwait(false))
         {
-            results.Add(hit);
+            // A backend filter is an optimization, not the trust boundary: verify each returned row.
+            if (ReferenceMonitor.CanRead(clearance.Meet(_clearances.ResolveCurrent()), TrustTierOrder.RecordLabel(hit.Record.TrustTier)).Allowed)
+                results.Add(hit);
         }
 
         _auditor.Record(new ChatInvocationAuditRecord

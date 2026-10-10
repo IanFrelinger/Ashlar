@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.BackgroundAgents.DataSensitivity;
 
 namespace Ashlar.BackgroundAgents.RAG;
@@ -10,11 +11,22 @@ internal static class RagSensitivity
 {
     /// <summary>
     /// Whether a caller at <paramref name="clearance"/> may read a document labelled
-    /// <paramref name="documentLabel"/>. An unmarked or unknown label is the most restrictive
-    /// level the registry knows (<see cref="DataSensitivityFallbacks.ResolveLabel"/>).
+    /// <paramref name="documentLabel"/>. An unmarked or unknown label is SystemHigh,
+    /// independently of the legacy registry fallback.
     /// </summary>
-    public static bool CanRead(IDataSensitivityRegistry registry, IDataSensitivityLevel clearance, string? documentLabel) =>
-        registry.CanAccess(clearance, registry.ResolveLabel(documentLabel));
+    public static bool CanRead(IDataSensitivityRegistry registry, SecurityLabel? clearance, SubjectClearanceAuthority authority, string? documentLabel) =>
+        clearance is not null
+        && ReferenceMonitor.CanRead(clearance.Meet(authority.ResolveCurrent()), registry.GetByName(documentLabel).ToDataLabel()).Allowed;
+
+    // A query supplies a limit, never a grant. Only the trusted authority may confer SystemHigh.
+    public static SecurityLabel? EffectiveClearance(
+        IDataSensitivityRegistry registry, string? requested, SubjectClearanceAuthority authority)
+    {
+        if (requested == "SystemHigh")
+            return authority.ResolveCurrent();
+        return registry.ResolveClearance(requested).TryToClearance(out var limit)
+            ? authority.ResolveCurrent().Meet(limit!) : null;
+    }
 
     /// <summary>
     /// Refuses to replace a stored document with one labelled LOWER. Both labels resolve through
