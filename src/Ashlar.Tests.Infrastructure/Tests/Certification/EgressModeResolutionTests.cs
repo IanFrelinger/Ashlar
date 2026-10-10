@@ -11,7 +11,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <summary>
 /// SPEC-007 PR 4.6, the mode table: one resolver, <c>EgressEnforcement.ResolveMode(profile, override)</c>, pinned
 /// row by row for the six profiles against no override, <c>report</c>, <c>enforce</c> and an unrecognised value,
-/// with every profile still defaulting to <c>report</c>; and what an explicit-profile guard records from it:
+/// with AirGapped and SecureWorkstation enforcing by default; and what an explicit-profile guard records from it:
 /// <see cref="EgressDecision.Mode"/>, <see cref="EgressDecision.ModeBasis"/>, <see cref="EgressDecision.Refused"/>,
 /// <see cref="EgressDecision.Ref"/>, and the three fields appended to event 1.
 /// </summary>
@@ -22,7 +22,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <para>Hermetic: every guard here is built with a profile and an override, so no decision reads the
 /// environment or the process latch (that is pinned, with the environment, in
 /// <c>EgressModeProcessBindingTests</c>). Records are filtered by a site unique to the test.</para>
-/// <para>Nothing refuses yet: an <c>enforce</c> record says what a route would refuse from PR 4.7.</para>
+/// <para>The mode and access decision together determine whether a route must refuse.</para>
 /// </remarks>
 [Trait("Category", "Certification")]
 public sealed class EgressModeResolutionTests
@@ -37,7 +37,7 @@ public sealed class EgressModeResolutionTests
         .GetType("Ashlar.Abstractions.Security.Egress.EgressEnforcement", throwOnError: true)!
         .GetMethod("ResolveMode", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-    /// <summary>The six profiles against the four kinds of override. Until PR 4.11 every profile reports.</summary>
+    /// <summary>The six profiles against the four kinds of override. AirGapped cannot be lowered; SecureWorkstation records its break-glass.</summary>
     [Theory]
     [InlineData("full", null, Report, "profile:full")]
     [InlineData("full", "report", Report, Override)]
@@ -51,16 +51,16 @@ public sealed class EgressModeResolutionTests
     [InlineData("edge", "report", Report, Override)]
     [InlineData("edge", "enforce", Enforce, Override)]
     [InlineData("edge", "junk", Enforce, Override)]
-    [InlineData("air-gapped", null, Report, "profile:air-gapped")]
-    [InlineData("air-gapped", "report", Report, Override)]
+    [InlineData("air-gapped", null, Enforce, "profile:air-gapped")]
+    [InlineData("air-gapped", "report", Enforce, "override-ignored")]
     [InlineData("air-gapped", "enforce", Enforce, Override)]
     [InlineData("air-gapped", "junk", Enforce, Override)]
     [InlineData("system", null, Report, "profile:system")]
     [InlineData("system", "report", Report, Override)]
     [InlineData("system", "enforce", Enforce, Override)]
     [InlineData("system", "junk", Enforce, Override)]
-    [InlineData("secure-workstation", null, Report, "profile:secure-workstation")]
-    [InlineData("secure-workstation", "report", Report, Override)]
+    [InlineData("secure-workstation", null, Enforce, "profile:secure-workstation")]
+    [InlineData("secure-workstation", "report", Report, "break-glass")]
     [InlineData("secure-workstation", "enforce", Enforce, Override)]
     [InlineData("secure-workstation", "junk", Enforce, Override)]
     public void The_mode_table_pins_every_profile_against_every_kind_of_override(
@@ -73,32 +73,32 @@ public sealed class EgressModeResolutionTests
     }
 
     [Theory]
-    [InlineData("full")]
-    [InlineData("server")]
-    [InlineData("edge")]
-    [InlineData("air-gapped")]
-    [InlineData("system")]
-    [InlineData("secure-workstation")]
-    public void Every_profile_still_defaults_to_report(string profile)
+    [InlineData("full", Report)]
+    [InlineData("server", Report)]
+    [InlineData("edge", Report)]
+    [InlineData("air-gapped", Enforce)]
+    [InlineData("system", Report)]
+    [InlineData("secure-workstation", Enforce)]
+    public void Unset_and_blank_overrides_preserve_each_profiles_default(string profile, string mode)
     {
-        Resolve(profile, null).Mode.Should().Be(Report, "until the switch (PR 4.11) enforce is an opt-in on every profile");
-        Resolve(profile, string.Empty).Mode.Should().Be(Report, "a blank override is no override");
-        Resolve(profile, "   ").Mode.Should().Be(Report);
+        Resolve(profile, null).Mode.Should().Be(mode);
+        Resolve(profile, string.Empty).Mode.Should().Be(mode, "a blank override is no override");
+        Resolve(profile, "   ").Mode.Should().Be(mode);
     }
 
     [Theory]
-    [InlineData("AirGapped", "profile:air-gapped")]
-    [InlineData("AIR_GAPPED", "profile:air-gapped")]
-    [InlineData("airgapped", "profile:air-gapped")]
-    [InlineData(" Air-Gapped ", "profile:air-gapped")]
-    [InlineData("SecureWorkstation", "profile:secure-workstation")]
-    [InlineData("workstation", "profile:secure-workstation")]
-    [InlineData("SECURE_WORKSTATION", "profile:secure-workstation")]
-    [InlineData("core", "profile:system")]
-    [InlineData("FULL", "profile:full")]
-    public void A_profile_spelling_AddAshlar_accepts_resolves_to_its_canonical_basis(string profile, string basis)
+    [InlineData("AirGapped", Enforce, "profile:air-gapped")]
+    [InlineData("AIR_GAPPED", Enforce, "profile:air-gapped")]
+    [InlineData("airgapped", Enforce, "profile:air-gapped")]
+    [InlineData(" Air-Gapped ", Enforce, "profile:air-gapped")]
+    [InlineData("SecureWorkstation", Enforce, "profile:secure-workstation")]
+    [InlineData("workstation", Enforce, "profile:secure-workstation")]
+    [InlineData("SECURE_WORKSTATION", Enforce, "profile:secure-workstation")]
+    [InlineData("core", Report, "profile:system")]
+    [InlineData("FULL", Report, "profile:full")]
+    public void A_profile_spelling_AddAshlar_accepts_resolves_to_its_canonical_basis(string profile, string mode, string basis)
     {
-        Resolve(profile, null).Should().Be((Report, basis));
+        Resolve(profile, null).Should().Be((mode, basis));
     }
 
     [Theory]
@@ -143,8 +143,8 @@ public sealed class EgressModeResolutionTests
 
     [Theory]
     [InlineData("full", null, Report, "profile:full")]
-    [InlineData("air-gapped", null, Report, "profile:air-gapped")]
-    [InlineData("secure-workstation", "report", Report, Override)]
+    [InlineData("air-gapped", null, Enforce, "profile:air-gapped")]
+    [InlineData("secure-workstation", "report", Report, "break-glass")]
     [InlineData("server", "enforce", Enforce, Override)]
     [InlineData("air-gapped", "enforce", Enforce, Override)]
     [InlineData("edge", "junk", Enforce, Override)]

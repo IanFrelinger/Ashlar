@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "note": "SPEC-007 4.11 campaign in progress. Initial mode-table cases only; route, opt-out and seeded-leak controls/mutations remain required. Plans are not evidence.",
+  "mutations": [
+    {
+      "id": "mode-sw-default",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "airGapped || secureWorkstation ? EnforceMode : ReportMode",
+      "new": "airGapped ? EnforceMode : ReportMode",
+      "filter": "FullyQualifiedName~EgressMode",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_mode_table_pins_every_profile_against_every_kind_of_override"
+      ]
+    },
+    {
+      "id": "mode-ag-default",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "airGapped || secureWorkstation ? EnforceMode : ReportMode",
+      "new": "secureWorkstation ? EnforceMode : ReportMode",
+      "filter": "FullyQualifiedName~EgressMode",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_mode_table_pins_every_profile_against_every_kind_of_override"
+      ]
+    },
+    {
+      "id": "mode-ag-report-ignored",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "OverrideKind.Report when airGapped => (EnforceMode, OverrideIgnoredBasis),",
+      "new": "OverrideKind.Report when airGapped => (ReportMode, OverrideBasis),",
+      "filter": "FullyQualifiedName~EgressMode",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_mode_table_pins_every_profile_against_every_kind_of_override"
+      ]
+    },
+    {
+      "id": "mode-sw-break-glass",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "OverrideKind.Report when secureWorkstation => (ReportMode, BreakGlassBasis),",
+      "new": "OverrideKind.Report when secureWorkstation => (EnforceMode, BreakGlassBasis),",
+      "filter": "FullyQualifiedName~EgressMode",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_mode_table_pins_every_profile_against_every_kind_of_override"
+      ]
+    },
+    {
+      "id": "mode-sw-break-glass-basis",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "OverrideKind.Report when secureWorkstation => (ReportMode, BreakGlassBasis),",
+      "new": "OverrideKind.Report when secureWorkstation => (ReportMode, OverrideBasis),",
+      "filter": "FullyQualifiedName~EgressMode",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_mode_table_pins_every_profile_against_every_kind_of_override"
+      ]
+    }
+  ]
+}

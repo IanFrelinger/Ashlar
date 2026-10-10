@@ -24,8 +24,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// the reset seam restores the noted profile and the latch; <c>AddAshlar</c> replaces a
 /// <see cref="EgressGuard.ProcessDefault"/> registration made before it and the guard an earlier <c>AddAshlar</c>
 /// composed into the same collection, keeps a host's own guard, and logs one startup line for the guard it composed;
-/// and a mode other than plain report is written to standard error once. Every profile still
-/// defaults to <c>report</c>; HTTP and governed model routes honor opt-in enforcement (PR 4.7).</para>
+/// and a mode other than plain report is written to standard error once. AirGapped and SecureWorkstation
+/// default to enforcement, with only the environment providing SecureWorkstation break-glass.</para>
 /// <para><b>Process-global state.</b> This class writes the override and profile variables, notes profiles and
 /// swaps standard error, so it runs in the serialized <c>EnvironmentVariables</c> collection. The constructor
 /// snapshots both variables and the egress state, then clears the state; <c>Dispose</c> restores all of it.</para>
@@ -88,22 +88,58 @@ public sealed class EgressModeProcessBindingTests : IDisposable
     }
 
     [Theory]
-    [InlineData("full")]
-    [InlineData("server")]
-    [InlineData("edge")]
-    [InlineData("air-gapped")]
-    [InlineData("system")]
-    [InlineData("secure-workstation")]
-    public void With_no_override_ProcessDefault_reports_under_every_profile(string profile)
+    [InlineData("full", Report)]
+    [InlineData("server", Report)]
+    [InlineData("edge", Report)]
+    [InlineData("air-gapped", Enforce)]
+    [InlineData("system", Report)]
+    [InlineData("secure-workstation", Enforce)]
+    public void With_no_override_ProcessDefault_uses_each_profiles_default(string profile, string mode)
     {
         Environment.SetEnvironmentVariable(ProfileVariable, profile);
-
         var decision = DecideWithProcessDefault();
-
-        decision.Mode.Should().Be(Report, "every profile still defaults to report until PR 4.11");
+        decision.Mode.Should().Be(mode);
         decision.ModeBasis.Should().Be("profile:" + profile);
         decision.Profile.Should().Be(profile);
-        decision.Refused.Should().BeFalse();
+        decision.Refused.Should().Be(mode == Enforce);
+    }
+
+    [Theory]
+    [InlineData(AshlarDeploymentProfile.AirGapped, Enforce, "override-ignored")]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, Report, "break-glass")]
+    public async Task A_report_environment_override_is_latched_stamped_and_warned(
+        AshlarDeploymentProfile profile, string mode, string basis)
+    {
+        Environment.SetEnvironmentVariable(ModeVariable, Report);
+        var services = new ServiceCollection();
+        services.AddAshlarProfile(profile);
+        Environment.SetEnvironmentVariable(ModeVariable, Enforce);
+        foreach (var guard in new[] { EgressGuard.ProcessDefault, ComposedGuard(services) })
+        {
+            var decision = DecideWith(guard);
+            decision.Mode.Should().Be(mode);
+            decision.ModeBasis.Should().Be(basis);
+            decision.Refused.Should().Be(mode == Enforce);
+        }
+        var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
+        entry.Level.Should().Be(LogLevel.Warning);
+        entry.Message.Should().Contain($"mode: {mode} (basis {basis};");
+    }
+
+    [Theory]
+    [InlineData(AshlarDeploymentProfile.AirGapped)]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation)]
+    public void A_report_hosting_option_cannot_lower_a_profiles_default(AshlarDeploymentProfile profile)
+    {
+        var services = new ServiceCollection();
+        services.AddAshlar(o => { o.DeploymentProfile = profile; o.EgressMode = Report; });
+        foreach (var guard in new[] { EgressGuard.ProcessDefault, ComposedGuard(services) })
+        {
+            var decision = DecideWith(guard);
+            decision.Mode.Should().Be(Enforce);
+            decision.ModeBasis.Should().StartWith("profile:");
+            decision.Refused.Should().BeTrue();
+        }
     }
 
     [Fact]
@@ -259,7 +295,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
 
         entry.Message.Should().Be(
-            "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
+            "Ashlar egress mode: enforce (basis profile:air-gapped; profile air-gapped). "
             + "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
             "the line names the profile the container's guard composed, and that profile was not defaulted");
     }
@@ -280,7 +316,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
 
         var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
         entry.Message.Should().Be(
-            "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
+            "Ashlar egress mode: enforce (basis profile:air-gapped; profile air-gapped). "
             + "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
             "the line and the container's guard name the same profile");
     }
@@ -418,7 +454,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         var decision = DecideWith(resolved);
         decision.Profile.Should().Be("air-gapped");
         decision.ModeBasis.Should().Be("profile:air-gapped");
-        decision.Mode.Should().Be(Report, "AirGapped still defaults to report until PR 4.11");
+        decision.Mode.Should().Be(Enforce, "AirGapped enforces by default");
     }
 
     [Fact]

@@ -8,9 +8,10 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// process-wide latch for the <c>ASHLAR_EGRESS_MODE</c> override, and the decision reference.
 /// </summary>
 /// <remarks>
-/// <para><b>The resolver.</b> <see cref="ResolveMode"/> is a pure function of a profile and an override. Until the
-/// switch (PR 4.11) every profile defaults to <c>report</c>, and the override is honoured on every profile:
-/// <c>enforce</c> is an opt-in, and <c>report</c> keeps report. An override that is neither, and a profile that is
+/// <para><b>The resolver.</b> <see cref="ResolveMode"/> is a pure function of a profile and an override.
+/// AirGapped and SecureWorkstation default to <c>enforce</c>; the other profiles default to <c>report</c>.
+/// AirGapped ignores a lowering override; SecureWorkstation records it as <c>break-glass</c>.
+/// An override that is neither mode, and a profile that is
 /// not one of the six, fail closed to <c>enforce</c>.</para>
 /// <para><b>The latch.</b> The variable is read once per process: by <c>AddAshlar</c>, which notes it together
 /// with <c>AshlarHostingOptions.EgressMode</c>, or else at the first decision a process-bound guard makes. A later
@@ -40,7 +41,7 @@ internal static class EgressEnforcement
     /// <summary>An override (the variable, the hosting option or the guard's constructor) decided the mode.</summary>
     internal const string OverrideBasis = "override";
 
-    /// <summary>The SecureWorkstation break-glass (PR 4.11). Not produced yet.</summary>
+    /// <summary>The SecureWorkstation report-mode break-glass.</summary>
     internal const string BreakGlassBasis = "break-glass";
 
     /// <summary>An override that asked for a lower mode was ignored.</summary>
@@ -133,10 +134,13 @@ internal static class EgressEnforcement
             };
         }
 
-        // Until the switch (PR 4.11) every profile defaults to report, and an override is honoured on every profile.
+        var airGapped = canonical == "air-gapped";
+        var secureWorkstation = canonical == "secure-workstation";
         return requested switch
         {
-            OverrideKind.None => (ReportMode, ProfileBasisPrefix + canonical),
+            OverrideKind.None => (airGapped || secureWorkstation ? EnforceMode : ReportMode, ProfileBasisPrefix + canonical),
+            OverrideKind.Report when airGapped => (EnforceMode, OverrideIgnoredBasis),
+            OverrideKind.Report when secureWorkstation => (ReportMode, BreakGlassBasis),
             OverrideKind.Report => (ReportMode, OverrideBasis),
             _ => (EnforceMode, OverrideBasis),
         };
