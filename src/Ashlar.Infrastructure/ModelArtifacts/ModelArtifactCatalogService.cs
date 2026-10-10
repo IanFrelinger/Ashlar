@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.ModelArtifacts;
 using Ashlar.Core.Application.ModelArtifacts.Ports;
@@ -8,9 +9,10 @@ namespace Ashlar.Infrastructure.ModelArtifacts;
 /// Merges all registered <see cref="IModelArtifactCatalogSource"/> implementations.
 /// Sources that are unavailable or throw are skipped.
 /// </summary>
-public sealed class ModelArtifactCatalogService : IModelArtifactCatalogService
+public sealed class ModelArtifactCatalogService : IModelArtifactCatalogService, IDisposable
 {
     private readonly IEnumerable<IModelArtifactCatalogSource> _sources;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<ModelArtifactCatalogService> _logger;
 
     /// <summary>Initializes a new model artifact catalog service.</summary>
@@ -20,6 +22,10 @@ public sealed class ModelArtifactCatalogService : IModelArtifactCatalogService
     {
         _sources = sources ?? throw new ArgumentNullException(nameof(sources));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
     }
 
     /// <summary>List all asynchronously.</summary>
@@ -55,6 +61,10 @@ public sealed class ModelArtifactCatalogService : IModelArtifactCatalogService
                     list.AddRange(chunk);
                 }
             }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _refusalWarnings.Report(refusal);
+            }
             catch (OperationCanceledException)
             {
                 throw;
@@ -67,4 +77,10 @@ public sealed class ModelArtifactCatalogService : IModelArtifactCatalogService
 
         return list;
     }
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public void Dispose()
+    {
+        _refusalWarnings.Dispose();
+    }
+
 }

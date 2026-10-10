@@ -27,6 +27,9 @@ namespace Ashlar.BackgroundAgents.Autonomy;
 [Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]
 public readonly record struct SweepOutcome(int Attempted, int Failed)
 {
+    /// <summary>Failures specifically caused by egress policy. Included in <see cref="Failed"/>.</summary>
+    public int Refused { get; init; }
+
     /// <summary>Objectives that reached a verdict. Never negative: <see cref="Failed"/> is a
     /// subset of <see cref="Attempted"/> by construction, both being incremented on the same
     /// path.</summary>

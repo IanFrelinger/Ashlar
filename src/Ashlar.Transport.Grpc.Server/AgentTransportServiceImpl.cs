@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Security.Cryptography.X509Certificates;
@@ -45,6 +46,15 @@ public sealed class AgentTransportServiceImpl : AgentTransportService.AgentTrans
     }
 
     public override async Task<InvokeResponse> Invoke(InvokeRequest request, ServerCallContext context)
+    {
+        try { return await InvokeCoreAsync(request, context).ConfigureAwait(false); }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return RefusedResponse(refusal.Ref, request.CorrelationId, request.SpanId);
+        }
+    }
+
+    private async Task<InvokeResponse> InvokeCoreAsync(InvokeRequest request, ServerCallContext context)
     {
         _logger.LogDebug("gRPC Invoke request for agent {AgentName}", request.AgentName);
         var correlationId = GetHeader(context, CorrelationHeader) ?? request.CorrelationId;
@@ -174,6 +184,10 @@ public sealed class AgentTransportServiceImpl : AgentTransportService.AgentTrans
             Metadata: metadata);
 
         var result = await _transport.SendAsync(invocation, context.CancellationToken);
+        if (EgressRefusal.IsRefused(result))
+            return RefusedResponse(EgressRefusal.Reference(result),
+                result.CorrelationId ?? correlationId ?? request.CorrelationId,
+                result.SpanId ?? request.SpanId);
         var output = SerializeOutput(result.Output);
         var errorCode = !string.IsNullOrWhiteSpace(result.ErrorCode)
             ? result.ErrorCode
@@ -189,6 +203,16 @@ public sealed class AgentTransportServiceImpl : AgentTransportService.AgentTrans
             Output = { output }
         };
     }
+
+    private static InvokeResponse RefusedResponse(string reference, string? correlationId, string? spanId) => new()
+    {
+        Success = false,
+        ErrorCode = EgressRefusal.Code,
+        ErrorMessage = EgressRefusal.RemoteMessage(reference),
+        EgressRef = reference,
+        CorrelationId = correlationId ?? string.Empty,
+        SpanId = spanId ?? string.Empty
+    };
 
     public override async Task<HealthResponse> CheckHealth(HealthRequest request, ServerCallContext context)
     {

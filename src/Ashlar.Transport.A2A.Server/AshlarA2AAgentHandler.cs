@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Text.Json;
 using A2A;
 using Microsoft.Extensions.Logging;
@@ -70,7 +71,11 @@ public sealed class AshlarA2AAgentHandler : IAgentHandler
                 result = await _transport.SendAsync(request, budget.Token).ConfigureAwait(false);
             }
 
-            if (result.Success)
+            if (EgressRefusal.IsRefused(result))
+            {
+                await updater.FailAsync(RefusalMessage(EgressRefusal.Reference(result)), cancellationToken).ConfigureAwait(false);
+            }
+            else if (result.Success)
             {
                 await updater.AddArtifactAsync(
                     BuildResultParts(result.Output),
@@ -87,6 +92,10 @@ public sealed class AshlarA2AAgentHandler : IAgentHandler
                     AgentText(result.ErrorMessage ?? "Agent invocation failed."),
                     cancellationToken).ConfigureAwait(false);
             }
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            await updater.FailAsync(RefusalMessage(refusal.Ref), cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -146,6 +155,17 @@ public sealed class AshlarA2AAgentHandler : IAgentHandler
         JsonElement element => [Part.FromData(element)],
         _ => [Part.FromData(JsonSerializer.SerializeToElement(output))],
     };
+
+    private static Message RefusalMessage(string reference)
+    {
+        var message = AgentText(EgressRefusal.RemoteMessage(reference));
+        message.Metadata = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+        {
+            ["errorCode"] = JsonSerializer.SerializeToElement(EgressRefusal.Code),
+            [EgressRefusal.ReferenceKey] = JsonSerializer.SerializeToElement(reference)
+        };
+        return message;
+    }
 
     private static Message AgentText(string text) => new()
     {

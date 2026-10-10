@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 786,
-    "declared_facts": 5036,
+    "test_files_declaring_facts": 791,
+    "declared_facts": 5076,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -3009,7 +3009,7 @@
       "file": "src/Ashlar.Mcp.Client.Tests/McpEgressTwinTests.cs",
       "project": "Ashlar.Mcp.Client.Tests",
       "namespace": "Ashlar.Mcp.Client.Tests",
-      "declared_facts": 1,
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
@@ -3023,7 +3023,7 @@
       "file": "src/Ashlar.Mcp.Client.Tests/McpRoundTripTests.cs",
       "project": "Ashlar.Mcp.Client.Tests",
       "namespace": "Ashlar.Mcp.Client.Tests",
-      "declared_facts": 4,
+      "declared_facts": 5,
       "in_cert_gate_filter": false
     },
     {
@@ -3065,7 +3065,7 @@
       "file": "src/Ashlar.Mcp.Server.Tests/ToolboxMcpToolContributorTests.cs",
       "project": "Ashlar.Mcp.Server.Tests",
       "namespace": "Ashlar.Mcp.Server.Tests",
-      "declared_facts": 10,
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {
@@ -3422,7 +3422,7 @@
       "file": "src/Ashlar.Tests.Application/WorkflowExecutorEdgeCaseTests.cs",
       "project": "Ashlar.Tests.Application",
       "namespace": "Ashlar.Tests.Application",
-      "declared_facts": 24,
+      "declared_facts": 25,
       "in_cert_gate_filter": false
     },
     {
@@ -3436,7 +3436,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/Agents/ToolCallingAgentReActTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Agents",
-      "declared_facts": 15,
+      "declared_facts": 18,
       "in_cert_gate_filter": false
     },
     {
@@ -3450,7 +3450,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/Autonomy/AutonomyLoopServiceTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Autonomy",
-      "declared_facts": 9,
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {
@@ -5211,6 +5211,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressProviderFallbackTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 6,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRawClientTwinTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5250,6 +5257,20 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 6,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRefusalPropagationTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 5,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRefusalWarningTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 4,
       "in_cert_gate_filter": true
     },
     {
@@ -5977,7 +5998,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/AshlarPeerBrickExecutorGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 22,
+      "declared_facts": 23,
       "in_cert_gate_filter": false
     },
     {
@@ -5999,6 +6020,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
       "declared_facts": 13,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/CompositeCatalogRefusalTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
+      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {
@@ -6033,7 +6061,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/HttpRemoteBrickCatalogCapabilityFallbackTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 10,
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {
@@ -6117,7 +6145,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/RunPodHttpClientTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 1,
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
@@ -6390,7 +6418,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/MeshLab/MeshLabWorkerExecutorBackgroundServiceGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.MeshLab",
-      "declared_facts": 6,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -6418,7 +6446,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/ModelArtifacts/ModelArtifactCatalogServiceTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.ModelArtifacts",
-      "declared_facts": 2,
+      "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {
@@ -6961,6 +6989,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Scaling/AutoscaleRefusalTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Scaling",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Scaling/KubernetesWorkloadScalerTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Scaling",
@@ -7083,7 +7118,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Testing/RemoteExecutionPlatformGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Testing",
-      "declared_facts": 2,
+      "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {
@@ -7230,7 +7265,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Validation/ValidationServiceAdapterGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Validation",
-      "declared_facts": 27,
+      "declared_facts": 28,
       "in_cert_gate_filter": false
     },
     {
@@ -7755,7 +7790,7 @@
       "file": "src/Ashlar.Tests.Orchestration/Coordination/OrchestratorTransportTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Coordination",
-      "declared_facts": 11,
+      "declared_facts": 12,
       "in_cert_gate_filter": false
     },
     {
@@ -7958,7 +7993,7 @@
       "file": "src/Ashlar.Tests.Orchestration/Routing/EndpointHealthMonitorTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Routing",
-      "declared_facts": 7,
+      "declared_facts": 8,
       "in_cert_gate_filter": false
     },
     {
@@ -7986,7 +8021,7 @@
       "file": "src/Ashlar.Tests.Orchestration/Transport/InProcessAgentTransportTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Transport",
-      "declared_facts": 3,
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {
@@ -8070,7 +8105,7 @@
       "file": "src/Ashlar.Tests.Transport/GrpcAgentTransportTests.cs",
       "project": "Ashlar.Tests.Transport",
       "namespace": "Ashlar.Tests.Transport",
-      "declared_facts": 5,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -8105,7 +8140,7 @@
       "file": "src/Ashlar.Transport.A2A.Server.Tests/A2AServerRoundTripTests.cs",
       "project": "Ashlar.Transport.A2A.Server.Tests",
       "namespace": "Ashlar.Transport.A2A.Server.Tests",
-      "declared_facts": 5,
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
@@ -8133,7 +8168,7 @@
       "file": "src/Ashlar.Transport.A2A.Tests/A2AAgentTransportTests.cs",
       "project": "Ashlar.Transport.A2A.Tests",
       "namespace": "Ashlar.Transport.A2A.Tests",
-      "declared_facts": 5,
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {

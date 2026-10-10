@@ -7,12 +7,43 @@ using Ashlar.Brick.Contracts;
 using Ashlar.Brick.Contracts.Capabilities;
 using Ashlar.Infrastructure.Execution;
 using Xunit;
+using Ashlar.Abstractions.Security.Egress;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 
 /// <summary>Tests for http remote brick catalog capability fallback.</summary>
 public sealed class HttpRemoteBrickCatalogCapabilityFallbackTests
 {
+    [Fact]
+    public async Task Refusal_returns_empty_results_without_reusing_a_stale_manifest()
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "remote.catalog", new Uri("https://remote.example"))));
+        var calls = 0;
+        using var client = new HttpClient(StubHttpMessageHandler.FromSync((_, _) =>
+        {
+            if (++calls == 1)
+                return JsonResponse($$"""{"nodeId":"node-a","generatedAt":"{{DateTimeOffset.UtcNow:O}}"}""");
+            throw new IOException("private-canary", refusal);
+        })) { BaseAddress = new Uri("https://remote.example/") };
+        var logger = new Mock<ILogger<HttpRemoteBrickCatalog>>();
+        using var catalog = new HttpRemoteBrickCatalog(client, logger.Object, new StaleCapabilitiesSnapshotStore(),
+            capabilityTtl: TimeSpan.Zero);
+        (await catalog.GetCapabilitiesWithStalenessAsync()).Capabilities.Should().NotBeNull();
+        var refused = await catalog.GetCapabilitiesWithStalenessAsync();
+        refused.Capabilities.Should().BeNull();
+        refused.IsStale.Should().BeFalse();
+        (await catalog.GetAllAsync()).Should().BeEmpty();
+        (await catalog.GetByIdAsync("brick")).Should().BeNull();
+        calls.Should().Be(4);
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id == 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id != 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+    }
+
     [Fact]
     public async Task GetCapabilitiesAsync_ReturnsStaleSnapshot_WhenEndpointUnavailable()
     {

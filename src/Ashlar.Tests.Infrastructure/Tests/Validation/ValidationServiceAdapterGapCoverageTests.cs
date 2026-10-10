@@ -7,6 +7,7 @@ using Ashlar.Core.Application.Validation.Models;
 using Ashlar.Infrastructure.Validation.Adapters;
 using Ashlar.Infrastructure.Validation.Parsers;
 using Xunit;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Validation;
 
@@ -14,6 +15,55 @@ namespace Ashlar.Tests.Infrastructure.Tests.Validation;
 [Collection("ProcessCwd")]
 public class ValidationServiceAdapterGapCoverageTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Refusal_preserves_completed_evidence_without_inventing_failed_tests(bool outerCatch)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Process, "validation", new Uri("https://remote.example"))));
+        var calls = 0;
+        var parser = new Mock<ITestResultParser>();
+        parser.Setup(p => p.ParseAsync(It.IsAny<FileInfo>(), It.IsAny<CancellationToken>()))
+            .Returns((FileInfo _, CancellationToken _) =>
+            {
+                if (++calls == 2) throw new IOException("private-canary", refusal);
+                return Task.FromResult<IReadOnlyList<TestResult>>(new[] {
+                    new TestResult { Name = "completed-one", Passed = true },
+                    new TestResult { Name = "completed-two", Passed = true } });
+            });
+        var adapter = new ValidationServiceAdapter(NullLogger<ValidationServiceAdapter>.Instance, parser.Object);
+        var original = Directory.GetCurrentDirectory();
+        var temp = CreatePassingTestProjectDir();
+        try
+        {
+            if (!outerCatch)
+            {
+                var project = Directory.GetFiles(temp, "*.csproj", SearchOption.AllDirectories).Single();
+                var second = Directory.CreateDirectory(Path.Combine(temp, "SecondTests")).FullName;
+                foreach (var file in Directory.GetFiles(Path.GetDirectoryName(project)!))
+                    File.Copy(file, Path.Combine(second, Path.GetFileName(file)));
+            }
+            Directory.SetCurrentDirectory(temp);
+            var result = await adapter.ValidateAsync(null, new SyncProgress<ProgressReport>(report =>
+            {
+                if (outerCatch && report.Percentage == 100) throw new IOException("private-canary", refusal);
+            }), CancellationToken.None);
+            result.Passed.Should().BeFalse();
+            result.TestsRun.Should().Be(2);
+            result.TestsPassed.Should().Be(2);
+            result.TestsFailed.Should().Be(0);
+            result.TestResults!.Select(r => r.Name).Should().Equal("completed-one", "completed-two");
+            result.EvidenceErrors.Should().ContainSingle().Which.Should().Contain(refusal.Message).And.NotContain("private-canary");
+            calls.Should().Be(outerCatch ? 1 : 2);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task ValidateAsync_returns_skipped_result_when_no_test_projects()
     {

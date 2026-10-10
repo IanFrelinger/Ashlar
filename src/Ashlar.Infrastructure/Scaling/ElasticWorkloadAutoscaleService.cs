@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ internal sealed class ElasticWorkloadAutoscaleService : BackgroundService
     private readonly IWorkloadDemandSignal _demand;
     private readonly IWorkloadScalePolicy _policy;
     private readonly WorkloadScalerOptions _options;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<ElasticWorkloadAutoscaleService> _logger;
 
     /// <summary>Creates the autoscale hosted service.</summary>
@@ -31,6 +33,10 @@ internal sealed class ElasticWorkloadAutoscaleService : BackgroundService
         _policy = policy;
         _options = options.Value;
         _logger = logger;
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
     }
 
     /// <inheritdoc />
@@ -47,6 +53,10 @@ internal sealed class ElasticWorkloadAutoscaleService : BackgroundService
             try
             {
                 await TickAsync(stoppingToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _refusalWarnings.Report(refusal);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -103,4 +113,11 @@ internal sealed class ElasticWorkloadAutoscaleService : BackgroundService
                 result.Message ?? decision.Reason);
         }
     }
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public override void Dispose()
+    {
+        _refusalWarnings.Dispose();
+        base.Dispose();
+    }
+
 }

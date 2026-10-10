@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -64,6 +65,10 @@ public sealed class RunPodHttpClient : IRunPodClient
                 StartedAt = DateTimeOffset.UtcNow
             });
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return Result<RunPodInstance>.Failure("runpod.egress_refused", refusal.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "RunPod spin up request failed");
@@ -110,6 +115,10 @@ public sealed class RunPodHttpClient : IRunPodClient
                 JobId = jobId
             });
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return Result<JobHandle>.Failure("runpod.egress_refused", refusal.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "RunPod dispatch request failed for instance={InstanceId}", instanceId);
@@ -142,6 +151,10 @@ public sealed class RunPodHttpClient : IRunPodClient
                 Message = message
             });
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return Result<JobStatus>.Failure("runpod.egress_refused", refusal.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "RunPod poll request failed for job={JobId}", jobHandle.JobId);
@@ -166,6 +179,10 @@ public sealed class RunPodHttpClient : IRunPodClient
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
             return Result<byte[]>.Success(bytes);
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return Result<byte[]>.Failure("runpod.egress_refused", refusal.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "RunPod result pull failed for job={JobId}", jobHandle.JobId);
@@ -188,6 +205,10 @@ public sealed class RunPodHttpClient : IRunPodClient
             }
 
             return Result<Unit>.Success(Unit.Value);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return Result<Unit>.Failure("runpod.egress_refused", refusal.Message);
         }
         catch (Exception ex)
         {

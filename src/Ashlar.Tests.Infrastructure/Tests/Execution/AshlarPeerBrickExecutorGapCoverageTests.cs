@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Agents.TestKit;
 using System.Net;
 using System.Text;
@@ -14,6 +15,35 @@ namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 /// <summary>Tests for ashlar peer brick executor gap coverage.</summary>
 public sealed class AshlarPeerBrickExecutorGapCoverageTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Peer_fallback_preserves_first_refusal_unless_an_alternative_succeeds(bool succeeds)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "peer-refusal", new Uri("https://remote.example"))));
+        var hosts = new List<string>();
+        using var http = new HttpClient(new StubHttpMessageHandler((request, _) =>
+        {
+            hosts.Add(request.RequestUri!.Host);
+            if (request.RequestUri.Host == "peer-a") return Task.FromException<HttpResponseMessage>(new HttpRequestException("wrapped", refusal));
+            return Task.FromResult(new HttpResponseMessage(succeeds ? HttpStatusCode.OK : HttpStatusCode.ServiceUnavailable)
+            {
+                Content = new StringContent("{\"success\":true,\"payload\":\"CAk=\",\"summary\":\"allowed\"}", Encoding.UTF8, "application/json")
+            });
+        }));
+        var executor = CreateExecutor(http, [EligiblePeer("peer-a", "http://peer-a:8080", 0), EligiblePeer("peer-b", "http://peer-b:8080", 1)]);
+        var result = await executor.ExecuteAsync(Payload(), Requirements(), new GapExecutionContext());
+        hosts.Should().Equal("peer-a", "peer-b");
+        if (succeeds) result.IsSuccess.Should().BeTrue();
+        else
+        {
+            result.IsFailure.Should().BeTrue();
+            result.Error!.Code.Should().Be("peer.egress_refused");
+            result.Error.Message.Should().Be(refusal.Message);
+        }
+    }
+
     [Fact]
     public async Task ExecuteAsync_returns_invalid_response_when_peer_returns_non_json()
     {

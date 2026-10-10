@@ -48,6 +48,7 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
 
     private readonly IOptions<AshlarMcpClientOptions> _options;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<McpClientConnectionManager> _logger;
     private readonly Dictionary<string, ServerConnection> _connections = new(StringComparer.OrdinalIgnoreCase);
 
@@ -69,6 +70,10 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
         _options = options;
         _loggerFactory = loggerFactory;
         _logger = logger;
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
     }
 
     /// <inheritdoc />
@@ -89,6 +94,10 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 timeout.CancelAfter(options.ConnectTimeout);
                 await ConnectAndPinAsync(server, timeout.Token).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _refusalWarnings.Report(refusal);
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
@@ -170,6 +179,12 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
                 .ConfigureAwait(false);
             return McpJsonBridge.ToToolResult(result, proxy.Id, tick);
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            _refusalWarnings.Report(refusal);
+            EgressRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (OperationCanceledException)
         {
             throw;
@@ -194,6 +209,11 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
                 listed = await connection.Client
                     .ListToolsAsync((ModelContextProtocol.RequestOptions?)null, ct)
                     .ConfigureAwait(false);
+            }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _refusalWarnings.Report(refusal);
+                continue;
             }
             catch (OperationCanceledException)
             {
@@ -240,6 +260,7 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        _refusalWarnings.Dispose();
         await StopAsync(CancellationToken.None).ConfigureAwait(false);
         _refreshCts?.Dispose();
         foreach (var connection in _connections.Values)

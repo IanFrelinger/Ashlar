@@ -125,8 +125,15 @@ The status line above and the starting prompt are the owner's, as written; the s
   stream. Host guard faults produce `NoDecision` under process policy. DI fallbacks are counted and visible
   (Warning for a throw, Debug for an absent registration). Refusals log at Warning, with five-minute counted
   summaries, EventSource event 2, and the MEAI audit record. Sink failures and re-entrant logging cannot bypass
-  refusal. The netstandard2.0 asynchronous route also enforces. Catch-all and remote surfaces (4.8), explicit
-  sites (4.9), and the default switch (4.11) remain separate work; every profile still defaults to report.
+  refusal. The netstandard2.0 asynchronous route also enforces. Every profile still defaults to report.
+- **PR 4.8** preserves refusals through catch-all, availability, fallback and transport paths, including nested
+  aggregate exceptions and gRPC debug exceptions. Independent fallbacks may succeed; otherwise the first
+  refusal remains the final error. Agent cycles distinguish refused attempts from ordinary policy denials,
+  record `egress.refused`, and cap refused tool attempts at three without advancing the world. Catalog,
+  health and hosted-loop degradation emits windowed Warning diagnostics (event 7307); disposal cancels
+  timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
+  work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
+  Explicit sites and CLI/IDE surfaces (4.9), and the default switch (4.11), remain separate work.
 - **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head

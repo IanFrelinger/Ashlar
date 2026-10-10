@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -5,6 +7,8 @@ using Ashlar.Abstractions;
 using Ashlar.BackgroundAgents.Agents;
 using Ashlar.Runtime;
 using Xunit;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Ashlar.Tests.BackgroundAgents.Agents;
 
@@ -17,6 +21,104 @@ namespace Ashlar.Tests.BackgroundAgents.Agents;
 /// </summary>
 public sealed class ToolCallingAgentReActTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Egress_refusal_cap_stops_both_loops_without_signing_or_advancing(bool chain)
+    {
+        var refusal = NewRefusal();
+        var refused = new RefusingTool(refusal);
+        var calls = chain ? new[] { ("refuse", "{}"), ("noop", "{}"), ("refuse", "{}"), ("noop", "{}") }
+            : new[] { ("refuse", "{}") };
+        var turn = ResponseWithCalls("attempt", calls);
+        var model = ScriptedModel.Of(turn, turn, turn, turn);
+        var (tools, policies) = BuildHarness(true, out var noop);
+        tools.Register(refused);
+        var memory = new RefusalMemory();
+        var logger = new Mock<ILogger<ToolCallingAgent>>();
+        var agent = new ToolCallingAgent("planner", model, logger.Object, maxIterations: 8);
+        var snapshot = WorldSnapshot.ForRepo("/repo");
+        var mark = new HighWaterMark();
+        using var subject = EgressSubject.Enter("cap-test", mark);
+        var result = await agent.RunCycleAsync(snapshot, tools, policies, null, memory, CancellationToken.None);
+        result.StoppedReason.Should().Be("egress_refused");
+        result.EgressRefusals.Should().Be(3);
+        result.Iterations.Should().Be(3);
+        result.ToolCallsExecuted.Should().Be(0);
+        result.ToolCallsDenied.Should().Be(0);
+        result.MergedDelta.Should().BeNull();
+        refused.Ticks.Should().Equal(snapshot.Tick, snapshot.Tick, snapshot.Tick);
+        noop.Invocations.Should().Be(0);
+        model.SeenMessages.Should().HaveCount(3);
+        model.SeenMessages[1].Should().Contain(m => m.role == "user" && m.content.Contains("REFUSED by egress policy"));
+        memory.Events.Should().HaveCount(3).And.OnlyContain(e => e.EventType == "egress.refused" && e.Message == refusal.Message);
+        mark.Current.Should().Be(SecurityLabel.SystemHigh, "a thrown tool's incomplete read must be disposed conservatively");
+        logger.Verify(x => x.Log(LogLevel.Warning, It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains("three egress refusals")),
+            It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Below_the_cap_the_model_can_choose_an_allowed_tool()
+    {
+        var refused = new RefusingTool(NewRefusal());
+        var model = ScriptedModel.Of(ResponseWithCalls("first", ("refuse", "{}")),
+            ResponseWithCalls("alternative", ("noop", "{}")), ResponseEmpty("done"));
+        var (tools, policies) = BuildHarness(true, out var noop);
+        tools.Register(refused);
+        var agent = new ToolCallingAgent("planner", model, NullLogger<ToolCallingAgent>.Instance);
+        var result = await agent.RunCycleAsync(WorldSnapshot.ForRepo("/repo"), tools, policies, null, null, CancellationToken.None);
+        result.StoppedReason.Should().Be("empty");
+        result.EgressRefusals.Should().Be(1);
+        result.ToolCallsExecuted.Should().Be(1);
+        noop.Invocations.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Model_refusal_is_recorded_and_stops_the_cycle_but_Think_rethrows_it()
+    {
+        var refusal = NewRefusal();
+        var agent = new ToolCallingAgent("planner", new RefusingModel(refusal), NullLogger<ToolCallingAgent>.Instance);
+        var (tools, policies) = BuildHarness(true, out _);
+        var memory = new RefusalMemory();
+        var snapshot = WorldSnapshot.ForRepo("/repo");
+        var result = await agent.RunCycleAsync(snapshot, tools, policies, null, memory, CancellationToken.None);
+        result.StoppedReason.Should().Be("egress_refused");
+        result.EgressRefusals.Should().Be(1);
+        result.ToolCallsExecuted.Should().Be(0);
+        var error = await Record.ExceptionAsync(() => agent.ThinkAsync(new AgentObservation(snapshot), tools, memory, CancellationToken.None));
+        error.Should().BeSameAs(refusal);
+        memory.Events.Should().HaveCount(2).And.OnlyContain(e => e.EventType == "egress.refused" && e.Message == refusal.Message);
+    }
+
+    private static EgressRefusedException NewRefusal() => new(new EgressGuard("full", "enforce").Evaluate(
+        new EgressRequest(EgressFamilies.Http, "agent-refusal", new Uri("https://remote.example"))));
+
+    private sealed class RefusingTool(EgressRefusedException refusal) : ITool
+    {
+        internal List<int> Ticks { get; } = new();
+        public string Id => "refuse";
+        public ToolSchema Schema => new(Id, "refuse", "{\"type\":\"object\"}");
+        public Task<ToolResult> InvokeAsync(ToolCall call, WorldSnapshot snapshot, CancellationToken token)
+        {
+            Ticks.Add(snapshot.Tick);
+            return Task.FromException<ToolResult>(new HttpRequestException("wrapper", refusal));
+        }
+    }
+
+    private sealed class RefusingModel(EgressRefusedException refusal) : IModel
+    {
+        public Task<ModelOutput> CompleteAsync(ModelInput input, CancellationToken ct) =>
+            Task.FromException<ModelOutput>(new AggregateException(new IOException("other"), refusal));
+    }
+
+    private sealed class RefusalMemory : IAgentMemory
+    {
+        internal List<EventRecord> Events { get; } = new();
+        public void Write(EventRecord e) => Events.Add(e);
+        public IReadOnlyList<EventRecord> Query(string filter, int k) => Events.Take(k).ToArray();
+    }
+
     [Fact]
     public async Task Multi_turn_chain_executes_all_steps_and_stops_on_empty()
     {
@@ -130,6 +232,8 @@ public sealed class ToolCallingAgentReActTests
         var cycle = await agent.RunCycleAsync(snapshot, tools, policies, onRejected, memory: null, CancellationToken.None);
 
         cycle.ToolCallsDenied.Should().Be(1);
+        cycle.EgressRefusals.Should().Be(0);
+        cycle.StoppedReason.Should().Be("empty");
         cycle.ToolCallsExecuted.Should().Be(1);
         cycle.StoppedReason.Should().Be("empty");
         rejections.Should().ContainSingle().Which.id.Should().Be("noop");

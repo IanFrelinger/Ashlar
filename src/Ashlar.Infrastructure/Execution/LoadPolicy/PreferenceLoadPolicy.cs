@@ -1,3 +1,5 @@
+using Ashlar.Core.Application.Execution.Ports;
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 
 namespace Ashlar.Infrastructure.Execution.LoadPolicy;
@@ -40,12 +42,12 @@ public sealed class PreferenceLoadPolicy : ILoadPolicy
         {
             foreach (var p in edgeProviders)
             {
-                if (providerFactory.IsProviderAvailable(p))
+                if (IsAvailable(providerFactory, p))
                     return p;
             }
             foreach (var p in serverProviders)
             {
-                if (providerFactory.IsProviderAvailable(p))
+                if (IsAvailable(providerFactory, p))
                     return p;
             }
         }
@@ -53,12 +55,12 @@ public sealed class PreferenceLoadPolicy : ILoadPolicy
         {
             foreach (var p in serverProviders)
             {
-                if (providerFactory.IsProviderAvailable(p))
+                if (IsAvailable(providerFactory, p))
                     return p;
             }
             foreach (var p in edgeProviders)
             {
-                if (providerFactory.IsProviderAvailable(p))
+                if (IsAvailable(providerFactory, p))
                     return p;
             }
         }
@@ -66,12 +68,12 @@ public sealed class PreferenceLoadPolicy : ILoadPolicy
         {
             foreach (var p in edgeProviders)
             {
-                if (providerFactory.IsProviderAvailable(p))
+                if (IsAvailable(providerFactory, p))
                     return p;
             }
             foreach (var p in serverProviders)
             {
-                if (providerFactory.IsProviderAvailable(p))
+                if (IsAvailable(providerFactory, p))
                     return p;
             }
         }
@@ -79,4 +81,14 @@ public sealed class PreferenceLoadPolicy : ILoadPolicy
         _logger?.LogWarning("No LLM provider available (edge or server)");
         return null;
     }
+    private static bool IsAvailable(IProviderFactory factory, string provider)
+    {
+        try { return factory.IsProviderAvailable(provider); }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            ProviderRefusalScope.Record(refusal);
+            return false;
+        }
+    }
+
 }

@@ -791,6 +791,12 @@ public class ProviderFactory : IProviderFactory
         }
         catch (Exception ex)
         {
+            if (EgressRefusal.Find(ex) is { } refusal)
+            {
+                ProviderRefusalScope.Record(refusal);
+                _logger.LogWarning("Ollama health check refused by egress policy (ref {Ref})", refusal.Ref);
+                return false;
+            }
             _logger.LogWarning(ex, "Unable to run Ollama health check.");
             return false;
         }

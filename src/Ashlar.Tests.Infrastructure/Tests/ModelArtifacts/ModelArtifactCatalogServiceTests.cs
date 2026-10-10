@@ -4,12 +4,42 @@ using Ashlar.Core.Application.ModelArtifacts;
 using Ashlar.Core.Application.ModelArtifacts.Ports;
 using Ashlar.Infrastructure.ModelArtifacts;
 using Xunit;
+using Moq;
+using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.Tests.Infrastructure.Tests.ModelArtifacts;
 
 /// <summary>Tests for model artifact catalog service.</summary>
 public sealed class ModelArtifactCatalogServiceTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Refused_source_preserves_other_results_and_emits_windowed_warnings(bool duringAvailability)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "catalog", new Uri("https://remote.example"))));
+        var source = new Mock<IModelArtifactCatalogSource>();
+        source.Setup(s => s.IsAvailableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        if (duringAvailability)
+            source.Setup(s => s.IsAvailableAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("wrapped", refusal));
+        else
+            source.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("wrapped", refusal));
+        var logger = new Mock<ILogger<ModelArtifactCatalogService>>();
+        using var sut = new ModelArtifactCatalogService(new[] { source.Object,
+            new StubSource("local", true, [new ModelArtifactRecord("m1", "local", ModelArtifactKind.OllamaModel, 1)]) }, logger.Object);
+        for (var i = 0; i < 3; i++)
+            (await sut.ListAllAsync()).Select(x => x.Id).Should().Equal("m1");
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id == 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        sut.Dispose();
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id == 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Exactly(2));
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id != 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+    }
+
     [Fact]
     public async Task ListAllAsync_ExcludesRemoteInstallableSources()
     {

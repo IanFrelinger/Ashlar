@@ -17,6 +17,18 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — refusal propagation and remote surfaces (SPEC-007 4.8)
+
+- Policy refusals survive nested exceptions, provider probes and fallback chains. A successful independent
+  fallback still wins; otherwise the first refusal reaches the caller. Refusals do not trigger transport
+  retries or circuit-breaker failures, and unavailable-model fallbacks cannot turn them into echo success.
+- Agent cycles record `egress.refused`, stop immediately on a model refusal, and stop after three refused
+  tool attempts. Refused tools do not produce a signed delta or advance the world tick. Validation preserves
+  completed results and records missing evidence without inventing failed tests.
+- A2A, gRPC and MCP server errors expose only fixed refusal text and a random reference. Catalogs, health
+  probes and hosted loops retain their degraded behavior with Warning diagnostics, five-minute suppression
+  windows and counted summaries on expiry or disposal. Profile defaults remain report-only.
+
 ### Added — opt-in egress refusal routes (SPEC-007 4.7)
 
 - HTTP sends, redirect hops and governed MEAI calls stop before the inner transport when their decision

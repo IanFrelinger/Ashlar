@@ -7,12 +7,47 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Ashlar.Infrastructure.MeshLab;
 using Xunit;
+using Ashlar.Abstractions.Security.Egress;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Ashlar.Tests.Infrastructure.Tests.MeshLab;
 
 /// <summary>Tests for mesh lab worker executor background service gap coverage.</summary>
 public sealed class MeshLabWorkerExecutorBackgroundServiceGapCoverageTests
 {
+    [Fact]
+    public async Task Refused_polls_warn_once_and_the_hosted_loop_continues()
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "mesh.poll", new Uri("https://remote.example"))));
+        var continued = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var handler = StubHttpMessageHandler.FromSync((_, _) =>
+        {
+            if (Interlocked.Increment(ref calls) <= 2) throw new HttpRequestException("wrapper", refusal);
+            continued.TrySetResult();
+            return Json(HttpStatusCode.OK, "[]");
+        });
+        var options = new MeshLabWorkerExecutorOptions { Enabled = true, ApiKey = "test-key", PollIntervalMs = 100 };
+        var client = CreateClient(handler, options, new ConfigurationBuilder().Build());
+        var logger = new Mock<ILogger<MeshLabWorkerExecutorBackgroundService>>();
+        using var service = new MeshLabWorkerExecutorBackgroundService(client,
+            new StaticOptionsMonitor<MeshLabWorkerExecutorOptions>(options), logger.Object);
+        await service.StartAsync(CancellationToken.None);
+        try { await continued.Task.WaitAsync(TimeSpan.FromSeconds(15)); }
+        finally { await service.StopAsync(CancellationToken.None); }
+        calls.Should().BeGreaterThanOrEqualTo(3);
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id == 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        logger.Verify(x => x.Log(LogLevel.Debug, It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(), It.Is<Exception>(e => e is HttpRequestException),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+        service.Dispose();
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id == 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Exactly(2));
+    }
+
     [Fact]
     public async Task ExecuteAsync_skips_processing_when_disabled()
     {

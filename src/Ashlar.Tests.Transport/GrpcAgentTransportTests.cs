@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security.Egress;
+using Grpc.Core;
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
@@ -21,6 +23,85 @@ namespace Ashlar.Tests.Transport;
 [Collection("GrpcTransportEnvironment")]
 public sealed class GrpcAgentTransportTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Local_transport_refusals_are_not_reported_as_rpc_outages(bool wrapped)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Grpc, "grpc.client", new Uri("https://remote.example"))));
+        var channels = new RefusingChannelFactory(wrapped
+            ? new RpcException(new Status(StatusCode.Unavailable, "private-canary", refusal)) : refusal);
+        using var transport = new GrpcAgentTransport(channels, NullLogger<GrpcAgentTransport>.Instance);
+        var result = await transport.SendAsync(new AgentInvocationRequest("agent", "correlation",
+            Options: new AgentInvocationOptions(TimeSpan.FromSeconds(10), 3, "https://remote.example")));
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be("EGRESS_REFUSED");
+        result.ErrorMessage.Should().Be(refusal.Message);
+        result.Metadata!["egressRef"].Should().Be(refusal.Ref);
+        result.Output.Should().BeNull();
+        channels.Calls.Should().Be(1);
+        var health = await transport.CheckEndpointHealthAsync("https://remote.example");
+        health.IsHealthy.Should().BeFalse();
+        health.Message.Should().Be($"egress refused by policy (ref {refusal.Ref})");
+        health.DiagnosticMessage.Should().BeNull();
+        channels.Calls.Should().Be(2);
+    }
+
+    private sealed class RefusingChannelFactory(Exception error) : IGrpcChannelFactory
+    {
+        internal int Calls { get; private set; }
+        public global::Grpc.Net.Client.GrpcChannel GetOrCreate(string endpoint)
+        {
+            Calls++;
+            throw error;
+        }
+        public void DisposeAll() { }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(int form)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "site-canary", new Uri("https://remote.example/private-canary"))));
+        await using var fixture = await GrpcServerFixture.StartAsync(new RefusingTransport(refusal, form));
+        using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
+        var factory = new DefaultGrpcChannelFactory(Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
+            NullLogger<DefaultGrpcChannelFactory>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        var wire = new AgentTransportService.AgentTransportServiceClient(factory.GetOrCreate(fixture.Endpoint));
+        var raw = await wire.InvokeAsync(new InvokeRequest { AgentName = "agent-1", TimeoutMs = 5000 });
+        raw.Success.Should().BeFalse();
+        raw.Output.Should().BeEmpty();
+        raw.ErrorCode.Should().Be("EGRESS_REFUSED");
+        raw.EgressRef.Should().Be(refusal.Ref);
+        raw.ErrorMessage.Should().Be($"egress refused by policy (ref {refusal.Ref})");
+        var result = await transport.SendAsync(new AgentInvocationRequest("agent-1", "refusal-test",
+            Options: new AgentInvocationOptions(TimeSpan.FromSeconds(5), 0, fixture.Endpoint)));
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be("EGRESS_REFUSED");
+        result.Metadata!["egressRef"].Should().Be(refusal.Ref);
+        result.ErrorMessage.Should().Be(raw.ErrorMessage);
+        result.Output.Should().BeNull();
+    }
+
+    private sealed class RefusingTransport(EgressRefusedException refusal, int form) : IAgentTransport
+    {
+        public Task<AgentResult> SendAsync(AgentInvocationRequest request, CancellationToken cancellationToken = default)
+        {
+            if (form == 0) return Task.FromException<AgentResult>(new AggregateException(
+                new IOException("unrelated-canary"), new RpcException(new Status(StatusCode.Internal, "grpc-canary", refusal))));
+            return Task.FromResult(new AgentResult(false, Output: new { secret = "output-canary" },
+                ErrorMessage: "detail-canary", ErrorCode: form == 1 ? "EGRESS_REFUSED" : null,
+                Metadata: new Dictionary<string, string> { ["errorCode"] = "EGRESS_REFUSED", ["egressRef"] = refusal.Ref }));
+        }
+        public Task<TransportHealth> CheckHealthAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new TransportHealth(true, "test"));
+    }
+
     [Fact]
     public async Task SendAsync_HappyPath_RoutesThroughServerAndRoundTripsCorrelation()
     {

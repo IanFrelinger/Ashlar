@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -63,6 +64,7 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
         var requestJson = CreateRequestJson(payload, requirements, context);
 
         var failures = new List<string>(candidates.Count);
+        Result<GenerationExecutionResult>? firstRefusal = null;
         foreach (var candidate in candidates)
         {
             var result = await ExecuteAgainstPeerAsync(candidate, payload, requestJson, cancellationToken).ConfigureAwait(false);
@@ -72,6 +74,7 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
             }
 
             var code = result.Error?.Code ?? "peer.unknown_error";
+            if (code == "peer.egress_refused") firstRefusal ??= result;
             var detail = result.Error?.Detail ?? result.Error?.Message ?? "No detail";
             failures.Add($"{candidate.PeerId}:{code}:{detail}");
             _logger.LogWarning(
@@ -82,6 +85,7 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
                 detail);
         }
 
+        if (firstRefusal is not null) return firstRefusal;
         return Result<GenerationExecutionResult>.Failure(
             "peer-routing.all_peers_failed",
             $"Peer execution failed across {candidates.Count} eligible peers.",
@@ -169,6 +173,10 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
                 "peer.timeout",
                 $"Peer execution timed out after {_peerRequestTimeout.TotalSeconds:0.#} seconds.",
                 candidate.PeerId);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return Result<GenerationExecutionResult>.Failure("peer.egress_refused", refusal.Message);
         }
         catch (HttpRequestException ex)
         {

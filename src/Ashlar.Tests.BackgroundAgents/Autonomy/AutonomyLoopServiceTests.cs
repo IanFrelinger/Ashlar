@@ -11,6 +11,8 @@ using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Infrastructure.Autonomy;
 using Ashlar.Infrastructure.Certification.HotSwap;
 using Xunit;
+using Ashlar.Abstractions.Security.Egress;
+using Moq;
 
 namespace Ashlar.Tests.BackgroundAgents.Autonomy;
 
@@ -30,6 +32,65 @@ public sealed class AutonomyLoopServiceTests : IDisposable
     private readonly string _root = Path.Combine(Path.GetTempPath(), "ashlar-loop-tests-" + Guid.NewGuid().ToString("N"));
 
     public AutonomyLoopServiceTests() => SeedObjective(_root, ObjectiveId);
+
+    [Fact]
+    public async Task Refused_store_sweeps_warn_once_and_the_timer_keeps_running()
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "autonomy.store", new Uri("https://remote.example"))));
+        var continued = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var store = new Mock<IObjectiveStore>();
+        store.Setup(x => x.List(ObjectiveStatus.Pending)).Returns(() =>
+        {
+            if (Interlocked.Increment(ref calls) <= 2) throw new IOException("wrapped", refusal);
+            continued.TrySetResult();
+            return Array.Empty<ObjectiveDocument>();
+        });
+        var logger = new ListLogger<AutonomyLoopService>();
+        using var loop = new AutonomyLoopService(store.Object,
+            Harness(new ScriptedGate(RejectAtCorrectness(Array.Empty<WitnessFinding>()))),
+            new AutonomyLoopSettings { IntervalSeconds = 1 }, logger,
+            autonomyOptions: Options(o => o.Enabled = true));
+        await loop.StartAsync(CancellationToken.None);
+        try { await continued.Task.WaitAsync(TimeSpan.FromSeconds(15)); }
+        finally { await loop.StopAsync(CancellationToken.None); }
+        logger.Messages.Count(m => m.Contains("Autonomy egress refused", StringComparison.Ordinal)).Should().Be(1);
+        loop.Dispose();
+        logger.Messages.Count(m => m.Contains("Autonomy egress refused", StringComparison.Ordinal)).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Refused_proposal_is_counted_and_later_sweeps_remain_available()
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "autonomy.proposal", new Uri("https://remote.example"))));
+        var logger = new ListLogger<AutonomyLoopService>();
+        var proposer = new RefusingProposer(refusal);
+        using var loop = Loop(Options(o => o.UseSandboxSessions = false), new AutonomyLoopSettings(),
+            Harness(new ScriptedGate(RejectAtCorrectness(Array.Empty<WitnessFinding>()))), proposer, logger);
+        for (var i = 0; i < 2; i++)
+        {
+            var result = await loop.SweepAsync();
+            result.Refused.Should().Be(1);
+            result.Failed.Should().Be(1);
+            result.Attempted.Should().Be(0);
+        }
+        proposer.Calls.Should().Be(2);
+        logger.Messages.Count(m => m.Contains("continuing the sweep", StringComparison.Ordinal)).Should().Be(1);
+        loop.Dispose();
+        logger.Messages.Count(m => m.Contains("continuing the sweep", StringComparison.Ordinal)).Should().Be(2);
+    }
+
+    private sealed class RefusingProposer(EgressRefusedException refusal) : IProposalSource
+    {
+        public int Calls { get; private set; }
+        public Task<ProposedSource?> ProposeAsync(ProposalRequest request, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            throw new IOException("wrapped", refusal);
+        }
+    }
 
     public void Dispose()
     {

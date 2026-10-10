@@ -1,4 +1,5 @@
 #if NET8_0_OR_GREATER
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,7 @@ public sealed class EndpointHealthMonitor : BackgroundService
     private readonly IEndpointRegistry _endpointRegistry;
     private readonly GrpcAgentTransport? _grpcTransport;
     private readonly RoutingOptions _routingOptions;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<EndpointHealthMonitor> _logger;
     private readonly Dictionary<string, int> _consecutiveFailures = new(StringComparer.OrdinalIgnoreCase);
 
@@ -45,6 +47,10 @@ public sealed class EndpointHealthMonitor : BackgroundService
         _endpointRegistry = endpointRegistry ?? throw new ArgumentNullException(nameof(endpointRegistry));
         _routingOptions = routingOptions?.Value ?? new RoutingOptions();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -83,6 +89,13 @@ public sealed class EndpointHealthMonitor : BackgroundService
                     cancellationToken);
                 _endpointRegistry.UpdateHealth(descriptor.Endpoint, health.IsHealthy);
 
+                if (health.Refusal is { } refusal)
+                {
+                    ResetFailureCount(descriptor.Endpoint);
+                    _refusalWarnings.Report(refusal);
+                    continue;
+                }
+
                 if (!health.IsHealthy)
                 {
                     var failures = IncrementFailureCount(descriptor.Endpoint);
@@ -100,6 +113,12 @@ public sealed class EndpointHealthMonitor : BackgroundService
                 {
                     ResetFailureCount(descriptor.Endpoint);
                 }
+            }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _endpointRegistry.UpdateHealth(descriptor.Endpoint, false);
+                ResetFailureCount(descriptor.Endpoint);
+                _refusalWarnings.Report(refusal);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -140,5 +159,12 @@ public sealed class EndpointHealthMonitor : BackgroundService
             _consecutiveFailures.Remove(endpoint);
         }
     }
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public override void Dispose()
+    {
+        _refusalWarnings.Dispose();
+        base.Dispose();
+    }
+
 }
 #endif

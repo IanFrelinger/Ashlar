@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -10,9 +11,10 @@ namespace Ashlar.Infrastructure.Execution;
 /// <summary>
 /// Fetches brick catalog from a remote host via GET /api/bricks and GET /api/bricks/{id}.
 /// </summary>
-public sealed class HttpRemoteBrickCatalog : IRemoteBrickCatalog
+public sealed class HttpRemoteBrickCatalog : IRemoteBrickCatalog, IDisposable
 {
     private readonly HttpClient _httpClient;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<HttpRemoteBrickCatalog>? _logger;
     private readonly StaleCapabilitiesSnapshotStore? _staleCapabilities;
     private readonly TimeSpan _capabilityTtl;
@@ -31,6 +33,10 @@ public sealed class HttpRemoteBrickCatalog : IRemoteBrickCatalog
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger;
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
         _staleCapabilities = staleCapabilities;
         _capabilityTtl = capabilityTtl ?? TimeSpan.FromSeconds(30);
         _maxStaleCapabilityAge = maxStaleCapabilityAge ?? TimeSpan.FromMinutes(5);
@@ -59,6 +65,11 @@ public sealed class HttpRemoteBrickCatalog : IRemoteBrickCatalog
 
             return bricks;
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            _refusalWarnings.Report(refusal);
+            return [];
+        }
         catch (Exception ex)
         {
             _logger?.LogWarning(ex, "Failed to fetch brick catalog from {BaseUrl}", BaseUrl);
@@ -81,6 +92,11 @@ public sealed class HttpRemoteBrickCatalog : IRemoteBrickCatalog
 
             entry.HostCapabilities ??= (await GetCapabilitiesWithStalenessAsync(cancellationToken).ConfigureAwait(false)).Capabilities;
             return entry;
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            _refusalWarnings.Report(refusal);
+            return null;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -132,6 +148,11 @@ public sealed class HttpRemoteBrickCatalog : IRemoteBrickCatalog
                 Capabilities = capabilities,
                 IsStale = false
             };
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            _refusalWarnings.Report(refusal);
+            return new CapabilitiesFetchResult();
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -508,4 +529,10 @@ public sealed class HttpRemoteBrickCatalog : IRemoteBrickCatalog
 
         return null;
     }
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public void Dispose()
+    {
+        _refusalWarnings.Dispose();
+    }
+
 }

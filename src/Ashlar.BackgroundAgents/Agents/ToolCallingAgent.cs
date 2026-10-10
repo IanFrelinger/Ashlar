@@ -114,6 +114,12 @@ public sealed class ToolCallingAgent : IAgent
             LogModelTurn(text, toolCalls, rationale);
             return toolCalls.Count == 0 ? AgentActions.None : new AgentActions(toolCalls);
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            RecordRefusal(mem, refusal);
+            EgressRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (ModelUnavailableException)
         {
             // A genuinely unavailable model is a hard infra failure, not "the model chose to do
@@ -167,6 +173,7 @@ public sealed class ToolCallingAgent : IAgent
         var deltas = new List<IActionDelta>();
         var executed = 0;
         var denied = 0;
+        var refused = 0;
         var iterations = 0;
         string? lastRationale = null;
         string stoppedReason = "max_iterations";
@@ -238,6 +245,21 @@ public sealed class ToolCallingAgent : IAgent
                         {
                             result = await tools.InvokeAsync(call, snapshot, loopCt).ConfigureAwait(false);
                         }
+                        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+                        {
+                            refused++;
+                            RecordRefusal(memory, refusal);
+                            messages.Add(("user", $"tool {call.Id}: REFUSED by egress policy ({refusal.Message}). Adjust your plan and try again."));
+                            // The thrown tool's read remains incomplete: disposal observes SystemHigh.
+                            // Stop this chain, then let the model choose another plan below the cap.
+                            if (refused >= 3)
+                            {
+                                stoppedReason = "egress_refused";
+                                try { _logger?.LogWarning("Agent {Agent} stopped after three egress refusals in one cycle", Name); }
+                                catch (Exception) { /* Diagnostics cannot replace the refusal outcome. */ }
+                            }
+                            break;
+                        }
                         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                         {
                             stoppedReason = "deadline";
@@ -264,8 +286,16 @@ public sealed class ToolCallingAgent : IAgent
                 // If the chain self-aborted on denial we still loop — the model has the rejection
                 // message and can retry with a different plan in the next iteration.
                 _ = anyDeniedThisIter;
+                if (refused >= 3) break;
             }
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            refused++;
+            stoppedReason = "egress_refused";
+            RecordRefusal(memory, refusal);
+        }
+
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             stoppedReason = "deadline";
@@ -295,7 +325,16 @@ public sealed class ToolCallingAgent : IAgent
             Name, iterations, executed, denied, stoppedReason, stopwatch.ElapsedMilliseconds);
 
         var merged = deltas.Count == 0 ? null : ActionDelta.Merge(deltas);
-        return new AgentCycleResult(merged, iterations, executed, denied, lastRationale, stoppedReason);
+        return new AgentCycleResult(merged, iterations, executed, denied, lastRationale, stoppedReason)
+        {
+            EgressRefusals = refused
+        };
+    }
+
+    private void RecordRefusal(IAgentMemory? memory, EgressRefusedException refusal)
+    {
+        try { memory?.Write(new EventRecord(DateTimeOffset.UtcNow, Name, "egress.refused", refusal.Message)); }
+        catch (Exception) { /* An unavailable memory sink must not replace a policy refusal. */ }
     }
 
     private void LogModelTurn(string rawText, IReadOnlyList<ToolCall> calls, string? rationale, int? iter = null)

@@ -8,12 +8,43 @@ using Ashlar.Infrastructure.Testing;
 using Ashlar.Infrastructure.Testing.Docker;
 using Ashlar.Infrastructure.Testing.ExecutionPlatform;
 using Xunit;
+using Ashlar.Abstractions.Security.Egress;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Testing;
 
 /// <summary>Tests for remote execution platform gap coverage.</summary>
 public sealed class RemoteExecutionPlatformGapCoverageTests
 {
+    [Fact]
+    public async Task Refused_operations_return_redacted_failures_and_one_windowed_warning()
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "remote.execution", new Uri("https://remote.example"))));
+        var calls = 0;
+        using var client = new HttpClient(StubHttpMessageHandler.FromSync((_, _) =>
+        {
+            calls++;
+            throw new IOException("private-canary", refusal);
+        })) { BaseAddress = new Uri("https://remote.example/") };
+        var logger = new Mock<ILogger<RemoteExecutionPlatform>>();
+        using var platform = new RemoteExecutionPlatform(client, logger.Object);
+        (await platform.IsAvailableAsync()).Should().BeFalse();
+        var build = await platform.BuildImageAsync("Dockerfile", "tag", ".");
+        build.Success.Should().BeFalse();
+        build.ErrorMessage.Should().Be(refusal.Message);
+        var run = await platform.RunContainerAsync("tag", ["test"]);
+        run.Success.Should().BeFalse();
+        run.StandardError.Should().Be(refusal.Message);
+        run.StandardOutput.Should().BeEmpty();
+        calls.Should().Be(3);
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id == 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        logger.Verify(x => x.Log(It.IsAny<LogLevel>(), It.Is<EventId>(e => e.Id != 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+    }
+
     [Fact]
     public void Constructor_throws_for_null_http_client()
     {
