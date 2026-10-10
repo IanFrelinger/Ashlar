@@ -6,6 +6,8 @@ using Ashlar.AI.Pipeline.Rag;
 using Ashlar.BackgroundAgents.RAG;
 using Ashlar.Hosting.Meai;
 using FluentAssertions;
+using Microsoft.Extensions.VectorData;
+using Moq;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
@@ -68,6 +70,36 @@ public sealed class ClearanceRagReadTests
         using var child = EgressSubject.Enter("agent:reader", new HighWaterMark());
         (await fixture.Rag.SearchAsync(Text, 10, 0, "SystemHigh")).Select(h => h.Id)
             .Should().BeEquivalentTo(new[] { "public" });
+    }
+
+    [Theory]
+    [InlineData("Public", false, 1)]
+    [InlineData("Secret", false, 2)]
+    [InlineData("SystemHigh", false, 3)]
+    [InlineData("SystemHigh", true, 1)]
+    public async Task Backend_rows_are_checked_even_when_the_backend_ignores_its_filter(
+        string grant, bool expire, int expected)
+    {
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["agent:reader"] = grant });
+        using var subject = EgressSubject.Enter("agent:reader", new HighWaterMark());
+        var collection = new Mock<VectorStoreCollection<string, ChunkRecord>>();
+        collection.Setup(c => c.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(),
+                It.IsAny<VectorSearchOptions<ChunkRecord>?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Rows(expire ? subject.Dispose : null));
+        var service = new VectorDataRagService(collection.Object, new TokenHashEmbeddingGenerator(),
+            new InMemoryChatInvocationAuditor(), authority);
+        var hits = await service.SearchAsync(Text, "SystemHigh", 10, 0);
+        hits.Should().HaveCount(expected);
+        hits[0].Record.Key.Should().Be("public");
+    }
+
+    private static async IAsyncEnumerable<Microsoft.Extensions.VectorData.VectorSearchResult<ChunkRecord>> Rows(Action? expire)
+    {
+        yield return new(new ChunkRecord { Key = "public", Text = Text, TrustTier = "Public" }, 1);
+        await Task.Yield();
+        expire?.Invoke();
+        yield return new(new ChunkRecord { Key = "secret", Text = Text, TrustTier = "Secret" }, 1);
+        yield return new(new ChunkRecord { Key = "unlabelled", Text = Text, TrustTier = "" }, 1);
     }
 
     private sealed class Fixture : IAsyncDisposable

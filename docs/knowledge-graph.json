@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 807,
-    "declared_facts": 5165,
+    "declared_facts": 5166,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5043,7 +5043,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/ClearanceRagReadTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 2,
+      "declared_facts": 3,
       "in_cert_gate_filter": true
     },
     {
