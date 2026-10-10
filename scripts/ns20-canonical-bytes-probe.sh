@@ -24,7 +24,7 @@
 # evaluate completely, and they must stay trusted here. The set of records ns2.0 trusts is a
 # subset of what net8.0 trusts, never a superset — this probe is what measures that.
 #
-# An unknown schema version is probed too: only null (v1) and 2 (v2) select a payload lane,
+# An unknown schema version is probed too: null (v1), 2 (v2), and 3 (v3) select payload lanes,
 # and this asset must refuse any other version the same way net8.0 does
 # (schema-version-unknown), rather than serialize it under a shape chosen by guesswork.
 #
@@ -447,7 +447,7 @@ internal static class Ns20CanonicalBytesProbe
     // by these numbers, which is exactly why the floor alone is not the answer).
     private static int CheckUnknownSchemaVersion(string path)
     {
-        Console.WriteLine("== unknown schema version: only null (v1) and 2 (v2) select a payload lane ==");
+        Console.WriteLine("== unknown schema version: null (v1), 2 (v2), and 3 (v3) select payload lanes ==");
         CertificationRecordData admitted = null;
         using (var document = JsonDocument.Parse(File.ReadAllText(path)))
         {
@@ -470,7 +470,7 @@ internal static class Ns20CanonicalBytesProbe
         }
 
         var failures = 0;
-        foreach (var version in new[] { 3, int.MaxValue })
+        foreach (var version in new[] { 4, int.MaxValue })
         {
             var stamped = admitted with { SchemaVersion = version };
             string buildOutcome;

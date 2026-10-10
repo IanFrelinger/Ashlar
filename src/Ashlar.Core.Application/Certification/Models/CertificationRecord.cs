@@ -55,6 +55,9 @@ public sealed record CertificationRecord
     /// <summary>Certificate schema version; null means legacy v1 (pre-trust-loop payload).</summary>
     public int? SchemaVersion { get; init; }
 
+    /// <summary>The skill's declared highest data label, bound by schema v3 signatures.</summary>
+    public string? HighestDataLabel { get; init; }
+
     /// <summary>Ordered chain of gates evaluated at the recorded content hash; on FAIL records, the gates passed before the failure.</summary>
     public IReadOnlyList<CertificationGatePass> GatesPassed { get; init; } = Array.Empty<CertificationGatePass>();
 

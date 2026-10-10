@@ -14,10 +14,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// or <c>int.MaxValue</c> was serialized in the v2 shape with that number emitted verbatim —
 /// bytes whose meaning no code has ever defined — and, because a floor only says "at least
 /// this new", cleared the floor of 2 that <see cref="CertificationVerifyOptions.Default"/> and
-/// <see cref="CertificationVerifyOptions.Strict"/> apply. Only null (v1) and
-/// <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> (v2) select a lane; these tests
+/// <see cref="CertificationVerifyOptions.Strict"/> apply. Null (v1),
+/// <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> (v2), and the labelled v3 schema select a lane; these tests
 /// pin that every other version is refused at mint time and on every verification path, and
-/// that the two known versions still route to the lanes they always did, byte for byte
+/// that the older known versions still route to the lanes they always did, byte for byte
 /// (<see cref="CanonicalPayloadGoldenTests"/> carries the byte pin against an unchanged corpus).
 /// </para>
 /// </summary>
@@ -27,23 +27,24 @@ public sealed class UnknownSchemaVersionTests
     private const string HmacKey = "unknown-schema-version-test-hmac";
     private const string BrickSource = "class SchemaVersionProbe { }";
 
-    public static TheoryData<int> UnknownVersions => new() { 0, 1, 3, int.MaxValue, -1 };
+    public static TheoryData<int> UnknownVersions => new() { 0, 1, 4, int.MaxValue, -1 };
 
     /// <summary>Unknown versions that clear Legacy's floor of 0; a negative one does not, and reports the floor.</summary>
-    public static TheoryData<int> UnknownVersionsAboveZero => new() { 0, 1, 3, int.MaxValue };
+    public static TheoryData<int> UnknownVersionsAboveZero => new() { 0, 1, 4, int.MaxValue };
 
     /// <summary>Versions that clear a floor of 2 and were therefore accepted by the floor alone.</summary>
-    public static TheoryData<int> UnknownVersionsAboveTheFloor => new() { 3, int.MaxValue };
+    public static TheoryData<int> UnknownVersionsAboveTheFloor => new() { 4, int.MaxValue };
 
     /// <summary>Versions the floor already refuses; the floor must keep winning for them.</summary>
     public static TheoryData<int> UnknownVersionsBelowTheFloor => new() { 0, 1, -1 };
 
     [Fact]
-    public void KnownVersions_AreExactlyNullAndTrustLoop()
+    public void KnownVersions_AreExactlyLegacyTrustLoopAndLabelled()
     {
         CertificationRecordSigning.IsKnownSchemaVersion(null).Should().BeTrue("null is the legacy v1 lane");
         CertificationRecordSigning.IsKnownSchemaVersion(CertificationRecordData.TrustLoopSchemaVersion).Should().BeTrue("2 is the trust-loop v2 lane");
-        CertificationRecordSigning.IsKnownSchemaVersion(CertificationRecordData.TrustLoopSchemaVersion + 1).Should().BeFalse();
+        CertificationRecordSigning.IsKnownSchemaVersion(CertificationRecordData.LabelSchemaVersion).Should().BeTrue("3 binds the highest data label");
+        CertificationRecordSigning.IsKnownSchemaVersion(CertificationRecordData.LabelSchemaVersion + 1).Should().BeFalse();
     }
 
     [Fact]

@@ -329,6 +329,273 @@
       "payloadSha256": "3521A934FC7BD46414ED5C7E61DA0A9C11A782E5BEB17BE89AE66D1E0BA49981",
       "payloadByteLength": 700,
       "payload": "{\u0022schemaVersion\u0022:2,\u0022status\u0022:\u0022PASS\u0022,\u0022stage\u0022:\u0022S0-S2\u0022,\u0022admitted\u0022:true,\u0022signed\u0022:true,\u0022timestamp\u0022:\u00222026-08-12T10:00:00.0000000Z\u0022,\u0022brickId\u0022:\u0022golden-doubles-brick\u0022,\u0022contentHash\u0022:\u00223f786850e387550fdab836ed7e6dc881de23001b\u0022,\u0022escapeRate\u0022:4.9406564584124654E-324,\u0022totalMutants\u0022:3,\u0022survivingMutants\u0022:1,\u0022killedMutants\u0022:[\u0022m-1\u0022,\u0022m-2\u0022],\u0022survivingMutantIds\u0022:[\u0022s-1\u0022],\u0022reason\u0022:null,\u0022gate\u0022:\u0022Ashlar.Infrastructure.Certification.CertificationGate\u0022,\u0022gatesPassed\u0022:[],\u0022inputs\u0022:[],\u0022proposer\u0022:null,\u0022attempts\u0022:[{\u0022index\u0022:1,\u0022outcome\u0022:\u0022fail\u0022,\u0022failureCategory\u0022:\u0022mutation\u0022,\u0022durationSeconds\u0022:9.9999999999999992E\u002B22},{\u0022index\u0022:2,\u0022outcome\u0022:\u0022pass\u0022,\u0022failureCategory\u0022:null,\u0022durationSeconds\u0022:1.7976931348623157E\u002B308}],\u0022ed25519PublicKey\u0022:null}"
+    },
+    {
+      "name": "v3-highest-label-public",
+      "why": "Schema v3 binds the declared maximum data level without changing existing v1/v2 signed bytes.",
+      "record": {
+        "schemaVersion": 3,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00+00:00",
+        "brickId": "golden-trust-loop-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0,
+        "totalMutants": 4,
+        "survivingMutants": 0,
+        "killedMutants": [
+          "m-2",
+          "m-10",
+          "m-1"
+        ],
+        "survivingMutantIds": [],
+        "reason": null,
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "gatesPassed": [
+          {
+            "name": "analyzer-gate",
+            "version": "1",
+            "configuration": "severityFloor=Warning"
+          },
+          {
+            "name": "correctness-witness",
+            "version": null,
+            "configuration": null
+          },
+          {
+            "name": "mutation-gate",
+            "version": "1",
+            "configuration": "escapeRateThreshold=0"
+          }
+        ],
+        "inputs": [
+          {
+            "kind": "witness",
+            "id": "golden-trust-loop-brick",
+            "hash": "witness-hash"
+          },
+          {
+            "kind": "context",
+            "id": "b-context",
+            "hash": "context-hash-b"
+          },
+          {
+            "kind": "context",
+            "id": "a-context",
+            "hash": "context-hash-a"
+          }
+        ],
+        "proposer": {
+          "identity": "agent://proposer-1",
+          "parameters": {
+            "temperature": "0",
+            "IterationLimit": "3",
+            "beta": "x"
+          },
+          "seed": "42"
+        },
+        "attempts": [
+          {
+            "index": 1,
+            "outcome": "fail",
+            "failureCategory": "mutation",
+            "durationSeconds": 0.5
+          },
+          {
+            "index": 2,
+            "outcome": "pass",
+            "failureCategory": null,
+            "durationSeconds": 0.25
+          }
+        ],
+        "signature": "SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519Signature": "ED25519-SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519PublicKey": "3q2+7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "highestDataLabel": "Public"
+      },
+      "payloadSha256": "218bb4422919d7cf93637415a8ee966a2a722225b9fed052e7758b6cc33b86a3",
+      "payloadByteLength": 1241,
+      "payload": "{\"schemaVersion\":3,\"status\":\"PASS\",\"stage\":\"S0-S2\",\"admitted\":true,\"signed\":true,\"timestamp\":\"2026-08-12T10:00:00.0000000Z\",\"brickId\":\"golden-trust-loop-brick\",\"contentHash\":\"3f786850e387550fdab836ed7e6dc881de23001b\",\"escapeRate\":0,\"totalMutants\":4,\"survivingMutants\":0,\"killedMutants\":[\"m-1\",\"m-10\",\"m-2\"],\"survivingMutantIds\":[],\"reason\":null,\"gate\":\"Ashlar.Infrastructure.Certification.CertificationGate\",\"gatesPassed\":[{\"name\":\"analyzer-gate\",\"version\":\"1\",\"configuration\":\"severityFloor=Warning\"},{\"name\":\"correctness-witness\",\"version\":null,\"configuration\":null},{\"name\":\"mutation-gate\",\"version\":\"1\",\"configuration\":\"escapeRateThreshold=0\"}],\"inputs\":[{\"kind\":\"context\",\"id\":\"a-context\",\"hash\":\"context-hash-a\"},{\"kind\":\"context\",\"id\":\"b-context\",\"hash\":\"context-hash-b\"},{\"kind\":\"witness\",\"id\":\"golden-trust-loop-brick\",\"hash\":\"witness-hash\"}],\"proposer\":{\"identity\":\"agent://proposer-1\",\"parameters\":{\"IterationLimit\":\"3\",\"beta\":\"x\",\"temperature\":\"0\"},\"seed\":\"42\"},\"attempts\":[{\"index\":1,\"outcome\":\"fail\",\"failureCategory\":\"mutation\",\"durationSeconds\":0.5},{\"index\":2,\"outcome\":\"pass\",\"failureCategory\":null,\"durationSeconds\":0.25}],\"ed25519PublicKey\":\"3q2\\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\",\"highestDataLabel\":\"Public\"}"
+    },
+    {
+      "name": "v3-highest-label-topsecret",
+      "why": "Schema v3 binds the declared maximum data level without changing existing v1/v2 signed bytes.",
+      "record": {
+        "schemaVersion": 3,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00+00:00",
+        "brickId": "golden-trust-loop-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0,
+        "totalMutants": 4,
+        "survivingMutants": 0,
+        "killedMutants": [
+          "m-2",
+          "m-10",
+          "m-1"
+        ],
+        "survivingMutantIds": [],
+        "reason": null,
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "gatesPassed": [
+          {
+            "name": "analyzer-gate",
+            "version": "1",
+            "configuration": "severityFloor=Warning"
+          },
+          {
+            "name": "correctness-witness",
+            "version": null,
+            "configuration": null
+          },
+          {
+            "name": "mutation-gate",
+            "version": "1",
+            "configuration": "escapeRateThreshold=0"
+          }
+        ],
+        "inputs": [
+          {
+            "kind": "witness",
+            "id": "golden-trust-loop-brick",
+            "hash": "witness-hash"
+          },
+          {
+            "kind": "context",
+            "id": "b-context",
+            "hash": "context-hash-b"
+          },
+          {
+            "kind": "context",
+            "id": "a-context",
+            "hash": "context-hash-a"
+          }
+        ],
+        "proposer": {
+          "identity": "agent://proposer-1",
+          "parameters": {
+            "temperature": "0",
+            "IterationLimit": "3",
+            "beta": "x"
+          },
+          "seed": "42"
+        },
+        "attempts": [
+          {
+            "index": 1,
+            "outcome": "fail",
+            "failureCategory": "mutation",
+            "durationSeconds": 0.5
+          },
+          {
+            "index": 2,
+            "outcome": "pass",
+            "failureCategory": null,
+            "durationSeconds": 0.25
+          }
+        ],
+        "signature": "SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519Signature": "ED25519-SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519PublicKey": "3q2+7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "highestDataLabel": "TopSecret"
+      },
+      "payloadSha256": "2694a7107a3298cb491fc30dedd4aaaea82f0f9ac2da0d8b312a167509f7b3e4",
+      "payloadByteLength": 1244,
+      "payload": "{\"schemaVersion\":3,\"status\":\"PASS\",\"stage\":\"S0-S2\",\"admitted\":true,\"signed\":true,\"timestamp\":\"2026-08-12T10:00:00.0000000Z\",\"brickId\":\"golden-trust-loop-brick\",\"contentHash\":\"3f786850e387550fdab836ed7e6dc881de23001b\",\"escapeRate\":0,\"totalMutants\":4,\"survivingMutants\":0,\"killedMutants\":[\"m-1\",\"m-10\",\"m-2\"],\"survivingMutantIds\":[],\"reason\":null,\"gate\":\"Ashlar.Infrastructure.Certification.CertificationGate\",\"gatesPassed\":[{\"name\":\"analyzer-gate\",\"version\":\"1\",\"configuration\":\"severityFloor=Warning\"},{\"name\":\"correctness-witness\",\"version\":null,\"configuration\":null},{\"name\":\"mutation-gate\",\"version\":\"1\",\"configuration\":\"escapeRateThreshold=0\"}],\"inputs\":[{\"kind\":\"context\",\"id\":\"a-context\",\"hash\":\"context-hash-a\"},{\"kind\":\"context\",\"id\":\"b-context\",\"hash\":\"context-hash-b\"},{\"kind\":\"witness\",\"id\":\"golden-trust-loop-brick\",\"hash\":\"witness-hash\"}],\"proposer\":{\"identity\":\"agent://proposer-1\",\"parameters\":{\"IterationLimit\":\"3\",\"beta\":\"x\",\"temperature\":\"0\"},\"seed\":\"42\"},\"attempts\":[{\"index\":1,\"outcome\":\"fail\",\"failureCategory\":\"mutation\",\"durationSeconds\":0.5},{\"index\":2,\"outcome\":\"pass\",\"failureCategory\":null,\"durationSeconds\":0.25}],\"ed25519PublicKey\":\"3q2\\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\",\"highestDataLabel\":\"TopSecret\"}"
+    },
+    {
+      "name": "v3-highest-label-systemhigh",
+      "why": "Schema v3 binds the declared maximum data level without changing existing v1/v2 signed bytes.",
+      "record": {
+        "schemaVersion": 3,
+        "status": "PASS",
+        "stage": "S0-S2",
+        "admitted": true,
+        "signed": true,
+        "timestamp": "2026-08-12T10:00:00+00:00",
+        "brickId": "golden-trust-loop-brick",
+        "contentHash": "3f786850e387550fdab836ed7e6dc881de23001b",
+        "escapeRate": 0,
+        "totalMutants": 4,
+        "survivingMutants": 0,
+        "killedMutants": [
+          "m-2",
+          "m-10",
+          "m-1"
+        ],
+        "survivingMutantIds": [],
+        "reason": null,
+        "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+        "gatesPassed": [
+          {
+            "name": "analyzer-gate",
+            "version": "1",
+            "configuration": "severityFloor=Warning"
+          },
+          {
+            "name": "correctness-witness",
+            "version": null,
+            "configuration": null
+          },
+          {
+            "name": "mutation-gate",
+            "version": "1",
+            "configuration": "escapeRateThreshold=0"
+          }
+        ],
+        "inputs": [
+          {
+            "kind": "witness",
+            "id": "golden-trust-loop-brick",
+            "hash": "witness-hash"
+          },
+          {
+            "kind": "context",
+            "id": "b-context",
+            "hash": "context-hash-b"
+          },
+          {
+            "kind": "context",
+            "id": "a-context",
+            "hash": "context-hash-a"
+          }
+        ],
+        "proposer": {
+          "identity": "agent://proposer-1",
+          "parameters": {
+            "temperature": "0",
+            "IterationLimit": "3",
+            "beta": "x"
+          },
+          "seed": "42"
+        },
+        "attempts": [
+          {
+            "index": 1,
+            "outcome": "fail",
+            "failureCategory": "mutation",
+            "durationSeconds": 0.5
+          },
+          {
+            "index": 2,
+            "outcome": "pass",
+            "failureCategory": null,
+            "durationSeconds": 0.25
+          }
+        ],
+        "signature": "SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519Signature": "ED25519-SIGNATURE-MUST-NOT-APPEAR",
+        "ed25519PublicKey": "3q2+7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "highestDataLabel": "SystemHigh"
+      },
+      "payloadSha256": "71e0652f4642b74166f6af3b7b00ca03bc1d836ed5bbbe35bab9194db77c7954",
+      "payloadByteLength": 1245,
+      "payload": "{\"schemaVersion\":3,\"status\":\"PASS\",\"stage\":\"S0-S2\",\"admitted\":true,\"signed\":true,\"timestamp\":\"2026-08-12T10:00:00.0000000Z\",\"brickId\":\"golden-trust-loop-brick\",\"contentHash\":\"3f786850e387550fdab836ed7e6dc881de23001b\",\"escapeRate\":0,\"totalMutants\":4,\"survivingMutants\":0,\"killedMutants\":[\"m-1\",\"m-10\",\"m-2\"],\"survivingMutantIds\":[],\"reason\":null,\"gate\":\"Ashlar.Infrastructure.Certification.CertificationGate\",\"gatesPassed\":[{\"name\":\"analyzer-gate\",\"version\":\"1\",\"configuration\":\"severityFloor=Warning\"},{\"name\":\"correctness-witness\",\"version\":null,\"configuration\":null},{\"name\":\"mutation-gate\",\"version\":\"1\",\"configuration\":\"escapeRateThreshold=0\"}],\"inputs\":[{\"kind\":\"context\",\"id\":\"a-context\",\"hash\":\"context-hash-a\"},{\"kind\":\"context\",\"id\":\"b-context\",\"hash\":\"context-hash-b\"},{\"kind\":\"witness\",\"id\":\"golden-trust-loop-brick\",\"hash\":\"witness-hash\"}],\"proposer\":{\"identity\":\"agent://proposer-1\",\"parameters\":{\"IterationLimit\":\"3\",\"beta\":\"x\",\"temperature\":\"0\"},\"seed\":\"42\"},\"attempts\":[{\"index\":1,\"outcome\":\"fail\",\"failureCategory\":\"mutation\",\"durationSeconds\":0.5},{\"index\":2,\"outcome\":\"pass\",\"failureCategory\":null,\"durationSeconds\":0.25}],\"ed25519PublicKey\":\"3q2\\u002B7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\",\"highestDataLabel\":\"SystemHigh\"}"
     }
   ]
 }

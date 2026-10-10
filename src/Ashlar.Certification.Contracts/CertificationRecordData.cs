@@ -13,6 +13,16 @@ public sealed record CertificationRecordData
     /// </summary>
     public const int TrustLoopSchemaVersion = 2;
 
+    /// <summary>Version 3 additionally signs the skill's declared highest data label.</summary>
+    public const int LabelSchemaVersion = 3;
+
+    /// <summary>
+    /// Highest data classification declared by the certified skill. Required in v3 and forbidden
+    /// in older lanes, whose signatures do not bind it. Canonical level-only text, including SystemHigh.
+    /// This is a declaration about data, not authority to grant a subject clearance.
+    /// </summary>
+    public string? HighestDataLabel { get; init; }
+
     /// <summary>Overall certification outcome (e.g. <c>PASS</c>, <c>FAIL</c>).</summary>
     public required string Status { get; init; }
 

@@ -99,15 +99,15 @@ public static class CertificationRecordSigning
 
     /// <summary>
     /// Whether <paramref name="schemaVersion"/> selects a canonical payload lane: null is the
-    /// legacy v1 lane, <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> is v2, and
-    /// nothing else does. The single source of truth for the signing and the verification
+    /// legacy v1 lane, <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> is v2, <see cref="CertificationRecordData.LabelSchemaVersion"/> is v3, and nothing else does. The single source of truth for the signing and the verification
     /// paths, so the two cannot disagree about which versions exist. A floor
     /// (<see cref="CertificationVerifyOptions.MinimumSchemaVersion"/>) says "at least this
     /// new"; it cannot say "a version this code knows", which is what this answers.
     /// </summary>
     /// <param name="schemaVersion">The record's declared schema version, null for legacy v1.</param>
     public static bool IsKnownSchemaVersion(int? schemaVersion) =>
-        schemaVersion is null || schemaVersion.Value == CertificationRecordData.TrustLoopSchemaVersion;
+        schemaVersion is null || schemaVersion.Value == CertificationRecordData.TrustLoopSchemaVersion
+            || schemaVersion.Value == CertificationRecordData.LabelSchemaVersion;
 
     /// <summary>
     /// Builds the canonical JSON payload used for signing and verification.
@@ -115,7 +115,7 @@ public static class CertificationRecordSigning
     /// legacy v1 payload byte-for-byte, so pre-trust-loop signatures stay valid.
     /// Records at <see cref="CertificationRecordData.TrustLoopSchemaVersion"/> sign the
     /// extended payload, which additionally covers <c>Gate</c>, the trust-loop evidence
-    /// fields, and the Ed25519 public key. No other version selects a lane
+    /// fields, and the Ed25519 public key. Version 3 appends the highest data label. No other version selects a lane
     /// (<see cref="IsKnownSchemaVersion"/>). Both signature fields are structurally
     /// excluded. Mutant id lists and input entries are sorted for deterministic
     /// serialization; gate and attempt order is semantic and preserved.
@@ -130,6 +130,15 @@ public static class CertificationRecordSigning
     /// </exception>
     public static string BuildPayload(CertificationRecordData record)
     {
+        if (record.SchemaVersion == CertificationRecordData.LabelSchemaVersion)
+        {
+            if (!IsCanonicalDataLevel(record.HighestDataLabel))
+                throw new CanonicalPayloadException("A v3 record requires a canonical highest data label.");
+            return EnsureCanonical(WritePayload(record, record.SchemaVersion.Value), versioned: true, labelled: true);
+        }
+        if (record.HighestDataLabel is not null)
+            throw new CanonicalPayloadException("A highest data label requires the v3 signed payload lane.");
+
         if (record.SchemaVersion is null)
             return EnsureCanonical(WritePayload(record, schemaVersion: null), versioned: false);
 
@@ -143,7 +152,7 @@ public static class CertificationRecordSigning
         // at mint time and is refused on every verification path.
         throw new CanonicalPayloadException(
             $"Certification record schema version {record.SchemaVersion.Value} does not select a canonical "
-            + $"payload lane (known versions: none for v1, {CertificationRecordData.TrustLoopSchemaVersion} for v2), "
+            + $"payload lane (known versions: none for v1, {CertificationRecordData.TrustLoopSchemaVersion} for v2, {CertificationRecordData.LabelSchemaVersion} for v3), "
             + "so no signature can be computed or checked over it.");
     }
 
@@ -245,6 +254,9 @@ public static class CertificationRecordSigning
 
                 WriteStringOrNull(writer, Names.Ed25519PublicKey, record.Ed25519PublicKey);
             }
+
+            if (schemaVersion == CertificationRecordData.LabelSchemaVersion)
+                WriteStringOrNull(writer, Names.HighestDataLabel, record.HighestDataLabel);
 
             writer.WriteEndObject();
         }
@@ -403,6 +415,7 @@ public static class CertificationRecordSigning
     // and a one-character difference in either changes every signature in that lane.
     private static class Names
     {
+        internal const string HighestDataLabel = "highestDataLabel";
         internal const string SchemaVersion = "schemaVersion";
         internal const string Status = "status";
         internal const string Stage = "stage";
@@ -486,9 +499,13 @@ public static class CertificationRecordSigning
     /// Internal rather than private so it can be exercised directly against payloads no input
     /// to the emitter can produce.
     /// </summary>
-    internal static string EnsureCanonical(string payload, bool versioned)
+    // SPEC-007 PR5 deliberately declares levels only. Compartments and caveats are not inferred here.
+    internal static bool IsCanonicalDataLevel(string? label) =>
+        label is "Public" or "Internal" or "Confidential" or "Secret" or "TopSecret" or "SystemHigh";
+
+    internal static string EnsureCanonical(string payload, bool versioned, bool labelled = false)
     {
-        var lane = versioned ? "v2" : "v1";
+        var lane = labelled ? "v3" : versioned ? "v2" : "v1";
         JsonDocument document;
         try
         {
@@ -505,7 +522,11 @@ public static class CertificationRecordSigning
         using (document)
         {
             var root = document.RootElement;
-            RequireShape(root, versioned ? VersionedPayloadNames : LegacyPayloadNames, lane, "payload");
+            RequireShape(root, labelled ? VersionedPayloadNames.Concat(new[] { Names.HighestDataLabel }).ToArray()
+                : versioned ? VersionedPayloadNames : LegacyPayloadNames, lane, "payload");
+            if (labelled && (root.GetProperty(Names.HighestDataLabel).ValueKind != JsonValueKind.String
+                || !IsCanonicalDataLevel(root.GetProperty(Names.HighestDataLabel).GetString())))
+                throw new CanonicalPayloadException("The v3 canonical payload has no valid highest data label.");
 
             // v1 has no nested objects; its arrays hold strings only.
             if (!versioned)

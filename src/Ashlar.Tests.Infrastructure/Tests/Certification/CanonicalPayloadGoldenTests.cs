@@ -72,13 +72,14 @@ public sealed class CanonicalPayloadGoldenTests
     }
 
     [Fact]
-    public void GoldenCorpus_CoversBothPayloadVersions()
+    public void GoldenCorpus_CoversAllPayloadVersions()
     {
         // A theory over an empty or half-empty corpus passes without asserting anything, which
         // is the same failure mode as having no golden test at all. Assert the corpus itself.
         Corpus.Should().NotBeEmpty();
         Corpus.Values.Should().Contain(c => c.Record.SchemaVersion == null, "the v1 lane is reachable through the published package API");
-        Corpus.Values.Should().Contain(c => c.Record.SchemaVersion != null, "v2 is the shape every live minter emits");
+        Corpus.Values.Should().Contain(c => c.Record.SchemaVersion == 2, "existing v2 bytes must remain pinned");
+        Corpus.Values.Should().Contain(c => c.Record.SchemaVersion == 3, "v3 binds the highest data label");
         Corpus.Values.Should().OnlyContain(
             c => c.Payload.Length > 2,
             "an empty object is never a legitimate canonical payload — every declared property is emitted whatever its value");

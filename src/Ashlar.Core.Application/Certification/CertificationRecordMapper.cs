@@ -25,6 +25,7 @@ public static class CertificationRecordMapper
         Reason = record.Reason,
         Gate = record.Gate,
         SchemaVersion = record.SchemaVersion,
+        HighestDataLabel = record.HighestDataLabel,
         GatesPassed = record.GatesPassed,
         Inputs = record.Inputs,
         Proposer = record.Proposer,
