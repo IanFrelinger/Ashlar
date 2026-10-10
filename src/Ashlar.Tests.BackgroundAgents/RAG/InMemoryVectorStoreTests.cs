@@ -67,7 +67,11 @@ public class InMemoryVectorStoreTests
     public async Task SearchAsync_WithMaxSensitivityLevel_FiltersBySensitivity()
     {
         var registry = new DataSensitivityRegistry();
-        var store = new InMemoryVectorStore(registry);
+        var authority = new Ashlar.Abstractions.Security.SubjectClearanceAuthority(
+            new Dictionary<string, string?> { ["test:filter"] = "Confidential" });
+        using var subject = Ashlar.Abstractions.Security.Egress.EgressSubject.Enter(
+            "test:filter", new Ashlar.Abstractions.Security.HighWaterMark());
+        var store = new InMemoryVectorStore(registry, authority);
         var gen = new TokenEmbeddingGenerator(32);
         await store.IndexAsync("public-doc", "public text", await gen.GenerateAsync("public text", default), "Public", default);
         await store.IndexAsync("confidential-doc", "confidential text", await gen.GenerateAsync("confidential text", default), "Confidential", default);
@@ -77,6 +81,8 @@ public class InMemoryVectorStoreTests
 
         results.Should().HaveCount(1);
         results[0].Id.Should().Be("public-doc");
+        (await store.SearchAsync(queryEmb, 5, 0.0, "Confidential", default))
+            .Should().HaveCount(2, "the classified row must be reachable with a sufficient trusted grant");
     }
 
     // Pins the dimension guard, the twin of the one in SqliteVectorStore.SearchAsync. Without it

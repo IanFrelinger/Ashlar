@@ -44,8 +44,8 @@ public sealed class EgressEnforcementLeakTests : IDisposable
     [Theory]
     [InlineData("Secret", "Secret", "secure-workstation", 1, "egress_refused", AccessDenialReason.LevelTooLow)]
     [InlineData("Internal", "Secret", "secure-workstation", 2, "empty", AccessDenialReason.None)]
-    [InlineData("", "TopSecret", "secure-workstation", 1, "egress_refused", AccessDenialReason.SystemHighData)]
-    [InlineData("Restricted", "TopSecret", "secure-workstation", 1, "egress_refused", AccessDenialReason.SystemHighData)]
+    [InlineData("", "SystemHigh", "secure-workstation", 1, "egress_refused", AccessDenialReason.SystemHighData)]
+    [InlineData("Restricted", "SystemHigh", "secure-workstation", 1, "egress_refused", AccessDenialReason.SystemHighData)]
     [InlineData("Secret", "Secret", "full", 2, "empty", AccessDenialReason.LevelTooLow)]
     public async Task Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export(
         string tier, string clearance, string profile, int sends, string stop, AccessDenialReason reason)
