@@ -172,14 +172,25 @@ public sealed class MeshDiscoveryService : BackgroundService
     private readonly MeshDiscoverySettings _settings;
     private readonly MeshDiscoveryRegistry _registry;
     private readonly ILogger<MeshDiscoveryService> _logger;
+    private readonly Func<byte[], IPEndPoint, CancellationToken, ValueTask<int>>? _sendBeacon;
 
     /// <summary>Creates the discovery service.</summary>
     public MeshDiscoveryService(
         MeshDiscoverySettings settings, MeshDiscoveryRegistry registry, ILogger<MeshDiscoveryService> logger)
+        : this(settings, registry, logger, sendBeacon: null)
+    {
+    }
+
+    // Instance-scoped transport seam: tests can exercise the real loop without requiring a multicast route.
+    // The decision still names the production multicast destination, before this send boundary is reached.
+    internal MeshDiscoveryService(
+        MeshDiscoverySettings settings, MeshDiscoveryRegistry registry, ILogger<MeshDiscoveryService> logger,
+        Func<byte[], IPEndPoint, CancellationToken, ValueTask<int>>? sendBeacon)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _sendBeacon = sendBeacon;
     }
 
     /// <inheritdoc />
@@ -271,7 +282,12 @@ public sealed class MeshDiscoveryService : BackgroundService
             {
                 if (beacon is not null)
                 {
-                    try { await sender.SendAsync(beacon, endpoint, ct).ConfigureAwait(false); }
+                    try
+                    {
+                        await (_sendBeacon is null
+                            ? sender.SendAsync(beacon, endpoint, ct)
+                            : _sendBeacon(beacon, endpoint, ct)).ConfigureAwait(false);
+                    }
                     catch (SocketException ex) { _logger.LogDebug(ex, "Mesh discovery announce failed"); }
                 }
                 PersistSnapshot();

@@ -714,16 +714,24 @@ public sealed class EgressCliSiteTwinTests : IDisposable
         using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
         using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
         using var state = new EgressProcessStateScope(reset: true);
-        using var receiver = new UdpClient();
-        receiver.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-        receiver.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
-        var port = ((IPEndPoint)receiver.Client.LocalEndPoint!).Port;
-        receiver.JoinMulticastGroup(MeshBeacon.Group);
+        using var receiver = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var receiverEndpoint = (IPEndPoint)receiver.Client.LocalEndPoint!;
+        int port;
+        using (var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0)))
+            port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
+        using var beaconSender = new UdpClient();
+        var sends = 0;
+        ValueTask<int> SendBeacon(byte[] payload, IPEndPoint destination, CancellationToken ct)
+        {
+            destination.Should().Be(new IPEndPoint(MeshBeacon.Group, port));
+            Interlocked.Increment(ref sends);
+            return beaconSender.SendAsync(payload, receiverEndpoint, ct);
+        }
         var registry = new MeshDiscoveryRegistry();
         var log = new RefusalLogger<MeshDiscoveryService>();
         var settings = new MeshDiscoverySettings("private-node", "ed25519:aaaa1111bbbb2222", 17001,
             Path.Combine(_dir, "refused-discovery"), port);
-        using var service = new MeshDiscoveryService(settings, registry, log);
+        using var service = new MeshDiscoveryService(settings, registry, log, SendBeacon);
         await service.StartAsync(CancellationToken.None);
         try
         {
@@ -732,30 +740,31 @@ public sealed class EgressCliSiteTwinTests : IDisposable
                 await Task.Delay(20, deadline.Token);
             service.ExecuteTask!.IsCompleted.Should().BeFalse("listen-only discovery remains alive");
             log.Warnings.Should().ContainSingle().Which.Should().Contain("Egress refused by policy").And.Contain("listen-only");
+            Volatile.Read(ref sends).Should().Be(0, "refusal never reaches the send boundary");
             using var noBeacon = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
             await FluentActions.Awaiting(async () => await receiver.ReceiveAsync(noBeacon.Token))
                 .Should().ThrowAsync<OperationCanceledException>();
 
             using var peer = new UdpClient();
-            peer.MulticastLoopback = true;
             await peer.SendAsync(MeshBeacon.Encode("other-node", "ed25519:cccc3333dddd4444", 17002),
-                new IPEndPoint(MeshBeacon.Group, port));
-            await receiver.ReceiveAsync(deadline.Token);
+                new IPEndPoint(IPAddress.Loopback, port));
             while (registry.Snapshot(DateTimeOffset.UtcNow).Count == 0)
                 await Task.Delay(20, deadline.Token);
             registry.Snapshot(DateTimeOffset.UtcNow).Should().ContainSingle().Which.Name.Should().Be("other-node");
         }
         finally { await service.StopAsync(CancellationToken.None); }
 
-        // Positive control on the same multicast socket: report mode really sends a beacon.
+        // Positive control on the same loop and send boundary: report mode really delivers a beacon.
+        // Loopback transport is deterministic even on runners without a multicast route.
         using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
         EgressProcessStateScope.Reset();
-        using var control = new MeshDiscoveryService(settings, new MeshDiscoveryRegistry(), NullLogger<MeshDiscoveryService>.Instance);
+        using var control = new MeshDiscoveryService(settings, new MeshDiscoveryRegistry(), NullLogger<MeshDiscoveryService>.Instance, SendBeacon);
         var loop = typeof(MeshDiscoveryService).GetMethod("AnnounceLoopAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         await (Task)loop.Invoke(control, [true, cancel.Token])!;
         using var receiveDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
         var packet = await receiver.ReceiveAsync(receiveDeadline.Token);
+        Volatile.Read(ref sends).Should().Be(1);
         MeshBeacon.TryParse(packet.Buffer, out var beacon).Should().BeTrue();
         beacon.Name.Should().Be("private-node");
     }
