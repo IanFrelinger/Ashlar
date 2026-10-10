@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 796,
-    "declared_facts": 5113,
+    "test_files_declaring_facts": 797,
+    "declared_facts": 5114,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2729,6 +2729,13 @@
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/EgressCliRuntimeExportTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {

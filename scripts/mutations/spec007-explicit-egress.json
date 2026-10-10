@@ -889,6 +889,18 @@
       "expected_failures": [
         "The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted"
       ]
+    },
+    {
+      "id": "cli-runtime-publish-refusal-exit",
+      "file": "application/src/Ashlar.CLI/Commands/ExportCommand.cs",
+      "old": "ok = await PublishRuntimeAsync(proj, rid, bundleDir, exeName, ct);\n                }\n                catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n                {\n                    Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n                    return 77;",
+      "new": "ok = await PublishRuntimeAsync(proj, rid, bundleDir, exeName, ct);\n                }\n                catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n                {\n                    Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n                    return 1;",
+      "filter": "FullyQualifiedName~EgressCliRuntimeExportTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_export_does_not_authorize_runtime_publish_and_returns_77"
+      ]
     }
   ]
 }
