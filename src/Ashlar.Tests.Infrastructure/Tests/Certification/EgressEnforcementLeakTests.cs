@@ -184,6 +184,11 @@ public sealed class EgressEnforcementLeakTests : IDisposable
         var transport = new SearchHandler();
         services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => transport);
         await using var provider = services.BuildServiceProvider();
+        var pipeline = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler(name);
+        var guards = 0;
+        for (var handler = pipeline; handler is DelegatingHandler delegating; handler = delegating.InnerHandler!)
+            if (handler.GetType().Name == "EgressGuardHandler") guards++;
+        guards.Should().Be(1, "the factory must retain its outer guard even when the redirect follower could refuse as a backstop");
         using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
         using var frame = EgressSubject.Enter("agent:" + name, new HighWaterMark(new SecurityLabel(SecurityLevel.Secret)));
         var error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync("https://remote-" + name + ".example/"); });
