@@ -58,6 +58,15 @@ of a release that has not been published.
   bytes and witnesses the resulting instance — a caller-supplied brick object
   is not the judged program. `CertifiedBrickActivator` inspects before load.
 
+New brick gate records use schema v3 and sign `highestDataLabel`. A request without
+an explicit declaration is `SystemHigh`; malformed declarations are refused before
+the gate executes candidate code. The exporter writes `skill-manifest.json` beside
+the record and assembly, binding the declared label, brick identity, source hash,
+assembly hash, and entry point to the certificate. `CertifiedSkillManifest.Matches`
+checks this binding; it does not itself verify the signature, operator trust, or
+caller clearance. Legacy v1/v2 verification remains available, and a legacy export
+removes any stale v3 manifest at its destination.
+
 ## Class B — certifier boundary
 
 - `ci/certifier-boundary-inventory.tsv` is a shrink-only freeze of

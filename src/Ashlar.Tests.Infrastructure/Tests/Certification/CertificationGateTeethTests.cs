@@ -69,7 +69,8 @@ public sealed class CertificationGateTeethTests
             SourceCode = MutationProbeBrickSource.Code, ProjectPath = "fixture"
         };
         var action = () => CreateGate().CertifyAsync(request);
-        await action.Should().ThrowAsync<ArgumentException>();
+        var refusal = await action.Should().ThrowAsync<ArgumentException>();
+        refusal.Which.ParamName.Should().Be("label");
     }
 
     [Theory]
