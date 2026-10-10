@@ -16,7 +16,16 @@ public sealed class RollbackCommand : Command
     /// <summary>Creates a new RollbackCommand instance.</summary>
     public RollbackCommand() : base("rollback", "Roll back an adaptation or restore to a snapshot")
     {
-        var adaptationIdArg = new Argument<string?>("adaptation-id", "Adaptation ID to roll back");
+        // Optional so `rollback --to-snapshot` is legal and a bare `rollback` reaches the handler.
+        // The parser's own "required argument" refusal never executes the usage path below, and that
+        // path is what has to exit non-zero (#484).
+        var adaptationIdArg = new Argument<string?>(
+            name: "adaptation-id",
+            getDefaultValue: () => null,
+            description: "Adaptation ID to roll back")
+        {
+            Arity = ArgumentArity.ZeroOrOne
+        };
         var toSnapshotOpt = new Option<string?>("--to-snapshot", "Snapshot ID to restore to");
         var previewOpt = new Option<bool>("--preview", () => false, "Preview rollback impact without executing");
         var storePathOpt = new Option<string?>("--store-path", "Directory for ashlar dbs (default: ASHLAR_STATE_DIR, else <repo root>/.ashlar/state)");

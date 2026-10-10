@@ -62,6 +62,7 @@ public sealed class CliHandlerExitCodeTests
             var (rc, _, stderr) = await InvokeAsync(new RollbackCommand(), "rollback", "--store-path", store);
             rc.Should().NotBe(0, "a usage error must not look like a successful restore");
             stderr.Should().Contain("Specify adaptation-id");
+            stderr.Should().NotContain("Required argument missing");
         }
         finally
         {
