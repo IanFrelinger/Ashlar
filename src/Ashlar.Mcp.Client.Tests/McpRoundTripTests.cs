@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using System.IO.Pipelines;
 using System.Text.Json;
 using FluentAssertions;
@@ -229,9 +230,15 @@ public sealed class McpRoundTripTests
         (await act.Should().ThrowAsync<McpException>()).Which.Message.Should().Contain("no_such_tool");
     }
 
-    [Fact(Timeout = 60000)]
-    public async Task Connection_manager_pins_remote_tools_and_proxies_calls_end_to_end()
+    [Theory(Timeout = 60000)]
+    [InlineData(null, false)]
+    [InlineData("TopSecret", false)]
+    [InlineData("SystemHigh", true)]
+    public async Task Connection_manager_pins_remote_tools_and_proxies_calls_end_to_end(string? grant, bool allowed)
     {
+        using var subject = EgressSubject.Enter("test:mcp", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(grant is null ? new Dictionary<string, string?>()
+            : new Dictionary<string, string?> { ["test:mcp"] = grant });
         var ct = TestTimeout();
         await using var harness = new ServerHarness();
         await harness.StartAsync(ct);
@@ -247,7 +254,7 @@ public sealed class McpRoundTripTests
         await using var manager = new McpClientConnectionManager(
             Options.Create(options),
             NullLoggerFactory.Instance,
-            NullLogger<McpClientConnectionManager>.Instance)
+            NullLogger<McpClientConnectionManager>.Instance, clearances: authority)
         {
             ClientFactoryOverride = (_, token) => harness.ConnectClientAsync(token),
         };
@@ -258,6 +265,14 @@ public sealed class McpRoundTripTests
         tool.Schema.InputJsonSchema.Should().Contain("\"value\"");
 
         using var argsDoc = JsonDocument.Parse("""{"value":"pong"}""");
+        if (!allowed)
+        {
+            var error = await Record.ExceptionAsync(() => tool.InvokeAsync(
+                new ToolCall(tool.Id, argsDoc.RootElement), WorldSnapshot.ForRepo("X:/repo"), ct));
+            var refusal = error.Should().BeOfType<ReadRefusedException>().Subject;
+            refusal.Message.Should().NotContain("pong").And.NotContain("in-memory");
+            return;
+        }
         var result = await tool.InvokeAsync(
             new ToolCall(tool.Id, argsDoc.RootElement),
             WorldSnapshot.ForRepo("X:/repo"),

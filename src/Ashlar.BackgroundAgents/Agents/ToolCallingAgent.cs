@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -119,6 +120,12 @@ public sealed class ToolCallingAgent : IAgent
             RecordRefusal(mem, refusal);
             EgressRefusal.ThrowIfPresent(ex);
             throw;
+        }
+        catch (ReadRefusedException refusal)
+        {
+            stoppedReason = "read_refused";
+            try { memory?.Write(new EventRecord(DateTimeOffset.UtcNow, Name, "read.refused", refusal.Message)); }
+            catch (Exception) { /* An audit fault cannot replace or disclose a refused response. */ }
         }
         catch (ModelUnavailableException)
         {
@@ -327,7 +334,8 @@ public sealed class ToolCallingAgent : IAgent
         var merged = deltas.Count == 0 ? null : ActionDelta.Merge(deltas);
         return new AgentCycleResult(merged, iterations, executed, denied, lastRationale, stoppedReason)
         {
-            EgressRefusals = refused
+            EgressRefusals = refused,
+            ReadRefusals = stoppedReason == "read_refused" ? 1 : 0
         };
     }
 

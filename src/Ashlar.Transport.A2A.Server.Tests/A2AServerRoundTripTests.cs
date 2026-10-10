@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using System.Net;
 using System.Text.Json;
@@ -164,16 +165,22 @@ public sealed class A2AServerRoundTripTests
         (await client.PostAsync("/api/a2a/echo-agent", new StringContent("{}"))).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    [Fact(Timeout = 60000)]
-    public async Task A2A_transport_round_trips_through_the_mapped_server_to_the_ashlar_agent()
+    [Theory(Timeout = 60000)]
+    [InlineData(null, false)]
+    [InlineData("TopSecret", false)]
+    [InlineData("SystemHigh", true)]
+    public async Task A2A_transport_round_trips_through_the_mapped_server_to_the_ashlar_agent(string? grant, bool allowed)
     {
+        using var subject = EgressSubject.Enter("test:a2a", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(grant is null ? new Dictionary<string, string?>()
+            : new Dictionary<string, string?> { ["test:a2a"] = grant });
         var (host, agent) = await StartServerAsync();
         using var _ = host;
         var testServer = host.GetTestServer();
 
         var transport = new A2AAgentTransport(
             Options.Create(new A2ATransportOptions()),
-            NullLogger<A2AAgentTransport>.Instance)
+            NullLogger<A2AAgentTransport>.Instance, clearances: authority)
         {
             HttpClientFactoryOverride = _ => testServer.CreateClient(),
         };
@@ -189,9 +196,16 @@ public sealed class A2AServerRoundTripTests
 
         var result = await transport.SendAsync(request);
 
-        result.Success.Should().BeTrue(result.ErrorMessage);
-        result.Output.Should().BeOfType<JsonElement>()
-            .Which.GetProperty("echoed").GetString().Should().Be("ping over a2a");
+        result.Success.Should().Be(allowed, result.ErrorMessage);
+        if (allowed)
+            result.Output.Should().BeOfType<JsonElement>()
+                .Which.GetProperty("echoed").GetString().Should().Be("ping over a2a");
+        else
+        {
+            result.ErrorCode.Should().Be("read_refused");
+            result.Output.Should().BeNull();
+            result.ErrorMessage.Should().NotContain("ping over a2a").And.NotContain("localhost");
+        }
 
         // The server-side handler received the payload through the standard transport envelope
         // with the correlation id propagated via protocol metadata.
@@ -203,13 +217,15 @@ public sealed class A2AServerRoundTripTests
     [Fact(Timeout = 60000)]
     public async Task Failed_agent_execution_surfaces_as_a_failed_task_result()
     {
+        using var subject = EgressSubject.Enter("test:a2a", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:a2a"] = "SystemHigh" });
         var (host, agent) = await StartServerAsync();
         using var _ = host;
         agent.Fail = true;
 
         var transport = new A2AAgentTransport(
             Options.Create(new A2ATransportOptions()),
-            NullLogger<A2AAgentTransport>.Instance)
+            NullLogger<A2AAgentTransport>.Instance, clearances: authority)
         {
             HttpClientFactoryOverride = _ => host.GetTestServer().CreateClient(),
         };

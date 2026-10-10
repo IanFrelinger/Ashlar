@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -48,6 +49,7 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
 
     private readonly IOptions<AshlarMcpClientOptions> _options;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly SubjectClearanceAuthority? _clearances;
     private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<McpClientConnectionManager> _logger;
     private readonly Dictionary<string, ServerConnection> _connections = new(StringComparer.OrdinalIgnoreCase);
@@ -65,11 +67,13 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
     public McpClientConnectionManager(
         IOptions<AshlarMcpClientOptions> options,
         ILoggerFactory loggerFactory,
-        ILogger<McpClientConnectionManager> logger)
+        ILogger<McpClientConnectionManager> logger,
+        SubjectClearanceAuthority? clearances = null)
     {
         _options = options;
         _loggerFactory = loggerFactory;
         _logger = logger;
+        _clearances = clearances;
         _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
             _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
                 "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
@@ -177,8 +181,11 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
             var result = await connection.Client
                 .CallToolAsync(proxy.RemoteToolName, McpJsonBridge.ToArgumentDictionary(arguments), cancellationToken: ct)
                 .ConfigureAwait(false);
+            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
             return McpJsonBridge.ToToolResult(result, proxy.Id, tick);
         }
+        catch (ReadRefusedException) { throw; }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
         {
             _refusalWarnings.Report(refusal);
@@ -191,6 +198,8 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
         }
         catch (Exception ex)
         {
+            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
             // Transport/protocol failures surface as error payloads (repo tool convention) so the
             // calling agent sees them; details go to the host log.
             _logger.LogWarning(ex, "Proxied MCP tool call failed. Tool={ToolId}", proxy.Id);

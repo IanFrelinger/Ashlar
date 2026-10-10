@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -17,18 +18,21 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
     private readonly ILogger<GrpcAgentTransport> _logger;
     private readonly IBarrierContextAmbient? _barrierContextAmbient;
     private readonly IBarrierAuditLog? _barrierAuditLog;
+    private readonly SubjectClearanceAuthority? _clearances;
     private readonly ConcurrentDictionary<string, byte> _activeEndpoints = new(StringComparer.OrdinalIgnoreCase);
 
     public GrpcAgentTransport(
         IGrpcChannelFactory channelFactory,
         ILogger<GrpcAgentTransport> logger,
         IBarrierContextAmbient? barrierContextAmbient = null,
-        IBarrierAuditLog? barrierAuditLog = null)
+        IBarrierAuditLog? barrierAuditLog = null,
+        SubjectClearanceAuthority? clearances = null)
     {
         _channelFactory = channelFactory ?? throw new ArgumentNullException(nameof(channelFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _barrierContextAmbient = barrierContextAmbient;
         _barrierAuditLog = barrierAuditLog;
+        _clearances = clearances;
     }
 
     public async Task<AgentResult> SendAsync(
@@ -74,6 +78,8 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                     Duration: DateTimeOffset.UtcNow - startedAt,
                     CorrelationId: request.CorrelationId, SpanId: request.SpanId);
             }
+            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
             var output = DeserializeOutput(response.Output);
             return new AgentResult(
                 Success: response.Success,
@@ -85,6 +91,10 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 CorrelationId: string.IsNullOrWhiteSpace(response.CorrelationId) ? request.CorrelationId : response.CorrelationId,
                 SpanId: string.IsNullOrWhiteSpace(response.SpanId) ? request.SpanId : response.SpanId);
         }
+        catch (ReadRefusedException refusal)
+        {
+            return ReadFailure(request, startedAt, refusal);
+        }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
         {
             return new AgentResult(false, ErrorMessage: refusal.Message,
@@ -94,6 +104,9 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
         }
         catch (RpcException ex)
         {
+            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            try { SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh); }
+            catch (ReadRefusedException refusal) { return ReadFailure(request, startedAt, refusal); }
             var errorCode = MapRpcErrorCode(ex.StatusCode);
             _logger.LogWarning(ex, "gRPC transport invocation failed for endpoint {Endpoint}", endpoint);
 
@@ -108,6 +121,9 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
         }
         catch (Exception ex)
         {
+            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            try { SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh); }
+            catch (ReadRefusedException refusal) { return ReadFailure(request, startedAt, refusal); }
             _logger.LogError(ex, "Unexpected gRPC transport error for endpoint {Endpoint}", endpoint);
             return new AgentResult(
                 Success: false,
@@ -119,6 +135,10 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 SpanId: request.SpanId);
         }
     }
+
+    private static AgentResult ReadFailure(AgentInvocationRequest request, DateTimeOffset startedAt, ReadRefusedException refusal) =>
+        new(false, ErrorMessage: refusal.Message, ErrorCode: refusal.ErrorCode,
+            Duration: DateTimeOffset.UtcNow - startedAt, CorrelationId: request.CorrelationId, SpanId: request.SpanId);
 
     public async Task<TransportHealth> CheckHealthAsync(CancellationToken cancellationToken = default)
     {

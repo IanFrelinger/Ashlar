@@ -26,6 +26,7 @@ away, can see what they would be turning off.
 
 | Assertion | Lives in | What breaks without it |
 |---|---|---|
+| **Remote response read mediation.** A2A, gRPC and MCP business responses lack authenticated labels and require live SystemHigh; lower grants receive redacted read refusals. The tool loop stops on model/tool read refusal, including audit faults. | `A2AServerRoundTripTests`, `GrpcAgentTransportTests`, `McpRoundTripTests`, `ResponseReadCycleTests` | Remote payloads and error bodies could bypass read clearance or enter another model turn. |
 | **RAG queries cannot confer clearance.** Memory, SQLite, and VectorData reads intersect requested limits with trusted live subject grants; unlabelled/unknown data requires SystemHigh, host and enclosing limits still apply. | `ClearanceRagReadTests`, `TrustTierLabelBridgeTests`, `DataSensitivityLabelBridgeTests` | A query tier or legacy TopSecret fallback could serve data beyond the operator grant. |
 | **Read authority follows exact, live subject identities.** Nested grants intersect; expired flows become Public; high-water marks and diagnostic truncation confer no authority. | `SubjectClearanceFlowTests` | Nested or escaped work could retain or widen a grant, or a truncated log identity could select another subject. |
 | Labelled skill package | `LabelledSkillManifestTests`, `CertificationGateTeethTests` | Certifier emits signed v3 declarations; omitted declarations are SystemHigh; manifest binds source, artifact and entry point; legacy export removes stale declarations. |

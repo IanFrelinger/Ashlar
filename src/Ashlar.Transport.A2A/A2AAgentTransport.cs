@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using A2A;
@@ -24,6 +25,7 @@ public sealed class A2AAgentTransport : IAgentTransport
     private readonly ILogger<A2AAgentTransport> _logger;
     private readonly IBarrierContextAmbient? _barrierContextAmbient;
     private readonly IBarrierAuditLog? _barrierAuditLog;
+    private readonly SubjectClearanceAuthority? _clearances;
     private readonly ConcurrentDictionary<string, HttpClient> _httpClients = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -37,12 +39,14 @@ public sealed class A2AAgentTransport : IAgentTransport
         IOptions<A2ATransportOptions> options,
         ILogger<A2AAgentTransport> logger,
         IBarrierContextAmbient? barrierContextAmbient = null,
-        IBarrierAuditLog? barrierAuditLog = null)
+        IBarrierAuditLog? barrierAuditLog = null,
+        SubjectClearanceAuthority? clearances = null)
     {
         _options = options;
         _logger = logger;
         _barrierContextAmbient = barrierContextAmbient;
         _barrierAuditLog = barrierAuditLog;
+        _clearances = clearances;
     }
 
     /// <inheritdoc />
@@ -94,7 +98,19 @@ public sealed class A2AAgentTransport : IAgentTransport
             try
             {
                 var response = await client.SendMessageAsync(sendRequest, timeout.Token).ConfigureAwait(false);
-                return A2AInvocationMapper.MapResponse(response, request, stopwatch.Elapsed);
+                var result = A2AInvocationMapper.MapResponse(response, request, stopwatch.Elapsed);
+                // The mapper discards all remote details for an egress refusal. Every other
+                // response lacks an authenticated data label and is therefore SystemHigh.
+                if (!EgressRefusal.IsCode(result.ErrorCode))
+                {
+                    EgressSubject.Observe(SecurityLabel.SystemHigh);
+                    SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
+                }
+                return result;
+            }
+            catch (ReadRefusedException refusal)
+            {
+                return Failure(request, stopwatch.Elapsed, refusal.ErrorCode, refusal.Message);
             }
             catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
             {
@@ -125,6 +141,10 @@ public sealed class A2AAgentTransport : IAgentTransport
             catch (Exception ex) when (ex is HttpRequestException or A2AException)
             {
                 _logger.LogWarning(ex, "A2A invocation failed for {AgentName} at {Endpoint}.", request.AgentName, endpoint);
+                EgressSubject.Observe(SecurityLabel.SystemHigh);
+                try { SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh); }
+                catch (ReadRefusedException refusal)
+                { return Failure(request, stopwatch.Elapsed, refusal.ErrorCode, refusal.Message); }
                 return Failure(request, stopwatch.Elapsed, "a2a.transport.failed",
                     $"A2A invocation of '{request.AgentName}' failed: {ex.Message}");
             }

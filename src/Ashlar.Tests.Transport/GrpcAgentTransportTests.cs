@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Grpc.Core;
 using System.Net;
@@ -111,9 +112,15 @@ public sealed class GrpcAgentTransportTests
             Task.FromResult(new TransportHealth(true, "test"));
     }
 
-    [Fact]
-    public async Task SendAsync_HappyPath_RoutesThroughServerAndRoundTripsCorrelation()
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("TopSecret", false)]
+    [InlineData("SystemHigh", true)]
+    public async Task SendAsync_HappyPath_RoutesThroughServerAndRoundTripsCorrelation(string? grant, bool allowed)
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(grant is null ? new Dictionary<string, string?>()
+            : new Dictionary<string, string?> { ["test:grpc"] = grant });
         await using var fixture = await GrpcServerFixture.StartAsync(
             new EchoTransport(delay: TimeSpan.Zero));
 
@@ -121,13 +128,13 @@ public sealed class GrpcAgentTransportTests
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var request = new AgentInvocationRequest(
             AgentName: "agent-1",
             CorrelationId: "corr-123",
             SpanId: "span-1",
-            Payload: new Dictionary<string, object?> { ["value"] = 42 },
+            Payload: new Dictionary<string, object?> { ["value"] = "PRIVATE-GRPC-CANARY" },
             Options: new AgentInvocationOptions(
                 Timeout: TimeSpan.FromSeconds(2),
                 MaxRetries: 1,
@@ -135,13 +142,22 @@ public sealed class GrpcAgentTransportTests
 
         var result = await transport.SendAsync(request);
 
-        result.Success.Should().BeTrue();
+        result.Success.Should().Be(allowed);
+        if (!allowed)
+        {
+            result.Output.Should().BeNull();
+            result.ErrorCode.Should().Be("read_refused");
+            result.ErrorMessage.Should().NotContain("PRIVATE-GRPC-CANARY");
+        }
+        else result.Output.Should().NotBeNull();
         result.CorrelationId.Should().Be("corr-123");
     }
 
     [Fact]
     public async Task SendAsync_WhenDeadlineExceeded_ReturnsTimeoutErrorCode()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         await using var fixture = await GrpcServerFixture.StartAsync(
             new EchoTransport(delay: TimeSpan.FromSeconds(2)));
 
@@ -149,7 +165,7 @@ public sealed class GrpcAgentTransportTests
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var request = new AgentInvocationRequest(
             AgentName: "agent-1",
@@ -168,11 +184,13 @@ public sealed class GrpcAgentTransportTests
     [Fact]
     public async Task SendAsync_WhenUnavailable_ReturnsTransportUnavailableErrorCode()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var request = new AgentInvocationRequest(
             AgentName: "agent-1",
@@ -192,6 +210,8 @@ public sealed class GrpcAgentTransportTests
     [Fact]
     public async Task SendAsync_MetadataRoundTrip_IncludesExecutionIsolationOnInvocation()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         AgentInvocationRequest? captured = null;
         await using var fixture = await GrpcServerFixture.StartAsync(new CaptureInvocationTransport(r => captured = r));
 
@@ -199,7 +219,7 @@ public sealed class GrpcAgentTransportTests
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var request = new AgentInvocationRequest(
             AgentName: "agent-1",
@@ -229,6 +249,8 @@ public sealed class GrpcAgentTransportTests
     [Fact]
     public async Task SendAsync_PayloadRoundTrip_PreservesNestedValues()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         await using var fixture = await GrpcServerFixture.StartAsync(
             new EchoTransport(delay: TimeSpan.Zero));
 
@@ -236,7 +258,7 @@ public sealed class GrpcAgentTransportTests
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var payload = new Dictionary<string, object?>
         {

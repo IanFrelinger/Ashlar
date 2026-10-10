@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using FluentAssertions;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -67,13 +69,15 @@ public sealed class GrpcAgentTransportGapCoverageTests
     [Fact]
     public async Task SendAsync_uses_dependency_outputs_when_payload_missing()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         await using var fixture = await GrpcTransportTestFixture.StartAsync(new EchoTransport());
 
         using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var request = new AgentInvocationRequest(
             AgentName: "agent-1",

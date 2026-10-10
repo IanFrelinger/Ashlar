@@ -12,7 +12,7 @@ namespace Ashlar.BackgroundAgents.Agents;
 /// <param name="ToolCallsDenied">Total tool calls rejected by the policy chain.</param>
 /// <param name="FinalRationale">Last <c>rationale</c> string emitted by the model, if any.</param>
 /// <param name="StoppedReason">Why the loop terminated: <c>"empty"</c>, <c>"max_iterations"</c>,
-/// <c>"deadline"</c>, <c>"cancelled"</c>, <c>"egress_refused"</c>, or <c>"error"</c>.</param>
+/// <c>"deadline"</c>, <c>"cancelled"</c>, <c>"egress_refused"</c>, <c>"read_refused"</c>, or <c>"error"</c>.</param>
 public sealed record AgentCycleResult(
     IActionDelta? MergedDelta,
     int Iterations,
@@ -23,4 +23,7 @@ public sealed record AgentCycleResult(
 {
     /// <summary>Number of tool or model egress refusals observed during this cycle.</summary>
     public int EgressRefusals { get; init; }
+
+    /// <summary>Number of response read refusals; a read refusal stops the cycle immediately.</summary>
+    public int ReadRefusals { get; init; }
 }
