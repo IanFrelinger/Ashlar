@@ -56,7 +56,9 @@ public sealed class PeerBrickResponseReadTests
                 result.Value!.Payload.Should().Equal(8, 9);
                 result.Value.Summary.Should().Be(Canary);
             }
-            else result.Error!.Detail.Should().Contain(Canary);
+            else if (responseKind == 1) result.Error!.Detail.Should().Contain(Canary);
+            // The candidate loop aggregates peer id/detail, not the discarded remote error message.
+            else result.Error!.Detail.Should().Contain("peer.execution_failed");
             mark.Current.Should().Be(SecurityLabel.SystemHigh);
         }
         else
