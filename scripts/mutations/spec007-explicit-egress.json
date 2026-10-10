@@ -821,8 +821,8 @@
     {
       "id": "convention-requires-local-action",
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.ExplicitActions.cs",
-      "old": "if (local.Success && close < end && Regex.IsMatch",
-      "new": "if (close < end && Regex.IsMatch",
+      "old": "(?:var|EgressDecision)\\s+(?<name>",
+      "new": "(?:(?:var|EgressDecision)\\s+)?(?<name>",
       "filter": "FullyQualifiedName~EgressGuardConventionTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
