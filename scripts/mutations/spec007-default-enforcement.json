@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "SPEC-007 4.11 campaign in progress. Initial mode-table cases only; route, opt-out and seeded-leak controls/mutations remain required. Plans are not evidence.",
+  "note": "SPEC-007 4.11 campaign in progress. Initial mode-table and AirGapped route cases only; opt-out and full seeded-leak controls/mutations remain required. Plans are not evidence.",
   "mutations": [
     {
       "id": "mode-sw-default",
@@ -60,6 +60,42 @@
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
         "The_mode_table_pins_every_profile_against_every_kind_of_override"
+      ]
+    },
+    {
+      "id": "route-owned-ag-floor",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "if (airGapped is { } floor && !IsEnforce(mode))",
+      "new": "if (airGapped is { } floor && IsEnforce(mode))",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "AirGapped_http_routes_raise_owned_and_host_report_guards"
+      ]
+    },
+    {
+      "id": "route-host-ag-floor",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "if (airGapped is not { } floor || IsEnforce(decision.Mode))",
+      "new": "if (airGapped is not { } floor || !IsEnforce(decision.Mode))",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "AirGapped_http_routes_raise_owned_and_host_report_guards"
+      ]
+    },
+    {
+      "id": "route-ag-profile",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "AshlarDeploymentProfileEnvironment.IsAirGapped(processProfile)",
+      "new": "AshlarDeploymentProfileEnvironment.IsSecureWorkstation(processProfile)",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "AirGapped_chat_routes_raise_owned_and_host_report_guards"
       ]
     }
   ]
