@@ -224,6 +224,46 @@ public sealed class PeerResponseReadTests
         delivered.Should().Be(0);
     }
 
+    [Theory]
+    [InlineData("Public", false)]
+    [InlineData("SystemHigh", false)]
+    [InlineData("Public", true)]
+    [InlineData("SystemHigh", true)]
+    public async Task Caller_cancellation_is_preserved_without_exposing_the_peers_cancellation_message(string clearance, bool stream)
+    {
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        var inner = new Peer { CancelFault = true };
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        using var client = Guard(inner, clearance);
+        var error = await Record.ExceptionAsync(async () =>
+        {
+            if (stream) { await foreach (var _ in client.GetStreamingResponseAsync("hello", cancellationToken: cancelled.Token)) { } }
+            else await client.GetResponseAsync("hello", cancellationToken: cancelled.Token);
+        });
+        error.Should().BeAssignableTo<OperationCanceledException>();
+        error!.ToString().Should().NotContain(Canary);
+        error.InnerException.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Cancellation_during_verification_still_prevents_delivery(bool stream)
+    {
+        using var cancelled = new CancellationTokenSource();
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        using var client = Guard(new Peer(), "Public", new CancellingVerifier(cancelled));
+        var delivered = 0;
+        var error = await Record.ExceptionAsync(async () =>
+        {
+            if (stream) { await foreach (var _ in client.GetStreamingResponseAsync("hello", cancellationToken: cancelled.Token)) delivered++; }
+            else { await client.GetResponseAsync("hello", cancellationToken: cancelled.Token); delivered++; }
+        });
+        error.Should().BeAssignableTo<OperationCanceledException>();
+        delivered.Should().Be(0);
+    }
+
     [Fact]
     public void SystemHigh_read_clearance_does_not_authorize_model_escalation()
     {
@@ -263,6 +303,11 @@ public sealed class PeerResponseReadTests
         public string? Verify(string? target, ChatResponse response) => Check(target, response);
         public string? Verify(string? target, ChatResponseUpdate response) => Check(target, response);
     }
+    private sealed class CancellingVerifier(CancellationTokenSource cancelled) : IChatResponseLabelVerifier
+    {
+        public string? Verify(string? target, ChatResponse response) { cancelled.Cancel(); return "Public"; }
+        public string? Verify(string? target, ChatResponseUpdate response) { cancelled.Cancel(); return "Public"; }
+    }
     private sealed class BrokenVerifier : IChatResponseLabelVerifier
     {
         public string? Verify(string? target, ChatResponse response) => throw new Exception(Canary);
@@ -283,16 +328,19 @@ public sealed class PeerResponseReadTests
         public ChatResponseUpdate First { get; } = new(ChatRole.Assistant, Canary);
         public Task<ChatResponse>? Pending { get; init; }
         public bool Fault { get; init; }
+        public bool CancelFault { get; init; }
         public int Calls;
         public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
             Calls++;
+            if (CancelFault) return Task.FromException<ChatResponse>(new OperationCanceledException(Canary));
             return Fault ? Task.FromException<ChatResponse>(new InvalidOperationException(Canary)) : Pending ?? Task.FromResult(Response);
         }
         public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await Task.Yield();
+            if (CancelFault) throw new OperationCanceledException(Canary);
             if (Fault) throw new InvalidOperationException(Canary);
             yield return First;
             yield return new ChatResponseUpdate(ChatRole.Assistant, Canary);

@@ -110,10 +110,9 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         {
             call = base.GetResponseAsync(messages, options, cancellationToken);
         }
-        catch
+        catch (Exception error)
         {
-            ObserveResponse();
-            RequireRead(SecurityLabel.SystemHigh);
+            ObserveFailure(error, cancellationToken);
             throw;
         }
 
@@ -135,10 +134,9 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         {
             updates = base.GetStreamingResponseAsync(messages, options, cancellationToken);
         }
-        catch
+        catch (Exception error)
         {
-            ObserveResponse();
-            RequireRead(SecurityLabel.SystemHigh);
+            ObserveFailure(error, cancellationToken);
             throw;
         }
 
@@ -159,6 +157,14 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
 
     // Faults and incomplete streams have no verified result label.
     private static void ObserveResponse() => EgressSubject.Observe(SecurityLabel.SystemHigh);
+
+    private void ObserveFailure(Exception error, CancellationToken cancellationToken)
+    {
+        ObserveResponse();
+        if (error is OperationCanceledException && cancellationToken.IsCancellationRequested)
+            throw new OperationCanceledException(cancellationToken);
+        RequireRead(SecurityLabel.SystemHigh);
+    }
 
     private SecurityLabel VerifiedLabel(object response)
     {
@@ -208,15 +214,15 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         {
             response = await call.ConfigureAwait(false);
         }
-        catch
+        catch (Exception error)
         {
-            ObserveResponse();
-            RequireRead(SecurityLabel.SystemHigh);
+            ObserveFailure(error, cancellationToken);
             throw;
         }
         cancellationToken.ThrowIfCancellationRequested();
         var label = VerifiedLabel(response);
         RequireRead(label);
+        cancellationToken.ThrowIfCancellationRequested();
         EgressSubject.Observe(label);
         return response;
     }
@@ -232,12 +238,12 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         try
         {
             try { iterator = updates.GetAsyncEnumerator(cancellationToken); }
-            catch { ObserveResponse(); RequireRead(SecurityLabel.SystemHigh); throw; }
+            catch (Exception error) { ObserveFailure(error, cancellationToken); throw; }
             while (true)
             {
                 bool moved;
                 try { moved = await iterator.MoveNextAsync().ConfigureAwait(false); }
-                catch { ObserveResponse(); RequireRead(SecurityLabel.SystemHigh); throw; }
+                catch (Exception error) { ObserveFailure(error, cancellationToken); throw; }
                 if (!moved)
                 {
                     if (!sawUpdate)
@@ -250,10 +256,11 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
                 }
                 ChatResponseUpdate update;
                 try { update = iterator.Current; }
-                catch { ObserveResponse(); RequireRead(SecurityLabel.SystemHigh); throw; }
+                catch (Exception error) { ObserveFailure(error, cancellationToken); throw; }
                 cancellationToken.ThrowIfCancellationRequested();
                 var label = VerifiedLabel(update);
                 RequireRead(label);
+                cancellationToken.ThrowIfCancellationRequested();
                 EgressSubject.Observe(label);
                 sawUpdate = true;
                 yield return update;
