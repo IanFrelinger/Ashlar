@@ -77,6 +77,22 @@ public class RAGToolTests
         service.Verify(s => s.SearchAsync("plan", 5, 0.7, searchedAt, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task SystemHigh_query_limit_can_narrow_to_a_custom_numeric_maximum()
+    {
+        var registry = new Ashlar.BackgroundAgents.DataSensitivity.DataSensitivityRegistry();
+        registry.Register(new Ashlar.BackgroundAgents.DataSensitivity.ConfigurableSensitivityLevel(
+            "Codeword", "Codeword", int.MaxValue, false, false, true, false, "Custom rank"));
+        var service = new Mock<IRAGService>();
+        service.Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<VectorSearchResult>());
+        var tool = new RAGTool(service.Object, sensitivityRegistry: registry);
+        var args = JsonSerializer.SerializeToElement(new { query = "plan", maxSensitivityLevelName = "Codeword" });
+        await tool.InvokeAsync(new ToolCall("rag_search", args),
+            new WorldSnapshot(0, new Dictionary<string, object?> { ["maxDataSensitivity"] = "SystemHigh" }), default);
+        service.Verify(s => s.SearchAsync("plan", 5, 0.7, "Codeword", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // This tool is the caller that had to change with the stores. The query text arrives in the
     // model's own JSON arguments and is never validated, minScore likewise -- a model-supplied 0
     // overrides the safe default of 0.7 -- and the stores now REFUSE a query whose embedding has
