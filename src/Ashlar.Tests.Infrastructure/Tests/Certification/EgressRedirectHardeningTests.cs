@@ -339,6 +339,7 @@ public sealed class EgressRedirectHardeningTests
         using var provider = services.BuildServiceProvider();
         using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
 
+        using var subject = EgressSubject.Enter("composite-public", new HighWaterMark(SecurityLabel.Public));
         using var response = await client.GetAsync(new Uri($"https://asked-{id}.example/a"));
 
         response.StatusCode.Should().Be(HttpStatusCode.OK, "the follower under the composite's rewriter follows the tail's 307");

@@ -4,6 +4,7 @@ using System.Net.Security;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Infrastructure.Egress;
 using FluentAssertions;
@@ -262,13 +263,14 @@ public sealed class EgressRedirectTwinTests
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning).AddProvider(capture));
         services.AddSingleton<IEgressGuard>(new EgressGuard("air-gapped"));
         services.AddAshlarEgressGuard();
-        services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => new FollowingUnknownPrimary(new Uri("https://example/landed")));
+        var primary = new FollowingUnknownPrimary(new Uri("https://example/landed"));
+        services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => primary);
 
         using var provider = services.BuildServiceProvider();
         using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
-        using (await client.GetAsync(new Uri("https://example/start")))
-        {
-        }
+        var error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync(new Uri("https://example/start")); });
+        error.Should().BeOfType<EgressRefusedException>().Which.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        primary.Sends.Should().Be(0);
 
         capture.Warnings.Should().Contain(w =>
             w.Contains(typeof(FollowingUnknownPrimary).FullName!, StringComparison.Ordinal)
@@ -644,11 +646,13 @@ public sealed class EgressRedirectTwinTests
     private sealed class FollowingUnknownPrimary : HttpMessageHandler
     {
         private readonly Uri _followed;
+        public int Sends { get; private set; }
 
         public FollowingUnknownPrimary(Uri followed) => _followed = followed;
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            Sends++;
             var followed = new HttpRequestMessage(HttpMethod.Get, _followed);
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { RequestMessage = followed });
         }
