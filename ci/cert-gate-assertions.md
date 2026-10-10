@@ -116,4 +116,3 @@ which have no other home and which nothing else would catch.
    once and it was defused before it tripped.
 5. **If this gate is red, fix it or date it.** Muting it removes every row above simultaneously.
    That is the failure mode this file is written against.
-
