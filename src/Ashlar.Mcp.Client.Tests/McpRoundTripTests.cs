@@ -111,6 +111,38 @@ public sealed class McpRoundTripTests
 
     private static CancellationToken TestTimeout() => new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
 
+    [Theory(Timeout = 60000)]
+    [InlineData(null)]
+    [InlineData("TopSecret")]
+    [InlineData("SystemHigh")]
+    public async Task Remote_cancellation_payload_requires_a_live_SystemHigh_grant(string? grant)
+    {
+        var ct = TestTimeout();
+        using var subject = EgressSubject.Enter("test:mcp-cancel", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(grant is null ? new Dictionary<string, string?>() :
+            new Dictionary<string, string?> { ["test:mcp-cancel"] = grant });
+        await using var harness = new ServerHarness();
+        await harness.StartAsync(ct);
+        var options = new AshlarMcpClientOptions { Enabled = true };
+        options.Servers.Add(new McpServerEndpointOptions { Name = "test", Url = "https://in-memory.invalid/mcp" });
+        await using var manager = new McpClientConnectionManager(Options.Create(options),
+            NullLoggerFactory.Instance, NullLogger<McpClientConnectionManager>.Instance, clearances: authority)
+        { ClientFactoryOverride = (_, token) => harness.ConnectClientAsync(token) };
+        await manager.StartAsync(ct);
+        var tool = manager.GetTools().Should().ContainSingle().Subject;
+        harness.ClientWriteFailure = new OperationCanceledException("private-cancellation-canary");
+        using var args = JsonDocument.Parse("""{"value":"allowed"}""");
+        var error = await Record.ExceptionAsync(() => tool.InvokeAsync(new ToolCall(tool.Id, args.RootElement),
+            WorldSnapshot.ForRepo("X:/repo"), ct));
+        if (grant == "SystemHigh")
+            error.Should().NotBeOfType<ReadRefusedException>();
+        else
+        {
+            error.Should().BeOfType<ReadRefusedException>();
+            error!.ToString().Should().NotContain("private-cancellation-canary");
+        }
+    }
+
     [Fact(Timeout = 60000)]
     public async Task Local_refusal_during_drift_and_invocation_preserves_pins_and_the_typed_error()
     {

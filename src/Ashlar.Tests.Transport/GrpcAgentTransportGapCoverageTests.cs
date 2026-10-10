@@ -18,6 +18,24 @@ namespace Ashlar.Tests.Transport;
 public sealed class GrpcAgentTransportGapCoverageTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Caller_cancellation_does_not_return_remote_fault_details(bool rpc)
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Exception fault = rpc ? new RpcException(new Status(StatusCode.Cancelled, "private-cancellation-canary")) :
+            new OperationCanceledException("private-cancellation-canary");
+        using var transport = new GrpcAgentTransport(new ThrowingChannelFactory(fault),
+            NullLogger<GrpcAgentTransport>.Instance);
+        var error = await Record.ExceptionAsync(() => transport.SendAsync(new AgentInvocationRequest("agent-1", "cancel-test",
+            Options: new AgentInvocationOptions(TimeSpan.FromSeconds(1), 0, "http://127.0.0.1:9")), cancellation.Token));
+        error.Should().BeOfType<OperationCanceledException>().Which.CancellationToken.Should().Be(cancellation.Token);
+        error!.ToString().Should().NotContain("private-cancellation-canary");
+        error.InnerException.Should().BeNull();
+    }
+
+    [Theory]
     [InlineData(null, false)]
     [InlineData("TopSecret", false)]
     [InlineData("SystemHigh", false)]

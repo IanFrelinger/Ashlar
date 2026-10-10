@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 810,
-    "declared_facts": 5192,
+    "declared_facts": 5195,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -3076,7 +3076,7 @@
       "file": "src/Ashlar.Mcp.Client.Tests/McpRoundTripTests.cs",
       "project": "Ashlar.Mcp.Client.Tests",
       "namespace": "Ashlar.Mcp.Client.Tests",
-      "declared_facts": 5,
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
@@ -8249,7 +8249,7 @@
       "file": "src/Ashlar.Tests.Transport/GrpcAgentTransportGapCoverageTests.cs",
       "project": "Ashlar.Tests.Transport",
       "namespace": "Ashlar.Tests.Transport",
-      "declared_facts": 17,
+      "declared_facts": 18,
       "in_cert_gate_filter": false
     },
     {
@@ -8326,7 +8326,7 @@
       "file": "src/Ashlar.Transport.A2A.Tests/A2AAgentTransportTests.cs",
       "project": "Ashlar.Transport.A2A.Tests",
       "namespace": "Ashlar.Transport.A2A.Tests",
-      "declared_facts": 6,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {

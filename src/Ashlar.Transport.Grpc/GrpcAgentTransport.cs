@@ -69,6 +69,7 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 headers: headers,
                 deadline: deadline,
                 cancellationToken: cancellationToken).ResponseAsync;
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (!response.Success && EgressRefusal.IsCode(response.ErrorCode))
             {
@@ -101,6 +102,14 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 ErrorCode: EgressRefusal.Code, Metadata: EgressRefusal.Metadata(refusal),
                 Duration: DateTimeOffset.UtcNow - startedAt,
                 CorrelationId: request.CorrelationId, SpanId: request.SpanId);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancellationToken);
+        }
+        catch (RpcException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancellationToken);
         }
         catch (RpcException ex)
         {

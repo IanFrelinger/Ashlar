@@ -11,6 +11,21 @@ namespace Ashlar.Transport.A2A.Tests;
 
 public sealed class A2AAgentTransportTests
 {
+    [Fact]
+    public async Task Caller_cancellation_does_not_propagate_a_remote_exception_message()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var handler = new RefusingHandler(new OperationCanceledException("private-cancellation-canary"), cancellation.Cancel);
+        using var client = new HttpClient(handler);
+        var transport = Create();
+        transport.HttpClientFactoryOverride = _ => client;
+        var error = await Record.ExceptionAsync(() => transport.SendAsync(Request("a2a+https://remote.example"), cancellation.Token));
+        error.Should().BeOfType<OperationCanceledException>().Which.CancellationToken.Should().Be(cancellation.Token);
+        error!.ToString().Should().NotContain("private-cancellation-canary");
+        error.InnerException.Should().BeNull();
+        handler.Calls.Should().Be(1);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -37,12 +52,13 @@ public sealed class A2AAgentTransportTests
         handler.Calls.Should().Be(2);
     }
 
-    private sealed class RefusingHandler(Exception error) : HttpMessageHandler
+    private sealed class RefusingHandler(Exception error, Action? beforeFailure = null) : HttpMessageHandler
     {
         internal int Calls { get; private set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Calls++;
+            beforeFailure?.Invoke();
             return Task.FromException<HttpResponseMessage>(error);
         }
     }

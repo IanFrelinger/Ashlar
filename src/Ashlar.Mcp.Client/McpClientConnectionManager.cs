@@ -181,6 +181,7 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
             var result = await connection.Client
                 .CallToolAsync(proxy.RemoteToolName, McpJsonBridge.ToArgumentDictionary(arguments), cancellationToken: ct)
                 .ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
             EgressSubject.Observe(SecurityLabel.SystemHigh);
             SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
             return McpJsonBridge.ToToolResult(result, proxy.Id, tick);
@@ -196,8 +197,14 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
             EgressRefusal.ThrowIfPresent(ex);
             throw;
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(ct);
+        }
         catch (OperationCanceledException)
         {
+            EgressSubject.Observe(SecurityLabel.SystemHigh);
+            SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
             throw;
         }
         catch (Exception ex)

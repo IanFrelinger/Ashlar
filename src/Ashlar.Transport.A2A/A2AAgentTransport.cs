@@ -98,6 +98,7 @@ public sealed class A2AAgentTransport : IAgentTransport
             try
             {
                 var response = await client.SendMessageAsync(sendRequest, timeout.Token).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
                 var result = A2AInvocationMapper.MapResponse(response, request, stopwatch.Elapsed);
                 // The mapper discards all remote details for an egress refusal. Every other
                 // response lacks an authenticated data label and is therefore SystemHigh.
@@ -121,7 +122,7 @@ public sealed class A2AAgentTransport : IAgentTransport
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                throw;
+                throw new OperationCanceledException(cancellationToken);
             }
             catch (OperationCanceledException)
             {
