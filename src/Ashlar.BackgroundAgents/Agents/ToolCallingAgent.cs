@@ -121,7 +121,7 @@ public sealed class ToolCallingAgent : IAgent
             EgressRefusal.ThrowIfPresent(ex);
             throw;
         }
-        catch (ReadRefusedException refusal)
+        catch (Exception ex) when (ReadRefusal.Find(ex) is { } refusal)
         {
             stoppedReason = "read_refused";
             try { memory?.Write(new EventRecord(DateTimeOffset.UtcNow, Name, "read.refused", refusal.Message)); }

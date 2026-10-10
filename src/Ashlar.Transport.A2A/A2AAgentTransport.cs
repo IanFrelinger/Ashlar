@@ -108,7 +108,7 @@ public sealed class A2AAgentTransport : IAgentTransport
                 }
                 return result;
             }
-            catch (ReadRefusedException refusal)
+            catch (Exception ex) when (ReadRefusal.Find(ex) is { } refusal)
             {
                 return Failure(request, stopwatch.Elapsed, refusal.ErrorCode, refusal.Message);
             }

@@ -91,7 +91,7 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 CorrelationId: string.IsNullOrWhiteSpace(response.CorrelationId) ? request.CorrelationId : response.CorrelationId,
                 SpanId: string.IsNullOrWhiteSpace(response.SpanId) ? request.SpanId : response.SpanId);
         }
-        catch (ReadRefusedException refusal)
+        catch (Exception ex) when (ReadRefusal.Find(ex) is { } refusal)
         {
             return ReadFailure(request, startedAt, refusal);
         }

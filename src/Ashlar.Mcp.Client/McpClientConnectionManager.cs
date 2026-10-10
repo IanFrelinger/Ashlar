@@ -185,7 +185,11 @@ public sealed class McpClientConnectionManager : IHostedService, IToolSource, IA
             SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
             return McpJsonBridge.ToToolResult(result, proxy.Id, tick);
         }
-        catch (ReadRefusedException) { throw; }
+        catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+        {
+            ReadRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
         {
             _refusalWarnings.Report(refusal);

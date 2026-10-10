@@ -12,15 +12,19 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 public sealed class ResponseReadCycleTests
 {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task Model_and_tool_read_refusals_stop_without_another_model_turn(bool modelRefuses, bool auditFault)
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public async Task Model_and_tool_read_refusals_stop_without_another_model_turn(bool modelRefuses, bool auditFault, bool wrapped)
     {
-        var model = new RefusingModel(modelRefuses);
+        var model = new RefusingModel(modelRefuses, wrapped);
         var tools = new CapabilityRegistry();
-        tools.Register(new RefusingTool());
+        tools.Register(new RefusingTool(wrapped));
         var events = new List<EventRecord>();
         var memory = new Mock<IAgentMemory>();
         memory.Setup(m => m.Write(It.IsAny<EventRecord>())).Callback<EventRecord>(e =>
@@ -38,24 +42,32 @@ public sealed class ResponseReadCycleTests
         model.Calls.Should().Be(1);
         events.Should().ContainSingle(e => e.EventType == "read.refused");
         events.Should().NotContain(e => e.EventType == "react.error");
+        events.Where(e => e.EventType == "read.refused").Should().OnlyContain(e => !e.Message.Contains("private-canary", StringComparison.Ordinal));
     }
 
-    private sealed class RefusingModel(bool refuses) : IModel
+    private static Exception Refusal(bool wrapped)
+    {
+        var refusal = new ReadRefusedException(AccessDenialReason.SystemHighData);
+        return wrapped ? new AggregateException("wrapper-private-canary",
+            new IOException("unrelated-private-canary"), new HttpRequestException("nested-private-canary", refusal)) : refusal;
+    }
+
+    private sealed class RefusingModel(bool refuses, bool wrapped) : IModel
     {
         public int Calls { get; private set; }
         public Task<ModelOutput> CompleteAsync(ModelInput input, CancellationToken ct)
         {
             Calls++;
-            if (refuses) throw new ReadRefusedException(AccessDenialReason.SystemHighData);
+            if (refuses) throw Refusal(wrapped);
             return Task.FromResult(new ModelOutput("""{"tool_calls":[{"id":"peer","arguments":{}}]}"""));
         }
     }
 
-    private sealed class RefusingTool : ITool
+    private sealed class RefusingTool(bool wrapped) : ITool
     {
         public string Id => "peer";
         public ToolSchema Schema => new(Id, Id, """{"type":"object"}""");
         public Task<ToolResult> InvokeAsync(ToolCall toolCall, WorldSnapshot s, CancellationToken ct) =>
-            throw new ReadRefusedException(AccessDenialReason.SystemHighData);
+            throw Refusal(wrapped);
     }
 }
