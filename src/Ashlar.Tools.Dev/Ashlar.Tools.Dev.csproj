@@ -15,6 +15,7 @@
     <ProjectReference Include="..\Ashlar.Core.Application\Ashlar.Core.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="OsmSharp" />
   </ItemGroup>
