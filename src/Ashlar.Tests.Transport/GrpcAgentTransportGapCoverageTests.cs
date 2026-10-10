@@ -17,6 +17,39 @@ namespace Ashlar.Tests.Transport;
 [Collection("GrpcTransportEnvironment")]
 public sealed class GrpcAgentTransportGapCoverageTests
 {
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("TopSecret", false)]
+    [InlineData("SystemHigh", false)]
+    [InlineData(null, true)]
+    [InlineData("TopSecret", true)]
+    [InlineData("SystemHigh", true)]
+    public async Task Remote_fault_details_require_explicit_SystemHigh(string? grant, bool rpc)
+    {
+        using var subject = EgressSubject.Enter("test:grpc-fault", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(grant is null ? new Dictionary<string, string?>() :
+            new Dictionary<string, string?> { ["test:grpc-fault"] = grant });
+        Exception fault = rpc ? new RpcException(new Status(StatusCode.NotFound, "private-fault-canary")) :
+            new InvalidOperationException("private-fault-canary");
+        using var transport = new GrpcAgentTransport(new ThrowingChannelFactory(fault),
+            NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
+        var result = await transport.SendAsync(new AgentInvocationRequest("agent-1", "fault-test",
+            Options: new AgentInvocationOptions(Timeout: TimeSpan.FromSeconds(1), MaxRetries: 0,
+                TargetEndpoint: "http://127.0.0.1:9")));
+        result.Success.Should().BeFalse();
+        if (grant == "SystemHigh")
+        {
+            result.ErrorCode.Should().Be(rpc ? "AGENT_NOT_FOUND" : "TRANSPORT_ERROR");
+            result.ErrorMessage.Should().Contain("private-fault-canary");
+        }
+        else
+        {
+            result.ErrorCode.Should().Be("read_refused");
+            result.ErrorMessage.Should().NotContain("private-fault-canary");
+            result.Output.Should().BeNull();
+        }
+    }
+
     [Fact]
     public async Task SendAsync_without_target_endpoint_returns_required_error()
     {
@@ -174,6 +207,8 @@ public sealed class GrpcAgentTransportGapCoverageTests
     [Fact]
     public async Task SendAsync_propagates_barrier_context_and_records_audit()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         await using var fixture = await GrpcTransportTestFixture.StartAsync(new EchoTransport());
 
         using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
@@ -188,7 +223,7 @@ public sealed class GrpcAgentTransportGapCoverageTests
             factory,
             NullLogger<GrpcAgentTransport>.Instance,
             ambient,
-            audit);
+            audit, clearances: authority);
 
         var result = await transport.SendAsync(new AgentInvocationRequest(
             AgentName: "agent-1",
@@ -205,13 +240,15 @@ public sealed class GrpcAgentTransportGapCoverageTests
     [Fact]
     public async Task SendAsync_surfaces_server_failure_response_without_exception()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         await using var fixture = await GrpcTransportTestFixture.StartAsync(new FailingTransport("agent exploded"));
 
         using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var result = await transport.SendAsync(new AgentInvocationRequest(
             AgentName: "agent-1",
@@ -281,9 +318,11 @@ public sealed class GrpcAgentTransportGapCoverageTests
     [Fact]
     public async Task SendAsync_returns_transport_error_when_channel_factory_throws_unexpected_exception()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         using var transport = new GrpcAgentTransport(
             new ThrowingChannelFactory(new InvalidOperationException("channel failed")),
-            NullLogger<GrpcAgentTransport>.Instance);
+            NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var result = await transport.SendAsync(new AgentInvocationRequest(
             AgentName: "agent-1",
@@ -301,9 +340,11 @@ public sealed class GrpcAgentTransportGapCoverageTests
     [Fact]
     public async Task SendAsync_maps_rpc_status_codes_to_error_codes()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         using var transport = new GrpcAgentTransport(
             new ThrowingChannelFactory(new RpcException(new Status(StatusCode.NotFound, "missing agent"))),
-            NullLogger<GrpcAgentTransport>.Instance);
+            NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var result = await transport.SendAsync(new AgentInvocationRequest(
             AgentName: "missing",
@@ -320,6 +361,8 @@ public sealed class GrpcAgentTransportGapCoverageTests
     [Fact]
     public async Task SendAsync_propagates_barrier_headers_without_audit_log()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         await using var fixture = await GrpcTransportTestFixture.StartAsync(new CaptureTransport(_ => { }));
 
         using var env = new EnvironmentVariableScope("DOTNET_ENVIRONMENT", "Development");
@@ -329,7 +372,7 @@ public sealed class GrpcAgentTransportGapCoverageTests
         var hierarchy = new BarrierHierarchy([new BarrierLevel("internal", 1)]);
         var ambient = new StubBarrierContextAmbient(
             BarrierContext.Create("internal", BarrierAuthoritySource.Header, "agent-1", "corr-barrier-no-audit", hierarchy));
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, ambient);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, ambient, clearances: authority);
 
         var result = await transport.SendAsync(new AgentInvocationRequest(
             AgentName: "agent-1",

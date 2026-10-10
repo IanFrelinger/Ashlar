@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using System.Net;
 using FluentAssertions;
 using Grpc.Core;
@@ -24,6 +26,8 @@ public sealed class AgentTransportServiceImplGapCoverageTests
     [Fact]
     public async Task Invoke_returns_barrier_validation_failure_when_explicit_barrier_required()
     {
+        using var subject = EgressSubject.Enter("test:grpc", new HighWaterMark());
+        var authority = new SubjectClearanceAuthority(new Dictionary<string, string?> { ["test:grpc"] = "SystemHigh" });
         await using var fixture = await GrpcTransportTestFixture.StartAsync(
             new EchoTransport(),
             requireExplicitBarrier: true);
@@ -32,7 +36,7 @@ public sealed class AgentTransportServiceImplGapCoverageTests
         var factory = new DefaultGrpcChannelFactory(
             Options.Create(new GrpcTransportOptions { AllowInsecure = true }),
             NullLogger<DefaultGrpcChannelFactory>.Instance);
-        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance);
+        using var transport = new GrpcAgentTransport(factory, NullLogger<GrpcAgentTransport>.Instance, clearances: authority);
 
         var result = await transport.SendAsync(new AgentInvocationRequest(
             AgentName: "agent-1",
