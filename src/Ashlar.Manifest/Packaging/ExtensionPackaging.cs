@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Ashlar.Abstractions.Security;
 using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Signing;
 
@@ -51,6 +52,13 @@ public sealed record ExtensionPackage
 
     /// <summary>Base64 raw public key of the sealer. Must equal the record's signer.</summary>
     public string? SealSigner { get; init; }
+
+    /// <summary>
+    /// The skill's highest level, as canonical label text (SPEC-007 PR 5). Null on a package sealed
+    /// before levels existed. The seal covers this field; the signed gate record does not. Composition
+    /// treats a missing or unparseable level as <c>SystemHigh</c>.
+    /// </summary>
+    public string? HighestLevel { get; init; }
 }
 
 /// <summary>
@@ -81,7 +89,11 @@ public static class ExtensionPackaging
     /// reason when the record or files are not shareable — a package that cannot prove its claim
     /// is refused at the source, not discovered broken at the destination.
     /// </summary>
-    public static string Pack(GateRecord record, IReadOnlyList<PackageFile> files, SigningIdentity sealer)
+    public static string Pack(
+        GateRecord record,
+        IReadOnlyList<PackageFile> files,
+        SigningIdentity sealer,
+        string? highestLevel = null)
     {
         ArgumentNullException.ThrowIfNull(record);
         ArgumentNullException.ThrowIfNull(files);
@@ -127,12 +139,19 @@ public static class ExtensionPackaging
         {
             throw new InvalidOperationException(claimReason);
         }
+        if (highestLevel is not null && !SecurityLabel.TryParse(highestLevel, out _))
+        {
+            throw new InvalidOperationException(
+                "REFUSED: the skill's highest level '" + highestLevel
+                + "' is not a canonical security label. Omit it, or write the label exactly as it prints.");
+        }
 
         var unsealed = new ExtensionPackage
         {
             FormatVersion = ExtensionPackage.ExpectedFormatVersion,
             Record = record,
             Files = files,
+            HighestLevel = highestLevel,
         };
         var sealed_ = unsealed with
         {

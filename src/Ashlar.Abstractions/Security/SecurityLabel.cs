@@ -262,6 +262,18 @@ public sealed class SecurityLabel : IEquatable<SecurityLabel>
     public static SecurityLabel ParseOrSystemHigh(string? text) => ParseCanonical(text) ?? SystemHigh;
 
     /// <summary>
+    /// Parses <paramref name="text"/> as <see cref="TryParse"/> does, and fails closed for a clearance: a null,
+    /// blank, unknown or malformed label is <see cref="Public"/>.
+    /// </summary>
+    /// <remarks>
+    /// Use this for a <b>clearance</b> or a <b>write destination</b>. <see cref="SystemHigh"/> is the most
+    /// permissive value on that side, so an unreadable clearance must not become one. A label on data still uses
+    /// <see cref="ParseOrSystemHigh"/>.
+    /// </remarks>
+    /// <param name="text">The text to parse.</param>
+    public static SecurityLabel ParseOrPublic(string? text) => ParseCanonical(text) ?? Public;
+
+    /// <summary>
     /// The canonical text form, for example <c>Secret</c>, <c>Secret//C:ALPHA,BRAVO</c>,
     /// <c>Secret//C:ALPHA//K:NOWEB</c>, <c>Public//K:NOWEB</c> or <c>SystemHigh</c>. Equal labels print
     /// identically, and <see cref="TryParse"/> reads the text back to an equal label.

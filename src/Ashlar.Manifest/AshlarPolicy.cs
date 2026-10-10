@@ -28,6 +28,27 @@ public sealed record AshlarPolicy
     /// permissive gate.
     /// </summary>
     public List<string> Never { get; init; } = [];
+
+    /// <summary>
+    /// Clearances for agents this project composes (SPEC-007 PR 5). Omitted means every agent is
+    /// <c>Public</c>. The running application cannot edit this file.
+    /// </summary>
+    public PolicyClearances Clearances { get; init; } = new();
+}
+
+/// <summary>
+/// Agent clearances. Each value is canonical security-label text (<c>Secret</c>,
+/// <c>Secret//C:ALPHA</c>, <c>SystemHigh</c>). Quote a value that contains <c>//</c>, or YAML reads the
+/// rest of the line as a comment. An absent default is <c>Public</c> at composition time.
+/// A host may only tighten a clearance; it cannot raise one above this ceiling.
+/// </summary>
+public sealed record PolicyClearances
+{
+    /// <summary>Clearance for an agent that <see cref="Agents"/> does not name. Empty means unset.</summary>
+    public string Default { get; init; } = "";
+
+    /// <summary>Per-agent ceiling, keyed by the agent name compared ordinally.</summary>
+    public Dictionary<string, string> Agents { get; init; } = new(StringComparer.Ordinal);
 }
 
 /// <summary>Filesystem confinement.</summary>
