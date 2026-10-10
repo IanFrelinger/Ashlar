@@ -272,13 +272,13 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
             if (iterator is not null)
             {
                 try { await iterator.DisposeAsync().ConfigureAwait(false); }
-                catch
+                catch (Exception error)
                 {
                     ObserveResponse();
                     // Never replace a pending read refusal or cancellation with a peer's disposal payload.
                     if (completed)
                     {
-                        RequireRead(SecurityLabel.SystemHigh);
+                        ObserveFailure(error, cancellationToken);
                         throw;
                     }
                 }

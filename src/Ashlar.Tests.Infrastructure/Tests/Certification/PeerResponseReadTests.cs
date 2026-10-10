@@ -264,6 +264,26 @@ public sealed class PeerResponseReadTests
         delivered.Should().Be(0);
     }
 
+    [Theory]
+    [InlineData("Public")]
+    [InlineData("SystemHigh")]
+    public async Task Cancellation_during_completed_stream_disposal_is_redacted(string clearance)
+    {
+        using var cancelled = new CancellationTokenSource();
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        using var inner = new DisposalPeer(cancelled);
+        using var client = Guard(inner, clearance, new BoundVerifier(inner.First, "Public"));
+        var delivered = 0;
+        var error = await Record.ExceptionAsync(async () =>
+        {
+            await foreach (var _ in client.GetStreamingResponseAsync("hello", cancellationToken: cancelled.Token)) delivered++;
+        });
+        delivered.Should().Be(1);
+        error.Should().BeAssignableTo<OperationCanceledException>();
+        error!.ToString().Should().NotContain(Canary);
+        error.InnerException.Should().BeNull();
+    }
+
     [Fact]
     public void SystemHigh_read_clearance_does_not_authorize_model_escalation()
     {
@@ -321,6 +341,30 @@ public sealed class PeerResponseReadTests
     private sealed class BrokenAuditor : IChatInvocationAuditor
     {
         public void Record(ChatInvocationAuditRecord record) => throw new Exception(Canary);
+    }
+    private sealed class DisposalPeer(CancellationTokenSource cancelled) : DelegatingChatClient(new Peer())
+    {
+        public ChatResponseUpdate First { get; } = new(ChatRole.Assistant, Canary);
+        public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null, CancellationToken cancellationToken = default) => new DisposalStream(First, cancelled);
+    }
+    private sealed class DisposalStream(ChatResponseUpdate update, CancellationTokenSource cancelled)
+        : IAsyncEnumerable<ChatResponseUpdate>, IAsyncEnumerator<ChatResponseUpdate>
+    {
+        private bool _sent;
+        public ChatResponseUpdate Current => update;
+        public IAsyncEnumerator<ChatResponseUpdate> GetAsyncEnumerator(CancellationToken cancellationToken = default) => this;
+        public ValueTask<bool> MoveNextAsync()
+        {
+            var moved = !_sent;
+            _sent = true;
+            return ValueTask.FromResult(moved);
+        }
+        public ValueTask DisposeAsync()
+        {
+            cancelled.Cancel();
+            return ValueTask.FromException(new OperationCanceledException(Canary));
+        }
     }
     private sealed class Peer : IChatClient
     {
