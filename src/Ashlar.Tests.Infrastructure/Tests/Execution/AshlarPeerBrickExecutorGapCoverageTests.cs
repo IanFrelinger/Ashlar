@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Agents.TestKit;
 using System.Net;
@@ -15,11 +16,17 @@ namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 /// <summary>Tests for ashlar peer brick executor gap coverage.</summary>
 public sealed class AshlarPeerBrickExecutorGapCoverageTests
 {
+    private static SubjectClearanceAuthority PeerAuthority() => new(new Dictionary<string, string?>
+    {
+        ["test:peer-reader"] = "SystemHigh",
+    });
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Peer_fallback_preserves_first_refusal_unless_an_alternative_succeeds(bool succeeds)
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
             new EgressRequest(EgressFamilies.Http, "peer-refusal", new Uri("https://remote.example"))));
         var hosts = new List<string>();
@@ -47,6 +54,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_returns_invalid_response_when_peer_returns_non_json()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -76,6 +84,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_returns_execution_failed_when_peer_reports_success_false()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -105,6 +114,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_skips_peers_with_invalid_endpoints()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var sut = CreateExecutor(new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)))), [
             new PeerExecutionCandidate
@@ -129,6 +139,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_filters_peers_by_vram_and_queue_depth()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var sut = CreateExecutor(new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)))), [
             new PeerExecutionCandidate
@@ -160,6 +171,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_returns_invalid_output_when_success_has_empty_payload()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -177,6 +189,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_returns_invalid_response_when_success_flag_missing()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -193,6 +206,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_succeeds_with_inline_base64_payload()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var payload = Convert.ToBase64String(new byte[] { 5, 6, 7 });
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -213,6 +227,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_maps_http_request_failures()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromException<HttpResponseMessage>(new HttpRequestException("connection reset"))));
         var sut = CreateExecutor(httpClient, [EligiblePeer("peer-a", "http://peer-a:8080")]);
@@ -226,6 +241,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_times_out_slow_peer()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler(async (_, ct) =>
         {
             await Task.Delay(TimeSpan.FromSeconds(2), ct);
@@ -263,6 +279,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_returns_null_response_when_peer_body_empty()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -280,6 +297,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_succeeds_with_output_wrapper_payload()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var payload = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
         var json = $$"""
         {
@@ -309,6 +327,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_deduplicates_peers_by_endpoint_authority()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var callCount = 0;
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
         {
@@ -338,6 +357,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_filters_peers_by_compute_class()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var sut = CreateExecutor(new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)))), [
             new PeerExecutionCandidate
@@ -361,6 +381,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_uses_custom_peer_routing_brick_id_in_request_uri()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         string? requestedPath = null;
         using var httpClient = new HttpClient(new StubHttpMessageHandler((request, _) =>
         {
@@ -383,7 +404,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
             {
                 PeerRoutingBrickId = "custom.peer.brick",
                 PeerRequestTimeout = TimeSpan.FromSeconds(1),
-            }));
+            }), PeerAuthority());
 
         var result = await sut.ExecuteAsync(Payload(), Requirements(), new GapExecutionContext());
 
@@ -394,6 +415,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_maps_http_status_errors()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadGateway)
             {
@@ -410,6 +432,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_maps_unexpected_dispatch_exceptions()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromException<HttpResponseMessage>(new InvalidOperationException("handler blew up"))));
 
@@ -423,6 +446,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_rejects_invalid_base64_payload()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((_, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -442,6 +466,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_serializes_rich_execution_context_variables()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         string? body = null;
         using var httpClient = new HttpClient(new StubHttpMessageHandler(async (request, _) =>
         {
@@ -501,6 +526,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_serializes_non_generic_idictionary_variables()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         string? body = null;
         using var httpClient = new HttpClient(new StubHttpMessageHandler(async (request, _) =>
         {
@@ -537,6 +563,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_escapes_special_characters_in_request_json()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         string? body = null;
         using var httpClient = new HttpClient(new StubHttpMessageHandler(async (request, _) =>
         {
@@ -569,6 +596,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
     [Fact]
     public async Task ExecuteAsync_falls_back_to_second_peer_after_first_fails()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var hosts = new List<string>();
         using var httpClient = new HttpClient(new StubHttpMessageHandler((request, _) =>
         {
@@ -634,7 +662,7 @@ public sealed class AshlarPeerBrickExecutorGapCoverageTests
             {
                 QueueDepthThreshold = queueDepthThreshold,
                 PeerRequestTimeout = peerRequestTimeout ?? TimeSpan.FromSeconds(1),
-            }));
+            }), PeerAuthority());
 
     /// <summary>Tests for gap execution context.</summary>
     private sealed class GapExecutionContext : IExecutionContext

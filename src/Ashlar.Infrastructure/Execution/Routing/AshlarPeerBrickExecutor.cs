@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using System.Globalization;
 using System.Text;
@@ -22,14 +23,17 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
     private readonly int _queueDepthThreshold;
     private readonly TimeSpan _peerRequestTimeout;
     private readonly PeerTrustPolicyResolver _trustPolicyResolver;
+    private readonly SubjectClearanceAuthority? _clearances;
 
     /// <summary>Initializes a new ashlar peer brick executor.</summary>
     public AshlarPeerBrickExecutor(
         IHttpClientFactory httpClientFactory,
         ILogger<AshlarPeerBrickExecutor> logger,
         IPeerCapabilitySnapshot snapshot,
-        Microsoft.Extensions.Options.IOptions<RunPodBrickConfig> config)
+        Microsoft.Extensions.Options.IOptions<RunPodBrickConfig> config,
+        SubjectClearanceAuthority? clearances = null)
     {
+        _clearances = clearances;
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
@@ -119,6 +123,8 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
                 payload.ModelId);
             using var requestContent = new StringContent(requestJson, Encoding.UTF8, "application/json");
             using var response = await client.PostAsync(requestUri, requestContent, timeoutCts.Token).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            RequirePeerRead();
             if (!response.IsSuccessStatusCode)
             {
                 return Result<GenerationExecutionResult>.Failure(
@@ -128,6 +134,8 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
             }
 
             var responseJson = await response.Content.ReadAsStringAsync(timeoutCts.Token).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            RequirePeerRead();
             if (!TryParsePeerExecutionResponse(responseJson, out var parsed, out var parseError))
             {
                 return Result<GenerationExecutionResult>.Failure(
@@ -162,6 +170,16 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
                 Summary = parsed.Summary
             });
         }
+        catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+        {
+            ReadRefusal.ThrowIfPresent(ex);
+            throw;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The caller's cancellation is local; never expose a peer-supplied cancellation message.
+            throw new OperationCanceledException(cancellationToken);
+        }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning(
@@ -180,6 +198,7 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
         }
         catch (HttpRequestException ex)
         {
+            RequirePeerRead();
             _logger.LogWarning(
                 ex,
                 "peer-routing stage=http-failed peer={PeerId} endpoint={Endpoint}",
@@ -192,6 +211,7 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
         }
         catch (Exception ex)
         {
+            RequirePeerRead();
             _logger.LogWarning(
                 ex,
                 "peer-routing stage=failed peer={PeerId} endpoint={Endpoint}",
@@ -202,6 +222,14 @@ public sealed class AshlarPeerBrickExecutor : IPeerExecutor
                 "Peer execution dispatch failed.",
                 $"{candidate.PeerId}:{ex.Message}");
         }
+    }
+
+    // The peer protocol carries no authenticated response classification. Status, reason, body and faults
+    // are therefore SystemHigh regardless of peer trust tier or any self-declared label in its JSON/headers.
+    private void RequirePeerRead()
+    {
+        EgressSubject.Observe(SecurityLabel.SystemHigh);
+        SubjectReadGuard.RequireRead(_clearances, SecurityLabel.SystemHigh);
     }
 
     private IReadOnlyList<PeerExecutionCandidate> GetEligibleCandidates(JobRequirements requirements)

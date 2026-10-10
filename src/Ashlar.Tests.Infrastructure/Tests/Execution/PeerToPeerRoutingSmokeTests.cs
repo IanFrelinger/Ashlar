@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security.Egress;
+using Ashlar.Abstractions.Security;
 using Ashlar.Agents.TestKit;
 using System.Net;
 using System.Text;
@@ -16,9 +18,15 @@ namespace Ashlar.Tests.Infrastructure.Tests.Execution;
 [Trait("Category", "Smoke")]
 public sealed class PeerToPeerRoutingSmokeTests
 {
+    private static SubjectClearanceAuthority PeerAuthority() => new(new Dictionary<string, string?>
+    {
+        ["test:peer-reader"] = "SystemHigh",
+    });
+
     [Fact]
     public async Task PeerExecutor_FallsBackToNextPeer_WhenFirstPeerFails()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var requestedHosts = new List<string>();
         using var httpClient = new HttpClient(new StubHttpMessageHandler(async (request, _) =>
         {
@@ -65,7 +73,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             new StaticHttpClientFactory(httpClient),
             NullLogger<AshlarPeerBrickExecutor>.Instance,
             snapshot,
-            config);
+            config, PeerAuthority());
 
         var result = await sut.ExecuteAsync(
             new RunPodJobPayload { ModelId = "model-x", Prompt = "hello" },
@@ -82,6 +90,7 @@ public sealed class PeerToPeerRoutingSmokeTests
     [Fact]
     public async Task PeerExecutor_FailsOverWhenPeerTimesOut()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         var requestedHosts = new List<string>();
         var slowPeerCanceled = false;
         using var httpClient = new HttpClient(new StubHttpMessageHandler(async (request, cancellationToken) =>
@@ -136,7 +145,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             new StaticHttpClientFactory(httpClient),
             NullLogger<AshlarPeerBrickExecutor>.Instance,
             snapshot,
-            config);
+            config, PeerAuthority());
 
         using var cleanup = new CancellationTokenSource();
         try
@@ -165,6 +174,7 @@ public sealed class PeerToPeerRoutingSmokeTests
     [Fact]
     public async Task PeerExecutor_ParsesTopLevelSuccessFlag_IgnoringNestedSuccessFields()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((request, _) =>
         {
             var base64 = Convert.ToBase64String([3, 1, 4]);
@@ -209,7 +219,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             new StaticHttpClientFactory(httpClient),
             NullLogger<AshlarPeerBrickExecutor>.Instance,
             snapshot,
-            config);
+            config, PeerAuthority());
 
         var result = await sut.ExecuteAsync(
             new RunPodJobPayload { ModelId = "model-parse", Prompt = "parse test" },
@@ -224,6 +234,7 @@ public sealed class PeerToPeerRoutingSmokeTests
     [Fact]
     public async Task PeerExecutor_ReturnsAggregatedFailure_WhenAllPeersFail()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((request, _) =>
         {
             if (string.Equals(request.RequestUri?.Host, "peer-down", StringComparison.OrdinalIgnoreCase))
@@ -265,7 +276,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             new StaticHttpClientFactory(httpClient),
             NullLogger<AshlarPeerBrickExecutor>.Instance,
             snapshot,
-            config);
+            config, PeerAuthority());
 
         var result = await sut.ExecuteAsync(
             new RunPodJobPayload { ModelId = "model-fail", Prompt = "all fail" },
@@ -283,6 +294,7 @@ public sealed class PeerToPeerRoutingSmokeTests
     [Fact]
     public async Task PeerExecutor_TrustedOnlyPolicy_RejectsUntrustedCandidates()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         using var httpClient = new HttpClient(new StubHttpMessageHandler((request, _) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
         var snapshot = new StaticPeerSnapshot(
@@ -308,7 +320,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             new StaticHttpClientFactory(httpClient),
             NullLogger<AshlarPeerBrickExecutor>.Instance,
             snapshot,
-            config);
+            config, PeerAuthority());
 
         var result = await sut.ExecuteAsync(
             new RunPodJobPayload { ModelId = "model-trust", Prompt = "trust check" },
@@ -327,6 +339,7 @@ public sealed class PeerToPeerRoutingSmokeTests
     [Fact(Timeout = TestTimeouts.Stress)]
     public async Task PeerExecutor_StressBurstConcurrency_MaintainsHighSuccessRate()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         const int requestCount = 120;
         var peerCallCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
@@ -413,7 +426,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             new StaticHttpClientFactory(httpClient),
             NullLogger<AshlarPeerBrickExecutor>.Instance,
             snapshot,
-            config);
+            config, PeerAuthority());
 
         var tasks = Enumerable.Range(0, requestCount)
             .Select(i => sut.ExecuteAsync(
@@ -451,6 +464,7 @@ public sealed class PeerToPeerRoutingSmokeTests
     [Fact(Timeout = TestTimeouts.Integration)]
     public async Task PeerExecutor_StressChaosIntermittentOutages_RecoversWithFallback()
     {
+        using var clearanceFrame = EgressSubject.Enter("test:peer-reader", new HighWaterMark(SecurityLabel.SystemHigh));
         const int requestCount = 80;
         var random = new Random(1337);
         var peerSuccessCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -546,7 +560,7 @@ public sealed class PeerToPeerRoutingSmokeTests
             new StaticHttpClientFactory(httpClient),
             NullLogger<AshlarPeerBrickExecutor>.Instance,
             snapshot,
-            config);
+            config, PeerAuthority());
 
         var tasks = Enumerable.Range(0, requestCount)
             .Select(i => sut.ExecuteAsync(
