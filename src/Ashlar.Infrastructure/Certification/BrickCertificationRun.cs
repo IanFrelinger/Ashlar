@@ -140,16 +140,16 @@ public static class BrickCertificationRun
         var store = new FileCertificationRecordStore(recordDir);
         var signer = request.Signer ?? new CertificationRecordSigner();
         var gate = new CertificationGate(signer);
-        var registry = new CertifiedBrickRegistry(store, signer);
-        var admission = new CertifiedBrickAdmission(gate, registry);
 
         try
         {
             var certificationRequest = await BrickCertificationProjectLoader
                 .LoadAsync(brickDir, witnessPath, cancellationToken).ConfigureAwait(false);
             certificationRequest = certificationRequest with { HighestDataLabel = request.HighestDataLabel };
-            var decision = await admission
-                .CertifyAndAdmitAsync(certificationRequest, cancellationToken).ConfigureAwait(false);
+            // Offline certification produces signed evidence. Loading into a serving runtime is
+            // a separate operation requiring operator-pinned trust and a live subject clearance.
+            var decision = await gate
+                .CertifyAsync(certificationRequest, cancellationToken).ConfigureAwait(false);
 
             await File.WriteAllTextAsync(
                 recordPath,
@@ -167,9 +167,8 @@ public static class BrickCertificationRun
                     CertificationRecordMapper.ToData(decision.Record), artifact, cancellationToken).ConfigureAwait(false);
             }
 
-            // On ADMIT the registry has already saved <brickId>.json through the store; this second
-            // write is what puts the record there on a REJECT as well. The comparison stays
-            // OrdinalIgnoreCase because it is what decides, today, whether the copy happens at all.
+            // Persist the brick-id copy for either verdict without activating the candidate.
+            // Keep the existing case-insensitive path comparison for compatibility.
             var brickIdRecordPath = Path.Combine(recordDir, $"{decision.Record.BrickId}.json");
             var wroteBrickIdRecord = !string.Equals(recordPath, brickIdRecordPath, StringComparison.OrdinalIgnoreCase);
             if (wroteBrickIdRecord)
