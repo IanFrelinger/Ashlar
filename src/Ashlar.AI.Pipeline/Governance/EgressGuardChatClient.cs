@@ -7,14 +7,14 @@ namespace Ashlar.AI.Pipeline.Governance;
 
 /// <summary>
 /// Outermost governance middleware: decides egress for the target before calling the inner client or creating
-/// its stream. A refusal under enforcement throws a redacted policy exception; report mode delegates unchanged.
+/// its stream. Egress refusal follows the process mode; response reads always require a trusted clearance.
 /// It never reads the messages. Host guard faults become NoDecision records under the process mode.
 /// </summary>
 /// <remarks>
 /// <para>It is the first <c>Use()</c> in <see cref="AshlarGovernanceChatClientBuilderExtensions.UseAshlarGovernance"/>,
 /// so an attempt that <see cref="PolicyGateChatClient"/> denies is still recorded.</para>
 /// <para>Both overrides are deliberately not <c>async</c>: the decision is made when the call is made, and an exception
-/// an inner layer throws synchronously (PolicyGate's denial) still leaves this call synchronously, as it did before.</para>
+/// an inner layer throws synchronously still leaves this call synchronously, with unreadable failure data redacted.</para>
 /// <para>A <see langword="null"/> request (the in-process LLamaSharp client under <c>local:onnx</c>) delegates without
 /// deciding.</para>
 /// <para><b>Ollama cloud models</b> (SPEC-007 PR 4.1). A model whose id ends in <c>-cloud</c> or <c>:cloud</c>, in any
@@ -26,12 +26,10 @@ namespace Ashlar.AI.Pipeline.Governance;
 /// <para><b>A response from an agent-backed target is a read</b> (SPEC-007 PR 4.5). A model's response is derived
 /// from the prompt, which the caller already holds, so it is not a read. A <c>peer:</c> target, or any target whose key
 /// names no model endpoint (neither <c>local:</c> nor <c>cloud:</c>), may be backed by an agent whose own data is not
-/// derived from our prompt, and until PR 5 carries a label on responses that data is unlabelled: when such a call
-/// ends, however it ends (a faulted task or stream, a synchronous throw under this layer such as PolicyGate's deny),
-/// this layer observes <see cref="SecurityLabel.SystemHigh"/> into the caller's frames (<see cref="EgressSubject.Observe"/>).
-/// A streamed response observes it before each update reaches the caller, and when the stream ends. Nothing in a chat
-/// client says whether an agent answers, so the rule is keyed on the target key: a host's own inner client under a
-/// <c>local:</c> or <c>cloud:</c> key is the host's trusted base. With no frame on the caller's flow it changes nothing.</para>
+/// derived from our prompt. PR 5 requires the caller's live policy clearance before a response or update is
+/// exposed. Only an operator-trusted <see cref="IChatResponseLabelVerifier"/> can attest a lower data label;
+/// absent or invalid verification means SystemHigh. Faults and abandoned streams are observed conservatively.
+/// Host clients under local/cloud keys remain the trusted model boundary. This does not relax listener policy.</para>
 /// </remarks>
 public sealed class EgressGuardChatClient : DelegatingChatClient
 {
@@ -43,6 +41,8 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
     private readonly bool _responsesAreReads;
     private readonly IChatInvocationAuditor? _auditor;
     private readonly string? _targetKey;
+    private readonly SubjectClearanceAuthority _clearances = new(new Dictionary<string, string?>());
+    private readonly IChatResponseLabelVerifier? _responseLabels;
 
     /// <summary>Creates the legacy targetless guard layer around an inner client.</summary>
     /// <remarks>This overload does not classify responses as reads. Governed target construction uses the
@@ -68,6 +68,16 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         : this(innerClient, request, guard, targetKey)
     {
         _auditor = auditor;
+    }
+
+    /// <summary>Creates a governed target with trusted host clearance and response attestation services.</summary>
+    public EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard,
+        string? targetKey, IChatInvocationAuditor? auditor, SubjectClearanceAuthority? clearances,
+        IChatResponseLabelVerifier? responseLabels = null)
+        : this(innerClient, request, guard, targetKey, auditor)
+    {
+        _clearances = clearances ?? _clearances;
+        _responseLabels = responseLabels;
     }
 
     private EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard, bool responsesAreReads)
@@ -103,6 +113,7 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         catch
         {
             ObserveResponse();
+            RequireRead(SecurityLabel.SystemHigh);
             throw;
         }
 
@@ -127,6 +138,7 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         catch
         {
             ObserveResponse();
+            RequireRead(SecurityLabel.SystemHigh);
             throw;
         }
 
@@ -148,37 +160,118 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
     // An agent-backed target's response is unlabelled data the caller has now read (until PR 5 labels responses).
     private static void ObserveResponse() => EgressSubject.Observe(SecurityLabel.SystemHigh);
 
-    // Runs on the caller's flow (an async method keeps the context it was called with), so the observation reaches the
-    // caller's frames, however the call ends.
-    private static async Task<ChatResponse> ObservedAsync(Task<ChatResponse> call)
+    private SecurityLabel VerifiedLabel(object response)
     {
         try
         {
-            return await call.ConfigureAwait(false);
+            var text = response switch
+            {
+                ChatResponse complete => _responseLabels?.Verify(_targetKey, complete),
+                ChatResponseUpdate update => _responseLabels?.Verify(_targetKey, update),
+                _ => null,
+            };
+            return SecurityLabel.TryParse(text, out var label) ? label : SecurityLabel.SystemHigh;
         }
-        finally
+        catch (Exception)
         {
-            ObserveResponse();
+            return SecurityLabel.SystemHigh;
         }
     }
 
-    // An iterator's body runs on its consumer's flow, so each observation reaches the frames of the flow that is about
-    // to see the update; the finally covers the end of the stream, a fault, and a consumer that stops early.
-    private static async IAsyncEnumerable<ChatResponseUpdate> ObservedAsync(
+    private void RequireRead(SecurityLabel label)
+    {
+        var decision = ReferenceMonitor.CanRead(_clearances.ResolveCurrent(), label);
+        if (decision.Allowed)
+            return;
+
+        var refusal = new ReadRefusedException(decision.Reason);
+        var reference = refusal.Ref;
+        try
+        {
+            _auditor?.Record(new ChatInvocationAuditRecord
+            {
+                TargetKey = _targetKey ?? string.Empty,
+                Outcome = "denied",
+                ReasonCode = "read_refused",
+                CorrelationId = reference,
+                ReadDecision = decision,
+            });
+        }
+        catch (Exception) { /* Audit failure cannot release a refused response. */ }
+        throw refusal;
+    }
+
+    private async Task<ChatResponse> ObservedAsync(Task<ChatResponse> call)
+    {
+        ChatResponse response;
+        try
+        {
+            response = await call.ConfigureAwait(false);
+        }
+        catch
+        {
+            ObserveResponse();
+            RequireRead(SecurityLabel.SystemHigh);
+            throw;
+        }
+        var label = VerifiedLabel(response);
+        RequireRead(label);
+        EgressSubject.Observe(label);
+        return response;
+    }
+
+    // Each MoveNext executes on the consumer's live flow, so an expired or narrowed grant is checked again.
+    private async IAsyncEnumerable<ChatResponseUpdate> ObservedAsync(
         IAsyncEnumerable<ChatResponseUpdate> updates,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        IAsyncEnumerator<ChatResponseUpdate>? iterator = null;
+        bool completed = false;
+        bool sawUpdate = false;
         try
         {
-            await foreach (var update in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
+            try { iterator = updates.GetAsyncEnumerator(cancellationToken); }
+            catch { ObserveResponse(); RequireRead(SecurityLabel.SystemHigh); throw; }
+            while (true)
             {
-                ObserveResponse();
+                bool moved;
+                try { moved = await iterator.MoveNextAsync().ConfigureAwait(false); }
+                catch { ObserveResponse(); RequireRead(SecurityLabel.SystemHigh); throw; }
+                if (!moved)
+                {
+                    if (!sawUpdate)
+                    {
+                        ObserveResponse();
+                        RequireRead(SecurityLabel.SystemHigh);
+                    }
+                    completed = true;
+                    break;
+                }
+                var update = iterator.Current;
+                var label = VerifiedLabel(update);
+                RequireRead(label);
+                EgressSubject.Observe(label);
+                sawUpdate = true;
                 yield return update;
             }
         }
         finally
         {
-            ObserveResponse();
+            if (!completed) ObserveResponse();
+            if (iterator is not null)
+            {
+                try { await iterator.DisposeAsync().ConfigureAwait(false); }
+                catch
+                {
+                    ObserveResponse();
+                    // Never replace a pending read refusal or cancellation with a peer's disposal payload.
+                    if (completed)
+                    {
+                        RequireRead(SecurityLabel.SystemHigh);
+                        throw;
+                    }
+                }
+            }
         }
     }
 

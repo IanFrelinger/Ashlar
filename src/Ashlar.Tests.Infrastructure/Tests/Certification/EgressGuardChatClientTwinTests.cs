@@ -248,7 +248,8 @@ public sealed class EgressGuardChatClientTwinTests
 
         using var provider = services.BuildServiceProvider();
         await provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama).GetResponseAsync("hello");
-        await provider.GetRequiredKeyedService<IChatClient>("peer:node-7").GetResponseAsync("hello");
+        await ((Func<Task>)(() => provider.GetRequiredKeyedService<IChatClient>("peer:node-7").GetResponseAsync("hello")))
+            .Should().ThrowAsync<ReadRefusedException>("unlabelled peer responses need an explicit SystemHigh grant");
 
         guard.Decisions.Should().HaveCount(2);
         guard.Decisions[0].Site.Should().Be("meai:local:ollama", "the inner client names no URI, so the key is all there is");
@@ -436,8 +437,7 @@ public sealed class EgressGuardChatClientTwinTests
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredKeyedService<IChatClient>(key);
         Action call = () => _ = client.GetResponseAsync("hello");
-        call.Should().Throw<PolicyViolationException>("PolicyGate knows no trust tier for '{0}'", key)
-            .Which.Code.Should().Be("target_denied");
+        call.Should().Throw<ReadRefusedException>("unverified failure payloads are reads too");
 
         var decision = guard.Decisions.Should().ContainSingle("the guard layer records the attempt before PolicyGate").Which;
         decision.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel, "key '{0}' must not name the host", key);

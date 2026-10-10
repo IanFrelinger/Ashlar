@@ -773,6 +773,13 @@ public sealed class EgressProducerTwinTests : IDisposable
         if (allowEveryTarget)
             services.AddSingleton<IChatTargetAccessPolicy>(new AllowEveryTarget());
 
+        services.AddSingleton(new SubjectClearanceAuthority(new Dictionary<string, string?>
+        {
+            ["peer-caller"] = "SystemHigh", ["peer-stream-caller"] = "SystemHigh",
+            ["peer-empty-stream-caller"] = "SystemHigh", ["peer-failed-caller"] = "SystemHigh",
+            ["agent-target-denied-caller"] = "SystemHigh", ["peer-eager-b"] = "SystemHigh",
+            ["agent-target-caller"] = "SystemHigh",
+        }));
         services.AddAshlarGovernedChatClient(key, _ => new ScriptedChatClient(new Uri("https://agent.example/"), "scripted")
         {
             EmptyStream = emptyStream,

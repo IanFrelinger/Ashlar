@@ -261,7 +261,7 @@ public sealed class EgressSubjectProducerTests
         var guard = new EgressGuard("full");
         var request = new EgressRequest(EgressFamilies.ModelMeai, "meai:peer:node-7", "meai:peer:node-7");
         var local = new EgressGuardChatClient(new FakeChatClient(), request, guard, "local:ollama");
-        var peer = new EgressGuardChatClient(new FakeChatClient(), request, guard, " PEER:node-7 ");
+        var peer = new EgressGuardChatClient(new FakeChatClient(), request, guard, " PEER:node-7 ", null, PeerAuthority());
 
         using (EgressSubject.Enter("agent:peer", new HighWaterMark(SecurityLabel.Public)))
         {
@@ -286,7 +286,7 @@ public sealed class EgressSubjectProducerTests
     {
         var guard = new EgressGuard("full");
         var request = new EgressRequest(EgressFamilies.ModelMeai, "meai:peer:node-7", "meai:peer:node-7");
-        var peer = new EgressGuardChatClient(new FakeChatClient("streamed"), request, guard, "peer:node-7");
+        var peer = new EgressGuardChatClient(new FakeChatClient("streamed"), request, guard, "peer:node-7", null, PeerAuthority());
 
         using (EgressSubject.Enter("agent:stream", new HighWaterMark(SecurityLabel.Public)))
         {
@@ -306,7 +306,7 @@ public sealed class EgressSubjectProducerTests
     {
         var guard = new EgressGuard("full");
         var request = new EgressRequest(EgressFamilies.ModelMeai, "meai:peer:node-7", "meai:peer:node-7");
-        var peer = new EgressGuardChatClient(new SyncDenyClient(), request, guard, "peer:node-7");
+        var peer = new EgressGuardChatClient(new SyncDenyClient(), request, guard, "peer:node-7", null, PeerAuthority());
 
         using (EgressSubject.Enter("agent:denied", new HighWaterMark(SecurityLabel.Public)))
         {
@@ -317,6 +317,11 @@ public sealed class EgressSubjectProducerTests
             after.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
         }
     }
+
+    private static SubjectClearanceAuthority PeerAuthority() => new(new Dictionary<string, string?>
+    {
+        ["agent:peer"] = "SystemHigh", ["agent:stream"] = "SystemHigh", ["agent:denied"] = "SystemHigh",
+    });
 
     private static async Task<IReadOnlyList<EgressDecision>> RunRagCycleAsync(
         EgressGuard guard,
