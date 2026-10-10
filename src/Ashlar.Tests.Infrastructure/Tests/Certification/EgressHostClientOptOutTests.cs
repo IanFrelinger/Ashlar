@@ -152,6 +152,7 @@ public sealed class EgressHostClientOptOutTests
         }));
         using var provider = services.BuildServiceProvider();
         using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("redirect-opt-out");
+        transport.AllowAutoRedirect.Should().BeFalse("the production follower takes over a recognized primary's redirects");
         var error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync("http://127.0.0.1/first"); });
         transport.Requested.Should().HaveCount(sends);
         transport.Requested[0].Host.Should().Be("127.0.0.1");
@@ -174,7 +175,7 @@ public sealed class EgressHostClientOptOutTests
         public EgressDecision Evaluate(EgressRequest request) => inner.Evaluate(request);
     }
 
-    private sealed class RedirectingHandler : HttpMessageHandler
+    private sealed class RedirectingHandler : HttpClientHandler
     {
         public List<Uri> Requested { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
