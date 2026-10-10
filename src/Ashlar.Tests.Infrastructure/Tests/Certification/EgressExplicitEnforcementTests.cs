@@ -12,6 +12,13 @@ using Ashlar.Core.Application.Execution.Ports;
 using Ashlar.Infrastructure.HostProcess;
 using System.Diagnostics;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
@@ -37,10 +44,24 @@ public sealed class EgressExplicitEnforcementTests : IDisposable
     [InlineData("postgres", "EG-PROC-11")]
     public async Task Docker_api_execution_refuses_before_transport_and_report_mode_reaches_transport(string operation, string site)
     {
-        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
-        using var config = new Docker.DotNet.DockerClientConfiguration(new Uri($"http://127.0.0.1:{port}"));
+        var requests = 0;
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = [] });
+        builder.Logging.ClearProviders();
+        builder.WebHost.ConfigureKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
+        await using var app = builder.Build();
+        app.Run(async context =>
+        {
+            Interlocked.Increment(ref requests);
+            // Consume the complete HTTP request, including chunked Docker build archives. Closing a raw
+            // socket after one read can reset the connection before Windows receives the response.
+            await context.Request.Body.CopyToAsync(Stream.Null, context.RequestAborted);
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync("{\"message\":\"fixture daemon failure\"}", context.RequestAborted);
+        });
+        await app.StartAsync();
+        var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        using var config = new Docker.DotNet.DockerClientConfiguration(new Uri(address));
         using var client = config.CreateClient();
         var dockerfile = Path.Combine(_directory, "Dockerfile");
         await File.WriteAllTextAsync(dockerfile, "FROM scratch\n");
@@ -65,22 +86,16 @@ public sealed class EgressExplicitEnforcementTests : IDisposable
         };
         var refused = await Record.ExceptionAsync(Run);
         refused.Should().BeOfType<EgressRefusedException>().Which.Site.Should().Be(site);
-        listener.Pending().Should().BeFalse("refusal must happen before contacting the daemon");
+        requests.Should().Be(0, "refusal must happen before contacting the daemon");
         using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
         EgressProcessStateScope.Reset();
-        var run = Record.ExceptionAsync(Run);
-        using var connection = await listener.AcceptTcpClientAsync(timeout.Token);
-        await using var stream = connection.GetStream();
-        var bytes = new byte[4096];
-        (await stream.ReadAsync(bytes, timeout.Token)).Should().BeGreaterThan(0);
-        await stream.WriteAsync(System.Text.Encoding.ASCII.GetBytes(
-            "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"), timeout.Token);
-        connection.Close();
-        var error = await run.WaitAsync(timeout.Token);
+        var error = await Record.ExceptionAsync(Run).WaitAsync(timeout.Token);
+        requests.Should().BeGreaterThan(0, "the report-mode control must reach the daemon");
         if (operation is "ollama" or "postgres")
             error.Should().BeOfType<Docker.DotNet.DockerApiException>("report mode must reach Docker's error response");
         else
             error.Should().BeNull("build/run preserve their ordinary error-result behavior");
+        await app.StopAsync();
     }
 
     [Theory]
