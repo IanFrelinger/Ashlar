@@ -119,17 +119,24 @@ public sealed class CertifyCommandTests : IDisposable
 
     // ---- the verdicts ---------------------------------------------------------------------
 
-    [Fact(Timeout = 60_000)]
-    public async Task Certify_admitsTheHonestBrick_andExitsZero()
+    [Theory(Timeout = 60_000)]
+    [InlineData(null)]
+    [InlineData("Public")]
+    [InlineData("Secret")]
+    public async Task Certify_admitsTheHonestBrick_andExitsZero(string? declaredLabel)
     {
         using var key = OperatorKey();
         var brickDir = CopyHonestBrick();
         var recordPath = Path.Combine(_dir, "certification-record.json");
 
-        var (rc, stdout, stderr) = await RunCliAsync(
+        var arguments = new List<string>
+        {
             "certify", "brick", brickDir,
             "--witness", Path.Combine(brickDir, "witness.json"),
-            "--record", recordPath);
+            "--record", recordPath
+        };
+        if (declaredLabel is not null) arguments.AddRange(["--highest-data-label", declaredLabel]);
+        var (rc, stdout, stderr) = await RunCliAsync(arguments.ToArray());
 
         rc.Should().Be(0, stdout + Environment.NewLine + stderr);
         stdout.Should().Contain("ADMIT brick=honest").And.Contain($"Record: {recordPath}");
@@ -139,15 +146,27 @@ public sealed class CertifyCommandTests : IDisposable
         record.GetProperty("signed").GetBoolean().Should().BeTrue();
         record.GetProperty("status").GetString().Should().Be("PASS");
         record.GetProperty("schemaVersion").GetInt32().Should().Be(3);
-        record.GetProperty("highestDataLabel").GetString().Should().Be("SystemHigh");
+        record.GetProperty("highestDataLabel").GetString().Should().Be(declaredLabel ?? "SystemHigh");
         var manifest = ReadRecord(Path.Combine(_dir, "skill-manifest.json"));
-        manifest.GetProperty("highestDataLabel").GetString().Should().Be("SystemHigh");
+        manifest.GetProperty("highestDataLabel").GetString().Should().Be(declaredLabel ?? "SystemHigh");
 
         // The registry's own copy, keyed by brick id — this is what a consumer's runtime looks up,
         // and it is written by the same run rather than by a second command.
         File.Exists(Path.Combine(_dir, "honest.json")).Should().BeTrue();
         // A8: the certifier ships the binary it judged, so the consumer never recompiles author source.
         File.Exists(Path.Combine(_dir, "gate-emitted-brick.dll")).Should().BeTrue();
+    }
+
+    [Fact(Timeout = 60_000)]
+    public async Task Certify_invalidLabel_is_refused_before_loading_the_candidate()
+    {
+        var recordPath = Path.Combine(_dir, "certification-record.json");
+        var (rc, stdout, stderr) = await RunCliAsync("certify", "brick", Path.Combine(_dir, "missing-project"),
+            "--witness", Path.Combine(_dir, "missing-witness.json"), "--record", recordPath,
+            "--highest-data-label", "not-a-label");
+        rc.Should().Be(1, stdout + Environment.NewLine + stderr);
+        ReadRecord(recordPath).GetProperty("reason").GetString().Should().Contain("label");
+        File.Exists(Path.Combine(_dir, "gate-emitted-brick.dll")).Should().BeFalse();
     }
 
     [Fact(Timeout = 60_000)]

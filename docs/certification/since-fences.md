@@ -67,6 +67,14 @@ checks this binding; it does not itself verify the signature, operator trust, or
 caller clearance. Legacy v1/v2 verification remains available, and a legacy export
 removes any stale v3 manifest at its destination.
 
+Authors can declare the label with `ashlar certify brick ... --highest-data-label Secret`.
+The standalone `Ashlar.CertifyBrick` tool accepts it as an optional fourth positional
+argument after the output record path. Both default to `SystemHigh`, validate the
+declaration before loading the candidate, and write the same signed label into the
+record and manifest. Certification requires Ed25519 evidence but does not activate
+the artifact in a serving runtime; runtime admission additionally checks pinned
+trust and the caller's live clearance.
+
 ## Class B — certifier boundary
 
 - `ci/certifier-boundary-inventory.tsv` is a shrink-only freeze of

@@ -144,6 +144,7 @@ public static class BrickCertificationRun
 
         try
         {
+            CertifiedSkillManifest.ValidateLabel(request.HighestDataLabel);
             var certificationRequest = await BrickCertificationProjectLoader
                 .LoadAsync(brickDir, witnessPath, cancellationToken).ConfigureAwait(false);
             certificationRequest = certificationRequest with { HighestDataLabel = request.HighestDataLabel };

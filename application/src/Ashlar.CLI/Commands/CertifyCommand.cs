@@ -42,7 +42,7 @@ public sealed class CertifyCommand : Command
 
     /// <summary>Printed by both usage paths, so the two cannot drift into two dialects.</summary>
     private const string UsageLine =
-        "Usage: ashlar certify brick <brickProjectDir> --witness <witnessSpec.json> [--record <path>]";
+        "Usage: ashlar certify brick <brickProjectDir> --witness <witnessSpec.json> [--record <path>] [--highest-data-label <label>]";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -85,10 +85,12 @@ public sealed class CertifyCommand : Command
         var recordOpt = new Option<string?>(
             name: "--record",
             description: "Where to write the certification record (default: <brickProjectDir>/../certification-record.json).");
+        var labelOpt = new Option<string>("--highest-data-label", () => "SystemHigh",
+            "Highest canonical data label the skill may read (default: SystemHigh). Bound into its signed record and manifest.");
 
         var cmd = new Command("brick", "Certify one brick project and write its signed record.")
         {
-            brickDirArg, witnessOpt, recordOpt
+            brickDirArg, witnessOpt, recordOpt, labelOpt
         };
 
         cmd.SetHandler(async (InvocationContext ctx) =>
@@ -111,7 +113,8 @@ public sealed class CertifyCommand : Command
                 {
                     BrickProjectDirectory = brickDir,
                     WitnessSpecPath = witness,
-                    RecordPath = ctx.ParseResult.GetValueForOption(recordOpt)
+                    RecordPath = ctx.ParseResult.GetValueForOption(recordOpt),
+                    HighestDataLabel = ctx.ParseResult.GetValueForOption(labelOpt) ?? "SystemHigh"
                 },
                 ctx.GetCancellationToken()).ConfigureAwait(false);
 

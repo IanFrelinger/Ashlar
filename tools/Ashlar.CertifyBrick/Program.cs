@@ -3,7 +3,7 @@ using Ashlar.Infrastructure.Certification;
 
 if (args.Length < 2)
 {
-    Console.Error.WriteLine("Usage: Ashlar.CertifyBrick <brickProjectDir> <witnessSpec.json> [recordOutputPath]");
+    Console.Error.WriteLine("Usage: Ashlar.CertifyBrick <brickProjectDir> <witnessSpec.json> [recordOutputPath] [highestDataLabel]");
     return 2;
 }
 
@@ -16,7 +16,8 @@ var result = await BrickCertificationRun.ExecuteAsync(new BrickCertificationRunR
 {
     BrickProjectDirectory = args[0],
     WitnessSpecPath = args[1],
-    RecordPath = args.Length > 2 ? args[2] : null
+    RecordPath = args.Length > 2 ? args[2] : null,
+    HighestDataLabel = args.Length > 3 ? args[3] : "SystemHigh"
 }).ConfigureAwait(false);
 
 switch (result.Outcome)
