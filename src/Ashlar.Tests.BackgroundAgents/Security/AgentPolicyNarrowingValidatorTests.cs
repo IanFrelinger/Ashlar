@@ -72,6 +72,19 @@ public sealed class AgentPolicyNarrowingValidatorTests
         else act.Should().Throw<InvalidOperationException>().WithMessage("*exceeds parent*");
     }
 
+    [Fact]
+    public void A_custom_numeric_maximum_cannot_authorize_a_SystemHigh_child_limit()
+    {
+        var registry = new DataSensitivityRegistry();
+        registry.Register(new ConfigurableSensitivityLevel("Codeword", "Codeword", int.MaxValue,
+            false, false, true, false, "Custom rank"));
+        var parent = Config("parent", null, "Codeword", "Codeword");
+        var child = Config("child", "parent", "SystemHigh", "SystemHigh");
+        Action act = () => AgentPolicyNarrowingValidator.ValidateOrThrow(child, AgentRegistrationOrigin.Machine,
+            id => id == parent.Id ? new BackgroundAgentInstance { Config = parent } : null, registry);
+        act.Should().Throw<InvalidOperationException>().WithMessage("*exceeds parent*");
+    }
+
     private static void Validate(BackgroundAgentConfig child, BackgroundAgentConfig parent) =>
         AgentPolicyNarrowingValidator.ValidateOrThrow(
             child,

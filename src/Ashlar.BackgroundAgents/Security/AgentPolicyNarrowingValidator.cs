@@ -123,7 +123,9 @@ public static class AgentPolicyNarrowingValidator
                 $"Refusing machine-origin agent '{childId}': unable to resolve {field} sensitivity levels for parent/child comparison.");
         }
 
-        if (childLevel.SensitivityValue > parentLevel.SensitivityValue)
+        // No custom numeric rank is equivalent to the canonical SystemHigh limit.
+        if (parentLevelName != "SystemHigh"
+            && (childLevelName == "SystemHigh" || childLevel.SensitivityValue > parentLevel.SensitivityValue))
         {
             throw new InvalidOperationException(
                 $"Refusing machine-origin agent '{childId}': {field} '{childLevelName}' exceeds parent '{parentId}' envelope '{parentLevelName}'.");
