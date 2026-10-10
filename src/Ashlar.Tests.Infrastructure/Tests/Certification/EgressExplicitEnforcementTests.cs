@@ -89,19 +89,24 @@ public sealed class EgressExplicitEnforcementTests : IDisposable
     public async Task Timed_process_and_shell_refuse_before_launch_and_report_mode_reaches_the_marker(bool shell)
     {
         var marker = Path.Combine(_directory, "executed.txt");
-        var script = Path.Combine(_directory, "marker.sh");
-        await File.WriteAllTextAsync(script, "printf ran > executed.txt\n");
+        var isWindows = OperatingSystem.IsWindows();
+        var executable = isWindows ? "powershell.exe" : "bash";
+        var command = isWindows
+            ? "[System.IO.File]::WriteAllText((Join-Path (Get-Location) 'executed.txt'), 'ran')"
+            : "printf ran > executed.txt";
         Task<TimedProcessResult> Run()
         {
-            if (shell) return TimedProcess.RunShellAsync("bash marker.sh", TimeSpan.FromSeconds(5), workingDirectory: _directory);
-            var info = new ProcessStartInfo("bash") { WorkingDirectory = _directory };
-            info.ArgumentList.Add(script);
+            if (shell) return TimedProcess.RunShellAsync(command, TimeSpan.FromSeconds(5), workingDirectory: _directory);
+            var info = new ProcessStartInfo(executable) { WorkingDirectory = _directory };
+            if (isWindows) info.ArgumentList.Add("-NoProfile");
+            info.ArgumentList.Add(isWindows ? "-Command" : "-c");
+            info.ArgumentList.Add(command);
             return TimedProcess.RunAsync(info, TimeSpan.FromSeconds(5));
         }
         var error = await Record.ExceptionAsync(async () => await Run());
         var refusal = error.Should().BeOfType<EgressRefusedException>().Subject;
         refusal.Site.Should().Be("EG-PROC-08");
-        refusal.Decision.Destination.Should().Be("process:bash");
+        refusal.Decision.Destination.Should().Be(isWindows ? "process:powershell" : "process:bash");
         File.Exists(marker).Should().BeFalse();
         using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
         EgressProcessStateScope.Reset();
