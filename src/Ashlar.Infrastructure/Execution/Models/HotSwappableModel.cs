@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
@@ -67,6 +68,7 @@ public sealed class HotSwappableModel : IModel
                 }
                 catch (Exception ex)
                 {
+                    ReadRefusal.ThrowIfPresent(ex);
                     EgressRefusal.ThrowIfPresent(ex);
                     _logger.LogWarning(ex, "Deterministic(provider) model failed; falling back to deterministic echo");
                     return await _deterministic.CompleteAsync(input, ct);
@@ -85,7 +87,8 @@ public sealed class HotSwappableModel : IModel
             }
             catch (Exception ex)
             {
-                EgressRefusal.ThrowIfPresent(ex);
+                ReadRefusal.ThrowIfPresent(ex);
+                    EgressRefusal.ThrowIfPresent(ex);
                 if (!AllowMock())
                 {
                     throw new ModelUnavailableException(

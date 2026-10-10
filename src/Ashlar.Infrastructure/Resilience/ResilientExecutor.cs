@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.Resilience.Ports;
 
@@ -42,6 +43,7 @@ public sealed class ResilientExecutor : IResilientExecutor
             }
             catch (Exception ex)
             {
+                ReadRefusal.ThrowIfPresent(ex);
                 last = ex;
 
                 // Non-negotiable: never retry when the caller's own token cancelled.

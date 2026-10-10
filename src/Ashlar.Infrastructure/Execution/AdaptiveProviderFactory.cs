@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -74,6 +75,7 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
             }
             catch (Exception ex)
             {
+                ReadRefusal.ThrowIfPresent(ex);
                 if (EgressRefusal.Find(ex) is { } refusal) ProviderRefusalScope.Record(refusal);
                 lastEx = ex;
                 _logger?.LogWarning(ex, "Provider {Provider} failed, trying fallback", p);
@@ -117,6 +119,7 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
             }
             catch (Exception ex)
             {
+                ReadRefusal.ThrowIfPresent(ex);
                 if (EgressRefusal.Find(ex) is { } refusal) ProviderRefusalScope.Record(refusal);
                 lastEx = ex;
                 _logger?.LogWarning(ex, "Vision provider {Provider} failed", p);
@@ -150,7 +153,8 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         }
         catch (Exception ex)
         {
-            EgressRefusal.ThrowIfPresent(ex);
+            ReadRefusal.ThrowIfPresent(ex);
+                    EgressRefusal.ThrowIfPresent(ex);
             refusals.ThrowIfRefused();
             throw new ModelUnavailableException("Vision model failed.", ex);
         }
