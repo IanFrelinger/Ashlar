@@ -441,7 +441,7 @@ internal static class Ns20CanonicalBytesProbe
                 : new CertificateResolveResult(false, null, null);
     }
 
-    // Only null (v1) and 2 (v2) select a payload lane. Anything else must be refused here as
+    // Null (v1), 2 (v2), and 3 (v3) select payload lanes. Anything else must be refused here as
     // it is on net8.0: BuildPayload throws CanonicalPayloadException and the verifier reports
     // schema-version-unknown under Legacy and under Default alike (the floor of 2 is cleared
     // by these numbers, which is exactly why the floor alone is not the answer).

@@ -145,7 +145,7 @@ public sealed class UnknownSchemaVersionTests
         // Position pins the code: an unsigned record with an unknown version reports the version,
         // not record-unsigned, because the lane has to be established before anything about a
         // signature can be said.
-        var trust = CertificationTrustVerifier.Verify(Record(3) with { Signed = false, Signature = null }, BrickSource, HmacKey, CertificationVerifyOptions.Legacy);
+        var trust = CertificationTrustVerifier.Verify(Record(4) with { Signed = false, Signature = null }, BrickSource, HmacKey, CertificationVerifyOptions.Legacy);
 
         trust.FailureCode.Should().Be("schema-version-unknown");
     }
