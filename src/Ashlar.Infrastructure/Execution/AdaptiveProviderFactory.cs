@@ -154,7 +154,7 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         catch (Exception ex)
         {
             ReadRefusal.ThrowIfPresent(ex);
-                    EgressRefusal.ThrowIfPresent(ex);
+            EgressRefusal.ThrowIfPresent(ex);
             refusals.ThrowIfRefused();
             throw new ModelUnavailableException("Vision model failed.", ex);
         }

@@ -88,7 +88,7 @@ public sealed class HotSwappableModel : IModel
             catch (Exception ex)
             {
                 ReadRefusal.ThrowIfPresent(ex);
-                    EgressRefusal.ThrowIfPresent(ex);
+                EgressRefusal.ThrowIfPresent(ex);
                 if (!AllowMock())
                 {
                     throw new ModelUnavailableException(
