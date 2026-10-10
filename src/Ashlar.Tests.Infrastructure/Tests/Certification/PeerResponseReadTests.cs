@@ -160,6 +160,28 @@ public sealed class PeerResponseReadTests
         await Refused(() => client.GetResponseAsync("hello"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Cancellation_prevents_delivery_even_if_the_peer_ignores_the_token(bool stream)
+    {
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        using var client = Guard(new Peer(), "SystemHigh");
+        var delivered = 0;
+        Func<Task> call = async () =>
+        {
+            if (stream)
+            {
+                await foreach (var _ in client.GetStreamingResponseAsync("hello", cancellationToken: cancelled.Token)) delivered++;
+            }
+            else { await client.GetResponseAsync("hello", cancellationToken: cancelled.Token); delivered++; }
+        };
+        await call.Should().ThrowAsync<OperationCanceledException>();
+        delivered.Should().Be(0);
+    }
+
     [Fact]
     public void SystemHigh_read_clearance_does_not_authorize_model_escalation()
     {
