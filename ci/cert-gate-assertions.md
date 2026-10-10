@@ -80,10 +80,10 @@ away, can see what they would be turning off.
 | **Enforced refusals remain visible at Warning.** The first refusal per site/reason carries the operator record, repeated refusals produce a counted summary at five minutes without further traffic, and disposal releases timers and flushes counts. EventSource event 2 is Warning. | `EgressRefusalDiagnosticsTests` | A deterministic clock exercises quiet-window expiry and cleanup; a throwing logger cannot escape the timer callback into the host. |
 
 The gate also carries the certification gate's own teeth, the hot-swap host, the adversarial
-campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 144 `.cs` files in
-`src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-09 (147 entries in all; the
+campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 152 `.cs` files in
+`src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-10 (155 entries in all; the
 other three are golden JSON fixtures). This figure read 31, then 68, then 82, then 111, then 113,
-then 120, then 125, then 127, then 128, then 131, then 132, then 135, then 136, then 137, then 139, then 142, before it read 144; count it
+then 120, then 125, then 127, then 128, then 131, then 132, then 135, then 136, then 137, then 139, then 142, then 144, before it read 152; count it
 rather than quoting it. The
 table above is only the *conventions*: assertions about how the repository is allowed to be shaped,
 which have no other home and which nothing else would catch.
