@@ -141,7 +141,7 @@ public sealed class EgressRedirectHardeningTests
         using var provider = services.BuildServiceProvider();
         using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
 
-        using var response = await client.GetAsync(new Uri("http://127.0.0.1:5999/a"));
+        var refusal = await Assert.ThrowsAsync<EgressRefusedException>(() => client.GetAsync(new Uri("http://127.0.0.1:5999/a")));
 
         recorder.Decisions.Should().HaveCount(2);
         var hop1 = recorder.Decisions[0];
@@ -154,8 +154,8 @@ public sealed class EgressRedirectHardeningTests
         hop2.Mode.Should().Be("enforce");
         hop2.Refused.Should().BeTrue("with no subject the current label is SystemHigh, which may not go to a network export");
         hop2.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
-        stub.Sends.Should().HaveCount(2, "until SPEC-007 PR 4.7 no route acts on a refusal, so the hop is still sent");
-        stub.Sends[1].DecisionsBefore.Should().Be(2, "the refusal was decided before the hop was sent, which is where PR 4.7 stops it");
+        stub.Sends.Should().HaveCount(1, "PR 4.7 stops the refused hop before the primary is called again");
+        refusal.Decision.Should().BeSameAs(hop2);
     }
 
     [Fact]

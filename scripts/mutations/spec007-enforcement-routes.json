@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "note": "SPEC-007 4.7 controls. A replacement is not evidence until the runner proves assertion failures, byte restoration, clean status and green on the named commit.",
+  "mutations": [
+    {
+      "id": "r1-refusal-helper-disabled",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressDecision.cs",
+      "old": "if (Refused)\n            throw new EgressRefusedException(this);",
+      "new": "if (Refused && Mode.Length == 0)\n            throw new EgressRefusedException(this);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Http_refuses_before_the_inner_handler_while_report_mode_delegates",
+        "Chat_refuses_synchronously_before_call_or_stream_creation"
+      ]
+    },
+    {
+      "id": "r2-http-decision-discarded",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
+      "old": "EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();",
+      "new": "_ = EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Http_refuses_before_the_inner_handler_while_report_mode_delegates"
+      ]
+    },
+    {
+      "id": "r3-chat-decision-discarded",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "decision.ThrowIfRefused();",
+      "new": "_ = decision.Refused;",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Chat_refuses_synchronously_before_call_or_stream_creation"
+      ]
+    },
+    {
+      "id": "r4-host-fault-replaced-with-ordinary-decision",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "access = externalFault is null ? ReferenceMonitor.CanWrite(current, destinationLabel) : default;",
+      "new": "access = ReferenceMonitor.CanWrite(current, destinationLabel);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_throwing_or_null_returning_host_guard_obeys_the_process_mode"
+      ]
+    },
+    {
+      "id": "r5-refusal-warning-hidden",
+      "file": "src/Ashlar.Infrastructure/Egress/LoggerEgressDecisionSink.cs",
+      "old": "var level = decision.Refused ? LogLevel.Warning : LogLevel.Debug;",
+      "new": "var level = LogLevel.Debug;",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Enforced_refusals_are_visible_at_Warning"
+      ]
+    },
+    {
+      "id": "r6-summary-not-scheduled",
+      "file": "src/Ashlar.Infrastructure/Egress/LoggerEgressDecisionSink.cs",
+      "old": "null, WindowLength, Timeout.InfiniteTimeSpan",
+      "new": "null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Repeated_refusals_have_one_warning_then_a_counted_summary"
+      ]
+    },
+    {
+      "id": "r7-event-two-hidden",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEventSource.cs",
+      "old": "[Event(RefusedEventId, Level = EventLevel.Warning)]",
+      "new": "[Event(RefusedEventId, Level = EventLevel.Verbose)]",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refusal_event_two_is_visible_to_Warning_only_listeners"
+      ]
+    },
+    {
+      "id": "r8-chat-refusal-audit-lost",
+      "file": "src/Ashlar.AI.Pipeline/Governance/EgressGuardChatClient.cs",
+      "old": "EgressDecision = decision,",
+      "new": "EgressDecision = null,",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Chat_refusal_reaches_the_auditor"
+      ]
+    },
+    {
+      "id": "r9-resolution-counter-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "Interlocked.Increment(ref _resolutionFaults);",
+      "new": "Interlocked.Exchange(ref _resolutionFaults, 0);",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw"
+      ]
+    },
+    {
+      "id": "r10-http-fallback-warning-hidden",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressServiceCollectionExtensions.cs",
+      "old": "faulted ? LogLevel.Warning : LogLevel.Debug",
+      "new": "LogLevel.Debug",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw"
+      ]
+    },
+    {
+      "id": "r11-chat-fallback-warning-hidden",
+      "file": "src/Ashlar.AI.Pipeline/Governance/AshlarGovernanceChatClientBuilderExtensions.cs",
+      "old": "faulted ? LogLevel.Warning : LogLevel.Debug",
+      "new": "LogLevel.Debug",
+      "filter": "FullyQualifiedName~EgressRefusalDiagnosticsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Guard_resolution_fallback_is_counted_and_logs_Warning_only_for_a_throw"
+      ]
+    },
+    {
+      "id": "r12-reentrant-refusal-counter-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressDecisionLog.cs",
+      "old": "Interlocked.Increment(ref _reentrantRefusalSkips);",
+      "new": "Interlocked.Exchange(ref _reentrantRefusalSkips, 0);",
+      "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_reentrant_publish_skip_is_counted_and_cannot_bypass_enforcement"
+      ]
+    },
+    {
+      "id": "r13-netstandard-enforcement-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
+      "old": "EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();",
+      "new": "#if NETSTANDARD2_0\n        _ = EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress);\n#else\n        EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();\n#endif",
+      "filter": "FullyQualifiedName~The_netstandard20_asset_enforces_async_policy_refusals_before_the_transport",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_netstandard20_asset_enforces_async_policy_refusals_before_the_transport"
+      ]
+    },
+    {
+      "id": "r14-startup-claims-records-only",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+      "new": "Records only: the guard refuses nothing yet (SPEC-007 PR 4).",
+      "filter": "FullyQualifiedName~The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted"
+      ]
+    },
+    {
+      "id": "r15-opaque-redirect-warning-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
+      "old": "WarnUnmediatedRedirect(followed);",
+      "new": "// Mutation: discard the post-send warning.",
+      "filter": "FullyQualifiedName~An_opaque_redirect_refusal_disposes_the_response_and_warns_that_the_body_may_have_gone",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "An_opaque_redirect_refusal_disposes_the_response_and_warns_that_the_body_may_have_gone"
+      ]
+    },
+    {
+      "id": "r16-warning-window-merges-reasons",
+      "file": "src/Ashlar.Infrastructure/Egress/LoggerEgressDecisionSink.cs",
+      "old": "var key = (decision.Site, decision.Access.Reason);",
+      "new": "var key = (decision.Site, Reason: AccessDenialReason.NoDecision);",
+      "filter": "FullyQualifiedName~Windows_are_independent_per_site_and_reason",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Windows_are_independent_per_site_and_reason"
+      ]
+    }
+  ]
+}

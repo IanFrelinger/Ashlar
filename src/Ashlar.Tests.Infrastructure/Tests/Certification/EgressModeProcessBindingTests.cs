@@ -25,7 +25,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <see cref="EgressGuard.ProcessDefault"/> registration made before it and the guard an earlier <c>AddAshlar</c>
 /// composed into the same collection, keeps a host's own guard, and logs one startup line for the guard it composed;
 /// and a mode other than plain report is written to standard error once. Every profile still
-/// defaults to <c>report</c>, and the guard refuses nothing: no route acts on the mode until PR 4.7.</para>
+/// defaults to <c>report</c>; HTTP and governed model routes honor opt-in enforcement (PR 4.7).</para>
 /// <para><b>Process-global state.</b> This class writes the override and profile variables, notes profiles and
 /// swaps standard error, so it runs in the serialized <c>EnvironmentVariables</c> collection. The constructor
 /// snapshots both variables and the egress state, then clears the state; <c>Dispose</c> restores all of it.</para>
@@ -260,7 +260,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
 
         entry.Message.Should().Be(
             "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
-            + "Records only: the guard refuses nothing yet (SPEC-007 PR 4).",
+            + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
             "the line names the profile the container's guard composed, and that profile was not defaulted");
     }
 
@@ -281,7 +281,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
         entry.Message.Should().Be(
             "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
-            + "Records only: the guard refuses nothing yet (SPEC-007 PR 4).",
+            + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
             "the line and the container's guard name the same profile");
     }
 
@@ -452,7 +452,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         entry.Level.Should().Be(LogLevel.Information);
         entry.Message.Should().Be(
             "Ashlar egress mode: report (basis profile:full; profile full, defaulted because nothing set it). "
-            + "Records only: the guard refuses nothing yet (SPEC-007 PR 4).");
+            + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).");
     }
 
     [Fact]
@@ -495,7 +495,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
                 "the line is written once per process, however many decisions and compositions follow")
             .Which.TrimEnd('\r').Should().Be(
                 "Ashlar egress mode: enforce (basis override; profile full, defaulted because nothing set it). "
-                + "Records only: the guard refuses nothing yet (SPEC-007 PR 4).");
+                + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).");
     }
 
     private static EgressDecision DecideWithProcessDefault() => DecideWith(EgressGuard.ProcessDefault);

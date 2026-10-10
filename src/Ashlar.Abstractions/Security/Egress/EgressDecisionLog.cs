@@ -18,12 +18,19 @@ public static class EgressDecisionLog
     private static Subscription[] _subscriptions = Array.Empty<Subscription>();
     private static long _sinkFaults;
     private static long _reentrantSkips;
+    private static long _reentrantRefusalSkips;
+
+    /// <summary>Refusal records skipped during a re-entrant publish; routes still enforce these decisions.</summary>
+    internal static long ReentrantRefusalSkips => Interlocked.Read(ref _reentrantRefusalSkips);
 
     [ThreadStatic]
     private static bool _publishing;
 
     /// <summary>How many times a sink or the event source threw while recording; each throw was swallowed.</summary>
     internal static long SinkFaults => Interlocked.Read(ref _sinkFaults);
+
+    /// <summary>Counts a sink failure outside the synchronous publish fence, such as a summary timer.</summary>
+    internal static void RecordSinkFault() => Interlocked.Increment(ref _sinkFaults);
 
     /// <summary>How many records were not published because a publish was already running on that thread.</summary>
     internal static long ReentrantSkips => Interlocked.Read(ref _reentrantSkips);
@@ -52,6 +59,8 @@ public static class EgressDecisionLog
         if (_publishing)
         {
             Interlocked.Increment(ref _reentrantSkips);
+            if (decision.Refused)
+                Interlocked.Increment(ref _reentrantRefusalSkips);
             return;
         }
 

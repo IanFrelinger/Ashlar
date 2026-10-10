@@ -20,6 +20,7 @@ internal sealed class EgressEventSource : EventSource
 {
     internal const string SourceName = "Ashlar-Egress";
     internal const int DecisionEventId = 1;
+    internal const int RefusedEventId = 2;
 
     /// <summary>Event 1's version: 0 with the 3a fields, 1 since SPEC-007 PR 4.6 appended three.</summary>
     internal const byte DecisionEventVersion = 1;
@@ -59,6 +60,31 @@ internal sealed class EgressEventSource : EventSource
             decision.ModeBasis,
             decision.Refused,
             decision.Ref);
+
+        if (decision.Refused)
+        {
+            Log.Refused(
+                decision.Sequence.ToString(CultureInfo.InvariantCulture),
+                decision.At.ToString("O", CultureInfo.InvariantCulture),
+                decision.Mode,
+                decision.Family,
+                decision.Site,
+                decision.Destination,
+                EgressDestinations.ClassName(decision.DestinationClass),
+                decision.DestinationLabel.ToString(),
+                decision.DestinationBasis,
+                decision.Current.ToString(),
+                decision.CurrentBasis,
+                access.Allowed,
+                ReasonName(access.Reason),
+                access.Detail,
+                decision.Profile,
+                decision.ProfileEnforcesByDefault,
+                decision.Fault ?? string.Empty,
+                decision.ModeBasis,
+                decision.Refused,
+                decision.Ref);
+        }
     }
 
     [Event(DecisionEventId, Level = EventLevel.Informational, Version = DecisionEventVersion)]
@@ -106,6 +132,19 @@ internal sealed class EgressEventSource : EventSource
             modeBasis,
             refused,
             @ref);
+    }
+
+    [Event(RefusedEventId, Level = EventLevel.Warning)]
+    public void Refused(
+        string sequence, string at, string mode, string family, string site, string destination,
+        string destinationClass, string destinationLabel, string destinationBasis, string current,
+        string currentBasis, bool allowed, string reason, string detail, string profile,
+        bool profileEnforcesByDefault, string fault, string modeBasis, bool refused, string @ref)
+    {
+        WriteEvent(RefusedEventId,
+            sequence, at, mode, family, site, destination, destinationClass, destinationLabel,
+            destinationBasis, current, currentBasis, allowed, reason, detail, profile,
+            profileEnforcesByDefault, fault, modeBasis, refused, @ref);
     }
 
     private static string ReasonName(AccessDenialReason reason) => reason switch

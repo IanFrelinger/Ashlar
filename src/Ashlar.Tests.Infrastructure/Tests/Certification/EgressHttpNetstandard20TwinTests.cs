@@ -49,6 +49,15 @@ public sealed class EgressHttpNetstandard20TwinTests
     private const string FollowerTypeName = "EgressRedirectHandler";
     private const string EventSourceName = "Ashlar-Egress";
 
+    [Fact]
+    public async Task The_netstandard20_asset_enforces_async_policy_refusals_before_the_transport()
+    {
+        var observed = await Netstandard20.RunAsync(nameof(Netstandard20Driver.EnforcedAsync), NewSite());
+        observed["error"].Should().Be("EgressRefusedException");
+        observed["innerSends"].Should().Be(0);
+        observed["refused"].Should().Be(true);
+    }
+
     // ---------------------------------------------------------------------------------------------------------
     // The harness runs the netstandard2.0 build
     // ---------------------------------------------------------------------------------------------------------
@@ -365,6 +374,24 @@ public sealed class EgressHttpNetstandard20TwinTests
 /// </summary>
 public static class Netstandard20Driver
 {
+    public static async Task<IReadOnlyDictionary<string, object?>> EnforcedAsync(string site)
+    {
+        var inner = new StubHandler();
+        using var client = EgressHttp.CreateClient(inner, EgressFamilies.Http, site, new EgressGuard("full", "enforce"));
+        var observed = new Dictionary<string, object?> { ["error"] = null, ["refused"] = false };
+        try
+        {
+            using var response = await client.GetAsync("https://remote.example");
+        }
+        catch (EgressRefusedException ex)
+        {
+            observed["error"] = ex.GetType().Name;
+            observed["refused"] = ex.Decision.Refused;
+        }
+        observed["innerSends"] = inner.Sends;
+        return observed;
+    }
+
     /// <summary>A guard with an explicit profile, so no decision here reads the environment.</summary>
     private static readonly EgressGuard Guard = new("full");
 

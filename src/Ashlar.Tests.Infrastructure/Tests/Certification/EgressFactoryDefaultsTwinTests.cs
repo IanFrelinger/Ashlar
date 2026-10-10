@@ -40,7 +40,9 @@ public sealed class EgressFactoryDefaultsTwinTests
     private const string ExpectedTemplate =
         "Egress {Outcome} site={Site} family={Family} dest={Destination} class={DestinationClass} "
         + "destLabel={DestinationLabel} current={Current} ({CurrentBasis}) reason={Reason} detail={Detail} "
-        + "profile={Profile} enforcesByDefault={ProfileEnforcesByDefault} fault={Fault} seq={Sequence}";
+        + "profile={Profile} enforcesByDefault={ProfileEnforcesByDefault} fault={Fault} seq={Sequence} "
+        + "mode={Mode} modeBasis={ModeBasis} ref={Ref} at={At} destBasis={DestinationBasis} "
+        + "allowed={Allowed} refused={Refused}";
 
     private const string Category = "Ashlar.Egress";
 

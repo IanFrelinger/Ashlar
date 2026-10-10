@@ -17,7 +17,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// and port; P2). A factory client follows across origins (P1). This follower never follows a redirect from outside
 /// the host boundary into it (including link-local addresses); that attempted hop is recorded and the 3xx is returned
 /// (owner decision 2026-10-06, O2). HTTPS to HTTP, and any scheme other than http or https, is returned to the caller.
-/// Evaluation records decisions; until PR 4.7 the route does not act on <see cref="EgressDecision.Refused"/>.</para>
+/// A refused decision under enforcement stops the hop before sending; report mode continues to record only.</para>
 /// <para>Transports whose redirects Ashlar could not disable keep their own behaviour. The guard can report a
 /// changed final authority afterwards, but cannot prevent an inward hop already sent by such a transport.</para>
 /// </remarks>
@@ -136,16 +136,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         if (EgressEvaluatedAuthority.Matches(request))
             return;
 
-        try
-        {
-            Evaluate(request.RequestUri);
-        }
-#pragma warning disable CA1031 // A custom guard may throw; report-only means the send goes ahead, so the fault is counted.
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            EgressGuardHandler.RecordGuardFault();
-        }
+        Evaluate(request.RequestUri);
 
         EgressEvaluatedAuthority.Stamp(request, request.RequestUri);
     }
@@ -153,16 +144,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     /// <summary>A followed hop is its own decision, including one that stays on the same authority.</summary>
     private void EvaluateHop(HttpRequestMessage request)
     {
-        try
-        {
-            Evaluate(request.RequestUri);
-        }
-#pragma warning disable CA1031 // A custom guard may throw; report-only means the send goes ahead, so the fault is counted.
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            EgressGuardHandler.RecordGuardFault();
-        }
+        Evaluate(request.RequestUri);
 
         EgressEvaluatedAuthority.Stamp(request, request.RequestUri);
     }
@@ -172,7 +154,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         var egress = uri is null
             ? new EgressRequest(_family, _site, EgressDestinations.UnknownDestination)
             : new EgressRequest(_family, _site, uri);
-        _ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);
+        EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();
     }
 
     private bool TryGetRedirect(HttpRequestMessage request, HttpResponseMessage response, out Uri location)
@@ -196,7 +178,15 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
         // O2 precedes the scheme/P2 checks: unix/npipe and an HTTPS-to-loopback HTTP attempt must be recorded too.
         if (!InsideHostBoundary(requestUri) && InsideHostBoundary(header))
         {
-            RecordUnfollowed(header);
+            try
+            {
+                RecordUnfollowed(header);
+            }
+            catch (EgressRefusedException)
+            {
+                response.Dispose();
+                throw;
+            }
             return false;
         }
 
@@ -252,16 +242,7 @@ internal sealed class EgressRedirectHandler : DelegatingHandler
     // original authority, and the post-send check must not mistake that original response for another redirect.
     private void RecordUnfollowed(Uri destination)
     {
-        try
-        {
-            Evaluate(destination);
-        }
-#pragma warning disable CA1031 // The inward redirect remains unfollowed even if a custom reporting guard throws.
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            EgressGuardHandler.RecordGuardFault();
-        }
+        Evaluate(destination);
     }
 
     private static bool RequestRequiresForceGet(HttpStatusCode status, HttpMethod method)

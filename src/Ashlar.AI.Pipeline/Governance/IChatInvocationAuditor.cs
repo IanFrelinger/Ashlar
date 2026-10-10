@@ -40,6 +40,9 @@ public sealed class ChatInvocationAuditRecord
 
     /// <summary>Fault or deny reason code (no secrets).</summary>
     public string? ReasonCode { get; init; }
+
+    /// <summary>The full operator-only egress record when policy refused a call. Never return this to the subject.</summary>
+    public Ashlar.Abstractions.Security.Egress.EgressDecision? EgressDecision { get; init; }
 }
 
 /// <summary>

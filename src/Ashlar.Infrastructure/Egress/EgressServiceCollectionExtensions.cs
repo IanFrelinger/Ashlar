@@ -3,11 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Ashlar.Infrastructure.Egress;
 
 /// <summary>
-/// Registers the report-only egress guard (SPEC-007) in a service collection: the guard, the logger subscription for
+/// Registers the egress guard (SPEC-007) in a service collection: the guard, the logger subscription for
 /// its decision records, and the guard handler on every <see cref="IHttpClientFactory"/> client.
 /// </summary>
 /// <remarks>
@@ -29,14 +30,14 @@ namespace Ashlar.Infrastructure.Egress;
 /// action to <see cref="HttpClientFactoryOptions.HttpMessageHandlerBuilderActions"/> for every client name through
 /// the defaults builder's own service collection, and reads the name from the handler builder as each client's
 /// handlers are built.</para>
-/// <para><b>Report-only.</b> Nothing here refuses a send or throws from a decision. The guard handler does not change
+/// <para><b>Enforcement.</b> Refused decisions stop a send when the resolved mode enforces. The guard does not change
 /// the request. The redirect handler, when it follows, does: it updates the URI and may change the method, drop the
 /// content and clear <c>Authorization</c>. Building a handler resolves
-/// <see cref="IEgressGuard"/> and activates <see cref="EgressDecisionLoggerSubscription"/>; if either fails, the client
-/// is still built, with <see cref="EgressGuard.ProcessDefault"/>, and the decisions still reach the
+/// <see cref="IEgressGuard"/> and activates <see cref="EgressDecisionLoggerSubscription"/>; a failed guard lookup
+/// falls back to <see cref="EgressGuard.ProcessDefault"/>, and decisions still reach the
 /// <c>Ashlar-Egress</c> event source.</para>
-/// <para><b>Logging.</b> Decisions are written to the <c>Ashlar.Egress</c> category at Debug, so they are off
-/// unless an operator turns that category on. The subscription is activated by a hosted service when a host
+/// <para><b>Logging.</b> Report and allowed decisions use Debug in <c>Ashlar.Egress</c>; enforced refusals use
+/// windowed Warning records and counted summaries. The subscription is activated by a hosted service when a host
 /// starts, and by the first factory client's handler construction otherwise.</para>
 /// </remarks>
 public static class EgressServiceCollectionExtensions
@@ -81,37 +82,28 @@ public static class EgressServiceCollectionExtensions
         return services;
     }
 
-    // Runs each time a factory client's handlers are built. Nothing here may stop the client being built, so a
-    // failure leaves the guard at ProcessDefault (a null guard) and the records on the event source only.
+    // Runs each time a factory client's handlers are built. Resolution failures retain process enforcement.
     internal static IEgressGuard? ResolveGuardAndActivateLogging(HttpMessageHandlerBuilder handlers)
     {
-        IServiceProvider services;
-        try
+        IServiceProvider? services = null;
+        return EgressGuard.ResolveForRoute(() =>
         {
             services = handlers.Services;
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-
-        try
-        {
-            _ = services.GetService<EgressDecisionLoggerSubscription>();
-        }
-        catch (Exception)
-        {
-            // The logger subscription could not be built; the decisions still go to the event source.
-        }
-
-        try
-        {
+            try
+            {
+                _ = services.GetService<EgressDecisionLoggerSubscription>();
+            }
+            catch (Exception)
+            {
+                // The logger subscription could not be built; the decisions still go to the event source.
+            }
             return services.GetService<IEgressGuard>();
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+        }, (faulted, fault) =>
+            services?.GetService<ILoggerFactory>()?.CreateLogger("Ashlar.Egress").Log(
+                faulted ? LogLevel.Warning : LogLevel.Debug,
+                new EventId(7306, "EgressGuardFallback"),
+                "Egress guard resolution {Resolution}; using ProcessDefault; fault={Fault}",
+                faulted ? "failed" : "unregistered", fault ?? "none"));
     }
 
     /// <summary>Marks a collection <see cref="AddAshlarEgressGuard"/> has already run on.</summary>

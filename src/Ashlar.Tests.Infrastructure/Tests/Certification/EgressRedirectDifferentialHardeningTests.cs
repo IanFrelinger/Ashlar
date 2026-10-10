@@ -118,7 +118,8 @@ public sealed class EgressRedirectDifferentialHardeningTests : IClassFixture<Egr
         using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
 
         var remote = $"http://remote-{token}.example:{_server.HttpPort}/{token}/b";
-        using var response = await client.GetAsync(new Uri($"http://127.0.0.1:{_server.HttpPort}/{token}/r/307?to={Uri.EscapeDataString(remote)}"));
+        var refusal = await Assert.ThrowsAsync<EgressRefusedException>(() => client.GetAsync(
+            new Uri($"http://127.0.0.1:{_server.HttpPort}/{token}/r/307?to={Uri.EscapeDataString(remote)}")));
 
         var decisions = recorder.Decisions;
         decisions.Should().HaveCount(2);
@@ -130,9 +131,8 @@ public sealed class EgressRedirectDifferentialHardeningTests : IClassFixture<Egr
         hop2.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
 
         var seen = _server.For(token);
-        seen.Should().HaveCount(2, "report-only until SPEC-007 PR 4.7: the refused hop is still sent");
-        seen[1].Host.Should().StartWith($"remote-{token}.example");
-        decisions[1].At.Should().BeLessThan(seen[1].At, "the refusal is decided before the hop reaches the server, which is where PR 4.7 stops it");
+        seen.Should().HaveCount(1, "PR 4.7 prevents the refused hop from reaching the server");
+        refusal.Decision.Should().BeSameAs(hop2);
     }
 
     [Fact]

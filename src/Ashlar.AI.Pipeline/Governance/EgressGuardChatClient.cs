@@ -6,9 +6,9 @@ using Microsoft.Extensions.AI;
 namespace Ashlar.AI.Pipeline.Governance;
 
 /// <summary>
-/// Outermost governance middleware (SPEC-007 PR 3): records one report-only egress decision for the target's
-/// destination on every call, then delegates unchanged. It never refuses and never reads the messages, and a guard
-/// that throws never reaches the caller.
+/// Outermost governance middleware: decides egress for the target before calling the inner client or creating
+/// its stream. A refusal under enforcement throws a redacted policy exception; report mode delegates unchanged.
+/// It never reads the messages. Host guard faults become NoDecision records under the process mode.
 /// </summary>
 /// <remarks>
 /// <para>It is the first <c>Use()</c> in <see cref="AshlarGovernanceChatClientBuilderExtensions.UseAshlarGovernance"/>,
@@ -41,6 +41,8 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
     private readonly IEgressGuard _guard;
     private readonly string? _defaultModelId;
     private readonly bool _responsesAreReads;
+    private readonly IChatInvocationAuditor? _auditor;
+    private readonly string? _targetKey;
 
     /// <summary>Creates the legacy targetless guard layer around an inner client.</summary>
     /// <remarks>This overload does not classify responses as reads. Governed target construction uses the
@@ -57,6 +59,15 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
     public EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard, string? targetKey)
         : this(innerClient, request, guard, IsAgentBacked(targetKey))
     {
+        _targetKey = targetKey;
+    }
+
+    /// <summary>Creates a governed target with an auditor that also receives refusals before inner middleware runs.</summary>
+    public EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard,
+        string? targetKey, IChatInvocationAuditor? auditor)
+        : this(innerClient, request, guard, targetKey)
+    {
+        _auditor = auditor;
     }
 
     private EgressGuardChatClient(IChatClient innerClient, EgressRequest? request, IEgressGuard? guard, bool responsesAreReads)
@@ -185,25 +196,36 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
             || id.EndsWith(":cloud", StringComparison.OrdinalIgnoreCase);
     }
 
-    // Report-only: the decision is discarded. EgressGuard.Evaluate never throws, but a host may register its own
-    // IEgressGuard, so a fault is swallowed here as EgressGuardHandler does, and the call goes ahead unchanged.
+    // Decide before asking the inner client for a task or stream, without enumerating the messages.
     private void Decide(ChatOptions? options)
     {
         if (Request is null)
             return;
 
-        try
+        var model = string.IsNullOrWhiteSpace(options?.ModelId) ? _defaultModelId : options!.ModelId;
+        var request = IsOllamaCloudModel(model)
+            ? new EgressRequest(Request.Family, Request.Site, OllamaCloud)
+            : Request;
+        var decision = EgressGuard.EvaluateForRoute(_guard, request);
+        if (decision.Refused)
         {
-            var model = string.IsNullOrWhiteSpace(options?.ModelId) ? _defaultModelId : options!.ModelId;
-            var request = IsOllamaCloudModel(model)
-                ? new EgressRequest(Request.Family, Request.Site, OllamaCloud)
-                : Request;
-            _ = _guard.Evaluate(request);
+            try
+            {
+                _auditor?.Record(new ChatInvocationAuditRecord
+                {
+                    TargetKey = _targetKey ?? string.Empty,
+                    ModelId = model,
+                    Outcome = "denied",
+                    ReasonCode = "egress_refused",
+                    EgressDecision = decision,
+                });
+            }
+            catch (Exception)
+            {
+                // A faulty audit sink must not replace or suppress the policy refusal.
+            }
         }
-        catch (Exception)
-        {
-            // A host IEgressGuard threw; report-only, the call proceeds.
-        }
+        decision.ThrowIfRefused();
     }
 
     // The model the inner client sends when a call names none. Never throws: a host's client may fail GetService, and

@@ -26,8 +26,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// environment, and raised to <c>enforce</c> if <c>AddAshlar</c> was asked to), or its constructor's when that is at
 /// least as strict. Until SPEC-007 PR 4.11 every profile defaults to <c>report</c>. If resolving the mode throws, the
 /// mode is <c>enforce</c> with the basis <c>fault</c>: it fails closed.</para>
-/// <para><b>Nothing refuses yet.</b> <see cref="Evaluate"/> never throws, never refuses and never blocks: it only
-/// records, and until SPEC-007 PR 4.7 no route acts on <see cref="EgressDecision.Refused"/>. It does not consult or
+/// <para><b>Decision and enforcement.</b> <see cref="Evaluate"/> never throws and never blocks: it records the
+/// decision. HTTP and governed model routes act on <see cref="EgressDecision.Refused"/>. It does not consult or
 /// change any other policy. If classifying throws, the record carries <see cref="EgressDecision.Fault"/> (the
 /// exception's type name only) and <c>default(AccessDecision)</c>, and is still published.</para>
 /// <para>Every instance decides by the same rules and publishes to the same <see cref="EgressDecisionLog"/>; an
@@ -42,6 +42,45 @@ public sealed class EgressGuard : IEgressGuard
     internal const string FaultedCurrentBasis = "not resolved: the evaluation faulted";
 
     private static long _sequence;
+    private static long _resolutionFaults;
+    private static long _resolutionMissing;
+
+    internal static long ResolutionFaults => Interlocked.Read(ref _resolutionFaults);
+    internal static long ResolutionMissing => Interlocked.Read(ref _resolutionMissing);
+
+    // A failed DI lookup must retain process enforcement. Diagnostics cannot stop client construction.
+    internal static IEgressGuard ResolveForRoute(Func<IEgressGuard?> resolve, Action<bool, string?> diagnose)
+    {
+        string? fault = null;
+        try
+        {
+            var guard = resolve();
+            if (guard is not null)
+                return guard;
+        }
+#pragma warning disable CA1031 // Host DI faults fall back to process policy and are counted and diagnosed.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            fault = ex.GetType().FullName ?? ex.GetType().Name;
+        }
+
+        if (fault is null)
+            Interlocked.Increment(ref _resolutionMissing);
+        else
+            Interlocked.Increment(ref _resolutionFaults);
+        try
+        {
+            diagnose(fault is not null, fault);
+        }
+#pragma warning disable CA1031 // Diagnostics must not change the fallback guard.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            EgressDecisionLog.RecordSinkFault();
+        }
+        return ProcessDefault;
+    }
 
     private readonly string? _deploymentProfile;
     private readonly string? _egressMode;
@@ -57,8 +96,8 @@ public sealed class EgressGuard : IEgressGuard
     /// non-blank value fails closed to <c>enforce</c>. A guard with a <paramref name="deploymentProfile"/> uses this
     /// override alone (none when <see langword="null"/>) and never reads the environment. A guard without one uses the
     /// process override (read once per process), and this override only when it is at least as strict, so it can
-    /// raise that guard's mode but never lower it. Not yet a supported setting: until SPEC-007 PR 4.7 nothing acts on
-    /// the mode.</param>
+    /// raise that guard's mode but never lower it. HTTP and governed model routes honor enforcement; the full
+    /// profile switch remains SPEC-007 PR 4.11.</param>
     public EgressGuard(string? deploymentProfile = null, string? egressMode = null)
     {
         _deploymentProfile = deploymentProfile;
@@ -72,7 +111,32 @@ public sealed class EgressGuard : IEgressGuard
     public static EgressGuard ProcessDefault { get; } = new();
 
     /// <inheritdoc />
-    public EgressDecision Evaluate(EgressRequest request)
+    public EgressDecision Evaluate(EgressRequest request) => EvaluateCore(request, externalFault: null);
+
+    // A host implementation can throw or violate the non-null return contract. The process mode determines
+    // whether that failed evaluation stops the route; never substitute an ordinary allow decision for a fault.
+    internal static EgressDecision EvaluateForRoute(IEgressGuard guard, EgressRequest request)
+    {
+        string fault;
+        try
+        {
+            var decision = guard.Evaluate(request);
+            if (decision is not null)
+                return decision;
+            fault = typeof(InvalidOperationException).FullName!;
+        }
+#pragma warning disable CA1031 // Host guard faults become recorded NoDecision results; enforcement happens outside this catch.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            fault = ex.GetType().FullName ?? ex.GetType().Name;
+        }
+
+        EgressGuardHandler.RecordGuardFault();
+        return ProcessDefault.EvaluateCore(request, fault);
+    }
+
+    private EgressDecision EvaluateCore(EgressRequest? request, string? externalFault)
     {
         var sequence = Interlocked.Increment(ref _sequence);
         var at = DateTimeOffset.UtcNow;
@@ -110,13 +174,18 @@ public sealed class EgressGuard : IEgressGuard
         var current = SecurityLabel.SystemHigh;
         var currentBasis = FaultedCurrentBasis;
         var access = default(AccessDecision);
-        string? fault = null;
+        string? fault = externalFault;
 
         try
         {
             (profile, enforces) = DescribeProfile(deploymentProfile);
 
-            SecurityGuard.ThrowIfNull(request, nameof(request));
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(request);
+#else
+            if (request is null)
+                throw new ArgumentNullException(nameof(request));
+#endif
             family = EgressDestinations.Bound(request.Family);
             site = EgressDestinations.Bound(request.Site);
 
@@ -125,7 +194,7 @@ public sealed class EgressGuard : IEgressGuard
 
             (current, currentBasis) = EgressSubject.Resolve();
 
-            access = ReferenceMonitor.CanWrite(current, destinationLabel);
+            access = externalFault is null ? ReferenceMonitor.CanWrite(current, destinationLabel) : default;
         }
 #pragma warning disable CA1031 // Evaluate never throws by contract: any failure becomes the record's Fault and the caller proceeds.
         catch (Exception ex)

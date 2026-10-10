@@ -17,6 +17,18 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — opt-in egress refusal routes (SPEC-007 4.7)
+
+- HTTP sends, redirect hops and governed MEAI calls stop before the inner transport when their decision
+  refuses under enforcement. A typed `EgressRefusedException` preserves the operator decision with a redacted
+  local message. Host guard faults become fail-closed `NoDecision` results under process enforcement.
+- Refusals appear at Warning with timed five-minute suppression summaries, EventSource event 2 and the MEAI
+  invocation audit. DI fallback diagnostics distinguish failed resolution from a missing registration.
+  Logging and audit faults cannot bypass refusal. Opaque redirects are diagnosed after the response and
+  cannot undo a send already made by the transport.
+- All profiles still default to report. Catch-all/remote refusal handling, explicit sites and the profile
+  switch remain SPEC-007 4.8, 4.9 and 4.11.
+
 ### Fixed — integrated security records and local repository checks
 
 - Re-measured SPEC-007 after #738, #739 and #740: 2,148 production files, 149 outbound occurrences,
