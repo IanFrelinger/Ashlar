@@ -207,6 +207,9 @@ public sealed partial class EgressGuardConventionTests
     /// SPEC-007 PR 4.3 adds the redirect handler and the factory binding filter, neither of which
     /// constructs an HTTP client: 2,144 files, 150 occurrences. SPEC-007 PR 4.5 adds
     /// <c>IEgressLabelledTool.cs</c>, which constructs no HTTP client: 2,145 files, 150 occurrences.
+    /// Re-measured on integrated master bc1777dfc (2026-10-09), after PRs #738, #739 and #740:
+    /// 2,148 files, 149 occurrences. The repairs add three production files; #739 consolidates the
+    /// Bedrock client constructions, reducing sdk.client from 9 to 8. F8 still parses 67 documentation rows.
     /// Set far enough below to survive ordinary deletions; a scan that stops reading the tree
     /// falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
