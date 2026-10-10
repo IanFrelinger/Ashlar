@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -42,6 +43,13 @@ public sealed class AuditingChatClient : DelegatingChatClient
             Emit("success", response.ModelId ?? options?.ModelId, sw.ElapsedMilliseconds, response.Usage);
             return response;
         }
+        catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+        {
+            sw.Stop();
+            EmitReadRefusal(options?.ModelId, sw.ElapsedMilliseconds);
+            ReadRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
         {
             sw.Stop();
@@ -80,6 +88,7 @@ public sealed class AuditingChatClient : DelegatingChatClient
         UsageDetails? usage = null;
         var completed = false;
         EgressRefusedException? activeRefusal = null;
+        bool activeReadRefusal = false;
 
         IAsyncEnumerator<ChatResponseUpdate>? enumerator = null;
         try
@@ -88,6 +97,14 @@ public sealed class AuditingChatClient : DelegatingChatClient
             {
                 enumerator = base.GetStreamingResponseAsync(messages, options, cancellationToken)
                     .GetAsyncEnumerator(cancellationToken);
+            }
+            catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+            {
+                activeReadRefusal = true;
+                sw.Stop();
+                EmitReadRefusal(modelId, sw.ElapsedMilliseconds);
+                ReadRefusal.ThrowIfPresent(ex);
+                throw;
             }
             catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
             {
@@ -104,6 +121,14 @@ public sealed class AuditingChatClient : DelegatingChatClient
                 try
                 {
                     moved = await enumerator.MoveNextAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+                {
+                    activeReadRefusal = true;
+                    sw.Stop();
+                    EmitReadRefusal(modelId, sw.ElapsedMilliseconds);
+                    ReadRefusal.ThrowIfPresent(ex);
+                    throw;
                 }
                 catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
                 {
@@ -165,9 +190,17 @@ public sealed class AuditingChatClient : DelegatingChatClient
                 {
                     await enumerator.DisposeAsync().ConfigureAwait(false);
                 }
-                catch (Exception) when (activeRefusal is not null)
+                catch (Exception) when (activeRefusal is not null || activeReadRefusal)
                 {
                     // Disposal cannot replace a refusal already being propagated.
+                }
+                catch (Exception ex) when (ReadRefusal.Find(ex) is not null)
+                {
+                    activeReadRefusal = true;
+                    sw.Stop();
+                    EmitReadRefusal(modelId, sw.ElapsedMilliseconds);
+                    ReadRefusal.ThrowIfPresent(ex);
+                    throw;
                 }
                 catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
                 {
@@ -180,6 +213,12 @@ public sealed class AuditingChatClient : DelegatingChatClient
 
         }
         if (completed) Emit("success", modelId, sw.ElapsedMilliseconds, usage);
+    }
+
+    private void EmitReadRefusal(string? modelId, long latencyMs)
+    {
+        try { Emit("denied", modelId, latencyMs, reasonCode: "read_refused"); }
+        catch (Exception) { /* An audit failure must not mask the read refusal. */ }
     }
 
     private void EmitRefusal(EgressRefusedException refusal, string? modelId, long latencyMs, UsageDetails? usage = null)
