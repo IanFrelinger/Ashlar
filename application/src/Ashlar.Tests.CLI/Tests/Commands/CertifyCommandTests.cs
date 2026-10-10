@@ -92,7 +92,7 @@ public sealed class CertifyCommandTests : IDisposable
     /// <summary>
     /// Sets a minting key for the duration of a test. Admission verifies
     /// <see cref="CertificationVerifyOptions.Strict"/>, which REQUIRES an Ed25519 signature — so
-    /// with no operator key configured the gate certifies and the registry then refuses, and the
+    /// with no operator key configured the gate certifies and the offline signature check refuses, and the
     /// run is a REJECT. That is the certifier's fail-closed posture, not a test artefact:
     /// <c>tools/Ashlar.CertifyBrick</c> behaves the same way, which is why the gate script is run
     /// with a key in the environment. A raw Ed25519 private key is any 32 bytes.
@@ -138,11 +138,29 @@ public sealed class CertifyCommandTests : IDisposable
         record.GetProperty("admitted").GetBoolean().Should().BeTrue();
         record.GetProperty("signed").GetBoolean().Should().BeTrue();
         record.GetProperty("status").GetString().Should().Be("PASS");
+        record.GetProperty("schemaVersion").GetInt32().Should().Be(3);
+        record.GetProperty("highestDataLabel").GetString().Should().Be("SystemHigh");
+        var manifest = ReadRecord(Path.Combine(_dir, "skill-manifest.json"));
+        manifest.GetProperty("highestDataLabel").GetString().Should().Be("SystemHigh");
 
         // The registry's own copy, keyed by brick id — this is what a consumer's runtime looks up,
         // and it is written by the same run rather than by a second command.
         File.Exists(Path.Combine(_dir, "honest.json")).Should().BeTrue();
         // A8: the certifier ships the binary it judged, so the consumer never recompiles author source.
+        File.Exists(Path.Combine(_dir, "gate-emitted-brick.dll")).Should().BeTrue();
+    }
+
+    [Fact(Timeout = 60_000)]
+    public async Task Certify_withoutOperatorKey_refusesOfflineEvidence_withoutRuntimeActivation()
+    {
+        using var key = new EnvironmentVariableScope(CertificationRecordEd25519.PrivateKeyEnvVar, null);
+        var brickDir = CopyHonestBrick();
+        var recordPath = Path.Combine(_dir, "certification-record.json");
+        var (rc, stdout, stderr) = await RunCliAsync("certify", "brick", brickDir,
+            "--witness", Path.Combine(brickDir, "witness.json"), "--record", recordPath);
+        rc.Should().Be(1, stdout + Environment.NewLine + stderr);
+        stderr.Should().Contain("REJECT (admission)");
+        ReadRecord(recordPath).GetProperty("admitted").GetBoolean().Should().BeFalse();
         File.Exists(Path.Combine(_dir, "gate-emitted-brick.dll")).Should().BeTrue();
     }
 

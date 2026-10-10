@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Ashlar.Certification.Contracts;
 using Ashlar.Core.Application.Certification.Models;
 using Ashlar.Core.Application.Certification.Ports;
 
@@ -7,7 +8,7 @@ namespace Ashlar.Infrastructure.Certification;
 /// <summary>Terminal state of one certification run.</summary>
 public enum BrickCertificationOutcome
 {
-    /// <summary>The gate certified the brick and the registry admitted it.</summary>
+    /// <summary>The gate certified the brick and the offline signature requirement passed.</summary>
     Admitted,
 
     /// <summary>The gate ran and refused. The record on disk is that verdict, signed.</summary>
@@ -150,6 +151,20 @@ public static class BrickCertificationRun
             // a separate operation requiring operator-pinned trust and a live subject clearance.
             var decision = await gate
                 .CertifyAsync(certificationRequest, cancellationToken).ConfigureAwait(false);
+            // Preserve the CLI's strict Ed25519 evidence requirement without activating the PE.
+            if (decision.Admitted && !signer.Verify(decision.Record, CertificationVerifyOptions.Strict))
+            {
+                decision = decision with
+                {
+                    Admitted = false,
+                    FailureCheck = "admission",
+                    Record = decision.Record with
+                    {
+                        Admitted = false, Signed = false, Status = "FAIL",
+                        Reason = "Offline certification requires a valid Ed25519 signature"
+                    }
+                };
+            }
 
             await File.WriteAllTextAsync(
                 recordPath,
