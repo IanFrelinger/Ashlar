@@ -10,10 +10,10 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// Every outbound path from production code is listed in <c>ci/egress-inventory.tsv</c> and
 /// <c>docs/EgressInventory.md</c>, pinned per file and marker, and a new one cannot appear unlisted. Every listed
 /// site is routed through the egress guard — <c>EgressHttp</c>, the factory defaults, governance or an explicit
-/// guard call — or carries a final <c>Exempt:</c> reason (SPEC-007 PR 3b; the guard is report-only and refuses
-/// nothing until PR 4).
+/// guard call — or carries a final <c>Exempt:</c> reason. AirGapped and SecureWorkstation enforce by default.
 ///
-/// <para><b>A tripwire, not a proof.</b> The scan is textual (no Roslyn in the required check). It sees the
+/// <para><b>A tripwire, not a proof.</b> The inventory scan is textual; the protected factory-name check parses
+/// C# syntax. The inventory sees the
 /// tokens listed below in production source with comments and literal contents blanked, and nothing else.
 /// Green means "no new token of a taught shape appeared unlisted", never "nothing leaves the process". The
 /// behavioural twins (<c>EgressGuardDecisionTests</c>, <c>EgressHttpHandlerTwinTests</c>,
