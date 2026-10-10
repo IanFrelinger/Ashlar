@@ -488,6 +488,10 @@ public static class CertificationRecordSigning
 
     private static readonly string[] AttemptNames = { Names.Index, Names.Outcome, Names.FailureCategory, Names.DurationSeconds };
 
+    // SPEC-007 PR5 deliberately declares levels only. Compartments and caveats are not inferred here.
+    internal static bool IsCanonicalDataLevel(string? label) =>
+        label is "Public" or "Internal" or "Confidential" or "Secret" or "TopSecret" or "SystemHigh";
+
     /// <summary>
     /// Returns <paramref name="payload"/> when it carries the exact property-name sequence its
     /// lane declares, and throws otherwise. No input to the emitter can produce another
@@ -499,10 +503,6 @@ public static class CertificationRecordSigning
     /// Internal rather than private so it can be exercised directly against payloads no input
     /// to the emitter can produce.
     /// </summary>
-    // SPEC-007 PR5 deliberately declares levels only. Compartments and caveats are not inferred here.
-    internal static bool IsCanonicalDataLevel(string? label) =>
-        label is "Public" or "Internal" or "Confidential" or "Secret" or "TopSecret" or "SystemHigh";
-
     internal static string EnsureCanonical(string payload, bool versioned, bool labelled = false)
     {
         var lane = labelled ? "v3" : versioned ? "v2" : "v1";

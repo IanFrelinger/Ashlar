@@ -482,8 +482,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 1. **REL TO allow-lists.** Are restriction caveats (§2.1) enough for v1, or are allow-lists needed too?
 2. **Compartment names.** Free-form tokens, or registered in a policy pack?
 3. **Where clearances are configured.** Answered 2026-10-10: both, with the policy ceiling and host narrowing (decisions log).
-4. **Labels in signed records.** Should a label go into the signed certification record (a schema
-   change that moves the canonical bytes and the golden corpora), or stay in the package manifest?
+4. **Labels in signed records.** Answered 2026-10-10: both package manifest and signed certification record, with a versioned schema and golden corpora (decisions log).
 5. **Compilation rule.** When does combining many low items raise an output's label, or send it to a
    human?
 6. **Model mode.** "Pinned model" or "model picks only among certified skills" is chosen per app. Where
@@ -581,7 +580,7 @@ answered on 2026-10-05 for PR 4; A, B and E are still open, and none blocked a m
   Both API reviewers on #706 called this the one hard-to-change item. PR 3a did not need it, because the guard
   classifies a destination by a fixed table instead of parsing it, so the question is still open.
 
-- **B. `SystemHigh` versus today's `TopSecret` visibility.** Through the bridges, unlabelled data is `SystemHigh`,
+- **B. `SystemHigh` versus today's `TopSecret` visibility. Answered 2026-10-10:** only an explicit trusted operator/host grant may confer `SystemHigh`; host narrowing cannot exceed the policy ceiling. Through the bridges, unlabelled data is `SystemHigh`,
   so only a `SystemHigh` clearance can read it, whereas today a `TopSecret` caller can. The bridges never give a
   clearance `SystemHigh`. Who, if anyone, holds `SystemHigh`? PR 2 pins the difference on both sides, the legacy
   allow and the label refusal:
