@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Logging;
@@ -62,6 +63,9 @@ public class DockerService : IDockerService, IDisposable
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        // The daemon is local, but build steps and container commands have unrestricted network access.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
+            EgressFamilies.Process, "EG-PROC-10", "process:docker")).ThrowIfRefused();
         var startTime = DateTime.UtcNow;
         
         try
@@ -116,6 +120,9 @@ public class DockerService : IDockerService, IDisposable
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        // The daemon is local, but build steps and container commands have unrestricted network access.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
+            EgressFamilies.Process, "EG-PROC-10", "process:docker")).ThrowIfRefused();
         var startTime = DateTime.UtcNow;
         string? containerId = null;
 
@@ -254,7 +261,7 @@ public class DockerService : IDockerService, IDisposable
             Follow = false
         };
 
-        using var stream = await _dockerClient.Containers.GetContainerLogsAsync(containerId, false, logsParams, cancellationToken);
+        using var stream = await _dockerClient.Containers.GetContainerLogsAsync(containerId, logsParams, cancellationToken);
         
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();

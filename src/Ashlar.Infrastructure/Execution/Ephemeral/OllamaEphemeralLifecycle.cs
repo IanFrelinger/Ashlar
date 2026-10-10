@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,10 @@ public sealed class OllamaEphemeralLifecycle : IEphemeralModelLifecycle
             _logger.LogWarning("Session already active; returning existing scope");
             return new SessionScope(this, null);
         }
+
+        // No network-off guarantee exists for this container.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
+            EgressFamilies.Process, "EG-PROC-11", "process:docker")).ThrowIfRefused();
 
         var createParams = new CreateContainerParameters
         {

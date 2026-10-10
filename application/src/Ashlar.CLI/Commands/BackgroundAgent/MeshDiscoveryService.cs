@@ -243,13 +243,20 @@ public sealed class MeshDiscoveryService : BackgroundService
 
     private async Task AnnounceLoopAsync(bool announcing, CancellationToken ct)
     {
-        // SPEC-007 EG-MESH-05, report-only: decided once per loop, before the sender exists; the group, the port and the
+        // SPEC-007 EG-MESH-05: decided once per loop, before the sender exists; the group, the port and the
         // beacon are fixed for the loop's life, so one decision covers every send. Unconditional on purpose: G3 cannot
         // see a guard that may not run, so a listen-only node records host:listen-only (it never sends a beacon).
-        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
+        var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
             EgressFamilies.MeshDiscovery,
             "EG-MESH-05",
             announcing ? $"udp://{MeshBeacon.Group}:{_settings.DiscoveryPort}" : "host:listen-only"));
+        if (decision.Refuses)
+        {
+            _logger.LogWarning(new EventId(7307, "EgressRefused"),
+                "Mesh discovery egress refused: {Refusal}; continuing listen-only",
+                new EgressRefusedException(decision).Message);
+            announcing = false;
+        }
         using var sender = new UdpClient();
         try { sender.MulticastLoopback = true; } catch { /* platform quirk; loopback is best-effort */ }
         var endpoint = new IPEndPoint(MeshBeacon.Group, _settings.DiscoveryPort);

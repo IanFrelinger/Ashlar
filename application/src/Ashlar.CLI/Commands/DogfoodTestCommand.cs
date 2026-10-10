@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
@@ -82,6 +83,7 @@ internal static class DogfoodTestCommand
 
     private static async Task<int> RunDotNetAsync(string workingDir, string command, bool streamOutput, params string[] args)
     {
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",

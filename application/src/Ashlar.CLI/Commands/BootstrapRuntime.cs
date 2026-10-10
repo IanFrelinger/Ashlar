@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
@@ -340,6 +341,7 @@ internal static class BootstrapRuntime
     private static Process? StartShellProcess(string command, bool redirect)
     {
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", isWindows ? "process:powershell" : "process:bash")).ThrowIfRefused();
         var psi = new ProcessStartInfo
         {
             FileName = isWindows ? "powershell.exe" : "bash",

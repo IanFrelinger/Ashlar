@@ -83,9 +83,22 @@ public static class NativeBundle
     /// </summary>
     public static List<string> StageApp(string projectDir, string bundleDir, string site)
     {
-        ArgumentNullException.ThrowIfNull(site); // the member's own contract, so the report-only guard below never throws
-        // SPEC-007, report-only: the project tree leaves through the bundle (EG-FILE-01 native, EG-FILE-02 cloud).
-        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, "file:" + bundleDir));
+        ArgumentNullException.ThrowIfNull(site);
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, "file:" + bundleDir)).ThrowIfRefused();
+        return CopyApp(projectDir, bundleDir);
+    }
+
+    internal static List<string> StageAppWithInitiator(string projectDir, string bundleDir, string site, EgressInitiator initiator)
+    {
+        ArgumentNullException.ThrowIfNull(site);
+        // SPEC-007: the project tree leaves through the bundle (EG-FILE-01 native, EG-FILE-02 cloud).
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, "file:" + bundleDir)
+            { Initiator = initiator }).ThrowIfRefused();
+        return CopyApp(projectDir, bundleDir);
+    }
+
+    private static List<string> CopyApp(string projectDir, string bundleDir)
+    {
         var appDir = Path.Combine(bundleDir, "app");
         Directory.CreateDirectory(appDir);
         var written = new List<string>();
@@ -132,8 +145,11 @@ public static class NativeBundle
     /// added separately (see the export command's publish step).
     /// </summary>
     public static IReadOnlyList<string> Stage(string projectDir, string bundleDir, BundleInfo info)
+        => Stage(projectDir, bundleDir, info, EgressInitiator.Unspecified);
+
+    internal static IReadOnlyList<string> Stage(string projectDir, string bundleDir, BundleInfo info, EgressInitiator initiator)
     {
-        var written = StageApp(projectDir, bundleDir, "EG-FILE-01");
+        var written = StageAppWithInitiator(projectDir, bundleDir, "EG-FILE-01", initiator);
 
         var exe = "ashlar" + (info.Rid.StartsWith("win", StringComparison.Ordinal) ? ".exe" : string.Empty);
         // The launcher must not overclaim: "certified" is only true when a signed ledger attests

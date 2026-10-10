@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../../../src/Ashlar.Tests.Infrastructure/Helpers/EgressProcessStateScope.cs" Link="Helpers/EgressProcessStateScope.cs" />
+    <Compile Include="../../../src/Ashlar.Tests.Infrastructure/Helpers/EnvironmentVariableScope.cs" Link="Helpers/EnvironmentVariableScope.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="PublicApiGenerator" />

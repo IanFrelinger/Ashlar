@@ -34,13 +34,13 @@
           Condition="!Exists('$(CopyScriptExe)') AND Exists('$(CopyScriptProj)') AND Exists('$(DepsJsonPath)') AND '$(SkipCopyAssemblies)' != 'true'"
           ContinueOnError="true" />
     
+    <!-- Docker.DotNet must retain the runtime asset selected by deps.json above. Its netstandard
+         fallback has a different CreateClient signature and must not overwrite the selected assembly. -->
     <!-- Fallback: Known problematic assemblies that need to be copied -->
     <!-- These are assemblies that target net6.0, netstandard2.x, net7.0, or netcoreapp3.1 -->
     <ItemGroup>
       <AssembliesToCopy Include="$(NuGetPackageRoot)/castle.core/5.2.1/lib/net6.0/Castle.Core.dll" Condition="'$(OS)' != 'Windows_NT'" />
       <AssembliesToCopy Include="$(NuGetPackageRoot)\castle.core\5.2.1\lib\net6.0\Castle.Core.dll" Condition="'$(OS)' == 'Windows_NT'" />
-      <AssembliesToCopy Include="$(NuGetPackageRoot)/docker.dotnet/3.125.15/lib/netstandard2.1/Docker.DotNet.dll" Condition="'$(OS)' != 'Windows_NT'" />
-      <AssembliesToCopy Include="$(NuGetPackageRoot)\docker.dotnet\3.125.15\lib\netstandard2.1\Docker.DotNet.dll" Condition="'$(OS)' == 'Windows_NT'" />
       <AssembliesToCopy Include="$(NuGetPackageRoot)/fluentassertions/8.10.0/lib/net6.0/FluentAssertions.dll" Condition="'$(OS)' != 'Windows_NT'" />
       <AssembliesToCopy Include="$(NuGetPackageRoot)\fluentassertions\8.10.0\lib\net6.0\FluentAssertions.dll" Condition="'$(OS)' == 'Windows_NT'" />
       <AssembliesToCopy Include="$(NuGetPackageRoot)/fluentvalidation/11.9.2/lib/net8.0/FluentValidation.dll" Condition="'$(OS)' != 'Windows_NT'" />

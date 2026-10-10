@@ -17,6 +17,18 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — explicit egress and operator exports (SPEC-007 4.9)
+
+- Explicit egress sites refuse before sending, writing or launching a child when policy enforces. Working-tree
+  builds/tests remain network exports with `--no-build` or `--no-restore`; local Docker alone is not isolation.
+- Named CLI file exports record `operator-verb` report mode through an internal initiator. Publish/share and
+  runtime publishing still enforce; CLI policy refusals return77 with a redacted reason and reference.
+- Refused mesh serving returns404, discovery continues listening, and OTLP registers neither exporter.
+  Auto-share keeps local admission, and refused promotion broadcast no longer audits a successful promotion.
+  IDE remote errors use fixed text; optional discovery/pull diagnostics distinguish refusals from ordinary errors.
+- Docker SDK references now match Testcontainers' existing Enhanced dependency, avoiding two incompatible
+  assemblies with the same name; the test build no longer overwrites that assembly with the legacy fallback.
+
 ### Fixed — refusal propagation and remote surfaces (SPEC-007 4.8)
 
 - Policy refusals survive nested exceptions, provider probes and fallback chains. A successful independent

@@ -30,6 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Ashlar.API" />
+    <InternalsVisibleTo Include="Ashlar.CLI" />
     <InternalsVisibleTo Include="Ashlar.AI.Pipeline" />
     <InternalsVisibleTo Include="Ashlar.BackgroundAgents" />
     <InternalsVisibleTo Include="Ashlar.Core.Application" />

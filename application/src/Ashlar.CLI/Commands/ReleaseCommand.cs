@@ -115,20 +115,27 @@ public sealed class ReleaseCommand : Command
         return v.StartsWith('v') || v.StartsWith('V') ? v[1..] : v;
     }
 
+    // Version probes never execute a command or load a PowerShell profile.
+    internal static ProcessStartInfo VersionProbeStartInfo(string executable)
+    {
+        if (executable is not ("bash" or "pwsh"))
+            throw new ArgumentOutOfRangeException(nameof(executable));
+        return new ProcessStartInfo
+        {
+            FileName = executable,
+            Arguments = "--version",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+    }
+
     private static bool BashOnPath()
     {
         try
         {
-            using var p = Process.Start(
-                new ProcessStartInfo
-                {
-                    FileName = "bash",
-                    Arguments = "--version",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                });
+            using var p = Process.Start(VersionProbeStartInfo("bash"));
             if (p is null)
                 return false;
             p.WaitForExit(5000);
@@ -144,16 +151,7 @@ public sealed class ReleaseCommand : Command
     {
         try
         {
-            using var p = Process.Start(
-                new ProcessStartInfo
-                {
-                    FileName = "pwsh",
-                    Arguments = "-NoLogo -Command \"exit 0\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                });
+            using var p = Process.Start(VersionProbeStartInfo("pwsh"));
             if (p is null)
                 return false;
             p.WaitForExit(15000);

@@ -1,3 +1,8 @@
+using Ashlar.Tests.Infrastructure.Helpers;
+using Ashlar.Agents.TestKit;
+using Ashlar.BackgroundAgents.Autonomy;
+using Ashlar.Core.Application.Autonomy;
+using Ashlar.Infrastructure.Execution.Ollama;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
@@ -25,15 +30,15 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// </summary>
 /// <remarks>
 /// <para><b>What is pinned.</b> <c>ProcessCommandRunner</c> (EG-PROC-03) names its destination from the executable
-/// and, for docker and docker-compose, from <c>DOCKER_HOST</c>, then a non-default <c>DOCKER_CONTEXT</c>, then the
-/// local daemon; a live run records exactly one decision. <c>SneakernetTransport.ExportAsync</c> (EG-MESH-08)
+/// and allows Host only for a recognized network-off Docker run on a local daemon. Named/persisted contexts,
+/// remote hosts and other commands remain NetworkExport; a live run records exactly one decision. <c>SneakernetTransport.ExportAsync</c> (EG-MESH-08)
 /// records the file it actually writes, after the <c>.nxpkg</c> rewrite, and decides before that file exists.
 /// <c>FileBasedSharedAdaptationStore.BroadcastAsync</c> (EG-MESH-07) records the shared directory. Since SPEC-007
 /// PR 4.1, both doors record a path spelled <c>//127.0.0.1/…</c> as written and by their family, never as Host.
 /// <c>ValidationServiceAdapter</c> (EG-PROC-02) reads its destination off the argv the real start-info builders
-/// produce: <c>dotnet build</c> restores (<c>nuget-feeds</c>) and <c>dotnet test --no-build</c> does not
-/// (<c>host:dotnet</c>), and both of its call sites record that destination when they run. The Tools.Dev runner
-/// (EG-PROC-01), reached through <c>DotnetBuildTool</c> and <c>DotnetTestTool</c>, records the same split.
+/// produce: build and test both run working-tree code, even with <c>--no-build</c>, so both are
+/// <c>process:dotnet</c> (NetworkExport). The Tools.Dev runner (EG-PROC-01), reached through
+/// <c>DotnetBuildTool</c> and <c>DotnetTestTool</c>, records the same classification.
 /// <c>BingWebSearchProvider</c> (EG-WEB-01) records scheme, host and port only, as <c>WebSearch</c>, while the query
 /// still reaches the wire. The last theory classifies every destination shape this lane passes, so a change in the
 /// classifier shows up here first.</para>
@@ -43,14 +48,15 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// that runs after one, as Sneakernet's does after <c>await _sync.PullAsync</c>. Sinks are called synchronously inside
 /// <c>Evaluate</c>, so a sink can also look at the file system at the moment of the decision: that is how the
 /// Sneakernet case shows the guard comes before the write.
-/// No environment variable is written: <c>ProcessCommandRunner.Destination</c> takes the two docker variables as
-/// arguments. Three cases start a real <c>dotnet</c>, five processes in all: <c>dotnet --version</c>; the build and
+/// Enforcing twins scope and restore environment and process latches. Classifier-only cases pass Docker
+/// configuration as arguments. Report-mode cases start real dotnet commands: <c>dotnet --version</c>; the build and
 /// test tools in an empty temporary directory; and the validate adapter's build and test on a project file that does
 /// not exist. Each fails fast and restores nothing. The adapter's two runners are private, so that case reaches them
 /// by reflection. No case reaches the network: Bing's client sends to a stub handler.</para>
 /// <para>EG-TEL-01 is not here: it is decided in the API host's <c>Program.cs</c>, and its twin lives in
 /// <c>Tests/VirtualProduction</c> on net10.0.</para>
 /// </remarks>
+[Collection("EnvironmentVariables")]
 [Trait("Category", "Certification")]
 public sealed class EgressExplicitSiteTwinTests : IDisposable
 {
@@ -76,25 +82,125 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
     [InlineData("docker", null, null, "host:docker")]
     [InlineData("docker", null, "default", "host:docker")]
     [InlineData("docker", null, "remote-builder", "docker-context:remote-builder")]
-    [InlineData("docker", "unix:///var/run/docker.sock", null, "unix:///var/run/docker.sock")]
-    [InlineData("docker", "tcp://10.0.0.5:2376", "default", "tcp://10.0.0.5:2376")]
-    [InlineData("docker", "ssh://admin@builder.example.com", "remote-builder", "ssh://admin@builder.example.com")]
+    [InlineData("docker", "unix:///var/run/docker.sock", null, "host:docker")]
+    [InlineData("docker", "tcp://10.0.0.5:2376", "default", "process:docker")]
+    [InlineData("docker", "ssh://admin@builder.example.com", "remote-builder", "docker-context:remote-builder")]
     // Blank values are unset; a path and an extension still name docker.
     [InlineData("docker", "  ", " ", "host:docker")]
     [InlineData("/usr/local/bin/docker", null, " ci ", "docker-context:ci")]
     [InlineData("docker.exe", null, "ci", "docker-context:ci")]
-    [InlineData("docker-compose", null, null, "host:docker")]
-    [InlineData("docker-compose", "tcp://10.0.0.5:2376", null, "tcp://10.0.0.5:2376")]
-    [InlineData("docker-compose", null, "remote-builder", "docker-context:remote-builder")]
+    [InlineData("docker-compose", null, null, "process:docker-compose")]
+    [InlineData("docker-compose", "tcp://10.0.0.5:2376", null, "process:docker-compose")]
+    [InlineData("docker-compose", null, "remote-builder", "process:docker-compose")]
     // Any other executable is named, whatever the docker variables say.
     [InlineData("/usr/bin/kubectl", "tcp://10.0.0.5:2376", "remote-builder", "process:kubectl")]
     [InlineData("helm", null, null, "process:helm")]
     [InlineData(null, null, null, "process:unknown")]
     [InlineData("", "tcp://10.0.0.5:2376", null, "process:unknown")]
-    public void ProcessCommandRunner_Destination_reads_the_executable_then_DOCKER_HOST_then_DOCKER_CONTEXT(
+    public void ProcessCommandRunner_Destination_requires_a_local_network_off_docker_run(
         string? fileName, string? dockerHost, string? dockerContext, string expected)
     {
-        ProcessCommandRunner.Destination(fileName, dockerHost, dockerContext).Should().Be(expected);
+        ProcessCommandRunner.Destination(fileName, dockerHost, dockerContext, ["run", "--network=none", "--pull", "never", "image"]).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Adaptation_file_doors_refuse_before_writing_and_report_mode_writes(bool broadcast)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        var target = Path.Combine(_dir, "controlled-output");
+        var store = new FileBasedSharedAdaptationStore(target, new NoOpAdaptationLog(), new PassingRegressionRunner(), new PermissiveImmutableCore());
+        var transport = new SneakernetTransport(new EmptySync());
+        Task Run() => broadcast ? store.BroadcastAsync(Entry(id: "one")) : transport.ExportAsync(target);
+        var error = await Record.ExceptionAsync(Run);
+        error.Should().BeOfType<EgressRefusedException>().Which.Site.Should().Be(broadcast ? "EG-MESH-07" : "EG-MESH-08");
+        Directory.Exists(target).Should().BeFalse();
+        File.Exists(Path.ChangeExtension(target, ".nxpkg")).Should().BeFalse();
+        using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        EgressProcessStateScope.Reset();
+        await Run();
+        File.Exists(broadcast ? Path.Combine(target, "one", "meta.json") : Path.ChangeExtension(target, ".nxpkg")).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Validation_build_and_test_refuse_before_running_msbuild(bool test)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        var csproj = Path.Combine(_dir, "Marker.Tests.csproj");
+        var marker = Path.Combine(_dir, "validation-ran.txt");
+        var xml = new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement("Project",
+            new System.Xml.Linq.XElement("PropertyGroup", new System.Xml.Linq.XElement("IsTestProject", "true")),
+            new[] { "Build", "VSTest" }.Select(target => new System.Xml.Linq.XElement("Target",
+                new System.Xml.Linq.XAttribute("Name", target),
+                new System.Xml.Linq.XElement("WriteLinesToFile", new System.Xml.Linq.XAttribute("File", marker),
+                    new System.Xml.Linq.XAttribute("Lines", "ran"), new System.Xml.Linq.XAttribute("Overwrite", "true"))))));
+        xml.Save(csproj);
+        async Task<int> Run() => test
+            ? (await AdapterRunner<ValidationServiceAdapter.DotnetTestRun>("RunDotnetTestForValidateAsync", csproj, null, null, false, CancellationToken.None)).ExitCode
+            : await AdapterRunner<int>("RunDotnetBuildProjectAsync", csproj, CancellationToken.None);
+        var error = await Record.ExceptionAsync(async () => await Run());
+        error.Should().BeOfType<EgressRefusedException>().Which.Site.Should().Be("EG-PROC-02");
+        File.Exists(marker).Should().BeFalse("neither Build nor VSTest may run before refusal");
+        using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        EgressProcessStateScope.Reset();
+        (await Run()).Should().Be(0);
+        (await File.ReadAllTextAsync(marker)).Trim().Should().Be("ran");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Bing_and_proposal_source_refuse_before_sending_and_report_mode_sends(bool proposal)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        var handler = new RecordingHandler();
+        using var http = new HttpClient(handler);
+        var bing = new BingWebSearchProvider(http, "test-key");
+        var ollama = new OllamaProposalSource(http, new OllamaProposalOptions { BaseUrl = "https://remote.invalid" });
+        Task Run() => proposal ? ollama.ProposeAsync(new ProposalRequest("one", "title", "Contract: private objective", null)) : bing.SearchAsync("private query", 5);
+        var error = await Record.ExceptionAsync(Run);
+        error.Should().BeOfType<EgressRefusedException>().Which.Site.Should().Be(proposal ? "EG-MDL-11" : "EG-WEB-01");
+        handler.Requests.Should().BeEmpty();
+        using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        EgressProcessStateScope.Reset();
+        await Run();
+        handler.Requests.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Ollama_cloud_forwarding_refuses_before_chat_even_when_daemon_is_loopback()
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        var chats = 0;
+        using var http = new HttpClient(new StubHttpMessageHandler(request =>
+        {
+            var tags = request.RequestUri!.AbsolutePath == "/api/tags";
+            if (!tags) chats++;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(tags ? """{"models":[{"name":"test-cloud","size":100}]}""" : """{"message":{"content":"answer"}}""", Encoding.UTF8, "application/json")
+            };
+        }));
+        var provider = new OllamaProvider(http, "http://127.0.0.1:11434");
+        (await provider.InitializeAsync(CancellationToken.None)).IsSuccess.Should().BeTrue();
+        var error = await Record.ExceptionAsync(() => provider.ExecuteChatAsync("test-cloud", "system", "private prompt", null));
+        error.Should().BeOfType<EgressRefusedException>().Which.Site.Should().Be("EG-MDL-07");
+        chats.Should().Be(0);
+        using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        EgressProcessStateScope.Reset();
+        (await provider.ExecuteChatAsync("test-cloud", "system", "private prompt", null)).Value.Should().Be("answer");
+        chats.Should().Be(1);
     }
 
     [Fact]
@@ -221,20 +327,20 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
     // ---------------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void ValidationServiceAdapter_RestoreDestination_over_the_real_start_info_builders()
+    public void ValidationServiceAdapter_ProcessDestination_over_the_real_start_info_builders()
     {
         var csproj = Path.Combine(_dir, "Some.Tests.csproj");
 
-        ValidationServiceAdapter.RestoreDestination(ValidationServiceAdapter.CreateDotnetBuildStartInfo(csproj))
-            .Should().Be("nuget-feeds", "dotnet build restores implicitly");
-        ValidationServiceAdapter.RestoreDestination(ValidationServiceAdapter.CreateDotnetTestStartInfo(csproj, null, null, false))
-            .Should().Be("host:dotnet", "validate's dotnet test always passes --no-build, so nothing is restored");
-        ValidationServiceAdapter.RestoreDestination(ValidationServiceAdapter.CreateDotnetTestStartInfo(csproj, "net8.0", "Category=Unit", true))
-            .Should().Be("host:dotnet");
+        ValidationServiceAdapter.ProcessDestination(ValidationServiceAdapter.CreateDotnetBuildStartInfo(csproj))
+            .Should().Be("process:dotnet", "working-tree build targets can execute code");
+        ValidationServiceAdapter.ProcessDestination(ValidationServiceAdapter.CreateDotnetTestStartInfo(csproj, null, null, false))
+            .Should().Be("process:dotnet", "--no-build still executes project targets and test binaries");
+        ValidationServiceAdapter.ProcessDestination(ValidationServiceAdapter.CreateDotnetTestStartInfo(csproj, "net8.0", "Category=Unit", true))
+            .Should().Be("process:dotnet");
     }
 
     [Fact]
-    public async Task ValidationServiceAdapter_build_and_test_call_sites_each_record_their_restore_destination()
+    public async Task ValidationServiceAdapter_build_and_test_call_sites_each_record_their_process_destination()
     {
         // The case above pins the helper; this one pins the two call sites that pass it their start info. The project
         // file does not exist, so each dotnet invocation fails fast (MSB1009) and nothing is built, tested or restored.
@@ -248,12 +354,12 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
         buildExit.Should().NotBe(0, "there is no project to build");
         testRun.ExitCode.Should().NotBe(0, "there is no project to test");
         observed.Sink.Seen.Select(d => (d.Site, d.Family, d.Destination, d.DestinationClass)).Should().Equal(
-            ("EG-PROC-02", EgressFamilies.Process, "nuget-feeds", EgressDestinationClass.NetworkExport),
-            ("EG-PROC-02", EgressFamilies.Process, "host:dotnet", EgressDestinationClass.Host));
+            ("EG-PROC-02", EgressFamilies.Process, "process:dotnet", EgressDestinationClass.NetworkExport),
+            ("EG-PROC-02", EgressFamilies.Process, "process:dotnet", EgressDestinationClass.NetworkExport));
     }
 
     [Fact]
-    public async Task DotnetBuildTool_records_nuget_feeds_and_DotnetTestTool_no_build_records_the_host()
+    public async Task DotnetBuildTool_and_DotnetTestTool_record_working_tree_process_destinations()
     {
         var empty = Directory.CreateDirectory(Path.Combine(_dir, "empty")).FullName;
         using var observed = Observe();
@@ -262,8 +368,8 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
         _ = await DotnetTestTool.RunTrxTestsNoBuildAsync(empty);
 
         observed.Sink.Seen.Select(d => (d.Site, d.Family, d.Destination, d.DestinationClass)).Should().Equal(
-            ("EG-PROC-01", EgressFamilies.Process, "nuget-feeds", EgressDestinationClass.NetworkExport),
-            ("EG-PROC-01", EgressFamilies.Process, "host:dotnet", EgressDestinationClass.Host));
+            ("EG-PROC-01", EgressFamilies.Process, "process:dotnet", EgressDestinationClass.NetworkExport),
+            ("EG-PROC-01", EgressFamilies.Process, "process:dotnet", EgressDestinationClass.NetworkExport));
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -324,7 +430,7 @@ public sealed class EgressExplicitSiteTwinTests : IDisposable
     [InlineData(EgressFamilies.MeshServe, "mesh-peer:unknown", "mesh-peer:unknown", EgressDestinationClass.NetworkExport)]
     [InlineData(EgressFamilies.MeshDiscovery, "udp://239.7.42.1:7421", "udp://239.7.42.1:7421", EgressDestinationClass.NetworkExport)]
     [InlineData(EgressFamilies.MeshDiscovery, "host:listen-only", "host:listen-only", EgressDestinationClass.Host)]
-    [InlineData(EgressFamilies.Process, "nuget-feeds", "nuget-feeds", EgressDestinationClass.NetworkExport)]
+    [InlineData(EgressFamilies.Process, "process:dotnet", "process:dotnet", EgressDestinationClass.NetworkExport)]
     [InlineData(EgressFamilies.Process, "host:dotnet", "host:dotnet", EgressDestinationClass.Host)]
     [InlineData(EgressFamilies.Process, "host:docker", "host:docker", EgressDestinationClass.Host)]
     [InlineData(EgressFamilies.Process, "unix:///var/run/docker.sock", "unix://", EgressDestinationClass.Host)]

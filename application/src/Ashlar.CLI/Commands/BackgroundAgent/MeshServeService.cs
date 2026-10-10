@@ -377,8 +377,13 @@ public sealed class MeshServeService : BackgroundService
             {
                 return Results.NotFound();
             }
-            // SPEC-007 EG-MESH-03, report-only: the package bytes go to whoever reached the port.
-            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshServe, "EG-MESH-03", PeerDestination(http.Connection.RemoteIpAddress)));
+            // SPEC-007 EG-MESH-03: the package bytes go to whoever reached the port.
+            var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshServe, "EG-MESH-03", PeerDestination(http.Connection.RemoteIpAddress)));
+            if (decision.Refuses)
+            {
+                stream.Dispose();
+                return Results.NotFound();
+            }
             // Results.Stream disposes the stream once the response is written; Kestrel streams it
             // under its own connection and data-rate limits.
             return Results.Stream(stream, "application/json");

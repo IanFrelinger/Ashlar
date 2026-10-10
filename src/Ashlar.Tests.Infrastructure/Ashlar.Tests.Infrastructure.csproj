@@ -86,7 +86,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="CsCheck" />
     <PackageReference Include="FluentAssertions" />
-    <PackageReference Include="Docker.DotNet" />
+    <PackageReference Include="Docker.DotNet.Enhanced" />
     <PackageReference Include="Npgsql" />
     <!-- LLamaSharp.Backend.Cpu is PrivateAssets=all in Ashlar.Infrastructure, so its natives no
          longer arrive through the ProjectReference. LocalModelProviderIntegrationTests downloads a

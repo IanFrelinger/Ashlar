@@ -237,7 +237,7 @@ builder.Services.AddAshlarInboundListenerValidation(
         builder.Configuration,
         builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey)));
 builder.Services.AddHostedService<Ashlar.API.Security.LoopbackListenerVerifier>();
-// SPEC-007: AddAshlar has already installed the report-only egress guard on every IHttpClientFactory client in this
+// SPEC-007: AddAshlar has already installed the egress guard on every IHttpClientFactory client in this
 // host, ashlar-sns-signing above included. This call is idempotent and adds nothing; it states the coverage here.
 builder.Services.AddAshlarEgressGuard();
 
@@ -249,27 +249,37 @@ builder.Services.AddMediatR(cfg =>
 // (the default when the endpoint is unset) with the OpenTelemetry-backed collector, whose "Ashlar"
 // meter carries the ncr.* / ashlar.* keys as attributes on ashlar.operation.duration / .count.
 // The exporter batches in the background, so an unreachable endpoint never fails startup.
+string? refusedOtlpMessage = null;
 var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 if (!string.IsNullOrWhiteSpace(otlpEndpoint))
 {
-    // SPEC-007 EG-TEL-01, report-only: decided once, at registration; the SDK owns the batch export after this.
-    // The name overload, never new Uri(...): a malformed endpoint must not fail startup here.
-    _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Telemetry, "EG-TEL-01", otlpEndpoint));
-    var otelServiceName = builder.Configuration["OTEL_SERVICE_NAME"];
-    builder.Services.AddAshlarOpenTelemetry(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddOtlpExporter());
-    builder.Services.AddOpenTelemetry()
-        .ConfigureResource(resource => resource.AddService(
-            serviceName: string.IsNullOrWhiteSpace(otelServiceName) ? "Ashlar.API" : otelServiceName))
-        .WithTracing(tracing => tracing
+    // Decide before registering either background exporter; malformed endpoints remain redacted names.
+    var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Telemetry, "EG-TEL-01", otlpEndpoint));
+    if (decision.Refuses)
+    {
+        refusedOtlpMessage = new EgressRefusedException(decision).Message;
+        Console.Error.WriteLine($"OTLP export refused: {refusedOtlpMessage}");
+    }
+    else
+    {
+        var otelServiceName = builder.Configuration["OTEL_SERVICE_NAME"];
+        builder.Services.AddAshlarOpenTelemetry(metrics => metrics
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddOtlpExporter());
+        builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddService(
+                serviceName: string.IsNullOrWhiteSpace(otelServiceName) ? "Ashlar.API" : otelServiceName))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddOtlpExporter());
+    }
 }
 
 var app = builder.Build();
+if (refusedOtlpMessage is not null)
+    app.Logger.LogWarning(new EventId(7307, "EgressRefused"), "OTLP export refused: {Refusal}", refusedOtlpMessage);
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<IngressEnvelopeMiddleware>();

@@ -12,8 +12,8 @@ internal static class DotnetRunner
         TimeSpan timeout,
         CancellationToken ct)
     {
-        // SPEC-007 EG-PROC-01, report-only: a build or test that restores reaches the NuGet feeds.
-        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-01", RestoreDestination(arguments)));
+        // Working-tree code can execute MSBuild targets and test binaries even without restore/build.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-01", "process:dotnet")).ThrowIfRefused();
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(timeout);
 
@@ -46,16 +46,4 @@ internal static class DotnetRunner
         }
     }
 
-    // The decision's destination. "host:dotnet" only when the verb is build, test, publish or pack AND an argument is
-    // exactly --no-restore or --no-build, so nothing is restored; anything else (dotnet run, an unknown verb, an
-    // implicit restore) is "nuget-feeds". Whitespace-split on purpose: a quoted or embedded flag reads as a restore.
-    private static string RestoreDestination(string? arguments)
-    {
-        var tokens = (arguments ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        var noRestore = tokens.Length > 0
-            && tokens[0] is "build" or "test" or "publish" or "pack"
-            && tokens.Any(t => t is "--no-restore" or "--no-build");
-        return noRestore ? "host:dotnet" : "nuget-feeds";
-    }
 }
-

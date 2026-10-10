@@ -10,7 +10,7 @@ namespace Ashlar.Infrastructure.Adaptation;
 /// Sneakernet transport: export shared adaptations to a single file, import and adopt.
 /// P3.3: ashlar mesh export, ashlar mesh import.
 /// </summary>
-public sealed class SneakernetTransport : ISneakernetTransport
+public sealed class SneakernetTransport : ISneakernetTransport, ISneakernetExportInitiator
 {
     private readonly ISharedAdaptationSync _sync;
     private readonly ILogger<SneakernetTransport>? _logger;
@@ -25,15 +25,33 @@ public sealed class SneakernetTransport : ISneakernetTransport
     /// <inheritdoc />
     public async Task ExportAsync(string outputPath, string? componentId = null, CancellationToken cancellationToken = default)
     {
-        var entries = await _sync.PullAsync(cancellationToken).ConfigureAwait(false);
-        if (!string.IsNullOrEmpty(componentId))
-            entries = entries.Where(e => e.Id.Equals(componentId, StringComparison.OrdinalIgnoreCase)).ToList();
-        var path = outputPath;
-        if (!path.EndsWith(".nxpkg", StringComparison.OrdinalIgnoreCase))
-            path = Path.ChangeExtension(path, ".nxpkg") ?? path + ".nxpkg";
+        var entries = await ReadExportEntriesAsync(componentId, cancellationToken).ConfigureAwait(false);
+        var path = ExportPath(outputPath);
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, "EG-MESH-08", "file:" + path)).ThrowIfRefused();
+        await WriteExportAsync(entries, path, cancellationToken).ConfigureAwait(false);
+    }
 
-        // SPEC-007 EG-MESH-08, report-only: every shared adaptation leaves in this file, for physical transfer.
-        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, "EG-MESH-08", "file:" + path));
+    async Task ISneakernetExportInitiator.ExportAsync(string outputPath, string? componentId, EgressInitiator initiator, CancellationToken cancellationToken)
+    {
+        var entries = await ReadExportEntriesAsync(componentId, cancellationToken).ConfigureAwait(false);
+        var path = ExportPath(outputPath);
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, "EG-MESH-08", "file:" + path)
+            { Initiator = initiator }).ThrowIfRefused();
+        await WriteExportAsync(entries, path, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<SharedAdaptationEntry>> ReadExportEntriesAsync(string? componentId, CancellationToken cancellationToken)
+    {
+        var entries = await _sync.PullAsync(cancellationToken).ConfigureAwait(false);
+        return string.IsNullOrEmpty(componentId) ? entries
+            : entries.Where(e => e.Id.Equals(componentId, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private static string ExportPath(string outputPath) => outputPath.EndsWith(".nxpkg", StringComparison.OrdinalIgnoreCase)
+        ? outputPath : Path.ChangeExtension(outputPath, ".nxpkg") ?? outputPath + ".nxpkg";
+
+    private async Task WriteExportAsync(IReadOnlyList<SharedAdaptationEntry> entries, string path, CancellationToken cancellationToken)
+    {
         var dto = new SneakernetExportDto
         {
             Version = 1,

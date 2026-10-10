@@ -3,6 +3,7 @@ using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.CLI.Commands;
 
@@ -73,7 +74,12 @@ public sealed class ExportCommand : Command
         }
         try
         {
-            CloudBundle.Stage(directory.FullName, bundleDir, info, target, runtimeImage);
+            CloudBundle.Stage(directory.FullName, bundleDir, info, target, runtimeImage, EgressInitiator.OperatorFileExport);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);
+            return 77;
         }
         catch (InvalidOperationException ex)
         {
@@ -155,7 +161,12 @@ public sealed class ExportCommand : Command
         Directory.CreateDirectory(bundleDir);
         try
         {
-            NativeBundle.Stage(directory.FullName, bundleDir, info);
+            NativeBundle.Stage(directory.FullName, bundleDir, info, EgressInitiator.OperatorFileExport);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);
+            return 77;
         }
         catch (InvalidOperationException ex)
         {
@@ -177,7 +188,16 @@ public sealed class ExportCommand : Command
             else
             {
                 Console.WriteLine($"  {Dim($"publishing self-contained runtime for {rid} — this can take a minute…")}");
-                var ok = await PublishRuntimeAsync(proj, rid, bundleDir, exeName, ct);
+                bool ok;
+                try
+                {
+                    ok = await PublishRuntimeAsync(proj, rid, bundleDir, exeName, ct);
+                }
+                catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+                {
+                    Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);
+                    return 77;
+                }
                 if (ok)
                 {
                     runtimeBuilt = true;
@@ -241,6 +261,7 @@ public sealed class ExportCommand : Command
     private static async Task<bool> PublishRuntimeAsync(FileInfo cliProject, string rid, string bundleDir, string exeName, CancellationToken ct)
     {
         // Publish to a temp dir, then lift out just the single-file exe — the bundle stays clean.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
         var tmp = Path.Combine(bundleDir, ".publish-tmp");
         var psi = new ProcessStartInfo
         {

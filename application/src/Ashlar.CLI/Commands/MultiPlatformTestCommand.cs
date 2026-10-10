@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text.Json;
@@ -412,6 +413,7 @@ public class MultiPlatformTestCommand : Command
     {
         var startTime = DateTime.UtcNow;
         var projectRoot = DiscoverProjectRoot();
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
 
         try
         {

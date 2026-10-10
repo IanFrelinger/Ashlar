@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
@@ -149,6 +150,7 @@ public class TestPortableCommand
 
         if (!json && console != null) console.WriteLine("Running smoke tests (BaseFrameworkSmokeTests)...");
 
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
@@ -182,6 +184,7 @@ public class TestPortableCommand
         if (string.IsNullOrEmpty(root)) return 1;
 
         // Run via dotnet run to avoid circular ref: ashlar test multi-env --suite persistence --all
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",

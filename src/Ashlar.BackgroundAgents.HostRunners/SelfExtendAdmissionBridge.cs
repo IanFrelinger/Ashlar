@@ -284,8 +284,14 @@ public static class SelfExtendAdmissionBridge
                 return $"; auto-share refused: {claimReason}";
             }
             var storeDir = MeshStore.Resolve(meshDir);
-            // SPEC-007 EG-MESH-01, report-only: auto-share places the package where peers pull from.
-            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
+            // SPEC-007 EG-MESH-01: auto-share places the package where peers pull from.
+            var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
+            if (decision.Refuses)
+            {
+                var message = new EgressRefusedException(decision).Message;
+                logger.LogWarning(new EventId(7307, "EgressRefused"), "Self-extend gate: auto-share refused: {Refusal}", message);
+                return $"; auto-share refused: {message}";
+            }
             var json = ExtensionPackaging.Pack(record, files, signer);
             var dest = MeshStore.Publish(storeDir, json);
             logger.LogInformation("Self-extend gate: shared to the mesh → {Dest}", dest);

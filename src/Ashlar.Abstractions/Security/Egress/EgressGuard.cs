@@ -206,6 +206,17 @@ public sealed class EgressGuard : IEgressGuard
             access = default;
         }
 
+        // Q4 is a narrow file-export exception. Keep the real label/access decision in the record,
+        // but report it for these explicitly selected CLI verbs. Faults never acquire an exception.
+        if (fault is null && modeBasis != EgressEnforcement.FaultBasis
+            && request?.Initiator == EgressInitiator.OperatorFileExport
+            && request.Family == EgressFamilies.FileExport
+            && request.Site is "EG-MESH-02" or "EG-MESH-08" or "EG-FILE-01" or "EG-FILE-02")
+        {
+            mode = EgressEnforcement.ReportMode;
+            modeBasis = EgressEnforcement.OperatorVerbBasis;
+        }
+
         string reference;
         try
         {

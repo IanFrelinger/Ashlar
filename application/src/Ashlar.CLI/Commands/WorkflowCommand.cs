@@ -332,6 +332,7 @@ public sealed partial class WorkflowCommand : Command
         foreach (var model in requested)
         {
             ct.ThrowIfCancellationRequested();
+            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:ollama")).ThrowIfRefused();
             try
             {
                 using var process = new Process

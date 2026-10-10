@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.BackgroundAgents.Registry;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
@@ -204,6 +205,15 @@ public static class IdeEndpoints
                     models.Add(new IdeModelInfo(m.Name, "ollama", LocalOnly: true, Hot: false));
                 }
             }
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            var refusal = EgressRefusal.Find(ex)!;
+            var logger = services.GetService<ILoggerFactory>()?.CreateLogger("Ashlar.API.Endpoints.IdeEndpoints");
+            if (logger is not null)
+                logger.LogWarning(new EventId(7307, "EgressRefused"), "IDE model discovery egress refused: {Refusal}", refusal.Message);
+            else
+                Console.Error.WriteLine($"IDE model discovery egress refused: {refusal.Message}");
         }
         catch
         {
@@ -452,6 +462,15 @@ public static class IdeEndpoints
                     agentId = body.AgentId,
                 },
                 token).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            var refusal = EgressRefusal.Find(ex)!;
+            var message = EgressRefusal.RemoteMessage(refusal.Ref);
+            IdeRunTracker.Instance.Fail(runId, message);
+            await WriteSseAsync(http, "error",
+                new { runId, message, errorCode = EgressRefusal.Code, egressRef = refusal.Ref },
+                CancellationToken.None).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

@@ -16,7 +16,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// with <c>AshlarHostingOptions.EgressMode</c>, or else at the first decision a process-bound guard makes. A later
 /// change to the variable changes nothing. The hosting option can only raise the mode to <c>enforce</c>.</para>
 /// <para><b>Route enforcement.</b> HTTP and governed model routes honor the mode in PR 4.7. Previously an
-/// <c>enforce</c> record described a hypothetical refusal. Explicit sites await PR 4.9. The netstandard2.0 asset's
+/// <c>enforce</c> record described a hypothetical refusal. Explicit sites honor it in PR 4.9. The netstandard2.0 asset's
 /// refusal of a synchronous <c>Send</c> (SPEC-007 PR 4.2) is the runtime's, not the guard's, and holds in every
 /// mode.</para>
 /// </remarks>
@@ -49,7 +49,7 @@ internal static class EgressEnforcement
     /// <summary>A host listed the client as report-only (PR 4.11). Not produced yet.</summary>
     internal const string HostOptOutBasis = "host-opt-out";
 
-    /// <summary>An operator verb ran in report mode (PR 4.9). Not produced yet.</summary>
+    /// <summary>A named operator file-export verb ran in report mode (PR 4.9).</summary>
     internal const string OperatorVerbBasis = "operator-verb";
 
     /// <summary>Resolving the mode faulted, so it fails closed to <c>enforce</c>.</summary>

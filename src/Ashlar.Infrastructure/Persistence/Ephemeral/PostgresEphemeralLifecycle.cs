@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,10 @@ public sealed class PostgresEphemeralLifecycle : IEphemeralDatabaseLifecycle
         var image = options.ImageTag ?? DefaultImage;
         var password = options.Password ?? "ashlar_ephemeral_" + Guid.NewGuid().ToString("N")[..12];
         var database = options.Database ?? "ashlar";
+
+        // No network-off guarantee exists for this container.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
+            EgressFamilies.Process, "EG-PROC-11", "process:docker")).ThrowIfRefused();
 
         var createParams = new CreateContainerParameters
         {
