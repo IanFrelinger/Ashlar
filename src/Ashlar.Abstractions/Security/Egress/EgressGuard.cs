@@ -96,7 +96,7 @@ public sealed class EgressGuard : IEgressGuard
     /// non-blank value fails closed to <c>enforce</c>. A guard with a <paramref name="deploymentProfile"/> uses this
     /// override alone (none when <see langword="null"/>) and never reads the environment. A guard without one uses the
     /// process override (read once per process), and this override only when it is at least as strict, so it can
-    /// raise that guard's mode but never lower it. HTTP and governed model routes honor enforcement; the full
+    /// raise that guard's mode but never lower it. HTTP, governed model routes and explicit sites honor enforcement; the full
     /// profile switch remains SPEC-007 PR 4.11.</param>
     public EgressGuard(string? deploymentProfile = null, string? egressMode = null)
     {

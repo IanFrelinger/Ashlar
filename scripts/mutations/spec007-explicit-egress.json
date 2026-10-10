@@ -877,6 +877,18 @@
       "expected_failures": [
         "F9_each_route_control_holds_or_fails_as_declared"
       ]
+    },
+    {
+      "id": "startup-states-explicit-enforcement",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
+      "new": "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+      "filter": "FullyQualifiedName~EgressModeProcessBindingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted"
+      ]
     }
   ]
 }

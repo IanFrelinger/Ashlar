@@ -211,7 +211,7 @@ internal static class EgressEnforcement
     {
         var line = string.Format(
             CultureInfo.InvariantCulture,
-            "Ashlar egress mode: {0} (basis {1}; profile {2}{3}). HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+            "Ashlar egress mode: {0} (basis {1}; profile {2}{3}). HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
             mode,
             modeBasis,
             string.IsNullOrEmpty(profile) ? DefaultProfile : profile,
