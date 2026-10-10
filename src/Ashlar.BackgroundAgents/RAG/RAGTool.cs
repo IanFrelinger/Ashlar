@@ -193,7 +193,7 @@ public sealed class RAGTool : ITool, IEgressLabelledTool
         if (agentClearance == "SystemHigh")
             return requestedLevel.Value;
 
-        return requestedLevel.SensitivityValue < _sensitivityRegistry.ResolveClearance(agentClearance).SensitivityValue
+        return requestedLevel.SensitivityValue < (SensitivityLimits.Resolve(_sensitivityRegistry, agentClearance) ?? DataSensitivityLevels.Public).SensitivityValue
             ? requestedLevel.Value
             : agentClearance;
     }

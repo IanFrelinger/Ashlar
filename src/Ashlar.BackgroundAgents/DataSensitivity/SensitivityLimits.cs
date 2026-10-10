@@ -10,5 +10,5 @@ internal static class SensitivityLimits
         AllowsNetworkExports: false, "Explicit ceiling for trusted SystemHigh subjects");
 
     internal static IDataSensitivityLevel? Resolve(IDataSensitivityRegistry registry, string? name) =>
-        name == "SystemHigh" ? SystemHigh : registry.GetByName(name);
+        name == "SystemHigh" ? SystemHigh : DataSensitivityLevels.FromName(name) ?? registry.GetByName(name);
 }

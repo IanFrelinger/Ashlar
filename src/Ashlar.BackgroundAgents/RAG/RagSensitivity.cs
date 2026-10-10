@@ -16,7 +16,7 @@ internal static class RagSensitivity
     /// </summary>
     public static bool CanRead(IDataSensitivityRegistry registry, SecurityLabel? clearance, SubjectClearanceAuthority authority, string? documentLabel) =>
         clearance is not null
-        && ReferenceMonitor.CanRead(clearance.Meet(authority.ResolveCurrent()), registry.GetByName(documentLabel).ToDataLabel()).Allowed;
+        && ReferenceMonitor.CanRead(clearance.Meet(authority.ResolveCurrent()), RAGTool.MapHitLabel(documentLabel, registry)).Allowed;
 
     // A query supplies a limit, never a grant. Only the trusted authority may confer SystemHigh.
     public static SecurityLabel? EffectiveClearance(
@@ -24,7 +24,7 @@ internal static class RagSensitivity
     {
         if (requested == "SystemHigh")
             return authority.ResolveCurrent();
-        return registry.ResolveClearance(requested).TryToClearance(out var limit)
+        return (SensitivityLimits.Resolve(registry, requested) ?? DataSensitivityLevels.Public).TryToClearance(out var limit)
             ? authority.ResolveCurrent().Meet(limit!) : null;
     }
 
