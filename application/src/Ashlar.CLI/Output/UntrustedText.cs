@@ -26,11 +26,11 @@ namespace Ashlar.CLI.Output;
 /// and every legitimate row before it goes with it. Escaping turns each byte into U+FFFD without
 /// making the line one character shorter, so the cap is part of the same job.</para>
 ///
-/// <para>SHARED ON PURPOSE. Issue #483 tracks this same class at the pre-existing sites that print
-/// sender-chosen text — a package summary, proposedBy, a course detail. Those are out of scope for
-/// the change that added this file and are deliberately left alone, but they need exactly this
-/// function; it lives here rather than as a private helper on one command so #483 can reuse it
-/// instead of growing a second copy that drifts.</para>
+    /// <para>SHARED ON PURPOSE. <c>pkg show</c>, <c>pkg import</c> and <c>pkg pull</c> print the same
+    /// class of sender-chosen text — a package summary, proposedBy, a course name, a course detail —
+    /// on the line beside the sealer fingerprint, and the import peek prints it before the gate
+    /// verdict, so a refused package still paints the terminal. They call this function rather than
+    /// growing a second copy that drifts. Issue #483.</para>
 /// </summary>
 internal static class UntrustedText
 {

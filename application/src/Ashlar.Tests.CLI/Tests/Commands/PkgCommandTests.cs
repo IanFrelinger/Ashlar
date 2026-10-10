@@ -2,6 +2,10 @@ using System.CommandLine;
 using System.Diagnostics;
 using FluentAssertions;
 using Ashlar.CLI.Commands;
+using Ashlar.Manifest;
+using Ashlar.Manifest.Admission;
+using Ashlar.Manifest.Packaging;
+using Ashlar.Manifest.Signing;
 using Ashlar.Tests.CLI.Helpers;
 using Xunit;
 
@@ -403,5 +407,201 @@ public sealed class PkgCommandTests : IDisposable
         var (showRc, _, showErr) = await RunAsync("pkg", "show", link);
         showRc.Should().Be(65);
         showErr.Should().Contain("not a regular file");
+    }
+
+    // ─────────── #483: sender-chosen summary / proposedBy / course fields ───────────
+
+    // The fingerprint line is the one part of a pkg row the sender cannot choose. These four
+    // bytes, planted in a field the sender CAN choose, are how a terminal is talked into
+    // repainting it: CR returns to column zero, LF forges a second trust line, ESC introduces
+    // conceal / cursor-up / an OSC title, U+202E reorders what is already on the line. NUL is
+    // in there because it is a C0 control and disappears on some terminals. The readable words
+    // stay — a defused field is still shown.
+    private const string ForgedFingerprint = "ed25519:ffffffffffffffff";
+
+    private static readonly string HostileField =
+        "weekly update"
+        + "\r"
+        + "\u001b[32m  ✓ ADMITTED  weekly update · sealed by " + ForgedFingerprint
+        + "\u001b[8m"
+        + "\n"
+        + "  origin verdict " + ForgedFingerprint + " · seal " + ForgedFingerprint
+        + "\u001b[1A"
+        + "\u001b]0;pwned\u0007"
+        + "\0"
+        + "\u202e"
+        + "tail";
+
+    private static readonly DateTimeOffset HostileAt = new(2026, 8, 24, 6, 0, 0, TimeSpan.Zero);
+
+    /// <summary>A sealed, verifying package. <paramref name="courseName"/> is the gate name when
+    /// the receiver's policy must be able to hold it; the hostile field otherwise, so show and
+    /// the import peek print a course name the sender chose.</summary>
+    private async Task<(string Json, string Fingerprint)> SealAsync(
+        string id, string summary, string proposedBy, string courseName, string courseDetail)
+    {
+        var origin = OperatorKey.Generate(Path.Combine(_dir, "keys-" + id));
+        var proposal = new ExtensionProposal
+        {
+            Id = id,
+            Kind = "brick",
+            Summary = summary,
+            ProposedBy = proposedBy,
+            ProposedAt = HostileAt,
+            Courses = [new CourseResult { Name = courseName, Passed = true, Detail = courseDetail }],
+            Files = [FileClaim.For("src/Shared.cs", "// admitted code")],
+        };
+        var store = new GateStore(Path.Combine(_dir, ".ashlar-" + id), origin);
+        await store.RecordAsync(proposal, new AdmissionOutcome { State = ProposalState.Held, Reason = "held" }, HostileAt);
+        var record = await store.DecideAsync(id, admit: true, "origin-operator", "reviewed", HostileAt.AddMinutes(1));
+        var json = ExtensionPackaging.Pack(record, [new PackageFile { Path = "src/Shared.cs", Content = "// admitted code" }], origin);
+        return (json, origin.Fingerprint);
+    }
+
+    private static void ScaffoldProject(string project)
+    {
+        Directory.CreateDirectory(project);
+        ProjectScaffold.TryScaffold("recv", out var manifest, out var policy, out var reason).Should().BeTrue(reason);
+        File.WriteAllText(Path.Combine(project, "ashlar.yaml"), manifest);
+        File.WriteAllText(Path.Combine(project, "ashlar.policy.yaml"), policy);
+    }
+
+    /// <summary>Proposing mode, the sealer trusted, one required gate. A verifying package whose
+    /// course is named <c>tests</c> is held — the pull row that used to print the summary raw.</summary>
+    private static void WriteHoldingPolicy(string project, string fingerprint)
+    {
+        File.WriteAllText(Path.Combine(project, "ashlar.policy.yaml"),
+            $$"""
+            apiVersion: ashlar/v1
+            kind: Policy
+            sandbox:
+              root: .
+              writable: []
+            selfExtend:
+              mode: proposing
+              budget:
+                extensions: 3
+                window: 24h
+              mayAdd: [brick]
+              gatesRequired: [tests]
+              trustedSigners:
+                - {{fingerprint}}
+            never:
+              - modify_gate
+              - widen_sandbox
+              - access_signing_keys
+              - truncate_ledger
+              - grant_capability
+            """.ReplaceLineEndings("\n"));
+    }
+
+    private static void AssertHostileFieldCannotRepaint(string output, string realFingerprint, string where)
+    {
+        var text = WithoutOwnLineBreaks(output);
+        text.Should().NotContain("\r",
+            $"{where}: a CR returns to column zero and overwrites the fingerprint line");
+        text.Should().NotContain("\u202e",
+            $"{where}: U+202E reorders the fingerprint line");
+        text.Should().NotContain("\0",
+            $"{where}: NUL is a C0 control and must not reach the terminal");
+        text.Should().NotContain("\u001b[8m",
+            $"{where}: SGR 8 conceals the real fingerprint that follows the summary");
+        text.Should().NotContain("\u001b[1A",
+            $"{where}: cursor-up moves onto the fingerprint line and repaints it");
+        text.Should().NotContain("\u001b]0;",
+            $"{where}: an OSC sequence retitles the terminal from the summary");
+        text.Should().Contain("\ufffd",
+            $"{where}: the controls are shown defused, not deleted");
+        text.Should().Contain("weekly update", $"{where}: the readable summary is kept");
+        text.Should().Contain("tail", $"{where}: the readable tail is kept");
+        text.Should().Contain(ForgedFingerprint,
+            $"{where}: the forged wording is kept — defused, not dropped");
+        text.Should().Contain(realFingerprint,
+            $"{where}: the real sealer fingerprint is still printed");
+
+        var lines = text.Split('\n');
+        lines.Where(l => l.Contains(ForgedFingerprint)).Should().OnlyContain(
+            l => l.Contains("weekly update") && l.Contains("tail") && l.Contains('\ufffd'),
+            $"{where}: a newline in the summary must not forge a clean fingerprint line");
+    }
+
+    [Fact]
+    public async Task ShowImportAndPull_ofAHostileSummary_cannotMoveOrForgeTheFingerprintLine_evenWhenRefused()
+    {
+        // The package VERIFIES. Show prints the summary, then the fingerprint. Import prints that
+        // same peek BEFORE the gate, then refuses — an untrusted sealer, the scaffold's sealed
+        // policy trusts nobody — and the hostile text has already been on the terminal. Pull of
+        // the same file refuses the row and still prints the summary beside the fingerprint.
+        var (json, fingerprint) = await SealAsync(
+            "ext-hostile", HostileField, HostileField, HostileField, HostileField);
+        var package = Path.Combine(_dir, "hostile.ashpkg");
+        await File.WriteAllTextAsync(package, json);
+
+        var (showRc, showOut, showErr) = await RunAsync("pkg", "show", package);
+        showRc.Should().Be(0, showErr);
+        showOut.Should().Contain("package verifies");
+        AssertHostileFieldCannotRepaint(showOut, fingerprint, "pkg show");
+        WithoutOwnLineBreaks(showOut).Split('\n').Should().Contain(l =>
+            l.Contains("package verifies") && l.Contains(fingerprint)
+            && !l.Contains(ForgedFingerprint) && !l.Contains('\ufffd'),
+            "pkg show: the fingerprint line stays its own line and carries none of the summary's controls");
+
+        var project = Path.Combine(_dir, "proj-hostile");
+        ScaffoldProject(project);
+
+        var (importRc, importOut, importErr) = await RunAsync("pkg", "import", package, "--path", project);
+        importRc.Should().Be(65, "an untrusted sealer is refused — the decision is unchanged");
+        importOut.Should().Contain("REFUSED");
+        importOut.Should().Contain("disk untouched");
+        importOut.Should().Contain("not a trusted signer");
+        AssertHostileFieldCannotRepaint(importOut + importErr, fingerprint, "pkg import");
+        WithoutOwnLineBreaks(importOut).Split('\n').Should().Contain(l =>
+            l.Contains("origin verdict") && l.Contains(fingerprint)
+            && !l.Contains(ForgedFingerprint) && !l.Contains('\ufffd'),
+            "pkg import: the peek's fingerprint line is intact even though the package is then refused");
+
+        var store = Path.Combine(_dir, "hostile-store");
+        Directory.CreateDirectory(store);
+        await File.WriteAllTextAsync(Path.Combine(store, "hostile.ashpkg"), json);
+
+        var (pullRc, pullOut, _) = await RunAsync("pkg", "pull", "--from", store, "--path", project);
+        pullRc.Should().Be(65, "a refused row is never masked by a successful neighbour");
+        pullOut.Should().Contain("REFUSED");
+        pullOut.Should().Contain("refused/rejected 1");
+        AssertHostileFieldCannotRepaint(pullOut, fingerprint, "pkg pull");
+        WithoutOwnLineBreaks(pullOut).Split('\n').Should().Contain(l =>
+            l.Contains("sealed by " + fingerprint) && l.Contains('\ufffd') && l.Contains("weekly update"),
+            "pkg pull: the refused row still names the real sealer, on the same line as the defused summary");
+    }
+
+    [Fact]
+    public async Task Pull_ofAHeldPackage_cannotLetItsSummaryOverwriteTheSealerFingerprint()
+    {
+        // The admitted / held / already-have rows are the ones that used to print the summary
+        // raw, on the grounds that the seal had verified. Held is the row this pins: the summary
+        // and `sealed by <fingerprint>` share a line, so a CR in the summary overwrites the
+        // fingerprint. The course name stays "tests" so the receiver's proposing policy holds
+        // the package instead of rejecting it — a rejection row was already escaped.
+        var (json, fingerprint) = await SealAsync(
+            "ext-held", HostileField, "night-agent", "tests", HostileField);
+        var project = Path.Combine(_dir, "proj-held");
+        ScaffoldProject(project);
+        WriteHoldingPolicy(project, fingerprint);
+
+        var store = Path.Combine(_dir, "held-store");
+        Directory.CreateDirectory(store);
+        await File.WriteAllTextAsync(Path.Combine(store, "held.ashpkg"), json);
+
+        var (rc, stdout, stderr) = await RunAsync("pkg", "pull", "--from", store, "--path", project);
+
+        rc.Should().Be(0, stderr);
+        stdout.Should().Contain("HELD", "the package is held, not refused — this is the row that was raw");
+        stdout.Should().Contain("held 1");
+        stdout.Should().NotContain("REFUSED");
+        AssertHostileFieldCannotRepaint(stdout, fingerprint, "pkg pull held");
+        WithoutOwnLineBreaks(stdout).Split('\n').Should().Contain(l =>
+            l.Contains("HELD") && l.Contains("sealed by " + fingerprint)
+            && l.Contains('\ufffd') && l.Contains("weekly update") && !l.Contains('\u202e'),
+            "the held row keeps the real fingerprint after the defused summary");
     }
 }

@@ -224,12 +224,16 @@ public sealed class PkgCommand : Command
             return 65;
         }
         Console.WriteLine();
-        Console.WriteLine($"  {peek!.Record.Proposal.Summary}");
+        // Printed BEFORE the gate verdict, and printed even when the package is then REFUSED.
+        // Summary, course name and course detail are the sender's text; a CR, newline, ESC or
+        // bidi override here repaints the fingerprint line immediately below — the one part of
+        // this peek the sender cannot choose. See Safe().
+        Console.WriteLine($"  {Safe(peek!.Record.Proposal.Summary)}");
         Console.WriteLine($"  {Dim($"origin verdict {Fp(peek.Record.Signer)} · seal {Fp(peek.SealSigner)} · {peek.Files.Count} file(s)")}");
         foreach (var course in peek.Record.Proposal.Courses)
         {
             var glyph = course.Passed ? Ok("✓") : Bad("×");
-            Console.WriteLine($"  {glyph} {course.Name,-12} {Dim($"{course.Detail} (evidence from origin)")}");
+            Console.WriteLine($"  {glyph} {Safe(course.Name),-12} {Dim($"{Safe(course.Detail)} (evidence from origin)")}");
         }
         Console.WriteLine();
 
@@ -237,26 +241,28 @@ public sealed class PkgCommand : Command
         switch (result.Outcome)
         {
             case PackageAdmission.Admitted:
-                Console.WriteLine($"  {Gold($"✓ ADMITTED — {result.Message}")}");
+                Console.WriteLine($"  {Gold($"✓ ADMITTED — {Safe(result.Message)}")}");
                 foreach (var path in result.AppliedPaths)
                 {
                     Console.WriteLine($"  {Ok("✓ applied")}  {path}");
                 }
                 if (result.Warning is not null)
                 {
-                    Console.Error.WriteLine($"  {Bad("! " + result.Warning)}");
+                    Console.Error.WriteLine($"  {Bad("! " + Safe(result.Warning))}");
                     return 1;   // admission recorded, but the disk state is not what was intended
                 }
                 return 0;
             case PackageAdmission.Held:
-                Console.WriteLine($"  {Clay($"! HELD — {result.Message}")}");
+                Console.WriteLine($"  {Clay($"! HELD — {Safe(result.Message)}")}");
                 Console.WriteLine($"  {Dim("nothing is on disk. review:  ashlar gates --show " + result.LocalProposalId)}");
                 return 0;
             case PackageAdmission.AlreadyImported:
-                Console.WriteLine($"  {Dim("− already imported: " + result.Message)}");
+                Console.WriteLine($"  {Dim("− already imported: " + Safe(result.Message))}");
                 return 0;
             case PackageAdmission.Rejected:
-                Console.WriteLine($"  {Bad($"× REJECTED — {result.Message}")}");
+                // The reason quotes course detail when a gate failed — sender-chosen, same class
+                // as the peek above. Safe() does not change the decision; it only prints it.
+                Console.WriteLine($"  {Bad($"× REJECTED — {Safe(result.Message)}")}");
                 Console.WriteLine($"  {Dim("disk untouched")}");
                 return 65;
             case PackageAdmission.Refused:
@@ -272,7 +278,7 @@ public sealed class PkgCommand : Command
                 Console.WriteLine($"  {Dim("disk untouched")}");
                 return 65;
             default:
-                Console.Error.WriteLine(result.Message);
+                Console.Error.WriteLine(Safe(result.Message));
                 return 1;
         }
     }
@@ -315,13 +321,16 @@ public sealed class PkgCommand : Command
 
         var r = pkg!.Record;
         Console.WriteLine();
-        Console.WriteLine($"  {r.Proposal.Summary}");
-        Console.WriteLine($"  {Dim($"{r.Proposal.Id} · kind {r.Proposal.Kind} · by {r.Proposal.ProposedBy} · {r.Proposal.ProposedAt:u}")}");
+        // Summary, proposedBy and each course name/detail are the sender's. The fingerprint
+        // line below them is not. A newline in any of those fields forges an extra trust line;
+        // a CR or a cursor-up overwrites the real one. See Safe().
+        Console.WriteLine($"  {Safe(r.Proposal.Summary)}");
+        Console.WriteLine($"  {Dim($"{r.Proposal.Id} · kind {r.Proposal.Kind} · by {Safe(r.Proposal.ProposedBy)} · {r.Proposal.ProposedAt:u}")}");
         Console.WriteLine();
         foreach (var course in r.Proposal.Courses)
         {
             var glyph = course.Passed ? Ok("✓") : Bad("×");
-            Console.WriteLine($"  {glyph} {course.Name,-12} {Dim(course.Detail)}");
+            Console.WriteLine($"  {glyph} {Safe(course.Name),-12} {Dim(Safe(course.Detail))}");
         }
         Console.WriteLine();
         foreach (var pf in pkg.Files)
@@ -693,7 +702,12 @@ public sealed class PkgCommand : Command
                 }
 
                 var result = await PackageImport.SubmitAsync(directory.FullName, read.Text!);
-                var summary = result.Package?.Record.Proposal.Summary ?? Path.GetFileName(path);
+                // Every row prints this, including ADMITTED / HELD / already-have, whose seal
+                // verified. Verification does not make the summary the operator's text: the sender
+                // chose it, and on these rows it shares a line with the sealer fingerprint. A CR
+                // returns to column zero and repaints that fingerprint; a newline forges a row.
+                // Refused rows print it too — a package the gate will refuse still carries a summary.
+                var summary = Safe(result.Package?.Record.Proposal.Summary ?? Path.GetFileName(path));
 
                 // WHO SEALED THIS. The summary beside it is attacker-chosen text — it is whatever the
                 // sender typed — so a gold checkmark next to a friendly sentence is not evidence of
@@ -718,7 +732,7 @@ public sealed class PkgCommand : Command
                         if (result.Warning is not null)
                         {
                             warned++;
-                            Console.WriteLine($"    {Bad("! " + result.Warning)}");
+                            Console.WriteLine($"    {Bad("! " + Safe(result.Warning))}");
                         }
                         break;
                     case PackageAdmission.Held:
@@ -756,9 +770,9 @@ public sealed class PkgCommand : Command
                         // sealer fingerprint is the one part of a row a sender cannot choose, which
                         // is the whole reason it is printed.
                         //
-                        // The ADMITTED / HELD / already-have rows above print a summary that came
-                        // out of a package the seal VERIFIED — the pre-existing class #483 tracks —
-                        // and are deliberately left alone.
+                        // The ADMITTED / HELD / already-have rows above print the same summary. It is
+                        // run through Safe at the point it is read — a verified seal does not make
+                        // sender-chosen text safe to put on the fingerprint's line (#483).
                         Console.WriteLine($"  {Bad("× REFUSED")}  {Safe(summary)} {Dim($"{sealedBy} · {Safe(result.Message)}")}");
                         break;
                 }
@@ -844,10 +858,11 @@ public sealed class PkgCommand : Command
     /// ceiling — so the bound matters as much as the escaping. See
     /// <see cref="UntrustedText.ForConsole(string?, int)"/>.</para>
     ///
-    /// <para>The helper lives in <see cref="UntrustedText"/> rather than here because issue #483
-    /// tracks the same class at the pre-existing summary / proposedBy / course-detail sites on the
-    /// SUCCESS paths, where the text came out of a package whose seal verified. Those are still
-    /// deliberately untouched.</para>
+    /// <para>The same helper is what <c>pkg show</c>, <c>pkg import</c> and <c>pkg pull</c> run
+    /// over every sender-chosen field they print — proposal summary, proposedBy, course name and
+    /// course detail — including the import peek, which is printed before the gate verdict and
+    /// therefore even when the package is then refused. A verified seal does not make that text
+    /// the operator's. Issue #483.</para>
     /// </summary>
     private static string Safe(string? senderChosen) => UntrustedText.ForConsole(senderChosen);
 

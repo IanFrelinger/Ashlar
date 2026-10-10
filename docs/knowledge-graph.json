@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 802,
-    "declared_facts": 5147,
+    "declared_facts": 5149,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2855,7 +2855,7 @@
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PkgCommandTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 10,
+      "declared_facts": 12,
       "in_cert_gate_filter": false
     },
     {
