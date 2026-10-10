@@ -12,11 +12,18 @@ using Ashlar.AI.Pipeline.Models;
 using Ashlar.AI.Pipeline.Rag;
 using Ashlar.BackgroundAgents.Agents;
 using Ashlar.BackgroundAgents.RAG;
+using Ashlar.BackgroundAgents.WebSearch;
+using Ashlar.Hosting;
 using Ashlar.Hosting.Meai;
 using Ashlar.Infrastructure.Egress;
 using Ashlar.Runtime;
 using Ashlar.Tests.Infrastructure.Helpers;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -60,6 +67,8 @@ public sealed class EgressEnforcementLeakTests : IDisposable
         second.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel);
         second.DestinationLabel.Should().Be(new SecurityLabel(SecurityLevel.Internal));
         second.Access.Reason.Should().Be(reason);
+        if (reason == AccessDenialReason.LevelTooLow)
+            second.Access.Detail.Should().Contain("Secret").And.Contain("Internal");
         second.Current.Should().Be(tier switch
         {
             "Secret" => new SecurityLabel(SecurityLevel.Secret),
@@ -95,6 +104,235 @@ public sealed class EgressEnforcementLeakTests : IDisposable
         decision.CurrentBasis.Should().Be("no-subject");
         decision.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
         run.RagResults.Should().BeEmpty("no retrieval ran before the first refusal");
+    }
+
+    [Fact]
+    public async Task Scenario_B_real_web_search_is_refused_before_transport_and_the_local_model_receives_a_redacted_observation()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var subject = "agent:web-leak-" + id;
+        var canary = "CANARY-" + id;
+        var host = "search-" + id + ".example";
+        var records = new ConcurrentQueue<EgressDecision>();
+        using var subscription = EgressDecisionLog.Subscribe(new Sink(d =>
+        {
+            if (d.CurrentBasis == "subject:" + subject) records.Enqueue(d);
+        }));
+        var auditor = new InMemoryChatInvocationAuditor();
+        using var embeddings = new TokenHashEmbeddingGenerator();
+        var rag = new VectorDataRagService(new InProcessChunkCollection("web-leak-" + id), embeddings, auditor);
+        await rag.IndexAsync(id, canary, trustTier: "Secret");
+        using var transport = new SearchHandler();
+        using var http = new HttpClient(transport);
+        var chat = new ScriptedChatClient(new Uri("http://127.0.0.1:11434"),
+            Calls(RAGTool.DefaultId, new { query = canary, minScore = 0 }),
+            Calls(WebSearchTool.DefaultId, new { query = canary }), Done());
+        var services = new ServiceCollection();
+        services.AddAshlarProfile(AshlarDeploymentProfile.SecureWorkstation);
+        services.AddSingleton<IChatInvocationAuditor>(auditor);
+        services.AddSingleton(rag);
+        services.AddAshlarMeaiPipeline(ollamaInnerFactory: _ => chat,
+            onnxInnerFactory: _ => new FakeChatClient(), registerDefaultRouter: false);
+        await using var provider = services.BuildServiceProvider();
+        var model = new MeaiBackedModel(provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama),
+            NullLogger<MeaiBackedModel>.Instance);
+        var registry = new CapabilityRegistry();
+        registry.Register(new RAGTool(new MeaiVectorDataRagAdapter(rag)));
+        registry.Register(new WebSearchTool(new BingWebSearchProvider(http, "test-key", "https://" + host + "/search")));
+        var memory = new InMemoryAgentMemory();
+        using var frame = EgressSubject.Enter(subject, new HighWaterMark(SecurityLabel.Public));
+        var cycle = await new ToolCallingAgent("web-leak", model, NullLogger<ToolCallingAgent>.Instance)
+            .RunCycleAsync(new WorldSnapshot(0, new Dictionary<string, object?> { ["maxDataSensitivity"] = "Secret" }),
+                registry, new PolicyEngine([]), null, memory, CancellationToken.None);
+
+        cycle.StoppedReason.Should().Be("empty");
+        cycle.EgressRefusals.Should().Be(1);
+        transport.Sends.Should().Be(0);
+        chat.Sent.Should().HaveCount(3);
+        chat.Sent[1].Should().Contain(canary, "the Host model really receives the labelled retrieval");
+        auditor.Records.Where(r => r.TargetKey == "rag:search").Should().ContainSingle()
+            .Which.PolicyDecisions.Should().Contain("results=1");
+        var decision = records.Where(d => d.Site == "EG-WEB-01").Should().ContainSingle().Which;
+        decision.Family.Should().Be(EgressFamilies.WebSearch);
+        decision.DestinationClass.Should().Be(EgressDestinationClass.WebSearch);
+        decision.DestinationLabel.Should().Be(new SecurityLabel(SecurityLevel.Confidential));
+        decision.Current.Should().Be(SecurityLabel.SystemHigh, "the web tool is still inside an open read");
+        decision.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        decision.Mode.Should().Be("enforce");
+        decision.ModeBasis.Should().Be("profile:secure-workstation");
+        decision.Refused.Should().BeTrue();
+        var refusal = memory.Query("", 100).Where(e => e.EventType == "egress.refused")
+            .Should().ContainSingle().Which.Message;
+        refusal.Should().Contain("SystemHighData").And.Contain("EG-WEB-01").And.Contain(decision.Ref);
+        refusal.Should().NotContain(canary).And.NotContain("Secret").And.NotContain("Confidential");
+        chat.Sent[2].Should().Contain("REFUSED by egress policy").And.Contain(decision.Ref);
+        records.Where(d => d.Site == "EG-MDL-01").Should().HaveCount(3)
+            .And.OnlyContain(d => !d.Refused && d.DestinationClass == EgressDestinationClass.Host);
+    }
+
+    [Fact]
+    public async Task Scenario_C_factory_refuses_a_Secret_export_before_the_primary_handler()
+    {
+        var name = "leak-" + Guid.NewGuid().ToString("N");
+        var records = new ConcurrentQueue<EgressDecision>();
+        using var subscription = EgressDecisionLog.Subscribe(new Sink(d =>
+        {
+            if (d.Site == "factory:" + name) records.Enqueue(d);
+        }));
+        var services = new ServiceCollection();
+        services.AddAshlarProfile(AshlarDeploymentProfile.SecureWorkstation);
+        var transport = new SearchHandler();
+        services.AddHttpClient(name).ConfigurePrimaryHttpMessageHandler(() => transport);
+        await using var provider = services.BuildServiceProvider();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+        using var frame = EgressSubject.Enter("agent:" + name, new HighWaterMark(new SecurityLabel(SecurityLevel.Secret)));
+        var error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync("https://remote-" + name + ".example/"); });
+        error.Should().BeOfType<EgressRefusedException>();
+        transport.Sends.Should().Be(0);
+        var decision = records.Should().ContainSingle().Which;
+        decision.Mode.Should().Be("enforce");
+        decision.ModeBasis.Should().Be("profile:secure-workstation");
+        decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        decision.Current.Should().Be(new SecurityLabel(SecurityLevel.Secret));
+        decision.Refused.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Scenario_C_real_loopback_redirect_refuses_the_remote_hop_before_connecting()
+    {
+        var name = "redirect-leak-" + Guid.NewGuid().ToString("N");
+        var destination = "http://remote-" + name + ".example/b";
+        var requests = 0;
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = [] });
+        builder.Logging.ClearProviders();
+        builder.WebHost.ConfigureKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
+        await using var app = builder.Build();
+        app.Run(context =>
+        {
+            Interlocked.Increment(ref requests);
+            context.Response.StatusCode = StatusCodes.Status307TemporaryRedirect;
+            context.Response.Headers.Location = destination;
+            return Task.CompletedTask;
+        });
+        await app.StartAsync();
+        var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        var records = new ConcurrentQueue<EgressDecision>();
+        using var subscription = EgressDecisionLog.Subscribe(new Sink(d =>
+        {
+            if (d.Site == "factory:" + name) records.Enqueue(d);
+        }));
+        var services = new ServiceCollection();
+        services.AddAshlarProfile(AshlarDeploymentProfile.SecureWorkstation);
+        services.AddHttpClient(name);
+        await using var provider = services.BuildServiceProvider();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+        using var frame = EgressSubject.Enter("agent:" + name, new HighWaterMark(new SecurityLabel(SecurityLevel.Secret)));
+        var error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync(address + "/a"); });
+        error.Should().BeOfType<EgressRefusedException>("a refused remote hop must never reach DNS or connect");
+        requests.Should().Be(1);
+        records.Should().HaveCount(2);
+        var hops = records.ToArray();
+        hops[0].DestinationClass.Should().Be(EgressDestinationClass.Host);
+        hops[0].Refused.Should().BeFalse();
+        hops[1].Destination.Should().Be(destination);
+        hops[1].ModeBasis.Should().Be("profile:secure-workstation");
+        hops[1].Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        hops[1].Refused.Should().BeTrue();
+        await app.StopAsync();
+    }
+
+    [Theory]
+    [InlineData("unlabelled")]
+    [InlineData("side-observe")]
+    [InlineData("throws")]
+    public async Task C5_C11_C12_unlabelled_side_observed_and_thrown_reads_refuse_the_next_model_export(string behavior)
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var subject = "agent:read-" + id;
+        var host = "gpu-" + id + ".example";
+        var records = new ConcurrentQueue<EgressDecision>();
+        using var subscription = EgressDecisionLog.Subscribe(new Sink(d =>
+        {
+            if (d.Destination.Contains(host, StringComparison.Ordinal)) records.Enqueue(d);
+        }));
+        var chat = new ScriptedChatClient(new Uri("http://" + host + ":11434"), Calls("read", new { }), Done());
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(new EgressGuard("secure-workstation"));
+        services.AddAshlarMeaiPipeline(ollamaInnerFactory: _ => chat,
+            onnxInnerFactory: _ => new FakeChatClient(), registerDefaultRouter: false);
+        await using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama);
+        var registry = new CapabilityRegistry();
+        registry.Register(new PayloadTool(() =>
+        {
+            var text = "unlabelled-CANARY-" + id;
+            if (behavior == "side-observe") EgressSubject.Observe(SecurityLabel.Public);
+            if (behavior == "throws") throw new InvalidOperationException(text);
+            return new { text };
+        }));
+        using var frame = EgressSubject.Enter(subject, new HighWaterMark(SecurityLabel.Public));
+        var cycle = await new ToolCallingAgent("read", new MeaiBackedModel(client, NullLogger<MeaiBackedModel>.Instance),
+            NullLogger<ToolCallingAgent>.Instance).RunCycleAsync(new WorldSnapshot(0, new Dictionary<string, object?>()),
+                registry, new PolicyEngine([]), null, new InMemoryAgentMemory(), CancellationToken.None);
+        if (behavior == "throws")
+        {
+            cycle.StoppedReason.Should().Be("error", "an ordinary tool exception ends the actual agent cycle");
+            // The runner still owns this frame. Prove a subsequent send is refused without pretending
+            // ToolCallingAgent naturally makes another turn after an ordinary exception.
+            var error = await Record.ExceptionAsync(() => client.GetResponseAsync([new ChatMessage(ChatRole.User, "next turn")]));
+            error.Should().BeOfType<EgressRefusedException>();
+        }
+        else cycle.StoppedReason.Should().Be("egress_refused");
+        chat.Sent.Should().ContainSingle();
+        records.Should().HaveCount(2);
+        var decision = records.Last();
+        decision.Current.Should().Be(SecurityLabel.SystemHigh);
+        decision.CurrentBasis.Should().Be("subject:" + subject);
+        decision.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        decision.Site.Should().Be("EG-MDL-01");
+        decision.Family.Should().Be(EgressFamilies.ModelMeai);
+        decision.DestinationClass.Should().Be(EgressDestinationClass.ExternalModel);
+        decision.DestinationLabel.Should().Be(new SecurityLabel(SecurityLevel.Internal));
+        decision.Refused.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_Public_inner_frame_cannot_lower_a_Secret_outer_frame_at_the_send()
+    {
+        using var outer = EgressSubject.Enter("outer", new HighWaterMark(new SecurityLabel(SecurityLevel.Secret)));
+        using var inner = EgressSubject.Enter("inner", new HighWaterMark(SecurityLabel.Public));
+        var transport = new SearchHandler();
+        using var client = EgressHttp.CreateClient(transport, EgressFamilies.Http, "nested-leak", new EgressGuard("secure-workstation"));
+        var error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync("https://remote.example/"); });
+        var refusal = error.Should().BeOfType<EgressRefusedException>().Which;
+        refusal.Decision.Current.Should().Be(new SecurityLabel(SecurityLevel.Secret));
+        refusal.Decision.CurrentBasis.Should().Be("subject:inner");
+        refusal.Decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+        transport.Sends.Should().Be(0);
+    }
+
+    private sealed class PayloadTool(Func<object> payload) : ITool
+    {
+        public string Id => "read";
+        public ToolSchema Schema => new(Id, Id, "{\"type\":\"object\"}");
+        public async Task<ToolResult> InvokeAsync(ToolCall call, WorldSnapshot snapshot, CancellationToken ct)
+        {
+            await Task.Yield();
+            return new ToolResult(new ActionDelta(snapshot.Tick, snapshot.Tick + 1, [Id]), payload());
+        }
+    }
+
+    private sealed class SearchHandler : HttpMessageHandler
+    {
+        public int Sends { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Sends++;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"webPages\":{\"value\":[]}}"),
+            });
+        }
     }
 
     private static async Task<LeakRun> RunRagAsync(string tier, string clearance, string profile, bool enterSubject)

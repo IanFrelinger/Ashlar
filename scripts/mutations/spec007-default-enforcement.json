@@ -205,6 +205,30 @@
       "expected_failures": [
         "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
       ]
+    },
+    {
+      "id": "leak-m16-bing-discards",
+      "file": "src/Ashlar.BackgroundAgents/WebSearch/BingWebSearchProvider.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, \"EG-WEB-01\", uri)).ThrowIfRefused();",
+      "new": "_ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, \"EG-WEB-01\", uri));",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_B_real_web_search"
+      ]
+    },
+    {
+      "id": "leak-m05-innermost-only",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressSubject.cs",
+      "old": "return (current, innermost.Basis);",
+      "new": "return (innermost.Mark.Current, innermost.Basis);",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_Public_inner_frame_cannot_lower"
+      ]
     }
   ]
 }
