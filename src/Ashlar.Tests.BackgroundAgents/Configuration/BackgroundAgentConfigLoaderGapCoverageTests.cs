@@ -471,10 +471,10 @@ public class BackgroundAgentConfigLoaderGapCoverageTests
     }
 
     [Fact]
-    public void ProcessConfig_throws_when_sensitivity_level_disappears()
+    public void ProcessConfig_throws_when_a_custom_sensitivity_level_disappears()
     {
         var registry = new Mock<IDataSensitivityRegistry>();
-        registry.Setup(r => r.GetByName("Public")).Returns((IDataSensitivityLevel?)null);
+        registry.Setup(r => r.GetByName("PartnerOnly")).Returns((IDataSensitivityLevel?)null);
         var loader = new BackgroundAgentConfigLoader(
             new ConfigurationBuilder().Build(),
             registry.Object);
@@ -485,7 +485,7 @@ public class BackgroundAgentConfigLoaderGapCoverageTests
             Name = "Test",
             Role = "monitor",
             Commands = new List<string> { "ping" },
-            MaxDataSensitivity = "Public",
+            MaxDataSensitivity = "PartnerOnly",
         };
 
         var process = typeof(BackgroundAgentConfigLoader).GetMethod(
