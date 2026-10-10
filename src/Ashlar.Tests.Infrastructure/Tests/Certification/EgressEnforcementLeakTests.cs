@@ -234,7 +234,7 @@ public sealed class EgressEnforcementLeakTests : IDisposable
         var hops = records.ToArray();
         hops[0].DestinationClass.Should().Be(EgressDestinationClass.Host);
         hops[0].Refused.Should().BeFalse();
-        hops[1].Destination.Should().Be(destination);
+        hops[1].Destination.Should().Be(new Uri(destination).GetLeftPart(UriPartial.Authority));
         hops[1].ModeBasis.Should().Be("profile:secure-workstation");
         hops[1].Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
         hops[1].Refused.Should().BeTrue();
@@ -309,6 +309,103 @@ public sealed class EgressEnforcementLeakTests : IDisposable
         refusal.Decision.CurrentBasis.Should().Be("subject:inner");
         refusal.Decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
         transport.Sends.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task C4_a_tools_inner_frame_cannot_lower_its_open_read_at_the_send()
+    {
+        var transport = new SearchHandler();
+        using var outbound = EgressHttp.CreateClient(transport, EgressFamilies.Http, "inner-read", new EgressGuard("secure-workstation"));
+        EgressDecision? captured = null;
+        using var subscription = EgressDecisionLog.Subscribe(new Sink(d => { if (d.Site == "inner-read") captured = d; }));
+        var registry = new CapabilityRegistry();
+        registry.Register(new InnerSendTool(outbound));
+        var chat = new ScriptedChatClient(new Uri("http://127.0.0.1:11434"), Calls("inner-send", new { }), Done());
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(new EgressGuard("secure-workstation"));
+        services.AddAshlarMeaiPipeline(ollamaInnerFactory: _ => chat,
+            onnxInnerFactory: _ => new FakeChatClient(), registerDefaultRouter: false);
+        await using var provider = services.BuildServiceProvider();
+        var model = new MeaiBackedModel(provider.GetRequiredKeyedService<IChatClient>(MeaiTargetKeys.LocalOllama), NullLogger<MeaiBackedModel>.Instance);
+        using var frame = EgressSubject.Enter("outer-read", new HighWaterMark(new SecurityLabel(SecurityLevel.Secret)));
+        var cycle = await new ToolCallingAgent("inner-read", model, NullLogger<ToolCallingAgent>.Instance)
+            .RunCycleAsync(new WorldSnapshot(0, new Dictionary<string, object?>()), registry, new PolicyEngine([]), null, null, CancellationToken.None);
+        cycle.StoppedReason.Should().Be("empty");
+        cycle.EgressRefusals.Should().Be(1);
+        transport.Sends.Should().Be(0);
+        captured.Should().NotBeNull();
+        captured!.Current.Should().Be(SecurityLabel.SystemHigh);
+        captured.CurrentBasis.Should().Be("subject:inner-read");
+        captured.Access.Reason.Should().Be(AccessDenialReason.SystemHighData);
+        captured.Refused.Should().BeTrue();
+    }
+
+    private sealed class InnerSendTool(HttpClient client) : ITool
+    {
+        public string Id => "inner-send";
+        public ToolSchema Schema => new(Id, Id, "{\"type\":\"object\"}");
+        public async Task<ToolResult> InvokeAsync(ToolCall call, WorldSnapshot snapshot, CancellationToken ct)
+        {
+            using var inner = EgressSubject.Enter("inner-read", new HighWaterMark(SecurityLabel.Public));
+            using var response = await client.GetAsync("https://remote.example/", ct);
+            return new ToolResult(new ActionDelta(snapshot.Tick, snapshot.Tick + 1, [Id]), new { ok = true });
+        }
+    }
+
+    [Theory]
+    [InlineData("air-gapped")]
+    [InlineData("classification")]
+    [InlineData("host-throws")]
+    [InlineData("host-null")]
+    public async Task C7_C8_C9_override_classification_and_broken_host_guards_fail_closed(string control)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", control == "air-gapped" ? "report" : null);
+        var services = new ServiceCollection();
+        services.AddAshlarProfile(control == "air-gapped" ? AshlarDeploymentProfile.AirGapped : AshlarDeploymentProfile.SecureWorkstation);
+        if (control.StartsWith("host-", StringComparison.Ordinal))
+            services.AddSingleton<IEgressGuard>(new BrokenGuard(control == "host-null"));
+        var transport = new SearchHandler();
+        services.AddHttpClient("leak-control").ConfigurePrimaryHttpMessageHandler(() => transport);
+        await using var provider = services.BuildServiceProvider();
+        using var invoker = new HttpMessageInvoker(provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("leak-control"), false);
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            control == "classification" ? new Uri("/relative", UriKind.Relative) : new Uri("https://remote.example/"));
+        using var frame = EgressSubject.Enter("agent:control", new HighWaterMark(new SecurityLabel(SecurityLevel.Secret)));
+        var error = await Record.ExceptionAsync(async () => { using var response = await invoker.SendAsync(request, CancellationToken.None); });
+        var decision = error.Should().BeOfType<EgressRefusedException>().Which.Decision;
+        decision.Mode.Should().Be("enforce");
+        decision.Refused.Should().BeTrue();
+        transport.Sends.Should().Be(0);
+        if (control == "air-gapped") decision.ModeBasis.Should().Be("override-ignored");
+        else
+        {
+            decision.Fault.Should().NotBeNullOrEmpty();
+            decision.Access.Reason.Should().Be(AccessDenialReason.NoDecision);
+        }
+    }
+
+    [Fact]
+    public async Task C10_dotnet_test_in_a_Secret_frame_is_refused_before_start()
+    {
+        var directory = Directory.CreateTempSubdirectory("ashlar-leak-process-");
+        try
+        {
+            var services = new ServiceCollection();
+            services.AddAshlarProfile(AshlarDeploymentProfile.SecureWorkstation);
+            using var frame = EgressSubject.Enter("agent:process-leak", new HighWaterMark(new SecurityLabel(SecurityLevel.Secret)));
+            var error = await Record.ExceptionAsync(() => Ashlar.Tools.Dev.DotnetTestTool.RunTrxTestsNoBuildAsync(directory.FullName));
+            var decision = error.Should().BeOfType<EgressRefusedException>().Which.Decision;
+            decision.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
+            decision.Refused.Should().BeTrue();
+            decision.ModeBasis.Should().Be("profile:secure-workstation");
+            directory.EnumerateFileSystemInfos().Should().BeEmpty();
+        }
+        finally { directory.Delete(recursive: true); }
+    }
+
+    private sealed class BrokenGuard(bool returnsNull) : IEgressGuard
+    {
+        public EgressDecision Evaluate(EgressRequest request) => returnsNull ? null! : throw new InvalidOperationException("host failure");
     }
 
     private sealed class PayloadTool(Func<object> payload) : ITool

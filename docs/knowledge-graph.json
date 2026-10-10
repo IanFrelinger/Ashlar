@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 800,
-    "declared_facts": 5132,
+    "declared_facts": 5135,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5164,7 +5164,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressEnforcementLeakTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 7,
+      "declared_facts": 10,
       "in_cert_gate_filter": true
     },
     {
