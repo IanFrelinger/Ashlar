@@ -72,6 +72,18 @@ public sealed class PeerResponseReadTests
     }
 
     [Fact]
+    public async Task A_replayed_response_requires_a_new_attestation()
+    {
+        var inner = new Peer();
+        var verifier = new BoundVerifier(inner.Response, "Public");
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        using var client = Guard(inner, "Public", verifier);
+        (await client.GetResponseAsync("hello")).Text.Should().Be(Canary);
+        await Refused(() => client.GetResponseAsync("hello"));
+        verifier.Calls.Should().Be(2, "the middleware cannot cache a label by target or response object");
+    }
+
+    [Fact]
     public async Task A_verifier_failure_and_a_throwing_auditor_cannot_release_the_response()
     {
         using var scope = EgressSubject.Enter("reader", new HighWaterMark());
@@ -239,11 +251,14 @@ public sealed class PeerResponseReadTests
     {
         private readonly string _payload = JsonSerializer.Serialize(response, response.GetType());
         public int Calls;
+        private bool _consumed;
         private string? Check(string? target, object current)
         {
             Calls++;
-            return target == "peer:test" && ReferenceEquals(response, current)
-                && _payload == JsonSerializer.Serialize(current, current.GetType()) ? label : null;
+            if (_consumed || target != "peer:test" || !ReferenceEquals(response, current)
+                || _payload != JsonSerializer.Serialize(current, current.GetType())) return null;
+            _consumed = true;
+            return label;
         }
         public string? Verify(string? target, ChatResponse response) => Check(target, response);
         public string? Verify(string? target, ChatResponseUpdate response) => Check(target, response);
