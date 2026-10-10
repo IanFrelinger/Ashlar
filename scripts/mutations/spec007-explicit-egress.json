@@ -901,6 +901,30 @@
       "expected_failures": [
         "Operator_export_does_not_authorize_runtime_publish_and_returns_77"
       ]
+    },
+    {
+      "id": "operator-refusal-precedes-bundle-cleanup",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir)\n            { Initiator = initiator }).ThrowIfRefused();\n        // Replacing an operator bundle is part of the export, so a refusal must preserve the old bundle.\n        if (initiator == EgressInitiator.OperatorFileExport && Directory.Exists(bundleDir))\n            Directory.Delete(bundleDir, recursive: true);\n",
+      "new": "        // Replacing an operator bundle is part of the export, so a refusal must preserve the old bundle.\n        if (initiator == EgressInitiator.OperatorFileExport && Directory.Exists(bundleDir))\n            Directory.Delete(bundleDir, recursive: true);\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir)\n            { Initiator = initiator }).ThrowIfRefused();\n",
+      "filter": "FullyQualifiedName~EgressCliExportPreservationTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Refused_operator_export_preserves_existing_bundle_and_allowed_export_replaces_it"
+      ]
+    },
+    {
+      "id": "operator-allowed-export-cleans-stale-bundle",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "        // Replacing an operator bundle is part of the export, so a refusal must preserve the old bundle.\n        if (initiator == EgressInitiator.OperatorFileExport && Directory.Exists(bundleDir))\n            Directory.Delete(bundleDir, recursive: true);\n",
+      "new": "",
+      "filter": "FullyQualifiedName~EgressCliExportPreservationTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Refused_operator_export_preserves_existing_bundle_and_allowed_export_replaces_it"
+      ]
     }
   ]
 }

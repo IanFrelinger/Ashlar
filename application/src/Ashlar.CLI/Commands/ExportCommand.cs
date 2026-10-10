@@ -68,10 +68,6 @@ public sealed class ExportCommand : Command
         }
 
         var bundleDir = Path.Combine(outDir.FullName, $"{Safe(info.Name)}-{targetName}");
-        if (Directory.Exists(bundleDir))
-        {
-            Directory.Delete(bundleDir, recursive: true);
-        }
         try
         {
             CloudBundle.Stage(directory.FullName, bundleDir, info, target, runtimeImage, EgressInitiator.OperatorFileExport);
@@ -154,11 +150,6 @@ public sealed class ExportCommand : Command
         }
 
         var bundleDir = Path.Combine(outDir.FullName, $"{Safe(info.Name)}-{rid}");
-        if (Directory.Exists(bundleDir))
-        {
-            Directory.Delete(bundleDir, recursive: true);
-        }
-        Directory.CreateDirectory(bundleDir);
         try
         {
             NativeBundle.Stage(directory.FullName, bundleDir, info, EgressInitiator.OperatorFileExport);

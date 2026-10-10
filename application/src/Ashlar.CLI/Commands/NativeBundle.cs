@@ -94,6 +94,9 @@ public static class NativeBundle
         // SPEC-007: the project tree leaves through the bundle (EG-FILE-01 native, EG-FILE-02 cloud).
         EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, "file:" + bundleDir)
             { Initiator = initiator }).ThrowIfRefused();
+        // Replacing an operator bundle is part of the export, so a refusal must preserve the old bundle.
+        if (initiator == EgressInitiator.OperatorFileExport && Directory.Exists(bundleDir))
+            Directory.Delete(bundleDir, recursive: true);
         return CopyApp(projectDir, bundleDir);
     }
 
