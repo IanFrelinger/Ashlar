@@ -10,12 +10,11 @@ namespace Ashlar.BackgroundAgents.RAG;
 /// ITool that exposes RAG search to agents. Id: "rag_search".
 /// </summary>
 /// <remarks>
-/// <b>The model cannot raise its own clearance.</b> The clearance searched at is the AGENT's
-/// (<c>maxDataSensitivity</c> in the snapshot). The model's <c>maxSensitivityLevelName</c> argument
-/// may only NARROW it; a request above the agent's clearance is ignored, and with no agent
-/// clearance in the snapshot the search runs at the floor whatever the model asks for. It used to
-/// be the other way round -- the model's value won and the agent's was only a fallback -- so a
-/// prompt injection that talked the model into asking for TopSecret got TopSecret.
+/// <b>The model cannot raise its own clearance.</b> The agent's <c>maxDataSensitivity</c>
+/// snapshot value supplies a query limit. The model's <c>maxSensitivityLevelName</c> may only
+/// narrow that limit; without an agent limit the query runs at Public. The stores additionally
+/// intersect every read with trusted subject authority. Neither snapshot nor model input grants
+/// access, including when either explicitly names SystemHigh.
 /// </remarks>
 public sealed class RAGTool : ITool, IEgressLabelledTool
 {
