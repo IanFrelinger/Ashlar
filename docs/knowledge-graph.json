@@ -11,12 +11,12 @@
     "projects": 60,
     "projects_shipped_to_nuget": 22,
     "projects_declaring_ispackable_true": 18,
-    "config_variables": 177,
-    "operator_facing_config_variables": 155,
+    "config_variables": 178,
+    "operator_facing_config_variables": 156,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 805,
-    "declared_facts": 5156,
+    "test_files_declaring_facts": 806,
+    "declared_facts": 5159,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -1255,6 +1255,16 @@
       "name": "ASHLAR_CLEAN_BEFORE_TEST",
       "declared_in": [
         "Ashlar.Infrastructure"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_CLEARANCE_POLICY",
+      "declared_in": [
+        "Ashlar.Hosting",
+        "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -5755,6 +5765,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 4,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/SubjectClearanceConfigurationTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 3,
       "in_cert_gate_filter": true
     },
     {

@@ -11,9 +11,9 @@ public interface IRAGService
     /// <param name="query">Query text.</param>
     /// <param name="maxResults">Maximum number of results.</param>
     /// <param name="minScore">Minimum similarity score (0.0-1.0).</param>
-    /// <param name="maxSensitivityLevelName">The caller's clearance: only documents at or below it are
+    /// <param name="maxSensitivityLevelName">The requested read limit, intersected with trusted subject clearance: only eligible documents are
     /// returned. Omitted or unrecognised means the FLOOR (Public), never everything; an unmarked
-    /// document is treated as the most restrictive level.</param>
+    /// document is SystemHigh and needs an explicit trusted SystemHigh grant.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Search results ordered by score descending.</returns>
     Task<IReadOnlyList<VectorSearchResult>> SearchAsync(
@@ -31,7 +31,7 @@ public interface IRAGService
     /// <param name="id">Document id.</param>
     /// <param name="text">Document text.</param>
     /// <param name="sensitivityLevelName">Sensitivity level name. Omitted means UNMARKED, which every
-    /// search treats as the most restrictive level -- never Public.</param>
+    /// search treats as SystemHigh -- never Public.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task IndexAsync(
         string id,

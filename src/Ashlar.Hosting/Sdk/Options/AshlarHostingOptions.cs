@@ -11,7 +11,8 @@ namespace Ashlar.Hosting;
 public sealed class AshlarHostingOptions
 {
     /// <summary>
-    /// Trusted operator policy file supplying agent clearance ceilings. Absent means every agent is Public.
+    /// Trusted operator policy file supplying agent clearance ceilings. Falls back to ASHLAR_CLEARANCE_POLICY;
+    /// when both are absent every agent is Public.
     /// The file is loaded and validated once by AddAshlar; an unreadable or invalid policy refuses composition.
     /// Never populate this option from an agent request or application manifest.
     /// </summary>

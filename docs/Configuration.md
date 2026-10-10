@@ -12,6 +12,22 @@ There are three kinds of `Ashlar:*` option, and they do **not** read the same co
 
 The tables below list keys in `Ashlar:A:B` form with the `Ashlar__A__B` environment spelling beside them; whether a JSON file can supply the key at all is decided by which of the three groups above the section belongs to, not by the form the table happens to use.
 
+## Agent read clearances
+
+Set `ASHLAR_CLEARANCE_POLICY` to the operator-owned `ashlar.policy.yaml` file before starting a shipped host. SDK hosts can instead set `AshlarHostingOptions.AgentClearancePolicyPath`; that explicit path takes precedence. `AddAshlar` validates and snapshots the file once. Restart after a policy change. An unreadable or invalid configured file refuses composition; an absent path grants only Public.
+
+Add ceilings to the policy using exact runner identities, including the `agent:` prefix:
+
+```yaml
+agentClearances:
+  "agent:researcher": Secret
+  "agent:operator": SystemHigh
+```
+
+`AshlarHostingOptions.AgentClearanceLimits` supplies optional host restrictions for those same identities. The effective grant is the intersection of the policy ceiling and host limit. A host limit cannot grant an unknown identity or widen a policy ceiling. Keep the policy and host configuration outside agent-editable inputs; `ashlar.yaml` and retrieval arguments do not confer clearance.
+
+A RAG query's requested tier only narrows the live subject's grant. Missing or unrecognised query tiers mean Public. Unlabelled or unknown data requires an explicit SystemHigh policy grant and a SystemHigh query limit; TopSecret does not include it. A subject's high-water mark records what it has read and never grants permission to read more. Nested subjects intersect grants, and work that outlives a subject's scope loses that grant.
+
 ## Egress enforcement
 
 `ASHLAR_EGRESS_MODE` is read once by `AddAshlar`, or at the first process-bound decision when there is no host. Restart the process after changing it. It is not read from `appsettings.json` or other `IConfiguration` providers.

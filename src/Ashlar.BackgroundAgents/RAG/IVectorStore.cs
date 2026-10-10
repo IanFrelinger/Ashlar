@@ -29,7 +29,7 @@ public interface IVectorStore
     /// <param name="embedding">Query embedding.</param>
     /// <param name="maxResults">Maximum number of results.</param>
     /// <param name="minScore">Minimum similarity score (0.0-1.0).</param>
-    /// <param name="maxSensitivityLevelName">The caller's clearance: only documents at or below it are
+    /// <param name="maxSensitivityLevelName">The requested read limit, intersected with trusted subject clearance: only eligible documents are
     /// returned. Omitted or unrecognised means the FLOOR (Public), never everything.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Results ordered by score descending.</returns>

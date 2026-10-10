@@ -9,9 +9,10 @@ public static partial class AshlarServiceCollectionExtensions
     private static void RegisterSubjectClearances(IServiceCollection services, AshlarHostingOptions options)
     {
         IReadOnlyDictionary<string, string?> ceilings = new Dictionary<string, string?>();
-        if (options.AgentClearancePolicyPath is not null)
+        var policyPath = options.AgentClearancePolicyPath ?? Environment.GetEnvironmentVariable("ASHLAR_CLEARANCE_POLICY");
+        if (policyPath is not null)
         {
-            var yaml = File.ReadAllText(options.AgentClearancePolicyPath);
+            var yaml = File.ReadAllText(policyPath);
             if (!PolicyLoader.TryLoad(yaml, out var policy, out _))
                 throw new InvalidOperationException("Agent clearance policy failed validation.");
             ceilings = policy!.AgentClearances;
