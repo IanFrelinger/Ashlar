@@ -41,11 +41,11 @@ public sealed class AdaptCommand : Command
             var fixType = ctx.ParseResult.GetValueForOption(fixOpt);
             var dryRun = ctx.ParseResult.GetValueForOption(dryRunOpt);
             var storePathOverride = ctx.ParseResult.GetValueForOption(storePathOpt);
-            await ExecuteAsync(brickId, fixType, dryRun, storePathOverride);
+            ctx.ExitCode = await ExecuteAsync(brickId, fixType, dryRun, storePathOverride);
         });
     }
 
-    private static async Task ExecuteAsync(string brickId, string? fixType, bool dryRun, string? storePathOverride = null)
+    private static async Task<int> ExecuteAsync(string brickId, string? fixType, bool dryRun, string? storePathOverride = null)
     {
         var repoRoot = RepoPathResolver.FindRepoRoot();
         var storePath = !string.IsNullOrWhiteSpace(storePathOverride)
@@ -76,8 +76,7 @@ public sealed class AdaptCommand : Command
             var ids = available.Count > 0 ? string.Join(", ", available.Select(b => b.Id)) : "observation.context (when store-path provided)";
             logger.LogError("Brick {Id} not found. Available for adapt: {Available}", brickId, ids);
             await executionTracer.TraceAsync("adapt.end", null, null, "brick_not_found").ConfigureAwait(false);
-            Environment.ExitCode = 1;
-            return;
+            return 1;
         }
 
         await executionTracer.TraceAsync("adapt.start", new Dictionary<string, object> { ["brickId"] = brickId, ["fixType"] = fixType ?? "" }, null).ConfigureAwait(false);
@@ -107,8 +106,7 @@ public sealed class AdaptCommand : Command
         if (dryRun)
         {
             Console.WriteLine("(dry-run: skip recompile)");
-            Environment.ExitCode = 0;
-            return;
+            return 0;
         }
 
         var recompiled = await recompiler.RecompileAsync(toRecompile).ConfigureAwait(false);
@@ -123,6 +121,6 @@ public sealed class AdaptCommand : Command
             logger.LogWarning("Recompile returned null (known type may need DI).");
         }
 
-        Environment.ExitCode = 0;
+        return 0;
     }
 }

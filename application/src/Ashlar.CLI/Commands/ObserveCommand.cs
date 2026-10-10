@@ -39,7 +39,7 @@ public sealed class ObserveCommand : Command
             var dump = ctx.ParseResult.GetValueForOption(dumpOpt);
             var verbose = ctx.ParseResult.GetValueForOption(verboseOpt);
             var maxDuration = ParseDuration(durationStr);
-            await ExecuteAsync(path, maxDuration, dump, verbose);
+            ctx.ExitCode = await ExecuteAsync(path, maxDuration, dump, verbose);
         });
     }
 
@@ -65,7 +65,7 @@ public sealed class ObserveCommand : Command
         return int.TryParse(s, out var mins) ? TimeSpan.FromMinutes(mins) : TimeSpan.FromMinutes(10);
     }
 
-    private static async Task ExecuteAsync(string? path, TimeSpan maxDuration, bool dump, bool verbose)
+    private static async Task<int> ExecuteAsync(string? path, TimeSpan maxDuration, bool dump, bool verbose)
     {
         var repoRoot = path ?? RepoPathResolver.FindRepoRoot();
         var storePath = Path.Combine(RepoPathResolver.ResolveStateDirectory(repoRoot), "ashlar-patterns.db");
@@ -105,8 +105,7 @@ public sealed class ObserveCommand : Command
         {
             logger.LogError("No watch paths exist under {Root}. Create src/, .github/, or tools/ to observe.", repoRoot);
             await executionTracer.TraceAsync("observe.end", null, repoRoot, "no_watch_paths").ConfigureAwait(false);
-            Environment.ExitCode = 1;
-            return;
+            return 1;
         }
 
         Console.WriteLine("Ashlar Observation Pipeline");
@@ -188,6 +187,6 @@ public sealed class ObserveCommand : Command
         }
 
         await executionTracer.TraceAsync("observe.end", new Dictionary<string, object> { ["eventCount"] = eventCount }, repoRoot, "completed").ConfigureAwait(false);
-        Environment.ExitCode = 0;
+        return 0;
     }
 }

@@ -138,7 +138,8 @@ public sealed class MeshCommand : Command
             var advertise = ctx.ParseResult.GetValueForOption(advertiseOpt);
             var capability = ctx.ParseResult.GetValueForOption(capabilityOpt);
             var setTrustTier = ctx.ParseResult.GetValueForOption(setTrustTierOpt);
-            await ExecuteAsync(discover, advertise, capability, setTrustTier);
+            // Same rule as mesh health: only ctx.ExitCode survives InvokeAsync.
+            ctx.ExitCode = await ExecuteAsync(discover, advertise, capability, setTrustTier);
         });
     }
 
@@ -233,23 +234,21 @@ public sealed class MeshCommand : Command
         Environment.ExitCode = 0;
     }
 
-    private static async Task ExecuteAsync(bool discover, bool advertise, string? capability, string? setTrustTier)
+    private static async Task<int> ExecuteAsync(bool discover, bool advertise, string? capability, string? setTrustTier)
     {
         if (!string.IsNullOrWhiteSpace(setTrustTier))
         {
             if (!TryParseTrustTierChange(setTrustTier, out var peerId, out var trustTier))
             {
                 Console.Error.WriteLine("Invalid --set-trust-tier value. Use <peerId>:<trusted|untrusted|unknown>.");
-                Environment.ExitCode = 1;
-                return;
+                return 1;
             }
 
             var updated = UpdatePeerTrustTier(peerId!, trustTier);
             if (!updated)
             {
                 Console.Error.WriteLine($"Peer '{peerId}' not found in instances.json.");
-                Environment.ExitCode = 1;
-                return;
+                return 1;
             }
 
             Console.WriteLine($"Updated trust tier for peer '{peerId}' => {trustTier}.");
@@ -292,7 +291,7 @@ public sealed class MeshCommand : Command
                 "Use --discover, --advertise, --capability <name>, --set-trust-tier <peerId>:<tier>, " +
                 "mesh peers, mesh health, mesh admit, or mesh revoke (local instances.json). " +
                 "Fleet director HTTP (register, admit, list-nodes) lives in commercial/src/Ashlar.Commercial.MeshDirector.");
-        Environment.ExitCode = 0;
+        return 0;
     }
 
     private static void ExecutePeers()

@@ -32,11 +32,11 @@ public sealed class RollbackCommand : Command
             var toSnapshot = ctx.ParseResult.GetValueForOption(toSnapshotOpt);
             var preview = ctx.ParseResult.GetValueForOption(previewOpt);
             var storePathOverride = ctx.ParseResult.GetValueForOption(storePathOpt);
-            await ExecuteAsync(adaptationId, toSnapshot, preview, storePathOverride);
+            ctx.ExitCode = await ExecuteAsync(adaptationId, toSnapshot, preview, storePathOverride);
         });
     }
 
-    private static async Task ExecuteAsync(string? adaptationId, string? toSnapshot, bool preview, string? storePathOverride)
+    private static async Task<int> ExecuteAsync(string? adaptationId, string? toSnapshot, bool preview, string? storePathOverride)
     {
         var repoRoot = RepoPathResolver.FindRepoRoot();
         var storePath = !string.IsNullOrWhiteSpace(storePathOverride)
@@ -55,19 +55,17 @@ public sealed class RollbackCommand : Command
             if (preview)
             {
                 Console.WriteLine($"Preview: Would restore to snapshot {toSnapshot}");
-                return;
+                return 0;
             }
             await rollbackManager.RollbackToSnapshotAsync(toSnapshot).ConfigureAwait(false);
             Console.WriteLine($"Restored to snapshot {toSnapshot}");
-            Environment.ExitCode = 0;
-            return;
+            return 0;
         }
 
         if (string.IsNullOrWhiteSpace(adaptationId))
         {
             Console.Error.WriteLine("Specify adaptation-id or --to-snapshot <snapshotId>");
-            Environment.ExitCode = 1;
-            return;
+            return 1;
         }
 
         if (preview)
@@ -80,20 +78,19 @@ public sealed class RollbackCommand : Command
                 foreach (var c in impact.AdditionalComponentsAffected)
                     Console.WriteLine($"    - {c}");
             }
-            Environment.ExitCode = 0;
-            return;
+            return 0;
         }
 
         try
         {
             await rollbackManager.RollbackAsync(adaptationId).ConfigureAwait(false);
             Console.WriteLine($"Rolled back adaptation {adaptationId}");
-            Environment.ExitCode = 0;
+            return 0;
         }
         catch (InvalidOperationException ex)
         {
             Console.Error.WriteLine(ex.Message);
-            Environment.ExitCode = 1;
+            return 1;
         }
     }
 }

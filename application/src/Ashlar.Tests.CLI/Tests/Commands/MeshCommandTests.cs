@@ -14,6 +14,8 @@ public sealed class MeshCommandTests : UnitTestBase
         try
         {
             await TestSetTrustTierPreservesPeerFieldsAsync().ConfigureAwait(false);
+            await TestSetTrustTierMissingPeerExitsNonZeroAsync().ConfigureAwait(false);
+            await TestSetTrustTierMalformedValueExitsNonZeroAsync().ConfigureAwait(false);
             await TestPeersListsLocalInstancesAsync().ConfigureAwait(false);
             await TestHealthMissingUrlExitsNonZeroAsync().ConfigureAwait(false);
             await TestHealthMalformedUrlIsLegibleNonZeroAsync().ConfigureAwait(false);
@@ -205,6 +207,94 @@ public sealed class MeshCommandTests : UnitTestBase
             AssertTrue(first.GetProperty("capabilities").GetArrayLength() == 2, "Capabilities should be preserved.");
             AssertEqual("trusted", (first.GetProperty("trustTier").GetString() ?? string.Empty).ToLowerInvariant());
             AssertEqual("us-east-1", first.GetProperty("metadata").GetProperty("region").GetString() ?? string.Empty);
+        }
+        finally
+        {
+            Console.SetOut(ConsoleCapture.Out);
+            Console.SetError(ConsoleCapture.Error);
+            Environment.SetEnvironmentVariable("ASHLAR_MESH_INSTANCES_PATH", previousPath);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
+    // #484: a missing peer used to print to stderr and exit 0, because the handler set
+    // Environment.ExitCode. mesh admit/revoke already exit 1 for the same condition.
+    private async Task TestSetTrustTierMissingPeerExitsNonZeroAsync()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"ashlar-mesh-missing-{Guid.NewGuid():N}");
+        var instancesPath = Path.Combine(tempRoot, "instances.json");
+        Directory.CreateDirectory(tempRoot);
+        var payload = """
+                      [
+                        {
+                          "peerId": "peer-1",
+                          "endpoint": "http://peer-1:5000",
+                          "trustTier": "Unknown"
+                        }
+                      ]
+                      """;
+        await File.WriteAllTextAsync(instancesPath, payload).ConfigureAwait(false);
+        var before = await File.ReadAllTextAsync(instancesPath).ConfigureAwait(false);
+
+        var previousPath = Environment.GetEnvironmentVariable("ASHLAR_MESH_INSTANCES_PATH");
+        Environment.SetEnvironmentVariable("ASHLAR_MESH_INSTANCES_PATH", instancesPath);
+        var writer = new StringWriter();
+        Console.SetOut(writer);
+        Console.SetError(writer);
+        try
+        {
+            var root = new RootCommand();
+            root.AddCommand(new MeshCommand());
+            var exitCode = await root.InvokeAsync("mesh --set-trust-tier ghost-peer:trusted").ConfigureAwait(false);
+            AssertTrue(exitCode != 0, "A missing peer must exit non-zero, not 0.");
+            AssertTrue(writer.ToString().Contains("ghost-peer", StringComparison.Ordinal)
+                && writer.ToString().Contains("not found", StringComparison.OrdinalIgnoreCase),
+                "A missing peer must be reported on the console.");
+            AssertEqual(before, await File.ReadAllTextAsync(instancesPath).ConfigureAwait(false));
+        }
+        finally
+        {
+            Console.SetOut(ConsoleCapture.Out);
+            Console.SetError(ConsoleCapture.Error);
+            Environment.SetEnvironmentVariable("ASHLAR_MESH_INSTANCES_PATH", previousPath);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
+    // #484: a malformed tier used to print the usage line and exit 0.
+    private async Task TestSetTrustTierMalformedValueExitsNonZeroAsync()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"ashlar-mesh-badtier-{Guid.NewGuid():N}");
+        var instancesPath = Path.Combine(tempRoot, "instances.json");
+        Directory.CreateDirectory(tempRoot);
+        var payload = """
+                      [
+                        {
+                          "peerId": "peer-1",
+                          "endpoint": "http://peer-1:5000",
+                          "trustTier": "Unknown"
+                        }
+                      ]
+                      """;
+        await File.WriteAllTextAsync(instancesPath, payload).ConfigureAwait(false);
+        var before = await File.ReadAllTextAsync(instancesPath).ConfigureAwait(false);
+
+        var previousPath = Environment.GetEnvironmentVariable("ASHLAR_MESH_INSTANCES_PATH");
+        Environment.SetEnvironmentVariable("ASHLAR_MESH_INSTANCES_PATH", instancesPath);
+        var writer = new StringWriter();
+        Console.SetOut(writer);
+        Console.SetError(writer);
+        try
+        {
+            var root = new RootCommand();
+            root.AddCommand(new MeshCommand());
+            var exitCode = await root.InvokeAsync("mesh --set-trust-tier peer-1:not-a-tier").ConfigureAwait(false);
+            AssertTrue(exitCode != 0, "A malformed trust tier must exit non-zero, not 0.");
+            AssertTrue(writer.ToString().Contains("Invalid --set-trust-tier", StringComparison.Ordinal),
+                "A malformed trust tier must be reported on the console.");
+            AssertEqual(before, await File.ReadAllTextAsync(instancesPath).ConfigureAwait(false));
         }
         finally
         {
