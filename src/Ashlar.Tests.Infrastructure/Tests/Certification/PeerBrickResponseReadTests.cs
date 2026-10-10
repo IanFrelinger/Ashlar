@@ -85,6 +85,23 @@ public sealed class PeerBrickResponseReadTests
     }
 
     [Fact]
+    public async Task A_nested_read_refusal_is_preserved_even_when_the_local_caller_has_SystemHigh()
+    {
+        var calls = 0;
+        var refusal = new ReadRefusedException(AccessDenialReason.LevelTooLow);
+        using var http = new HttpClient(new StubHttpMessageHandler((_, _) =>
+        {
+            calls++;
+            return Task.FromException<HttpResponseMessage>(new HttpRequestException(Canary, refusal));
+        }));
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        var error = await Record.ExceptionAsync(() => Routed(http, "SystemHigh").ExecuteAsync(Payload(), Requirements(), new FakeExecutionContext()));
+        error.Should().BeSameAs(refusal);
+        error!.ToString().Should().NotContain(Canary);
+        calls.Should().Be(1);
+    }
+
+    [Fact]
     public async Task A_peer_response_cannot_keep_a_grant_after_its_runner_expires()
     {
         var response = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
