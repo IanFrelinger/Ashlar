@@ -2,9 +2,11 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Ashlar.Abstractions.Security;
 using Ashlar.Abstractions.Security.Egress;
+using Ashlar.AI.Pipeline;
 using Ashlar.AI.Pipeline.Governance;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
@@ -139,6 +141,34 @@ public sealed class PeerResponseReadTests
         (await client.GetResponseAsync("hello")).Text.Should().Be(Canary);
     }
 
+    [Fact]
+    public async Task Governed_composition_uses_the_operator_authority_and_exact_response_verifier()
+    {
+        var inner = new Peer();
+        var services = new ServiceCollection();
+        services.AddSingleton(Authority("Secret"));
+        services.AddSingleton<IChatResponseLabelVerifier>(new BoundVerifier(inner.Response, "Secret"));
+        services.AddAshlarGovernedChatClient("peer:test", _ => inner);
+        using var provider = services.BuildServiceProvider();
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        var response = await provider.GetRequiredKeyedService<IChatClient>("peer:test").GetResponseAsync("hello");
+        response.Text.Should().Be(Canary);
+    }
+
+    [Fact]
+    public async Task Refusal_audit_retains_operator_detail_but_the_exception_contains_only_a_reference()
+    {
+        var inner = new Peer();
+        var auditor = new RecordingAuditor();
+        using var frame = EgressSubject.Enter("reader", new HighWaterMark());
+        using var client = Guard(inner, "Public", new BoundVerifier(inner.Response, "Secret"), auditor);
+        var failure = await ((Func<Task>)(() => client.GetResponseAsync("hello"))).Should().ThrowAsync<ReadRefusedException>();
+        var record = auditor.Records.Should().ContainSingle().Which;
+        record.ReadDecision!.Value.Detail.Should().Contain("Secret");
+        record.CorrelationId.Should().Be(failure.Which.Ref);
+        failure.Which.Message.Should().NotContain("Secret").And.NotContain(Canary);
+    }
+
     [Theory]
     [InlineData(null, false)]
     [InlineData("TopSecret", false)]
@@ -222,6 +252,11 @@ public sealed class PeerResponseReadTests
     {
         public string? Verify(string? target, ChatResponse response) => throw new Exception(Canary);
         public string? Verify(string? target, ChatResponseUpdate response) => throw new Exception(Canary);
+    }
+    private sealed class RecordingAuditor : IChatInvocationAuditor
+    {
+        public List<ChatInvocationAuditRecord> Records { get; } = [];
+        public void Record(ChatInvocationAuditRecord record) => Records.Add(record);
     }
     private sealed class BrokenAuditor : IChatInvocationAuditor
     {

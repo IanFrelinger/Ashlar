@@ -157,7 +157,7 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
                 || key.StartsWith("cloud:", StringComparison.OrdinalIgnoreCase));
     }
 
-    // An agent-backed target's response is unlabelled data the caller has now read (until PR 5 labels responses).
+    // Faults and incomplete streams have no verified result label.
     private static void ObserveResponse() => EgressSubject.Observe(SecurityLabel.SystemHigh);
 
     private SecurityLabel VerifiedLabel(object response)
