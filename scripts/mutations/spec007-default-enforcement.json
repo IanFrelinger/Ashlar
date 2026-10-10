@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "SPEC-007 4.11 campaign in progress. Initial mode-table and AirGapped route cases only; opt-out and full seeded-leak controls/mutations remain required. Plans are not evidence.",
+  "note": "SPEC-007 4.11 mode, routes, host opt-outs and seeded leak controls. Plans are not proof: require assertion failures, byte restoration, clean status and green on the named commit.",
   "mutations": [
     {
       "id": "mode-sw-default",
@@ -228,6 +228,90 @@
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
         "A_Public_inner_frame_cannot_lower"
+      ]
+    },
+    {
+      "id": "leak-m06-unreported-public",
+      "file": "src/Ashlar.Abstractions/Security/Egress/ReadScope.cs",
+      "old": "var read = Volatile.Read(ref _completed) != 0 && reported is not null ? reported : SecurityLabel.SystemHigh;",
+      "new": "var read = Volatile.Read(ref _completed) != 0 ? reported ?? SecurityLabel.Public : SecurityLabel.SystemHigh;",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "C5_C11_C12_unlabelled"
+      ]
+    },
+    {
+      "id": "leak-m15-thrown-read-discarded",
+      "file": "src/Ashlar.Abstractions/Security/Egress/ReadScope.cs",
+      "old": "var read = Volatile.Read(ref _completed) != 0 && reported is not null ? reported : SecurityLabel.SystemHigh;",
+      "new": "var read = Volatile.Read(ref _completed) == 0 ? SecurityLabel.Public : reported ?? SecurityLabel.SystemHigh;",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "C5_C11_C12_unlabelled"
+      ]
+    },
+    {
+      "id": "leak-m10-classification-fault-allows",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "fault = type.FullName ?? type.Name;\n            access = default;",
+      "new": "fault = type.FullName ?? type.Name;\n            access = AccessDecision.Allow();",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "C7_C8_C9_override"
+      ]
+    },
+    {
+      "id": "leak-m11-composition-full",
+      "file": "src/Ashlar.Hosting/AshlarServiceCollectionExtensions.Egress.cs",
+      "old": "var composed = new EgressGuard(composedProfile, egressOverride);",
+      "new": "var composed = new EgressGuard(\"full\", egressOverride);",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_C_factory_refuses"
+      ]
+    },
+    {
+      "id": "leak-m12-factory-removes-handler",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressRedirectBindingFilter.cs",
+      "old": "            Bind(builder);",
+      "new": "            Bind(builder);\n            builder.AdditionalHandlers.Clear();",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Scenario_C_factory_refuses"
+      ]
+    },
+    {
+      "id": "leak-m13-process-host",
+      "file": "src/Ashlar.Tools.Dev/DotnetRunner.cs",
+      "old": "new EgressRequest(EgressFamilies.Process, \"EG-PROC-01\", \"process:dotnet\")",
+      "new": "new EgressRequest(EgressFamilies.Process, \"EG-PROC-01\", \"host:dotnet\")",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "C10_dotnet_test"
+      ]
+    },
+    {
+      "id": "leak-m14-observe-reports-read",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressSubject.cs",
+      "old": "    public static void Observe(SecurityLabel label)\n    {\n        SecurityGuard.ThrowIfNull(label, nameof(label));\n        Frame.ObserveInto(Active.Value, label);\n    }\n\n    /// <summary>\n    /// Starts a read scope for one read on this async flow, such as one tool call, and enters the read's frame: until\n    /// the scope ends, every decision on the flows inside it is made at <see cref=\"SecurityLabel.SystemHigh\"/>. When it\n    /// ends it observes what the read reported, or <see cref=\"SecurityLabel.SystemHigh\"/>, into every frame of the chain\n    /// it was begun on, and then, on the flow whose head it is, restores the frame it was begun in.\n    /// </summary>\n    /// <returns>The scope. Call <see cref=\"ReadScope.Complete\"/> when the read returns, and dispose it.</returns>\n    /// <remarks>Dispose the scope in a <c>using</c> block on the flow that began it, in order, as for\n    /// <see cref=\"Enter\"/>: a flow that never ends the read as its head stays inside the read's frame, at SystemHigh.\n    /// Work created and started inside the read keeps the read's frame, at SystemHigh, for its whole life.</remarks>\n    public static ReadScope BeginRead()\n    {\n        var chain = Active.Value;\n        var read = Frame.ForRead(chain);\n        Active.Value = read;\n        return new ReadScope(chain, read);\n    }",
+      "new": "    public static void Observe(SecurityLabel label)\n    {\n        SecurityGuard.ThrowIfNull(label, nameof(label));\n        Frame.ObserveInto(Active.Value, label);\n        LatestRead.Value?.Report(label);\n    }\n\n    /// <summary>\n    /// Starts a read scope for one read on this async flow, such as one tool call, and enters the read's frame: until\n    /// the scope ends, every decision on the flows inside it is made at <see cref=\"SecurityLabel.SystemHigh\"/>. When it\n    /// ends it observes what the read reported, or <see cref=\"SecurityLabel.SystemHigh\"/>, into every frame of the chain\n    /// it was begun on, and then, on the flow whose head it is, restores the frame it was begun in.\n    /// </summary>\n    /// <returns>The scope. Call <see cref=\"ReadScope.Complete\"/> when the read returns, and dispose it.</returns>\n    /// <remarks>Dispose the scope in a <c>using</c> block on the flow that began it, in order, as for\n    /// <see cref=\"Enter\"/>: a flow that never ends the read as its head stays inside the read's frame, at SystemHigh.\n    /// Work created and started inside the read keeps the read's frame, at SystemHigh, for its whole life.</remarks>\n    public static ReadScope BeginRead()\n    {\n        var chain = Active.Value;\n        var read = Frame.ForRead(chain);\n        Active.Value = read;\n        var scope = new ReadScope(chain, read);\n        LatestRead.Value = scope;\n        return scope;\n    }\n\n    private static readonly AsyncLocal<ReadScope?> LatestRead = new();",
+      "filter": "FullyQualifiedName~EgressEnforcementLeakTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "C5_C11_C12_unlabelled"
       ]
     }
   ]
