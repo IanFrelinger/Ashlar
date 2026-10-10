@@ -134,15 +134,19 @@ The status line above and the starting prompt are the owner's, as written; the s
   timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
   work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
   The default switch (4.11) remains separate work.
-- **PR 4.9 (implementation; verification in progress)** acts on all 17 original explicit decisions and the additional
+- **PR 4.9 (implemented; local verification complete)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
   local admission, local promotion and existing export bundles while suppressing the refused export. CLI exits 77, IDE SSE uses fixed remote
   text and a random reference, and optional discovery/pull paths log redacted refusals. Working-tree execution
   is NetworkExport even with --no-build/--no-restore; Docker Host classification requires a local daemon and
   recognized network-off/no-pull run arguments. Docker API build/run/start is separately guarded. F10 requires
-  action on explicit decisions; F11 confines the internal evaluated process entry. Full gates and post-commit
-  mutation proof are still required before this phase is complete.
+  action on explicit decisions; F11 confines the internal evaluated process entry. Local validation passes the
+  core build, 3,174 certification tests, 131 production-style tests, 63 CLI egress/audit tests, four net10 API tests,
+  the three open-mesh CLI bridge tests and all 28 repository gates, with zero test skips in these selections.
+  All 77 cases in `scripts/mutations/spec007-explicit-egress.json` have an intended assertion failure, exact source
+  restoration, clean checkout and green rerun; their mutation targets and intended test sources match the candidate.
+  PR CI and merge verification are still required before this phase is complete.
 - **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
