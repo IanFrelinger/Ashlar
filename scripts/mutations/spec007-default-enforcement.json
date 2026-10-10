@@ -77,8 +77,8 @@
     {
       "id": "route-host-ag-floor",
       "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
-      "old": "var raise = airGapped is not null && !IsEnforce(decision.Mode);",
-      "new": "var raise = airGapped is null && !IsEnforce(decision.Mode);",
+      "old": "if (IsEnforce(decision.Mode))",
+      "new": "if (!IsEnforce(decision.Mode))",
       "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",

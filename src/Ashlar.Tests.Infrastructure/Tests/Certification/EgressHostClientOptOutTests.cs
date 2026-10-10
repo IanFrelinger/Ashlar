@@ -126,6 +126,67 @@ public sealed class EgressHostClientOptOutTests
             returnsNull ? null! : throw new InvalidOperationException("host fault");
     }
 
+    [Theory]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, false, false, 1)]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, true, false, 2)]
+    [InlineData(AshlarDeploymentProfile.AirGapped, true, false, 1)]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, false, true, 1)]
+    [InlineData(AshlarDeploymentProfile.SecureWorkstation, true, true, 2)]
+    [InlineData(AshlarDeploymentProfile.AirGapped, true, true, 1)]
+    public async Task Redirect_hops_keep_the_named_policy_and_AirGapped_ignores_it(
+        AshlarDeploymentProfile profile, bool optOut, bool hostGuard, int sends)
+    {
+        using var profileVariable = EnvironmentVariableScope.Unset("ASHLAR_DEPLOYMENT_PROFILE");
+        using var modeVariable = EnvironmentVariableScope.Unset("ASHLAR_EGRESS_MODE");
+        using var state = new EgressProcessStateScope(reset: true);
+        var services = new ServiceCollection();
+        services.AddAshlarProfile(profile);
+        if (hostGuard) services.AddSingleton<IEgressGuard>(new DelegatingGuard(new EgressGuard("full", "enforce")));
+        if (optOut) services.Configure<EgressGuardOptions>(o => o.ReportOnlyClients.Add("redirect-opt-out"));
+        var transport = new RedirectingHandler();
+        services.AddHttpClient("redirect-opt-out").ConfigurePrimaryHttpMessageHandler(() => transport);
+        var records = new List<EgressDecision>();
+        using var subscription = EgressDecisionLog.Subscribe(new Sink(d =>
+        {
+            if (d.Site == "factory:redirect-opt-out") records.Add(d);
+        }));
+        using var provider = services.BuildServiceProvider();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient("redirect-opt-out");
+        var error = await Record.ExceptionAsync(async () => { using var response = await client.GetAsync("http://127.0.0.1/first"); });
+        transport.Requested.Should().HaveCount(sends);
+        transport.Requested[0].Host.Should().Be("127.0.0.1");
+        var last = records.Last();
+        last.Destination.Should().Be("https://redirect-target.example");
+        if (sends == 2)
+        {
+            error.Should().BeNull();
+            transport.Requested[1].Host.Should().Be("redirect-target.example");
+            last.Mode.Should().Be("report");
+            last.ModeBasis.Should().Be("host-opt-out");
+            last.Access.Allowed.Should().BeFalse();
+        }
+        else error.Should().BeOfType<EgressRefusedException>().Which.Decision.Should().BeSameAs(last);
+        if (!hostGuard) records.Should().HaveCount(2, "one final decision is published per hop by the owned guard");
+    }
+
+    private sealed class DelegatingGuard(IEgressGuard inner) : IEgressGuard
+    {
+        public EgressDecision Evaluate(EgressRequest request) => inner.Evaluate(request);
+    }
+
+    private sealed class RedirectingHandler : HttpMessageHandler
+    {
+        public List<Uri> Requested { get; } = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requested.Add(request.RequestUri!);
+            var response = new HttpResponseMessage(Requested.Count == 1 ? HttpStatusCode.TemporaryRedirect : HttpStatusCode.OK)
+                { RequestMessage = request };
+            if (Requested.Count == 1) response.Headers.Location = new Uri("https://redirect-target.example/last");
+            return Task.FromResult(response);
+        }
+    }
+
     [Fact]
     public void Typed_client_reserved_names_match_the_real_registrations()
     {

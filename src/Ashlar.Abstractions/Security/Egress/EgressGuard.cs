@@ -139,25 +139,38 @@ public sealed class EgressGuard : IEgressGuard
             var decision = guard.Evaluate(request);
             if (decision is not null)
             {
-                var raise = airGapped is not null && !IsEnforce(decision.Mode);
-                var lower = airGapped is null && reportOnly && decision.Fault is null
-                    && decision.ModeBasis != EgressEnforcement.FaultBasis
-                    && AshlarDeploymentProfileEnvironment.TryParseKnown(decision.Profile, out var hostProfile)
-                    && !AshlarDeploymentProfileEnvironment.IsAirGapped(hostProfile);
-                if (!raise && !lower)
-                    return decision;
-                // A host guard may publish its own record. Publish a distinct route record for the raised mode,
-                // rather than claiming that the host's immutable report decision itself refused the send.
-                var enforced = new EgressDecision(
-                    Interlocked.Increment(ref _sequence), DateTimeOffset.UtcNow,
-                    raise ? EgressEnforcement.EnforceMode : EgressEnforcement.ReportMode,
+                string routeMode;
+                string routeBasis;
+                var routeProfile = decision.Profile;
+                var profileEnforces = decision.ProfileEnforcesByDefault;
+                if (airGapped is { } floor)
+                {
+                    if (IsEnforce(decision.Mode))
+                        return decision;
+                    routeMode = EgressEnforcement.EnforceMode;
+                    routeBasis = floor.Basis;
+                    routeProfile = EgressDestinations.Bound(floor.Profile);
+                    profileEnforces = true;
+                }
+                else
+                {
+                    if (!reportOnly || decision.Fault is not null || decision.ModeBasis == EgressEnforcement.FaultBasis
+                        || !AshlarDeploymentProfileEnvironment.TryParseKnown(decision.Profile, out var hostProfile)
+                        || AshlarDeploymentProfileEnvironment.IsAirGapped(hostProfile))
+                        return decision;
+                    routeMode = EgressEnforcement.ReportMode;
+                    routeBasis = EgressEnforcement.HostOptOutBasis;
+                }
+                // A host guard may publish its own record. The changed route mode gets a distinct record,
+                // preserving the host's immutable decision and giving the route its actual outcome.
+                var routed = new EgressDecision(
+                    Interlocked.Increment(ref _sequence), DateTimeOffset.UtcNow, routeMode,
                     decision.Family, decision.Site, decision.Destination, decision.DestinationClass,
                     decision.DestinationLabel, decision.DestinationBasis, decision.Current, decision.CurrentBasis,
-                    decision.Access, raise ? EgressDestinations.Bound(airGapped!.Value.Profile) : decision.Profile,
-                    raise || decision.ProfileEnforcesByDefault, decision.Fault,
-                    raise ? airGapped!.Value.Basis : EgressEnforcement.HostOptOutBasis, EgressEnforcement.NewReference());
-                EgressDecisionLog.Publish(enforced);
-                return enforced;
+                    decision.Access, routeProfile, profileEnforces, decision.Fault,
+                    routeBasis, EgressEnforcement.NewReference());
+                EgressDecisionLog.Publish(routed);
+                return routed;
             }
             fault = typeof(InvalidOperationException).FullName!;
         }
