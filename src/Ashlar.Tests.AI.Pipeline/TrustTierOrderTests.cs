@@ -63,12 +63,12 @@ public sealed class TrustTierOrderTests
     }
 
     [Theory]
-    // Unlabelled and unknown records: only the top clearance.
-    [InlineData(null, "TopSecret", true)]
+    // Unlabelled and unknown records are SystemHigh: ordinary TopSecret does not suffice.
+    [InlineData(null, "TopSecret", false)]
     [InlineData(null, "Secret", false)]
     [InlineData("", null, false)]
     [InlineData("Bogus", "Secret", false)]
-    [InlineData("Bogus", "TopSecret", true)]
+    [InlineData("Bogus", "TopSecret", false)]
     // Omitted and unknown callers: only the floor.
     [InlineData("Public", null, true)]
     [InlineData("Internal", null, false)]

@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security;
+using Ashlar.Abstractions.Security.Egress;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Ashlar.AI.Pipeline;
@@ -12,7 +14,7 @@ namespace Ashlar.Tests.AI.Pipeline;
 /// VectorDataRagService is the store the shipped hosts search (AshlarKernelRegistrar phase 13b
 /// points IRAGService at it through MeaiVectorDataRagAdapter), so its defaults ARE the product's
 /// defaults: an omitted clearance searches at the floor, an unlabelled chunk is served only to the
-/// top clearance, and re-indexing can never lower a chunk's tier.
+/// explicitly granted SystemHigh subject, and re-indexing can never lower a chunk's tier.
 /// </summary>
 public sealed class VectorDataRagFailClosedTests
 {
@@ -21,6 +23,7 @@ public sealed class VectorDataRagFailClosedTests
     [Fact]
     public async Task An_omitted_clearance_searches_at_the_floor_and_the_audit_says_so()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         var auditor = new InMemoryChatInvocationAuditor();
         await using var provider = BuildProvider(auditor);
         var rag = provider.GetRequiredService<VectorDataRagService>();
@@ -38,6 +41,7 @@ public sealed class VectorDataRagFailClosedTests
     [Fact]
     public async Task An_unrecognised_clearance_searches_at_the_floor_and_is_audited_as_unrecognised()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         var auditor = new InMemoryChatInvocationAuditor();
         await using var provider = BuildProvider(auditor);
         var rag = provider.GetRequiredService<VectorDataRagService>();
@@ -56,6 +60,7 @@ public sealed class VectorDataRagFailClosedTests
     [Fact]
     public async Task An_explicit_clearance_reaches_what_it_is_cleared_for_and_is_audited_as_explicit()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         var auditor = new InMemoryChatInvocationAuditor();
         await using var provider = BuildProvider(auditor);
         var rag = provider.GetRequiredService<VectorDataRagService>();
@@ -70,8 +75,9 @@ public sealed class VectorDataRagFailClosedTests
     }
 
     [Fact]
-    public async Task An_unlabelled_chunk_is_served_only_to_the_top_clearance()
+    public async Task An_unlabelled_chunk_requires_an_explicit_SystemHigh_grant()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var provider = BuildProvider();
         var rag = provider.GetRequiredService<VectorDataRagService>();
         await rag.IndexAsync("unlabelled", Text);
@@ -79,7 +85,8 @@ public sealed class VectorDataRagFailClosedTests
         (await rag.SearchAsync("incident playbook", "Public", top: 10)).Should().BeEmpty();
         (await rag.SearchAsync("incident playbook", "Secret", top: 10)).Should().BeEmpty();
 
-        var top = await rag.SearchAsync("incident playbook", "TopSecret", top: 10);
+        (await rag.SearchAsync("incident playbook", "TopSecret", top: 10)).Should().BeEmpty();
+        var top = await rag.SearchAsync("incident playbook", "SystemHigh", top: 10);
         top.Should().ContainSingle().Which.Record.TrustTier.Should().BeEmpty("no tier is invented for an unlabelled chunk");
     }
 
@@ -89,6 +96,7 @@ public sealed class VectorDataRagFailClosedTests
     [Fact]
     public async Task A_record_written_without_a_tier_is_unlabelled_not_Public()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var provider = BuildProvider();
         var rag = provider.GetRequiredService<VectorDataRagService>();
         var collection = provider.GetRequiredService<Microsoft.Extensions.VectorData.VectorStoreCollection<string, ChunkRecord>>();
@@ -98,13 +106,15 @@ public sealed class VectorDataRagFailClosedTests
         await collection.UpsertAsync(new ChunkRecord { Key = "imported", Text = Text, Embedding = embedding });
 
         (await rag.SearchAsync("incident playbook", "Secret", top: 10)).Should().BeEmpty();
-        (await rag.SearchAsync("incident playbook", "TopSecret", top: 10))
+        (await rag.SearchAsync("incident playbook", "TopSecret", top: 10)).Should().BeEmpty();
+        (await rag.SearchAsync("incident playbook", "SystemHigh", top: 10))
             .Should().ContainSingle().Which.Record.Key.Should().Be("imported");
     }
 
     [Fact]
     public async Task Reindexing_a_key_at_a_lower_tier_is_refused_and_the_stored_tier_survives()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         var auditor = new InMemoryChatInvocationAuditor();
         await using var provider = BuildProvider(auditor);
         var rag = provider.GetRequiredService<VectorDataRagService>();
@@ -124,6 +134,7 @@ public sealed class VectorDataRagFailClosedTests
     [Fact]
     public async Task Reindexing_an_unlabelled_key_with_a_real_label_is_a_downgrade_too()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var provider = BuildProvider();
         var rag = provider.GetRequiredService<VectorDataRagService>();
         await rag.IndexAsync("/kb/unlabelled.md", Text);
@@ -138,6 +149,7 @@ public sealed class VectorDataRagFailClosedTests
     [Fact]
     public async Task Reindexing_at_the_same_or_a_higher_tier_is_accepted()
     {
+        using var subject = EgressSubject.Enter("test:rag", new HighWaterMark());
         await using var provider = BuildProvider();
         var rag = provider.GetRequiredService<VectorDataRagService>();
         await rag.IndexAsync("/kb/plan.md", Text, trustTier: "Internal");
@@ -156,6 +168,8 @@ public sealed class VectorDataRagFailClosedTests
     private static ServiceProvider BuildProvider(InMemoryChatInvocationAuditor? auditor = null)
     {
         var services = new ServiceCollection();
+        services.AddSingleton(new SubjectClearanceAuthority(new Dictionary<string, string?>
+            { ["test:rag"] = "SystemHigh" }));
         if (auditor is not null)
         {
             services.AddSingleton<IChatInvocationAuditor>(auditor);
