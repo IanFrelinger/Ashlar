@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.Infrastructure.HostProcess;
 
@@ -46,6 +47,20 @@ public static class TimedProcess
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(startInfo);
+        var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process,
+            "EG-PROC-08", "process:" + Path.GetFileNameWithoutExtension(startInfo.FileName)));
+        if (decision.Refuses) throw new EgressRefusedException(decision);
+        return await RunEvaluatedAsync(startInfo, timeout, decision, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Infrastructure's classified process runner already made this decision, including its narrow Docker
+    // sandbox exception. Carry it explicitly rather than publishing a second decision or using ambient state.
+    internal static async Task<TimedProcessResult> RunEvaluatedAsync(
+        ProcessStartInfo startInfo, TimeSpan timeout, EgressDecision decision, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(startInfo);
+        ArgumentNullException.ThrowIfNull(decision);
+        decision.ThrowIfRefused();
         if (timeout <= TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
             throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive or infinite.");
 

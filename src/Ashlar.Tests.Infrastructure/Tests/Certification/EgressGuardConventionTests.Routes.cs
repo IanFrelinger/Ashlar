@@ -23,6 +23,7 @@ public sealed partial class EgressGuardConventionTests
         Marker.HttpRegister => $"{UpstreamPrefix}<path>, Exempt:ConsumerSdk (only under {ConsumerSdkFolder})",
         Marker.SdkClient => $"{GovernanceReason} (governed pairs only), {ClosedExemptSet}",
         Marker.ChatRegister => $"{GovernanceReason} (governed pairs only)",
+        Marker.Process => $"{ProcessFunnelReason}, {ClosedExemptSet}, {GuardImplReason} (only {ProcessGuardImplFile})",
         _ => ClosedExemptSet,
     };
 
@@ -131,6 +132,9 @@ public sealed partial class EgressGuardConventionTests
             if (reason.StartsWith("Exempt:", StringComparison.Ordinal))
                 return ExemptProblems(pin, notAllowed);
 
+            if (reason == ProcessFunnelReason)
+                return ProcessFunnelProblems(pin);
+
             if (reason == FactoryReason)
             {
                 return pin.Marker == Marker.HttpParam
@@ -155,14 +159,39 @@ public sealed partial class EgressGuardConventionTests
             return [notAllowed];
         }
 
+        // Textual provenance, not data-flow proof: only named ProcessStartInfo constructions,
+        // followed by TimedProcess.RunAsync of that name in the same member and lexical scope.
+        private List<string> ProcessFunnelProblems(Pin pin)
+        {
+            if (pin.Marker != Marker.Process)
+                return ["ProcessFunnel is only for process configuration routed to TimedProcess.RunAsync"];
+            var model = scan.Model(pin.Path)!;
+            var problems = new List<string>();
+            foreach (var occurrence in scan.Occurrences.Where(o => o.Path == pin.Path && o.Marker == Marker.Process && o.Guard == GuardKind.None))
+            {
+                var at = occurrence.Offset;
+                var statement = Scanner.StatementStart(model.Code, at);
+                var assignment = Regex.Match(model.Code[statement..at], @"^\s*(?:var|ProcessStartInfo)\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*$");
+                var block = model.Innermost(at);
+                var end = Math.Min(model.Member(at).End, block < 0 ? model.Code.Length : model.Blocks[block].Close);
+                if (Regex.IsMatch(occurrence.Token, @"\bProcessStartInfo\b") && assignment.Success
+                    && Regex.IsMatch(model.Code[(at + occurrence.Token.Length)..end],
+                        @"\bTimedProcess\s*\.\s*RunAsync\s*\(\s*" + Regex.Escape(assignment.Groups["name"].Value) + @"\s*,"))
+                    continue;
+                problems.Add($"{pin.Path}:{occurrence.Line}: ProcessFunnel requires a named ProcessStartInfo passed to TimedProcess.RunAsync in the same member and scope; direct launches are not exempt");
+            }
+            return problems;
+        }
+
         private static List<string> ExemptProblems(Pin pin, string notAllowed)
         {
             var name = pin.Reason["Exempt:".Length..];
             if (pin.Reason == GuardImplReason)
             {
-                return pin.Marker == Marker.HttpNew && pin.Path.StartsWith(GuardImplFolder, StringComparison.Ordinal)
+                return (pin.Marker == Marker.HttpNew && pin.Path.StartsWith(GuardImplFolder, StringComparison.Ordinal))
+                    || (pin.Marker == Marker.Process && pin.Path == ProcessGuardImplFile)
                     ? []
-                    : [$"{GuardImplReason} is accepted only for http.new under {GuardImplFolder}, where the guard builds the client it hands out"];
+                    : [$"{GuardImplReason} is accepted only for http.new under {GuardImplFolder}, or process in {ProcessGuardImplFile}, the audited guard implementations"];
             }
 
             if (!ExemptReasons.Contains(name, StringComparer.Ordinal) || pin.Marker == Marker.ChatRegister
@@ -2367,6 +2396,23 @@ public sealed partial class EgressGuardConventionTests
                 """)),
             Row("src/Lib/Registration.cs", Marker.HttpRegister, 1, 0, "Exempt:Operator"),
             Expect: "unguarded_reason 'Exempt:Operator' is not allowed for http.register"),
+        ["ProcessFunnel holds for a named configuration passed to TimedProcess"] = new(
+            Sources(("src/Lib/Probe.cs", "class Probe { void Run() { var psi = new ProcessStartInfo(); TimedProcess.RunAsync(psi, timeout); } }")),
+            Row("src/Lib/Probe.cs", Marker.Process, 1, 0, ProcessFunnelReason), Expect: null),
+        ["ProcessFunnel rejects a direct launch"] = new(
+            Sources(("src/Lib/Probe.cs", "class Probe { void Run() { var psi = new ProcessStartInfo(); Process.Start(psi); TimedProcess.RunAsync(psi, timeout); } }")),
+            Row("src/Lib/Probe.cs", Marker.Process, 2, 0, ProcessFunnelReason), Expect: "ProcessFunnel requires"),
+        ["ProcessFunnel rejects a call in another member"] = new(
+            Sources(("src/Lib/Probe.cs", "class Probe { void Run() { var psi = new ProcessStartInfo(); } void Other() { TimedProcess.RunAsync(psi, timeout); } }")),
+            Row("src/Lib/Probe.cs", Marker.Process, 1, 0, ProcessFunnelReason), Expect: "ProcessFunnel requires"),
+        ["Reason holds: process GuardImpl only in TimedProcess"] = new(
+            Sources((ProcessGuardImplFile, "public class TimedProcess { public void Run() { Process.Start(info); } }")),
+            Row(ProcessGuardImplFile, Marker.Process, 1, 0, GuardImplReason),
+            Expect: null),
+        ["Reason fails: process GuardImpl in another file"] = new(
+            Sources(("src/Lib/Raw.cs", "public class Raw { public void Run() { Process.Start(info); } }")),
+            Row("src/Lib/Raw.cs", Marker.Process, 1, 0, GuardImplReason),
+            Expect: "Exempt:GuardImpl is accepted only"),
         ["Reason fails: Exempt:GuardImpl outside the guard's folder"] = new(
             Sources(("src/Lib/Raw.cs", """
                 namespace Lib;

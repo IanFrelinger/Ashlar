@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Include="../Ashlar.Tests.Infrastructure/Helpers/EgressProcessStateScope.cs" Link="Helpers/EgressProcessStateScope.cs" />
+    <Compile Include="../Ashlar.Tests.Infrastructure/Helpers/EnvironmentVariableScope.cs" Link="Helpers/EnvironmentVariableScope.cs" />
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <PropertyGroup>

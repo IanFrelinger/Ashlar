@@ -52,7 +52,7 @@
         <PackageReference Include="Microsoft.Extensions.Logging" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Options" />
-        <PackageReference Include="Docker.DotNet" />
+        <PackageReference Include="Docker.DotNet.Enhanced" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
         <PackageReference Include="Mono.Cecil" />
         <PackageReference Include="ICSharpCode.Decompiler" />

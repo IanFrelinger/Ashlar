@@ -15,6 +15,11 @@ using Ashlar.Manifest.Packaging;
 using Ashlar.Manifest.Signing;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
+using Ashlar.Tests.Infrastructure.Helpers;
+using Ashlar.Core.Application.Adaptation.Models;
+using Ashlar.Core.Application.Adaptation.Ports;
+using Ashlar.Infrastructure.Adaptation;
 using Xunit;
 
 namespace Ashlar.Tests.CLI.Tests.Commands;
@@ -55,10 +60,158 @@ public sealed class EgressCliSiteTwinTests : IDisposable
 {
     private readonly string _dir;
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Mesh_pull_counts_wrapped_refusals_separately_and_logs_only_the_redacted_reason(bool index)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("secure-workstation", "enforce")
+            .Evaluate(new EgressRequest(EgressFamilies.MeshPull, "EG-MESH-04", "https://private-peer.example/secret?token=hidden")));
+        using var handler = new RefusingPeerHandler(index, refusal);
+        using var client = new HttpClient(handler);
+        var log = new RefusalLogger<MeshAutoPullService>();
+
+        var summary = await MeshAutoPullService.PullPeerOnceAsync(client, "https://peer.example", _dir,
+            CancellationToken.None, log);
+
+        summary.Refused.Should().Be(1);
+        summary.Errors.Should().Be(index ? 0 : 1);
+        summary.Scanned.Should().Be(index ? 0 : 2);
+        handler.Calls.Should().Be(index ? 1 : 3, "the next package is still attempted after one refusal");
+        var warning = log.Warnings.Should().ContainSingle().Which;
+        warning.Should().Contain(refusal.Message).And.Contain(refusal.Ref)
+            .And.NotContain("wrapper-secret").And.NotContain("hidden").And.NotContain("private-peer");
+    }
+
     public EgressCliSiteTwinTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "egress-cli-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+    }
+
+    [Theory]
+    [InlineData("air-gapped")]
+    [InlineData("secure-workstation")]
+    public async Task Operator_pkg_export_reports_but_publish_and_share_refuse_with_exit_77(string deployment)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", deployment);
+        using var state = new EgressProcessStateScope(reset: true);
+        var admitted = await AdmittedProjectAsync();
+        using var key = new KeyDirScope(admitted.KeyDir);
+        using var observed = Observe(floor: SecurityLabel.SystemHigh);
+        var package = Path.Combine(_dir, "operator.ashpkg");
+        var (exportCode, exportError) = await PkgAsync("pkg", "export", "--id", admitted.Id, "--out", package, "--path", admitted.Project);
+        exportCode.Should().Be(0, exportError);
+        File.Exists(package).Should().BeTrue();
+        var export = observed.Sink.Seen.Should().ContainSingle().Which;
+        export.Mode.Should().Be("report");
+        export.ModeBasis.Should().Be("operator-verb");
+
+        foreach (var verb in new[] { "publish", "share" })
+        {
+            var store = Path.Combine(_dir, "refused-" + verb);
+            var args = verb == "publish"
+                ? new[] { "pkg", verb, package, "--store", store }
+                : new[] { "pkg", verb, "--id", admitted.Id, "--store", store, "--path", admitted.Project };
+            var (code, error) = await PkgAsync(args);
+            code.Should().Be(77, error);
+            error.Should().Contain("Egress refused by policy").And.Contain("ref=").And.NotContain(store);
+            Directory.Exists(store).Should().BeFalse();
+        }
+        observed.Sink.Seen.Skip(1).Should().HaveCount(2).And.OnlyContain(d => d.Refuses && d.ModeBasis != "operator-verb");
+    }
+
+    [Theory]
+    [InlineData("air-gapped", "native")]
+    [InlineData("secure-workstation", "native")]
+    [InlineData("air-gapped", "aws")]
+    [InlineData("secure-workstation", "aws")]
+    [InlineData("air-gapped", "azure")]
+    [InlineData("secure-workstation", "azure")]
+    public async Task Operator_bundle_export_reports_under_enforcement(string deployment, string target)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", deployment);
+        using var state = new EgressProcessStateScope(reset: true);
+        var project = Scaffold();
+        var output = Path.Combine(_dir, "operator-bundle");
+        using var observed = Observe(floor: SecurityLabel.SystemHigh);
+        var root = new RootCommand { new ExportCommand() };
+        var args = new List<string> { "export", target, "--path", project, "--out", output };
+        if (target == "native") args.AddRange(["--no-runtime", "--rid", "linux-x64"]);
+        (await root.InvokeAsync(args.ToArray())).Should().Be(0);
+        Directory.EnumerateFiles(output, "ashlar.yaml", SearchOption.AllDirectories).Should().ContainSingle();
+        var decision = observed.Sink.Seen.Should().ContainSingle().Which;
+        decision.Mode.Should().Be("report");
+        decision.ModeBasis.Should().Be("operator-verb");
+        decision.Site.Should().Be(target == "native" ? "EG-FILE-01" : "EG-FILE-02");
+    }
+
+    [Theory]
+    [InlineData("air-gapped")]
+    [InlineData("secure-workstation")]
+    public async Task Mesh_operator_export_passes_the_initiator_to_the_real_transport_only_for_that_call(string deployment)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", deployment);
+        using var state = new EgressProcessStateScope(reset: true);
+        var transport = new SneakernetTransport(new EmptySync());
+        var output = Path.Combine(_dir, "operator-mesh");
+        using var observed = Observe(floor: SecurityLabel.SystemHigh);
+        (await MeshCommand.ExecuteExportAsync(transport, output)).Should().Be(0);
+        File.Exists(Path.ChangeExtension(output, ".nxpkg")).Should().BeTrue();
+        var decision = observed.Sink.Seen.Should().ContainSingle().Which;
+        decision.ModeBasis.Should().Be("operator-verb");
+        decision.Mode.Should().Be("report");
+
+        await FluentActions.Awaiting(() => transport.ExportAsync(output + "-automatic"))
+            .Should().ThrowAsync<EgressRefusedException>();
+        File.Exists(Path.ChangeExtension(output + "-automatic", ".nxpkg")).Should().BeFalse();
+    }
+
+    private sealed class EmptySync : ISharedAdaptationSync
+    {
+        public Task<IReadOnlyList<SharedAdaptationEntry>> PullAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SharedAdaptationEntry>>([]);
+        public Task<bool> ValidateAndAdoptAsync(SharedAdaptationEntry entry, CancellationToken cancellationToken = default) => Task.FromResult(false);
+    }
+
+    [Theory]
+    [InlineData("pkg")]
+    [InlineData("native")]
+    [InlineData("aws")]
+    [InlineData("azure")]
+    [InlineData("mesh")]
+    public async Task Operator_exports_still_fail_closed_with_exit_77_on_a_mode_fault(string verb)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        var admitted = await AdmittedProjectAsync();
+        using var key = new KeyDirScope(admitted.KeyDir);
+        var output = Path.Combine(_dir, "fault-output");
+        var root = new RootCommand { new PkgCommand(), new ExportCommand() };
+        var args = verb == "pkg"
+            ? new List<string> { "pkg", "export", "--id", admitted.Id, "--path", admitted.Project, "--out", output }
+            : new List<string> { "export", verb, "--path", admitted.Project, "--out", output };
+        if (verb == "native") args.AddRange(["--no-runtime", "--rid", "linux-x64"]);
+        EgressProcessStateScope.SetModeResolutionProbe(() => throw new InvalidOperationException("mode-fault-secret"));
+        using var stderr = new StringWriter();
+        var previous = Console.Error;
+        Console.SetError(stderr);
+        try
+        {
+            var code = verb == "mesh"
+                ? await MeshCommand.ExecuteExportAsync(new SneakernetTransport(new EmptySync()), output)
+                : await root.InvokeAsync(args.ToArray());
+            code.Should().Be(77, stderr.ToString());
+            stderr.ToString().Should().Contain("Egress refused by policy").And.Contain("ref=")
+                .And.NotContain("mode-fault-secret").And.NotContain(output);
+            File.Exists(output).Should().BeFalse();
+            File.Exists(Path.ChangeExtension(output, ".nxpkg")).Should().BeFalse();
+        }
+        finally { Console.SetError(previous); }
     }
 
     public void Dispose()
@@ -133,6 +286,32 @@ public sealed class EgressCliSiteTwinTests : IDisposable
     // ---------------------------------------------------------------------------------------------------------
     // EG-FILE-01 and EG-FILE-02: the bundle doors
     // ---------------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("native", "EG-FILE-01")]
+    [InlineData("cloud", "EG-FILE-02")]
+    [InlineData("app", "EG-FILE-01")]
+    public void Public_bundle_APIs_refuse_without_the_internal_operator_initiator(string kind, string site)
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        var project = Scaffold();
+        var bundle = Path.Combine(_dir, "public-export-" + kind);
+        void Run()
+        {
+            if (kind == "native") NativeBundle.Stage(project, bundle, NativeBundle.Describe(project, "linux-x64"));
+            else if (kind == "cloud") CloudBundle.Stage(project, bundle, NativeBundle.Describe(project, "aws"), CloudTarget.Aws);
+            else NativeBundle.StageApp(project, bundle, site);
+        }
+        Action action = Run;
+        action.Should().Throw<EgressRefusedException>().Which.Site.Should().Be(site);
+        Directory.Exists(bundle).Should().BeFalse();
+        using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        EgressProcessStateScope.Reset();
+        Run();
+        Directory.Exists(Path.Combine(bundle, "app")).Should().BeTrue();
+    }
 
     [Fact]
     public void NativeBundle_Stage_records_EG_FILE_01_for_the_bundle_directory()
@@ -423,12 +602,12 @@ public sealed class EgressCliSiteTwinTests : IDisposable
     /// Subscribes a sink and enters a fresh subject frame; disposing leaves the frame and unsubscribes. When
     /// <paramref name="writtenYet"/> is given, the sink calls it at each decision, inside <c>Evaluate</c>.
     /// </summary>
-    private static Observation Observe(Func<bool>? writtenYet = null)
+    private static Observation Observe(Func<bool>? writtenYet = null, SecurityLabel? floor = null)
     {
         var id = "egress-twin-" + Guid.NewGuid().ToString("N");
         var sink = new BasisSink("subject:" + id, writtenYet);
         var subscription = EgressDecisionLog.Subscribe(sink);
-        var frame = EgressSubject.Enter(id, new HighWaterMark());
+        var frame = EgressSubject.Enter(id, new HighWaterMark(floor ?? SecurityLabel.Public));
         return new Observation(sink, frame, subscription);
     }
 
@@ -474,5 +653,119 @@ public sealed class EgressCliSiteTwinTests : IDisposable
             if (string.Equals(decision.Site, site, StringComparison.Ordinal))
                 _seen.Enqueue(decision);
         }
+    }
+
+    private sealed class RefusalLogger<T> : ILogger<T>
+    {
+        public List<string> Warnings { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (level == LogLevel.Warning) Warnings.Add(formatter(state, exception));
+        }
+    }
+
+    private sealed class RefusingPeerHandler(bool index, EgressRefusedException refusal) : HttpMessageHandler
+    {
+        public int Calls { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Calls++;
+            if (Calls == (index ? 1 : 2))
+                throw new AggregateException("wrapper-secret", new Exception("ordinary-secret"), new InvalidOperationException("wrapper-secret", refusal));
+            return Task.FromResult(new HttpResponseMessage(Calls == 1 ? HttpStatusCode.OK : HttpStatusCode.NotFound)
+            {
+                Content = new StringContent("[{\"file\":\"first.ashpkg\",\"size\":1},{\"file\":\"second.ashpkg\",\"size\":1}]")
+            });
+        }
+    }
+    [Fact]
+    public async Task Refused_package_returns_empty_404_and_releases_the_open_file()
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        var published = Directory.CreateDirectory(Path.Combine(_dir, "refused-published")).FullName;
+        var path = Path.Combine(published, "private.ashpkg");
+        await File.WriteAllTextAsync(path, "private package payload");
+        var sink = new SiteSink("EG-MESH-03");
+        using var subscription = EgressDecisionLog.Subscribe(sink);
+        var port = FreePort();
+        using var service = new MeshServeService(new MeshServeSettings(port, published, "node"), NullLogger<MeshServeService>.Instance);
+        await service.StartAsync(CancellationToken.None);
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        try
+        {
+            await WaitForHelloAsync(client, port);
+            using var response = await client.GetAsync($"http://127.0.0.1:{port}/mesh/v1/pkg/private.ashpkg");
+            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            (await response.Content.ReadAsStringAsync()).Should().BeEmpty();
+            sink.Seen.Should().ContainSingle().Which.Refuses.Should().BeTrue();
+            using var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            exclusive.Length.Should().BeGreaterThan(0, "the refused handle was released without deleting the package");
+        }
+        finally { await service.StopAsync(CancellationToken.None); }
+    }
+
+    [Fact]
+    public async Task Refused_discovery_continues_listening_and_never_sends_its_beacon()
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        using var receiver = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var receiverEndpoint = (IPEndPoint)receiver.Client.LocalEndPoint!;
+        int port;
+        using (var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0)))
+            port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
+        using var beaconSender = new UdpClient();
+        var sends = 0;
+        ValueTask<int> SendBeacon(byte[] payload, IPEndPoint destination, CancellationToken ct)
+        {
+            destination.Should().Be(new IPEndPoint(MeshBeacon.Group, port));
+            Interlocked.Increment(ref sends);
+            return beaconSender.SendAsync(payload, receiverEndpoint, ct);
+        }
+        var registry = new MeshDiscoveryRegistry();
+        var log = new RefusalLogger<MeshDiscoveryService>();
+        var settings = new MeshDiscoverySettings("private-node", "ed25519:aaaa1111bbbb2222", 17001,
+            Path.Combine(_dir, "refused-discovery"), port);
+        using var service = new MeshDiscoveryService(settings, registry, log, SendBeacon);
+        await service.StartAsync(CancellationToken.None);
+        try
+        {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            while (!File.Exists(Path.Combine(settings.StateDir, "mesh-peers.json")))
+                await Task.Delay(20, deadline.Token);
+            service.ExecuteTask!.IsCompleted.Should().BeFalse("listen-only discovery remains alive");
+            log.Warnings.Should().ContainSingle().Which.Should().Contain("Egress refused by policy").And.Contain("listen-only");
+            Volatile.Read(ref sends).Should().Be(0, "refusal never reaches the send boundary");
+            using var noBeacon = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+            await FluentActions.Awaiting(async () => await receiver.ReceiveAsync(noBeacon.Token))
+                .Should().ThrowAsync<OperationCanceledException>();
+
+            using var peer = new UdpClient();
+            await peer.SendAsync(MeshBeacon.Encode("other-node", "ed25519:cccc3333dddd4444", 17002),
+                new IPEndPoint(IPAddress.Loopback, port));
+            while (registry.Snapshot(DateTimeOffset.UtcNow).Count == 0)
+                await Task.Delay(20, deadline.Token);
+            registry.Snapshot(DateTimeOffset.UtcNow).Should().ContainSingle().Which.Name.Should().Be("other-node");
+        }
+        finally { await service.StopAsync(CancellationToken.None); }
+
+        // Positive control on the same loop and send boundary: report mode really delivers a beacon.
+        // Loopback transport is deterministic even on runners without a multicast route.
+        using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        EgressProcessStateScope.Reset();
+        using var control = new MeshDiscoveryService(settings, new MeshDiscoveryRegistry(), NullLogger<MeshDiscoveryService>.Instance, SendBeacon);
+        var loop = typeof(MeshDiscoveryService).GetMethod("AnnounceLoopAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        await (Task)loop.Invoke(control, [true, cancel.Token])!;
+        using var receiveDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var packet = await receiver.ReceiveAsync(receiveDeadline.Token);
+        Volatile.Read(ref sends).Should().Be(1);
+        MeshBeacon.TryParse(packet.Buffer, out var beacon).Should().BeTrue();
+        beacon.Name.Should().Be("private-node");
     }
 }

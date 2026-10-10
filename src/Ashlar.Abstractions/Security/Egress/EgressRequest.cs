@@ -14,6 +14,9 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// </remarks>
 public sealed class EgressRequest
 {
+    // Only trusted in-process CLI composition can mark the three operator file-export verbs.
+    // No ambient state or environment variable grants this exception to another request.
+    internal EgressInitiator Initiator { get; set; }
     /// <summary>Creates a request whose destination is a URI.</summary>
     /// <param name="family">The path family, one of <see cref="EgressFamilies"/>.</param>
     /// <param name="site">The inventoried site: an <c>EG-…</c> id from <c>docs/EgressInventory.md</c>, or
@@ -58,4 +61,10 @@ public sealed class EgressRequest
 
     /// <summary>The destination name, or <see langword="null"/> when the request carries a URI instead.</summary>
     public string? DestinationName { get; }
+}
+
+internal enum EgressInitiator
+{
+    Unspecified,
+    OperatorFileExport
 }

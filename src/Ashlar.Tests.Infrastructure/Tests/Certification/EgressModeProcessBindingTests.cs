@@ -260,7 +260,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
 
         entry.Message.Should().Be(
             "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
-            + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+            + "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
             "the line names the profile the container's guard composed, and that profile was not defaulted");
     }
 
@@ -281,7 +281,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         var entry = (await StartActivatorAsync(services)).Should().ContainSingle().Which;
         entry.Message.Should().Be(
             "Ashlar egress mode: report (basis profile:air-gapped; profile air-gapped). "
-            + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+            + "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
             "the line and the container's guard name the same profile");
     }
 
@@ -452,7 +452,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
         entry.Level.Should().Be(LogLevel.Information);
         entry.Message.Should().Be(
             "Ashlar egress mode: report (basis profile:full; profile full, defaulted because nothing set it). "
-            + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).");
+            + "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.");
     }
 
     [Fact]
@@ -495,7 +495,7 @@ public sealed class EgressModeProcessBindingTests : IDisposable
                 "the line is written once per process, however many decisions and compositions follow")
             .Which.TrimEnd('\r').Should().Be(
                 "Ashlar egress mode: enforce (basis override; profile full, defaulted because nothing set it). "
-                + "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).");
+                + "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.");
     }
 
     private static EgressDecision DecideWithProcessDefault() => DecideWith(EgressGuard.ProcessDefault);

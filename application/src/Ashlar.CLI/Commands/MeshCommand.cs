@@ -47,7 +47,7 @@ public sealed class MeshCommand : Command
         {
             var componentId = ctx.ParseResult.GetValueForArgument(exportComponentArg);
             var to = ctx.ParseResult.GetValueForOption(exportToOpt)!;
-            await ExecuteExportAsync(to, componentId);
+            ctx.ExitCode = await ExecuteExportAsync(to, componentId);
         });
 
         var importPathArg = new Argument<string>("path", "Path to .nxpkg import file");
@@ -187,9 +187,9 @@ public sealed class MeshCommand : Command
         Environment.ExitCode = 0;
     }
 
-    private static async Task ExecuteExportAsync(string outputPath, string? componentId = null)
+    private static async Task<int> ExecuteExportAsync(string outputPath, string? componentId = null)
     {
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole())
             .AddCodeAnalyzers()
             .AddAdaptationInfrastructure()
@@ -197,9 +197,25 @@ public sealed class MeshCommand : Command
             .BuildServiceProvider();
 
         var transport = services.GetRequiredService<ISneakernetTransport>();
-        await transport.ExportAsync(outputPath, componentId).ConfigureAwait(false);
+        return await ExecuteExportAsync(transport, outputPath, componentId).ConfigureAwait(false);
+    }
+
+    internal static async Task<int> ExecuteExportAsync(ISneakernetTransport transport, string outputPath, string? componentId = null)
+    {
+        try
+        {
+            if (transport is ISneakernetExportInitiator operatorTransport)
+                await operatorTransport.ExportAsync(outputPath, componentId, EgressInitiator.OperatorFileExport, CancellationToken.None).ConfigureAwait(false);
+            else
+                await transport.ExportAsync(outputPath, componentId).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);
+            return 77;
+        }
         Console.WriteLine($"Exported to {outputPath}");
-        Environment.ExitCode = 0;
+        return 0;
     }
 
     private static async Task ExecuteImportAsync(string inputPath)

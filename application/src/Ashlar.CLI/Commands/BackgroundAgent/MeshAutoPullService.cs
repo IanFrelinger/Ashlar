@@ -163,13 +163,13 @@ public sealed class MeshAutoPullService : BackgroundService
             foreach (var peer in MergePeerUrls(_settings.Peers, _peerSources))
             {
                 ct.ThrowIfCancellationRequested();
-                s += await PullPeerOnceAsync(Http, peer, _settings.ProjectDir, ct).ConfigureAwait(false);
+                s += await PullPeerOnceAsync(Http, peer, _settings.ProjectDir, ct, _logger).ConfigureAwait(false);
             }
             if (s.Scanned > 0 || s.Errors > 0)
             {
                 _logger.LogInformation(
                     "Mesh auto-pull: scanned {Scanned} — {Admitted} admitted, {Held} held (awaiting review), "
-                    + "{Rejected} rejected, {Refused} refused (untrusted signer), {Already} already decided, {Errors} error(s).",
+                    + "{Rejected} rejected, {Refused} refused (trust or egress policy), {Already} already decided, {Errors} error(s).",
                     s.Scanned, s.Admitted, s.Held, s.Rejected, s.Refused, s.AlreadyImported, s.Errors);
             }
         }
@@ -256,6 +256,10 @@ public sealed class MeshAutoPullService : BackgroundService
     /// </summary>
     public static async Task<MeshPullSummary> PullPeerOnceAsync(
         HttpClient http, string peerBaseUrl, string projectDir, CancellationToken ct = default)
+        => await PullPeerOnceAsync(http, peerBaseUrl, projectDir, ct, null).ConfigureAwait(false);
+
+    internal static async Task<MeshPullSummary> PullPeerOnceAsync(
+        HttpClient http, string peerBaseUrl, string projectDir, CancellationToken ct, ILogger? logger)
     {
         if (!Uri.TryCreate(peerBaseUrl?.Trim(), UriKind.Absolute, out var baseUri)
             || (baseUri.Scheme != Uri.UriSchemeHttp && baseUri.Scheme != Uri.UriSchemeHttps))
@@ -286,6 +290,11 @@ public sealed class MeshAutoPullService : BackgroundService
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            LogRefusal(logger, EgressRefusal.Find(ex)!);
+            return MeshPullSummary.Empty with { Refused = 1 };
         }
         catch (Exception)
         {
@@ -337,6 +346,11 @@ public sealed class MeshAutoPullService : BackgroundService
             {
                 throw;
             }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+            {
+                LogRefusal(logger, EgressRefusal.Find(ex)!);
+                refused++;
+            }
             catch (Exception)
             {
                 errors++;
@@ -344,5 +358,13 @@ public sealed class MeshAutoPullService : BackgroundService
         }
 
         return new MeshPullSummary(Math.Min(entries.Count, MaxPackagesPerPeer), admitted, held, rejected, refused, already, errors);
+    }
+
+    private static void LogRefusal(ILogger? logger, EgressRefusedException refusal)
+    {
+        if (logger is not null)
+            logger.LogWarning(new EventId(7307, "EgressRefused"), "Mesh pull egress refused: {Refusal}", refusal.Message);
+        else
+            Console.Error.WriteLine($"Mesh pull egress refused: {refusal.Message}");
     }
 }

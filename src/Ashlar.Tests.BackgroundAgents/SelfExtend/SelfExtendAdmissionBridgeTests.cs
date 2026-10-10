@@ -7,6 +7,7 @@ using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Packaging;
 using Ashlar.Manifest.Signing;
 using Xunit;
+using Ashlar.Tests.Infrastructure.Helpers;
 
 namespace Ashlar.Tests.BackgroundAgents.SelfExtend;
 
@@ -15,6 +16,7 @@ namespace Ashlar.Tests.BackgroundAgents.SelfExtend;
 /// gate store <c>ashlar gates</c> reads, under the project policy's mode semantics — and
 /// claims only the courses the cycle actually evidences.
 /// </summary>
+[Collection("EnvironmentVariables")]
 public sealed class SelfExtendAdmissionBridgeTests : IDisposable
 {
     private readonly string _repo;
@@ -242,6 +244,29 @@ public sealed class SelfExtendAdmissionBridgeTests : IDisposable
             Summary = "parked by the cycle",
             CreatedAt = DateTimeOffset.UtcNow,
         }).Id;
+    }
+
+    [Fact]
+    public async Task Refused_auto_share_preserves_the_admitted_local_change()
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        WritePolicy("self-extending");
+        var signer = OperatorKey.Generate(Path.Combine(_repo, "keys"));
+        var forgeId = ParkForgeWrite();
+        var mesh = Path.Combine(_repo, "private-mesh-destination");
+        var outcome = await SelfExtendAdmissionBridge.TryRecordAsync(
+            _repo, "night-agent", "co-produce the classifier", writePaths: [],
+            toolCallsExecuted: 4, toolCallsDenied: 0, NullLogger.Instance,
+            forgeProposalIds: [forgeId], signer: signer, autoShare: true, meshDir: mesh);
+
+        outcome.Should().Contain("admitted").And.Contain("auto-share refused:")
+            .And.Contain("Egress refused by policy").And.Contain("ref=").And.NotContain(mesh);
+        Directory.Exists(mesh).Should().BeFalse();
+        File.ReadAllText(Path.Combine(_repo, "src", "Coprod.cs")).Should().Be("// coprod v1");
+        (await new GateStore(Path.Combine(_repo, ".ashlar")).ListAsync())
+            .Should().ContainSingle().Which.State.Should().Be(ProposalState.Admitted);
     }
 
     [Fact]

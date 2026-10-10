@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,10 @@ public sealed class DotNetRegressionTestRunner : IRegressionTestRunner
                 Summary = $"Path not found: {projectOrSolutionPath}",
             };
         }
+
+        // --no-build still executes working-tree project targets and test binaries.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
+            EgressFamilies.Process, "EG-PROC-06", "process:dotnet")).ThrowIfRefused();
 
         var args = $"test \"{projectOrSolutionPath}\" --no-build --verbosity minimal";
         if (!string.IsNullOrWhiteSpace(filter))

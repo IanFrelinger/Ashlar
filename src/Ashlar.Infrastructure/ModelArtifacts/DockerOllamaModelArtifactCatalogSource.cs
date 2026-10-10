@@ -177,7 +177,7 @@ internal sealed class DockerOllamaModelArtifactCatalogSource : IModelArtifactCat
         return merged.Values.OrderBy(r => r.Id, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
-    private static int? ResolveHostPort(IList<Port>? ports, int privatePort)
+    private static int? ResolveHostPort(IList<PortSummary>? ports, int privatePort)
     {
         if (ports is null || ports.Count == 0)
         {

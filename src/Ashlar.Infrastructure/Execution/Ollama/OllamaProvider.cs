@@ -11,7 +11,7 @@ namespace Ashlar.Infrastructure.Execution.Ollama;
 /// <summary>Ollama provider.</summary>
 /// <remarks>
 /// SPEC-007 PR 4.1: a model whose id ends in <c>-cloud</c> or <c>:cloud</c>, in any case, runs on ollama.com, relayed by
-/// the local daemon. Before such a chat is sent, one more report-only egress decision is recorded (EG-MDL-07): an
+/// the local daemon. Before such a chat is sent, one more egress decision is enforced when selected (EG-MDL-07): an
 /// external model at <c>https://ollama.com</c>. The client's own guard handler still records the send to the daemon.
 /// </remarks>
 public sealed class OllamaProvider
@@ -246,8 +246,8 @@ public sealed class OllamaProvider
 
         if (IsOllamaCloudModel(requestedModel) || IsOllamaCloudModel(validationResult.Value.Name))
         {
-            // SPEC-007 EG-MDL-07, report-only: the local daemon relays a cloud model's prompt to ollama.com.
-            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, "EG-MDL-07", OllamaCloud));
+            // SPEC-007 EG-MDL-07: the local daemon relays a cloud model's prompt to ollama.com.
+            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, "EG-MDL-07", OllamaCloud)).ThrowIfRefused();
         }
 
         var json = BuildChatPayload(validationResult.Value.Name, systemPrompt, userPrompt, imageBytesList);

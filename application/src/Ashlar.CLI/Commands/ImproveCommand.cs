@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using Microsoft.Extensions.DependencyInjection;
@@ -381,41 +382,8 @@ public sealed class ImproveCommand : Command
                             try { await documentationUpdater.UpdateForAdaptationAsync(record.Id).ConfigureAwait(false); }
                             catch (Exception ex) { logger.LogWarning(ex, "Documentation update failed for {Id}", record.Id); }
                         }
-                        if (sharedBroadcaster != null && !string.IsNullOrEmpty(record.FilePath))
-                        {
-                            try
-                            {
-                                var fullPath = Path.IsPathRooted(record.FilePath) ? record.FilePath : Path.Combine(repoRoot, record.FilePath);
-                                if (File.Exists(fullPath))
-                                {
-                                    var relPath = Path.GetRelativePath(repoRoot, fullPath).Replace('\\', '/');
-                                    var content = await File.ReadAllBytesAsync(fullPath).ConfigureAwait(false);
-                                    var entry = new Ashlar.Core.Application.Adaptation.Models.SharedAdaptationEntry
-                                    {
-                                        Id = record.Id,
-                                        Record = record,
-                                        Files = new Dictionary<string, byte[]> { [relPath] = content },
-                                        BroadcastAt = record.Timestamp,
-                                        SourcePeerId = peerIdProvider?.GetPeerId(),
-                                    };
-                                    await sharedBroadcaster.BroadcastAsync(entry).ConfigureAwait(false);
-                                }
-                            }
-                            catch (Exception ex) { logger.LogWarning(ex, "Shared adaptation broadcast failed for {Id}", record.Id); }
-                        }
-                        await auditLog.LogAsync(new AdaptationAuditEntry
-                        {
-                            Id = record.Id,
-                            Timestamp = record.Timestamp,
-                            AutonomyLevel = autonomy,
-                            Outcome = "Promoted",
-                            BrickId = record.BrickId,
-                            FailureType = record.FailureType,
-                            FilePath = record.FilePath,
-                            RegressionPassed = true,
-                            Promoted = true,
-                            Message = record.Message,
-                        }).ConfigureAwait(false);
+                        await BroadcastAndAuditPromotionAsync(record, repoRoot, autonomy, sharedBroadcaster,
+                            peerIdProvider, auditLog, logger).ConfigureAwait(false);
                     }
                     else
                     {
@@ -548,6 +516,53 @@ public sealed class ImproveCommand : Command
         var outcome = analysisResult.Passed ? "passed" : "violations";
         await executionTracer.TraceAsync("improve.end", null, targetPath, outcome).ConfigureAwait(false);
         Environment.ExitCode = analysisResult.Passed ? 0 : 1;
+    }
+
+    internal static async Task BroadcastAndAuditPromotionAsync(
+        AdaptationRecord record, string repoRoot, string autonomy, ISharedAdaptationBroadcaster? sharedBroadcaster,
+        IPeerIdProvider? peerIdProvider, IAdaptationAuditLog auditLog, ILogger logger)
+    {
+        EgressRefusedException? broadcastRefusal = null;
+        if (sharedBroadcaster != null && !string.IsNullOrEmpty(record.FilePath))
+        {
+            try
+            {
+                var fullPath = Path.IsPathRooted(record.FilePath) ? record.FilePath : Path.Combine(repoRoot, record.FilePath);
+                if (File.Exists(fullPath))
+                {
+                    var relPath = Path.GetRelativePath(repoRoot, fullPath).Replace('\\', '/');
+                    var content = await File.ReadAllBytesAsync(fullPath).ConfigureAwait(false);
+                    var entry = new Ashlar.Core.Application.Adaptation.Models.SharedAdaptationEntry
+                    {
+                        Id = record.Id,
+                        Record = record,
+                        Files = new Dictionary<string, byte[]> { [relPath] = content },
+                        BroadcastAt = record.Timestamp,
+                        SourcePeerId = peerIdProvider?.GetPeerId(),
+                    };
+                    await sharedBroadcaster.BroadcastAsync(entry).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+            {
+                broadcastRefusal = EgressRefusal.Find(ex)!;
+                logger.LogWarning(new EventId(7307, "EgressRefused"), "Shared adaptation broadcast refused: {Refusal}", broadcastRefusal.Message);
+            }
+            catch (Exception ex) { logger.LogWarning(ex, "Shared adaptation broadcast failed for {Id}", record.Id); }
+        }
+        await auditLog.LogAsync(new AdaptationAuditEntry
+        {
+            Id = record.Id,
+            Timestamp = record.Timestamp,
+            AutonomyLevel = autonomy,
+            Outcome = broadcastRefusal is null ? "Promoted" : "EgressRefused",
+            BrickId = record.BrickId,
+            FailureType = record.FailureType,
+            FilePath = record.FilePath,
+            RegressionPassed = true,
+            Promoted = broadcastRefusal is null,
+            Message = broadcastRefusal is null ? record.Message : "Locally applied; broadcast refused: " + broadcastRefusal.Message,
+        }).ConfigureAwait(false);
     }
 
     private static async Task ExecuteContinuousAsync(

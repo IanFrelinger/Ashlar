@@ -49,4 +49,8 @@
                           UndefineProperties="TargetFramework" />
     </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ashlar.CLI" />
+    <InternalsVisibleTo Include="Ashlar.Infrastructure" />
+  </ItemGroup>
 </Project>

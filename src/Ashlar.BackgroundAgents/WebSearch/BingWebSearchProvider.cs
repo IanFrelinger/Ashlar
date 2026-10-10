@@ -52,8 +52,8 @@ public sealed class BingWebSearchProvider : IWebSearchProvider
 
         var count = Math.Clamp(maxResults, 1, 50);
         var uri = new Uri($"{_baseUrl.TrimEnd('/')}?q={Uri.EscapeDataString(query)}&count={count}");
-        // SPEC-007 EG-WEB-01, report-only: the query leaves in the URL; the record keeps only scheme, host and port.
-        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, "EG-WEB-01", uri));
+        // SPEC-007 EG-WEB-01: the query leaves in the URL; the record keeps only scheme, host and port.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, "EG-WEB-01", uri)).ThrowIfRefused();
         try
         {
             var response = await _httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);

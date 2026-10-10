@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security.Egress;
+
 namespace Ashlar.Core.Application.Adaptation.Ports;
 
 /// <summary>
@@ -21,4 +23,11 @@ public interface ISneakernetTransport
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Number of entries adopted.</returns>
     Task<int> ImportAsync(string inputPath, CancellationToken cancellationToken = default);
+}
+
+// The public port keeps its ordinary enforcing behavior. Only trusted CLI composition can
+// carry an operator initiator to the implementation, without an ambient or public bypass flag.
+internal interface ISneakernetExportInitiator
+{
+    Task ExportAsync(string outputPath, string? componentId, EgressInitiator initiator, CancellationToken cancellationToken);
 }

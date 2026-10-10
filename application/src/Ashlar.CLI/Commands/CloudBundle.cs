@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using Ashlar.Abstractions.Security.Egress;
+
 namespace Ashlar.CLI.Commands;
 
 /// <summary>The cloud targets the exporter can stage for.</summary>
@@ -31,10 +33,12 @@ public static class CloudBundle
     /// <paramref name="runtimeImage"/> overrides the default runtime image — pin a version or
     /// digest so the descriptor can attest which verifier will actually run the app.</summary>
     public static IReadOnlyList<string> Stage(string projectDir, string bundleDir, BundleInfo info, CloudTarget target, string? runtimeImage = null)
+        => Stage(projectDir, bundleDir, info, target, runtimeImage, EgressInitiator.Unspecified);
+
+    internal static IReadOnlyList<string> Stage(string projectDir, string bundleDir, BundleInfo info, CloudTarget target, string? runtimeImage, EgressInitiator initiator)
     {
         var image = string.IsNullOrWhiteSpace(runtimeImage) ? RuntimeImage : runtimeImage;
-        Directory.CreateDirectory(bundleDir);
-        var written = NativeBundle.StageApp(projectDir, bundleDir, "EG-FILE-02");
+        var written = NativeBundle.StageAppWithInitiator(projectDir, bundleDir, "EG-FILE-02", initiator);
 
         // The container entrypoint: verify, then run the request passed as container args. A
         // container whose app or ledger was altered exits 65 at startup and never serves a run —

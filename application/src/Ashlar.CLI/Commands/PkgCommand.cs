@@ -89,8 +89,9 @@ public sealed class PkgCommand : Command
             }
             var (record, files) = (gathered!, gatheredFiles!);
 
-            // SPEC-007 EG-MESH-02, report-only: the sealed package leaves through the --out file.
-            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, "EG-MESH-02", "file:" + outFile.FullName));
+            // Q4: this explicit operator verb exports a file; publish/share retain enforcement.
+            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, "EG-MESH-02", "file:" + outFile.FullName)
+                { Initiator = EgressInitiator.OperatorFileExport }).ThrowIfRefused();
             var json = ExtensionPackaging.Pack(record, files, sealer);
             await File.WriteAllTextAsync(outFile.FullName, json);
 
@@ -98,6 +99,11 @@ public sealed class PkgCommand : Command
             Console.WriteLine($"  {Dim($"{files.Count} file(s) · admitted by {record.Actor} · verdict {Fp(record.Signer)} · seal {Fp(sealer.PublicKeyBase64)}")}");
             Console.WriteLine($"  {Dim($"→ {outFile.FullName}")}");
             return 0;
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);
+            return 77;
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
@@ -385,9 +391,18 @@ public sealed class PkgCommand : Command
         }
 
         var storeDir = ResolveStore(store);
-        // SPEC-007 EG-MESH-01, report-only: peers pull from the store directory.
-        _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
-        var dest = MeshStore.Publish(storeDir, json);
+        // SPEC-007 EG-MESH-01: peers pull from the store directory.
+        string dest;
+        try
+        {
+            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir)).ThrowIfRefused();
+            dest = MeshStore.Publish(storeDir, json);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);
+            return 77;
+        }
 
         Console.WriteLine($"  {Gold("✓ published to the mesh")}  {pkg!.Record.Proposal.Summary}");
         Console.WriteLine($"  {Dim($"sealed {Fp(pkg.SealSigner)} · {pkg.Files.Count} file(s)")}");
@@ -440,8 +455,8 @@ public sealed class PkgCommand : Command
             var (record, files) = (gathered!, gatheredFiles!);
 
             var storeDir = ResolveStore(store);
-            // SPEC-007 EG-MESH-01, report-only: the sealed package goes to the store directory peers pull from.
-            _ = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
+            // SPEC-007 EG-MESH-01: the sealed package goes to the store directory peers pull from.
+            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir)).ThrowIfRefused();
             var json = ExtensionPackaging.Pack(record, files, sealer);
             // Same refusal shape as `pkg publish`: a package that does not verify is a 65, not an
             // operational error — share must hold every property export + publish had separately.
@@ -465,6 +480,11 @@ public sealed class PkgCommand : Command
             Console.WriteLine($"  {Dim($"→ {dest}")}");
             Console.WriteLine($"  {Dim("peers pull with:  ashlar pkg pull --from " + Path.GetDirectoryName(dest))}");
             return 0;
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
+        {
+            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);
+            return 77;
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {

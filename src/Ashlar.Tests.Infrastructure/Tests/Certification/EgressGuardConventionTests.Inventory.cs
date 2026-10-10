@@ -22,6 +22,7 @@ public sealed partial class EgressGuardConventionTests
     /// (F-typed). See <c>RouteContext.CallRoute</c>.
     /// </summary>
     private const string FactoryReason = "Factory";
+    private const string ProcessFunnelReason = "ProcessFunnel";
 
     /// <summary>
     /// <c>Upstream:&lt;path&gt;</c>: an http.param supplied only by the named file, which is itself routed and
@@ -47,6 +48,7 @@ public sealed partial class EgressGuardConventionTests
     private const string GuardImplReason = "Exempt:GuardImpl";
 
     private const string GuardImplFolder = "src/Ashlar.Abstractions/Security/Egress/";
+    private const string ProcessGuardImplFile = "src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs";
 
     private static readonly Regex EgId = new(@"^EG-[A-Z]+-\d+$", RegexOptions.CultureInvariant);
 

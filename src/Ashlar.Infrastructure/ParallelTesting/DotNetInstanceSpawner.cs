@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Diagnostics;
 using Ashlar.Core.Application.ParallelTesting.Models;
 using Ashlar.Core.Application.ParallelTesting.Ports;
@@ -38,6 +39,10 @@ internal sealed class DotNetInstanceSpawner : IInstanceSpawner
     {
         if (!File.Exists(path))
             return (false, $"Path not found: {path}");
+
+        // --no-build still executes working-tree project targets and test binaries.
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(
+            EgressFamilies.Process, "EG-PROC-07", "process:dotnet")).ThrowIfRefused();
 
         var args = $"test \"{path}\" --no-build --verbosity minimal";
         if (!string.IsNullOrWhiteSpace(filter))

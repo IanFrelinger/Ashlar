@@ -1,0 +1,930 @@
+{
+  "schema": 1,
+  "note": "SPEC-007 4.9 mutation campaign. These cases are plans, not evidence; each must fail its named behavioral assertion on a committed candidate, restore exact bytes, prove clean status, and pass again. Operator, classification and convention cases are added as the campaign is completed.",
+  "mutations": [
+    {
+      "id": "action-dotnetrunner-1",
+      "file": "src/Ashlar.Tools.Dev/DotnetRunner.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-01\", \"process:dotnet\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-01\", \"process:dotnet\"));",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Dotnet_runner_refuses_working_tree_verbs"
+      ]
+    },
+    {
+      "id": "action-filebasedsharedadaptationstore-1",
+      "file": "src/Ashlar.Infrastructure/Adaptation/FileBasedSharedAdaptationStore.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, \"EG-MESH-07\", \"file:\" + _basePath)).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, \"EG-MESH-07\", \"file:\" + _basePath));",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Adaptation_file_doors_refuse"
+      ]
+    },
+    {
+      "id": "action-sneakernettransport-1",
+      "file": "src/Ashlar.Infrastructure/Adaptation/SneakernetTransport.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, \"EG-MESH-08\", \"file:\" + path)).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, \"EG-MESH-08\", \"file:\" + path));",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Adaptation_file_doors_refuse"
+      ]
+    },
+    {
+      "id": "action-sneakernettransport-2",
+      "file": "src/Ashlar.Infrastructure/Adaptation/SneakernetTransport.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, \"EG-MESH-08\", \"file:\" + path)\n            { Initiator = initiator }).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, \"EG-MESH-08\", \"file:\" + path)\n            { Initiator = initiator });",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_exports_still_fail_closed"
+      ]
+    },
+    {
+      "id": "action-dotnetinstancespawner-1",
+      "file": "src/Ashlar.Infrastructure/ParallelTesting/DotNetInstanceSpawner.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-07\", \"process:dotnet\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-07\", \"process:dotnet\"));",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Instance_spawner_preserves_refusal"
+      ]
+    },
+    {
+      "id": "action-validationserviceadapter-1",
+      "file": "src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs",
+      "old": " SPEC-007 EG-PROC-02: build executes working-tree targets, with or without package restore.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-02\", ProcessDestination(startInfo))).ThrowIfRefused();\n        var p = Process.Start(startInfo);\n        if (p is null)\n            return -1;\n\n        us",
+      "new": " SPEC-007 EG-PROC-02: build executes working-tree targets, with or without package restore.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-02\", ProcessDestination(startInfo)));\n        var p = Process.Start(startInfo);\n        if (p is null)\n            return -1;\n\n        us",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Validation_build_and_test_refuse"
+      ]
+    },
+    {
+      "id": "action-validationserviceadapter-2",
+      "file": "src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs",
+      "old": "7 EG-PROC-02: --no-build still executes project targets and test code with ambient network.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-02\", ProcessDestination(startInfo))).ThrowIfRefused();\n        var p = Process.Start(startInfo);\n        if (p is null)\n            return new DotnetTestR",
+      "new": "7 EG-PROC-02: --no-build still executes project targets and test code with ambient network.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-02\", ProcessDestination(startInfo)));\n        var p = Process.Start(startInfo);\n        if (p is null)\n            return new DotnetTestR",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Validation_build_and_test_refuse"
+      ]
+    },
+    {
+      "id": "action-dockerservice-1",
+      "file": "src/Ashlar.Infrastructure/Testing/Docker/DockerService.cs",
+      "old": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\")).ThrowIfRefused();\n        var startTime = DateTime.UtcNow;\n        \n        try\n        {\n            _logger.LogInfo",
+      "new": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\"));\n        var startTime = DateTime.UtcNow;\n        \n        try\n        {\n            _logger.LogInfo",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_api_execution_refuses"
+      ]
+    },
+    {
+      "id": "action-dockerservice-2",
+      "file": "src/Ashlar.Infrastructure/Testing/Docker/DockerService.cs",
+      "old": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\")).ThrowIfRefused();\n        var startTime = DateTime.UtcNow;\n        string? containerId = null;\n\n        try\n        {",
+      "new": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\"));\n        var startTime = DateTime.UtcNow;\n        string? containerId = null;\n\n        try\n        {",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_api_execution_refuses"
+      ]
+    },
+    {
+      "id": "action-dockerexecutionplatform-1",
+      "file": "src/Ashlar.Infrastructure/Testing/ExecutionPlatform/DockerExecutionPlatform.cs",
+      "old": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\")).ThrowIfRefused();\n        var startTime = DateTime.UtcNow;\n        \n        try\n        {\n            var dockerfileR",
+      "new": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\"));\n        var startTime = DateTime.UtcNow;\n        \n        try\n        {\n            var dockerfileR",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_api_execution_refuses"
+      ]
+    },
+    {
+      "id": "action-dockerexecutionplatform-2",
+      "file": "src/Ashlar.Infrastructure/Testing/ExecutionPlatform/DockerExecutionPlatform.cs",
+      "old": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\")).ThrowIfRefused();\n        var startTime = DateTime.UtcNow;\n        string? containerId = null;\n\n        try\n        {",
+      "new": "e daemon is local, but build steps and container commands have unrestricted network access.\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-10\", \"process:docker\"));\n        var startTime = DateTime.UtcNow;\n        string? containerId = null;\n\n        try\n        {",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_api_execution_refuses"
+      ]
+    },
+    {
+      "id": "action-postgresephemerallifecycle-1",
+      "file": "src/Ashlar.Infrastructure/Persistence/Ephemeral/PostgresEphemeralLifecycle.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-11\", \"process:docker\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-11\", \"process:docker\"));",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_api_execution_refuses"
+      ]
+    },
+    {
+      "id": "action-ollamaephemerallifecycle-1",
+      "file": "src/Ashlar.Infrastructure/Execution/Ephemeral/OllamaEphemeralLifecycle.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-11\", \"process:docker\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-11\", \"process:docker\"));",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_api_execution_refuses"
+      ]
+    },
+    {
+      "id": "action-ollamaprovider-1",
+      "file": "src/Ashlar.Infrastructure/Execution/Ollama/OllamaProvider.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, \"EG-MDL-07\", OllamaCloud)).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, \"EG-MDL-07\", OllamaCloud));",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Ollama_cloud_forwarding_refuses"
+      ]
+    },
+    {
+      "id": "action-dotnetregressiontestrunner-1",
+      "file": "src/Ashlar.Infrastructure/Analysis/BrickAnalyzer/DotNetRegressionTestRunner.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-06\", \"process:dotnet\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(\n            EgressFamilies.Process, \"EG-PROC-06\", \"process:dotnet\"));",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Regression_runner_preserves_refusal"
+      ]
+    },
+    {
+      "id": "action-ollamaproposalsource-1",
+      "file": "src/Ashlar.BackgroundAgents/Autonomy/OllamaProposalSource.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, \"EG-MDL-11\", url)).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, \"EG-MDL-11\", url));",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Bing_and_proposal_source_refuse"
+      ]
+    },
+    {
+      "id": "action-bingwebsearchprovider-1",
+      "file": "src/Ashlar.BackgroundAgents/WebSearch/BingWebSearchProvider.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, \"EG-WEB-01\", uri)).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.WebSearch, \"EG-WEB-01\", uri));",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Bing_and_proposal_source_refuse"
+      ]
+    },
+    {
+      "id": "action-bootstrapruntime-1",
+      "file": "application/src/Ashlar.CLI/Commands/BootstrapRuntime.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", isWindows ? \"process:powershell\" : \"process:bash\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", isWindows ? \"process:powershell\" : \"process:bash\"));",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Direct_CLI_process_routes_refuse"
+      ]
+    },
+    {
+      "id": "action-dogfoodtestcommand-1",
+      "file": "application/src/Ashlar.CLI/Commands/DogfoodTestCommand.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\"));",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Direct_CLI_process_routes_refuse"
+      ]
+    },
+    {
+      "id": "action-exportcommand-1",
+      "file": "application/src/Ashlar.CLI/Commands/ExportCommand.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\"));",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Direct_CLI_process_routes_refuse"
+      ]
+    },
+    {
+      "id": "action-multiplatformtestcommand-1",
+      "file": "application/src/Ashlar.CLI/Commands/MultiPlatformTestCommand.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\"));",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Direct_CLI_process_routes_refuse"
+      ]
+    },
+    {
+      "id": "action-nativebundle-1",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir)).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir));",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Public_bundle_APIs_refuse"
+      ]
+    },
+    {
+      "id": "action-nativebundle-2",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir)\n            { Initiator = initiator }).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir)\n            { Initiator = initiator });",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Public_bundle_APIs_refuse"
+      ]
+    },
+    {
+      "id": "action-pkgcommand-1",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, \"EG-MESH-02\", \"file:\" + outFile.FullName)\n                { Initiator = EgressInitiator.OperatorFileExport }).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, \"EG-MESH-02\", \"file:\" + outFile.FullName)\n                { Initiator = EgressInitiator.OperatorFileExport });",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_exports_still_fail_closed"
+      ]
+    },
+    {
+      "id": "action-pkgcommand-2",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "ESH-01: peers pull from the store directory.\n        string dest;\n        try\n        {\n            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, \"EG-MESH-01\", \"file:\" + storeDir)).ThrowIfRefused();\n            dest = MeshStore.Publish(storeDir, json);\n        }\n        catch (Exception ex) when (",
+      "new": "ESH-01: peers pull from the store directory.\n        string dest;\n        try\n        {\n            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, \"EG-MESH-01\", \"file:\" + storeDir));\n            dest = MeshStore.Publish(storeDir, json);\n        }\n        catch (Exception ex) when (",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_pkg_export_reports_but_publish_and_share_refuse"
+      ]
+    },
+    {
+      "id": "action-pkgcommand-3",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "// SPEC-007 EG-MESH-01: the sealed package goes to the store directory peers pull from.\n            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, \"EG-MESH-01\", \"file:\" + storeDir)).ThrowIfRefused();\n            var json = ExtensionPackaging.Pack(record, files, sealer);\n            // Same refusal ",
+      "new": "// SPEC-007 EG-MESH-01: the sealed package goes to the store directory peers pull from.\n            EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, \"EG-MESH-01\", \"file:\" + storeDir));\n            var json = ExtensionPackaging.Pack(record, files, sealer);\n            // Same refusal ",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_pkg_export_reports_but_publish_and_share_refuse"
+      ]
+    },
+    {
+      "id": "action-testportablecommand-1",
+      "file": "application/src/Ashlar.CLI/Commands/TestPortableCommand.cs",
+      "old": "&& console != null) console.WriteLine(\"Running smoke tests (BaseFrameworkSmokeTests)...\");\n\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\")).ThrowIfRefused();\n        var psi = new ProcessStartInfo\n        {\n            FileName = \"dotnet\",\n            Argum",
+      "new": "&& console != null) console.WriteLine(\"Running smoke tests (BaseFrameworkSmokeTests)...\");\n\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\"));\n        var psi = new ProcessStartInfo\n        {\n            FileName = \"dotnet\",\n            Argum",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Direct_CLI_process_routes_refuse"
+      ]
+    },
+    {
+      "id": "action-testportablecommand-2",
+      "file": "application/src/Ashlar.CLI/Commands/TestPortableCommand.cs",
+      "old": "/ Run via dotnet run to avoid circular ref: ashlar test multi-env --suite persistence --all\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\")).ThrowIfRefused();\n        var psi = new ProcessStartInfo\n        {\n            FileName = \"dotnet\",\n            Argum",
+      "new": "/ Run via dotnet run to avoid circular ref: ashlar test multi-env --suite persistence --all\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:dotnet\"));\n        var psi = new ProcessStartInfo\n        {\n            FileName = \"dotnet\",\n            Argum",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Direct_CLI_process_routes_refuse"
+      ]
+    },
+    {
+      "id": "action-workflowcommand-1",
+      "file": "application/src/Ashlar.CLI/Commands/WorkflowCommand.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:ollama\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-09\", \"process:ollama\"));",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Direct_CLI_process_routes_refuse"
+      ]
+    },
+    {
+      "id": "graceful-mesh-serve",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs",
+      "old": "if (decision.Refuses)",
+      "new": "if (decision.Refuses && decision.Mode == \"report\")",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Refused_package_returns_empty_404"
+      ]
+    },
+    {
+      "id": "graceful-discovery",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshDiscoveryService.cs",
+      "old": "if (decision.Refuses)",
+      "new": "if (decision.Refuses && decision.Mode == \"report\")",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Refused_discovery_continues_listening"
+      ]
+    },
+    {
+      "id": "graceful-otlp",
+      "file": "application/src/Ashlar.API/Program.cs",
+      "old": "if (decision.Refuses)",
+      "new": "if (decision.Refuses && decision.Mode == \"report\")",
+      "filter": "FullyQualifiedName~EgressExplicitApiProdStyleTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_otlp_skips_both_exporters"
+      ]
+    },
+    {
+      "id": "graceful-admission",
+      "file": "src/Ashlar.BackgroundAgents.HostRunners/SelfExtendAdmissionBridge.cs",
+      "old": "if (decision.Refuses)",
+      "new": "if (decision.Refuses && decision.Mode == \"report\")",
+      "filter": "FullyQualifiedName~SelfExtendAdmissionBridgeTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Refused_auto_share_preserves"
+      ]
+    },
+    {
+      "id": "operator-requires-initiator",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "request?.Initiator == EgressInitiator.OperatorFileExport",
+      "new": "request is not null",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Only_an_internal_explicit_operator_initiator"
+      ]
+    },
+    {
+      "id": "operator-requires-file-family",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "request.Family == EgressFamilies.FileExport",
+      "new": "request.Family.Length > 0",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Operator_initiator_never_bypasses"
+      ]
+    },
+    {
+      "id": "operator-requires-named-site",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "request.Site is \"EG-MESH-02\" or \"EG-MESH-08\" or \"EG-FILE-01\" or \"EG-FILE-02\"",
+      "new": "request.Site.Length > 0",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Operator_initiator_never_bypasses"
+      ]
+    },
+    {
+      "id": "operator-mode-fault-stays-enforcing",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "fault is null && modeBasis != EgressEnforcement.FaultBasis",
+      "new": "fault is null",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Only_an_internal_explicit_operator_initiator"
+      ]
+    },
+    {
+      "id": "operator-mode-basis-recorded",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "modeBasis = EgressEnforcement.OperatorVerbBasis;",
+      "new": "modeBasis = EgressEnforcement.OverrideBasis;",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Only_an_internal_explicit_operator_initiator"
+      ]
+    },
+    {
+      "id": "timed-public-process-is-offhost",
+      "file": "src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs",
+      "old": "\"EG-PROC-08\", \"process:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)",
+      "new": "\"EG-PROC-08\", \"host:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Timed_process_and_shell_refuse"
+      ]
+    },
+    {
+      "id": "timed-internal-rechecks-decision",
+      "file": "src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs",
+      "old": "        decision.ThrowIfRefused();",
+      "new": "        _ = decision;",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Internal_evaluated_process_entry_still_rejects"
+      ]
+    },
+    {
+      "id": "process-funnel-records-once",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": "TimedProcess.RunEvaluatedAsync(psi, Timeout.InfiniteTimeSpan, decision, cancellationToken)",
+      "new": "TimedProcess.RunAsync(psi, Timeout.InfiniteTimeSpan, cancellationToken)",
+      "filter": "FullyQualifiedName~EgressExplicitSiteTwinTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "ProcessCommandRunner_RunAsync_records_exactly_one"
+      ]
+    },
+    {
+      "id": "docker-network-proof-required",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": " || !HasNetworkOffRun(arguments)",
+      "new": "",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_host_classification_requires_real_network_off"
+      ]
+    },
+    {
+      "id": "docker-pull-never-required",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": "return networkOff && pullNever && !string.IsNullOrWhiteSpace(arg);",
+      "new": "return networkOff && !string.IsNullOrWhiteSpace(arg);",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_host_classification_requires_real_network_off"
+      ]
+    },
+    {
+      "id": "docker-context-precedence",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": "if (!string.IsNullOrWhiteSpace(context) && context != \"default\")",
+      "new": "if (!string.IsNullOrWhiteSpace(context) && context == \"default\")",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_remote_or_unresolved_daemon"
+      ]
+    },
+    {
+      "id": "docker-tcp-daemon-is-offhost",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": "            return ordinary;\n        }\n\n        return \"host:docker\";",
+      "new": "            return \"host:docker\";\n        }\n\n        return \"host:docker\";",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_remote_or_unresolved_daemon"
+      ]
+    },
+    {
+      "id": "docker-persisted-selection-read",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": "arguments, ReadPersistedDockerContext(fileName))))",
+      "new": "arguments, null)))",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Actual_docker_funnel_reads_persisted_context"
+      ]
+    },
+    {
+      "id": "docker-malformed-selection-fails-closed",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": "return \"unresolved\"; // inability to resolve a daemon never grants Host",
+      "new": "return null; // mutation loses the unresolved selection",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Actual_docker_funnel_reads_persisted_context"
+      ]
+    },
+    {
+      "id": "native-operator-initiator",
+      "file": "application/src/Ashlar.CLI/Commands/ExportCommand.cs",
+      "old": "NativeBundle.Stage(directory.FullName, bundleDir, info, EgressInitiator.OperatorFileExport)",
+      "new": "NativeBundle.Stage(directory.FullName, bundleDir, info, EgressInitiator.Unspecified)",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_bundle_export_reports"
+      ]
+    },
+    {
+      "id": "cloud-operator-initiator",
+      "file": "application/src/Ashlar.CLI/Commands/ExportCommand.cs",
+      "old": "CloudBundle.Stage(directory.FullName, bundleDir, info, target, runtimeImage, EgressInitiator.OperatorFileExport)",
+      "new": "CloudBundle.Stage(directory.FullName, bundleDir, info, target, runtimeImage, EgressInitiator.Unspecified)",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_bundle_export_reports"
+      ]
+    },
+    {
+      "id": "mesh-operator-initiator",
+      "file": "application/src/Ashlar.CLI/Commands/MeshCommand.cs",
+      "old": "operatorTransport.ExportAsync(outputPath, componentId, EgressInitiator.OperatorFileExport,",
+      "new": "operatorTransport.ExportAsync(outputPath, componentId, EgressInitiator.Unspecified,",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Mesh_operator_export_passes_the_initiator"
+      ]
+    },
+    {
+      "id": "pkg-operator-initiator",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "Initiator = EgressInitiator.OperatorFileExport",
+      "new": "Initiator = EgressInitiator.Unspecified",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_pkg_export_reports"
+      ]
+    },
+    {
+      "id": "mesh-index-refusal-count",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs",
+      "old": "return MeshPullSummary.Empty with { Refused = 1 };",
+      "new": "return MeshPullSummary.Empty with { Errors = 1 };",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Mesh_pull_counts_wrapped_refusals"
+      ]
+    },
+    {
+      "id": "mesh-package-refusal-count",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs",
+      "old": "LogRefusal(logger, EgressRefusal.Find(ex)!);\n                refused++;",
+      "new": "LogRefusal(logger, EgressRefusal.Find(ex)!);\n                errors++;",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Mesh_pull_counts_wrapped_refusals"
+      ]
+    },
+    {
+      "id": "mesh-refusal-warning",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs",
+      "old": "logger.LogWarning(new EventId(7307, \"EgressRefused\"), \"Mesh pull egress refused: {Refusal}\", refusal.Message);",
+      "new": "logger.LogDebug(new EventId(7307, \"EgressRefused\"), \"Mesh pull egress refused: {Refusal}\", refusal.Message);",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Mesh_pull_counts_wrapped_refusals"
+      ]
+    },
+    {
+      "id": "ide-sse-redacts-wrapper",
+      "file": "application/src/Ashlar.API/Endpoints/IdeEndpoints.cs",
+      "old": "var message = EgressRefusal.RemoteMessage(refusal.Ref);",
+      "new": "var message = ex.Message;",
+      "filter": "FullyQualifiedName~EgressExplicitApiProdStyleTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Ide_stream_returns_only_fixed_refusal_text"
+      ]
+    },
+    {
+      "id": "ide-model-discovery-warning",
+      "file": "application/src/Ashlar.API/Endpoints/IdeEndpoints.cs",
+      "old": "logger.LogWarning(new EventId(7307, \"EgressRefused\"), \"IDE model discovery egress refused: {Refusal}\", refusal.Message);",
+      "new": "logger.LogDebug(new EventId(7307, \"EgressRefused\"), \"IDE model discovery egress refused: {Refusal}\", refusal.Message);",
+      "filter": "FullyQualifiedName~EgressExplicitApiProdStyleTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Ide_optional_model_discovery_logs"
+      ]
+    },
+    {
+      "id": "release-probe-does-not-execute-command",
+      "file": "application/src/Ashlar.CLI/Commands/ReleaseCommand.cs",
+      "old": "Arguments = \"--version\",",
+      "new": "Arguments = \"-NoLogo -Command \\\"exit 0\\\"\",",
+      "filter": "FullyQualifiedName~EgressCliProcessTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Release_availability_probes_only_request_a_version"
+      ]
+    },
+    {
+      "id": "improve-refusal-audit-outcome",
+      "file": "application/src/Ashlar.CLI/Commands/ImproveCommand.cs",
+      "old": "Outcome = broadcastRefusal is null ? \"Promoted\" : \"EgressRefused\",",
+      "new": "Outcome = \"Promoted\",",
+      "filter": "FullyQualifiedName~ImproveEgressAuditTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Promotion_audit_reports_a_refused_broadcast"
+      ]
+    },
+    {
+      "id": "improve-refusal-not-promoted",
+      "file": "application/src/Ashlar.CLI/Commands/ImproveCommand.cs",
+      "old": "Promoted = broadcastRefusal is null,",
+      "new": "Promoted = true,",
+      "filter": "FullyQualifiedName~ImproveEgressAuditTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Promotion_audit_reports_a_refused_broadcast"
+      ]
+    },
+    {
+      "id": "improve-refusal-audit-message",
+      "file": "application/src/Ashlar.CLI/Commands/ImproveCommand.cs",
+      "old": "Message = broadcastRefusal is null ? record.Message : \"Locally applied; broadcast refused: \" + broadcastRefusal.Message,",
+      "new": "Message = record.Message,",
+      "filter": "FullyQualifiedName~ImproveEgressAuditTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Promotion_audit_reports_a_refused_broadcast"
+      ]
+    },
+    {
+      "id": "improve-wrapped-refusal",
+      "file": "application/src/Ashlar.CLI/Commands/ImproveCommand.cs",
+      "old": "catch (Exception ex) when (EgressRefusal.Find(ex) is not null)",
+      "new": "catch (Exception ex) when (ex is EgressRefusedException)",
+      "filter": "FullyQualifiedName~ImproveEgressAuditTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Promotion_audit_reports_a_refused_broadcast"
+      ]
+    },
+    {
+      "id": "cli-export-refusal-exit-1",
+      "file": "application/src/Ashlar.CLI/Commands/ExportCommand.cs",
+      "old": "\n            CloudBundle.Stage(directory.FullName, bundleDir, info, target, runtimeImage, EgressInitiator.OperatorFileExport);\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "\n            CloudBundle.Stage(directory.FullName, bundleDir, info, target, runtimeImage, EgressInitiator.OperatorFileExport);\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_exports_still_fail_closed"
+      ]
+    },
+    {
+      "id": "cli-export-refusal-exit-2",
+      "file": "application/src/Ashlar.CLI/Commands/ExportCommand.cs",
+      "old": "        try\n        {\n            NativeBundle.Stage(directory.FullName, bundleDir, info, EgressInitiator.OperatorFileExport);\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "        try\n        {\n            NativeBundle.Stage(directory.FullName, bundleDir, info, EgressInitiator.OperatorFileExport);\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_exports_still_fail_closed"
+      ]
+    },
+    {
+      "id": "cli-pkg-refusal-exit-1",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"\u2192 {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"\u2192 {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_exports_still_fail_closed"
+      ]
+    },
+    {
+      "id": "cli-pkg-refusal-exit-2",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "e.Publish(storeDir, json);\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "e.Publish(storeDir, json);\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_pkg_export_reports"
+      ]
+    },
+    {
+      "id": "cli-pkg-refusal-exit-3",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "onsole.WriteLine($\"  {Dim(\"peers pull with:  ashlar pkg pull --from \" + Path.GetDirectoryName(dest))}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "onsole.WriteLine($\"  {Dim(\"peers pull with:  ashlar pkg pull --from \" + Path.GetDirectoryName(dest))}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_pkg_export_reports"
+      ]
+    },
+    {
+      "id": "cli-mesh-refusal-exit-1",
+      "file": "application/src/Ashlar.CLI/Commands/MeshCommand.cs",
+      "old": "t null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "t null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_exports_still_fail_closed"
+      ]
+    },
+    {
+      "id": "convention-discarded-decision",
+      "file": "src/Ashlar.Tools.Dev/DotnetRunner.cs",
+      "old": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-01\", \"process:dotnet\")).ThrowIfRefused();",
+      "new": "EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, \"EG-PROC-01\", \"process:dotnet\"));",
+      "filter": "FullyQualifiedName~EgressGuardConventionTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "F10_every_explicit_decision_is_acted_on"
+      ]
+    },
+    {
+      "id": "convention-requires-local-action",
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.ExplicitActions.cs",
+      "old": "(?:var|EgressDecision)\\s+(?<name>",
+      "new": "(?:(?:var|EgressDecision)\\s+)?(?<name>",
+      "filter": "FullyQualifiedName~EgressGuardConventionTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "F10_explicit_action_controls"
+      ]
+    },
+    {
+      "id": "convention-refuses-cannot-escape-scope",
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.ExplicitActions.cs",
+      "old": "var end = Math.Min(model.Member(call.Index).End, block < 0 ? code.Length : model.Blocks[block].Close);",
+      "new": "var end = code.Length;",
+      "filter": "FullyQualifiedName~EgressGuardConventionTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "F10_explicit_action_controls"
+      ]
+    },
+    {
+      "id": "convention-evaluated-entry-confined",
+      "file": "src/Ashlar.Infrastructure/ParallelTesting/DotNetInstanceSpawner.cs",
+      "old": "internal sealed class DotNetInstanceSpawner : IInstanceSpawner\n{",
+      "new": "internal sealed class DotNetInstanceSpawner : IInstanceSpawner\n{\n    private static void MutationControl() { _ = Ashlar.Infrastructure.HostProcess.TimedProcess.RunEvaluatedAsync(null!, default, null!, default); }",
+      "filter": "FullyQualifiedName~EgressGuardConventionTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "F11_evaluated_process_entry_is_confined"
+      ]
+    },
+    {
+      "id": "convention-process-funnel-no-direct-launch",
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.Routes.cs",
+      "old": "return ProcessFunnelProblems(pin);",
+      "new": "return [];",
+      "filter": "FullyQualifiedName~EgressGuardConventionTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "F9_each_route_control_holds_or_fails_as_declared"
+      ]
+    },
+    {
+      "id": "convention-process-guard-exemption-narrow",
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.Routes.cs",
+      "old": "(pin.Marker == Marker.Process && pin.Path == ProcessGuardImplFile)",
+      "new": "(pin.Marker == Marker.Process)",
+      "filter": "FullyQualifiedName~EgressGuardConventionTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "F9_each_route_control_holds_or_fails_as_declared"
+      ]
+    },
+    {
+      "id": "startup-states-explicit-enforcement",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
+      "old": "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
+      "new": "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+      "filter": "FullyQualifiedName~EgressModeProcessBindingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted"
+      ]
+    },
+    {
+      "id": "cli-runtime-publish-refusal-exit",
+      "file": "application/src/Ashlar.CLI/Commands/ExportCommand.cs",
+      "old": "ok = await PublishRuntimeAsync(proj, rid, bundleDir, exeName, ct);\n                }\n                catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n                {\n                    Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n                    return 77;",
+      "new": "ok = await PublishRuntimeAsync(proj, rid, bundleDir, exeName, ct);\n                }\n                catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n                {\n                    Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n                    return 1;",
+      "filter": "FullyQualifiedName~EgressCliRuntimeExportTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Operator_export_does_not_authorize_runtime_publish_and_returns_77"
+      ]
+    },
+    {
+      "id": "operator-refusal-precedes-bundle-cleanup",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir)\n            { Initiator = initiator }).ThrowIfRefused();\n        // Replacing an operator bundle is part of the export, so a refusal must preserve the old bundle.\n        if (initiator == EgressInitiator.OperatorFileExport && Directory.Exists(bundleDir))\n            Directory.Delete(bundleDir, recursive: true);\n",
+      "new": "        // Replacing an operator bundle is part of the export, so a refusal must preserve the old bundle.\n        if (initiator == EgressInitiator.OperatorFileExport && Directory.Exists(bundleDir))\n            Directory.Delete(bundleDir, recursive: true);\n        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.FileExport, site, \"file:\" + bundleDir)\n            { Initiator = initiator }).ThrowIfRefused();\n",
+      "filter": "FullyQualifiedName~EgressCliExportPreservationTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Refused_operator_export_preserves_existing_bundle_and_allowed_export_replaces_it"
+      ]
+    },
+    {
+      "id": "operator-allowed-export-cleans-stale-bundle",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "        // Replacing an operator bundle is part of the export, so a refusal must preserve the old bundle.\n        if (initiator == EgressInitiator.OperatorFileExport && Directory.Exists(bundleDir))\n            Directory.Delete(bundleDir, recursive: true);\n",
+      "new": "",
+      "filter": "FullyQualifiedName~EgressCliExportPreservationTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Refused_operator_export_preserves_existing_bundle_and_allowed_export_replaces_it"
+      ]
+    }
+  ]
+}
