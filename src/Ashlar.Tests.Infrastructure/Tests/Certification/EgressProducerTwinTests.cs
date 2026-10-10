@@ -18,6 +18,7 @@ using Ashlar.BackgroundAgents.RAG;
 using Ashlar.BackgroundAgents.WebSearch;
 using Ashlar.Hosting.Meai;
 using Ashlar.Runtime;
+using Ashlar.Tests.Infrastructure.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,26 +28,30 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
-/// SPEC-007 PR 4.5, the subject producers, report-only: the runner declares the frame, <see cref="ToolCallingAgent"/>
+/// SPEC-007 subject producers: the runner declares the frame, <see cref="ToolCallingAgent"/>
 /// scopes every tool call as a read, <see cref="RAGTool"/> reports the canonical tier of each hit (or "read nothing"),
 /// a response from an agent-backed chat target counts as <see cref="SecurityLabel.SystemHigh"/>, and production
 /// self-extend records its agent as the subject at <see cref="SecurityLabel.SystemHigh"/>.
 /// </summary>
 /// <remarks>
-/// <para><b>The leak skeleton</b> (the Ã‚Â§5 done-when, in report mode). A test runner enters
+/// <para><b>The leak skeleton</b> (the Ã‚Â§5 done-when, enforced by default). A test runner enters
 /// <c>agent:leak-&lt;guid&gt;</c> at <see cref="SecurityLabel.Public"/> and runs a real <see cref="ToolCallingAgent"/>
 /// over a real <see cref="RAGTool"/>, <see cref="MeaiVectorDataRagAdapter"/> and <see cref="VectorDataRagService"/>,
 /// with the model behind the governed <c>local:ollama</c> MEAI client, whose scripted inner client says it dials an
 /// external host (ExternalModel, <c>Internal</c>, EG-MDL-01). After a <c>Secret</c> hit the next model call records
-/// the agent as its subject at <c>Secret</c> and would be refused <c>LevelTooLow</c>; the guard reports, so the call
-/// still goes. After an <c>Internal</c> hit it would be allowed.</para>
-/// <para><b>Process-global state.</b> Every guard here has an explicit profile, so no decision reads the environment,
-/// and each decision is read from a recording guard or the value <c>Evaluate</c> returns. Frames live on each test's
-/// own async flow. Hermetic: no network (the chat clients are scripted), a temporary directory for self-extend.</para>
+/// the agent as its subject at <c>Secret</c> and is refused <c>LevelTooLow</c> before the send.
+/// After an <c>Internal</c> hit it is allowed.</para>
+/// <para><b>Process-global state.</b> Environment and process binding are reset and restored for each test.
+/// Routes consult the AirGapped process floor; the Bing site uses the process binding. Frames live on each test's
+/// own async flow. No network: chat and HTTP clients are scripted, with a temporary directory for self-extend.</para>
 /// </remarks>
+[Collection("EnvironmentVariables")]
 [Trait("Category", "Certification")]
-public sealed class EgressProducerTwinTests
+public sealed class EgressProducerTwinTests : IDisposable
 {
+    private readonly EnvironmentVariableScope _profile = EnvironmentVariableScope.Unset("ASHLAR_DEPLOYMENT_PROFILE");
+    private readonly EnvironmentVariableScope _mode = EnvironmentVariableScope.Unset("ASHLAR_EGRESS_MODE");
+    private readonly EgressProcessStateScope _state = new(reset: true);
     private const string SubjectPrefix = "subject:";
     private const string Remote = "https://remote.example/v1/chat";
 
@@ -60,7 +65,7 @@ public sealed class EgressProducerTwinTests
     {
         var run = await RunLeakSkeletonAsync("Secret");
 
-        run.Cycle.StoppedReason.Should().Be("empty");
+        run.Cycle.StoppedReason.Should().Be("egress_refused");
         run.Decisions.Should().HaveCount(2, "two model calls, each decided once by the outermost governance layer");
 
         var first = run.Decisions[0];
@@ -77,11 +82,11 @@ public sealed class EgressProducerTwinTests
         second.Current.Should().Be(Secret, "the agent read a Secret chunk, and RAGTool reported its tier");
         second.Access.Allowed.Should().BeFalse();
         second.Access.Reason.Should().Be(AccessDenialReason.LevelTooLow);
-        second.Mode.Should().Be("report", "every profile still reports until the switch (PR 4.11)");
-        second.Refused.Should().BeFalse("a report-mode decision never refuses");
+        second.Mode.Should().Be("enforce", "SecureWorkstation enforces by default");
+        second.Refused.Should().BeTrue();
 
-        run.ChatCalls.Should().Be(2, "report mode: the call still goes");
-        run.SecondCallText.Should().Contain(run.Canary, "the Secret chunk is in the conversation the second call carries");
+        run.ChatCalls.Should().Be(1, "the Secret conversation is refused before transport");
+        run.SecondCallText.Should().BeEmpty();
     }
 
     [Fact]
@@ -1064,6 +1069,13 @@ public sealed class EgressProducerTwinTests
             if (decision.Destination.Contains(host, StringComparison.Ordinal))
                 _decisions.Enqueue(decision);
         }
+    }
+
+    public void Dispose()
+    {
+        _state.Dispose();
+        _mode.Dispose();
+        _profile.Dispose();
     }
 
     private sealed class AliasingSensitivityRegistry(string alias, IDataSensitivityLevel? replacement = null) : IDataSensitivityRegistry
