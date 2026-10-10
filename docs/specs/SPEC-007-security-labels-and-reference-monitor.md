@@ -133,8 +133,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   health and hosted-loop degradation emits windowed Warning diagnostics (event 7307); disposal cancels
   timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
   work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
-  The default switch (4.11) remains separate work.
-- **PR 4.9 (implemented; local verification complete)** acts on all 17 original explicit decisions and the additional
+  The default switch is implemented in 4.11, whose verification status is recorded below.
+- **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
   local admission, local promotion and existing export bundles while suppressing the refused export. CLI exits 77, IDE SSE uses fixed remote
@@ -146,7 +146,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   the three open-mesh CLI bridge tests and all 28 repository gates, with zero test skips in these selections.
   All 77 cases in `scripts/mutations/spec007-explicit-egress.json` have an intended assertion failure, exact source
   restoration, clean checkout and green rerun; their mutation targets and intended test sources match the candidate.
-  PR CI and merge verification are still required before this phase is complete.
+  PR CI passed and the change merged. Exact-master readiness exposed a Windows Docker fixture response failure; the isolated repair is tracked in #745 and requires fresh readiness evidence.
+- **PR 4.11 (implemented; verification in progress)** switches AirGapped and SecureWorkstation to default enforcement. The SecureWorkstation report break-glass is environment-only, latched and logged at Warning; AirGapped ignores lowering overrides and routes apply its process floor even to host guards. Named factory exceptions use `Configure<EgressGuardOptions>` after `AddAshlar`, warn per name, and cannot name Ashlar-owned clients. The registry is checked against production registrations including commercial code. `EgressEnforcementLeakTests` covers A/B/C and C0–C12; all sixteen planned leak mutations require intended assertion failures and restored green runs before completion.
 - **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
@@ -296,6 +297,9 @@ A **security label** is a triple `(Level, Compartments, Caveats)`.
 - **Explained refusals.** Every decision names *why* it was refused: level too low, a missing compartment
   (named), a missing caveat (named), or `SystemHigh` data. These reasons later feed the harness's
   `ExplainedFailure` outcome (`IterationOutcome.ExplainedFailure`) and receipts.
+
+- **Enforced by** (egress, cert-gate): `EgressEnforcementLeakTests` exercises the real RAG/model path (A), Bing tool path (B), factory send and loopback redirect (C). Its positive controls allow Public/Internal sends and Full-profile reporting. C0–C12 cover unknown labels, open/unreported/thrown reads, no subject, nested frames, ignored AirGapped overrides, classification/host faults and process exports. Refusals stop the transport and expose only redacted local observations; operator records retain the explained decision. C12 checks a subsequent send in the same runner frame after the actual agent cycle ends with `error`.
+- **Read-side scope remains PR 5.** These egress tests supply a test clearance to the RAG filter; they do not establish production clearance wiring or receiver-side `CanRead` enforcement.
 
 ### 2.4 Canonical text form
 

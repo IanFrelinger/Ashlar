@@ -40,6 +40,9 @@ namespace Ashlar.Infrastructure.Egress;
 /// <para><b>Logging.</b> Report and allowed decisions use Debug in <c>Ashlar.Egress</c>; enforced refusals use
 /// windowed Warning records and counted summaries. The subscription is activated by a hosted service when a host
 /// starts, and by the first factory client's handler construction otherwise.</para>
+/// <para><b>Host exceptions.</b> Configure <see cref="EgressGuardOptions.ReportOnlyClients"/> before or after
+/// this call to report for a named host-owned factory client and its redirect hops. AirGapped ignores the list;
+/// Ashlar-owned names fail host startup. Each configured name logs a startup Warning. Faults remain fail-closed.</para>
 /// </remarks>
 public static class EgressServiceCollectionExtensions
 {

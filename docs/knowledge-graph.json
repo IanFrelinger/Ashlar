@@ -13,14 +13,13 @@
     "projects_declaring_ispackable_true": 18,
     "config_variables": 177,
     "operator_facing_config_variables": 155,
-    "operator_vars_missing_from_configuration_reference": 18,
+    "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 801,
     "declared_facts": 5136,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
-    "ASHLAR_EGRESS_MODE",
     "ASHLAR_KEY_DIR",
     "ASHLAR_MESH_AUTOSHARE",
     "ASHLAR_MESH_CA",
@@ -1387,7 +1386,7 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
+      "in_configuration_reference": true,
       "in_any_document": true
     },
     {

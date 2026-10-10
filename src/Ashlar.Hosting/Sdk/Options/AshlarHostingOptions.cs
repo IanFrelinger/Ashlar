@@ -28,8 +28,9 @@ public sealed class AshlarHostingOptions
     /// <c>IEgressGuard</c> is kept, not replaced, so the raise reaches it only if it is a guard built without a
     /// profile. Ashlar never binds this from <c>IConfiguration</c>, so an appsettings file or a command-line argument
     /// cannot set it.
-    /// <para>Not yet a supported setting: until SPEC-007 PR 4.7 no route acts on the mode, so an <c>enforce</c>
-    /// decision record says what would have been refused, not that a send stopped.</para>
+    /// <para>AirGapped and SecureWorkstation enforce by default. Only the environment can request
+    /// SecureWorkstation's latched report break-glass; AirGapped ignores lowering overrides. Routes retain
+    /// the AirGapped process floor even when a host guard reports.</para>
     /// </summary>
     public string? EgressMode { get; set; }
 
