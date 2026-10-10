@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Ashlar.Infrastructure.Egress;
 
@@ -39,6 +40,9 @@ namespace Ashlar.Infrastructure.Egress;
 /// <para><b>Logging.</b> Report and allowed decisions use Debug in <c>Ashlar.Egress</c>; enforced refusals use
 /// windowed Warning records and counted summaries. The subscription is activated by a hosted service when a host
 /// starts, and by the first factory client's handler construction otherwise.</para>
+/// <para><b>Host exceptions.</b> Configure <see cref="EgressGuardOptions.ReportOnlyClients"/> before or after
+/// this call to report for a named host-owned factory client and its redirect hops. AirGapped ignores the list;
+/// Ashlar-owned names fail host startup. Each configured name logs a startup Warning. Faults remain fail-closed.</para>
 /// </remarks>
 public static class EgressServiceCollectionExtensions
 {
@@ -65,6 +69,9 @@ public static class EgressServiceCollectionExtensions
         services.TryAddSingleton<IEgressGuard>(EgressGuard.ProcessDefault);
         services.TryAddSingleton<EgressDecisionLoggerSubscription>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EgressDecisionLoggerActivator>());
+        services.AddOptions<EgressGuardOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<EgressGuardOptions>, ValidateEgressGuardOptions>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EgressHostClientPolicyActivator>());
 
         services.ConfigureHttpClientDefaults(defaults => defaults.Services.ConfigureAll<HttpClientFactoryOptions>(
             options => options.HttpMessageHandlerBuilderActions.Add(handlers => handlers.AdditionalHandlers.Insert(
@@ -85,8 +92,23 @@ public static class EgressServiceCollectionExtensions
     // Runs each time a factory client's handlers are built. Resolution failures retain process enforcement.
     internal static IEgressGuard? ResolveGuardAndActivateLogging(HttpMessageHandlerBuilder handlers)
     {
+        // Options errors are startup/configuration failures, not a failed guard lookup that may fall back.
+        var reportOnly = false;
+        try
+        {
+            reportOnly = handlers.Services.GetService<IOptions<EgressGuardOptions>>()?.Value
+                .ReportOnlyClients.Contains(handlers.Name ?? string.Empty) == true;
+        }
+        catch (OptionsValidationException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // No exception is granted if options cannot be read. Guard lookup below retains its diagnosed fallback.
+        }
         IServiceProvider? services = null;
-        return EgressGuard.ResolveForRoute(() =>
+        var guard = EgressGuard.ResolveForRoute(() =>
         {
             services = handlers.Services;
             try
@@ -104,6 +126,7 @@ public static class EgressServiceCollectionExtensions
                 new EventId(7306, "EgressGuardFallback"),
                 "Egress guard resolution {Resolution}; using ProcessDefault; fault={Fault}",
                 faulted ? "failed" : "unregistered", fault ?? "none"));
+        return reportOnly ? EgressGuard.ForReportOnlyFactoryClient(guard, handlers.Name ?? string.Empty) : guard;
     }
 
     /// <summary>Marks a collection <see cref="AddAshlarEgressGuard"/> has already run on.</summary>

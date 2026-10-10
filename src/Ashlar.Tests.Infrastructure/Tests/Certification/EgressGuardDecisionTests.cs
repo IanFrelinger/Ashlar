@@ -792,15 +792,14 @@ public sealed class EgressGuardDecisionTests
     // Profile
     // ---------------------------------------------------------------------------------------------------------
 
-    /// <remarks>SPEC-007 PR 4.6: every one of the six profiles still reports. A profile that is none of them fails
-    /// closed to <c>enforce</c> (the mode table is pinned in <see cref="EgressModeResolutionTests"/>); nothing acts on the
-    /// mode yet, so the access decision is unchanged either way.</remarks>
+    /// <remarks>AirGapped and SecureWorkstation enforce by default. Other known profiles report; unknown
+    /// profiles fail closed. The mode controls refusal without changing the underlying access decision.</remarks>
     [Theory]
-    [InlineData("air-gapped", true, "report")]
-    [InlineData("secure-workstation", true, "report")]
-    [InlineData("AirGapped", true, "report")]
-    [InlineData("SECURE_WORKSTATION", true, "report")]
-    [InlineData("workstation", true, "report")]
+    [InlineData("air-gapped", true, "enforce")]
+    [InlineData("secure-workstation", true, "enforce")]
+    [InlineData("AirGapped", true, "enforce")]
+    [InlineData("SECURE_WORKSTATION", true, "enforce")]
+    [InlineData("workstation", true, "enforce")]
     [InlineData("full", false, "report")]
     [InlineData("server", false, "report")]
     [InlineData("edge", false, "report")]
@@ -815,8 +814,9 @@ public sealed class EgressGuardDecisionTests
 
         decision.Profile.Should().Be(profile);
         decision.ProfileEnforcesByDefault.Should().Be(enforcesByDefault);
-        decision.Mode.Should().Be(mode, "every profile defaults to report until PR 4.11; an unreadable one fails closed");
-        decision.Access.Should().Be(Guard.Evaluate(request).Access, "the profile is reported, not enforced");
+        decision.Mode.Should().Be(mode, "AirGapped and SecureWorkstation enforce; an unreadable profile fails closed");
+        decision.Access.Should().Be(Guard.Evaluate(request).Access, "the mode does not change the label comparison");
+        decision.Refused.Should().Be(mode == "enforce" && !decision.Access.Allowed);
     }
 
     // ---------------------------------------------------------------------------------------------------------

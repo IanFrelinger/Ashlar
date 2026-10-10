@@ -8,7 +8,7 @@ in §8 rather than guessing.
 
 Master at the time of writing: `0960774` (#704 and #705 merged).
 
-## Status (2026-10-08)
+## Status (2026-10-10)
 
 *Added when the spec was committed. Everything else is the owner's text of 2026-10-03, with these additions, each
 marked: test names next to the §2 MUSTs (labelled **Enforced by**, as §7 asks), a status column in §5, the sections
@@ -20,7 +20,7 @@ The status line above and the starting prompt are the owner's, as written; the s
 | 1: the label lattice and reference-monitor decisions (§4) | Merged | #706, `0f9642ec2` |
 | 2: bridge the existing labels | Merged | #707, `f1f2cff48` |
 | 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #711, `8ec674d2a` |
-| 4: the guard enforces | Designed. The owner answered its eight questions on 2026-10-05 (decisions log). It ships as PRs 4.1 to 4.11 | |
+| 4: the guard enforces | 4.1–4.10 merged; 4.11 implemented and locally verified; PR CI and merge pending. The owner answered its eight questions on 2026-10-05 (decisions log). | |
 | 5 to 8 | Not started | |
 
 - **PR 1** added `Ashlar.Abstractions.Security` in `src/Ashlar.Abstractions/Security/`, with 367 cert-gate tests. The
@@ -133,8 +133,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   health and hosted-loop degradation emits windowed Warning diagnostics (event 7307); disposal cancels
   timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
   work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
-  The default switch (4.11) remains separate work.
-- **PR 4.9 (implemented; local verification complete)** acts on all 17 original explicit decisions and the additional
+  The default switch is implemented in 4.11, whose verification status is recorded below.
+- **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
   local admission, local promotion and existing export bundles while suppressing the refused export. CLI exits 77, IDE SSE uses fixed remote
@@ -146,7 +146,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   the three open-mesh CLI bridge tests and all 28 repository gates, with zero test skips in these selections.
   All 77 cases in `scripts/mutations/spec007-explicit-egress.json` have an intended assertion failure, exact source
   restoration, clean checkout and green rerun; their mutation targets and intended test sources match the candidate.
-  PR CI and merge verification are still required before this phase is complete.
+  PR CI passed and the change merged. Exact-master readiness exposed a Windows Docker fixture response failure. The isolated repair merged in #745 (`d4dfbf379`) after fresh Windows and cross-platform PR readiness passed; readiness for the repaired master is pending.
+- **PR 4.11 (implemented; locally verified; PR CI and merge pending)** switches AirGapped and SecureWorkstation to default enforcement. The SecureWorkstation report break-glass is environment-only, latched and logged at Warning; AirGapped ignores lowering overrides and routes apply its process floor even to host guards. Named factory exceptions use `Configure<EgressGuardOptions>` after `AddAshlar`, warn per name, and cannot name Ashlar-owned clients. The registry is checked against production registrations including commercial code. `EgressEnforcementLeakTests` covers A/B/C and C0–C12. All 28 mode, route, client-exception, leak and registry mutations have intended assertion failures, exact source restoration, clean checkouts and passing restored runs, reconciled against the candidate. Local validation passes 3,240 canonical certification tests, 1,091 net8 Egress tests, 1,099 net10 Egress tests, all 28 repository gates and the core build; these test selections have zero skips.
 - **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
@@ -297,6 +298,9 @@ A **security label** is a triple `(Level, Compartments, Caveats)`.
   (named), a missing caveat (named), or `SystemHigh` data. These reasons later feed the harness's
   `ExplainedFailure` outcome (`IterationOutcome.ExplainedFailure`) and receipts.
 
+- **Enforced by** (egress, cert-gate): `EgressEnforcementLeakTests` exercises the real RAG/model path (A), Bing tool path (B), factory send and loopback redirect (C). Its positive controls allow Public/Internal sends and Full-profile reporting. C0–C12 cover unknown labels, open/unreported/thrown reads, no subject, nested frames, ignored AirGapped overrides, classification/host faults and process exports. Refusals stop the transport and expose only redacted local observations; operator records retain the explained decision. C12 checks a subsequent send in the same runner frame after the actual agent cycle ends with `error`.
+- **Read-side scope remains PR 5.** These egress tests supply a test clearance to the RAG filter; they do not establish production clearance wiring or receiver-side `CanRead` enforcement.
+
 ### 2.4 Canonical text form
 
 Labels need one printable form for configuration, logs and, later, receipts. The suggested form below
@@ -438,7 +442,7 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 |---|---|---|---|
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
 | 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #711, `8ec674d2a` (routes every listed non-exempt site, report-only) |
-| 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Designed; ships as PRs 4.1 to 4.11 (see the status) |
+| 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | 4.1–4.10 merged; 4.11 locally verified; PR CI and merge pending (see the status) |
 | 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | Not started |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
 | 7 | **Provisioned resources inherit labels.** Databases, containers and local models an agent spins up carry its label and compartments, register themselves, and are torn down with the compartment. Teardown gets a receipt. | Tearing down a compartment leaves no resource behind and records the wipe | Not started |

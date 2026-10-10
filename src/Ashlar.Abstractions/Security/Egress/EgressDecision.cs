@@ -64,7 +64,7 @@ public sealed class EgressDecision
 
     /// <summary>
     /// The mode the decision was made in: <c>report</c> or <c>enforce</c>. <see cref="ModeBasis"/> says what decided
-    /// it. Until SPEC-007 PR 4.11 every profile defaults to <c>report</c>. HTTP and governed model routes enforce
+    /// it. AirGapped and SecureWorkstation default to <c>enforce</c>; other known profiles report. HTTP and governed model routes enforce
     /// refusals; explicit sites are converted separately in PR 4.9. A decision alone does not prove a send stopped.
     /// </summary>
     public string Mode { get; }

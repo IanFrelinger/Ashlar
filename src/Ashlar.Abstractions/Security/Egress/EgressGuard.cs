@@ -24,7 +24,8 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// built without one (<see cref="ProcessDefault"/>) reads the profile once per decision, preferring the one
 /// <c>AddAshlar</c> noted, and records that same value; its override is the process's (read once from the
 /// environment, and raised to <c>enforce</c> if <c>AddAshlar</c> was asked to), or its constructor's when that is at
-/// least as strict. Until SPEC-007 PR 4.11 every profile defaults to <c>report</c>. If resolving the mode throws, the
+/// least as strict. AirGapped and SecureWorkstation default to <c>enforce</c>; the other profiles report.
+/// AirGapped ignores lowering overrides and SecureWorkstation records a report override as break-glass. If resolving the mode throws, the
 /// mode is <c>enforce</c> with the basis <c>fault</c>: it fails closed.</para>
 /// <para><b>Decision and enforcement.</b> <see cref="Evaluate"/> never throws and never blocks: it records the
 /// decision. HTTP and governed model routes act on <see cref="EgressDecision.Refused"/>. It does not consult or
@@ -96,8 +97,7 @@ public sealed class EgressGuard : IEgressGuard
     /// non-blank value fails closed to <c>enforce</c>. A guard with a <paramref name="deploymentProfile"/> uses this
     /// override alone (none when <see langword="null"/>) and never reads the environment. A guard without one uses the
     /// process override (read once per process), and this override only when it is at least as strict, so it can
-    /// raise that guard's mode but never lower it. HTTP, governed model routes and explicit sites honor enforcement; the full
-    /// profile switch remains SPEC-007 PR 4.11.</param>
+    /// raise that guard's mode but never lower it. HTTP, governed model routes and explicit sites honor enforcement.</param>
     public EgressGuard(string? deploymentProfile = null, string? egressMode = null)
     {
         _deploymentProfile = deploymentProfile;
@@ -117,12 +117,61 @@ public sealed class EgressGuard : IEgressGuard
     // whether that failed evaluation stops the route; never substitute an ordinary allow decision for a fault.
     internal static EgressDecision EvaluateForRoute(IEgressGuard guard, EgressRequest request)
     {
+        var reportOnly = false;
+        if (guard is ReportOnlyFactoryGuard configured)
+        {
+            reportOnly = request.Family == EgressFamilies.HttpFactory
+                && string.Equals(request.Site, "factory:" + configured.ClientName, StringComparison.Ordinal);
+            guard = configured.Inner;
+        }
         string fault;
         try
         {
+            var processProfile = ProcessDefault.ReadProfile();
+            (string Profile, string Basis)? airGapped =
+                AshlarDeploymentProfileEnvironment.IsAirGapped(processProfile)
+                    ? (processProfile!, ProcessDefault.ResolveMode(processProfile).ModeBasis)
+                    : null;
+            // Owned guards apply the route floor before publishing their one decision. Direct Evaluate remains
+            // independent of process state for an explicit-profile guard.
+            if (guard is EgressGuard owned)
+                return owned.EvaluateCore(request, externalFault: null, airGapped, reportOnly);
             var decision = guard.Evaluate(request);
             if (decision is not null)
-                return decision;
+            {
+                string routeMode;
+                string routeBasis;
+                var routeProfile = decision.Profile;
+                var profileEnforces = decision.ProfileEnforcesByDefault;
+                if (airGapped is { } floor)
+                {
+                    if (IsEnforce(decision.Mode))
+                        return decision;
+                    routeMode = EgressEnforcement.EnforceMode;
+                    routeBasis = floor.Basis;
+                    routeProfile = EgressDestinations.Bound(floor.Profile);
+                    profileEnforces = true;
+                }
+                else
+                {
+                    if (!reportOnly || decision.Fault is not null || decision.ModeBasis == EgressEnforcement.FaultBasis
+                        || !AshlarDeploymentProfileEnvironment.TryParseKnown(decision.Profile, out var hostProfile)
+                        || AshlarDeploymentProfileEnvironment.IsAirGapped(hostProfile))
+                        return decision;
+                    routeMode = EgressEnforcement.ReportMode;
+                    routeBasis = EgressEnforcement.HostOptOutBasis;
+                }
+                // A host guard may publish its own record. The changed route mode gets a distinct record,
+                // preserving the host's immutable decision and giving the route its actual outcome.
+                var routed = new EgressDecision(
+                    Interlocked.Increment(ref _sequence), DateTimeOffset.UtcNow, routeMode,
+                    decision.Family, decision.Site, decision.Destination, decision.DestinationClass,
+                    decision.DestinationLabel, decision.DestinationBasis, decision.Current, decision.CurrentBasis,
+                    decision.Access, routeProfile, profileEnforces, decision.Fault,
+                    routeBasis, EgressEnforcement.NewReference());
+                EgressDecisionLog.Publish(routed);
+                return routed;
+            }
             fault = typeof(InvalidOperationException).FullName!;
         }
 #pragma warning disable CA1031 // Host guard faults become recorded NoDecision results; enforcement happens outside this catch.
@@ -136,7 +185,8 @@ public sealed class EgressGuard : IEgressGuard
         return ProcessDefault.EvaluateCore(request, fault);
     }
 
-    private EgressDecision EvaluateCore(EgressRequest? request, string? externalFault)
+    private EgressDecision EvaluateCore(EgressRequest? request, string? externalFault,
+        (string Profile, string Basis)? airGapped = null, bool factoryReportOnly = false)
     {
         var sequence = Interlocked.Increment(ref _sequence);
         var at = DateTimeOffset.UtcNow;
@@ -152,6 +202,12 @@ public sealed class EgressGuard : IEgressGuard
         {
             deploymentProfile = ReadProfile();
             (mode, modeBasis) = ResolveMode(deploymentProfile);
+            if (airGapped is { } floor && !IsEnforce(mode))
+            {
+                deploymentProfile = floor.Profile;
+                mode = EgressEnforcement.EnforceMode;
+                modeBasis = floor.Basis;
+            }
         }
 #pragma warning disable CA1031 // Evaluate never throws by contract: a mode that cannot be resolved is enforce, basis fault.
         catch (Exception)
@@ -204,6 +260,18 @@ public sealed class EgressGuard : IEgressGuard
             var type = ex.GetType();
             fault = type.FullName ?? type.Name;
             access = default;
+        }
+
+        // The named factory exception is applied before publication, never to a fault or an AirGapped route.
+        if (factoryReportOnly && airGapped is null && fault is null && modeBasis != EgressEnforcement.FaultBasis
+            && AshlarDeploymentProfileEnvironment.TryParseKnown(deploymentProfile ?? EgressEnforcement.DefaultProfile, out var canonical)
+            && !AshlarDeploymentProfileEnvironment.IsAirGapped(canonical)
+            && EgressEnforcement.ParseOverride(_egressMode) != EgressEnforcement.OverrideKind.Unrecognised
+            && (_deploymentProfile is not null
+                || EgressEnforcement.ParseOverride(EgressEnforcement.ProcessOverride()) != EgressEnforcement.OverrideKind.Unrecognised))
+        {
+            mode = EgressEnforcement.ReportMode;
+            modeBasis = EgressEnforcement.HostOptOutBasis;
         }
 
         // Q4 is a narrow file-export exception. Keep the real label/access decision in the record,
@@ -308,11 +376,27 @@ public sealed class EgressGuard : IEgressGuard
         return resolved;
     }
 
-    // The record's profile and whether it would enforce once the switch lands, from the value ResolveMode used.
+    // The record's profile and its default enforcement, from the value ResolveMode used.
     private static (string Profile, bool EnforcesByDefault) DescribeProfile(string? profile) =>
         (EgressDestinations.Bound(profile),
             AshlarDeploymentProfileEnvironment.IsAirGapped(profile) || AshlarDeploymentProfileEnvironment.IsSecureWorkstation(profile));
 
     private static bool IsEnforce(string mode) =>
         string.Equals(mode, EgressEnforcement.EnforceMode, StringComparison.Ordinal);
+
+    internal static IEgressGuard ForReportOnlyFactoryClient(IEgressGuard guard, string clientName) =>
+        new ReportOnlyFactoryGuard(guard, clientName);
+
+    private sealed class ReportOnlyFactoryGuard : IEgressGuard
+    {
+        internal ReportOnlyFactoryGuard(IEgressGuard inner, string clientName)
+        {
+            Inner = inner;
+            ClientName = clientName;
+        }
+
+        internal IEgressGuard Inner { get; }
+        internal string ClientName { get; }
+        public EgressDecision Evaluate(EgressRequest request) => EvaluateForRoute(this, request);
+    }
 }

@@ -17,6 +17,74 @@ public sealed class EgressRouteEnforcementTests
     private static readonly Uri Remote = new("https://remote.example/private?credential=canary");
 
     [Theory]
+    [InlineData(false, false, "air-gapped", 0)]
+    [InlineData(false, true, "air-gapped", 0)]
+    [InlineData(true, false, "air-gapped", 0)]
+    [InlineData(true, true, "air-gapped", 0)]
+    [InlineData(false, false, "secure-workstation", 1)]
+    [InlineData(false, true, "secure-workstation", 1)]
+    [InlineData(true, false, "secure-workstation", 1)]
+    [InlineData(true, true, "secure-workstation", 1)]
+    public async Task AirGapped_http_routes_raise_owned_and_host_report_guards(bool sync, bool host, string profile, int sends)
+    {
+        using var setting = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", profile);
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        using var state = new EgressProcessStateScope(reset: true);
+        var owned = new EgressGuard("full", "report");
+        IEgressGuard guard = host ? new CapturingGuard(owned) : owned;
+        var site = "route-floor-" + Guid.NewGuid().ToString("N");
+        var records = new List<EgressDecision>();
+        using var subscription = EgressDecisionLog.Subscribe(new CallbackSink(d => { if (d.Site == site) records.Add(d); }));
+        var inner = new CountingHandler();
+        using var client = EgressHttp.CreateClient(inner, EgressFamilies.Http, site, guard);
+        using var request = new HttpRequestMessage(HttpMethod.Get, Remote);
+        var error = await Record.ExceptionAsync(async () =>
+        {
+            using var response = sync ? client.Send(request) : await client.SendAsync(request);
+        });
+        inner.Sends.Should().Be(sends);
+        if (sends == 0)
+        {
+            var decision = error.Should().BeOfType<EgressRefusedException>().Which.Decision;
+            decision.Mode.Should().Be("enforce");
+            decision.ModeBasis.Should().Be("override-ignored");
+            decision.Profile.Should().Be("air-gapped");
+            records.Last().Should().BeSameAs(decision);
+        }
+        else error.Should().BeNull("a host's mode is honored outside AirGapped");
+        if (!host) records.Should().ContainSingle("owned guards publish only the final route decision");
+        owned.Evaluate(new EgressRequest(EgressFamilies.Http, "direct-pure", Remote)).Mode.Should().Be("report",
+            "a direct explicit-profile evaluation remains independent of process state");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void AirGapped_chat_routes_raise_owned_and_host_report_guards(bool streaming, bool host)
+    {
+        using var setting = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "air-gapped");
+        using var mode = EnvironmentVariableScope.Unset("ASHLAR_EGRESS_MODE");
+        using var state = new EgressProcessStateScope(reset: true);
+        var owned = new EgressGuard("full", "report");
+        IEgressGuard guard = host ? new CapturingGuard(owned) : owned;
+        var inner = new CountingChatClient();
+        using var client = new EgressGuardChatClient(inner,
+            new EgressRequest(EgressFamilies.ModelMeai, "route-floor-chat", Remote), guard);
+        Action call = () =>
+        {
+            if (streaming) _ = client.GetStreamingResponseAsync(Array.Empty<ChatMessage>());
+            else _ = client.GetResponseAsync(Array.Empty<ChatMessage>());
+        };
+        call.Should().Throw<EgressRefusedException>().Which.Decision.ModeBasis.Should().Be("profile:air-gapped");
+        inner.Calls.Should().Be(0);
+        using var subject = EgressSubject.Enter("public-control", new HighWaterMark(SecurityLabel.Public));
+        call.Should().NotThrow("AirGapped enforces the access decision rather than refusing all destinations");
+        inner.Calls.Should().Be(1);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]

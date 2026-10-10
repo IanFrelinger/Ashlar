@@ -13,14 +13,13 @@
     "projects_declaring_ispackable_true": 18,
     "config_variables": 177,
     "operator_facing_config_variables": 155,
-    "operator_vars_missing_from_configuration_reference": 18,
+    "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 798,
-    "declared_facts": 5115,
+    "test_files_declaring_facts": 801,
+    "declared_facts": 5136,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
-    "ASHLAR_EGRESS_MODE",
     "ASHLAR_KEY_DIR",
     "ASHLAR_MESH_AUTOSHARE",
     "ASHLAR_MESH_CA",
@@ -1387,7 +1386,7 @@
         "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
-      "in_configuration_reference": false,
+      "in_configuration_reference": true,
       "in_any_document": true
     },
     {
@@ -5161,6 +5160,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressEnforcementLeakTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 10,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressExplicitEnforcementTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5203,6 +5209,13 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.FactoryNames.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 1,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.Routes.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5221,6 +5234,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 30,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressHostClientOptOutTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 6,
       "in_cert_gate_filter": true
     },
     {
@@ -5248,7 +5268,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressModeProcessBindingTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 25,
+      "declared_facts": 27,
       "in_cert_gate_filter": true
     },
     {
@@ -5332,7 +5352,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRouteEnforcementTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 7,
+      "declared_facts": 9,
       "in_cert_gate_filter": true
     },
     {

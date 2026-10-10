@@ -17,6 +17,18 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Changed — default egress enforcement (SPEC-007 4.11)
+
+- AirGapped and SecureWorkstation enforce by default. Full, Server, Edge and System remain report mode unless
+  opted into enforcement. SecureWorkstation's environment-only report break-glass is read once and logged at
+  Warning; AirGapped ignores lowering overrides and host guard modes cannot bypass its process floor.
+- Hosts can configure named factory client exceptions through `EgressGuardOptions.ReportOnlyClients`, including
+  after `AddAshlar`. Decisions record `host-opt-out`; every name logs at startup. Ashlar-owned names fail boot,
+  AirGapped ignores exceptions, and faults remain fail-closed.
+- Seeded leak tests exercise real RAG, governed models, Bing, factory clients and a loopback redirect. They check
+  refused sends, redacted observations, unknown labels, open reads, nested frames, host faults and child processes.
+  Read-side clearance wiring and declassification remain later SPEC-007 work.
+
 ### Fixed — explicit egress and operator exports (SPEC-007 4.9)
 
 - Explicit egress sites refuse before sending, writing or launching a child when policy enforces. Working-tree
