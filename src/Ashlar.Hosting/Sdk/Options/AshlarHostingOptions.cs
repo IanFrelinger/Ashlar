@@ -11,6 +11,19 @@ namespace Ashlar.Hosting;
 public sealed class AshlarHostingOptions
 {
     /// <summary>
+    /// Trusted operator policy file supplying agent clearance ceilings. Absent means every agent is Public.
+    /// The file is loaded and validated once by AddAshlar; an unreadable or invalid policy refuses composition.
+    /// Never populate this option from an agent request or application manifest.
+    /// </summary>
+    public string? AgentClearancePolicyPath { get; set; }
+
+    /// <summary>
+    /// Optional host limits by exact agent identity. Each is intersected with its policy grant.
+    /// Missing entries preserve the policy ceiling; unknown identities remain Public.
+    /// </summary>
+    public Dictionary<string, string?> AgentClearanceLimits { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// Optional dependency profile that controls which non-core modules are registered.
     /// Defaults to <see cref="AshlarDeploymentProfile.Full"/> unless overridden by
     /// ASHLAR_DEPLOYMENT_PROFILE.

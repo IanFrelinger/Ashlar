@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 801,
-    "declared_facts": 5136,
+    "test_files_declaring_facts": 802,
+    "declared_facts": 5144,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -393,6 +393,7 @@
         "Ashlar.BackgroundAgents",
         "Ashlar.Contracts",
         "Ashlar.Infrastructure",
+        "Ashlar.Manifest",
         "Ashlar.Orchestration",
         "Ashlar.Runtime",
         "Ashlar.Tools.Assembly",
@@ -495,7 +496,9 @@
         "net10.0",
         "net8.0"
       ],
-      "references": []
+      "references": [
+        "Ashlar.Abstractions"
+      ]
     },
     {
       "name": "Ashlar.Mcp.Client",
@@ -5738,6 +5741,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 4,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/SubjectClearanceProdStyleTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 8,
       "in_cert_gate_filter": true
     },
     {

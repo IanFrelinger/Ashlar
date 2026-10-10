@@ -19,6 +19,13 @@ public sealed record AshlarPolicy
     /// <summary>Filesystem confinement for every tool the application holds.</summary>
     public PolicySandbox Sandbox { get; init; } = new();
 
+    /// <summary>
+    /// Operator-owned clearance ceilings, keyed by exact agent identity. Missing agents receive Public.
+    /// Values are canonical security labels; SystemHigh is an explicit operator grant. Host limits may
+    /// narrow these grants but cannot create or widen them. This field belongs only in the policy.
+    /// </summary>
+    public Dictionary<string, string?> AgentClearances { get; init; } = new(StringComparer.Ordinal);
+
     /// <summary>Runtime self-extension settings.</summary>
     public PolicySelfExtend SelfExtend { get; init; } = new();
 

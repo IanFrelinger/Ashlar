@@ -155,3 +155,6 @@ Ashlar.Abstractions.Security.Egress.EgressRefusedException.Site.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressRefusedException.Sequence.get -> long
 Ashlar.Abstractions.Security.Egress.EgressRefusedException.Ref.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressRefusedException.ErrorCode.get -> string!
+Ashlar.Abstractions.Security.SubjectClearanceAuthority
+Ashlar.Abstractions.Security.SubjectClearanceAuthority.SubjectClearanceAuthority(System.Collections.Generic.IReadOnlyDictionary<string!, string?>! policyCeilings, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? hostLimits = null) -> void
+Ashlar.Abstractions.Security.SubjectClearanceAuthority.Resolve(string? subjectId) -> Ashlar.Abstractions.Security.SecurityLabel!

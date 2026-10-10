@@ -443,7 +443,7 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
 | 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #711, `8ec674d2a` (routes every listed non-exempt site, report-only) |
 | 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | 4.1–4.11 merged; #746 enables the defaults (see the status) |
-| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | Not started |
+| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | In progress; owner authority/schema choices accepted 2026-10-10 |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
 | 7 | **Provisioned resources inherit labels.** Databases, containers and local models an agent spins up carry its label and compartments, register themselves, and are torn down with the compartment. Teardown gets a receipt. | Tearing down a compartment leaves no resource behind and records the wipe | Not started |
 | 8 | **Container execution host.** A real `INativeExecutionHost` built on the Docker sandbox, so a sealed skill can run out-of-process in its compartment. | The same skill gives identical results in-process and in a container | Not started |
@@ -481,7 +481,7 @@ vision, split the cert-gate tests into their own project, and move the commercia
 
 1. **REL TO allow-lists.** Are restriction caveats (§2.1) enough for v1, or are allow-lists needed too?
 2. **Compartment names.** Free-form tokens, or registered in a policy pack?
-3. **Where clearances are configured.** A policy pack, host options, or both?
+3. **Where clearances are configured.** Answered 2026-10-10: both, with the policy ceiling and host narrowing (decisions log).
 4. **Labels in signed records.** Should a label go into the signed certification record (a schema
    change that moves the canonical bytes and the golden corpora), or stay in the package manifest?
 5. **Compilation rule.** When does combining many low items raise an output's label, or send it to a
@@ -498,6 +498,7 @@ in the next section.
 
 | Date | Applies to | Decision |
 |---|---|---|
+| 2026-10-10 | PR 5 (§8 Q3, lettered B, §8 Q4) | **The owner accepted all three proposed choices ("Use all 3").** Clearances use both a trusted policy ceiling and host narrowing; the host may restrict, never widen the policy. `SystemHigh` requires an explicit trusted operator/host grant, never a missing or malformed clearance. The skill label is declared in both the package manifest and signed certification record, using a versioned schema/canonical payload and updated golden corpora. This does not settle the other open questions. |
 | 2026-10-04 | PR 2 (#707) | **Out-of-range sensitivity levels fail closed per role.** As data: a value above the top level (4) is `SystemHigh`, and a value below 0 is `Public`. As a clearance: a value above 4 is `TopSecret`, and a value below 0 is refused (no label lies below `Public`). This answers #706's question on custom levels outside 0 to 4. |
 | 2026-10-04 | PR 2 (#707) | **Only the level is carried.** A bridged label has no compartments and no caveats, and the four level flags (`AllowsExternalLLM`, `AllowsWebSearch`, `RequiresLocalOnly`, `AllowsNetworkExports`) do not become caveats. This is a documented gap; open question C says where it goes next. |
 | 2026-10-04 | PR 3 (3a, #709) | **The guard covers every factory client (PR 3 design question 1, answer A; not §8 Q1).** The egress handler sits on every `IHttpClientFactory` client, including clients the host registers, and each decision carries the site `factory:<client name>`. |

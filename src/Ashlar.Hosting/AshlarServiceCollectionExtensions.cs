@@ -114,6 +114,7 @@ public static partial class AshlarServiceCollectionExtensions
     {
         var options = new AshlarHostingOptions();
         configure?.Invoke(options);
+        RegisterSubjectClearances(services, options);
         ResolveStrictMode(options);
         var deploymentProfile = ResolveDeploymentProfile(options, out var profileDefaulted);
         // The hosting options object carries the profile this call resolved, including one that came from

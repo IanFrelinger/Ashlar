@@ -166,6 +166,16 @@ public static class PolicyLoader
             return false;
         }
 
+        try
+        {
+            _ = new Ashlar.Abstractions.Security.SubjectClearanceAuthority(parsed.AgentClearances);
+        }
+        catch (ArgumentException)
+        {
+            reason = "REJECTED: agentClearances must contain exact identities and canonical clearance labels.";
+            return false;
+        }
+
         policy = parsed;
         reason = string.Empty;
         return true;
