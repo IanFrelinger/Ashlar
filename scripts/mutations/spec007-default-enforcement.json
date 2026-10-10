@@ -77,8 +77,8 @@
     {
       "id": "route-host-ag-floor",
       "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
-      "old": "if (airGapped is not { } floor || IsEnforce(decision.Mode))",
-      "new": "if (airGapped is not { } floor || !IsEnforce(decision.Mode))",
+      "old": "var raise = airGapped is not null && !IsEnforce(decision.Mode);",
+      "new": "var raise = airGapped is null && !IsEnforce(decision.Mode);",
       "filter": "FullyQualifiedName~EgressRouteEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -96,6 +96,30 @@
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
         "AirGapped_chat_routes_raise_owned_and_host_report_guards"
+      ]
+    },
+    {
+      "id": "opt-out-owned-mode",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
+      "old": "if (factoryReportOnly && airGapped is null && fault is null && modeBasis != EgressEnforcement.FaultBasis",
+      "new": "if (!factoryReportOnly && airGapped is null && fault is null && modeBasis != EgressEnforcement.FaultBasis",
+      "filter": "FullyQualifiedName~EgressHostClientOptOutTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_late_named_opt_out_reports_only_its_host_client_except_on_AirGapped"
+      ]
+    },
+    {
+      "id": "opt-out-protected-name",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressGuardOptions.cs",
+      "old": "client is null || AshlarFactoryClientNames.All.Contains(client, StringComparer.Ordinal)",
+      "new": "client is null",
+      "filter": "FullyQualifiedName~EgressHostClientOptOutTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "A_protected_client_opt_out_fails_actual_host_start"
       ]
     }
   ]
