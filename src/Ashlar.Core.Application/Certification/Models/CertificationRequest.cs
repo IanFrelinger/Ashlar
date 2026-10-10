@@ -10,6 +10,9 @@ namespace Ashlar.Core.Application.Certification.Models;
 /// </summary>
 public sealed record CertificationRequest
 {
+    /// <summary>Declared maximum data level. Missing declarations are SystemHigh, never Public.</summary>
+    public string HighestDataLabel { get; init; } = "SystemHigh";
+
     /// <summary>Brick definition under certification.</summary>
     public required DomainBrick Brick { get; init; }
 

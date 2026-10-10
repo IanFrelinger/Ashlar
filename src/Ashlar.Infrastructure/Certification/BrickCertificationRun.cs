@@ -25,6 +25,9 @@ public enum BrickCertificationOutcome
 /// <summary>Everything one certification run needs. Paths are resolved by the run, not by the caller.</summary>
 public sealed record BrickCertificationRunRequest
 {
+    /// <summary>Declared maximum data level; omission is the conservative SystemHigh label.</summary>
+    public string HighestDataLabel { get; init; } = "SystemHigh";
+
     /// <summary>Directory holding the brick's single author <c>.cs</c> file and its <c>.csproj</c>.</summary>
     public required string BrickProjectDirectory { get; init; }
 
@@ -144,6 +147,7 @@ public static class BrickCertificationRun
         {
             var certificationRequest = await BrickCertificationProjectLoader
                 .LoadAsync(brickDir, witnessPath, cancellationToken).ConfigureAwait(false);
+            certificationRequest = certificationRequest with { HighestDataLabel = request.HighestDataLabel };
             var decision = await admission
                 .CertifyAndAdmitAsync(certificationRequest, cancellationToken).ConfigureAwait(false);
 
@@ -159,7 +163,8 @@ public static class BrickCertificationRun
             if (certificationRequest.EmittedArtifact is { } artifact)
             {
                 artifactPath = Path.Combine(recordDir, CertifiedArtifactExporter.ArtifactFileName);
-                await File.WriteAllBytesAsync(artifactPath, artifact.AssemblyBytes, cancellationToken).ConfigureAwait(false);
+                await CertifiedArtifactExporter.WriteAsync(recordPath,
+                    CertificationRecordMapper.ToData(decision.Record), artifact, cancellationToken).ConfigureAwait(false);
             }
 
             // On ADMIT the registry has already saved <brickId>.json through the store; this second

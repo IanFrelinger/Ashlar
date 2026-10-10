@@ -56,8 +56,28 @@ public sealed class CertificationGateTeethTests
         ];
     }
 
-    [Fact]
-    public async Task GoodBrick_StrongWitness_Admits_WithZeroEscapeRate()
+    [Theory]
+    [InlineData("")]
+    [InlineData("Secret ")]
+    [InlineData("Unknown")]
+    public async Task Invalid_skill_declaration_is_refused_before_candidate_execution(string label)
+    {
+        var request = new CertificationRequest
+        {
+            HighestDataLabel = label,
+            Brick = new MutationProbeBrick(), Witness = StrongWitness,
+            SourceCode = MutationProbeBrickSource.Code, ProjectPath = "fixture"
+        };
+        var action = () => CreateGate().CertifyAsync(request);
+        await action.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("Public")]
+    [InlineData("Secret")]
+    [InlineData("SystemHigh")]
+    [InlineData(null)]
+    public async Task GoodBrick_StrongWitness_Admits_WithZeroEscapeRate(string? label)
     {
         var gate = CreateGate();
         var brick = new MutationProbeBrick();
@@ -71,9 +91,13 @@ public sealed class CertificationGateTeethTests
             BrickTypeName = typeof(MutationProbeBrick).FullName
         };
 
+        if (label is not null)
+            request = request with { HighestDataLabel = label };
         var decision = await gate.CertifyAsync(request);
 
         decision.Admitted.Should().BeTrue();
+        decision.Record.SchemaVersion.Should().Be(CertificationRecordData.LabelSchemaVersion);
+        decision.Record.HighestDataLabel.Should().Be(label ?? "SystemHigh");
         decision.Record.EscapeRate.Should().Be(0);
         decision.Record.Signed.Should().BeTrue();
         decision.Record.Signature.Should().NotBeNullOrWhiteSpace();

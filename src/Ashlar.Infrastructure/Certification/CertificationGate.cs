@@ -77,6 +77,7 @@ public sealed class CertificationGate : ICertificationGate
         CertificationRequest request,
         CancellationToken cancellationToken)
     {
+        CertifiedSkillManifest.ValidateLabel(request.HighestDataLabel);
         var brickId = request.Brick.Id;
         var timestamp = DateTimeOffset.UtcNow;
 
@@ -103,7 +104,7 @@ public sealed class CertificationGate : ICertificationGate
                     ex.Message,
                     mutation: null,
                     gatesPassed: Array.Empty<CertificationGatePass>(),
-                    inputs)
+                    inputs, request.HighestDataLabel)
             };
         }
 
@@ -184,7 +185,7 @@ public sealed class CertificationGate : ICertificationGate
                 reason,
                 mutation,
                 GatesPassedBefore(check),
-                inputs);
+                inputs, request.HighestDataLabel);
 
         if (!analyzerOutcome.Passed)
         {
@@ -317,7 +318,7 @@ public sealed class CertificationGate : ICertificationGate
             {
                 analyzerGatePass, correctnessPass, mutationPass, determinismPass, DependencyGatePass
             },
-            inputs: inputs);
+            inputs: inputs, highestDataLabel: request.HighestDataLabel);
         admittedRecord = _signer.SignRecord(admittedRecord);
 
         _logger?.LogInformation("Certification ADMIT {BrickId} escape_rate=0", brickId);
@@ -506,7 +507,8 @@ public sealed class CertificationGate : ICertificationGate
         string? reason,
         MutationTestResult? mutation,
         IReadOnlyList<CertificationGatePass> gatesPassed,
-        IReadOnlyList<CertificationInput> inputs)
+        IReadOnlyList<CertificationInput> inputs,
+        string highestDataLabel)
     {
         return new CertificationRecord
         {
@@ -524,7 +526,8 @@ public sealed class CertificationGate : ICertificationGate
             SurvivingMutantIds = mutation?.SurvivingMutantIds ?? Array.Empty<string>(),
             Reason = reason,
             Gate = "Ashlar.Infrastructure.Certification.CertificationGate",
-            SchemaVersion = CertificationRecordData.TrustLoopSchemaVersion,
+            SchemaVersion = CertificationRecordData.LabelSchemaVersion,
+            HighestDataLabel = highestDataLabel,
             GatesPassed = gatesPassed,
             Inputs = inputs
         };
