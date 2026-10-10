@@ -12,6 +12,7 @@ using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using Ashlar.Abstractions;
 using Ashlar.Mcp.Server;
+using Ashlar.Abstractions.Security.Egress;
 using Xunit;
 
 namespace Ashlar.Mcp.Client.Tests;
@@ -53,6 +54,7 @@ public sealed class McpRoundTripTests
         private readonly ServiceProvider _provider;
         public Pipe ClientToServer { get; } = new();
         public Pipe ServerToClient { get; } = new();
+        public Exception? ClientWriteFailure { get; set; }
 
         public ServerHarness()
         {
@@ -82,7 +84,7 @@ public sealed class McpRoundTripTests
         public async Task<McpClient> ConnectClientAsync(CancellationToken ct)
         {
             var transport = new StreamClientTransport(
-                serverInput: ClientToServer.Writer.AsStream(),
+                serverInput: new RefusingWriteStream(ClientToServer.Writer.AsStream(), () => ClientWriteFailure),
                 serverOutput: ServerToClient.Reader.AsStream(),
                 NullLoggerFactory.Instance);
             return await McpClient.CreateAsync(transport, clientOptions: null, loggerFactory: NullLoggerFactory.Instance, cancellationToken: ct);
@@ -107,6 +109,77 @@ public sealed class McpRoundTripTests
     }
 
     private static CancellationToken TestTimeout() => new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
+
+    [Fact(Timeout = 60000)]
+    public async Task Local_refusal_during_drift_and_invocation_preserves_pins_and_the_typed_error()
+    {
+        var ct = TestTimeout();
+        await using var harness = new ServerHarness();
+        await harness.StartAsync(ct);
+        var options = new AshlarMcpClientOptions { Enabled = true };
+        options.Servers.Add(new McpServerEndpointOptions { Name = "test", Url = "https://in-memory.invalid/mcp" });
+        var logger = new RefusalLogger();
+        await using var manager = new McpClientConnectionManager(Options.Create(options),
+            NullLoggerFactory.Instance, logger)
+        { ClientFactoryOverride = (_, token) => harness.ConnectClientAsync(token) };
+        await manager.StartAsync(ct);
+        var tool = manager.GetTools().Should().ContainSingle().Subject;
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Mcp, "mcp.call", new Uri("https://remote.example"))));
+        harness.ClientWriteFailure = new IOException("private-canary", refusal);
+        await manager.RefreshOnceAsync(ct);
+        manager.GetTools().Should().ContainSingle().Which.Should().BeSameAs(tool);
+        using var args = JsonDocument.Parse("""{"value":"allowed"}""");
+        var error = await Record.ExceptionAsync(() => tool.InvokeAsync(new ToolCall(tool.Id, args.RootElement),
+            WorldSnapshot.ForRepo("X:/repo"), ct));
+        error.Should().BeSameAs(refusal);
+        logger.Warnings.Should().Equal(7307);
+    }
+
+    private sealed class RefusalLogger : ILogger<McpClientConnectionManager>
+    {
+        internal List<int> Warnings { get; } = new();
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? error, Func<TState, Exception?, string> format)
+        {
+            if (level == LogLevel.Warning) Warnings.Add(id.Id);
+        }
+    }
+
+    private sealed class RefusingWriteStream(Stream inner, Func<Exception?> failure) : Stream
+    {
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() => inner.Flush();
+        public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            if (failure() is { } error) throw error;
+            inner.Write(buffer, offset, count);
+        }
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            if (failure() is { } error) throw error;
+            return inner.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (failure() is { } error) throw error;
+            return inner.WriteAsync(buffer, cancellationToken);
+        }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
 
     [Fact(Timeout = 60000)]
     public async Task Client_lists_the_allowlisted_tool_with_sanitized_name_and_pinned_schema()

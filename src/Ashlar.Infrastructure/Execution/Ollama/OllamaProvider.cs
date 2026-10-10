@@ -119,6 +119,12 @@ public sealed class OllamaProvider
             IsAvailable = true;
             return Result<IReadOnlyList<OllamaModelManifest>>.Success(manifest);
         }
+        catch (Exception ex) when (Ashlar.Abstractions.Security.Egress.EgressRefusal.Find(ex) is not null)
+        {
+            IsAvailable = false;
+            Ashlar.Abstractions.Security.Egress.EgressRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (OperationCanceledException)
         {
             IsAvailable = false;
@@ -274,6 +280,11 @@ public sealed class OllamaProvider
 
             var content = contentElement.GetString() ?? string.Empty;
             return Result<string>.Success(content);
+        }
+        catch (Exception ex) when (Ashlar.Abstractions.Security.Egress.EgressRefusal.Find(ex) is not null)
+        {
+            Ashlar.Abstractions.Security.Egress.EgressRefusal.ThrowIfPresent(ex);
+            throw;
         }
         catch (OperationCanceledException)
         {

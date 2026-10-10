@@ -12,12 +12,49 @@ using Ashlar.Core.Domain.Execution;
 using Ashlar.Core.Domain.Execution.Events;
 using Ashlar.Core.Domain.Workflows;
 using Xunit;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.Tests.Application;
 
 /// <summary>Tests for a workflow executor edge case.</summary>
 public sealed class WorkflowExecutorEdgeCaseTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Fallback_preserves_first_refusal_unless_an_alternative_succeeds(bool clusterNode, bool succeeds)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "workflow", new Uri("https://remote.example"))));
+        var brick = new FallbackStubBrick { FirstFailure = new IOException("wrapped", refusal), FailAlternative = !succeeds };
+        var bricks = new Mock<IBrickRegistry>();
+        bricks.Setup(x => x.GetBrick("fallback-brick")).Returns(brick);
+        var store = new Mock<IClusterStore>();
+        store.Setup(x => x.GetByIdAsync("cluster", It.IsAny<CancellationToken>())).ReturnsAsync(new Cluster
+        {
+            Id = "cluster", Name = "cluster", Description = "test",
+            Bricks = [new ClusterBrick { LocalId = "b", BrickId = "fallback-brick" }],
+            Interface = new ClusterInterface()
+        });
+        var executor = new WorkflowExecutor(Mock.Of<IAgentRegistry>(), bricks.Object, Mock.Of<IBehaviorRegistry>(),
+            Mock.Of<IBehaviorExecutor>(), new SequentialLoopKernel(), Mock.Of<ITextFileSystem>(),
+            NullLogger<WorkflowExecutor>.Instance, clusterStore: store.Object);
+        var definition = new WorkflowDefinition
+        {
+            Id = "refusal", Name = "refusal",
+            Nodes = [clusterNode ? new ClusterNode { Id = "node", ClusterId = "cluster" }
+                : new BrickNode { Id = "node", BrickId = "fallback-brick" }]
+        };
+        if (succeeds)
+            (await executor.ExecuteAsync(definition, new WorkflowInput())).Success.Should().BeTrue();
+        else
+            (await Record.ExceptionAsync(() => executor.ExecuteAsync(definition, new WorkflowInput())))
+                .Should().BeSameAs(refusal);
+        brick.Calls.Should().Be(2);
+    }
+
     [Fact]
     public async Task ExecuteAsync_runs_agent_node_and_forwards_brick_events()
     {
@@ -1569,6 +1606,9 @@ public sealed class WorkflowExecutorEdgeCaseTests
     /// <summary>Fallback stub brick.</summary>
     private sealed class FallbackStubBrick : DomainBrick
     {
+        public Exception? FirstFailure { get; init; }
+        public bool FailAlternative { get; init; }
+        public int Calls { get; private set; }
         public FallbackStubBrick()
         {
             Id = "fallback-brick";
@@ -1588,10 +1628,13 @@ public sealed class WorkflowExecutorEdgeCaseTests
             IExecutionContext context,
             CancellationToken cancellationToken = default)
         {
+            Calls++;
             if (implementation == ImplementationType.Deterministic)
             {
-                throw new InvalidOperationException("deterministic failed");
+                throw FirstFailure ?? new InvalidOperationException("deterministic failed");
             }
+
+            if (FailAlternative) throw new InvalidOperationException("later ordinary failure");
 
             var output = new BrickOutput();
             output.Set("result", "agentic-ok");

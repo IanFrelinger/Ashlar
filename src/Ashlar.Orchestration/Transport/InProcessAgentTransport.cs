@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions.Transport;
 using Ashlar.Orchestration.Agents;
@@ -46,6 +47,17 @@ public sealed class InProcessAgentTransport : IAgentTransport
                 Success: true,
                 Output: output,
                 Duration: DateTimeOffset.UtcNow - startedAt,
+                CorrelationId: request.CorrelationId,
+                SpanId: request.SpanId);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return new AgentResult(
+                Success: false,
+                ErrorMessage: refusal.Message,
+                Duration: DateTimeOffset.UtcNow - startedAt,
+                Metadata: EgressRefusal.Metadata(refusal),
+                ErrorCode: EgressRefusal.Code,
                 CorrelationId: request.CorrelationId,
                 SpanId: request.SpanId);
         }

@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Ashlar.Brick.Contracts;
 using Ashlar.Core.Domain.Bricks;
@@ -9,11 +10,12 @@ namespace Ashlar.Infrastructure.Execution;
 /// DomainBrick registry that merges local bricks with bricks from one or more remote catalogs.
 /// Remote bricks are returned as <see cref="RemoteBrick"/> instances.
 /// </summary>
-public sealed class CompositeBrickRegistry : IBrickRegistry
+public sealed class CompositeBrickRegistry : IBrickRegistry, IDisposable
 {
     private readonly IBrickRegistry _local;
     private readonly IReadOnlyList<IRemoteBrickCatalog> _remoteCatalogs;
     private readonly HttpClient _httpClient;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<CompositeBrickRegistry>? _logger;
 
     /// <summary>Initializes a new composite brick registry.</summary>
@@ -27,6 +29,10 @@ public sealed class CompositeBrickRegistry : IBrickRegistry
         _remoteCatalogs = remoteCatalogs ?? new List<IRemoteBrickCatalog>();
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger;
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
     }
 
     /// <summary>Gets brick.</summary>
@@ -54,6 +60,10 @@ public sealed class CompositeBrickRegistry : IBrickRegistry
                     }
                     return new RemoteBrick(entry, _httpClient, executeBaseUrl, null);
                 }
+            }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _refusalWarnings.Report(refusal);
             }
             catch (Exception ex)
             {
@@ -93,6 +103,10 @@ public sealed class CompositeBrickRegistry : IBrickRegistry
                     set[entry.Id] = new RemoteBrick(entry, _httpClient, entry.HostBaseUrl ?? baseUrl, null);
                 }
             }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _refusalWarnings.Report(refusal);
+            }
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "Failed to get bricks from catalog {BaseUrl}", catalog.BaseUrl);
@@ -101,4 +115,10 @@ public sealed class CompositeBrickRegistry : IBrickRegistry
 
         return set.Values.ToList();
     }
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public void Dispose()
+    {
+        _refusalWarnings.Dispose();
+    }
+
 }

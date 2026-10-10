@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,6 +26,22 @@ public sealed class ToolboxMcpToolContributorTests
             Options.Create(options ?? new AshlarMcpServerOptions()),
             snapshots ?? new FixedSnapshotFactory(),
             NullLogger<ToolboxMcpToolContributor>.Instance);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Egress_refusal_crosses_the_Mcp_boundary_as_fixed_text_only(bool wrapped)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "site-canary", new Uri("https://remote.example/private-canary"))));
+        Exception error = wrapped ? new AggregateException(new IOException("unrelated-canary"),
+            new HttpRequestException("wrapper-canary", refusal)) : refusal;
+        var contributor = Create(new[] { new FakeTool("tool-canary", invoke: (_, _, _) => throw error) });
+        var outcome = await contributor.InvokeAsync("tool-canary", Json.Object(), CancellationToken.None);
+        outcome.IsError.Should().BeTrue();
+        outcome.Text.Should().Be($"egress refused by policy (ref {refusal.Ref})");
+        outcome.Payload.Should().BeNull();
+    }
 
     [Fact]
     public async Task Empty_allowlist_describes_zero_tools_even_when_tools_are_registered()

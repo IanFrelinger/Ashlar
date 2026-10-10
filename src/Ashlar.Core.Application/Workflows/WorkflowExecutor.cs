@@ -1,3 +1,5 @@
+using Ashlar.Abstractions.Security.Egress;
+using System.Runtime.ExceptionServices;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
 using Microsoft.Extensions.Logging;
@@ -282,6 +284,7 @@ public class WorkflowExecutor
         BrickInputDefaults.Apply(brick, brickInput);
         BrickOutput? result = null;
         Exception? last = null;
+        EgressRefusedException? firstRefusal = null;
 
         await _loops.ForEachAsync(chain, async (impl, _, token) =>
         {
@@ -295,6 +298,7 @@ public class WorkflowExecutor
             }
             catch (Exception ex)
             {
+                firstRefusal ??= EgressRefusal.Find(ex);
                 last = ex;
                 return LoopAction.Continue;
             }
@@ -302,6 +306,7 @@ public class WorkflowExecutor
 
         if (result == null)
         {
+            if (firstRefusal is not null) ExceptionDispatchInfo.Capture(firstRefusal).Throw();
             throw last ?? new InvalidOperationException("DomainBrick execution failed");
         }
         
@@ -366,6 +371,7 @@ public class WorkflowExecutor
             BrickInputDefaults.Apply(brick, brickInput);
 
             BrickOutput? result = null;
+            EgressRefusedException? firstRefusal = null;
             foreach (var impl in chain)
             {
                 try
@@ -375,12 +381,14 @@ public class WorkflowExecutor
                 }
                 catch (Exception ex)
                 {
+                    firstRefusal ??= EgressRefusal.Find(ex);
                     _logger.LogWarning(ex, "DomainBrick {BrickId} failed with {Impl}, trying fallback", clusterBrick.BrickId, impl);
                 }
             }
 
             if (result == null)
             {
+                if (firstRefusal is not null) ExceptionDispatchInfo.Capture(firstRefusal).Throw();
                 if (cluster.Interface.FailurePolicy == FailurePolicy.Abort)
                     throw new InvalidOperationException($"DomainBrick execution failed: {clusterBrick.BrickId}");
                 continue;

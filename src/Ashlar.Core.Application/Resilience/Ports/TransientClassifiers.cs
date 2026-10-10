@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Net.Http;
 using System.Net.Sockets;
 
@@ -24,7 +25,7 @@ public static class TransientClassifiers
     /// treated as transient here.
     /// </remarks>
     public static bool Network(Exception exception) =>
-        exception switch
+        EgressRefusal.Find(exception) is null && exception switch
         {
             null => false,
             OperationCanceledException => true,

@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
@@ -34,10 +35,14 @@ public sealed class A2AServerRoundTripTests
         public AgentInvocationRequest? LastRequest { get; private set; }
 
         public bool Fail { get; set; }
+        public Exception? Error { get; set; }
+        public AgentResult? Result { get; set; }
 
         public Task<AgentResult> SendAsync(AgentInvocationRequest request, CancellationToken cancellationToken = default)
         {
             LastRequest = request;
+            if (Error is not null) return Task.FromException<AgentResult>(Error);
+            if (Result is not null) return Task.FromResult(Result);
             return Task.FromResult(Fail
                 ? new AgentResult(Success: false, ErrorMessage: "agent exploded", ErrorCode: "boom")
                 : new AgentResult(
@@ -79,6 +84,46 @@ public sealed class A2AServerRoundTripTests
             .StartAsync();
 
         return (host, agentTransport);
+    }
+
+    [Theory(Timeout = 60000)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Egress_refusal_round_trip_preserves_code_and_reference_without_raw_details(int form)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "site-canary", new Uri("https://remote.example/private-canary"))));
+        var (host, agent) = await StartServerAsync();
+        using var ownedHost = host;
+        if (form == 0) agent.Error = new AggregateException(new IOException("unrelated-canary"),
+            new HttpRequestException("wrapper-canary", refusal));
+        else agent.Result = new AgentResult(false, Output: new { secret = "output-canary" },
+            ErrorMessage: "detail-canary", ErrorCode: form == 1 ? "EGRESS_REFUSED" : null,
+            Metadata: new Dictionary<string, string> { ["errorCode"] = "EGRESS_REFUSED", ["egressRef"] = refusal.Ref });
+        var capture = new CaptureResponse { InnerHandler = host.GetTestServer().CreateHandler() };
+        using var client = new HttpClient(capture);
+        var transport = new A2AAgentTransport(Options.Create(new A2ATransportOptions()), NullLogger<A2AAgentTransport>.Instance)
+        { HttpClientFactoryOverride = _ => client };
+        var result = await transport.SendAsync(new AgentInvocationRequest("echo-agent", "refusal-test",
+            Options: new AgentInvocationOptions(TimeSpan.FromSeconds(20), 0, "a2a+http://localhost/api/a2a/echo-agent")));
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be("a2a.egress_refused");
+        result.ErrorMessage.Should().Be($"egress refused by policy (ref {refusal.Ref})");
+        result.Metadata!["egressRef"].Should().Be(refusal.Ref);
+        result.Output.Should().BeNull();
+        capture.Body.Should().NotContain("canary").And.Contain(refusal.Ref);
+    }
+
+    private sealed class CaptureResponse : DelegatingHandler
+    {
+        internal string Body { get; private set; } = string.Empty;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = await base.SendAsync(request, cancellationToken);
+            Body = await response.Content.ReadAsStringAsync(cancellationToken);
+            return response;
+        }
     }
 
     [Fact(Timeout = 60000)]

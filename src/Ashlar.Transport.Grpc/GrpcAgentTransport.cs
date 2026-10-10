@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Grpc.Core;
@@ -65,6 +66,14 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 deadline: deadline,
                 cancellationToken: cancellationToken).ResponseAsync;
 
+            if (!response.Success && EgressRefusal.IsCode(response.ErrorCode))
+            {
+                var reference = EgressRefusal.SafeReference(response.EgressRef);
+                return new AgentResult(false, ErrorMessage: EgressRefusal.RemoteMessage(reference),
+                    ErrorCode: EgressRefusal.Code, Metadata: EgressRefusal.Metadata(reference),
+                    Duration: DateTimeOffset.UtcNow - startedAt,
+                    CorrelationId: request.CorrelationId, SpanId: request.SpanId);
+            }
             var output = DeserializeOutput(response.Output);
             return new AgentResult(
                 Success: response.Success,
@@ -75,6 +84,13 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 ErrorCode: string.IsNullOrWhiteSpace(response.ErrorCode) ? null : response.ErrorCode,
                 CorrelationId: string.IsNullOrWhiteSpace(response.CorrelationId) ? request.CorrelationId : response.CorrelationId,
                 SpanId: string.IsNullOrWhiteSpace(response.SpanId) ? request.SpanId : response.SpanId);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return new AgentResult(false, ErrorMessage: refusal.Message,
+                ErrorCode: EgressRefusal.Code, Metadata: EgressRefusal.Metadata(refusal),
+                Duration: DateTimeOffset.UtcNow - startedAt,
+                CorrelationId: request.CorrelationId, SpanId: request.SpanId);
         }
         catch (RpcException ex)
         {
@@ -157,6 +173,10 @@ public sealed class GrpcAgentTransport : IAgentTransport, IDisposable
                 Message: response.DiagnosticMessage,
                 TransportType: response.TransportType,
                 DiagnosticMessage: response.DiagnosticMessage);
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return new TransportHealth(false, "gRPC", EgressRefusal.RemoteMessage(refusal.Ref), "gRPC") { Refusal = refusal };
         }
         catch (Exception ex)
         {

@@ -96,6 +96,13 @@ public sealed class A2AAgentTransport : IAgentTransport
                 var response = await client.SendMessageAsync(sendRequest, timeout.Token).ConfigureAwait(false);
                 return A2AInvocationMapper.MapResponse(response, request, stopwatch.Elapsed);
             }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                return Failure(request, stopwatch.Elapsed, "a2a.egress_refused", refusal.Message) with
+                {
+                    Metadata = EgressRefusal.Metadata(refusal)
+                };
+            }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
@@ -148,6 +155,10 @@ public sealed class A2AAgentTransport : IAgentTransport
             var resolver = new A2ACardResolver(baseUrl, GetHttpClient(baseUrl));
             var card = await resolver.GetAgentCardAsync(cancellationToken).ConfigureAwait(false);
             return new TransportHealth(true, "a2a", $"Agent card '{card.Name}' reachable.", "a2a");
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return new TransportHealth(false, "a2a", EgressRefusal.RemoteMessage(refusal.Ref), "a2a") { Refusal = refusal };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

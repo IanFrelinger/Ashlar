@@ -1,0 +1,591 @@
+{
+  "schema": 1,
+  "note": "SPEC-0074.8 mutation plan. Not evidence until real assertion failures, exact byte restoration, clean status and green are recorded on a committed candidate. Cross-framework compile regression is verified by all-TFM builds, not counted as a mutation kill.",
+  "mutations": [
+    {
+      "id": "s1-httpremotebrickcatalog-catch-1",
+      "file": "src/Ashlar.Infrastructure/Execution/HttpRemoteBrickCatalog.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return [];\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return [];\n        }",
+      "filter": "FullyQualifiedName~HttpRemoteBrickCatalogCapabilityFallbackTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s2-httpremotebrickcatalog-catch-2",
+      "file": "src/Ashlar.Infrastructure/Execution/HttpRemoteBrickCatalog.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return null;\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return null;\n        }",
+      "filter": "FullyQualifiedName~HttpRemoteBrickCatalogCapabilityFallbackTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s3-httpremotebrickcatalog-catch-3",
+      "file": "src/Ashlar.Infrastructure/Execution/HttpRemoteBrickCatalog.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return new CapabilitiesFetchResult();\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return new CapabilitiesFetchResult();\n        }",
+      "filter": "FullyQualifiedName~HttpRemoteBrickCatalogCapabilityFallbackTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s4-compositebrickregistry-catch-1",
+      "file": "src/Ashlar.Infrastructure/Execution/CompositeBrickRegistry.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }\n            catch (Exception ex)\n            {\n                _logger?.LogWarning(ex, \"Failed to get brick {BrickId} from catalog {BaseUrl}\", id, catalog.BaseUrl);",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }\n            catch (Exception ex)\n            {\n                _logger?.LogWarning(ex, \"Failed to get brick {BrickId} from catalog {BaseUrl}\", id, catalog.BaseUrl);",
+      "filter": "FullyQualifiedName~CompositeCatalogRefusalTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s5-compositebrickregistry-catch-2",
+      "file": "src/Ashlar.Infrastructure/Execution/CompositeBrickRegistry.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }\n            catch (Exception ex)\n            {\n                _logger?.LogWarning(ex, \"Failed to get bricks from catalog {BaseUrl}\", catalog.BaseUrl);",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }\n            catch (Exception ex)\n            {\n                _logger?.LogWarning(ex, \"Failed to get bricks from catalog {BaseUrl}\", catalog.BaseUrl);",
+      "filter": "FullyQualifiedName~CompositeCatalogRefusalTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s6-modelartifactcatalogservice-catch-1",
+      "file": "src/Ashlar.Infrastructure/ModelArtifacts/ModelArtifactCatalogService.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "filter": "FullyQualifiedName~ModelArtifactCatalogServiceTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s7-remoteexecutionplatform-catch-1",
+      "file": "src/Ashlar.Infrastructure/Testing/ExecutionPlatform/RemoteExecutionPlatform.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return false;\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return false;\n        }",
+      "filter": "FullyQualifiedName~RemoteExecutionPlatformGapCoverageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s8-remoteexecutionplatform-catch-2",
+      "file": "src/Ashlar.Infrastructure/Testing/ExecutionPlatform/RemoteExecutionPlatform.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return new ExecutionBuildResult(false, refusal.Message, DateTime.UtcNow - startTime);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return new ExecutionBuildResult(false, refusal.Message, DateTime.UtcNow - startTime);\n        }",
+      "filter": "FullyQualifiedName~RemoteExecutionPlatformGapCoverageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s9-remoteexecutionplatform-catch-3",
+      "file": "src/Ashlar.Infrastructure/Testing/ExecutionPlatform/RemoteExecutionPlatform.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return new ExecutionRunResult(false, -1, \"\", refusal.Message, null, DateTime.UtcNow - startTime);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            return new ExecutionRunResult(false, -1, \"\", refusal.Message, null, DateTime.UtcNow - startTime);\n        }",
+      "filter": "FullyQualifiedName~RemoteExecutionPlatformGapCoverageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s10-validationserviceadapter-catch-1",
+      "file": "src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs",
+      "old": "                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n                {\n                    // A prevented test process executed no tests. Retain already completed evidence.\n                    evidenceErrors.Add($\"{testProject.Name}: {refusal.Message}\");\n                }",
+      "new": "                catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n                {\n                    // A prevented test process executed no tests. Retain already completed evidence.\n                    evidenceErrors.Add($\"{testProject.Name}: {refusal.Message}\");\n                }",
+      "filter": "FullyQualifiedName~Refusal_preserves_completed_evidence",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s11-validationserviceadapter-catch-2",
+      "file": "src/Ashlar.Infrastructure/Validation/Adapters/ValidationServiceAdapter.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            evidenceErrors.Add(refusal.Message);\n            return new ValidationResult\n            {\n                Passed = false,\n                Message = refusal.Message,\n                TestsRun = totalTestsRun,\n                TestsPassed = totalTestsPassed,\n                TestsFailed = totalTestsFailed,\n                TestsSkipped = totalTestsSkipped,\n                TestResults = allTestResults,\n                EvidenceErrors = evidenceErrors\n            };\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            evidenceErrors.Add(refusal.Message);\n            return new ValidationResult\n            {\n                Passed = false,\n                Message = refusal.Message,\n                TestsRun = totalTestsRun,\n                TestsPassed = totalTestsPassed,\n                TestsFailed = totalTestsFailed,\n                TestsSkipped = totalTestsSkipped,\n                TestResults = allTestResults,\n                EvidenceErrors = evidenceErrors\n            };\n        }",
+      "filter": "FullyQualifiedName~Refusal_preserves_completed_evidence",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s12-meshlabworkerexecutorbackgroundservice-catch-1",
+      "file": "src/Ashlar.Infrastructure/MeshLab/MeshLabWorkerExecutorBackgroundService.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "filter": "FullyQualifiedName~Refused_polls_warn_once",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s13-elasticworkloadautoscaleservice-catch-1",
+      "file": "src/Ashlar.Infrastructure/Scaling/ElasticWorkloadAutoscaleService.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "filter": "FullyQualifiedName~AutoscaleRefusalTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s14-ollamaprovider-catch-1",
+      "file": "src/Ashlar.Infrastructure/Execution/Ollama/OllamaProvider.cs",
+      "old": "        catch (Exception ex) when (Ashlar.Abstractions.Security.Egress.EgressRefusal.Find(ex) is not null)\n        {\n            IsAvailable = false;\n            Ashlar.Abstractions.Security.Egress.EgressRefusal.ThrowIfPresent(ex);\n            throw;\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && Ashlar.Abstractions.Security.Egress.EgressRefusal.Find(ex) is not null)\n        {\n            IsAvailable = false;\n            Ashlar.Abstractions.Security.Egress.EgressRefusal.ThrowIfPresent(ex);\n            throw;\n        }",
+      "filter": "FullyQualifiedName~Real_Ollama_health_refusal",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s15-runpodhttpclient-catch-1",
+      "file": "src/Ashlar.Infrastructure/Execution/Routing/RunPodHttpClient.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<RunPodInstance>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<RunPodInstance>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "filter": "FullyQualifiedName~RunPodHttpClientTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s16-runpodhttpclient-catch-2",
+      "file": "src/Ashlar.Infrastructure/Execution/Routing/RunPodHttpClient.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<JobHandle>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<JobHandle>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "filter": "FullyQualifiedName~RunPodHttpClientTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s17-runpodhttpclient-catch-3",
+      "file": "src/Ashlar.Infrastructure/Execution/Routing/RunPodHttpClient.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<JobStatus>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<JobStatus>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "filter": "FullyQualifiedName~RunPodHttpClientTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s18-runpodhttpclient-catch-4",
+      "file": "src/Ashlar.Infrastructure/Execution/Routing/RunPodHttpClient.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<byte[]>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<byte[]>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "filter": "FullyQualifiedName~RunPodHttpClientTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s19-runpodhttpclient-catch-5",
+      "file": "src/Ashlar.Infrastructure/Execution/Routing/RunPodHttpClient.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<Unit>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<Unit>.Failure(\"runpod.egress_refused\", refusal.Message);\n        }",
+      "filter": "FullyQualifiedName~RunPodHttpClientTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s20-ashlarpeerbrickexecutor-catch-1",
+      "file": "src/Ashlar.Infrastructure/Execution/Routing/AshlarPeerBrickExecutor.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<GenerationExecutionResult>.Failure(\"peer.egress_refused\", refusal.Message);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return Result<GenerationExecutionResult>.Failure(\"peer.egress_refused\", refusal.Message);\n        }",
+      "filter": "FullyQualifiedName~AshlarPeerBrickExecutorGapCoverageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s21-mcpclientconnectionmanager-catch-1",
+      "file": "src/Ashlar.Mcp.Client/McpClientConnectionManager.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n            }",
+      "filter": "FullyQualifiedName~McpEgressTwinTests|FullyQualifiedName~McpRoundTripTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Mcp.Client.Tests/Ashlar.Mcp.Client.Tests.csproj"
+    },
+    {
+      "id": "s22-mcpclientconnectionmanager-catch-2",
+      "file": "src/Ashlar.Mcp.Client/McpClientConnectionManager.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            EgressRefusal.ThrowIfPresent(ex);\n            throw;\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            _refusalWarnings.Report(refusal);\n            EgressRefusal.ThrowIfPresent(ex);\n            throw;\n        }",
+      "filter": "FullyQualifiedName~McpEgressTwinTests|FullyQualifiedName~McpRoundTripTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Mcp.Client.Tests/Ashlar.Mcp.Client.Tests.csproj"
+    },
+    {
+      "id": "s23-mcpclientconnectionmanager-catch-3",
+      "file": "src/Ashlar.Mcp.Client/McpClientConnectionManager.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n                continue;\n            }",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _refusalWarnings.Report(refusal);\n                continue;\n            }",
+      "filter": "FullyQualifiedName~McpEgressTwinTests|FullyQualifiedName~McpRoundTripTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Mcp.Client.Tests/Ashlar.Mcp.Client.Tests.csproj"
+    },
+    {
+      "id": "s24-toolboxmcptoolcontributor-catch-1",
+      "file": "src/Ashlar.Mcp.Server/ToolboxMcpToolContributor.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new AshlarMcpToolOutcome(IsError: true, Text: EgressRefusal.RemoteMessage(refusal.Ref));\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new AshlarMcpToolOutcome(IsError: true, Text: EgressRefusal.RemoteMessage(refusal.Ref));\n        }",
+      "filter": "FullyQualifiedName~ToolboxMcpToolContributorTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Mcp.Server.Tests/Ashlar.Mcp.Server.Tests.csproj"
+    },
+    {
+      "id": "s25-inprocessagenttransport-catch-1",
+      "file": "src/Ashlar.Orchestration/Transport/InProcessAgentTransport.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new AgentResult(\n                Success: false,\n                ErrorMessage: refusal.Message,\n                Duration: DateTimeOffset.UtcNow - startedAt,\n                Metadata: EgressRefusal.Metadata(refusal),\n                ErrorCode: EgressRefusal.Code,\n                CorrelationId: request.CorrelationId,\n                SpanId: request.SpanId);\n        }",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new AgentResult(\n                Success: false,\n                ErrorMessage: refusal.Message,\n                Duration: DateTimeOffset.UtcNow - startedAt,\n                Metadata: EgressRefusal.Metadata(refusal),\n                ErrorCode: EgressRefusal.Code,\n                CorrelationId: request.CorrelationId,\n                SpanId: request.SpanId);\n        }",
+      "filter": "FullyQualifiedName~InProcessAgentTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj"
+    },
+    {
+      "id": "s26-endpointhealthmonitor-catch-1",
+      "file": "src/Ashlar.Runtime/Routing/EndpointHealthMonitor.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                _endpointRegistry.UpdateHealth(descriptor.Endpoint, false);\n                ResetFailureCount(descriptor.Endpoint);\n                _refusalWarnings.Report(refusal);\n            }",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                _endpointRegistry.UpdateHealth(descriptor.Endpoint, false);\n                ResetFailureCount(descriptor.Endpoint);\n                _refusalWarnings.Report(refusal);\n            }",
+      "filter": "FullyQualifiedName~EndpointHealthMonitorTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj"
+    },
+    {
+      "id": "s27-autonomyloopservice-catch-1",
+      "file": "src/Ashlar.BackgroundAgents/Autonomy/AutonomyLoopService.cs",
+      "old": "                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n                {\n                    _refusalWarnings.Report(refusal);\n                }",
+      "new": "                catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n                {\n                    _refusalWarnings.Report(refusal);\n                }",
+      "filter": "FullyQualifiedName~AutonomyLoopServiceTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj"
+    },
+    {
+      "id": "s28-autonomyloopservice-catch-2",
+      "file": "src/Ashlar.BackgroundAgents/Autonomy/AutonomyLoopService.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {\n                // Refusals remain charged failures for existing sweep/CLI verdict consumers,\n                // and are additionally counted under their own name.\n                failed++;\n                refused++;\n                _refusalWarnings.Report(refusal);\n            }",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {\n                // Refusals remain charged failures for existing sweep/CLI verdict consumers,\n                // and are additionally counted under their own name.\n                failed++;\n                refused++;\n                _refusalWarnings.Report(refusal);\n            }",
+      "filter": "FullyQualifiedName~AutonomyLoopServiceTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj"
+    },
+    {
+      "id": "s29-warning-repeat-count-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusalWarnings.cs",
+      "old": "existing.Suppressed++;",
+      "new": "existing.Suppressed += 0;",
+      "filter": "FullyQualifiedName~EgressRefusalWarningTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s30-warning-summary-expiry-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusalWarnings.cs",
+      "old": "if (suppressed != 0) Write(window, suppressed, true);",
+      "new": "if (suppressed < 0) Write(window, suppressed, true);",
+      "filter": "FullyQualifiedName~EgressRefusalWarningTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s31-warning-disposal-summary-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusalWarnings.cs",
+      "old": "if (window.Suppressed != 0) Write(window, window.Suppressed, true);",
+      "new": "if (window.Suppressed < 0) Write(window, window.Suppressed, true);",
+      "filter": "FullyQualifiedName~EgressRefusalWarningTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s32-aggregate-branches-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusal.cs",
+      "old": "for (var i = aggregate.InnerExceptions.Count - 1; i >= 0; i--)",
+      "new": "for (var i = 0; i >= 0; i--)",
+      "filter": "FullyQualifiedName~EgressRefusalPropagationTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s33-reference-validation-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusal.cs",
+      "old": "if (reference is not null && reference.Length == 16\n            && reference.All(static c => c is >= '0' and <= '9' or >= 'a' and <= 'f'))",
+      "new": "if (reference is not null)",
+      "filter": "FullyQualifiedName~Remote_text_contains_only_fixed_text",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s34-echo-refusal-1",
+      "file": "src/Ashlar.Infrastructure/Execution/Models/HotSwappableModel.cs",
+      "old": "                    EgressRefusal.ThrowIfPresent(ex);\n                    _logger.LogWarning(ex, \"Deterministic(provider) model failed; falling back to deterministic echo\");",
+      "new": "                    _ = ex;\n                    _logger.LogWarning(ex, \"Deterministic(provider) model failed; falling back to deterministic echo\");",
+      "filter": "FullyQualifiedName~EgressRefusalPropagationTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s35-echo-refusal-2",
+      "file": "src/Ashlar.Infrastructure/Execution/Models/HotSwappableModel.cs",
+      "old": "                EgressRefusal.ThrowIfPresent(ex);\n                if (!AllowMock())",
+      "new": "                _ = ex;\n                if (!AllowMock())",
+      "filter": "FullyQualifiedName~EgressRefusalPropagationTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s36-provider-first-replaced",
+      "file": "src/Ashlar.Infrastructure/Execution/ProviderRefusalScope.cs",
+      "old": "Interlocked.CompareExchange(ref scope._first, refusal, null);",
+      "new": "Interlocked.Exchange(ref scope._first, refusal);",
+      "filter": "FullyQualifiedName~EgressProviderFallbackTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s37-provider-refusal-lost",
+      "file": "src/Ashlar.Infrastructure/Execution/ProviderRefusalScope.cs",
+      "old": "if (refusal is not null) ExceptionDispatchInfo.Capture(refusal).Throw();",
+      "new": "if (refusal is not null && refusal.Message.Length == 0) ExceptionDispatchInfo.Capture(refusal).Throw();",
+      "filter": "FullyQualifiedName~EgressProviderFallbackTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s38-ollama-health-refusal-not-retained",
+      "file": "src/Ashlar.Infrastructure/Execution/ProviderFactory.cs",
+      "old": "ProviderRefusalScope.Record(refusal);",
+      "new": "_ = refusal;",
+      "filter": "FullyQualifiedName~Real_Ollama_health_refusal",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s39-ollama-chat-refusal-consumed",
+      "file": "src/Ashlar.Infrastructure/Execution/Ollama/OllamaProvider.cs",
+      "old": "        }\n        catch (Exception ex) when (Ashlar.Abstractions.Security.Egress.EgressRefusal.Find(ex) is not null)\n        {\n            Ashlar.Abstractions.Security.Egress.EgressRefusal.ThrowIfPresent(ex);",
+      "new": "        }\n        catch (Exception ex) when (ex.Message.Length == 0 && Ashlar.Abstractions.Security.Egress.EgressRefusal.Find(ex) is not null)\n        {\n            Ashlar.Abstractions.Security.Egress.EgressRefusal.ThrowIfPresent(ex);",
+      "filter": "FullyQualifiedName~Real_Ollama_chat_preserves_refusal",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s40-network-refusal-retried",
+      "file": "src/Ashlar.Core.Application/Resilience/Ports/TransientClassifiers.cs",
+      "old": "EgressRefusal.Find(exception) is null &&",
+      "new": "exception is not null &&",
+      "filter": "FullyQualifiedName~Network_classifier_checks_every_exception_branch",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s41-workflow-first-refusal-lost-1",
+      "file": "src/Ashlar.Core.Application/Workflows/WorkflowExecutor.cs",
+      "old": "            if (firstRefusal is not null) ExceptionDispatchInfo.Capture(firstRefusal).Throw();\n            throw last ?? new InvalidOperationException(\"DomainBrick execution failed\");",
+      "new": "            if (firstRefusal is not null && firstRefusal.Message.Length == 0) ExceptionDispatchInfo.Capture(firstRefusal).Throw();\n            throw last ?? new InvalidOperationException(\"DomainBrick execution failed\");",
+      "filter": "FullyQualifiedName~Fallback_preserves_first_refusal",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj"
+    },
+    {
+      "id": "s42-workflow-first-refusal-lost-2",
+      "file": "src/Ashlar.Core.Application/Workflows/WorkflowExecutor.cs",
+      "old": "                if (firstRefusal is not null) ExceptionDispatchInfo.Capture(firstRefusal).Throw();\n                if (cluster.Interface.FailurePolicy == FailurePolicy.Abort)",
+      "new": "                if (firstRefusal is not null && firstRefusal.Message.Length == 0) ExceptionDispatchInfo.Capture(firstRefusal).Throw();\n                if (cluster.Interface.FailurePolicy == FailurePolicy.Abort)",
+      "filter": "FullyQualifiedName~Fallback_preserves_first_refusal",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj"
+    },
+    {
+      "id": "s43-toolcallingagent-refusal-1",
+      "file": "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs",
+      "old": "        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            RecordRefusal(mem, refusal);",
+      "new": "        }\n        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            RecordRefusal(mem, refusal);",
+      "filter": "FullyQualifiedName~ToolCallingAgentReActTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj"
+    },
+    {
+      "id": "s44-toolcallingagent-refusal-2",
+      "file": "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs",
+      "old": "                        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n                        {",
+      "new": "                        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n                        {",
+      "filter": "FullyQualifiedName~ToolCallingAgentReActTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj"
+    },
+    {
+      "id": "s45-toolcallingagent-refusal-3",
+      "file": "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs",
+      "old": "        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            refused++;",
+      "new": "        }\n        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            refused++;",
+      "filter": "FullyQualifiedName~ToolCallingAgentReActTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj"
+    },
+    {
+      "id": "s46-auditingchatclient-refusal-1",
+      "file": "src/Ashlar.AI.Pipeline/Governance/AuditingChatClient.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {",
+      "filter": "FullyQualifiedName~EgressRefusalPropagationTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s47-auditingchatclient-refusal-2",
+      "file": "src/Ashlar.AI.Pipeline/Governance/AuditingChatClient.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {",
+      "filter": "FullyQualifiedName~EgressRefusalPropagationTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s48-auditingchatclient-refusal-3",
+      "file": "src/Ashlar.AI.Pipeline/Governance/AuditingChatClient.cs",
+      "old": "                }\n                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n                {\n                    activeRefusal = refusal;",
+      "new": "                }\n                catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n                {\n                    activeRefusal = refusal;",
+      "filter": "FullyQualifiedName~EgressRefusalPropagationTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s49-auditingchatclient-refusal-4",
+      "file": "src/Ashlar.AI.Pipeline/Governance/AuditingChatClient.cs",
+      "old": "                }\n                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n                {\n                    sw.Stop();",
+      "new": "                }\n                catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n                {\n                    sw.Stop();",
+      "filter": "FullyQualifiedName~EgressRefusalPropagationTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s50-a2aagenttransport-refusal-1",
+      "file": "src/Ashlar.Transport.A2A/A2AAgentTransport.cs",
+      "old": "            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n            {",
+      "new": "            catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n            {",
+      "filter": "FullyQualifiedName~A2AAgentTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Transport.A2A.Tests/Ashlar.Transport.A2A.Tests.csproj"
+    },
+    {
+      "id": "s51-a2aagenttransport-refusal-2",
+      "file": "src/Ashlar.Transport.A2A/A2AAgentTransport.cs",
+      "old": "        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {",
+      "new": "        catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {",
+      "filter": "FullyQualifiedName~A2AAgentTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Transport.A2A.Tests/Ashlar.Transport.A2A.Tests.csproj"
+    },
+    {
+      "id": "s52-agenttransportserviceimpl-refusal-1",
+      "file": "src/Ashlar.Transport.Grpc.Server/AgentTransportServiceImpl.cs",
+      "old": "catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)",
+      "new": "catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)",
+      "filter": "FullyQualifiedName~GrpcAgentTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"
+    },
+    {
+      "id": "s53-ashlara2aagenthandler-refusal-1",
+      "file": "src/Ashlar.Transport.A2A.Server/AshlarA2AAgentHandler.cs",
+      "old": "catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)",
+      "new": "catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)",
+      "filter": "FullyQualifiedName~A2AServerRoundTripTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Transport.A2A.Server.Tests/Ashlar.Transport.A2A.Server.Tests.csproj"
+    },
+    {
+      "id": "s54-agent-cap-raised",
+      "file": "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs",
+      "old": "if (refused >= 3) break;",
+      "new": "if (refused >= 4) break;",
+      "filter": "FullyQualifiedName~Egress_refusal_cap",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj"
+    },
+    {
+      "id": "s55-inner-exception-edge-lost",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusal.cs",
+      "old": "else if (current.InnerException is not null)",
+      "new": "else if (current.InnerException is not null && current.Message.Length == 0)",
+      "filter": "FullyQualifiedName~GrpcAgentTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"
+    },
+    {
+      "id": "s56-orchestrator-refusal-counts-as-breaker-failure",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "if (EgressRefusal.IsRefused(initialResult)",
+      "new": "if (initialResult.Success && EgressRefusal.IsRefused(initialResult)",
+      "filter": "FullyQualifiedName~OrchestratorTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj"
+    },
+    {
+      "id": "s57-warning-reasons-collapsed",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusalWarnings.cs",
+      "old": "var key = (refusal.Site, refusal.Reason);",
+      "new": "var key = (refusal.Site, Reason: default(AccessDenialReason));",
+      "filter": "FullyQualifiedName~EgressRefusalWarningTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s58-remote-format-leaks-extra-text",
+      "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusal.cs",
+      "old": "$\"egress refused by policy (ref {SafeReference(reference)})\";",
+      "new": "$\"egress refused by policy (ref {SafeReference(reference)}) private-canary\";",
+      "filter": "FullyQualifiedName~Remote_text_contains_only_fixed_text",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+    },
+    {
+      "id": "s59-agenttransportserviceimpl-result-conversion-lost",
+      "file": "src/Ashlar.Transport.Grpc.Server/AgentTransportServiceImpl.cs",
+      "old": "if (EgressRefusal.IsRefused(result))",
+      "new": "if (result.Success && EgressRefusal.IsRefused(result))",
+      "filter": "FullyQualifiedName~GrpcAgentTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"
+    },
+    {
+      "id": "s60-ashlara2aagenthandler-result-conversion-lost",
+      "file": "src/Ashlar.Transport.A2A.Server/AshlarA2AAgentHandler.cs",
+      "old": "if (EgressRefusal.IsRefused(result))",
+      "new": "if (result.Success && EgressRefusal.IsRefused(result))",
+      "filter": "FullyQualifiedName~A2AServerRoundTripTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Transport.A2A.Server.Tests/Ashlar.Transport.A2A.Server.Tests.csproj"
+    },
+    {
+      "id": "s61-grpc-client-code-ignored",
+      "file": "src/Ashlar.Transport.Grpc/GrpcAgentTransport.cs",
+      "old": "if (!response.Success && EgressRefusal.IsCode(response.ErrorCode))",
+      "new": "if (response.Success && EgressRefusal.IsCode(response.ErrorCode))",
+      "filter": "FullyQualifiedName~GrpcAgentTransportTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"
+    },
+    {
+      "id": "s62-a2a-client-code-ignored",
+      "file": "src/Ashlar.Transport.A2A/A2AInvocationMapper.cs",
+      "old": "if (state == TaskState.Failed && task.Status?.Message?.Metadata is { } metadata",
+      "new": "if (state == TaskState.Completed && task.Status?.Message?.Metadata is { } metadata",
+      "filter": "FullyQualifiedName~A2AServerRoundTripTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Transport.A2A.Server.Tests/Ashlar.Transport.A2A.Server.Tests.csproj"
+    },
+    {
+      "id": "s63-health-refusal-becomes-degraded",
+      "file": "src/Ashlar.Runtime/Routing/EndpointHealthMonitor.cs",
+      "old": "if (health.Refusal is { } refusal)",
+      "new": "if (health.IsHealthy && health.Refusal is { } refusal)",
+      "filter": "FullyQualifiedName~EndpointHealthMonitorTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj"
+    },
+    {
+      "id": "s64-grpc-local-catch-1",
+      "file": "src/Ashlar.Transport.Grpc/GrpcAgentTransport.cs",
+      "old": "catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new AgentResult(false, ErrorMessage: refusal.Message,\n                ErrorCode: EgressRefusal.Code, Metadata: EgressRefusal.Metadata(refusal),\n                Duration: DateTimeOffset.UtcNow - startedAt,\n                CorrelationId: request.CorrelationId, SpanId: request.SpanId);\n        }",
+      "new": "catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new AgentResult(false, ErrorMessage: refusal.Message,\n                ErrorCode: EgressRefusal.Code, Metadata: EgressRefusal.Metadata(refusal),\n                Duration: DateTimeOffset.UtcNow - startedAt,\n                CorrelationId: request.CorrelationId, SpanId: request.SpanId);\n        }",
+      "filter": "FullyQualifiedName~Local_transport_refusals",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"
+    },
+    {
+      "id": "s65-grpc-local-catch-2",
+      "file": "src/Ashlar.Transport.Grpc/GrpcAgentTransport.cs",
+      "old": "catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new TransportHealth(false, \"gRPC\", EgressRefusal.RemoteMessage(refusal.Ref), \"gRPC\") { Refusal = refusal };\n        }",
+      "new": "catch (Exception ex) when (ex.Message.Length == 0 && EgressRefusal.Find(ex) is { } refusal)\n        {\n            return new TransportHealth(false, \"gRPC\", EgressRefusal.RemoteMessage(refusal.Ref), \"gRPC\") { Refusal = refusal };\n        }",
+      "filter": "FullyQualifiedName~Local_transport_refusals",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"
+    }
+  ]
+}

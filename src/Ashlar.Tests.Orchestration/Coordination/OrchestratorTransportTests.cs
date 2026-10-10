@@ -22,6 +22,29 @@ namespace Ashlar.Tests.Orchestration.Coordination;
 /// <summary>Tests for orchestrator transport.</summary>
 public sealed class OrchestratorTransportTests
 {
+    [Theory]
+    [InlineData("EGRESS_REFUSED", false)]
+    [InlineData("EGRESS_REFUSED", true)]
+    [InlineData("a2a.egress_refused", false)]
+    [InlineData("a2a.egress_refused", true)]
+    public async Task Egress_refusals_never_enter_the_circuit_breaker_or_retry(string code, bool metadataOnly)
+    {
+        var transport = new Mock<IAgentTransport>(MockBehavior.Strict);
+        transport.Setup(t => t.SendAsync(It.IsAny<AgentInvocationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AgentResult(false, ErrorMessage: "refused", ErrorCode: metadataOnly ? null : code,
+                Metadata: metadataOnly ? new Dictionary<string, string> { ["errorCode"] = code } : null));
+        var breaker = new Mock<ICircuitBreaker>(MockBehavior.Strict);
+        var orchestrator = CreateOrchestrator(CreateArchitectMock(CreateSingleAgentDecomposition()).Object,
+            transport.Object, circuitBreakerOverride: breaker.Object);
+        for (var i = 0; i < 4; i++)
+        {
+            var result = await orchestrator.OrchestrateAsync("refused attempt");
+            result.Success.Should().BeFalse();
+        }
+        breaker.VerifyNoOtherCalls();
+        transport.Verify(t => t.SendAsync(It.IsAny<AgentInvocationRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(4));
+    }
+
     [Fact]
     public async Task OrchestrateAsync_WhenTransportReturnsTimeout_RetriesAndSucceeds()
     {
@@ -371,7 +394,8 @@ public sealed class OrchestratorTransportTests
     private static Orchestrator CreateOrchestrator(
         IArchitectAgent architect,
         IAgentTransport transport,
-        IReadOnlyList<IAgentTransportInvocationHook>? invocationHooks = null)
+        IReadOnlyList<IAgentTransportInvocationHook>? invocationHooks = null,
+        ICircuitBreaker? circuitBreakerOverride = null)
     {
         var provider = new ServiceCollection()
             .AddLogging()
@@ -424,7 +448,7 @@ public sealed class OrchestratorTransportTests
             metrics: metrics,
             invocationHooks: invocationHooks,
             resilientExecutor: resilientExecutor,
-            circuitBreaker: circuitBreaker);
+            circuitBreaker: circuitBreakerOverride ?? circuitBreaker);
     }
 
     /// <summary>Metadata append hook.</summary>

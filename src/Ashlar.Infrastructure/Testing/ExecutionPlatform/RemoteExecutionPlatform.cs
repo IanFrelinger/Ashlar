@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -9,9 +10,10 @@ namespace Ashlar.Infrastructure.Testing.ExecutionPlatform;
 /// Use when Docker is not available (e.g. mobile, CI without Docker) but a Ashlar API server with Docker is reachable.
 /// Config: ASHLAR_EXECUTION_REMOTE_URL (required).
 /// </summary>
-public sealed class RemoteExecutionPlatform : IExecutionPlatform
+public sealed class RemoteExecutionPlatform : IExecutionPlatform, IDisposable
 {
     private readonly HttpClient _httpClient;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<RemoteExecutionPlatform>? _logger;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -27,6 +29,10 @@ public sealed class RemoteExecutionPlatform : IExecutionPlatform
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger;
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
     }
 
     /// <inheritdoc />
@@ -36,6 +42,11 @@ public sealed class RemoteExecutionPlatform : IExecutionPlatform
         {
             var resp = await _httpClient.GetAsync("api/status", cancellationToken);
             return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            _refusalWarnings.Report(refusal);
+            return false;
         }
         catch (Exception ex)
         {
@@ -65,6 +76,11 @@ public sealed class RemoteExecutionPlatform : IExecutionPlatform
                 body?.Success ?? false,
                 body?.ErrorMessage,
                 TimeSpan.FromMilliseconds(body?.DurationMs ?? duration.TotalMilliseconds));
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            _refusalWarnings.Report(refusal);
+            return new ExecutionBuildResult(false, refusal.Message, DateTime.UtcNow - startTime);
         }
         catch (Exception ex)
         {
@@ -106,6 +122,11 @@ public sealed class RemoteExecutionPlatform : IExecutionPlatform
                 body?.ContainerId,
                 TimeSpan.FromMilliseconds(body?.DurationMs ?? duration.TotalMilliseconds));
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            _refusalWarnings.Report(refusal);
+            return new ExecutionRunResult(false, -1, "", refusal.Message, null, DateTime.UtcNow - startTime);
+        }
         catch (Exception ex)
         {
             var duration = DateTime.UtcNow - startTime;
@@ -130,4 +151,10 @@ public sealed class RemoteExecutionPlatform : IExecutionPlatform
 
     private sealed record RemoteBuildResponse(bool Success, string? ErrorMessage, double DurationMs);
     private sealed record RemoteRunResponse(bool Success, int ExitCode, string StandardOutput, string StandardError, string? ContainerId, double DurationMs);
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public void Dispose()
+    {
+        _refusalWarnings.Dispose();
+    }
+
 }

@@ -13,4 +13,8 @@ public sealed record TransportHealth(
     string TransportName,
     string? Message = null,
     string? TransportType = null,
-    string? DiagnosticMessage = null);
+    string? DiagnosticMessage = null)
+{
+    // Operator-only local propagation. Never serialized across a remote health boundary.
+    internal Security.Egress.EgressRefusedException? Refusal { get; init; }
+}

@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -100,6 +101,7 @@ public sealed class AutonomyLoopService : BackgroundService
     private readonly IProposalSource? _proposals;
     private readonly AutonomyLoopSettings _settings;
     private readonly AshlarAutonomyOptions? _autonomy;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<AutonomyLoopService> _logger;
 
     /// <summary>Creates the loop service.</summary>
@@ -124,6 +126,10 @@ public sealed class AutonomyLoopService : BackgroundService
         _harness = harness ?? throw new ArgumentNullException(nameof(harness));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Autonomy egress refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}; continuing the sweep",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
         _proposals = proposals;
         _autonomy = autonomyOptions?.Value;
     }
@@ -175,6 +181,10 @@ public sealed class AutonomyLoopService : BackgroundService
                 {
                     await SweepAsync(stoppingToken).ConfigureAwait(false);
                 }
+                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+                {
+                    _refusalWarnings.Report(refusal);
+                }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     // A sweep failure is never fatal: the loop's whole value is that it
@@ -198,6 +208,7 @@ public sealed class AutonomyLoopService : BackgroundService
         var pending = _objectives.List(ObjectiveStatus.Pending);
         var attempted = 0;
         var failed = 0;
+        var refused = 0;
 
         foreach (var objective in pending.OrderBy(o => o.Priority).ThenBy(o => o.CreatedAt))
         {
@@ -253,6 +264,14 @@ public sealed class AutonomyLoopService : BackgroundService
                 attempted++;
                 await RunOneAsync(objective, witness, proposal, cancellationToken).ConfigureAwait(false);
             }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                // Refusals remain charged failures for existing sweep/CLI verdict consumers,
+                // and are additionally counted under their own name.
+                failed++;
+                refused++;
+                _refusalWarnings.Report(refusal);
+            }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Explained refusal for THIS objective, then carry on with the rest — but charged,
@@ -275,7 +294,7 @@ public sealed class AutonomyLoopService : BackgroundService
             }
         }
 
-        return new SweepOutcome(attempted, failed);
+        return new SweepOutcome(attempted, failed) { Refused = refused };
     }
 
     private string? ObjectivePath(ObjectiveDocument objective)
@@ -498,4 +517,11 @@ public sealed class AutonomyLoopService : BackgroundService
             + "  </ItemGroup>\n</Project>\n");
         return path;
     }
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public override void Dispose()
+    {
+        _refusalWarnings.Dispose();
+        base.Dispose();
+    }
+
 }

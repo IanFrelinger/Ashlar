@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
@@ -41,6 +42,13 @@ public sealed class AuditingChatClient : DelegatingChatClient
             Emit("success", response.ModelId ?? options?.ModelId, sw.ElapsedMilliseconds, response.Usage);
             return response;
         }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            sw.Stop();
+            EmitRefusal(refusal, options?.ModelId, sw.ElapsedMilliseconds);
+            EgressRefusal.ThrowIfPresent(ex);
+            throw;
+        }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             sw.Stop();
@@ -71,12 +79,24 @@ public sealed class AuditingChatClient : DelegatingChatClient
         string? modelId = options?.ModelId;
         UsageDetails? usage = null;
         var completed = false;
+        EgressRefusedException? activeRefusal = null;
 
         IAsyncEnumerator<ChatResponseUpdate>? enumerator = null;
         try
         {
-            enumerator = base.GetStreamingResponseAsync(messages, options, cancellationToken)
-                .GetAsyncEnumerator(cancellationToken);
+            try
+            {
+                enumerator = base.GetStreamingResponseAsync(messages, options, cancellationToken)
+                    .GetAsyncEnumerator(cancellationToken);
+            }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                activeRefusal = refusal;
+                sw.Stop();
+                EmitRefusal(refusal, modelId, sw.ElapsedMilliseconds, usage);
+                EgressRefusal.ThrowIfPresent(ex);
+                throw;
+            }
 
             while (true)
             {
@@ -84,6 +104,14 @@ public sealed class AuditingChatClient : DelegatingChatClient
                 try
                 {
                     moved = await enumerator.MoveNextAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+                {
+                    activeRefusal = refusal;
+                    sw.Stop();
+                    EmitRefusal(refusal, modelId, sw.ElapsedMilliseconds, usage);
+                    EgressRefusal.ThrowIfPresent(ex);
+                    throw;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -128,16 +156,41 @@ public sealed class AuditingChatClient : DelegatingChatClient
 
             completed = true;
             sw.Stop();
-            Emit("success", modelId, sw.ElapsedMilliseconds, usage);
         }
         finally
         {
             if (enumerator is not null)
             {
-                await enumerator.DisposeAsync().ConfigureAwait(false);
+                try
+                {
+                    await enumerator.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception) when (activeRefusal is not null)
+                {
+                    // Disposal cannot replace a refusal already being propagated.
+                }
+                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+                {
+                    sw.Stop();
+                    EmitRefusal(refusal, modelId, sw.ElapsedMilliseconds, usage);
+                    EgressRefusal.ThrowIfPresent(ex);
+                    throw;
+                }
             }
 
-            _ = completed;
+        }
+        if (completed) Emit("success", modelId, sw.ElapsedMilliseconds, usage);
+    }
+
+    private void EmitRefusal(EgressRefusedException refusal, string? modelId, long latencyMs, UsageDetails? usage = null)
+    {
+        try
+        {
+            Emit("denied", modelId, latencyMs, usage, "egress_refused", refusal.Decision);
+        }
+        catch (Exception)
+        {
+            // The operator's auditor must not replace or suppress a policy refusal.
         }
     }
 
@@ -146,7 +199,8 @@ public sealed class AuditingChatClient : DelegatingChatClient
         string? modelId,
         long latencyMs,
         UsageDetails? usage = null,
-        string? reasonCode = null)
+        string? reasonCode = null,
+        EgressDecision? egressDecision = null)
     {
         var sanitize = SanitizationCallContext.Result;
         var decisions = new List<string> { $"target={_targetKey}", $"outcome={outcome}" };
@@ -168,6 +222,7 @@ public sealed class AuditingChatClient : DelegatingChatClient
             LatencyMs = latencyMs,
             CorrelationId = _correlationIdAccessor?.Invoke(),
             ReasonCode = reasonCode,
+            EgressDecision = egressDecision,
         });
     }
 }

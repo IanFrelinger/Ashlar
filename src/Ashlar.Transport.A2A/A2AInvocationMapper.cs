@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Text.Json;
 using A2A;
 using Ashlar.Abstractions.Barriers;
@@ -99,6 +100,18 @@ internal static class A2AInvocationMapper
 
         var state = task.Status?.State ?? TaskState.Unspecified;
         var statusText = task.Status?.Message is { } statusMessage ? ExtractText(statusMessage.Parts) : null;
+
+        if (state == TaskState.Failed && task.Status?.Message?.Metadata is { } metadata
+            && metadata.TryGetValue("errorCode", out var code) && code.ValueKind == JsonValueKind.String
+            && EgressRefusal.IsCode(code.GetString()))
+        {
+            var reference = EgressRefusal.SafeReference(metadata.TryGetValue(EgressRefusal.ReferenceKey, out var value)
+                && value.ValueKind == JsonValueKind.String ? value.GetString() : null);
+            return Failure(request, elapsed, "a2a.egress_refused", EgressRefusal.RemoteMessage(reference)) with
+            {
+                Metadata = EgressRefusal.Metadata(reference)
+            };
+        }
 
         return state switch
         {

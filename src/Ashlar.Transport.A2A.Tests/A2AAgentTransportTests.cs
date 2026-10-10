@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,42 @@ namespace Ashlar.Transport.A2A.Tests;
 
 public sealed class A2AAgentTransportTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Refusals_are_classified_before_retrying_the_same_destination(bool wrapped)
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "a2a-refusal", new Uri("https://remote.example"))));
+        Exception error = wrapped ? new HttpRequestException("wrapper", new AggregateException(
+            new IOException("unrelated"), refusal)) : refusal;
+        var handler = new RefusingHandler(error);
+        using var client = new HttpClient(handler);
+        var transport = Create();
+        transport.HttpClientFactoryOverride = _ => client;
+        var result = await transport.SendAsync(new AgentInvocationRequest("agent", "refusal-test",
+            Options: new AgentInvocationOptions(TimeSpan.FromSeconds(10), 3, "a2a+https://remote.example")));
+        handler.Calls.Should().Be(1);
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be("a2a.egress_refused");
+        result.Metadata!["egressRef"].Should().Be(refusal.Ref);
+        var health = await transport.CheckEndpointAsync("a2a+https://remote.example");
+        health.IsHealthy.Should().BeFalse();
+        health.Message.Should().Be($"egress refused by policy (ref {refusal.Ref})");
+        health.DiagnosticMessage.Should().BeNull();
+        handler.Calls.Should().Be(2);
+    }
+
+    private sealed class RefusingHandler(Exception error) : HttpMessageHandler
+    {
+        internal int Calls { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromException<HttpResponseMessage>(error);
+        }
+    }
+
     private static A2AAgentTransport Create(A2ATransportOptions? options = null)
         => new(
             Options.Create(options ?? new A2ATransportOptions()),

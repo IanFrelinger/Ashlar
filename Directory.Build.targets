@@ -42,5 +42,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)src/Ashlar.Compat/Polyfills/*.cs">
       <Link>Polyfills/%(Filename)%(Extension)</Link>
     </Compile>
+    <!-- Core.Application is an Abstractions friend for internal refusal-chain handling. It therefore
+         sees Abstractions' ExperimentalAttribute polyfill; compiling another creates CS0436. -->
+    <Compile Remove="$(MSBuildThisFileDirectory)src/Ashlar.Compat/Polyfills/ExperimentalAttribute.cs"
+             Condition="'$(MSBuildProjectName)' == 'Ashlar.Core.Application'" />
   </ItemGroup>
 </Project>

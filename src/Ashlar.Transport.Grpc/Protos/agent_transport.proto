@@ -27,6 +27,8 @@ message InvokeResponse {
   map<string, string> output = 4;
   string error_message = 5;
   string error_code = 6;
+  // Random operator correlation reference for an egress refusal; never a sequence or label.
+  string egress_ref = 7;
 }
 
 message HealthRequest {}

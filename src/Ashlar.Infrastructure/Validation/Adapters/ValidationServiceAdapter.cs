@@ -51,6 +51,13 @@ public class ValidationServiceAdapter : IValidationService
             TotalSteps = null
         });
 
+        var allTestResults = new List<TestResult>();
+        var evidenceErrors = new List<string>();
+        var emptyProjects = new List<string>();
+        int totalTestsRun = 0;
+        int totalTestsPassed = 0;
+        int totalTestsFailed = 0;
+        int totalTestsSkipped = 0;
         try
         {
             ValidateFilterGrouping(filter);
@@ -87,13 +94,6 @@ public class ValidationServiceAdapter : IValidationService
                 TotalSteps = testProjects.Count
             });
 
-            var allTestResults = new List<TestResult>();
-            var evidenceErrors = new List<string>();
-            var emptyProjects = new List<string>();
-            int totalTestsRun = 0;
-            int totalTestsPassed = 0;
-            int totalTestsFailed = 0;
-            int totalTestsSkipped = 0;
             var totalProjects = testProjects.Count;
             var currentProject = 0;
 
@@ -234,6 +234,11 @@ public class ValidationServiceAdapter : IValidationService
                         }
                     }
                 }
+                catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+                {
+                    // A prevented test process executed no tests. Retain already completed evidence.
+                    evidenceErrors.Add($"{testProject.Name}: {refusal.Message}");
+                }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(
@@ -271,6 +276,21 @@ public class ValidationServiceAdapter : IValidationService
                 Message = DescribeOutcome(
                     passed, totalTestsRun, totalTestsPassed, totalTestsFailed, totalTestsSkipped,
                     evidenceErrors, emptyProjects),
+                TestsRun = totalTestsRun,
+                TestsPassed = totalTestsPassed,
+                TestsFailed = totalTestsFailed,
+                TestsSkipped = totalTestsSkipped,
+                TestResults = allTestResults,
+                EvidenceErrors = evidenceErrors
+            };
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            evidenceErrors.Add(refusal.Message);
+            return new ValidationResult
+            {
+                Passed = false,
+                Message = refusal.Message,
                 TestsRun = totalTestsRun,
                 TestsPassed = totalTestsPassed,
                 TestsFailed = totalTestsFailed,

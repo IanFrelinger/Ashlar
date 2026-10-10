@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -96,6 +97,10 @@ public sealed class ToolboxMcpToolContributor : IMcpToolContributor
                 string text => new AshlarMcpToolOutcome(IsError: false, Text: text),
                 var payload => new AshlarMcpToolOutcome(IsError: false, Text: JsonSerializer.Serialize(payload), Payload: payload),
             };
+        }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            return new AshlarMcpToolOutcome(IsError: true, Text: EgressRefusal.RemoteMessage(refusal.Ref));
         }
         catch (OperationCanceledException)
         {

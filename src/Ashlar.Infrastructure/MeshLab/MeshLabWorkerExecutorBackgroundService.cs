@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,6 +12,7 @@ public sealed class MeshLabWorkerExecutorBackgroundService : BackgroundService
 {
     private readonly MeshLabWorkerExecutorClient _client;
     private readonly IOptionsMonitor<MeshLabWorkerExecutorOptions> _options;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly ILogger<MeshLabWorkerExecutorBackgroundService> _logger;
 
     /// <summary>Initializes a new mesh lab worker executor background service.</summary>
@@ -22,6 +24,10 @@ public sealed class MeshLabWorkerExecutorBackgroundService : BackgroundService
         _client = client;
         _options = options;
         _logger = logger;
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger?.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -43,6 +49,10 @@ public sealed class MeshLabWorkerExecutorBackgroundService : BackgroundService
                     _logger.LogInformation("mesh-lab-worker-executor: completed one assigned task");
                 }
             }
+            catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+            {
+                _refusalWarnings.Report(refusal);
+            }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
                 _logger.LogDebug(ex, "mesh-lab-worker-executor: director poll failed");
@@ -56,4 +66,11 @@ public sealed class MeshLabWorkerExecutorBackgroundService : BackgroundService
             await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
         }
     }
+    /// <summary>Flushes suppressed refusal warnings and releases their timers.</summary>
+    public override void Dispose()
+    {
+        _refusalWarnings.Dispose();
+        base.Dispose();
+    }
+
 }

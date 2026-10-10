@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Abstractions.Barriers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -555,7 +556,8 @@ public sealed class Orchestrator
         }
 
         var errorCode = GetErrorCode(initialResult);
-        if (string.Equals(errorCode, "AGENT_NOT_FOUND", StringComparison.OrdinalIgnoreCase))
+        if (EgressRefusal.IsRefused(initialResult)
+            || string.Equals(errorCode, "AGENT_NOT_FOUND", StringComparison.OrdinalIgnoreCase))
         {
             return initialResult;
         }

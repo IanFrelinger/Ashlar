@@ -18,6 +18,7 @@ using Ashlar.Runtime.Routing;
 using Ashlar.Transport.Grpc;
 using Ashlar.Transport.Grpc.Server;
 using Xunit;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.Tests.Orchestration.Routing;
 
@@ -30,6 +31,35 @@ public sealed class EndpointHealthMonitorTests
     /// hanging into the blame timeout.
     /// </summary>
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(30);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Refused_health_probe_is_unhealthy_without_a_degraded_warning(bool registryRefuses)
+    {
+        const string endpoint = "https://remote.example";
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "endpoint.health", new Uri(endpoint))));
+        var factory = new Mock<IGrpcChannelFactory>();
+        factory.Setup(x => x.GetOrCreate(endpoint)).Throws(registryRefuses
+            ? new IOException("ordinary outage") : new IOException("wrapped", refusal));
+        using var transport = new GrpcAgentTransport(factory.Object, NullLogger<GrpcAgentTransport>.Instance);
+        var registry = new TestEndpointRegistry([
+            new EndpointDescriptor(endpoint, "refused", [], [], null, 1, true)]);
+        if (registryRefuses) registry.UpdateFailure = new IOException("registry wrapped", refusal);
+        var logger = new Mock<ILogger<EndpointHealthMonitor>>();
+        using var monitor = new EndpointHealthMonitor(registry, transport,
+            Options.Create(new RoutingOptions { HealthCheckIntervalSeconds = 30 }), logger.Object);
+        await monitor.StartAsync(CancellationToken.None);
+        await WaitForFirstUpdateAsync(registry.Updates);
+        await monitor.StopAsync(CancellationToken.None);
+        registry.Updates.Should().ContainSingle().Which.isHealthy.Should().BeFalse();
+        factory.Verify(x => x.GetOrCreate(endpoint), Times.Once);
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id == 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        logger.Verify(x => x.Log(LogLevel.Warning, It.Is<EventId>(e => e.Id != 7307),
+            It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+    }
 
     [Fact]
     public async Task ExecuteAsync_HealthyProbe_UpdatesRegistryTrue()
@@ -374,8 +404,15 @@ public sealed class EndpointHealthMonitorTests
             _endpoints[descriptor.Endpoint] = descriptor;
         }
 
+        public Exception? UpdateFailure { get; set; }
+
         public void UpdateHealth(string endpoint, bool isHealthy)
         {
+            if (UpdateFailure is { } error)
+            {
+                UpdateFailure = null;
+                throw error;
+            }
             Updates.Add((endpoint, isHealthy));
             if (_endpoints.TryGetValue(endpoint, out var descriptor))
             {

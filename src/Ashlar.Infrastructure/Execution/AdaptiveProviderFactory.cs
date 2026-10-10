@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ashlar.Abstractions;
@@ -46,9 +47,11 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         object config,
         CancellationToken cancellationToken = default)
     {
-        var resolved = _loadPolicy.ResolveProvider(_inner);
+        using var refusals = new ProviderRefusalScope();
+        var resolved = ResolveProvider();
         if (string.IsNullOrEmpty(resolved))
         {
+            refusals.ThrowIfRefused();
             throw new ModelUnavailableException(
                 "No model available. Ensure local model (Ollama) is running or server (OpenAI/Azure) is configured.");
         }
@@ -63,7 +66,7 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         Exception? lastEx = null;
         foreach (var p in providersToTry)
         {
-            if (!_inner.IsProviderAvailable(p))
+            if (!IsAvailable(p))
                 continue;
             try
             {
@@ -71,11 +74,13 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
             }
             catch (Exception ex)
             {
+                if (EgressRefusal.Find(ex) is { } refusal) ProviderRefusalScope.Record(refusal);
                 lastEx = ex;
                 _logger?.LogWarning(ex, "Provider {Provider} failed, trying fallback", p);
             }
         }
 
+        refusals.ThrowIfRefused();
         throw new ModelUnavailableException(
             "No model available. Ensure local model is loaded or server is reachable.",
             lastEx ?? new InvalidOperationException("All providers failed"));
@@ -90,9 +95,13 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         object config,
         CancellationToken cancellationToken = default)
     {
-        var resolved = _loadPolicy.ResolveProvider(_inner);
+        using var refusals = new ProviderRefusalScope();
+        var resolved = ResolveProvider();
         if (string.IsNullOrEmpty(resolved))
+        {
+            refusals.ThrowIfRefused();
             throw new ModelUnavailableException("No vision model available.");
+        }
 
         var providersToTry = new[] { resolved, "ollama", "openai", "azure" };
         if (IsAirGapped)
@@ -100,7 +109,7 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         Exception? lastEx = null;
         foreach (var p in providersToTry.Distinct())
         {
-            if (!_inner.IsProviderAvailable(p))
+            if (!IsAvailable(p))
                 continue;
             try
             {
@@ -108,11 +117,13 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
             }
             catch (Exception ex)
             {
+                if (EgressRefusal.Find(ex) is { } refusal) ProviderRefusalScope.Record(refusal);
                 lastEx = ex;
                 _logger?.LogWarning(ex, "Vision provider {Provider} failed", p);
             }
         }
 
+        refusals.ThrowIfRefused();
         throw new ModelUnavailableException("No vision model available.", lastEx ?? new InvalidOperationException("All vision providers failed."));
     }
 
@@ -125,9 +136,13 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         object config,
         CancellationToken cancellationToken = default)
     {
-        var resolved = _loadPolicy.ResolveProvider(_inner);
+        using var refusals = new ProviderRefusalScope();
+        var resolved = ResolveProvider();
         if (string.IsNullOrEmpty(resolved) || (IsAirGapped && !IsLocalProvider(resolved)))
+        {
+            refusals.ThrowIfRefused();
             throw new ModelUnavailableException("No vision model available.");
+        }
 
         try
         {
@@ -135,6 +150,8 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
         }
         catch (Exception ex)
         {
+            EgressRefusal.ThrowIfPresent(ex);
+            refusals.ThrowIfRefused();
             throw new ModelUnavailableException("Vision model failed.", ex);
         }
     }
@@ -151,6 +168,26 @@ public sealed class AdaptiveProviderFactory : IProviderFactory
     /// <inheritdoc />
     public Task EnsureOllamaReachableAsync(bool requireVisionModel, CancellationToken cancellationToken = default)
         => _inner.EnsureOllamaReachableAsync(requireVisionModel, cancellationToken);
+
+    private bool IsAvailable(string provider)
+    {
+        try { return _inner.IsProviderAvailable(provider); }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            ProviderRefusalScope.Record(refusal);
+            return false;
+        }
+    }
+
+    private string? ResolveProvider()
+    {
+        try { return _loadPolicy.ResolveProvider(_inner); }
+        catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
+        {
+            ProviderRefusalScope.Record(refusal);
+            return null;
+        }
+    }
 
     /// <summary>Drops cloud vision providers. Air-gapped single-image vision calls this; nothing else does.</summary>
     private static string[] WithoutOpenAiOrAzure(string[] providers) =>
