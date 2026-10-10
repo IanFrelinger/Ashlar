@@ -489,10 +489,10 @@
       "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj"
     },
     {
-      "id": "s55-grpc-debug-edge-lost",
+      "id": "s55-inner-exception-edge-lost",
       "file": "src/Ashlar.Abstractions/Security/Egress/EgressRefusal.cs",
-      "old": "if (debug is not null) pending.Push(debug);",
-      "new": "if (debug is not null && debug.Message.Length == 0) pending.Push(debug);",
+      "old": "else if (current.InnerException is not null)",
+      "new": "else if (current.InnerException is not null && current.Message.Length == 0)",
       "filter": "FullyQualifiedName~GrpcAgentTransportTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"

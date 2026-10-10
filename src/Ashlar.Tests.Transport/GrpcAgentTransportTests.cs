@@ -30,8 +30,17 @@ public sealed class GrpcAgentTransportTests
     {
         var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
             new EgressRequest(EgressFamilies.Grpc, "grpc.client", new Uri("https://remote.example"))));
-        var channels = new RefusingChannelFactory(wrapped
-            ? new RpcException(new Status(StatusCode.Unavailable, "private-canary", refusal)) : refusal);
+        Exception error = refusal;
+        if (wrapped)
+        {
+            var rpc = new RpcException(new Status(StatusCode.Unavailable, "private-canary", refusal));
+            // Pin the dependency contract that lets Abstractions traverse the debug exception
+            // using the normal exception chain, without reflection or a Grpc dependency.
+            rpc.Status.DebugException.Should().BeSameAs(refusal);
+            rpc.InnerException.Should().BeSameAs(rpc.Status.DebugException);
+            error = rpc;
+        }
+        var channels = new RefusingChannelFactory(error);
         using var transport = new GrpcAgentTransport(channels, NullLogger<GrpcAgentTransport>.Instance);
         var result = await transport.SendAsync(new AgentInvocationRequest("agent", "correlation",
             Options: new AgentInvocationOptions(TimeSpan.FromSeconds(10), 3, "https://remote.example")));

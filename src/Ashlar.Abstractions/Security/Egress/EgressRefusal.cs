@@ -30,13 +30,13 @@ internal static class EgressRefusal
             var current = pending.Pop();
             if (!visited.Add(current)) continue;
             if (current is EgressRefusedException refusal) return refusal;
-            var debug = GrpcDebugException(current);
-            if (debug is not null) pending.Push(debug);
             if (current is AggregateException aggregate)
             {
                 for (var i = aggregate.InnerExceptions.Count - 1; i >= 0; i--)
                     pending.Push(aggregate.InnerExceptions[i]);
             }
+            // Grpc.Core.Api also exposes Status.DebugException as InnerException; the
+            // transport tests pin that SDK contract without a Grpc dependency here.
             else if (current.InnerException is not null)
                 pending.Push(current.InnerException);
         }
@@ -74,19 +74,6 @@ internal static class EgressRefusal
         // Never parse a free-text message, sequence number or arbitrary metadata as a ref.
         try { return EgressEnforcement.NewReference(); }
         catch (System.Security.Cryptography.CryptographicException) { return EgressEnforcement.UnavailableReference; }
-    }
-
-    private static Exception? GrpcDebugException(Exception error)
-    {
-        // Abstractions must remain independent of Grpc.Core. This narrowly recognizes the
-        // SDK's public Status.DebugException edge, including RpcException subclasses.
-        for (Type? type = error.GetType(); type is not null; type = type.BaseType)
-        {
-            if (type.FullName != "Grpc.Core.RpcException") continue;
-            var status = type.GetProperty("Status")?.GetValue(error);
-            return status?.GetType().GetProperty("DebugException")?.GetValue(status) as Exception;
-        }
-        return null;
     }
 
     private sealed class ExceptionIdentity : IEqualityComparer<Exception>
