@@ -324,7 +324,8 @@ public sealed class TrustLoopRecordSchemaTests
 
         decision.Admitted.Should().BeTrue();
         var record = decision.Record;
-        record.SchemaVersion.Should().Be(CertificationRecordData.TrustLoopSchemaVersion);
+        record.SchemaVersion.Should().Be(CertificationRecordData.LabelSchemaVersion);
+        record.HighestDataLabel.Should().Be("SystemHigh");
         record.GatesPassed.Select(g => g.Name).Should().Equal(
             "analyzer-gate", "correctness-witness", "mutation-gate", "determinism", "dependency-graph");
         record.GatesPassed[0].Configuration.Should()
@@ -359,7 +360,8 @@ public sealed class TrustLoopRecordSchemaTests
 
         decision.Admitted.Should().BeFalse();
         decision.FailureCheck.Should().Be("correctness");
-        decision.Record.SchemaVersion.Should().Be(CertificationRecordData.TrustLoopSchemaVersion);
+        decision.Record.SchemaVersion.Should().Be(CertificationRecordData.LabelSchemaVersion);
+        decision.Record.HighestDataLabel.Should().Be("SystemHigh");
         decision.Record.GatesPassed.Select(g => g.Name).Should().Equal(
             new[] { "analyzer-gate" },
             "the analyzer fence runs before correctness, so it is the only gate passed before a correctness failure (R2.4)");

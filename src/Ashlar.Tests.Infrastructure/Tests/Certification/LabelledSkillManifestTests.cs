@@ -22,6 +22,8 @@ public sealed class LabelledSkillManifestTests
 
     private static CertificationRecordData Record(GateEmittedArtifact artifact) => new()
     {
+        Status = "PASS", Stage = "S0-S2", Admitted = true, Signed = false,
+        Timestamp = DateTimeOffset.UnixEpoch,
         BrickId = "skill",
         ContentHash = artifact.SourceSha256,
         SchemaVersion = CertificationRecordData.LabelSchemaVersion,
