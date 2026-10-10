@@ -313,6 +313,30 @@
       "expected_failures": [
         "C5_C11_C12_unlabelled"
       ]
+    },
+    {
+      "id": "registry-new-client",
+      "file": "src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs",
+      "old": "        services.AddHttpClient();",
+      "new": "        services.AddHttpClient();\n        services.AddHttpClient(\"unreserved-mutation-client\");",
+      "filter": "FullyQualifiedName~Every_Ashlar_factory_registration_has_a_protected_opt_out_name",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Every_Ashlar_factory_registration_has_a_protected_opt_out_name"
+      ]
+    },
+    {
+      "id": "registry-missing-client",
+      "file": "src/Ashlar.Infrastructure/Egress/EgressGuardOptions.cs",
+      "old": "        \"AshlarExecution\",",
+      "new": "        \"mutation-retired-client\",",
+      "filter": "FullyQualifiedName~Every_Ashlar_factory_registration_has_a_protected_opt_out_name",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Every_Ashlar_factory_registration_has_a_protected_opt_out_name"
+      ]
     }
   ]
 }
