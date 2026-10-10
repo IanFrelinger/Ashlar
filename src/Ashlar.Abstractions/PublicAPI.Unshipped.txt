@@ -159,3 +159,10 @@ Ashlar.Abstractions.Security.SubjectClearanceAuthority
 Ashlar.Abstractions.Security.SubjectClearanceAuthority.SubjectClearanceAuthority(System.Collections.Generic.IReadOnlyDictionary<string!, string?>! policyCeilings, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? hostLimits = null) -> void
 Ashlar.Abstractions.Security.SubjectClearanceAuthority.Resolve(string? subjectId) -> Ashlar.Abstractions.Security.SecurityLabel!
 Ashlar.Abstractions.Security.SubjectClearanceAuthority.ResolveCurrent() -> Ashlar.Abstractions.Security.SecurityLabel!
+Ashlar.Abstractions.Security.SubjectReadGuard
+static Ashlar.Abstractions.Security.SubjectReadGuard.RequireRead(Ashlar.Abstractions.Security.SubjectClearanceAuthority? authority, Ashlar.Abstractions.Security.SecurityLabel! data) -> void
+Ashlar.Abstractions.Security.ReadRefusedException
+Ashlar.Abstractions.Security.ReadRefusedException.ReadRefusedException(Ashlar.Abstractions.Security.AccessDenialReason reason) -> void
+Ashlar.Abstractions.Security.ReadRefusedException.Reason.get -> Ashlar.Abstractions.Security.AccessDenialReason
+Ashlar.Abstractions.Security.ReadRefusedException.Ref.get -> string!
+Ashlar.Abstractions.Security.ReadRefusedException.ErrorCode.get -> string!
