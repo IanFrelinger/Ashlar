@@ -1,7 +1,9 @@
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>A redacted read refusal suitable for an agent or remote caller. Contains no label, data or inner fault.</summary>
+#pragma warning disable CA1032 // Arbitrary messages or inner exceptions would expose classified response data.
 public sealed class ReadRefusedException : Exception
+#pragma warning restore CA1032
 {
     /// <summary>Creates a refusal with a reason category and an independent, random reference.</summary>
     public ReadRefusedException(AccessDenialReason reason)
@@ -21,5 +23,5 @@ public sealed class ReadRefusedException : Exception
     public string Ref { get; }
 
     /// <summary>Stable machine-readable category.</summary>
-    public string ErrorCode => "read_refused";
+    public string ErrorCode { get; } = "read_refused";
 }
