@@ -29,7 +29,8 @@ public sealed class FullPipelineE2ETests : E2ETestBase
         Assert.True(analyzeCode == 0 || analyzeCode == 1);
 
         var (adaptCode, _, _) = await RunCliAsync($"adapt --dry-run --store-path \"{TempDir}\"");
-        Assert.Equal(0, adaptCode);
+        // An empty store has no brick. The handler's exit 1 now reaches the process.
+        Assert.Equal(1, adaptCode);
 
         var (improveCode, _, _) = await RunCliAsync("improve --dry-run");
         Assert.True(improveCode == 0 || improveCode == 1);
