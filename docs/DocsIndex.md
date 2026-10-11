@@ -48,6 +48,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/RELEASE_RUNBOOK.md` — release **decision table** (tag vs NuGet-only vs branch images); **`scripts/release-preflight-local.sh`** / **`make release-preflight`** / **`dotnet run … release preflight`** for one-command local preflight.
 - `docs/GitHubRepoVariables.md` — **Actions variables** for NuGet publish mode, post-push verify, SBOM, cross-verify.
 - `docs/GitHubBranchProtection.md` — **branch protection** guidance (merge gates vs tag releases).
+- `tools/autonomy-controller/README.md` — the **budgeted autonomy controller** (PR 1: operator policy outside every checkout, durable SQLite state, single-writer lease, atomic budget reservations, event dedup, dry run); no live model call yet.
 - `.github/ISSUE_TEMPLATE/release_checklist.yml` — **GitHub issue form** for a release ticket.
 - `docs/StagingFeed.md` — optional **NuGet staging** push before nuget.org.
 - `docs/NuGetPackageSigning.md` — optional **package signing** notes.

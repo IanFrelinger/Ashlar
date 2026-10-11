@@ -1,0 +1,66 @@
+{
+  "_comment": "Example operator policy for tools/autonomy-controller. Copy it OUTSIDE every checkout (for example /etc/ashlar/controller-policy.json, mode 0600) and point the controller at it with --policy or ASHLAR_CONTROLLER_POLICY. The loader refuses a policy that lives inside a checkout, so this file cannot be the active policy. Model ids are candidates: PR 2 verifies installed availability before any live launch.",
+  "policy_version": "2026-10-11.1",
+  "limits": {
+    "active_writers": 1,
+    "verifiers_per_task": 1,
+    "readiness_fixers": 1,
+    "same_failure_retries": 1,
+    "repair_rounds": 2,
+    "premium_escalations_per_pr": 1,
+    "provider_transfers_per_pr": 1,
+    "invocation_turn_ceiling": 20,
+    "task_turn_ceiling": 80,
+    "max_attempts_per_task": 4
+  },
+  "funding": {
+    "paid_inference_enabled": false,
+    "new_paid_infrastructure": false,
+    "interactive_reserve_fraction": 0.25,
+    "unobservable_allowance": "task-ceiling-only"
+  },
+  "providers": {
+    "claude": {
+      "enabled": true,
+      "model": "claude-sonnet-5-5",
+      "effort": "medium",
+      "speed": "standard",
+      "funding_pool": "claude-subscription",
+      "pool_kind": "subscription_allowance",
+      "unit": "turns"
+    },
+    "codex": {
+      "enabled": false,
+      "model": "sol",
+      "effort": "medium",
+      "speed": "standard",
+      "funding_pool": "codex-subscription",
+      "pool_kind": "subscription_allowance",
+      "unit": "turns"
+    },
+    "cursor": {
+      "enabled": false,
+      "model": "composer-standard",
+      "effort": "medium",
+      "speed": "standard",
+      "funding_pool": "cursor-subscription",
+      "pool_kind": "subscription_allowance",
+      "unit": "requests"
+    },
+    "fake": {
+      "enabled": true,
+      "model": "fake-model",
+      "effort": "medium",
+      "speed": "standard",
+      "funding_pool": "fake-pool",
+      "pool_kind": "subscription_allowance",
+      "unit": "turns"
+    }
+  },
+  "idle": {
+    "empty_queue_poll_seconds": 900,
+    "quota_wait_seconds": 3600,
+    "rate_limit_backoff_seconds": [60, 300, 900],
+    "lease_ttl_seconds": 300
+  }
+}
