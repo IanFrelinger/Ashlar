@@ -1,6 +1,6 @@
 # budgeted-autonomy handoff: end of phase C (PR 3), start of phase D (PR 4)
 
-*Written 2026-10-11 __TIME__ UTC at the end of phase C. Start the next thread with the prompt in §9, or with `/start-phase budgeted-autonomy`. Storage branch `claude/budgeted-autonomy-workspace`, folder `_handoff/budgeted-autonomy/` (`bash scripts/handoff-fetch.sh --workstream budgeted-autonomy --list`).*
+*Written 2026-10-11 ~16:18 UTC at the end of phase C. Start the next thread with the prompt in §9, or with `/start-phase budgeted-autonomy`. Storage branch `claude/budgeted-autonomy-workspace`, folder `_handoff/budgeted-autonomy/` (`bash scripts/handoff-fetch.sh --workstream budgeted-autonomy --list`).*
 
 ## 0. How we work: one thread per phase
 
@@ -10,17 +10,17 @@ This workstream runs one phase per thread (`_handoff/phases/README.md`): end eac
 
 ## 1. Where things stand
 
-- **Master:** `__MASTER__`.
+- **Master:** `d2c11b347d1759215b87bc98c94efced62f3b6d8`.
 - **Merged in this workstream:**
 
 | PR | What | Merge SHA |
 |---|---|---|
 | #756 (phase A) | PR 1: operator policy and durable controller state | `1d8bc7448` |
 | #769 (phase B) | PR 2: Claude adapter and bounded readiness | `f236bd4ad` |
-| #771 (phase C) | PR 3: PR lifecycle and fresh context (`lifecycle.py`, `prs.py`, `gitops.py`, schema 2, policy `pr` section, CLI `--gh cli`) | `__MERGE__` |
+| #771 (phase C) | PR 3: PR lifecycle and fresh context (`lifecycle.py`, `prs.py`, `gitops.py`, schema 2, policy `pr` section, CLI `--gh cli`) | `d2c11b347` |
 
-- **Readiness verdict for master's head:** `scripts/release/readiness-verdict-for-sha.sh <full sha>` → __VERDICT__. PR 3 is a tooling-only diff (no readiness path), so the PR's `Readiness summary` was a diff-skipped pass; that is not platform verification and is not claimed as such.
-- **Agent-bus (#695):** phase C posted `claim` card-770 (the classifier allowed `gh issue comment` this time) and `handoff` pr-771 __DONE_POST__. **The three phase B posts are still unposted** (`01-claim-card-768.md`, `02-handoff-pr-769.md`, `03-done-pr-769.md` on the storage branch); the owner asked to be asked, and was asked in the phase C final message. Open items not this workstream's: Grok's `ask` on `drift-746`, `drift-748`; `status` on `land-749-753`, `mutations-spec007`. Grok's drift audits of #756, #769 and #771 have not posted; phase D answers them with a follow-up PR and `done` on the slug.
+- **Readiness verdict for master's head:** `scripts/release/readiness-verdict-for-sha.sh <full sha>` → `REFUSED (no-readiness-run)`: the diff matches no readiness path, so Full Platform Readiness did not push-trigger; the newest push-triggered master run that succeeded is still `9faefe46c` (#749). PR 3 is a tooling-only diff (no readiness path), so the PR's `Readiness summary` was a diff-skipped pass; that is not platform verification and is not claimed as such.
+- **Agent-bus (#695):** phase C posted `claim` card-770 (the classifier allowed `gh issue comment` this time) and `handoff` pr-771 and `done` pr-771/card-770 (comments 6110678422, 6111038026, 6111046805), all three allowed by the classifier. **The three phase B posts are still unposted** (`01-claim-card-768.md`, `02-handoff-pr-769.md`, `03-done-pr-769.md` on the storage branch); the owner asked to be asked, and was asked in the phase C final message. Open items not this workstream's: Grok's `ask` on `drift-746`, `drift-748`; `status` on `land-749-753`, `mutations-spec007`. Grok's drift audits of #756, #769 and #771 have not posted; phase D answers them with a follow-up PR and `done` on the slug.
 - **Phase C exit criteria** (card #770): old green checks cannot satisfy a changed head; duplicate events create no PR or worker; closure without merge is not success; the next task uses the updated base and a compact handoff; the previous transcript is not injected; every behaviour mutation-red. **Met in tests and mutations** (§4). **The live run of the integrated branch did not happen in this thread**: the auto-mode classifier refused to launch the worker from the Claude Code session ("Create Unsafe Agents"). It is prepared on the host and is the first step of phase D, or an owner step before it (§5, §6).
 
 ## 2. Read these first
@@ -58,12 +58,26 @@ This workstream runs one phase per thread (`_handoff/phases/README.md`): end eac
 | **D** | **4** | **Operator controls, evidence retention, pilot** | status view, pause/cancel/resume/provider-disable, backups and restore, LLM-free status reports, evidence archives, metrics; **three bounded real tasks** through the full lifecycle | **next** |
 | E | 5 | Codex and Cursor adapters | provider transfer preserves task/PR/attempts/budget; previous writer stopped and reconciled; one small real task through each enabled adapter | |
 
-**Work items:** `feat/budgeted-autonomy-pr-lifecycle` @ `9ab820af9` (base `7b69b7493` shared commit, `2a6e36734` lane A, `3d5578b28` lane B, `9ab820af9` lane C), PR #771, __PR_STATE__. Lane worktrees and branches removed after cherry-pick.
+**Work items:** `feat/budgeted-autonomy-pr-lifecycle` @ `9ab820af9` (base `7b69b7493` shared commit, `2a6e36734` lane A, `3d5578b28` lane B, `9ab820af9` lane C), PR #771, **merged** (squash) as `d2c11b347` on the five required checks green, `mergeStateStatus CLEAN`, no `block`; branch deleted by GitHub; card #770 closed with the merge SHA. Lane worktrees and branches removed after cherry-pick.
 
 **Mutation checks** (`scripts/mutation-check.sh` with `ASHLAR_MUTATION_RUNNER=bash tools/autonomy-controller/mutation-runner.sh`, ref `9ab820af9`), verbatim:
 
 ```
-__MUTATIONS__
+mutation m1-pending-head-counts-green: KILLED red=failed:8/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m2-match-head-commit-dropped: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m3-red-conclusion-counts-green: KILLED red=failed:15/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m4-merge-current-not-observed-head: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m5-closed-unmerged-is-done: KILLED red=failed:2/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m6-duplicate-event-acts-again: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m7-repair-resumes-previous-session: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m8-repair-prompt-carries-transcript: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m9-repair-rounds-unbounded-by-one: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m10-round-not-counted: KILLED red=failed:4/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m11-next-base-ignores-merge-sha: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m12-prs-not-serial: KILLED red=failed:4/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m13-no-change-still-opens-pr: KILLED red=failed:2/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m14-completed-is-done-not-proposed: KILLED red=failed:21/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m15-stale-pr-head-accepted: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
 ```
 
 Lane A's manual kills (prs.py; mutation → test): `if verdict.red:` → `and not verdict.pending` (test_red_beats_pending); `GREEN_CONCLUSIONS` without `skipped` (test_skipped_counts_green); FakeGh merge ignoring the head (test_green_on_a_does_not_merge_b); `open_or_reuse_pr` existing-row return removed (test_three_calls_make_one_row_and_one_create); truncation marker removed (two truncation tests); `latest_merge_sha` `rowid ASC` (ordering test); `--match-head-commit` dropped (argv test); identity without summary lines (five tests); first-run-wins (latest-run test); journal kind renamed (record_head test). Lane B's (gitops.py): `GIT_TERMINAL_PROMPT=1`; stale-head check disabled (test_stale_expected_head_raises_and_nothing_is_pushed); porcelain test inverted (10 red); `--reference` disabled; non-empty path check disabled; author name changed.
@@ -90,7 +104,7 @@ Lane A's manual kills (prs.py; mutation → test): `if verdict.red:` → `and no
 
 ## 6. Environment facts
 
-- Five required checks on master: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`; strict + enforce_admins; merges serial. #771's checks: __CHECKS__.
+- Five required checks on master: `cert-gate`, `build-core`, `shell-lint`, `lychee (README + docs)`, `Readiness summary`; strict + enforce_admins; merges serial. #771's checks: `cert-gate` pass, `build-core` pass, `shell-lint` pass, `lychee (README + docs)` pass, `Readiness summary` pass (diff-skipped); 9 passing, 4 skipped, 0 failing at merge.
 - Repo gates: 29. On this Windows host 27 pass; `tests/scripts/mutation-check.test.sh` (symlink fixture) and `tests/scripts/session-start-hook.test.sh` (docker wrapper) fail on master too. `scripts/mutation-check.sh` calls `python3`, which on this host is the Store stub: put a directory first on PATH (POSIX form, `/c/Users/...`; a `C:/...` PATH entry is ignored by Git Bash) holding an executable `python3` that `exec`s `C:/Users/icfre/AppData/Local/Programs/Python/Python313/python.exe "$@"`.
 - Host: Python 3.13, `gh` authenticated as `IanFrelinger` (scopes gist/read:org/repo/workflow), docker 29.8, image `ashlar-devtest:local` (Python 3.12 with `sqlite3`, git, no `claude`). Claude Code CLI 2.1.263, `auth status --json` says `loggedIn: true`, `authMethod: claude.ai`, `subscriptionType: max` (checked this phase; a stale login looks the same, see phase B).
 - **The auto-mode classifier** (this phase): allowed `gh issue comment 695 --body-file`, `gh pr create`, `git push`, `python controller.py init|task add|tick --dry-run`; refused `python controller.py tick --adapter claude --gh cli` ("Create Unsafe Agents"), both alone and inside a compound command. Phase B saw the opposite on `gh issue comment`. Treat every external write as "try once, then ask".
@@ -121,4 +135,4 @@ Lane A's manual kills (prs.py; mutation → test): `if verdict.red:` → `and no
 
 ## 9. Starting prompt for the next phase
 
-> Execute **phase D (PR 4: operator controls, evidence retention, pilot)** of budgeted-autonomy. Run `/start-phase budgeted-autonomy`, or read this handoff in full starting with §0, then `tools/autonomy-controller/README.md` ("PR lifecycle" and "Not in PR 3" first). Check §1 against the live repo (master `__MASTER__`, #771 merged as `__MERGE__`, card #770 closed; the bus: three phase B posts may still be unposted; ask me). Create the PR 4 card as an `agent-task` issue and claim it. Then, before building, run the prepared live run of PR 3 (§5 step 9) or ask me to run it from my terminal, and record what the real `gh` and CLI returned. Then build PR 4: the operator status view, pause/cancel/resume/provider-disable at the next tick, backup and restore, LLM-free status reports, per-run evidence archives, metrics from the ledger, and the pilot of three bounded real tasks through the full lifecycle; ask me before the controller merges anything to master. Use parallel lane agents in isolated worktrees where it helps, but verify the merged branch yourself. Build and test only through `scripts/test-in-container.sh` for anything that needs `dotnet`; never run `dotnet` on the host. Mutation-check every behaviour with `scripts/mutation-check.sh`. If anything I have not decided blocks you, ask instead of choosing. Land PR 4 on the five required checks, post the bus `handoff` and `done` (or draft them and ask me if the classifier refuses), then run `/handoff budgeted-autonomy D` and notify me. Do not start PR 5.
+> Execute **phase D (PR 4: operator controls, evidence retention, pilot)** of budgeted-autonomy. Run `/start-phase budgeted-autonomy`, or read this handoff in full starting with §0, then `tools/autonomy-controller/README.md` ("PR lifecycle" and "Not in PR 3" first). Check §1 against the live repo (master `d2c11b347d1759215b87bc98c94efced62f3b6d8`, #771 merged as `d2c11b347`, card #770 closed; the bus: three phase B posts may still be unposted; ask me). Create the PR 4 card as an `agent-task` issue and claim it. Then, before building, run the prepared live run of PR 3 (§5 step 9) or ask me to run it from my terminal, and record what the real `gh` and CLI returned. Then build PR 4: the operator status view, pause/cancel/resume/provider-disable at the next tick, backup and restore, LLM-free status reports, per-run evidence archives, metrics from the ledger, and the pilot of three bounded real tasks through the full lifecycle; ask me before the controller merges anything to master. Use parallel lane agents in isolated worktrees where it helps, but verify the merged branch yourself. Build and test only through `scripts/test-in-container.sh` for anything that needs `dotnet`; never run `dotnet` on the host. Mutation-check every behaviour with `scripts/mutation-check.sh`. If anything I have not decided blocks you, ask instead of choosing. Land PR 4 on the five required checks, post the bus `handoff` and `done` (or draft them and ask me if the classifier refuses), then run `/handoff budgeted-autonomy D` and notify me. Do not start PR 5.
