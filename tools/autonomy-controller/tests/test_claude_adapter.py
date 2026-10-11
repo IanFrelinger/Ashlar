@@ -176,6 +176,16 @@ class Argv(ClaudeAdapterCase):
         self.assertTrue((self.runs_dir / "run-1" / "stdout.json").exists())
         self.assertTrue((self.runs_dir / "run-1" / "stderr.log").exists())
 
+    def test_transcript_is_found_by_session_id_when_the_cli_truncates_the_slug(self):
+        # Live run 2026-10-11: a 206-character slug was stored as 200 characters plus "-kzvbwl", so the
+        # computed path did not exist. The file is located by its session id instead.
+        a, res, status = self.launch_and_settle(result_object(), persist=True, truncate_slug=True)
+        self.assertIsNotNone(status.transcript_path, status.result)
+        self.assertTrue(os.path.exists(status.transcript_path), status.transcript_path)
+        self.assertTrue(status.transcript_path.endswith(f"{res.native_session_id}.jsonl"))
+        self.assertIn("-kzvbwl", status.transcript_path)
+        self.assertEqual(status.result["transcript"], status.transcript_path)
+
     def test_transcript_path_follows_the_projects_directory_slug_rule(self):
         self.write_script(stdout=result_object(), persist=True)
         a = self.adapter()

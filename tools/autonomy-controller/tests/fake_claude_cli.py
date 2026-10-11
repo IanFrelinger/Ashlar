@@ -20,6 +20,7 @@ Script keys:
   stdout_raw    raw text printed before the result object
   exit          exit code of a `-p` run (default 0)
   persist       when true, append one line to <auth.projectsDirectory>/<slug(cwd)>/<session>.jsonl
+  truncate_slug when true with persist, use a shortened slug plus a suffix, as the real CLI does for a long cwd
 """
 from __future__ import annotations
 
@@ -79,6 +80,8 @@ def main() -> int:
         projects = (script.get("auth") or {}).get("projectsDirectory")
         if projects and session:
             slug = re.sub(r"[^A-Za-z0-9]", "-", os.getcwd())
+            if script.get("truncate_slug"):     # the real CLI shortens a long slug and appends a suffix
+                slug = slug[:20] + "-kzvbwl"
             d = os.path.join(projects, slug)
             os.makedirs(d, exist_ok=True)
             with open(os.path.join(d, f"{session}.jsonl"), "a", encoding="utf-8", newline="\n") as f:

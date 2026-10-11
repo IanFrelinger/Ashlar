@@ -256,7 +256,9 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   `--session-id <S>` for a new session or `--resume <S>` when the task's previous run stopped at the
   turn ceiling, plus `--agent <name>` and `--tools <list>` when the request carries them.
 - Run directory `<runs_dir>/<run_id>/`: `manifest.json` is written before the spawn (run id, task id,
-  session id, resume_of, argv, cwd, started time, pid, expected transcript path), then stdout goes to
+  session id, resume_of, argv, cwd, started time, pid, the projects directory and the expected transcript
+  path, which is only a hint: the live run of 2026-10-11 showed the CLI truncates a long project slug to
+  200 characters plus a six-character suffix, so the transcript is located by its session id), then stdout goes to
   `stdout.json`, stderr to `stderr.log`, the pid into the manifest. The workspace is
   `request.workspace` or `<run dir>/workspace`. A spawn that definitely failed is `launch-failed`; a
   manifest written with the spawn outcome unknown is `launch-outcome-unknown`, and the next tick

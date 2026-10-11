@@ -82,6 +82,26 @@ def _slug(path: str) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", path)
 
 
+def locate_transcript(projects_dir: Optional[str], session_id: Optional[str], hint: Optional[str] = None) -> Optional[str]:
+    """Where the CLI kept the session's transcript, or None. The slug rule (cwd with every character
+    outside [A-Za-z0-9] replaced by '-') is only a hint: the live run of 2026-10-11 showed the CLI
+    truncates a long slug (206 chars became 200 plus '-' and a six-character suffix), so the file is
+    found by its session id, which is unique, under any project directory."""
+    if hint and os.path.isfile(hint):
+        return hint
+    if not projects_dir or not session_id or not os.path.isdir(projects_dir):
+        return None
+    name = f"{session_id}.jsonl"
+    try:
+        for entry in os.listdir(projects_dir):
+            candidate = os.path.join(projects_dir, entry, name)
+            if os.path.isfile(candidate):
+                return candidate
+    except OSError:
+        return None
+    return None
+
+
 def _json_object(text: str) -> Optional[Dict[str, Any]]:
     """The JSON object `claude auth status --json` printed. The real CLI pretty-prints it over many
     lines (observed 2026-10-11), so the whole text is parsed first; a single trailing object line is
@@ -147,7 +167,7 @@ class ClaudeAdapter:
         cancel=True,                # observed: terminate mid-request keeps the transcript; --resume then works
         structured_output=True,     # observed: --json-schema returns `structured_output`
         usage_observation=True,     # observed: per-invocation num_turns/total_cost_usd; rate_limit_event allowance
-        transcript_retention=True,  # observed: <projectsDirectory>/<slug>/<session_id>.jsonl
+        transcript_retention=True,  # observed: <projectsDirectory>/<slug or truncated slug>/<session_id>.jsonl
         turn_limit=True,            # observed: --max-turns 1 -> subtype error_max_turns, terminal_reason max_turns
         funding_route_check=True,   # observed: `claude auth status --json` reports authMethod/loggedIn
         evidence="live probe of claude 2.1.263 on 2026-10-11, probe/probe-report-2.json; see README 'Claude adapter'")
@@ -283,7 +303,7 @@ class ClaudeAdapter:
             "run_id": run_id, "task_id": request.task_id, "session_id": session_id,
             "resume_of": request.resume_session_id, "model": request.model, "argv": argv, "cwd": workspace,
             "started_at": _utc_iso(self.clock()), "pid": None, "exit": None, "cancelled_at": None,
-            "transcript_path": transcript, "stdout": os.path.join(run_dir, "stdout.json"),
+            "transcript_path": transcript, "projects_dir": projects_dir, "stdout": os.path.join(run_dir, "stdout.json"),
             "stderr": os.path.join(run_dir, "stderr.log"),
         }
         self._write_manifest(run_id, manifest)
@@ -358,7 +378,8 @@ class ClaudeAdapter:
             return RunStatus(state=RunState.FAILED, stop_reason=StopReason.NO_FINAL_RESULT,
                              result={"error": f"no manifest for run {run_id} under {self.runs_dir}"})
         session_id = manifest.get("session_id")
-        base = {"workspace": manifest.get("cwd"), "transcript": manifest.get("transcript_path")}
+        transcript = locate_transcript(manifest.get("projects_dir"), session_id, manifest.get("transcript_path"))
+        base = {"workspace": manifest.get("cwd"), "transcript": transcript}
         if manifest.get("cancelled_at"):
             # Observed: a terminated run has no result event but keeps its transcript and resumes later;
             # the allowance event it emitted before termination is still worth recording.
@@ -366,7 +387,7 @@ class ClaudeAdapter:
             return RunStatus(state=RunState.CANCELLED, stop_reason=StopReason.CANCELLED, consumed_units=None,
                              result=dict(base, cancelled_at=manifest["cancelled_at"], resume_session_id=session_id),
                              observations=[self._allowance_observation(session_id, stream["rate_limit_info"])],
-                             transcript_path=manifest.get("transcript_path"))
+                             transcript_path=transcript)
         if self._alive(run_id, manifest):
             return RunStatus(state=RunState.RUNNING)
         return self._classify(manifest)
@@ -388,7 +409,7 @@ class ClaudeAdapter:
         stream = parse_stream(stdout)
         obj = stream["result"]
         rate_limit_info = stream["rate_limit_info"]
-        transcript = manifest.get("transcript_path")
+        transcript = locate_transcript(manifest.get("projects_dir"), session_id, manifest.get("transcript_path"))
         base: Dict[str, Any] = {"workspace": manifest.get("cwd"), "transcript": transcript, "exit": rc, "run_id": run_id,
                                 "stream_events": stream["events"], "rate_limit_info": rate_limit_info}
         observations = [self._allowance_observation(session_id, rate_limit_info)]
