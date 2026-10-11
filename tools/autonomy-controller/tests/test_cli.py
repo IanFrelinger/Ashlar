@@ -61,6 +61,17 @@ class CommandLine(ControllerCase):
         out, _ = self.cli("event", "ingest", "--event-id", "e1", "--kind", "card-ready", "--task-id", "t1")
         self.assertTrue(out["duplicate"])
 
+    def test_set_state_does_not_clobber_the_state_path(self):
+        # The positional was once named "state", so argparse overwrote --state with the new task state
+        # and every `task set-state` failed with "controller state queued is missing".
+        self.cli("init")
+        self.cli("task", "add", "--task-id", "t1", "--workstream", "w", "--provider", "fake")
+        self.cli("task", "set-state", "t1", "blocked-auth", "--reason", "auth-missing")
+        out, _ = self.cli("task", "set-state", "t1", "queued", "--reason", "operator-requeue")
+        self.assertEqual(out["state"], "queued")
+        out, _ = self.cli("task", "show", "t1")
+        self.assertEqual((out["state"], out["stop_reason"]), ("queued", "operator-requeue"))
+
     def test_lease_break_requires_confirmation(self):
         self.cli("init")
         out, err = self.cli("lease", "break", "--holder", "x", expect=1)

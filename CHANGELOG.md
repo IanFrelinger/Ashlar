@@ -17,6 +17,33 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — budgeted autonomy controller, PR 2 (Claude adapter and bounded readiness)
+
+- `tools/autonomy-controller/ashlar_controller/adapters/claude.py`: a live adapter over the installed Claude
+  Code CLI (headless `-p --output-format stream-json --verbose --strict-mcp-config`, so the operator's
+  claude.ai connectors never load into a worker), with a funding-route check before every launch (an
+  `ANTHROPIC_API_KEY` in the environment or a non-`claude.ai` login refuses the launch instead of billing
+  it), `CLAUDECODE` / `CLAUDE_CODE_*` stripped from the child environment, a manifest written before the
+  spawn so an uncertain launch can be reconciled, the result classified into the exact stop reason, the
+  CLI's `rate_limit_event` recorded as the subscription allowance in percent and `total_cost_usd` as a
+  per-invocation estimated API value, and exact session resume (`--resume`) when a run stopped at the
+  turn ceiling. Observed CLI shapes and what remains unverified are in the README.
+- Budget: a fresh allowance in `percent` permits a launch iff the unused share of the window exceeds the
+  interactive reserve fraction (turns cannot be compared with a percentage); the pool's own unit keeps the
+  turn arithmetic.
+- `tools/autonomy-controller/ashlar_controller/readiness.py`: parsers for the three gate commands, failure
+  identities stable across timestamps, durations and paths, `run_gate` with no retry, one bounded fixer
+  launch that falls back to a general-purpose run exactly once when the named agent role is missing, and
+  `refuted` to detect a fix that left its failure in place.
+- Controller: `invocation-ceiling-reached` requeues without touching the retry counter and the next launch
+  resumes the session; `model-unrecognized` parks for a decision; `funding-route-mismatch` blocks on auth;
+  a `LaunchRefused` from an adapter settles the run with its reason and releases the reservation; every
+  usage observation a run reports is recorded by kind and session; `evaluate_readiness` applies a gate
+  report through the same retry-once-then-park counter as a diagnosed run failure.
+- CLI: `tick --adapter {fake,claude}`, `readiness run --gate <name> --workspace <path> [--task-id <id>]`,
+  `readiness evaluate --task-id <id> --report <json>`. `policy.example.json` names `claude-sonnet-5`, an
+  id the CLI recognises (the PR 1 candidate `claude-sonnet-5-5` is refused before any request).
+
 ### Added — budgeted autonomy controller, PR 1 (policy and durable state)
 
 - `tools/autonomy-controller/`: a standard-library Python controller with an operator policy loaded from

@@ -37,6 +37,7 @@ class PolicyParsing(ControllerCase):
         with self.assertRaises(PolicyError):
             load_policy(str(copy), roots=[worker.resolve()])
 
+    @unittest.skipUnless(os.name == "posix", "the mode-bits refusal exists only on POSIX (policy._check_location)")
     def test_world_writable_policy_is_refused(self):
         os.chmod(self.policy_path, 0o666)
         with self.assertRaises(PolicyError) as cm:

@@ -14,6 +14,9 @@ class AdapterCapabilities:
     structured_output: bool = False
     usage_observation: bool = False
     transcript_retention: bool = False
+    turn_limit: bool = False            # the provider enforces the invocation ceiling itself
+    funding_route_check: bool = False   # the adapter can read which route a launch would bill
+    evidence: str = ""                  # where the observations behind these flags are recorded
 
 
 class ProviderAdapter(Protocol):
