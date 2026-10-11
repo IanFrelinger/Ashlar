@@ -172,3 +172,13 @@ class BudgetExhausted(ControllerError):
 
 class LaunchOutcomeUnknown(Exception):
     """Raised by an adapter when it cannot say whether the launch happened."""
+
+
+class LaunchRefused(Exception):
+    """Raised by an adapter that refused to launch for a definite, recorded reason (nothing started).
+    `stop_reason` is a StopReason value; `blocker` is the exact text an operator needs."""
+
+    def __init__(self, stop_reason: str, blocker: str):
+        super().__init__(f"{stop_reason}: {blocker}")
+        self.stop_reason = stop_reason
+        self.blocker = blocker
