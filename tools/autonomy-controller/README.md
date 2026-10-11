@@ -11,8 +11,12 @@ context**: the controller clones the base onto a branch for the worker, commits 
 worker edited, opens the PR once, observes the required checks by head SHA, runs at most
 `limits.repair_rounds` repair rounds as new runs briefed by a compact handoff, merges on green with the
 head pinned, records the merge SHA, treats closure without merge as not success, and starts the next
-task from that merge SHA. The roadmap (PR 4 operator controls and pilot, PR 5 Codex and Cursor
-adapters) is in the card.
+task from that merge SHA. **PR 4 adds operator controls and evidence retention**: `status` and `report`
+show the operator everything the ledger knows, including each run's evidence paths and the PR record,
+without an LLM; `metrics` are counts from the ledger; `backup` and `restore` move the ledger through
+the SQLite backup API with a schema check; `evidence archive` keeps a run's manifest, output, transcript
+and ledger rows after its workspace is gone; and `pause`, `resume`, `provider disable` and `run cancel`
+are proven to take effect at the next tick. The roadmap (PR 5 Codex and Cursor adapters) is in the card.
 
 Python 3.8+ and the standard library only (SQLite through `sqlite3`). Nothing here runs `dotnet`,
 and nothing here runs outside the host the operator starts it on.
@@ -33,6 +37,8 @@ and nothing here runs outside the host the operator starts it on.
 | `ashlar_controller/prs.py` | PR records, the `gh` client (`GhCli`) and its in-memory twin (`FakeGh`), checks evaluated by head SHA, the compact handoff |
 | `ashlar_controller/gitops.py` | The controller's git: clone the base onto a branch, commit and push a workspace, clone a PR head for a repair |
 | `ashlar_controller/lifecycle.py` | The PR phase of a tick: propose, open, observe, repair, merge, park; PR events |
+| `ashlar_controller/metrics.py` | Counts and sums from the ledger (`metrics`) and the LLM-free Markdown report (`report`) |
+| `ashlar_controller/evidence.py` | `backup` and `restore` through the SQLite backup API; per-run evidence archives |
 | `policy.example.json` | The operator policy example (copy it outside every checkout) |
 | `tests/` | The unit suite (`tests/fake_claude_cli.py` stands in for the CLI); `tests/scripts/autonomy-controller.test.sh` runs it in the required `shell-lint` check |
 | `mutation-runner.sh` | `ASHLAR_MUTATION_RUNNER` for `scripts/mutation-check.sh` |
@@ -63,7 +69,12 @@ and nothing here runs outside the host the operator starts it on.
 
 | Command | Does |
 |---|---|
-| `status [--json]` | Owner, task, PR, state, stop reason, blocker, budget consumed/reserved/remaining, attempts remaining, funding pool, lease, latest usage per provider |
+| `status [--json]` | Owner, task, PR record, state, stop reason, blocker, budget consumed/reserved/remaining, attempts remaining, funding pool, lease, latest usage per provider, and the evidence paths of each task's last run (run directory, manifest, stdout, stderr, transcript, workspace, archive) |
+| `report [--json]` | The LLM-free status report: `status` plus `metrics` rendered as Markdown from the ledger alone (`--json` gives both dicts and the Markdown) |
+| `metrics [--json]` | Counts and sums from the ledger: tasks and runs by state, runs by stop reason and role, turns consumed and reserved, PRs by outcome, repair rounds, retries, latest usage per provider and kind, journal by kind. No model is called |
+| `backup <dest>` | Copy the open ledger to a new file through the SQLite online backup API; refuses to overwrite; journals `backup` in the source |
+| `restore <source> [--replace]` | Replace the `--state` file with a backup. Refuses a source whose `schema_version` the controller does not know (`1` and `2` are known; `1` is migrated on open) and, without `--replace`, an existing state file; swaps the file atomically, removes stale `-wal`/`-shm` sidecars, opens and verifies the result, and journals `restored` in it |
+| `evidence archive <run> [--out <dir>]` / `evidence list` | Tar the run directory (`manifest.json`, `stdout.json`, `stderr.log`, the transcript when it can be located) with the run's ledger rows (`ledger.json`: run, task, pool, PR, journal, usage, policy version) into `<state dir>/evidence/<run>.tar.gz`; never overwrites; journals `evidence-archived` with the archive's sha256 |
 | `pause --reason <text>` / `resume` | Stop launching before the next tick; allow it again |
 | `tick [--dry-run] [--adapter fake\|claude] [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter claude` registers the Claude adapter with its run directory under `<state dir>/runs/`. `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
 | `pr list\|show <n>\|observe <n>` | PR records; `observe` reads the PR's current head and its required checks now and merges, repairs or parks as they demand (`--gh cli`) |
@@ -348,6 +359,43 @@ Schema 2 adds `prs.branch`, `prs.url`, `prs.title`, `tasks.branch` and `runs.pr_
 ledger is migrated in place (additive columns, journalled `schema-migrated`) on its first read-write
 open, and refused read-only until then.
 
+## Operator controls and evidence (PR 4)
+
+Nothing in this section calls a model. `status`, `report` and `metrics` read the ledger and the run
+directories; `backup`, `restore` and `evidence archive` move files; the controls write one row that the
+next tick reads first.
+
+- **Controls take effect at the next tick.** `pause` is the first thing a tick checks, before the PR
+  phase, so a red head gets no repair while paused and the PR is not even observed; `resume` lets the
+  next tick act. `provider disable <name>` removes the provider from dispatch and from repair launches
+  (the PR stays open and watched, no round is spent); `provider enable` restores it. `run cancel <run>`
+  of a running repair settles the run `cancelled`, keeps its round spent, keeps the PR open and watched
+  (a merge done by hand is still recorded and makes the task `done`), moves the task to `cancelled` and
+  launches nothing more for it; the workspace and the transcript are preserved for inspection.
+- **The operator view.** `status` adds, per task, the PR record and `evidence`: the last run's directory
+  under `<state dir>/runs/<run>/`, its `manifest.json`, `stdout.json` and `stderr.log` when present, the
+  transcript located by session id from the manifest (the path in the manifest is only a hint), the
+  recorded workspace and whether it is still on disk, and the archive when one exists. A path is `null`
+  when the file is not there. The last run is the latest by insertion order, not by run id. `report`
+  renders the same dict and the metrics as Markdown, so a status post needs no model.
+- **Backups and restore.** `backup <dest>` uses `sqlite3.Connection.backup` on the open ledger (a
+  consistent copy under WAL) and journals it in the source. `restore <source>` runs before the state is
+  opened: it checks the source's integrity, its tables and its `schema_version` (`1` or `2`; anything
+  else is refused with nothing written), refuses an existing `--state` unless `--replace` is given, copies
+  into a temporary file beside the destination, removes stale `-wal`/`-shm` sidecars, replaces the file
+  atomically, then opens the result with the normal `Store.open` (which migrates schema 1 and runs the
+  integrity check) and journals `restored`. A restored ledger therefore accepts exactly what the original
+  did; the tests restore a backup and run a task through it.
+- **Evidence archives.** `evidence archive <run>` writes `<state dir>/evidence/<run>.tar.gz` with
+  `run/<file>` for each file in the run directory, `transcript.jsonl` when the transcript can be located,
+  `ledger.json` (the run, task, pool and PR rows, the journal rows of the run and its task, the usage rows,
+  the policy version) and `MANIFEST.txt`. It refuses to overwrite, and journals `evidence-archived` with
+  the file's sha256. An archive outlives the workspace, which a later run or the operator may remove.
+- **Metrics** are the ledger's counts and sums: tasks and runs by state, runs by stop reason and role,
+  turns consumed and reserved, overshoot, attempts, PRs by outcome and repair rounds, retries, the latest
+  usage per provider and kind, and the per-provider sum of `estimated_api_value` deltas, which stays an
+  estimate and is never added to a turns figure.
+
 ## Readiness fixer
 
 `ashlar_controller/readiness.py` turns the output of the three gate commands into a report whose
@@ -411,6 +459,19 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   scripts/mutation-check.sh --id <name> --file tools/autonomy-controller/ashlar_controller/<f>.py \
   --old '<text>' --new '<text>'                           # red / restore / clean / green, in a clone
 ```
+
+## Not in PR 4
+
+- The pilot (three bounded real tasks through the full lifecycle) and the live run of the PR 3 lifecycle
+  did not run from a Claude Code session: the session's classifier refuses to launch the worker
+  (`tick --adapter claude --gh cli`, "Create Unsafe Agents"). The procedure is prepared for the operator's
+  own terminal (`live-run-pr3.md` and `pilot-pr4.md` on the storage branch `claude/budgeted-autonomy-workspace`);
+  whether the controller may merge to master during the pilot is an open owner question. Until the
+  owner runs it, the `GhCli` shapes remain exercised against the recording runner and the fake only.
+- `restore` replaces the file the operator names; it does not stop a controller that holds the writer
+  lease on it. Stop every controller on the ledger first (the lease row travels with the backup).
+- Archives are written once per run and never pruned; nothing rotates `<state dir>/evidence/`.
+- `premium_escalations_used` and `provider_transfers_used` are still counted and not driven (PR 5).
 
 ## Not in PR 3
 
