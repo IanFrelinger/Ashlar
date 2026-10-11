@@ -1,0 +1,11 @@
+01	https://github.com/IanFrelinger/Ashlar/issues/757	Testing-strategy gate: ignore comment-only diffs under trigger paths
+02	https://github.com/IanFrelinger/Ashlar/issues/758	EventId 7308 for the host opt-out startup Warning
+03	https://github.com/IanFrelinger/Ashlar/issues/759	`WorkflowExecutor` `FailurePolicy.Continue` and a refused brick
+04	https://github.com/IanFrelinger/Ashlar/issues/760	One `denied/egress_refused` audit record per refusal through the unkeyed router
+05	https://github.com/IanFrelinger/Ashlar/issues/761	Pre-switch wording and the `is_reported` theory name (if not folded into R3a)
+06	https://github.com/IanFrelinger/Ashlar/issues/762	`RunPodHttpClient.cs:43` and other off-by-a-few citations in `docs/EgressInventory.md`
+07	https://github.com/IanFrelinger/Ashlar/issues/763	`DESIGN-4-final.md:605` and §5 C12 on the storage branch
+08	https://github.com/IanFrelinger/Ashlar/issues/764	Mutation evidence pass: all seven SPEC-007 manifests on one master SHA
+09	https://github.com/IanFrelinger/Ashlar/issues/765	PR 4.9b: exit 77 centrally, Initiator convention, `-v` mounts, `docker exec` per the owner
+10	https://github.com/IanFrelinger/Ashlar/issues/766	Inbound hosts under Q6: gRPC server host and Fleet.Host
+11	https://github.com/IanFrelinger/Ashlar/issues/767	Dependabot #728 (AWSSDK.BedrockRuntime 4.0.101.9)
