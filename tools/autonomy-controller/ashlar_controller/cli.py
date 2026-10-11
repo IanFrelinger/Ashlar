@@ -85,7 +85,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("tick", help="one controller step: settle, reconcile, then at most one launch")
     s.add_argument("--dry-run", action="store_true", help="say what would happen; no writes, no adapter calls")
-    s.add_argument("--adapter", choices=["fake"], default="fake", help="PR 1 ships only the fake adapter")
+    s.add_argument("--adapter", choices=["fake", "claude"], default="fake",
+                   help="fake (default) or claude (the installed Claude Code CLI; runs under <state dir>/runs)")
+
+    s = sub.add_parser("readiness", help="readiness gates: run one, or apply a saved report to a task")
+    rd = s.add_subparsers(dest="readiness_cmd", required=True)
+    a = rd.add_parser("run", help="run one gate command in a workspace, print the report, optionally apply it to a task")
+    a.add_argument("--gate", required=True, choices=["repo-gates", "readiness-local", "container-tests"])
+    a.add_argument("--workspace", required=True); a.add_argument("--task-id")
+    a = rd.add_parser("evaluate", help="apply a saved gate report (the JSON `readiness run` prints) to a task")
+    a.add_argument("--task-id", required=True); a.add_argument("--report", required=True)
 
     s = sub.add_parser("task", help="task records"); ts = s.add_subparsers(dest="task_cmd", required=True)
     a = ts.add_parser("add")
@@ -147,8 +156,38 @@ def _policy(args, store: Optional[Store]) -> Policy:
 
 def _controller(args, store: Store, policy: Policy) -> Controller:
     holder = args.holder or f"{socket.gethostname()}:{os.getpid()}"
-    adapters = {"fake": FakeAdapter()}
+    adapters: Dict[str, Any] = {"fake": FakeAdapter()}
+    if getattr(args, "adapter", "fake") == "claude":
+        # Imported here, not at module level: the fake adapter and every record command work
+        # without the live adapter being importable.
+        from .adapters.claude import ClaudeAdapter
+        runs_dir = os.path.join(os.path.dirname(os.path.abspath(args.state)), "runs")
+        adapters["claude"] = ClaudeAdapter(runs_dir=runs_dir)
     return Controller(store, policy, adapters, holder_id=holder)
+
+
+class _GateFailure:
+    def __init__(self, gate: str, identity: str, evidence: str):
+        self.gate, self.identity, self.evidence = gate, identity, evidence
+
+
+class _GateReport:
+    """A saved gate report read back from JSON, in the shape `Controller.evaluate_readiness` reads
+    (the same fields as readiness.GateReport)."""
+
+    def __init__(self, raw: Dict[str, Any]):
+        self.source = raw.get("source")
+        self.commit = raw.get("commit")
+        self.passed = list(raw.get("passed") or [])
+        self.raw = raw.get("raw") or {}
+        self.failures = [_GateFailure(str(f["gate"]), str(f["identity"]), str(f.get("evidence", "")))
+                         for f in (raw.get("failures") or [])]
+
+
+def _report_to_json(report) -> Dict[str, Any]:
+    return {"source": getattr(report, "source", None), "commit": getattr(report, "commit", None),
+            "failures": [{"gate": f.gate, "identity": f.identity, "evidence": f.evidence} for f in report.failures],
+            "passed": list(report.passed), "raw": getattr(report, "raw", {})}
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -222,6 +261,22 @@ def _dispatch(args) -> int:
                + (f"\n{json.dumps(report.details, sort_keys=True)}" if report.details else "")
                + ("".join(f"\nsettled {s}" for s in report.settled)), args.json)
         return 0
+    if args.cmd == "readiness":
+        if args.readiness_cmd == "run":
+            from . import readiness   # the gate runner and parsers; imported only on this path
+            try:
+                report = readiness.run_gate(args.gate, args.workspace)
+            except readiness.GateInfrastructureError as e:
+                raise ControllerError(f"gate {args.gate} could not run (infrastructure, not a verdict): {e}")
+            out: Dict[str, Any] = {"report": _report_to_json(report)}
+            if args.task_id:
+                out["evaluation"] = ctl.evaluate_readiness(args.task_id, report)
+            _print(out, args.json); return 0
+        if args.readiness_cmd == "evaluate":
+            with open(args.report, encoding="utf-8") as f:
+                raw = json.load(f)
+            report = _GateReport(raw.get("report", raw))
+            _print(ctl.evaluate_readiness(args.task_id, report), args.json); return 0
     if args.cmd == "provider":
         current = set(json.loads(store.control("disabled_providers") or "[]"))
         if args.provider_cmd == "disable":

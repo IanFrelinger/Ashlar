@@ -22,8 +22,8 @@ from typing import Any, Dict, List, Optional
 
 from . import budget, events
 from .adapters.base import ProviderAdapter
-from .models import (BudgetExhausted, LaunchOutcomeUnknown, LaunchRequest, LeaseError, PolicyError, RunState,
-                     StopReason, TaskState, UsageFreshness)
+from .models import (BudgetExhausted, LaunchOutcomeUnknown, LaunchRefused, LaunchRequest, LeaseError, PolicyError,
+                     RunState, StopReason, TaskState, UsageFreshness)
 from .policy import Policy
 from .store import Store, utcnow_iso
 
@@ -135,6 +135,10 @@ class Controller:
             delta = budget.record_usage(self.store, status.usage, run["run_id"], now=self.clock())
             if consumed is None and delta is not None and status.usage.freshness == UsageFreshness.FRESH:
                 consumed = delta
+        for obs in status.observations:
+            # Further kinds (an unavailable allowance, an estimated API value): recorded by kind,
+            # with their per-session delta, and never summed into the consumption figure.
+            budget.record_usage(self.store, obs, run["run_id"], now=self.clock())
         reason = status.stop_reason or (StopReason.COMPLETED if status.state == RunState.FINISHED else StopReason.TASK_FAILED)
         run_state = status.state if status.state in (RunState.FINISHED, RunState.FAILED, RunState.CANCELLED) else RunState.FAILED
         settled = budget.settle(self.store, run["run_id"], state=run_state, stop_reason=reason, consumed=consumed,
@@ -170,20 +174,68 @@ class Controller:
             self.set_task_state(task_id, TaskState.NEEDS_RECONCILE, stop_reason=reason,
                                 blocker="worker exited without a final result; reconcile process, workspace, "
                                         "transcript and remote state before retrying")
+        elif reason == StopReason.INVOCATION_CEILING:
+            # The provider stopped at the turn limit. Not a failure: the task goes straight back to
+            # the queue and the next launch resumes the same session. The failure-retry counter is not
+            # touched; the pool's attempts and task ceiling bound how often this can happen.
+            session = run["native_session_id"]
+            self.set_task_state(task_id, TaskState.QUEUED, stop_reason=reason,
+                                blocker=f"turn ceiling reached; next attempt resumes session {session or '(none recorded)'}")
+        elif reason == StopReason.MODEL_UNRECOGNIZED:
+            model = (status.result or {}).get("model") or run["model"]
+            self.set_task_state(task_id, TaskState.PARKED_DECISION, stop_reason=reason,
+                                blocker=f"model id {model} is not recognised by the provider CLI; the policy must name "
+                                        f"a recognised model before this task runs again")
+        elif reason == StopReason.FUNDING_ROUTE_MISMATCH:
+            self.set_task_state(task_id, TaskState.BLOCKED_AUTH, stop_reason=reason,
+                                blocker=blocker or "the provider would bill a funding route the policy did not select")
         else:  # task-failed and anything unrecognised
-            identity = status.failure_identity or "unidentified-failure"
-            allowed, used = budget.failure_retry_allowed(self.store, run["pool_id"], identity,
-                                                         int(limits["same_failure_retries"]))
-            if allowed:
-                budget.bump_failure_retry(self.store, run["pool_id"], identity)
-                self.set_task_state(task_id, TaskState.QUEUED, stop_reason=reason,
-                                    blocker=f"retrying diagnosed failure {identity} ({used + 1} of {limits['same_failure_retries']})")
-            else:
-                self.set_task_state(task_id, TaskState.PARKED_FAILURE, stop_reason=StopReason.SAME_FAILURE_RETRY_EXHAUSTED,
-                                    blocker=f"failure {identity} already retried {used} time(s); the same diagnosed "
-                                            f"failure is not retried again on any cycle or provider")
+            self._apply_failure_retry(task_id, run["pool_id"], status.failure_identity, reason,
+                                      int(limits["same_failure_retries"]))
         settled["task_id"] = task_id
         return settled
+
+    def _apply_failure_retry(self, task_id: str, pool_id: str, failure_identity: Optional[str], reason: str,
+                             same_failure_retries: int) -> Dict[str, Any]:
+        """The same diagnosed failure is retried `same_failure_retries` times across every cycle and
+        provider (the counter lives in the pool, so it survives restarts and task splits); then the
+        task is parked."""
+        identity = failure_identity or "unidentified-failure"
+        allowed, used = budget.failure_retry_allowed(self.store, pool_id, identity, same_failure_retries)
+        if allowed:
+            budget.bump_failure_retry(self.store, pool_id, identity)
+            self.set_task_state(task_id, TaskState.QUEUED, stop_reason=reason,
+                                blocker=f"retrying diagnosed failure {identity} ({used + 1} of {same_failure_retries})")
+            return {"task_id": task_id, "action": "requeued", "identity": identity, "retry": used + 1}
+        self.set_task_state(task_id, TaskState.PARKED_FAILURE, stop_reason=StopReason.SAME_FAILURE_RETRY_EXHAUSTED,
+                            blocker=f"failure {identity} already retried {used} time(s); the same diagnosed "
+                                    f"failure is not retried again on any cycle or provider")
+        return {"task_id": task_id, "action": "parked", "identity": identity, "retry": used}
+
+    def evaluate_readiness(self, task_id: str, report) -> Dict[str, Any]:
+        """Apply a readiness gate report (the shape of readiness.GateReport: `failures`, each with a
+        stable `identity`, plus `passed`, `source`, `commit`) to a task. No failures: the task is done.
+        Failures: the first failure's identity goes through the same retry counter as a diagnosed
+        task failure, so the same gate failure is retried once and then parked, on any cycle and
+        after any restart."""
+        task = self.store.row("SELECT pool_id FROM tasks WHERE task_id=?", (task_id,))
+        if task is None:
+            raise PolicyError(f"no task {task_id}")
+        failures = [{"gate": f.gate, "identity": f.identity, "evidence": f.evidence} for f in report.failures]
+        passed = list(report.passed)
+        if not failures:
+            self.set_task_state(task_id, TaskState.DONE, stop_reason=StopReason.COMPLETED)
+            out = {"task_id": task_id, "action": "completed", "identity": None, "retry": 0}
+        else:
+            out = self._apply_failure_retry(task_id, task["pool_id"], failures[0]["identity"], StopReason.TASK_FAILED,
+                                            int(self.policy.limits["same_failure_retries"]))
+        out.update({"failures": failures, "passed": passed, "source": getattr(report, "source", None),
+                    "commit": getattr(report, "commit", None)})
+        self.store.journal("readiness-evaluated", task_id=task_id,
+                           detail={"action": out["action"], "identity": out["identity"], "source": out["source"],
+                                   "commit": out["commit"], "failed": [f["identity"] for f in failures],
+                                   "passed": passed}, now=self.clock())
+        return out
 
     def settle_and_reconcile(self) -> Dict[str, Any]:
         """Poll running runs, settle finished ones, and resolve uncertain launches. Returns the
@@ -310,12 +362,24 @@ class Controller:
             report.action, report.reason, report.task_id = "blocked", why, task["task_id"]
             return report
 
+        # Exact resume: when the task's latest run stopped at the turn ceiling and left a session id,
+        # the next launch continues that session instead of starting a fresh one.
+        resume_session_id: Optional[str] = None
+        # Latest by insertion order (rowid): two runs reserved in the same second must not be ordered
+        # by their random run ids.
+        last = self.store.row("SELECT native_session_id, stop_reason FROM runs WHERE task_id=? "
+                              "ORDER BY reserved_at DESC, rowid DESC LIMIT 1", (task["task_id"],))
+        if last is not None and last["stop_reason"] == StopReason.INVOCATION_CEILING and last["native_session_id"]:
+            resume_session_id = last["native_session_id"]
+
         run_id = f"run-{uuid.uuid4().hex[:12]}"
         try:
+            # The adapter chooses the workspace (`tasks` has no workspace column; the run row records
+            # what the adapter returns).
             reservation = budget.reserve(self.store, run_id=run_id, task_id=task["task_id"], pool_id=task["pool_id"],
                                          provider=task["provider"], policy=self.policy,
                                          policy_version_id=self.policy_version_id, holder=self.holder_id, now=now,
-                                         workspace=task["base_sha"] and None)
+                                         workspace=None)
         except BudgetExhausted as e:
             reason = str(e).split(":", 1)[0]
             self.set_task_state(task["task_id"], TaskState.PARKED_BUDGET, stop_reason=reason, blocker=str(e))
@@ -332,10 +396,14 @@ class Controller:
         request = LaunchRequest(run_id=run_id, task_id=task["task_id"], provider=task["provider"],
                                 model=reservation["model"], effort=reservation["effort"], speed=reservation["speed"],
                                 invocation_ceiling=int(reservation["reservation"]), workspace=None,
-                                prompt=f"card #{task['card_number']}: {task['title']}" if task["card_number"] else task["title"])
+                                prompt=f"card #{task['card_number']}: {task['title']}" if task["card_number"] else task["title"],
+                                resume_session_id=resume_session_id)
         with self.store.tx():
             self.store.conn.execute("UPDATE runs SET state=?, launched_at=? WHERE run_id=?",
                                     (RunState.LAUNCHING, utcnow_iso(now), run_id))
+            if resume_session_id:
+                self.store.journal("resume", task_id=task["task_id"], run_id=run_id,
+                                   detail={"session": resume_session_id}, now=now)
         try:
             result = adapter.launch(request)
         except LaunchOutcomeUnknown as e:
@@ -346,6 +414,17 @@ class Controller:
             self.set_task_state(task["task_id"], TaskState.NEEDS_RECONCILE, stop_reason=StopReason.LAUNCH_UNKNOWN)
             return TickReport("blocked", StopReason.LAUNCH_UNKNOWN, task_id=task["task_id"], run_id=run_id,
                               settled=recon["settled"], details={"error": str(e)})
+        except LaunchRefused as e:
+            # Nothing started, for a reason the adapter could name. The reservation is released, the
+            # attempt stays counted, and the task goes where the reason sends it.
+            budget.settle(self.store, run_id, state=RunState.FAILED, stop_reason=e.stop_reason, consumed=0.0,
+                          result={"blocker": e.blocker, "refused": True}, now=now)
+            state, stop_reason = self._refusal_target(e.stop_reason)
+            self.set_task_state(task["task_id"], state, stop_reason=stop_reason, blocker=e.blocker)
+            self.store.journal("launch-refused", task_id=task["task_id"], run_id=run_id,
+                               detail={"stop_reason": e.stop_reason, "blocker": e.blocker, "task_state": state}, now=now)
+            return TickReport("blocked", e.stop_reason, task_id=task["task_id"], run_id=run_id,
+                              settled=recon["settled"], details={"blocker": e.blocker, "task_state": state})
         except Exception as e:
             budget.settle(self.store, run_id, state=RunState.FAILED, stop_reason=StopReason.LAUNCH_FAILED, consumed=0.0,
                           result={"error": str(e)}, now=now)
@@ -363,6 +442,15 @@ class Controller:
         return TickReport("launched", "launched", task_id=task["task_id"], run_id=run_id, settled=recon["settled"],
                           details={"reservation": reservation["reservation"], "attempt_no": reservation["attempt_no"],
                                    "model": reservation["model"], "effort": reservation["effort"]})
+
+    @staticmethod
+    def _refusal_target(stop_reason: str):
+        """Where a task goes after an adapter refused to launch it: (task state, task stop reason)."""
+        if stop_reason in (StopReason.AUTH_MISSING, StopReason.FUNDING_ROUTE_MISMATCH):
+            return TaskState.BLOCKED_AUTH, stop_reason
+        if stop_reason == StopReason.MODEL_UNRECOGNIZED:
+            return TaskState.PARKED_DECISION, stop_reason
+        return TaskState.QUEUED, StopReason.LAUNCH_FAILED
 
     def _plan(self) -> TickReport:
         """Dry run: say what a tick would do. Reads only; no adapter is touched."""

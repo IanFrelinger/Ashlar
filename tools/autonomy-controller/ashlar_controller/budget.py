@@ -178,8 +178,14 @@ def latest_allowance(store: Store, provider: str):
 def allowance_decision(policy: Policy, obs, invocation_ceiling: float) -> Tuple[bool, str]:
     """May we launch, given the latest subscription-allowance observation?
 
-    Fresh and quantified: launch only if what remains after the interactive reserve covers one
-    invocation. Stale or unavailable: the policy says whether to wait or to rely on task ceilings.
+    Fresh and quantified, in the pool's own unit: launch only if what remains after the interactive
+    reserve covers one invocation. Fresh and quantified in `percent` (the Claude CLI reports the
+    five-hour window's utilization as a fraction, recorded as a percentage of 100): the invocation
+    ceiling is in turns and cannot be compared with a percentage, so the launch is permitted iff the
+    unused share of the window exceeds the interactive reserve fraction, `(100 - value) / 100 -
+    interactive_reserve_fraction > 0`. That is an integrator decision (no owner row): it keeps the
+    reserve and lets the task ceilings bound the turns. Stale or unavailable: the policy says whether
+    to wait or to rely on task ceilings.
     """
     fraction = float(policy.funding["interactive_reserve_fraction"])
     if obs is None or obs["freshness"] == UsageFreshness.UNAVAILABLE or obs["value"] is None or obs["total"] is None:
@@ -192,6 +198,12 @@ def allowance_decision(policy: Policy, obs, invocation_ceiling: float) -> Tuple[
         return True, "allowance-stale:task-ceiling-only"
     total = float(obs["total"])
     used = float(obs["value"])
+    if obs["unit"] == "percent":
+        if total <= 0:
+            return False, StopReason.ALLOWANCE_UNOBSERVABLE
+        if (total - used) / total - fraction > 0:
+            return True, "allowance-ok:percent"
+        return False, StopReason.ALLOWANCE_RESERVE
     remaining_allowance = total - used
     reserve_units = fraction * total
     if remaining_allowance - reserve_units < invocation_ceiling:

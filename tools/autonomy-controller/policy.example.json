@@ -1,5 +1,5 @@
 {
-  "_comment": "Example operator policy for tools/autonomy-controller. Copy it OUTSIDE every checkout (for example /etc/ashlar/controller-policy.json, mode 0600) and point the controller at it with --policy or ASHLAR_CONTROLLER_POLICY. The loader refuses a policy that lives inside a checkout, so this file cannot be the active policy. Model ids are candidates: PR 2 verifies installed availability before any live launch.",
+  "_comment": "Example operator policy for tools/autonomy-controller. Copy it OUTSIDE every checkout (for example /etc/ashlar/controller-policy.json, mode 0600) and point the controller at it with --policy or ASHLAR_CONTROLLER_POLICY. The loader refuses a policy that lives inside a checkout, so this file cannot be the active policy. Model ids: claude-sonnet-5 is recognised by the installed Claude Code CLI (2.1.263, probed 2026-10-11); whether the API accepts it on this account is unverified until the first live launch. The Codex and Cursor ids are still candidates (PR 5).",
   "policy_version": "2026-10-11.1",
   "limits": {
     "active_writers": 1,
@@ -22,7 +22,7 @@
   "providers": {
     "claude": {
       "enabled": true,
-      "model": "claude-sonnet-5-5",
+      "model": "claude-sonnet-5",
       "effort": "medium",
       "speed": "standard",
       "funding_pool": "claude-subscription",
