@@ -92,7 +92,9 @@ public sealed class DockerCommandMissingMethodTests : IDisposable
         }
 
         var observed = stdout.ToString() + stderr.ToString() + (thrown?.ToString() ?? string.Empty);
-        observed.Should().NotContain("MissingMethodException");
+        // The logged daemon stack includes this test's own name, which contains the substring
+        // MissingMethodException. Match the exception type, not that substring.
+        observed.Should().NotContain("System.MissingMethodException");
         observed.Should().NotContain("Method not found:");
         stdout.ToString().Should().Contain(header, "the header is printed only after CreateClient returns");
         thrown.Should().BeNull("the handler must not escape once the Docker client has been constructed");
