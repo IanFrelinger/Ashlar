@@ -69,7 +69,7 @@ def main() -> int:
             sys.stdout.write(script["auth_stdout"])
         else:
             auth = script.get("auth", {"loggedIn": True, "authMethod": "claude.ai"})
-            sys.stdout.write(json.dumps(auth) + "\n")
+            sys.stdout.write(json.dumps(auth, indent=2) + "\n")   # the real CLI pretty-prints
         sys.stdout.flush()
         return int(script.get("auth_exit", 0))
 

@@ -82,9 +82,16 @@ def _slug(path: str) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", path)
 
 
-def _last_json_line(text: str) -> Optional[Dict[str, Any]]:
-    """The LAST stdout line that starts with '{' and parses as a JSON object. Used for
-    `claude auth status --json`, which prints one object; run output goes through `parse_stream`."""
+def _json_object(text: str) -> Optional[Dict[str, Any]]:
+    """The JSON object `claude auth status --json` printed. The real CLI pretty-prints it over many
+    lines (observed 2026-10-11), so the whole text is parsed first; a single trailing object line is
+    accepted as a fallback. Run output never comes through here; it goes through `parse_stream`."""
+    try:
+        obj = json.loads(text.strip())
+        if isinstance(obj, dict):
+            return obj
+    except ValueError:
+        pass
     for line in reversed(text.splitlines()):
         s = line.strip()
         if not s.startswith("{"):
@@ -217,7 +224,7 @@ class ClaudeAdapter:
         except (OSError, subprocess.SubprocessError) as e:
             raise LaunchRefused(StopReason.AUTH_MISSING, f"`claude auth status` did not run: {e}")
         out = proc.stdout.decode("utf-8", "replace")
-        status = _last_json_line(out)
+        status = _json_object(out)
         if status is None:
             tail = (proc.stderr.decode("utf-8", "replace") or out)[-STDERR_TAIL_LIMIT:].strip()
             raise LaunchRefused(StopReason.AUTH_MISSING,

@@ -226,6 +226,18 @@ class Refusals(ClaudeAdapterCase):
         self.assertIn("api-key would be billed", cm.exception.blocker)
         self.assertEqual(self.argv_files(), [])
 
+    def test_pretty_printed_auth_status_is_accepted(self):
+        # The real `claude auth status --json` spreads the object over many lines (observed 2026-10-11).
+        # A last-line-only parser read it as "no JSON" and blocked every launch as auth-missing.
+        pretty = json.dumps({"loggedIn": True, "authMethod": "claude.ai", "apiProvider": "firstParty",
+                             "projectsDirectory": str(self.tmp / "projects"), "subscriptionType": "max"}, indent=2) + "\n"
+        self.write_script(stdout=result_object(), auth_stdout=pretty)
+        a = self.adapter()
+        res = a.launch(self.request())
+        status = self.wait_exit(a, res.native_run_handle)
+        self.assertEqual(status.state, RunState.FINISHED)
+        self.assertEqual(len(self.argv_files()), 1)
+
     def test_auth_status_without_json_is_auth_missing(self):
         self.write_script(stdout=result_object(), auth_stdout="claude: command not understood\n", auth_exit=2)
         a = self.adapter()
