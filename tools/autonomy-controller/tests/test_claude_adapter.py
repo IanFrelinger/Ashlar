@@ -116,12 +116,14 @@ class Argv(ClaudeAdapterCase):
         a, res, status = self.launch_and_settle(result_object())
         argv = self.recorded()["argv"]
         self.assertEqual(argv[:2], ["-p", "card #755: PR 2"])
-        for flag, value in (("--output-format", "json"), ("--model", "claude-sonnet-5"), ("--effort", "medium"),
+        for flag, value in (("--output-format", "stream-json"), ("--model", "claude-sonnet-5"), ("--effort", "medium"),
                             ("--max-turns", "20"), ("--permission-prompts", "none"),
                             ("--permission-mode", "acceptEdits"), ("--session-id", res.native_session_id)):
             self.assertIn(flag, argv)
             self.assertEqual(argv[argv.index(flag) + 1], value, flag)
         self.assertIn("--no-chrome", argv)
+        self.assertIn("--verbose", argv)             # stream-json needs it
+        self.assertIn("--strict-mcp-config", argv)   # the operator's connectors never enter a run
         self.assertNotIn("--resume", argv)
         self.assertNotIn("--agent", argv)
         self.assertNotIn("--tools", argv)
@@ -130,7 +132,7 @@ class Argv(ClaudeAdapterCase):
         a, res, status = self.launch_and_settle(result_object())
         self.assertEqual(len(res.native_session_id), 36)
         self.assertEqual(status.result["session_id"], res.native_session_id)
-        self.assertEqual(status.usage.native_session_id, res.native_session_id)
+        self.assertEqual(status.observations[0].native_session_id, res.native_session_id)
 
     def test_resume_passes_resume_and_not_session_id(self):
         self.write_script(stdout=result_object())
@@ -242,23 +244,54 @@ class Refusals(ClaudeAdapterCase):
 
 
 class Classification(ClaudeAdapterCase):
-    def test_success_is_completed_with_turns_cost_and_tokens(self):
+    def test_success_is_completed_with_per_invocation_turns_and_a_cost_observation(self):
         a, res, status = self.launch_and_settle(result_object(num_turns=4, total_cost_usd=0.5))
         self.assertEqual((status.state, status.stop_reason), (RunState.FINISHED, StopReason.COMPLETED))
-        self.assertEqual(status.consumed_units, 4.0)
-        self.assertEqual((status.usage.kind, status.usage.unit, status.usage.freshness, status.usage.value),
-                         (UsageKind.ESTIMATED_API_VALUE, "usd", UsageFreshness.FRESH, 0.5))
-        self.assertEqual(status.usage.raw["tokens"]["output_tokens"], 20)
-        self.assertEqual([o.kind for o in status.observations], [UsageKind.SUBSCRIPTION_ALLOWANCE])
-        self.assertEqual(status.observations[0].freshness, UsageFreshness.UNAVAILABLE)
+        self.assertEqual(status.consumed_units, 4.0)       # num_turns, per invocation (observed)
+        self.assertIsNone(status.usage)                    # no delta stands in for consumption
+        self.assertEqual([o.kind for o in status.observations],
+                         [UsageKind.SUBSCRIPTION_ALLOWANCE, UsageKind.ESTIMATED_API_VALUE])
+        allowance, cost = status.observations
+        self.assertEqual((allowance.unit, allowance.freshness, allowance.value), ("percent", UsageFreshness.UNAVAILABLE, None))
+        self.assertEqual((cost.unit, cost.freshness, cost.value), ("usd", UsageFreshness.FRESH, 0.5))
+        # Keyed by the run id, so the recorded delta of this per-invocation figure equals its value.
+        self.assertEqual(cost.native_session_id, "run-1")
+        self.assertEqual(cost.raw["session_id"], res.native_session_id)
+        self.assertEqual(cost.raw["tokens"]["output_tokens"], 20)
         self.assertEqual(status.result["exit"], 0)
         self.assertEqual(status.result["subtype"], "success")
         self.assertEqual(status.result["duration_ms"], 1234)
 
+    def test_rate_limit_event_is_the_allowance_observation(self):
+        info = {"status": "allowed", "resetsAt": 1791702600, "rateLimitType": "five_hour", "overageStatus": "rejected",
+                "overageDisabledReason": "org_level_disabled", "isUsingOverage": False,
+                "unifiedWindows": {"five_hour": {"utilization": 0.69, "resetsAt": 1791702600},
+                                   "seven_day": {"utilization": 0.18, "resetsAt": 1792285200}}}
+        a, res, status = self.launch_and_settle(result_object(), rate_limit_info=info)
+        self.assertEqual(status.stop_reason, StopReason.COMPLETED)
+        allowance = status.observations[0]
+        self.assertEqual((allowance.kind, allowance.unit, allowance.freshness, allowance.value, allowance.total),
+                         (UsageKind.SUBSCRIPTION_ALLOWANCE, "percent", UsageFreshness.FRESH, 69.0, 100.0))
+        self.assertEqual(allowance.native_session_id, res.native_session_id)
+        self.assertEqual(allowance.raw, info)
+        self.assertEqual(status.result["rate_limit_info"]["unifiedWindows"]["seven_day"]["utilization"], 0.18)
+
+    def test_overage_is_quota_exhausted_even_on_a_successful_result(self):
+        info = {"status": "allowed", "isUsingOverage": True, "overageStatus": "allowed",
+                "unifiedWindows": {"five_hour": {"utilization": 1.0, "resetsAt": 1791702600}}}
+        a, res, status = self.launch_and_settle(result_object(), rate_limit_info=info)
+        self.assertEqual((status.state, status.stop_reason), (RunState.FAILED, StopReason.QUOTA_EXHAUSTED))
+        self.assertIs(status.result["overage"], True)
+        self.assertEqual(status.result["blocker"], "the provider is billing overage; paid inference is off")
+        self.assertEqual(status.observations[0].value, 100.0)
+        self.assertEqual(status.consumed_units, 3.0)
+
     def test_max_turns_subtype_is_the_invocation_ceiling(self):
-        a, res, status = self.launch_and_settle(result_object(subtype="error_max_turns", is_error=True, num_turns=20))
+        a, res, status = self.launch_and_settle(result_object(subtype="error_max_turns", is_error=True, num_turns=2,
+                                                              terminal_reason="max_turns", stop_reason="tool_use"))
         self.assertEqual((status.state, status.stop_reason), (RunState.FAILED, StopReason.INVOCATION_CEILING))
-        self.assertEqual(status.consumed_units, 20.0)
+        self.assertEqual(status.consumed_units, 2.0)
+        self.assertEqual(status.result["terminal_reason"], "max_turns")
         self.assertIn(res.native_session_id, status.result["blocker"])
 
     def test_observed_oauth_failure_is_auth_missing(self):
@@ -300,13 +333,23 @@ class Classification(ClaudeAdapterCase):
         a, res, status = self.launch_and_settle(api_error("request to api.anthropic.com timed out"), exit=1)
         self.assertEqual(status.stop_reason, StopReason.TRANSIENT)
 
-    def test_permission_denials_block_on_permission_with_the_tool_names(self):
-        obj = result_object(is_error=True, result="I could not run the command",
-                            permission_denials=[{"tool_name": "Bash", "tool_input": {"command": "rm -rf"}}])
-        a, res, status = self.launch_and_settle(obj, exit=1)
+    def test_permission_denial_on_a_successful_result_is_permission_missing(self):
+        # Observed: under --permission-prompts none a denied run COMPLETES with is_error false.
+        obj = result_object(is_error=False, subtype="success", result="The Bash call was automatically denied.",
+                            permission_denials=[{"tool_name": "Bash", "tool_input": {"command": "git status"},
+                                                 "tool_use_id": "toolu_01"}])
+        a, res, status = self.launch_and_settle(obj, exit=0)
         self.assertEqual((status.state, status.stop_reason), (RunState.FAILED, StopReason.PERMISSION_MISSING))
         self.assertEqual(status.result["denied_tools"], ["Bash"])
         self.assertIn("Bash", status.result["blocker"])
+        self.assertEqual(status.consumed_units, 3.0)
+
+    def test_404_with_model_text_is_model_unrecognized_without_the_stderr_tag(self):
+        text = "There's an issue with the selected model (claude-no-such-model-0). It may not exist or you may not have access to it."
+        a, res, status = self.launch_and_settle(api_error(text, status=404, total_cost_usd=0), exit=1)
+        self.assertEqual((status.state, status.stop_reason), (RunState.FAILED, StopReason.MODEL_UNRECOGNIZED))
+        self.assertEqual(status.consumed_units, 0.0)
+        self.assertEqual(status.result["model"], "claude-sonnet-5")
 
     def test_other_errors_are_task_failed_with_a_stable_identity(self):
         text = "Build failed:   CS0246 the type 'Foo'  could not be found"
@@ -334,9 +377,18 @@ class Classification(ClaudeAdapterCase):
         self.assertEqual(status.result["model"], "claude-sonnet-5")
         self.assertEqual(status.consumed_units, 0.0)
 
-    def test_only_the_last_json_line_counts(self):
-        a, res, status = self.launch_and_settle(result_object(), stdout_raw='{"type":"system","subtype":"init"}\n')
+    def test_the_last_result_event_wins_and_other_lines_are_ignored(self):
+        earlier = json.dumps(result_object(is_error=True, result="stale result from an earlier line"))
+        raw = '{"type":"assistant","message":{"content":[{"type":"text","text":"working"}]}}\nnot json\n' + earlier + "\n"
+        a, res, status = self.launch_and_settle(result_object(), stdout_raw=raw)
         self.assertEqual(status.stop_reason, StopReason.COMPLETED)
+        self.assertEqual(status.result["stream_events"], 4)   # init, assistant, stale result, result
+
+    def test_exit_without_a_result_event_but_with_an_init_line_is_no_final_result(self):
+        a, res, status = self.launch_and_settle(None, exit=1)
+        self.assertEqual(status.stop_reason, StopReason.NO_FINAL_RESULT)
+        self.assertEqual(status.result["stream_events"], 1)
+        self.assertEqual(status.observations[0].freshness, UsageFreshness.UNAVAILABLE)
 
 
 class CancelAndReconcile(ClaudeAdapterCase):
@@ -428,15 +480,30 @@ class CancelAndReconcile(ClaudeAdapterCase):
     def test_observe_usage_is_the_unavailable_allowance(self):
         obs = self.adapter().observe_usage()
         self.assertEqual((obs.provider, obs.kind, obs.unit, obs.freshness, obs.value),
-                         ("claude", UsageKind.SUBSCRIPTION_ALLOWANCE, "turns", UsageFreshness.UNAVAILABLE, None))
+                         ("claude", UsageKind.SUBSCRIPTION_ALLOWANCE, "percent", UsageFreshness.UNAVAILABLE, None))
 
     def test_capabilities_declare_only_the_observed(self):
         caps = ClaudeAdapter.capabilities
-        self.assertFalse(caps.cancel)
-        self.assertFalse(caps.turn_limit)
-        self.assertTrue(caps.exact_resume and caps.usage_observation and caps.transcript_retention
-                        and caps.funding_route_check)
+        for name in ("exact_resume", "cancel", "structured_output", "usage_observation", "transcript_retention",
+                     "turn_limit", "funding_route_check"):
+            self.assertTrue(getattr(caps, name), name)
         self.assertIn("2.1.263", caps.evidence)
+        self.assertIn("probe-report-2.json", caps.evidence)
+
+    def test_cancelled_run_keeps_the_allowance_it_streamed_and_names_the_session_to_resume(self):
+        info = {"isUsingOverage": False, "unifiedWindows": {"five_hour": {"utilization": 0.4, "resetsAt": 1}}}
+        self.write_script(stdout=result_object(), sleep_seconds=60, rate_limit_info=info)
+        a = self.adapter()
+        res = a.launch(self.request())
+        self.wait_for_argv()
+        deadline = time.time() + 20
+        while (self.runs_dir / "run-1" / "stdout.json").stat().st_size == 0 and time.time() < deadline:
+            time.sleep(0.05)
+        a.cancel(res.native_run_handle)
+        status = a.poll(res.native_run_handle)
+        self.assertEqual(status.stop_reason, StopReason.CANCELLED)
+        self.assertEqual(status.result["resume_session_id"], res.native_session_id)
+        self.assertEqual((status.observations[0].freshness, status.observations[0].value), (UsageFreshness.FRESH, 40.0))
 
 
 class ThroughTheController(ControllerCase):
@@ -491,9 +558,7 @@ class ThroughTheController(ControllerCase):
         self.assertEqual(len(self.argv_files()), 1)
         run = self.store.row("SELECT * FROM runs")
         self.assertEqual((run["state"], run["stop_reason"]), (RunState.FAILED, StopReason.QUOTA_EXHAUSTED))
-        self.assertEqual(self.pool()["consumed"], 1.0)
-        usage = self.store.rows("SELECT kind, unit, value FROM usage_observations ORDER BY id")
-        self.assertIn((UsageKind.ESTIMATED_API_VALUE, "usd", 0.0123), [(u["kind"], u["unit"], u["value"]) for u in usage])
+        self.assertEqual(self.pool()["consumed"], 1.0)   # num_turns, per invocation
 
     def test_auth_script_blocks_on_auth_after_exactly_one_launch(self):
         ctl = self.controller(api_error("Failed to authenticate: OAuth session expired and could not be refreshed"))

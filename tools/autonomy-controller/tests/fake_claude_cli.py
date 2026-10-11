@@ -13,9 +13,11 @@ Script keys:
   auth_stdout   raw text printed instead of the auth object (optional; simulates a CLI that prints no JSON)
   sleep_seconds how long a `-p` run sleeps after recording its argv (default 0)
   stderr        text written to stderr by a `-p` run
-  stdout        the result object printed by a `-p` run; its session_id defaults to the --session-id /
-                --resume argument unless the script sets one (null: print nothing)
-  stdout_raw    raw text printed instead of (or before) the object
+  stdout        the result object printed LAST by a `-p` run (type "result"); its session_id defaults to
+                the --session-id / --resume argument unless the script sets one (null: print none)
+  rate_limit_info  when an object, a `rate_limit_event` line carrying it is printed after the init line
+  no_init       when true, the `system/init` line is not printed
+  stdout_raw    raw text printed before the result object
   exit          exit code of a `-p` run (default 0)
   persist       when true, append one line to <auth.projectsDirectory>/<slug(cwd)>/<session>.jsonl
 """
@@ -81,6 +83,19 @@ def main() -> int:
             os.makedirs(d, exist_ok=True)
             with open(os.path.join(d, f"{session}.jsonl"), "a", encoding="utf-8", newline="\n") as f:
                 f.write(json.dumps({"type": "fake", "session_id": session, "argv": argv}) + "\n")
+    # The observed `--output-format stream-json --verbose` NDJSON: system/init first, then the
+    # rate_limit_event (the allowance source), both BEFORE the model request (the sleep stands in
+    # for it), then messages, then the result object last.
+    if not script.get("no_init"):
+        init = {"type": "system", "subtype": "init", "session_id": session, "model": _flag(argv, "--model"),
+                "permissionMode": _flag(argv, "--permission-mode"), "apiKeySource": "none",
+                "claude_code_version": "2.1.263", "cwd": os.getcwd(), "tools": ["Bash", "Edit", "Read", "Workflow"],
+                "mcp_servers": [], "agents": [], "slash_commands": []}
+        sys.stdout.write(json.dumps(init) + "\n")
+    if isinstance(script.get("rate_limit_info"), dict):
+        sys.stdout.write(json.dumps({"type": "rate_limit_event", "rate_limit_info": script["rate_limit_info"],
+                                     "session_id": session}) + "\n")
+    sys.stdout.flush()
     time.sleep(float(script.get("sleep_seconds", 0)))
     if script.get("stderr"):
         sys.stderr.write(script["stderr"])
@@ -91,6 +106,7 @@ def main() -> int:
     if isinstance(result, dict):
         result = dict(result)
         result.setdefault("session_id", session)
+        result.setdefault("type", "result")
         sys.stdout.write(json.dumps(result) + "\n")
     sys.stdout.flush()
     return int(script.get("exit", 0))

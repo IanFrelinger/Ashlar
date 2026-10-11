@@ -1,24 +1,34 @@
 """The Claude Code CLI adapter: one headless `claude -p` per run, every run recorded on disk.
 
-Everything this adapter relies on was observed on Claude Code 2.1.263 (Windows, 2026-10-11); the
-README section "Claude adapter" records the shapes verbatim. What was NOT observed is marked
-UNVERIFIED in the comments below and is not declared in `capabilities`:
+Everything this adapter relies on was observed live on Claude Code 2.1.263 (Windows, 2026-10-11,
+model `claude-sonnet-5`, report `probe/probe-report-2.json`); the README section "Claude adapter"
+records the shapes verbatim. Observed, and therefore declared in `capabilities`:
 
-  * cancel: `capabilities.cancel=False`. `cancel()` does terminate the process and marks the run
-    cancelled, but what the CLI does on SIGTERM / taskkill (transcript flush, partial result) was
-    never observed.
-  * turn limit: `--max-turns N` is accepted; its effect AT the limit (the `error_max_turns` subtype
-    this adapter classifies as INVOCATION_CEILING) is UNVERIFIED, so `turn_limit=False`.
-  * `num_turns` on `--resume`: per-invocation or cumulative is UNVERIFIED; consumed_units takes the
-    value as reported (see `_classify`).
-  * `--json-schema` structured output: accepted by the CLI, never exercised live. The
-    `structured_output=True` flag below follows the lane spec's declaration; treat live use as
-    unverified until a run has produced a schema-shaped result.
-  * `permission_denials[]` entries: only the empty list was observed; the entry shape is guessed.
+  * `--session-id` / `--resume` reuse the session id exactly; `num_turns` and `total_cost_usd` are
+    PER INVOCATION (a resumed call reports its own turns and cost, not the session's total);
+  * `--max-turns N` is enforced: at the limit the result is `is_error:true, subtype:"error_max_turns",
+    terminal_reason:"max_turns"`;
+  * a permission denial under `--permission-prompts none` COMPLETES with `is_error:false` and a
+    non-empty `permission_denials:[{tool_name, tool_input, tool_use_id}]`, so denials are checked
+    before a success counts as completed;
+  * an unrecognised model prints `[claude-code:unrecognized_model] {...}` to stderr and returns
+    `api_error_status:404` with "issue with the selected model" text;
+  * terminating `claude.exe` mid-request exits without a `result` event, keeps the transcript, and a
+    later `--resume` of the same id succeeds;
+  * `--json-schema` returns `structured_output`; `--no-session-persistence` writes no transcript;
+  * `--output-format stream-json --verbose` emits NDJSON: `system/init`, then a `rate_limit_event`
+    whose `rate_limit_info.unifiedWindows.five_hour.utilization` is the subscription allowance (the
+    only headless source for it), then messages, then the `result` object;
+  * `--strict-mcp-config` (no `--mcp-config`) keeps the operator's claude.ai connectors out of the
+    run: `mcp_servers:[]`, and the first-call cache creation drops from ~70k to ~9k tokens. Every
+    launch passes it.
+
+`total_cost_usd` is `costBasis:"list"`: an estimate of API value, never a charge on a subscription.
+It is recorded as an ESTIMATED_API_VALUE observation and is never summed with the allowance.
 
 Run layout: `<runs_dir>/<run_id>/manifest.json` (written BEFORE the spawn, so a crash between the
-write and the spawn leaves a record to reconcile), `stdout.json`, `stderr.log`, and a `workspace/`
-directory unless the request names one. The run id is the handle.
+write and the spawn leaves a record to reconcile), `stdout.json` (the NDJSON stream), `stderr.log`,
+and a `workspace/` directory unless the request names one. The run id is the handle.
 """
 from __future__ import annotations
 
@@ -72,8 +82,8 @@ def _slug(path: str) -> str:
 
 
 def _last_json_line(text: str) -> Optional[Dict[str, Any]]:
-    """The LAST stdout line that starts with '{' and parses as a JSON object (observed: the result
-    object is the last line of `--output-format json` output)."""
+    """The LAST stdout line that starts with '{' and parses as a JSON object. Used for
+    `claude auth status --json`, which prints one object; run output goes through `parse_stream`."""
     for line in reversed(text.splitlines()):
         s = line.strip()
         if not s.startswith("{"):
@@ -85,6 +95,33 @@ def _last_json_line(text: str) -> Optional[Dict[str, Any]]:
         if isinstance(obj, dict):
             return obj
     return None
+
+
+def parse_stream(text: str) -> Dict[str, Any]:
+    """Read the NDJSON of `--output-format stream-json --verbose`. Returns the LAST object whose
+    `type` is "result" (None when the run produced none, as a terminated run does), the last
+    `rate_limit_event` seen (its `rate_limit_info`), and the `system/init` object. Lines that are not
+    JSON objects are ignored."""
+    out: Dict[str, Any] = {"result": None, "rate_limit_info": None, "init": None, "events": 0}
+    for line in text.splitlines():
+        s = line.strip()
+        if not s.startswith("{"):
+            continue
+        try:
+            obj = json.loads(s)
+        except ValueError:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        out["events"] += 1
+        kind = obj.get("type")
+        if kind == "result":
+            out["result"] = obj
+        elif kind == "rate_limit_event" and isinstance(obj.get("rate_limit_info"), dict):
+            out["rate_limit_info"] = obj["rate_limit_info"]
+        elif kind == "system" and obj.get("subtype") == "init":
+            out["init"] = obj
+    return out
 
 
 def _normalise_for_identity(text: str) -> str:
@@ -135,14 +172,14 @@ def _pid_exists(pid: int) -> bool:
 class ClaudeAdapter:
     name = "claude"
     capabilities = AdapterCapabilities(
-        exact_resume=True,          # observed: --resume <uuid> reused the session; the transcript grew
-        cancel=False,               # UNVERIFIED: the CLI's behaviour on termination was not observed
-        structured_output=True,     # --json-schema accepted; live result shape UNVERIFIED (see module doc)
-        usage_observation=True,     # observed: num_turns, total_cost_usd and usage{} in the result object
+        exact_resume=True,          # observed: --resume <uuid> reused the session id, three times
+        cancel=True,                # observed: terminate mid-request keeps the transcript; --resume then works
+        structured_output=True,     # observed: --json-schema returns `structured_output`
+        usage_observation=True,     # observed: per-invocation num_turns/total_cost_usd; rate_limit_event allowance
         transcript_retention=True,  # observed: <projectsDirectory>/<slug>/<session_id>.jsonl
-        turn_limit=False,           # UNVERIFIED: --max-turns accepted, effect at the limit not observed
+        turn_limit=True,            # observed: --max-turns 1 -> subtype error_max_turns, terminal_reason max_turns
         funding_route_check=True,   # observed: `claude auth status --json` reports authMethod/loggedIn
-        evidence="probe of claude 2.1.263 on 2026-10-11; see README 'Claude adapter'")
+        evidence="live probe of claude 2.1.263 on 2026-10-11, probe/probe-report-2.json; see README 'Claude adapter'")
 
     def __init__(self, runs_dir: str, cli: Optional[Union[str, Sequence[str]]] = None,
                  expected_route: str = "claude.ai", env: Optional[Dict[str, str]] = None, clock=None,
@@ -237,8 +274,11 @@ class ClaudeAdapter:
     # ----- launch ------------------------------------------------------------------------------
 
     def _argv(self, prefix: List[str], request: LaunchRequest, session_id: str) -> List[str]:
-        argv = prefix + ["-p", request.prompt, "--output-format", "json", "--model", request.model,
-                         "--effort", request.effort, "--max-turns", str(int(request.invocation_ceiling)),
+        # stream-json so the rate_limit_event (the allowance source) is on stdout beside the result;
+        # --strict-mcp-config so the operator's claude.ai connectors never enter a controller run.
+        argv = prefix + ["-p", request.prompt, "--output-format", "stream-json", "--verbose", "--strict-mcp-config",
+                         "--model", request.model, "--effort", request.effort,
+                         "--max-turns", str(int(request.invocation_ceiling)),
                          "--permission-prompts", "none", "--permission-mode", self.permission_mode, "--no-chrome"]
         if request.resume_session_id:
             argv += ["--resume", session_id]
@@ -322,11 +362,23 @@ class ClaudeAdapter:
         # has the same limit. The exit code of a run polled this way stays unknown.
         return _pid_exists(int(pid))
 
-    def _allowance_observation(self, session_id: Optional[str]) -> UsageObservation:
-        # No headless source for the subscription allowance exists (observed): always unavailable.
-        return UsageObservation(provider=self.name, kind=UsageKind.SUBSCRIPTION_ALLOWANCE, unit="turns",
-                                freshness=UsageFreshness.UNAVAILABLE, native_session_id=session_id,
-                                observed_at=_utc_iso(self.clock()))
+    def _allowance_observation(self, session_id: Optional[str], rate_limit_info: Optional[Dict[str, Any]] = None,
+                               ) -> UsageObservation:
+        """The subscription allowance. Its only headless source is the stream's `rate_limit_event`:
+        `rate_limit_info.unifiedWindows.five_hour.utilization` is the fraction of the five-hour window
+        used, reported here as a percentage of 100. Without an event (no stream, a run that died before
+        the first request, `observe_usage` with no run) the observation is UNAVAILABLE."""
+        at = _utc_iso(self.clock())
+        windows = (rate_limit_info or {}).get("unifiedWindows") if isinstance(rate_limit_info, dict) else None
+        five = windows.get("five_hour") if isinstance(windows, dict) else None
+        utilization = five.get("utilization") if isinstance(five, dict) else None
+        if isinstance(utilization, (int, float)):
+            return UsageObservation(provider=self.name, kind=UsageKind.SUBSCRIPTION_ALLOWANCE, unit="percent",
+                                    freshness=UsageFreshness.FRESH, value=round(float(utilization) * 100, 2),
+                                    total=100.0, native_session_id=session_id, observed_at=at, raw=dict(rate_limit_info))
+        return UsageObservation(provider=self.name, kind=UsageKind.SUBSCRIPTION_ALLOWANCE, unit="percent",
+                                freshness=UsageFreshness.UNAVAILABLE, native_session_id=session_id, observed_at=at,
+                                raw=dict(rate_limit_info) if isinstance(rate_limit_info, dict) else {})
 
     def poll(self, handle: str) -> RunStatus:
         run_id = handle
@@ -337,9 +389,12 @@ class ClaudeAdapter:
         session_id = manifest.get("session_id")
         base = {"workspace": manifest.get("cwd"), "transcript": manifest.get("transcript_path")}
         if manifest.get("cancelled_at"):
+            # Observed: a terminated run has no result event but keeps its transcript and resumes later;
+            # the allowance event it emitted before termination is still worth recording.
+            stream = parse_stream(self._read_text(manifest.get("stdout")))
             return RunStatus(state=RunState.CANCELLED, stop_reason=StopReason.CANCELLED, consumed_units=None,
-                             result=dict(base, cancelled_at=manifest["cancelled_at"]),
-                             observations=[self._allowance_observation(session_id)],
+                             result=dict(base, cancelled_at=manifest["cancelled_at"], resume_session_id=session_id),
+                             observations=[self._allowance_observation(session_id, stream["rate_limit_info"])],
                              transcript_path=manifest.get("transcript_path"))
         if self._alive(run_id, manifest):
             return RunStatus(state=RunState.RUNNING)
@@ -352,78 +407,95 @@ class ClaudeAdapter:
             return f.read().decode("utf-8", "replace")
 
     def _classify(self, manifest: Dict[str, Any]) -> RunStatus:
+        """Classify an exited run from its NDJSON stdout, its stderr and the manifest. The order is the
+        one observed to be discriminating (module doc); `poll` has already answered CANCELLED."""
         run_id = manifest["run_id"]
         session_id = manifest.get("session_id")
         rc = manifest.get("exit")
         stdout = self._read_text(manifest.get("stdout"))
         stderr = self._read_text(manifest.get("stderr"))
-        allowance = [self._allowance_observation(session_id)]
+        stream = parse_stream(stdout)
+        obj = stream["result"]
+        rate_limit_info = stream["rate_limit_info"]
         transcript = manifest.get("transcript_path")
-        base: Dict[str, Any] = {"workspace": manifest.get("cwd"), "transcript": transcript, "exit": rc, "run_id": run_id}
+        base: Dict[str, Any] = {"workspace": manifest.get("cwd"), "transcript": transcript, "exit": rc, "run_id": run_id,
+                                "stream_events": stream["events"], "rate_limit_info": rate_limit_info}
+        observations = [self._allowance_observation(session_id, rate_limit_info)]
+        # Both observations are kept apart: the allowance is the subscription's own unit, the cost is
+        # an estimate of API value (costBasis "list"), never a charge. They are never summed.
+        consumed: Optional[float] = None
+        if obj is not None:
+            # Observed: num_turns and total_cost_usd are PER INVOCATION, also on --resume, so the
+            # turns are this run's consumption and the cost observation is keyed by the run id (its
+            # recorded delta then equals its value).
+            if isinstance(obj.get("num_turns"), (int, float)):
+                consumed = float(obj["num_turns"])
+            usage_raw = obj.get("usage") if isinstance(obj.get("usage"), dict) else {}
+            cost = obj.get("total_cost_usd")
+            observations.append(UsageObservation(
+                provider=self.name, kind=UsageKind.ESTIMATED_API_VALUE, unit="usd", freshness=UsageFreshness.FRESH,
+                value=float(cost) if isinstance(cost, (int, float)) else None, native_session_id=run_id,
+                observed_at=_utc_iso(self.clock()),
+                raw={"tokens": {k: usage_raw.get(k) for k in ("input_tokens", "output_tokens",
+                                                              "cache_creation_input_tokens", "cache_read_input_tokens")},
+                     "num_turns": obj.get("num_turns"), "duration_api_ms": obj.get("duration_api_ms"),
+                     "model_usage": obj.get("modelUsage"), "session_id": session_id}))
+        common = {"consumed_units": consumed, "usage": None, "observations": observations, "transcript_path": transcript}
 
-        def failed(reason: str, extra: Dict[str, Any], **kw) -> RunStatus:
-            return RunStatus(state=RunState.FAILED, stop_reason=reason, result=dict(base, **extra),
-                             observations=allowance, transcript_path=transcript, **kw)
-
-        if UNRECOGNIZED_MODEL_MARKER in stderr:
-            # Observed: `[claude-code:unrecognized_model] {"model":"<id>","query_source":"sdk"}`, exit 1,
-            # before any request: nothing was consumed.
-            return failed(StopReason.MODEL_UNRECOGNIZED, {"model": manifest.get("model"),
-                                                          "stderr_tail": stderr[-STDERR_TAIL_LIMIT:]},
-                          consumed_units=0.0)
-        obj = _last_json_line(stdout)
-        if obj is None:
-            return failed(StopReason.NO_FINAL_RESULT, {"stderr_tail": stderr[-STDERR_TAIL_LIMIT:]})
-
-        result_text = obj.get("result")
-        result_text = result_text if isinstance(result_text, str) else json.dumps(result_text) if result_text is not None else ""
-        subtype = obj.get("subtype")
-        api_status = obj.get("api_error_status")
-        try:
-            api_status = int(api_status) if api_status is not None else None
-        except (TypeError, ValueError):
-            api_status = None
-        denials = obj.get("permission_denials") or []
-        base.update({"subtype": subtype, "terminal_reason": obj.get("terminal_reason"), "api_error_status": api_status,
-                     "duration_ms": obj.get("duration_ms"), "result_text": result_text[:RESULT_TEXT_LIMIT],
-                     "session_id": obj.get("session_id") or session_id, "stop_reason_native": obj.get("stop_reason"),
-                     "permission_denials": denials})
-
-        # num_turns is taken as reported. Observed per invocation on a fresh session; whether a
-        # `--resume` run reports its own turns or the session's cumulative count is UNVERIFIED.
-        consumed = float(obj["num_turns"]) if isinstance(obj.get("num_turns"), (int, float)) else None
-        usage_raw = obj.get("usage") if isinstance(obj.get("usage"), dict) else {}
-        cost = obj.get("total_cost_usd")
-        usage = UsageObservation(provider=self.name, kind=UsageKind.ESTIMATED_API_VALUE, unit="usd",
-                                 freshness=UsageFreshness.FRESH, value=float(cost) if isinstance(cost, (int, float)) else None,
-                                 native_session_id=session_id, observed_at=_utc_iso(self.clock()),
-                                 raw={"tokens": {k: usage_raw.get(k) for k in ("input_tokens", "output_tokens",
-                                                                               "cache_creation_input_tokens",
-                                                                               "cache_read_input_tokens")},
-                                      "num_turns": obj.get("num_turns"), "duration_api_ms": obj.get("duration_api_ms"),
-                                      "model_usage": obj.get("modelUsage")})
-        common = {"consumed_units": consumed, "usage": usage, "observations": allowance, "transcript_path": transcript}
-
-        if not obj.get("is_error") and subtype == "success":
-            return RunStatus(state=RunState.FINISHED, stop_reason=StopReason.COMPLETED, result=base, **common)
-
-        def failure(reason: str, extra: Optional[Dict[str, Any]] = None, identity: Optional[str] = None) -> RunStatus:
+        def failure(reason: str, extra: Optional[Dict[str, Any]] = None, identity: Optional[str] = None, **kw) -> RunStatus:
+            merged = dict(common, **kw)
             return RunStatus(state=RunState.FAILED, stop_reason=reason, result=dict(base, **(extra or {})),
-                             failure_identity=identity, **common)
+                             failure_identity=identity, **merged)
 
+        result_text = ""
+        subtype = None
+        api_status: Optional[int] = None
+        denials: List[Any] = []
+        if obj is not None:
+            rt = obj.get("result")
+            result_text = rt if isinstance(rt, str) else json.dumps(rt) if rt is not None else ""
+            subtype = obj.get("subtype")
+            try:
+                api_status = int(obj["api_error_status"]) if obj.get("api_error_status") is not None else None
+            except (TypeError, ValueError):
+                api_status = None
+            denials = obj.get("permission_denials") or []
+            base.update({"subtype": subtype, "terminal_reason": obj.get("terminal_reason"), "api_error_status": api_status,
+                         "duration_ms": obj.get("duration_ms"), "result_text": result_text[:RESULT_TEXT_LIMIT],
+                         "session_id": obj.get("session_id") or session_id, "stop_reason_native": obj.get("stop_reason"),
+                         "permission_denials": denials, "structured_output": obj.get("structured_output")})
+
+        # 1. Unrecognised model. Observed: the stderr tag, and a result with api_error_status 404 whose
+        #    text says "issue with the selected model"; total_cost_usd 0, nothing consumed.
+        if UNRECOGNIZED_MODEL_MARKER in stderr or (api_status == 404 and re.search(r"model", result_text, re.IGNORECASE)):
+            return failure(StopReason.MODEL_UNRECOGNIZED, {"model": manifest.get("model"),
+                                                           "stderr_tail": stderr[-STDERR_TAIL_LIMIT:]},
+                           consumed_units=0.0)
+        # 2. No result object. Observed for a terminated process (poll answers CANCELLED before this
+        #    when the manifest says so); otherwise the worker died without saying why.
+        if obj is None:
+            return failure(StopReason.NO_FINAL_RESULT, {"stderr_tail": stderr[-STDERR_TAIL_LIMIT:]})
+        # 3. Overage: the provider is billing paid overflow. Treated as the allowance being exhausted,
+        #    never as a reason to continue on a paid route (paid inference is off).
+        if isinstance(rate_limit_info, dict) and rate_limit_info.get("isUsingOverage") is True:
+            return failure(StopReason.QUOTA_EXHAUSTED,
+                           {"overage": True, "blocker": "the provider is billing overage; paid inference is off"})
+        # 4. The turn limit. Observed: is_error true, subtype error_max_turns, terminal_reason max_turns.
         if subtype == "error_max_turns":
-            # UNVERIFIED subtype name: the CLI's behaviour at --max-turns was not observed (module doc).
             return failure(StopReason.INVOCATION_CEILING, {"blocker": f"turn ceiling reached in session {session_id}"})
-        if api_status == 401 or _AUTH_RE.search(result_text):
-            return failure(StopReason.AUTH_MISSING, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
-        if api_status == 402 or _QUOTA_RE.search(result_text):
-            return failure(StopReason.QUOTA_EXHAUSTED, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
-        if api_status == 429 or _RATE_LIMIT_RE.search(result_text):
-            return failure(StopReason.RATE_LIMITED, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
-        if api_status in TRANSIENT_STATUSES or _TRANSIENT_RE.search(result_text):
-            return failure(StopReason.TRANSIENT, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
+        # 5. API-level errors, by status then by the observed texts.
+        if obj.get("is_error"):
+            if api_status == 401 or _AUTH_RE.search(result_text):
+                return failure(StopReason.AUTH_MISSING, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
+            if api_status == 402 or _QUOTA_RE.search(result_text):
+                return failure(StopReason.QUOTA_EXHAUSTED, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
+            if api_status == 429 or _RATE_LIMIT_RE.search(result_text):
+                return failure(StopReason.RATE_LIMITED, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
+            if api_status in TRANSIENT_STATUSES or _TRANSIENT_RE.search(result_text):
+                return failure(StopReason.TRANSIENT, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
+        # 6. Permission denials, BEFORE success: observed, a denied run completes with is_error false
+        #    and `permission_denials:[{tool_name, tool_input, tool_use_id}]`.
         if denials:
-            # UNVERIFIED entry shape (only [] was observed): take the likeliest keys, else the entry itself.
             names = []
             for d in denials:
                 if isinstance(d, dict):
@@ -432,6 +504,10 @@ class ClaudeAdapter:
                     names.append(str(d))
             return failure(StopReason.PERMISSION_MISSING,
                            {"blocker": "permission denied for: " + ", ".join(names), "denied_tools": names})
+        # 7. Completed.
+        if not obj.get("is_error"):
+            return RunStatus(state=RunState.FINISHED, stop_reason=StopReason.COMPLETED, result=base, **common)
+        # 8. Anything else the model reported as an error: a diagnosed failure with a stable identity.
         return failure(StopReason.TASK_FAILED, identity=failure_identity(result_text))
 
     # ----- cancel ------------------------------------------------------------------------------
