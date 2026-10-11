@@ -346,9 +346,15 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
 - No PR lifecycle: current-head CI observation, revisions, merges, merge-SHA recording and the next
   task's fresh session are PR 3. The `prs` and `phases` tables exist so that work has somewhere to land.
 - No Codex or Cursor adapter (PR 5). `tick --adapter` accepts `fake` and `claude` only.
-- No live launch has been made through the controller's `tick` yet. The CLI shapes were observed by
-  direct probes; the adapter's classification is proven against `tests/fake_claude_cli.py`, which
-  replays them. The pilot (PR 4) is the first `tick --adapter claude` against a real card.
+- One live launch has gone through `tick --adapter claude` (2026-10-11, policy ceilings 6/12/2): a
+  task whose title asked for a `hello.txt` in the workspace. The run settled `completed` with 2 turns
+  charged, the file was there, the manifest carried the session id and the workspace, the transcript
+  was found by session id, and `status` showed the allowance (73 percent of the five-hour window) and
+  the estimated API value (0.053 USD) as two observations. That run exposed three defects, fixed in
+  the same PR: `auth status --json` is pretty-printed over many lines (the adapter read only the last
+  line), the CLI truncates a long project slug (the computed transcript path did not exist), and
+  `task set-state` could never work because its positional overwrote the global `--state` path. The
+  pilot against a real card is PR 4. Everything else is proven against `tests/fake_claude_cli.py`.
 - The readiness fixer loop is not driven by `tick`: `readiness run` and `readiness evaluate` are
   operator commands, and `launch_fixer` is a function the next PR wires into the dispatch.
 - `GhIssuePoster` is present but has not been exercised live (the session that wrote it had no
