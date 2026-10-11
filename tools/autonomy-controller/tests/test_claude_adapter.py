@@ -324,6 +324,22 @@ class Classification(ClaudeAdapterCase):
         self.assertEqual(status.result["exit"], 1)
         self.assertEqual(status.result["terminal_reason"], "api_error")
 
+    def test_oauth_refresh_contention_is_transient_not_auth_missing(self):
+        # Observed live on 2026-10-11 with the desktop app's Claude Code processes alive on the same host: the
+        # worker exited at once, cost 0, api_error_status null, and this text. It says "OAuth", which the auth
+        # rule would read as a login problem and park the task behind an operator step; the CLI says retry.
+        text = ("Failed to refresh OAuth token: another Claude Code process is refreshing it or exited mid-refresh. "
+                "This is usually transient; retry in a minute, and if it persists close other Claude Code processes "
+                "or sign in again")
+        a, res, status = self.launch_and_settle(api_error(text, total_cost_usd=0), exit=1)
+        self.assertEqual((status.state, status.stop_reason), (RunState.FAILED, StopReason.TRANSIENT))
+        self.assertIs(status.result["refresh_contention"], True)
+        self.assertEqual(status.result["blocker"], text)
+        # A 401 with the same words is still a login problem: the status wins over the text.
+        shutil.rmtree(self.runs_dir, True)
+        a, res, status = self.launch_and_settle(api_error(text, status=401), exit=1)
+        self.assertEqual(status.stop_reason, StopReason.AUTH_MISSING)
+
     def test_401_is_auth_missing_whatever_the_text(self):
         a, res, status = self.launch_and_settle(api_error("nope", status=401), exit=1)
         self.assertEqual(status.stop_reason, StopReason.AUTH_MISSING)
