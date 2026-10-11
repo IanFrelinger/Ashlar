@@ -30,6 +30,9 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `evidence list` lists the archives. `pause`, `resume`, `provider disable|enable` and `run cancel` are proven to
   take effect at the next tick, including for a running repair (the round stays spent, the PR stays open and
   watched, nothing launches for the task). `status` picks the last run by insertion order.
+- `ashlar_controller/adapters/claude.py`: the CLI's "Failed to refresh OAuth token: another Claude Code process is
+  refreshing it ... usually transient" (observed in the live run of 2026-10-11, with no HTTP status) is classified
+  `transient` and retried with backoff, not `auth-missing`; a 401 with the same words is still `auth-missing`.
 
 ### Added — budgeted autonomy controller, PR 3 (PR lifecycle and fresh context)
 

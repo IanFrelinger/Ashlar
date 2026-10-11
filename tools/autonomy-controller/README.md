@@ -295,7 +295,10 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
 - Classification of a finished run, in this order: `[claude-code:unrecognized_model]` on stderr, or
   `api_error_status` 404 with the model text, gives `model-unrecognized`; no result object gives
   `no-final-result` (or `cancelled` when the manifest says so); `subtype` `error_max_turns` gives
-  `invocation-ceiling-reached`; a 401 or an auth message gives `auth-missing`; a 402, a usage-limit
+  `invocation-ceiling-reached`; the text "another Claude Code process is refreshing it / exited mid-refresh /
+  usually transient" with no HTTP status gives `transient` (observed live on 2026-10-11 when the desktop app's
+  Claude Code processes were alive on the same host: the worker exited at once, cost 0, and the CLI itself said
+  to retry; it mentions OAuth, so it is checked before the auth rule); a 401 or an auth message gives `auth-missing`; a 402, a usage-limit
   message or `isUsingOverage` gives `quota-exhausted`; a 429 or a rate-limit message gives
   `rate-limited`; 408/5xx/529 or a network message gives `transient`; a non-empty `permission_denials`
   gives `permission-missing` even when `is_error` is false; `is_error` false gives `completed`;
@@ -462,12 +465,25 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
 
 ## Not in PR 4
 
-- The pilot (three bounded real tasks through the full lifecycle) and the live run of the PR 3 lifecycle
-  did not run from a Claude Code session: the session's classifier refuses to launch the worker
-  (`tick --adapter claude --gh cli`, "Create Unsafe Agents"). The procedure is prepared for the operator's
-  own terminal (`live-run-pr3.md` and `pilot-pr4.md` on the storage branch `claude/budgeted-autonomy-workspace`);
-  whether the controller may merge to master during the pilot is an open owner question. Until the
-  owner runs it, the `GhCli` shapes remain exercised against the recording runner and the fake only.
+- **The live run of the PR 3 lifecycle happened on 2026-10-11, from the owner's terminal** (a Claude Code
+  session cannot launch the worker: its classifier refuses `tick --adapter claude --gh cli`, "Create Unsafe
+  Agents"). Task `live-pr3`, policy ceilings 8/16/3 with a sixth, never-running required check as a guard.
+  Attempt 1 (`run-1ced8587a0bb`) died at once on the OAuth refresh contention above, 1 turn charged,
+  filed `transient`, requeued by hand. Attempt 2 (`run-561ad9689fe5`) completed in 3 turns (0.0825
+  USD-estimate; five-hour window at 32 percent): the controller committed as `ashlar-controller`, pushed
+  `auto/live-pr3`, opened PR #775 at head `a84e0e9` on base `d2c11b347`, observed it by head SHA (first
+  three green and `cert-gate`, `build-core` pending; then all five green and the guard pending, verdict
+  `pending`, no merge), and after the owner closed the PR by hand recorded `pr-closed-unmerged` and parked
+  the task (`parked-failure`, "nothing landed, the task is not done"). `status`, `report`, `metrics`,
+  `evidence archive` (both runs, transcripts included) and `backup` ran against that ledger. So `gh pr
+  create`, `gh pr list --head`, `gh pr view --json`, the check-runs API and a closed PR are exercised live;
+  `gh pr merge --match-head-commit` and a repair round are still only exercised against the fake.
+- The pilot (three bounded real tasks through the full lifecycle) has not run. It is prepared for the
+  operator's terminal (`pilot-pr4.md` on the storage branch `claude/budgeted-autonomy-workspace`); whether
+  the controller may merge to master during the pilot is an open owner question.
+- `task add --title` is both the card title and the worker's instruction, so the PR title and the commit
+  subject of a controller-opened PR are the whole instruction (PR #775). A separate short title is a small
+  follow-up.
 - `restore` replaces the file the operator names; it does not stop a controller that holds the writer
   lease on it. Stop every controller on the ledger first (the lease row travels with the backup).
 - Archives are written once per run and never pruned; nothing rotates `<state dir>/evidence/`.
@@ -480,9 +496,9 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
 - A repair run that stops at the turn ceiling requeues like any run; the next observation of the still
   red head starts a new round with a fresh session rather than resuming the fixer's session (the rounds
   bound it). Premium escalation and provider transfer per PR are counted in `prs` but not driven.
-- The `GhCli` argv shapes are the ones in the module docstring; they were exercised against the fake
-  runner and in the live run of the integrated branch (see the PR body), not against every error GitHub
-  can return.
+- The `GhCli` argv shapes are the ones in the module docstring; `pr create`, `pr list --head`, `pr view
+  --json`, the check-runs API and a closed PR were exercised live on 2026-10-11 (PR #775, see "Not in PR 4");
+  `pr merge --match-head-commit` only against the fake; none against every error GitHub can return.
 - One live launch has gone through `tick --adapter claude` (2026-10-11, policy ceilings 6/12/2): a
   task whose title asked for a `hello.txt` in the workspace. The run settled `completed` with 2 turns
   charged, the file was there, the manifest carried the session id and the workspace, the transcript
