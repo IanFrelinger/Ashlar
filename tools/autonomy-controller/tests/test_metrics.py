@@ -304,6 +304,8 @@ class RenderReport(ControllerCase):
     # -> `t["pr_record"]` on an older status dict missing that key entirely.
     def test_report_renders_a_status_without_evidence_and_an_older_status_without_pr_record(self):
         ctl, status, m = self._status_and_metrics()
+        # A status written by a PR 3 controller carries no `evidence` key; the report must still render it.
+        status["tasks"][0].pop("evidence", None)
         self.assertNotIn("evidence", status["tasks"][0])
         text = metrics.render_report(status, m)
         self.assertNotIn("Evidence:", text)
