@@ -1,0 +1,1294 @@
+{
+  "auth_status": {
+    "analyticsDisabled": false,
+    "apiProvider": "firstParty",
+    "authMethod": "claude.ai",
+    "email": "<redacted>",
+    "loggedIn": true,
+    "orgId": "fea4ce10-9358-49f8-aee9-bc971dd029e2",
+    "orgName": "<redacted>",
+    "projectsDirectory": "C:\\Users\\icfre\\.claude\\projects",
+    "subscriptionType": "max"
+  },
+  "cli": "C:\\Users\\icfre\\AppData\\Roaming\\npm\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe",
+  "cwd": "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\2de9211f-483e-47b7-a2ed-12d4a28c9d83\\scratchpad\\probe-cwd",
+  "finished_at": "2026-10-11T06:29:38Z",
+  "model_requested": "claude-sonnet-5",
+  "p1_launch_stream": {
+    "event_types": [
+      [
+        "rate_limit_event",
+        null
+      ],
+      [
+        "system",
+        "init"
+      ],
+      [
+        "assistant",
+        null
+      ],
+      [
+        "result",
+        "success"
+      ]
+    ],
+    "init": {
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan",
+        "statusline-setup"
+      ],
+      "analytics_disabled": false,
+      "apiKeySource": "none",
+      "capabilities": [
+        "interrupt_receipt_v1",
+        "interrupt_cancel_queued_v1",
+        "msg_lifecycle_v1"
+      ],
+      "claude_code_version": "2.1.263",
+      "cwd": "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\2de9211f-483e-47b7-a2ed-12d4a28c9d83\\scratchpad\\probe-cwd",
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "mcp_servers": [
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected"
+        },
+        {
+          "name": "claude.ai Canva",
+          "status": "needs-auth"
+        },
+        {
+          "name": "claude.ai Slack",
+          "status": "connected"
+        },
+        {
+          "name": "claude.ai Google Calendar",
+          "status": "needs-auth"
+        },
+        {
+          "name": "claude.ai Google Drive",
+          "status": "connected"
+        },
+        {
+          "name": "claude.ai Gmail",
+          "status": "connected"
+        }
+      ],
+      "memory_paths": {
+        "auto": "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\memory\\"
+      },
+      "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-7432f9c57fa140e35c433f8a05a44334",
+      "model": "claude-sonnet-5",
+      "output_style": "default",
+      "permissionMode": "default",
+      "plugins": [],
+      "powershell_path": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "product_feedback_disabled": false,
+      "session_id": "617199fe-7b4c-4144-961f-1424b963bc80",
+      "skills": [
+        "deep-research",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator"
+      ],
+      "slash_commands": [
+        "deep-research",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "advisor",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "context",
+        "effort",
+        "fast",
+        "heapdump",
+        "init",
+        "mcp",
+        "import",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "ultrareview",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "skill-doctor",
+        "goal",
+        "design",
+        "design-consent",
+        "design-revoke",
+        "list-agents",
+        "team-onboarding"
+      ],
+      "subtype": "init",
+      "terminal_slash_commands": [
+        "doctor",
+        "color",
+        "reload-plugins"
+      ],
+      "tools": [
+        "mcp__claude_ai_Claude_Docs__batch",
+        "mcp__claude_ai_Claude_Docs__create",
+        "mcp__claude_ai_Claude_Docs__delete",
+        "mcp__claude_ai_Claude_Docs__export",
+        "mcp__claude_ai_Claude_Docs__guide",
+        "mcp__claude_ai_Claude_Docs__query",
+        "mcp__claude_ai_Claude_Docs__read",
+        "mcp__claude_ai_Claude_Docs__update",
+        "mcp__claude_ai_Gmail__apply_sensitive_message_label",
+        "mcp__claude_ai_Gmail__apply_sensitive_thread_label",
+        "mcp__claude_ai_Gmail__create_draft",
+        "mcp__claude_ai_Gmail__create_label",
+        "mcp__claude_ai_Gmail__delete_draft",
+        "mcp__claude_ai_Gmail__delete_label",
+        "mcp__claude_ai_Gmail__forward",
+        "mcp__claude_ai_Gmail__get_draft",
+        "mcp__claude_ai_Gmail__get_message",
+        "mcp__claude_ai_Gmail__get_thread",
+        "mcp__claude_ai_Gmail__label_message",
+        "mcp__claude_ai_Gmail__label_thread",
+        "mcp__claude_ai_Gmail__list_drafts",
+        "mcp__claude_ai_Gmail__list_labels",
+        "mcp__claude_ai_Gmail__mark_message_spam",
+        "mcp__claude_ai_Gmail__mark_thread_spam",
+        "mcp__claude_ai_Gmail__reply",
+        "mcp__claude_ai_Gmail__search_threads",
+        "mcp__claude_ai_Gmail__send_message",
+        "mcp__claude_ai_Gmail__trash_message",
+        "mcp__claude_ai_Gmail__trash_thread",
+        "mcp__claude_ai_Gmail__unlabel_message",
+        "mcp__claude_ai_Gmail__unlabel_thread",
+        "mcp__claude_ai_Gmail__unmark_message_spam",
+        "mcp__claude_ai_Gmail__unmark_thread_spam",
+        "mcp__claude_ai_Gmail__untrash_message",
+        "mcp__claude_ai_Gmail__untrash_thread",
+        "mcp__claude_ai_Gmail__update_draft",
+        "mcp__claude_ai_Gmail__update_label",
+        "mcp__claude_ai_Gmail__update_message_labels",
+        "mcp__claude_ai_Google_Drive__copy_file",
+        "mcp__claude_ai_Google_Drive__create_file",
+        "mcp__claude_ai_Google_Drive__download_file_content",
+        "mcp__claude_ai_Google_Drive__get_file_metadata",
+        "mcp__claude_ai_Google_Drive__get_file_permissions",
+        "mcp__claude_ai_Google_Drive__list_recent_files",
+        "mcp__claude_ai_Google_Drive__read_file_content",
+        "mcp__claude_ai_Google_Drive__search_files",
+        "mcp__claude_ai_Google_Drive__share_file",
+        "mcp__claude_ai_Google_Drive__trash_file",
+        "mcp__claude_ai_Google_Drive__update_file",
+        "mcp__claude_ai_Slack__slack_add_list_record",
+        "mcp__claude_ai_Slack__slack_add_reaction",
+        "mcp__claude_ai_Slack__slack_complete_file_upload",
+        "mcp__claude_ai_Slack__slack_create_canvas",
+        "mcp__claude_ai_Slack__slack_create_conversation",
+        "mcp__claude_ai_Slack__slack_create_list",
+        "mcp__claude_ai_Slack__slack_get_file_upload_url",
+        "mcp__claude_ai_Slack__slack_get_reactions",
+        "mcp__claude_ai_Slack__slack_list_channel_members",
+        "mcp__claude_ai_Slack__slack_list_user_channels",
+        "mcp__claude_ai_Slack__slack_read_canvas",
+        "mcp__claude_ai_Slack__slack_read_channel",
+        "mcp__claude_ai_Slack__slack_read_file",
+        "mcp__claude_ai_Slack__slack_read_list",
+        "mcp__claude_ai_Slack__slack_read_thread",
+        "mcp__claude_ai_Slack__slack_read_user_profile",
+        "mcp__claude_ai_Slack__slack_schedule_message",
+        "mcp__claude_ai_Slack__slack_search_channels",
+        "mcp__claude_ai_Slack__slack_search_emojis",
+        "mcp__claude_ai_Slack__slack_search_public",
+        "mcp__claude_ai_Slack__slack_search_public_and_private",
+        "mcp__claude_ai_Slack__slack_search_users",
+        "mcp__claude_ai_Slack__slack_send_message",
+        "mcp__claude_ai_Slack__slack_send_message_draft",
+        "mcp__claude_ai_Slack__slack_update_canvas",
+        "mcp__claude_ai_Slack__slack_update_list",
+        "mcp__claude_ai_Slack__slack_update_list_record"
+      ],
+      "type": "system",
+      "uuid": "4e2b86c6-f0a3-4c28-8b76-a17b5ec3d2dc"
+    },
+    "result": {
+      "api_error_status": null,
+      "duration_api_ms": 2674,
+      "duration_ms": 2067,
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "first_content_frame_ms": 1493,
+      "is_error": false,
+      "modelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "cacheCreationInputTokens": 0,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-haiku-4-5",
+          "contextWindow": 200000,
+          "costBasis": "list",
+          "costUSD": 0.0009570000000000001,
+          "inputTokens": 902,
+          "maxOutputTokens": 32000,
+          "outputTokens": 11,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        },
+        "claude-sonnet-5": {
+          "cacheCreationInputTokens": 70171,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-sonnet-5",
+          "contextWindow": 1000000,
+          "costBasis": "list",
+          "costUSD": 0.280728,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 4,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        }
+      },
+      "num_turns": 1,
+      "permission_denials": [],
+      "queued_turn_count": 0,
+      "result": "OK",
+      "session_id": "617199fe-7b4c-4144-961f-1424b963bc80",
+      "stop_reason": "end_turn",
+      "subagent_stats": {
+        "by_type": {},
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "system": 0,
+          "user": 0
+        },
+        "max_depth": 0,
+        "refused": {
+          "budget": 0,
+          "concurrency_limit": 0,
+          "depth_limit": 0
+        },
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "spawned": 0,
+        "spawned_by_subagents": 0,
+        "started_in_background": 0
+      },
+      "subtype": "success",
+      "terminal_reason": "completed",
+      "time_to_request_ms": 102,
+      "total_cost_usd": 0.28168499999999996,
+      "ttft_ms": 2032,
+      "ttft_stream_ms": 1492,
+      "type": "result",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 70171,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 70171,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 70171,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 70171,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 2,
+            "output_tokens": 4,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 4,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "uuid": "6fa2133a-8a34-4f81-a8bd-0b0510150bdf"
+    },
+    "run": {
+      "argv": [
+        "-p",
+        "Reply with exactly the word OK and nothing else.",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--tools",
+        "",
+        "--max-turns",
+        "1",
+        "--session-id",
+        "617199fe-7b4c-4144-961f-1424b963bc80",
+        "--permission-mode",
+        "manual",
+        "--model",
+        "claude-sonnet-5",
+        "--effort",
+        "low",
+        "--permission-prompts",
+        "none"
+      ],
+      "exit": 0,
+      "seconds": 4.72,
+      "stderr": ""
+    },
+    "session_id_matches": true,
+    "transcript": {
+      "bytes": 289152,
+      "expected_exists": true,
+      "expected_path": "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\617199fe-7b4c-4144-961f-1424b963bc80.jsonl",
+      "found": [
+        "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\617199fe-7b4c-4144-961f-1424b963bc80.jsonl"
+      ],
+      "line_types": [
+        "ai-title",
+        "queue-operation",
+        "queue-operation",
+        "user",
+        "attachment",
+        "attachment",
+        "attachment",
+        "attachment",
+        "atis-latch",
+        "attachment",
+        "attachment",
+        "attachment",
+        "last-prompt",
+        "ai-title",
+        "atis-latch",
+        "assistant",
+        "attachment",
+        "last-prompt",
+        "ai-title",
+        "atis-latch"
+      ],
+      "lines": 20
+    }
+  },
+  "p2_resume": {
+    "result": {
+      "api_error_status": null,
+      "duration_api_ms": 1655,
+      "duration_ms": 1746,
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "first_content_frame_ms": 1146,
+      "is_error": false,
+      "modelUsage": {
+        "claude-sonnet-5": {
+          "cacheCreationInputTokens": 66,
+          "cacheReadInputTokens": 70171,
+          "canonicalModel": "claude-sonnet-5",
+          "contextWindow": 1000000,
+          "costBasis": "list",
+          "costUSD": 0.0143722,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 7,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        }
+      },
+      "num_turns": 1,
+      "permission_denials": [],
+      "queued_turn_count": 0,
+      "result": "AGAIN",
+      "session_id": "617199fe-7b4c-4144-961f-1424b963bc80",
+      "stop_reason": "end_turn",
+      "subagent_stats": {
+        "by_type": {},
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "system": 0,
+          "user": 0
+        },
+        "max_depth": 0,
+        "refused": {
+          "budget": 0,
+          "concurrency_limit": 0,
+          "depth_limit": 0
+        },
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "spawned": 0,
+        "spawned_by_subagents": 0,
+        "started_in_background": 0
+      },
+      "subtype": "success",
+      "terminal_reason": "completed",
+      "time_to_request_ms": 129,
+      "total_cost_usd": 0.0143722,
+      "ttft_ms": 1718,
+      "ttft_stream_ms": 1145,
+      "type": "result",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 66,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 66,
+        "cache_read_input_tokens": 70171,
+        "inference_geo": "global",
+        "input_tokens": 2,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 66,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 66,
+            "cache_read_input_tokens": 70171,
+            "input_tokens": 2,
+            "output_tokens": 7,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 7,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "uuid": "e4c8b956-da2e-4031-a936-d01517c7a48e"
+    },
+    "run": {
+      "argv": [
+        "-p",
+        "Reply with exactly the word AGAIN and nothing else.",
+        "--output-format",
+        "json",
+        "--resume",
+        "617199fe-7b4c-4144-961f-1424b963bc80",
+        "--tools",
+        "",
+        "--max-turns",
+        "1",
+        "--model",
+        "claude-sonnet-5",
+        "--effort",
+        "low",
+        "--permission-prompts",
+        "none"
+      ],
+      "exit": 0,
+      "seconds": 3.56,
+      "stderr": ""
+    },
+    "session_id_matches": true,
+    "transcript_after": {
+      "bytes": 292635,
+      "expected_exists": true,
+      "expected_path": "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\617199fe-7b4c-4144-961f-1424b963bc80.jsonl",
+      "found": [
+        "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\617199fe-7b4c-4144-961f-1424b963bc80.jsonl"
+      ],
+      "line_types": [
+        "ai-title",
+        "queue-operation",
+        "queue-operation",
+        "user",
+        "attachment",
+        "attachment",
+        "attachment",
+        "attachment",
+        "atis-latch",
+        "attachment",
+        "attachment",
+        "attachment",
+        "last-prompt",
+        "ai-title",
+        "atis-latch",
+        "assistant",
+        "attachment",
+        "last-prompt",
+        "ai-title",
+        "atis-latch",
+        "queue-operation",
+        "queue-operation",
+        "user",
+        "attachment",
+        "assistant",
+        "last-prompt",
+        "mode"
+      ],
+      "lines": 27
+    }
+  },
+  "p3_structured_output": {
+    "result": {
+      "api_error_status": null,
+      "duration_api_ms": 3093,
+      "duration_ms": 2414,
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "first_content_frame_ms": 1704,
+      "is_error": false,
+      "modelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "cacheCreationInputTokens": 0,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-haiku-4-5",
+          "contextWindow": 200000,
+          "costBasis": "list",
+          "costUSD": 0.0009670000000000001,
+          "inputTokens": 912,
+          "maxOutputTokens": 32000,
+          "outputTokens": 11,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        },
+        "claude-sonnet-5": {
+          "cacheCreationInputTokens": 70287,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-sonnet-5",
+          "contextWindow": 1000000,
+          "costBasis": "list",
+          "costUSD": 0.28167200000000003,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 52,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        }
+      },
+      "num_turns": 2,
+      "permission_denials": [],
+      "queued_turn_count": 0,
+      "result": "{\"answer\":\"4\"}",
+      "session_id": "22ab676e-5da4-43f6-bccc-e4972db1c22e",
+      "stop_reason": "tool_use",
+      "structured_output": {
+        "answer": "4"
+      },
+      "subagent_stats": {
+        "by_type": {},
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "system": 0,
+          "user": 0
+        },
+        "max_depth": 0,
+        "refused": {
+          "budget": 0,
+          "concurrency_limit": 0,
+          "depth_limit": 0
+        },
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "spawned": 0,
+        "spawned_by_subagents": 0,
+        "started_in_background": 0
+      },
+      "subtype": "success",
+      "terminal_reason": "completed",
+      "time_to_request_ms": 51,
+      "total_cost_usd": 0.28263900000000003,
+      "ttft_ms": 2390,
+      "ttft_stream_ms": 1703,
+      "type": "result",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 70287,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 70287,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 70287,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 70287,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 2,
+            "output_tokens": 52,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 52,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "uuid": "9ef59f92-d963-46e2-8dce-02e52638b513"
+    },
+    "run": {
+      "argv": [
+        "-p",
+        "What is 2+2? Put the number, as a string, in the answer field.",
+        "--output-format",
+        "json",
+        "--json-schema",
+        "{\"type\": \"object\", \"properties\": {\"answer\": {\"type\": \"string\"}}, \"required\": [\"answer\"]}",
+        "--tools",
+        "",
+        "--max-turns",
+        "1",
+        "--session-id",
+        "22ab676e-5da4-43f6-bccc-e4972db1c22e",
+        "--no-session-persistence",
+        "--model",
+        "claude-sonnet-5",
+        "--effort",
+        "low",
+        "--permission-prompts",
+        "none"
+      ],
+      "exit": 0,
+      "seconds": 4.84,
+      "stderr": ""
+    },
+    "transcript": {
+      "expected_exists": false,
+      "expected_path": "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\22ab676e-5da4-43f6-bccc-e4972db1c22e.jsonl",
+      "found": []
+    }
+  },
+  "p4_max_turns": {
+    "result": {
+      "duration_api_ms": 3859,
+      "duration_ms": 3401,
+      "errors": [
+        "Reached maximum number of turns (1)"
+      ],
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "is_error": true,
+      "modelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "cacheCreationInputTokens": 0,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-haiku-4-5",
+          "contextWindow": 200000,
+          "costBasis": "list",
+          "costUSD": 0.00099,
+          "inputTokens": 915,
+          "maxOutputTokens": 32000,
+          "outputTokens": 15,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        },
+        "claude-sonnet-5": {
+          "cacheCreationInputTokens": 5854,
+          "cacheReadInputTokens": 4483,
+          "canonicalModel": "claude-sonnet-5",
+          "contextWindow": 1000000,
+          "costBasis": "list",
+          "costUSD": 0.0260466,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 173,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        }
+      },
+      "num_turns": 2,
+      "permission_denials": [],
+      "queued_turn_count": 0,
+      "session_id": "9f5ee848-06fc-48a4-a7c6-04e9bfb6fbd4",
+      "stop_reason": "tool_use",
+      "subagent_stats": {
+        "by_type": {},
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "system": 0,
+          "user": 0
+        },
+        "max_depth": 0,
+        "refused": {
+          "budget": 0,
+          "concurrency_limit": 0,
+          "depth_limit": 0
+        },
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "spawned": 0,
+        "spawned_by_subagents": 0,
+        "started_in_background": 0
+      },
+      "subtype": "error_max_turns",
+      "terminal_reason": "max_turns",
+      "total_cost_usd": 0.0270366,
+      "type": "result",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 5854,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 5854,
+        "cache_read_input_tokens": 4483,
+        "inference_geo": "global",
+        "input_tokens": 2,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 5854,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 5854,
+            "cache_read_input_tokens": 4483,
+            "input_tokens": 2,
+            "output_tokens": 173,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 173,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "uuid": "05235534-9a6b-451b-b22c-2895e518bc46"
+    },
+    "run": {
+      "argv": [
+        "-p",
+        "Use the Read tool to read probe.txt in the current directory, then reply with the secret word it contains.",
+        "--output-format",
+        "json",
+        "--tools",
+        "Read",
+        "--max-turns",
+        "1",
+        "--session-id",
+        "9f5ee848-06fc-48a4-a7c6-04e9bfb6fbd4",
+        "--permission-mode",
+        "acceptEdits",
+        "--model",
+        "claude-sonnet-5",
+        "--effort",
+        "low",
+        "--permission-prompts",
+        "none"
+      ],
+      "exit": 1,
+      "seconds": 4.57,
+      "stderr": ""
+    }
+  },
+  "p5_permission_denied": {
+    "result": {
+      "api_error_status": null,
+      "duration_api_ms": 6448,
+      "duration_ms": 5170,
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "first_content_frame_ms": 2094,
+      "is_error": false,
+      "modelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "cacheCreationInputTokens": 0,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-haiku-4-5",
+          "contextWindow": 200000,
+          "costBasis": "list",
+          "costUSD": 0.000974,
+          "inputTokens": 919,
+          "maxOutputTokens": 32000,
+          "outputTokens": 11,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        },
+        "claude-sonnet-5": {
+          "cacheCreationInputTokens": 74637,
+          "cacheReadInputTokens": 74363,
+          "canonicalModel": "claude-sonnet-5",
+          "contextWindow": 1000000,
+          "costBasis": "list",
+          "costUSD": 0.3148186,
+          "inputTokens": 4,
+          "maxOutputTokens": 64000,
+          "outputTokens": 139,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        }
+      },
+      "num_turns": 2,
+      "permission_denials": [
+        {
+          "tool_input": {
+            "command": "git --version",
+            "description": "Check git version"
+          },
+          "tool_name": "Bash",
+          "tool_use_id": "toolu_015cpPEdNmxzrnZtYXxzaXuH"
+        }
+      ],
+      "queued_turn_count": 0,
+      "result": "I couldn't run `git --version` \u2014 the tool call was automatically denied because this session has no approval surface to grant permission. I'm unable to retry it or any other approval-requiring action for the rest of this session.",
+      "session_id": "257950fe-d2c6-41ec-ac4e-44d3ddffa19d",
+      "stop_reason": "end_turn",
+      "subagent_stats": {
+        "by_type": {},
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "system": 0,
+          "user": 0
+        },
+        "max_depth": 0,
+        "refused": {
+          "budget": 0,
+          "concurrency_limit": 0,
+          "depth_limit": 0
+        },
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "spawned": 0,
+        "spawned_by_subagents": 0,
+        "started_in_background": 0
+      },
+      "subtype": "success",
+      "terminal_reason": "completed",
+      "time_to_request_ms": 67,
+      "total_cost_usd": 0.3157926,
+      "ttft_ms": 2895,
+      "ttft_stream_ms": 2094,
+      "type": "result",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 74637,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 74637,
+        "cache_read_input_tokens": 74363,
+        "inference_geo": "global",
+        "input_tokens": 4,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 274,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 274,
+            "cache_read_input_tokens": 74363,
+            "input_tokens": 2,
+            "output_tokens": 66,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 139,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "uuid": "158f65b3-4568-4f0e-a878-14297c6cd8bd"
+    },
+    "run": {
+      "argv": [
+        "-p",
+        "Use the Bash tool to run `git --version` and reply with its output verbatim. Do not answer from memory.",
+        "--output-format",
+        "json",
+        "--tools",
+        "Bash",
+        "--max-turns",
+        "3",
+        "--session-id",
+        "257950fe-d2c6-41ec-ac4e-44d3ddffa19d",
+        "--permission-mode",
+        "manual",
+        "--model",
+        "claude-sonnet-5",
+        "--effort",
+        "low",
+        "--permission-prompts",
+        "none"
+      ],
+      "exit": 0,
+      "seconds": 7.79,
+      "stderr": ""
+    }
+  },
+  "p6_bad_model": {
+    "result": {
+      "api_error_status": 404,
+      "duration_api_ms": 0,
+      "duration_ms": 422,
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "is_error": true,
+      "modelUsage": {},
+      "num_turns": 1,
+      "permission_denials": [],
+      "queued_turn_count": 0,
+      "result": "There's an issue with the selected model (claude-no-such-model-0). It may not exist or you may not have access to it. Run --model to pick a different model.",
+      "session_id": "fd50ea4e-0026-4348-9dcf-75c0b5fabb72",
+      "stop_reason": "stop_sequence",
+      "subagent_stats": {
+        "by_type": {},
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "system": 0,
+          "user": 0
+        },
+        "max_depth": 0,
+        "refused": {
+          "budget": 0,
+          "concurrency_limit": 0,
+          "depth_limit": 0
+        },
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "spawned": 0,
+        "spawned_by_subagents": 0,
+        "started_in_background": 0
+      },
+      "subtype": "success",
+      "terminal_reason": "api_error",
+      "total_cost_usd": 0,
+      "type": "result",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "",
+        "input_tokens": 0,
+        "iterations": [],
+        "output_tokens": 0,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "uuid": "85498ffe-ac71-4f3a-a996-4a6abd3579d1"
+    },
+    "run": {
+      "argv": [
+        "-p",
+        "Reply OK.",
+        "--output-format",
+        "json",
+        "--model",
+        "claude-no-such-model-0",
+        "--effort",
+        "low",
+        "--permission-prompts",
+        "none",
+        "--tools",
+        "",
+        "--max-turns",
+        "1",
+        "--session-id",
+        "fd50ea4e-0026-4348-9dcf-75c0b5fabb72",
+        "--no-session-persistence"
+      ],
+      "exit": 1,
+      "seconds": 3.25,
+      "stderr": "[claude-code:unrecognized_model] {\"model\":\"claude-no-such-model-0\",\"query_source\":\"sdk\"}\n"
+    }
+  },
+  "p7_cancel": {
+    "alive_before_terminate": true,
+    "event_types": [
+      [
+        "system",
+        "init"
+      ]
+    ],
+    "exit": 1,
+    "result_event_present": false,
+    "saw_init": true,
+    "seconds": 2.05,
+    "stderr": "",
+    "transcript": {
+      "bytes": 34654,
+      "expected_exists": true,
+      "expected_path": "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\a3d3f4db-74bb-423b-b981-6122a8c011e4.jsonl",
+      "found": [
+        "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\a3d3f4db-74bb-423b-b981-6122a8c011e4.jsonl"
+      ],
+      "line_types": [
+        "queue-operation",
+        "queue-operation",
+        "user",
+        "attachment",
+        "attachment",
+        "attachment",
+        "atis-latch",
+        "attachment",
+        "attachment",
+        "attachment",
+        "last-prompt",
+        "atis-latch"
+      ],
+      "lines": 12
+    }
+  },
+  "p8_resume_after_cancel": {
+    "result": {
+      "api_error_status": null,
+      "duration_api_ms": 2394,
+      "duration_ms": 2482,
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "fast_mode_state": "off",
+      "first_content_frame_ms": 1824,
+      "is_error": false,
+      "modelUsage": {
+        "claude-sonnet-5": {
+          "cacheCreationInputTokens": 1475,
+          "cacheReadInputTokens": 68777,
+          "canonicalModel": "claude-sonnet-5",
+          "contextWindow": 1000000,
+          "costBasis": "list",
+          "costUSD": 0.0197294,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 7,
+          "provider": "firstParty",
+          "thinkingTokens": 0,
+          "webSearchRequests": 0
+        }
+      },
+      "num_turns": 1,
+      "permission_denials": [],
+      "queued_turn_count": 0,
+      "result": "RESUMED",
+      "session_id": "a3d3f4db-74bb-423b-b981-6122a8c011e4",
+      "stop_reason": "end_turn",
+      "subagent_stats": {
+        "by_type": {},
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "system": 0,
+          "user": 0
+        },
+        "max_depth": 0,
+        "refused": {
+          "budget": 0,
+          "concurrency_limit": 0,
+          "depth_limit": 0
+        },
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "spawned": 0,
+        "spawned_by_subagents": 0,
+        "started_in_background": 0
+      },
+      "subtype": "success",
+      "terminal_reason": "completed",
+      "time_to_request_ms": 96,
+      "total_cost_usd": 0.0197294,
+      "ttft_ms": 2453,
+      "ttft_stream_ms": 1824,
+      "type": "result",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 1475,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 1475,
+        "cache_read_input_tokens": 68777,
+        "inference_geo": "global",
+        "input_tokens": 2,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 1475,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 1475,
+            "cache_read_input_tokens": 68777,
+            "input_tokens": 2,
+            "output_tokens": 7,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 7,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "uuid": "c071ca84-b9fc-4a32-ba7e-2ff8b2d62201"
+    },
+    "run": {
+      "argv": [
+        "-p",
+        "Reply with exactly the word RESUMED and nothing else.",
+        "--output-format",
+        "json",
+        "--resume",
+        "a3d3f4db-74bb-423b-b981-6122a8c011e4",
+        "--tools",
+        "",
+        "--max-turns",
+        "1",
+        "--model",
+        "claude-sonnet-5",
+        "--effort",
+        "low",
+        "--permission-prompts",
+        "none"
+      ],
+      "exit": 0,
+      "seconds": 4.68,
+      "stderr": ""
+    },
+    "session_id_matches": true,
+    "transcript_after": {
+      "bytes": 292575,
+      "expected_exists": true,
+      "expected_path": "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\a3d3f4db-74bb-423b-b981-6122a8c011e4.jsonl",
+      "found": [
+        "C:\\Users\\icfre\\.claude\\projects\\C--Users-icfre-AppData-Local-Temp-claude-C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction-2de9211f-483e-47b7-a2ed-12d4a28c9d83-scratchpad-probe-cwd\\a3d3f4db-74bb-423b-b981-6122a8c011e4.jsonl"
+      ],
+      "line_types": [
+        "queue-operation",
+        "queue-operation",
+        "user",
+        "attachment",
+        "attachment",
+        "attachment",
+        "atis-latch",
+        "attachment",
+        "attachment",
+        "attachment",
+        "last-prompt",
+        "atis-latch",
+        "queue-operation",
+        "queue-operation",
+        "user",
+        "assistant",
+        "user",
+        "attachment",
+        "attachment",
+        "assistant",
+        "attachment",
+        "last-prompt",
+        "mode",
+        "atis-latch"
+      ],
+      "lines": 24
+    }
+  },
+  "started_at": "2026-10-11T06:29:03Z",
+  "version": "2.1.263 (Claude Code)"
+}
