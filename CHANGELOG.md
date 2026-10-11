@@ -17,6 +17,20 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — budgeted autonomy controller, PR 4 (operator controls, evidence retention, pilot)
+
+- `tools/autonomy-controller/ashlar_controller/{metrics,evidence}.py` and the CLI: `status` names the evidence of
+  each task's last run (run directory, manifest, stdout, stderr, transcript, workspace, archive) and the PR record
+  from the ledger and the run directory alone; `report` renders the LLM-free Markdown status report; `metrics`
+  gives counts and sums from the ledger (runs by stop reason, PRs by outcome, repair rounds, retries, usage by
+  kind, with the estimated API value kept apart from turns); `backup <dest>` copies the ledger through the SQLite
+  online backup API; `restore <source> [--replace]` refuses a schema it does not know and a live state it was not
+  told to replace, swaps the file atomically, and the restored ledger is opened and verified before it is
+  reported; `evidence archive <run>` tars the run directory with the run's ledger rows (never overwriting) and
+  `evidence list` lists the archives. `pause`, `resume`, `provider disable|enable` and `run cancel` are proven to
+  take effect at the next tick, including for a running repair (the round stays spent, the PR stays open and
+  watched, nothing launches for the task). `status` picks the last run by insertion order.
+
 ### Added — budgeted autonomy controller, PR 3 (PR lifecycle and fresh context)
 
 - `tools/autonomy-controller/ashlar_controller/{lifecycle,prs,gitops}.py`: the controller clones the current
