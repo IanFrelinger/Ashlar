@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 SCHEMA_VERSION = 1
 
@@ -69,6 +69,9 @@ class StopReason:
     WRITER_BUSY = "writer-busy"
     RECONCILE_PENDING = "reconcile-pending"
     DRY_RUN = "dry-run"
+    INVOCATION_CEILING = "invocation-ceiling-reached"   # the CLI stopped at the turn limit; resume within the task budget
+    MODEL_UNRECOGNIZED = "model-unrecognized"          # the CLI refused the model id before any request
+    FUNDING_ROUTE_MISMATCH = "funding-route-mismatch"  # the CLI would bill a route the policy did not select
 
 
 class UsageFreshness:
@@ -110,6 +113,9 @@ class LaunchRequest:
     workspace: Optional[str]
     prompt: str
     resume_session_id: Optional[str] = None
+    role: str = "implementation"              # implementation | readiness-fixer | verifier
+    agent: Optional[str] = None               # a named agent role (.claude/agents/<name>.md) to run as, if any
+    allowed_tools: Optional[List[str]] = None # restrict the CLI's tool set; None means the CLI default
 
 
 @dataclass
@@ -126,7 +132,9 @@ class RunStatus:
     consumed_units: Optional[float] = None  # units this run consumed, when the adapter can say
     failure_identity: Optional[str] = None  # stable id of a diagnosed failure, for the retry counter
     result: Dict[str, Any] = field(default_factory=dict)
-    usage: Optional[UsageObservation] = None
+    usage: Optional[UsageObservation] = None            # the observation whose delta may stand in for consumption
+    observations: List[UsageObservation] = field(default_factory=list)  # further kinds, recorded, never summed
+    transcript_path: Optional[str] = None                # where the provider kept the transcript, when known
 
 
 @dataclass
