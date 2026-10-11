@@ -104,7 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--owner", default="claude"); a.add_argument("--base-sha")
     ts.add_parser("list")
     a = ts.add_parser("show"); a.add_argument("task_id")
-    a = ts.add_parser("set-state"); a.add_argument("task_id"); a.add_argument("state"); a.add_argument("--reason"); a.add_argument("--blocker")
+    a = ts.add_parser("set-state"); a.add_argument("task_id"); a.add_argument("new_state", metavar="state"); a.add_argument("--reason"); a.add_argument("--blocker")
 
     s = sub.add_parser("event", help="ingest an external event once"); es = s.add_subparsers(dest="event_cmd", required=True)
     a = es.add_parser("ingest"); a.add_argument("--event-id", required=True); a.add_argument("--source", default="operator")
@@ -300,10 +300,11 @@ def _dispatch(args) -> int:
             _print(dict(row), args.json); return 0
         if args.task_cmd == "set-state":
             allowed = {v for k, v in vars(TaskState).items() if k.isupper() and isinstance(v, str)}
-            if args.state not in allowed:
-                raise ControllerError(f"unknown task state {args.state}; one of {sorted(allowed)}")
-            ctl.set_task_state(args.task_id, args.state, stop_reason=args.reason, blocker=args.blocker)
-            _print({"task_id": args.task_id, "state": args.state}, args.json); return 0
+            # dest is new_state: a positional named "state" would overwrite the global --state path.
+            if args.new_state not in allowed:
+                raise ControllerError(f"unknown task state {args.new_state}; one of {sorted(allowed)}")
+            ctl.set_task_state(args.task_id, args.new_state, stop_reason=args.reason, blocker=args.blocker)
+            _print({"task_id": args.task_id, "state": args.new_state}, args.json); return 0
     if args.cmd == "event":
         new = ctl.ingest_event(args.event_id, args.source, args.kind, args.task_id, json.loads(args.payload))
         _print({"event_id": args.event_id, "new": new, "duplicate": not new}, args.json); return 0
