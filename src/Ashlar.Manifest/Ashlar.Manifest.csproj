@@ -20,6 +20,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="YamlDotNet" />
     <PackageReference Include="NSec.Cryptography" />
   </ItemGroup>

@@ -20,8 +20,8 @@ The status line above and the starting prompt are the owner's, as written; the s
 | 1: the label lattice and reference-monitor decisions (§4) | Merged | #706, `0f9642ec2` |
 | 2: bridge the existing labels | Merged | #707, `f1f2cff48` |
 | 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #711, `8ec674d2a` |
-| 4: the guard enforces | 4.1–4.10 merged; 4.11 implemented and locally verified; PR CI and merge pending. The owner answered its eight questions on 2026-10-05 (decisions log). | |
-| 5 to 8 | Not started | |
+| 4: the guard enforces | Merged. 4.1–4.10 earlier; 4.11 is #746. The owner answered its eight questions on 2026-10-05 (decisions log). | #746, `7cb132897` |
+| 5: clearances on subjects | Implemented in #748. Policy ceiling, host may only tighten, skill level on the sealed package. Inbound response bodies are not mediated here. Merge pending. | #748 |
 
 - **PR 1** added `Ashlar.Abstractions.Security` in `src/Ashlar.Abstractions/Security/`, with 367 cert-gate tests. The
   four §4.4 mutations went red (16, 19, 11 and 49 of 367) and back to green. The §4.6 checklist is left as written;
@@ -133,7 +133,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   health and hosted-loop degradation emits windowed Warning diagnostics (event 7307); disposal cancels
   timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
   work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
-  The default switch is implemented in 4.11, whose verification status is recorded below.
+  The default switch is implemented in 4.11 (#746, `7cb132897`), whose verification status is recorded below.
 - **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
@@ -147,7 +147,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   All 77 cases in `scripts/mutations/spec007-explicit-egress.json` have an intended assertion failure, exact source
   restoration, clean checkout and green rerun; their mutation targets and intended test sources match the candidate.
   PR CI passed and the change merged. Exact-master readiness exposed a Windows Docker fixture response failure. The isolated repair merged in #745 (`d4dfbf379`) after fresh Windows and cross-platform PR readiness passed; readiness for the repaired master is pending.
-- **PR 4.11 (implemented; locally verified; PR CI and merge pending)** switches AirGapped and SecureWorkstation to default enforcement. The SecureWorkstation report break-glass is environment-only, latched and logged at Warning; AirGapped ignores lowering overrides and routes apply its process floor even to host guards. Named factory exceptions use `Configure<EgressGuardOptions>` after `AddAshlar`, warn per name, and cannot name Ashlar-owned clients. The registry is checked against production registrations including commercial code. `EgressEnforcementLeakTests` covers A/B/C and C0–C12. All 28 mode, route, client-exception, leak and registry mutations have intended assertion failures, exact source restoration, clean checkouts and passing restored runs, reconciled against the candidate. Local validation passes 3,240 canonical certification tests, 1,091 net8 Egress tests, 1,099 net10 Egress tests, all 28 repository gates and the core build; these test selections have zero skips.
+- **PR 4.11 (#746, `7cb132897`)** switches AirGapped and SecureWorkstation to default enforcement. The SecureWorkstation report break-glass is environment-only, latched and logged at Warning; AirGapped ignores lowering overrides and routes apply its process floor even to host guards. Named factory exceptions use `Configure<EgressGuardOptions>` after `AddAshlar`, warn per name, and cannot name Ashlar-owned clients. The registry is checked against production registrations including commercial code. `EgressEnforcementLeakTests` covers A/B/C and C0–C12. All 28 mode, route, client-exception, leak and registry mutations have intended assertion failures, exact source restoration, clean checkouts and passing restored runs, reconciled against the candidate. Local validation passes 3,240 canonical certification tests, 1,091 net8 Egress tests, 1,099 net10 Egress tests, all 28 repository gates and the core build; these test selections have zero skips.
 - **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
@@ -299,7 +299,7 @@ A **security label** is a triple `(Level, Compartments, Caveats)`.
   `ExplainedFailure` outcome (`IterationOutcome.ExplainedFailure`) and receipts.
 
 - **Enforced by** (egress, cert-gate): `EgressEnforcementLeakTests` exercises the real RAG/model path (A), Bing tool path (B), factory send and loopback redirect (C). Its positive controls allow Public/Internal sends and Full-profile reporting. C0–C12 cover unknown labels, open/unreported/thrown reads, no subject, nested frames, ignored AirGapped overrides, classification/host faults and process exports. Refusals stop the transport and expose only redacted local observations; operator records retain the explained decision. C12 checks a subsequent send in the same runner frame after the actual agent cycle ends with `error`.
-- **Read-side scope remains PR 5.** These egress tests supply a test clearance to the RAG filter; they do not establish production clearance wiring or receiver-side `CanRead` enforcement.
+- **Composition is the read this change wires.** An agent's clearance comes from `ashlar.policy.yaml` and a host may only tighten it. A sealed skill's highest level is on the package, and composing the skill is `CanRead`. These egress tests still supply a test clearance to the RAG filter. Responses on inbound connections are not mediated here.
 
 ### 2.4 Canonical text form
 
@@ -442,8 +442,8 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 |---|---|---|---|
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
 | 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #711, `8ec674d2a` (routes every listed non-exempt site, report-only) |
-| 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | 4.1–4.10 merged; 4.11 locally verified; PR CI and merge pending (see the status) |
-| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | Not started |
+| 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Merged. 4.11: #746, `7cb132897` (see the status) |
+| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | #748. Clearances live in `ashlar.policy.yaml`; a host may only tighten them; a missing clearance is `Public`. The skill's highest level is `ExtensionPackage.HighestLevel`, covered by the seal and not by the gate-record signature. Inbound response bodies stay unmediated. Merge pending |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
 | 7 | **Provisioned resources inherit labels.** Databases, containers and local models an agent spins up carry its label and compartments, register themselves, and are torn down with the compartment. Teardown gets a receipt. | Tearing down a compartment leaves no resource behind and records the wipe | Not started |
 | 8 | **Container execution host.** A real `INativeExecutionHost` built on the Docker sandbox, so a sealed skill can run out-of-process in its compartment. | The same skill gives identical results in-process and in a container | Not started |
@@ -492,9 +492,9 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", the eight PR 4 answers of 2026-10-05, and the PR 4.2 and phase C answers of 2026-10-06. None of them
-answers a §8 question; §8 stands as written. Design choices that merged with those PRs but were not the owner's are
-in the next section.
+applied", the eight PR 4 answers of 2026-10-05, the PR 4.2 and phase C answers of 2026-10-06, and the PR 5 answers
+of 2026-10-10 (§8 questions 3 and 4). The other §8 questions stand as written. Design choices that merged with
+those PRs but were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
 |---|---|---|
@@ -504,7 +504,7 @@ in the next section.
 | 2026-10-04 | PR 3 | **PR 3 is split.** 3a adds the guard, the written inventory and the convention test, and routes nothing. 3b routes every listed site through the guard. |
 | 2026-10-05 | PR 3 (3b) | **The MeshDirector client is routed (3b question Q-A, answer A).** `Ashlar.Commercial.MeshDirector` takes a ProjectReference to `Ashlar.Abstractions` and builds its client with `EgressHttp`, behind a characterization test committed first, which must show the JSON request bodies and printed output byte-identical. |
 | 2026-10-05 | PR 3 (3b) | **Open question C is deferred to PR 4 (3b question Q-B, answer A).** 3b merges with C open. |
-| 2026-10-05 | PR 4 (Q1) | **`AirGapped` and `SecureWorkstation` enforce when the switch (4.11) merges.** On `SecureWorkstation` only, a break-glass `ASHLAR_EGRESS_MODE=report` returns to report-only. It is read once at startup, logged at Warning and stamped on every decision. `AirGapped` ignores every override. |
+| 2026-10-05 | PR 4 (Q1) | **`AirGapped` and `SecureWorkstation` enforce when the switch (4.11) merges.** On `SecureWorkstation` only, a break-glass `ASHLAR_EGRESS_MODE=report` returns to report-only. It is read once at startup, logged at Warning and stamped on every decision. `AirGapped` ignores every override. **Implemented in:** #746 (`7cb132897`). |
 | 2026-10-05 | PR 4 (Q2) | **A subject's label comes from the runner.** The code that builds an agent's inputs enters a frame at the floor it can vouch for. A runner may declare a floor below `SystemHigh` only for inputs it built and can vouch for. Every tool result is observed: a labelled RAG hit counts at its tier, and an unreported read counts as `SystemHigh`. Self-extend declares `SystemHigh`. |
 | 2026-10-05 | PR 4 (Q3) | **Child processes that run code an agent can write are not Host.** That covers `dotnet` build, test, run, pack and publish, `forge test`, the regression runner and the instance spawner. They are recorded as process exports. Docker counts as Host only with `--network=none`. On `AirGapped` and `SecureWorkstation` they are refused unless they run in the network-off docker sandbox. |
 | 2026-10-05 | PR 4 (Q4) | **Before PR 6, an operator may move files off an `AirGapped` or `SecureWorkstation` host, and nothing else.** `pkg export --out`, `export` and `mesh export` run in report mode, recorded as an operator verb. `pkg publish` and `pkg share` are refused, because the mesh store can be a network mount. Everything an agent can reach is enforced. |
@@ -517,6 +517,8 @@ in the next section.
 | 2026-10-06 | PR 4 (Q8 clarified) | **In PR 4, RAG maps a custom `IDataSensitivityLevel` to `SystemHigh` (D15 stands); Q8's C3 normalisation ("the lowest built-in level whose flags are no more permissive") is deferred** to the first producer that labels data from a custom level on purpose. **Implemented in:** #721 (`RAGTool.MapHitLabel`: non-canonical levels → `SystemHigh`). |
 | 2026-10-06 | PR 4 (4.3, O2) | **A redirect hop from outside the host boundary into it is never followed.** When the redirect follower holds a 3xx whose `Location` names the host boundary (loopback, `localhost` and `*.localhost`, `unix`, `npipe`, as a decision classifies Host, plus a link-local address) and the request came from an authority outside it, the hop is not followed, for factory (P1) clients as much as for `EgressHttp` (P2): the hop is decided and the 3xx is returned. Reason: a remote peer must not bounce a request, body included, to a local service. Cost: a host client behind a remote that legitimately redirects to a local service gets the 3xx. The rest of P1 stands. **Implemented in:** #739 (`9c56ecc1`). |
 | 2026-10-08 | PR 4 (4.5b, D16) | **Governed responses from every non-model target are unlabelled reads until PR 5.** The owner accepted the review recommendation to include every key other than `local:` and `cloud:` (trimmed, case-insensitive), including unknown or null keys. Observe `SystemHigh` on completion, fault, synchronous throw, before each streamed update and at stream end. Host clients registered under `local:` or `cloud:` remain a trusted host boundary; the legacy three-argument targetless `EgressGuardChatClient` overload retains its existing non-reader behavior. This does not settle the separate §8 policy questions. |
+| 2026-10-10 | PR 5 (§8 Q3) | **Clearances are configured in `ashlar.policy.yaml`.** A per-agent map overrides a default. A missing clearance is `Public`. Host options may only tighten that ceiling (the meet of the two). An unparseable host ceiling fails closed to `Public`. **Implemented in:** #748 (`SubjectClearance.Resolve`, `PolicyClearances`). Merge pending. |
+| 2026-10-10 | PR 5 (§8 Q4) | **A skill's highest level stays in the sealed package manifest, not in the signed certification record.** `ExtensionPackage.HighestLevel` is covered by the package seal. Moving the label into the gate record waits for PR 6, when a downgrade receipt has to bind the old label, the new label and the human sign-off. **Implemented in:** #748. Merge pending. |
 
 ## Design as merged (added 2026-10-04)
 

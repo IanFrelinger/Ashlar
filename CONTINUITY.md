@@ -75,7 +75,11 @@ Key security invariants now enforced (each pinned by tests):
 Verification state at wipe: kernel suite ~394 tests, BackgroundAgents 519, CLI 18+, e2e-loop
 **106/106** behavioral scenarios (`scripts/e2e-loop.sh`, real binaries, 3-OS in CI).
 
-## 3. WIP: branch `claude/export-cloud` (mesh slice 4 — pushed, NOT merged)
+## 3. Mesh slice 4 — merged (snapshot below is 2026-08-24)
+
+> **Current status:** merged. `ashlar export aws|azure` is on `master`. The two findings under this heading are fixed. See the 2026-10-04 corrections at the top. The paragraphs below are the pre-merge snapshot, left as written.
+
+## 3a. Pre-merge snapshot: branch `claude/export-cloud` (was pushed, not merged)
 
 `ashlar export aws|azure` — one-command cloud deploy bundles: `app/` + Dockerfile layered on
 `ghcr.io/ianfrelinger/nexo-cli:latest` + verify-then-run `entrypoint.sh` + per-target deploy
@@ -93,7 +97,11 @@ deploy scripts was in flight when the session died; these were its obvious targe
 Also worth a pass: unquoted expansions, `sleep 10` IAM-propagation hack, idempotency of the
 create steps, and whether ECS/ACI surface a verify-failure (exit 65) visibly to the operator.
 
-## 4. NOT started: mesh slice 5 (co-production) — design settled
+## 4. Mesh slice 5 — done (snapshot below is 2026-08-24)
+
+> **Current status:** done. `MeshStore`, `ashlar pkg share`, opt-in auto-share and the two-node co-production e2e are on `master`. See the 2026-10-04 corrections at the top. The list below is the pre-implementation design, left as written.
+
+## 4a. Pre-implementation design: mesh slice 5 (co-production)
 
 Goal: multiple coding agents across nodes co-produce verified extensions.
 1. Kernel `MeshStore` in `Ashlar.Manifest.Packaging`: `Resolve(explicitDir?)` (env

@@ -35,6 +35,14 @@ public sealed class AshlarHostingOptions
     public string? EgressMode { get; set; }
 
     /// <summary>
+    /// Optional host ceiling on agent clearances (SPEC-007 PR 5). Canonical security-label text.
+    /// When set, composition meets it with the clearance from <c>ashlar.policy.yaml</c>, so the host
+    /// can only tighten that ceiling. Null or empty leaves the policy clearance. Any other unparseable
+    /// value fails closed to <c>Public</c>. Ashlar never binds this from <c>IConfiguration</c>.
+    /// </summary>
+    public string? Clearance { get; set; }
+
+    /// <summary>
     /// Path to the configuration file (default: ~/.ashlar/config.json).
     /// </summary>
     public string? ConfigPath { get; set; }

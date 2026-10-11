@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -166,7 +167,58 @@ public static class PolicyLoader
             return false;
         }
 
-        policy = parsed;
+        var clearances = parsed.Clearances ?? new PolicyClearances();
+        if (!TryValidateClearance(clearances.Default, allowEmpty: true, "clearances.default", out reason))
+        {
+            return false;
+        }
+
+        if (clearances.Agents is not null)
+        {
+            foreach (var pair in clearances.Agents)
+            {
+                if (string.IsNullOrWhiteSpace(pair.Key))
+                {
+                    reason = "REJECTED: clearances.agents names a blank agent.";
+                    return false;
+                }
+
+                if (!TryValidateClearance(pair.Value, allowEmpty: false, "clearances.agents." + pair.Key, out reason))
+                {
+                    return false;
+                }
+            }
+        }
+
+        policy = parsed.Clearances is null ? parsed with { Clearances = clearances } : parsed;
+        reason = string.Empty;
+        return true;
+    }
+
+    /// <summary>
+    /// A clearance is canonical label text, or empty only where the field may be omitted.
+    /// An unreadable clearance is a rejected policy, not a widened one.
+    /// </summary>
+    private static bool TryValidateClearance(string? text, bool allowEmpty, string field, out string reason)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            if (allowEmpty)
+            {
+                reason = string.Empty;
+                return true;
+            }
+
+            reason = "REJECTED: " + field + " is empty. Write a canonical security label, or omit the entry.";
+            return false;
+        }
+
+        if (!SecurityLabel.TryParse(text, out _))
+        {
+            reason = "REJECTED: " + field + " '" + text + "' is not a canonical security label.";
+            return false;
+        }
+
         reason = string.Empty;
         return true;
     }

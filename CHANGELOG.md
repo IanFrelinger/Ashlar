@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — agent clearances and skill composition (SPEC-007 PR 5)
+
+- An agent's clearance comes from `ashlar.policy.yaml` (`clearances.default` and `clearances.agents`). A missing clearance is `Public`. A non-canonical clearance rejects the policy.
+- A host may only tighten that ceiling. `AshlarHostingOptions.Clearance` is met with the policy clearance; an unparseable host value fails closed to `Public`.
+- A sealed skill declares its highest level on the package (`HighestLevel`). The seal covers it. The signed gate record does not. A missing level is `SystemHigh`.
+- Composing an agent with a skill above its clearance is refused (`SkillComposition.Decide`). Inbound response bodies are not mediated by this change.
+
 ### Changed — default egress enforcement (SPEC-007 4.11)
 
 - AirGapped and SecureWorkstation enforce by default. Full, Server, Edge and System remain report mode unless
