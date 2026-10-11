@@ -63,6 +63,13 @@ _AUTH_RE = re.compile(r"not logged in|oauth|authenticat", re.IGNORECASE)
 _QUOTA_RE = re.compile(r"usage limit|out of (extra )?usage|quota|limit reached|resets at", re.IGNORECASE)
 _RATE_LIMIT_RE = re.compile(r"rate.?limit|too many requests", re.IGNORECASE)
 _TRANSIENT_RE = re.compile(r"overloaded|timed out|ECONNRESET|ENOTFOUND|network", re.IGNORECASE)
+# Observed in the live run of 2026-10-11 (PR 4 phase): with another Claude Code process alive on the host
+# the CLI exited at once with is_error true, api_error_status null, cost 0 and the text "Failed to refresh
+# OAuth token: another Claude Code process is refreshing it or exited mid-refresh. This is usually
+# transient; retry in a minute ...". It mentions OAuth, so the auth rule would park the task behind an
+# operator step; the CLI itself says retry, so it is TRANSIENT, checked before the auth rule.
+_REFRESH_CONTENTION_RE = re.compile(r"another Claude Code process is refreshing|exited mid-refresh|usually transient",
+                                    re.IGNORECASE)
 TRANSIENT_STATUSES = (408, 500, 502, 503, 504, 529)
 
 _WINDOWS = sys.platform.startswith("win")
@@ -477,6 +484,9 @@ class ClaudeAdapter:
             return failure(StopReason.INVOCATION_CEILING, {"blocker": f"turn ceiling reached in session {session_id}"})
         # 5. API-level errors, by status then by the observed texts.
         if obj.get("is_error"):
+            if api_status is None and _REFRESH_CONTENTION_RE.search(result_text):
+                return failure(StopReason.TRANSIENT, {"blocker": result_text[:RESULT_TEXT_LIMIT],
+                                                      "refresh_contention": True})
             if api_status == 401 or _AUTH_RE.search(result_text):
                 return failure(StopReason.AUTH_MISSING, {"blocker": result_text[:RESULT_TEXT_LIMIT]})
             if api_status == 402 or _QUOTA_RE.search(result_text):
