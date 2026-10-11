@@ -52,6 +52,11 @@ def _format_status(s: Dict[str, Any]) -> str:
         p = t["pool"]
         lines.append(f"- {t['task_id']} card #{t['card']} [{t['workstream']}] owner {t['owner']} provider {t['provider']} "
                      f"pr {t['pr'] or '-'} state {t['state']}" + (f" ({t['stop_reason']})" if t["stop_reason"] else ""))
+        if t.get("pr_record"):
+            pr = t["pr_record"]
+            lines.append(f"    PR #{pr['number']} {pr['state']}{' ' + pr['outcome'] if pr['outcome'] else ''} branch {pr['branch'] or '-'} "
+                         f"base {(pr['base_sha'] or '-')[:12]} head {(pr['head_sha'] or '-')[:12]} "
+                         f"merge {(pr['merge_sha'] or '-')[:12]} repair rounds {pr['repair_rounds_used']}")
         lines.append(f"    budget {p['consumed']:g}+{p['reserved']:g} of {p['ceiling']:g} {p['unit']} "
                      f"(remaining {p['remaining']:g}, overshoot {p['overshoot']:g}); attempts {p['attempts_used']}/{p['attempts_max']} "
                      f"({p['attempts_remaining']} permitted); funding pool {t['funding_pool']}")
@@ -83,10 +88,21 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("pause", help="stop launching before the next tick"); s.add_argument("--reason", required=True)
     sub.add_parser("resume", help="allow launches again")
 
-    s = sub.add_parser("tick", help="one controller step: settle, reconcile, then at most one launch")
+    s = sub.add_parser("tick", help="one controller step: settle, reconcile, observe open PRs, then at most one launch")
     s.add_argument("--dry-run", action="store_true", help="say what would happen; no writes, no adapter calls")
     s.add_argument("--adapter", choices=["fake", "claude"], default="fake",
                    help="fake (default) or claude (the installed Claude Code CLI; runs under <state dir>/runs)")
+    s.add_argument("--gh", choices=["none", "cli"], default="none",
+                   help="none (default): no PR lifecycle, a completed run is done. cli: the PR lifecycle through "
+                        "the gh executable (clone, push, open, observe by head SHA, repair, merge)")
+    s.add_argument("--workspaces", default=None, help="where worker clones live (default <state dir>/workspaces)")
+
+    s = sub.add_parser("pr", help="PR records (PR 3)"); prs_ = s.add_subparsers(dest="pr_cmd", required=True)
+    prs_.add_parser("list")
+    a = prs_.add_parser("show"); a.add_argument("number", type=int)
+    a = prs_.add_parser("observe", help="observe one open PR by its current head now (merge, repair or park as it demands)")
+    a.add_argument("number", type=int); a.add_argument("--adapter", choices=["fake", "claude"], default="fake")
+    a.add_argument("--gh", choices=["cli"], default="cli"); a.add_argument("--workspaces", default=None)
 
     s = sub.add_parser("readiness", help="readiness gates: run one, or apply a saved report to a task")
     rd = s.add_subparsers(dest="readiness_cmd", required=True)
@@ -109,6 +125,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("event", help="ingest an external event once"); es = s.add_subparsers(dest="event_cmd", required=True)
     a = es.add_parser("ingest"); a.add_argument("--event-id", required=True); a.add_argument("--source", default="operator")
     a.add_argument("--kind", required=True); a.add_argument("--task-id"); a.add_argument("--payload", default="{}")
+    a.add_argument("--gh", choices=["none", "cli"], default="none",
+                   help="cli: a NEW PR event also triggers one observation of the task's open PR")
+    a.add_argument("--adapter", choices=["fake", "claude"], default="fake"); a.add_argument("--workspaces", default=None)
 
     s = sub.add_parser("run", help="run records"); rs = s.add_subparsers(dest="run_cmd", required=True)
     rs.add_parser("list")
@@ -163,7 +182,11 @@ def _controller(args, store: Store, policy: Policy) -> Controller:
         from .adapters.claude import ClaudeAdapter
         runs_dir = os.path.join(os.path.dirname(os.path.abspath(args.state)), "runs")
         adapters["claude"] = ClaudeAdapter(runs_dir=runs_dir)
-    return Controller(store, policy, adapters, holder_id=holder)
+    gh = None
+    if getattr(args, "gh", "none") == "cli":
+        from .prs import GhCli
+        gh = GhCli()
+    return Controller(store, policy, adapters, holder_id=holder, gh=gh, workspaces_dir=getattr(args, "workspaces", None))
 
 
 class _GateFailure:
@@ -306,8 +329,25 @@ def _dispatch(args) -> int:
             ctl.set_task_state(args.task_id, args.new_state, stop_reason=args.reason, blocker=args.blocker)
             _print({"task_id": args.task_id, "state": args.new_state}, args.json); return 0
     if args.cmd == "event":
-        new = ctl.ingest_event(args.event_id, args.source, args.kind, args.task_id, json.loads(args.payload))
-        _print({"event_id": args.event_id, "new": new, "duplicate": not new}, args.json); return 0
+        out = ctl.handle_event(args.event_id, args.source, args.kind, args.task_id, json.loads(args.payload))
+        _print(out, args.json); return 0
+    if args.cmd == "pr":
+        if args.pr_cmd == "list":
+            _print([dict(r) for r in store.rows("SELECT pr_number, task_id, state, outcome, branch, base_sha, head_sha, merge_sha, "
+                                                  "repair_rounds_used, url FROM prs ORDER BY created_at, pr_number")], args.json); return 0
+        row = store.row("SELECT * FROM prs WHERE pr_number=?", (args.number,))
+        if row is None:
+            raise ControllerError(f"no PR record {args.number}")
+        if args.pr_cmd == "show":
+            _print(dict(row), args.json); return 0
+        if args.pr_cmd == "observe":
+            if ctl.lifecycle is None:
+                raise ControllerError("pr observe needs --gh cli")
+            if row["state"] != "open":
+                raise ControllerError(f"PR {args.number} is {row['state']} ({row['outcome']}); nothing to observe")
+            task = store.row("SELECT * FROM tasks WHERE task_id=?", (row["task_id"],))
+            acted = ctl.lifecycle.observe(row, task, launch_allowed=ctl.lifecycle.task_may_launch(task))
+            _print(acted or {"action": "waiting", "pr_number": args.number}, args.json); return 0
     if args.cmd == "run":
         if args.run_cmd == "list":
             _print([dict(r) for r in store.rows("SELECT run_id, task_id, attempt_no, provider, model, state, reservation, consumed, "

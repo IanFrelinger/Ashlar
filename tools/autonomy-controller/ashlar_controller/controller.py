@@ -11,10 +11,15 @@
      uncertainty, immediately.
 
 Every decision is written to the journal with its exact stop reason.
+
+PR 3 adds the PR phase between 1 and 2 when a GhClient is configured (`lifecycle.py`): every open PR is
+observed by its current head, a green head is merged, a red head gets one bounded repair round, and while
+any PR is open nothing new launches (PRs are serial; the next task's base is the recorded merge SHA).
 """
 from __future__ import annotations
 
 import json
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -50,7 +55,8 @@ def _iso_to_epoch(s: Optional[str]) -> float:
 
 class Controller:
     def __init__(self, store: Store, policy: Policy, adapters: Dict[str, ProviderAdapter], *, holder_id: str,
-                 host: Optional[str] = None, pid: Optional[int] = None, clock=None):
+                 host: Optional[str] = None, pid: Optional[int] = None, clock=None, gh=None, git=None,
+                 workspaces_dir: Optional[str] = None):
         self.store = store
         self.policy = policy
         self.adapters = adapters
@@ -62,6 +68,15 @@ class Controller:
         if not store.read_only:
             self.policy_version_id = store.record_policy(policy.version, policy.sha256, policy.source_path,
                                                          policy.to_json(), now=self.clock())
+        # The PR lifecycle is on when a GhClient is given (PR 3). Without one the controller behaves as in
+        # PR 1 and PR 2: a completed implementation run makes the task `done` and no PR is opened.
+        self.lifecycle = None
+        if gh is not None:
+            from .lifecycle import PrLifecycle
+            if git is None:
+                from . import gitops as git
+            ws = workspaces_dir or os.path.join(os.path.dirname(os.path.abspath(store.path)), "workspaces")
+            self.lifecycle = PrLifecycle(self, gh, git, ws)
 
     # ----- tasks ---------------------------------------------------------------------------------
 
@@ -99,6 +114,19 @@ class Controller:
                      payload: Optional[Dict[str, Any]] = None) -> bool:
         """Record an event once. Returns False for a duplicate, which the caller must then ignore."""
         return events.ingest(self.store, event_id, source, kind, task_id, payload, now=self.clock())
+
+    def handle_event(self, event_id: str, source: str, kind: str, task_id: Optional[str],
+                     payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Ingest, and act once on a NEW PR event (one idempotent observation of the task's open PR). A
+        repeated event id is reported as a duplicate and causes no observation, no PR and no launch."""
+        new = self.ingest_event(event_id, source, kind, task_id, payload)
+        out: Dict[str, Any] = {"event_id": event_id, "new": new, "duplicate": not new, "kind": kind, "action": None}
+        if new and self.lifecycle is not None:
+            acted = self.lifecycle.on_event(kind, task_id, payload or {})
+            if acted:
+                out.update({"action": acted.get("action"), "detail": acted})
+            events.mark_handled(self.store, event_id, now=self.clock())
+        return out
 
     def set_task_state(self, task_id: str, state: str, *, stop_reason: Optional[str] = None,
                        blocker: Optional[str] = None, next_eligible_in: Optional[float] = None) -> None:
@@ -146,7 +174,12 @@ class Controller:
         idle = self.policy.idle
         blocker = status.result.get("blocker") if status.result else None
         if reason == StopReason.COMPLETED:
-            self.set_task_state(task_id, TaskState.DONE, stop_reason=reason)
+            if self.lifecycle is not None and run["role"] in ("implementation", "readiness-fixer"):
+                # PR 3: completed means "proposed", not "done". The workspace is committed and pushed and the
+                # PR opened (or its new head recorded); only a merge on the current head makes the task done.
+                settled["lifecycle"] = self.lifecycle.after_completed(run, limits)
+            else:
+                self.set_task_state(task_id, TaskState.DONE, stop_reason=reason)
         elif reason == StopReason.QUOTA_EXHAUSTED:
             # Checkpoint and wait. Never a fallback launch on another route.
             self.set_task_state(task_id, TaskState.WAITING_QUOTA, stop_reason=reason,
@@ -295,6 +328,8 @@ class Controller:
         now = utcnow_iso(self.clock())
         for row in self.store.rows(
                 "SELECT * FROM tasks WHERE state IN ('queued','waiting-quota','waiting-rate-limit','waiting-allowance') "
+                # A task with an open PR is the PR phase's business (observe, repair), never a fresh implementation.
+                "AND NOT EXISTS (SELECT 1 FROM prs WHERE prs.task_id = tasks.task_id AND prs.state = 'open') "
                 "ORDER BY priority, created_at, task_id"):
             if row["next_eligible_at"] and row["next_eligible_at"] > now:
                 continue
@@ -334,12 +369,35 @@ class Controller:
             report.action, report.reason = "settled", "settled"
             return report
 
-        active = self.store.rows("SELECT run_id, task_id FROM runs WHERE role='implementation' AND state IN "
-                                 "('reserved','launching','running')")
+        active = self.store.rows("SELECT run_id, task_id, role FROM runs WHERE role IN ('implementation','readiness-fixer') "
+                                 "AND state IN ('reserved','launching','running')")
         if len(active) >= int(self.policy.limits["active_writers"]):
+            # One writer across providers AND roles: a repair run edits code like an implementation run.
             report.action, report.reason = "blocked", StopReason.WRITER_BUSY
             report.details = {"active": [dict(r) for r in active]}
             return report
+
+        if self.lifecycle is not None:
+            # The PR phase: observe every open PR by its current head; merge, repair or park as it demands.
+            ph = self.lifecycle.phase()
+            acted = ph["report"]
+            if acted is not None:
+                action = acted.get("action")
+                if action == "launched":
+                    return TickReport("launched", "repair", task_id=acted.get("task_id"), run_id=acted.get("run_id"),
+                                      settled=recon["settled"], details=acted)
+                if action == "blocked":
+                    return TickReport("blocked", str(acted.get("reason")), task_id=acted.get("task_id"),
+                                      run_id=acted.get("run_id"), settled=recon["settled"], details=acted)
+                return TickReport("pr", action, task_id=acted.get("task_id"), settled=recon["settled"], details=acted)
+            if ph["open"] > 0:
+                # PRs are serial: nothing new launches while one is open, so the next task starts from the
+                # merge SHA this one produces. An integrator decision (no owner row), matching the repository's
+                # serial-merge rule.
+                self.store.journal("tick-blocked", detail={"reason": StopReason.PR_OPEN_BLOCKS_DISPATCH,
+                                                           "open_prs": ph["open"]}, now=now)
+                return TickReport("blocked", StopReason.PR_OPEN_BLOCKS_DISPATCH, settled=recon["settled"],
+                                  details={"open_prs": ph["open"]})
 
         task = self._eligible_task()
         if task is None:
@@ -393,11 +451,28 @@ class Controller:
             report.details = {"error": str(e)}
             return report
 
+        prepared: Dict[str, Any] = {}
+        if self.lifecycle is not None:
+            # PR 3: the workspace is a clone of the current base on the task's branch, prepared by the
+            # controller; the prompt carries the compact handoff and never a transcript.
+            try:
+                prepared = self.lifecycle.prepare_implementation(task, run_id)
+            except Exception as e:  # noqa: BLE001 - a git failure is a launch failure; nothing was spent
+                budget.settle(self.store, run_id, state=RunState.FAILED, stop_reason=StopReason.LAUNCH_FAILED,
+                              consumed=0.0, result={"error": str(e), "stage": "prepare-workspace"}, now=now)
+                self.set_task_state(task["task_id"], TaskState.QUEUED, stop_reason=StopReason.LAUNCH_FAILED,
+                                    blocker=str(e)[:500])
+                return TickReport("blocked", StopReason.LAUNCH_FAILED, task_id=task["task_id"], run_id=run_id,
+                                  settled=recon["settled"], details={"error": str(e), "stage": "prepare-workspace"})
+            with self.store.tx():
+                self.store.conn.execute("UPDATE runs SET workspace=? WHERE run_id=?", (prepared["workspace"], run_id))
         request = LaunchRequest(run_id=run_id, task_id=task["task_id"], provider=task["provider"],
                                 model=reservation["model"], effort=reservation["effort"], speed=reservation["speed"],
-                                invocation_ceiling=int(reservation["reservation"]), workspace=None,
-                                prompt=f"card #{task['card_number']}: {task['title']}" if task["card_number"] else task["title"],
-                                resume_session_id=resume_session_id)
+                                invocation_ceiling=int(reservation["reservation"]), workspace=prepared.get("workspace"),
+                                prompt=prepared.get("prompt") or (
+                                    f"card #{task['card_number']}: {task['title']}" if task["card_number"] else task["title"]),
+                                resume_session_id=resume_session_id, base_sha=prepared.get("base_sha"),
+                                branch=prepared.get("branch"), handoff=prepared.get("handoff"))
         with self.store.tx():
             self.store.conn.execute("UPDATE runs SET state=?, launched_at=? WHERE run_id=?",
                                     (RunState.LAUNCHING, utcnow_iso(now), run_id))
@@ -434,7 +509,8 @@ class Controller:
         with self.store.tx():
             self.store.conn.execute(
                 "UPDATE runs SET state=?, native_session_id=?, native_run_handle=?, workspace=? WHERE run_id=?",
-                (RunState.RUNNING, result.native_session_id, result.native_run_handle, result.workspace, run_id))
+                (RunState.RUNNING, result.native_session_id, result.native_run_handle,
+                 result.workspace or prepared.get("workspace"), run_id))
             self.store.conn.execute("UPDATE tasks SET state=?, updated_at=? WHERE task_id=?",
                                     (TaskState.RUNNING, utcnow_iso(now), task["task_id"]))
             self.store.journal("launched", task_id=task["task_id"], run_id=run_id,
@@ -488,11 +564,15 @@ class Controller:
         for t in self.store.rows("SELECT * FROM tasks ORDER BY created_at, task_id"):
             pool = self.store.row("SELECT * FROM budget_pools WHERE pool_id=?", (t["pool_id"],))
             run = self.store.row("SELECT * FROM runs WHERE task_id=? ORDER BY reserved_at DESC, run_id DESC LIMIT 1", (t["task_id"],))
-            pr = self.store.row("SELECT * FROM prs WHERE task_id=? ORDER BY updated_at DESC LIMIT 1", (t["task_id"],))
+            pr = self.store.row("SELECT * FROM prs WHERE task_id=? ORDER BY updated_at DESC, rowid DESC LIMIT 1", (t["task_id"],))
             tasks.append({
                 "task_id": t["task_id"], "card": t["card_number"], "workstream": t["workstream"], "owner": t["owner_agent"],
                 "provider": t["provider"], "state": t["state"], "stop_reason": t["stop_reason"], "blocker": t["blocker"],
                 "next_eligible_at": t["next_eligible_at"], "pr": pr["pr_number"] if pr else None,
+                "pr_record": {"number": pr["pr_number"], "state": pr["state"], "outcome": pr["outcome"], "branch": pr["branch"],
+                              "base_sha": pr["base_sha"], "head_sha": pr["head_sha"], "merge_sha": pr["merge_sha"],
+                              "repair_rounds_used": pr["repair_rounds_used"], "url": pr["url"]} if pr else None,
+                "base_sha": t["base_sha"], "branch": t["branch"],
                 "funding_pool": run["funding_pool"] if run else self.policy.providers.get(t["provider"], {}).get("funding_pool"),
                 "pool": {"id": pool["pool_id"], "unit": pool["unit"], "ceiling": pool["task_ceiling"],
                          "consumed": pool["consumed"], "reserved": pool["reserved"], "overshoot": pool["overshoot"],

@@ -19,7 +19,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SUITE_ROOT="${ROOT}/tools/autonomy-controller"
-MINIMUM_TESTS=190
+MINIMUM_TESTS=290
 
 # Probe by RUNNING the interpreter, not `command -v`: on Windows an App Execution Alias stub answers
 # `command -v python3` and exits 49 without running anything.

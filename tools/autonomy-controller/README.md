@@ -6,9 +6,13 @@ foundation of the budgeted autonomous development workflow (workstream `budgeted
 #755). PR 1 shipped the policy and the durable state over a fake adapter. **PR 2 adds the Claude
 adapter and bounded readiness**: a live launch through the installed Claude Code CLI, exact session
 resume at the turn ceiling, usage observations, a funding-route check before every launch, and a
-readiness fixer whose gate failures carry stable identities. No PR lifecycle yet. The roadmap (PR 3
-PR lifecycle and fresh context, PR 4 operator controls and pilot, PR 5 Codex and Cursor adapters) is
-in the card.
+readiness fixer whose gate failures carry stable identities. **PR 3 adds the PR lifecycle and fresh
+context**: the controller clones the base onto a branch for the worker, commits and pushes what the
+worker edited, opens the PR once, observes the required checks by head SHA, runs at most
+`limits.repair_rounds` repair rounds as new runs briefed by a compact handoff, merges on green with the
+head pinned, records the merge SHA, treats closure without merge as not success, and starts the next
+task from that merge SHA. The roadmap (PR 4 operator controls and pilot, PR 5 Codex and Cursor
+adapters) is in the card.
 
 Python 3.8+ and the standard library only (SQLite through `sqlite3`). Nothing here runs `dotnet`,
 and nothing here runs outside the host the operator starts it on.
@@ -26,6 +30,9 @@ and nothing here runs outside the host the operator starts it on.
 | `ashlar_controller/controller.py` | The tick: settle, reconcile, then at most one launch |
 | `ashlar_controller/adapters/` | The adapter protocol, declared capabilities, the fake adapter and `claude.py` (the Claude Code CLI) |
 | `ashlar_controller/readiness.py` | The three gate commands, their parsers, stable failure identities, the bounded fixer launch |
+| `ashlar_controller/prs.py` | PR records, the `gh` client (`GhCli`) and its in-memory twin (`FakeGh`), checks evaluated by head SHA, the compact handoff |
+| `ashlar_controller/gitops.py` | The controller's git: clone the base onto a branch, commit and push a workspace, clone a PR head for a repair |
+| `ashlar_controller/lifecycle.py` | The PR phase of a tick: propose, open, observe, repair, merge, park; PR events |
 | `policy.example.json` | The operator policy example (copy it outside every checkout) |
 | `tests/` | The unit suite (`tests/fake_claude_cli.py` stands in for the CLI); `tests/scripts/autonomy-controller.test.sh` runs it in the required `shell-lint` check |
 | `mutation-runner.sh` | `ASHLAR_MUTATION_RUNNER` for `scripts/mutation-check.sh` |
@@ -58,11 +65,12 @@ and nothing here runs outside the host the operator starts it on.
 |---|---|
 | `status [--json]` | Owner, task, PR, state, stop reason, blocker, budget consumed/reserved/remaining, attempts remaining, funding pool, lease, latest usage per provider |
 | `pause --reason <text>` / `resume` | Stop launching before the next tick; allow it again |
-| `tick [--dry-run] [--adapter fake\|claude]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter claude` registers the Claude adapter with its run directory under `<state dir>/runs/` |
+| `tick [--dry-run] [--adapter fake\|claude] [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter claude` registers the Claude adapter with its run directory under `<state dir>/runs/`. `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
+| `pr list\|show <n>\|observe <n>` | PR records; `observe` reads the PR's current head and its required checks now and merges, repairs or parks as they demand (`--gh cli`) |
 | `readiness run --gate <name> --workspace <path> [--task-id <id>]` | Run one gate command (`repo-gates`, `readiness-local`, `container-tests`) in a workspace and print the parsed report; with `--task-id`, apply it to the task (see "Readiness fixer") |
 | `readiness evaluate --task-id <id> --report <json>` | Apply a saved report (the JSON `readiness run` printed) to a task without running anything |
 | `task add|list|show|set-state` | Task records; `--parent` makes a child that **shares** the parent's budget pool |
-| `event ingest --event-id ...` | Record an event once; a repeated id is reported as a duplicate and does nothing |
+| `event ingest --event-id ... [--gh cli]` | Record an event once; a repeated id is reported as a duplicate and does nothing. With `--gh cli`, a **new** PR event (`pr-opened`, `checks-green`, `checks-red`, `merged`, `closed`, `pr-head`) also triggers one idempotent observation of the task's open PR |
 | `run list|settle|cancel` | Run records; `settle` is the operator's manual reconciliation; `cancel` keeps the workspace |
 | `lease show|release|break` | The writer lease; `break --confirm-stopped` is the operator asserting the old holder is gone |
 | `outbox list|enqueue|flush` | Milestone posts; `flush --poster fake` in PR 1 (`gh` poster present, not exercised live) |
@@ -83,13 +91,18 @@ One tick does **one** thing, the first that applies, and journals it with its ex
    asking the adapter what became of them; while any stays unknown, nothing new launches;
 3. poll running runs and settle the finished ones (release the reservation, charge what was
    consumed, move the task to the state its stop reason demands); a tick that settled anything
-   stops here;
-4. if an implementation writer is already active (one across every provider), stop (`writer-busy`);
-5. pick the first eligible task, by priority then age; none means `idle: empty-queue` with **zero**
+   stops here. With the PR lifecycle on, a **completed** implementation or repair run is settled by
+   committing and pushing its workspace (see "PR lifecycle"), not by marking the task done;
+4. if a writer is already active (one implementation or repair run, across every provider), stop
+   (`writer-busy`);
+5. with the PR lifecycle on, observe every open PR by its current head (merge, repair, park, or wait);
+   if one acted, stop there; if any PR is still open, stop (`pr-open-blocks-dispatch`: PRs are serial);
+6. pick the first eligible task, by priority then age; none means `idle: empty-queue` with **zero**
    adapter calls;
-6. check the provider's latest allowance observation against the 25 percent interactive reserve;
-7. reserve the invocation ceiling against the task's pool and record the run, in one transaction;
-   then launch, and record the handle, or the uncertainty, at once.
+7. check the provider's latest allowance observation against the 25 percent interactive reserve;
+8. reserve the invocation ceiling against the task's pool and record the run, in one transaction;
+   with the PR lifecycle on, clone the current base onto the task's branch as the workspace; then
+   launch, and record the handle, or the uncertainty, at once.
 
 ### Stop reasons and the states they produce
 
@@ -107,6 +120,11 @@ One tick does **one** thing, the first that applies, and journals it with its ex
 | `invocation-ceiling-reached` | `queued` | not a failure and no retry counter is touched; the next launch **resumes the same session** (`resume_session_id`), journalled as `resume`; the pool's attempts and task ceiling bound it |
 | `model-unrecognized` | `parked-decision` | the CLI refused the model id before any request; the blocker names the id, and the policy must change |
 | `funding-route-mismatch` | `blocked-auth` | the launch would have billed a route the policy did not select; nothing was started |
+| `completed`, lifecycle on | `pr-open` (`pr-checks-pending`) | the workspace was committed and pushed; the PR is open (or its new head recorded); only a merge on the current head makes the task `done` |
+| `no-change-to-propose` | `queued` once, then `parked-failure` | the worker completed and left no diff; a diagnosed failure through the same retry counter (`pr:no-change:<task>`) |
+| `pr-merged` | `done` | every required check green on the current head; merged with the head pinned; `merge_sha` recorded |
+| `pr-closed-unmerged` | `parked-failure` | the PR was closed without a merge: never success; nothing from it is the next base |
+| `repair-rounds-exhausted` | `parked-failure` | the current head is red and `limits.repair_rounds` are used; operator step required |
 | a refusal at launch (`LaunchRefused`) | by the same mapping | the adapter named the reason before anything started: `auth-missing` and `funding-route-mismatch` give `blocked-auth`, `model-unrecognized` gives `parked-decision`, anything else requeues as `launch-failed`; the reservation is released, the attempt stays counted |
 | budget or attempts exhausted at reservation | `parked-budget` | with the remaining counts in the blocker text |
 
@@ -280,6 +298,56 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   /T /F` on Windows, `killpg` on POSIX). The workspace and the transcript are never touched; the
   session can be resumed afterwards.
 
+## PR lifecycle
+
+`ashlar_controller/lifecycle.py`, `prs.py` and `gitops.py`; on with `--gh cli`. The worker (a headless CLI
+under `acceptEdits`) can only edit files in its workspace, so the controller does every git and `gh`
+step and records each one:
+
+1. **Before an implementation launch**, the controller clones `pr.remote_url` at the current base onto
+   the branch `pr.branch_prefix + <task id>` as the run's workspace (`gitops.prepare_workspace`; a
+   `pr.reference_checkout` speeds the clone up). The base is the newest recorded `merge_sha`, else the
+   task's `--base-sha`, else the tip of `pr.base_branch`. `tasks.base_sha` and `tasks.branch` record it.
+   The prompt names the workspace, the base, the branch, and carries the **compact handoff**: the
+   previous PR's number, outcome and merge SHA. Never a transcript, a session id or a previous prompt:
+   the prompt is built from the task row and the PR ledger only.
+2. **When the run completes**, the controller runs `git add -A`, commits (author `ashlar-controller`)
+   and pushes the branch (`gitops.commit_and_push`). No diff is `no-change-to-propose`, a diagnosed
+   failure retried once and then parked. Then it opens the PR **once** (`prs.open_or_reuse_pr`): an
+   existing row for the task is reused with zero `gh` calls, an open PR already on GitHub for the branch
+   is adopted, otherwise `gh pr create`. The task is `pr-open`.
+3. **On every tick** each open PR is observed **by head SHA**: `gh pr view` gives the current head,
+   `GET repos/<repo>/commits/<head>/check-runs` gives the checks for that commit alone, and
+   `prs.evaluate_checks` reads `pr.required_checks` (the five on master) against them. A required check
+   with no run on the head is pending; `success` or `skipped` is green; `failure`, `cancelled`,
+   `timed_out`, `action_required`, `stale`, `startup_failure` is red. A green run on an earlier head
+   never counts, because it is never fetched.
+4. **Green**: `gh pr merge --squash --match-head-commit <head>`, so a head that moved after the
+   observation refuses the merge (`merge-refused`, journalled; the PR stays open). The merge SHA comes
+   from a second `gh pr view`; `prs.merge_sha`, `outcome=merged`, the task is `done` (`pr-merged`).
+5. **Red**: one repair round, at most `limits.repair_rounds` per PR (the round is counted before the
+   launch). The repair is a **new** run (`role=readiness-fixer`, agent `readiness-fixer` with the
+   missing-role fallback of `readiness.launch_fixer`, `resume_session_id=None`) in a fresh clone of the
+   PR head (`gitops.checkout_pr_head`, which refuses a head that moved). Its entire brief is
+   `prs.compact_handoff`: PR, branch, base, head, round `N of M`, and per red check its name,
+   conclusion, identity (`check:<name>:<12 hex>` over the check's title and summary, stable across
+   heads) and bounded evidence. The repair's push is the new head, observed on the next tick. Rounds
+   exhausted on a red head parks the task (`repair-rounds-exhausted`).
+6. **Closed without a merge**: `outcome=closed-unmerged`, the task parks (`pr-closed-unmerged`), and
+   the next task's handoff says nothing from it landed. A merge done outside the controller is recorded
+   as `merged` with its SHA.
+7. **PRs are serial.** While any PR is open nothing new launches (`pr-open-blocks-dispatch`), and the
+   next task's base is the merge SHA the open one produces. An integrator decision (no owner row),
+   matching the repository's serial-merge rule.
+8. **PR events** (`event ingest --gh cli`): a new event id of a PR kind triggers one observation of
+   the task's open PR, which is idempotent; a repeated id is a duplicate and does nothing. So a repeated
+   `pr-opened`, `checks-green`, `merged` or `closed` creates no second PR row, no second merge and no
+   second worker.
+
+Schema 2 adds `prs.branch`, `prs.url`, `prs.title`, `tasks.branch` and `runs.pr_number`; a schema-1
+ledger is migrated in place (additive columns, journalled `schema-migrated`) on its first read-write
+open, and refused read-only until then.
+
 ## Readiness fixer
 
 `ashlar_controller/readiness.py` turns the output of the three gate commands into a report whose
@@ -328,8 +396,11 @@ launch rather than paying for it; a `percent` allowance (the CLI's window utiliz
 launch iff `(100 - value) / 100 - interactive_reserve_fraction > 0`, because the invocation ceiling is
 in turns and cannot be compared with a percentage, so the reserve is kept and the task ceilings bound
 the turns; the readiness fixer falls back to a general-purpose run exactly once, and only when the
-named agent role is missing. The Codex `sol` and Cursor `composer-standard` ids remain candidates for
-PR 5.
+named agent role is missing; PRs are serial (nothing new launches while one is open); the worker only
+edits and the controller does every git and `gh` step (under `acceptEdits` a worker cannot push);
+`success` and `skipped` are the only green check conclusions; a repair round is counted before its
+launch; `pr.required_checks` default to the five required checks on master. The Codex `sol` and Cursor
+`composer-standard` ids remain candidates for PR 5.
 
 ## Verification
 
@@ -341,11 +412,16 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   --old '<text>' --new '<text>'                           # red / restore / clean / green, in a clone
 ```
 
-## Not in PR 2
+## Not in PR 3
 
-- No PR lifecycle: current-head CI observation, revisions, merges, merge-SHA recording and the next
-  task's fresh session are PR 3. The `prs` and `phases` tables exist so that work has somewhere to land.
+- The `phases` table exists but nothing writes it yet.
 - No Codex or Cursor adapter (PR 5). `tick --adapter` accepts `fake` and `claude` only.
+- A repair run that stops at the turn ceiling requeues like any run; the next observation of the still
+  red head starts a new round with a fresh session rather than resuming the fixer's session (the rounds
+  bound it). Premium escalation and provider transfer per PR are counted in `prs` but not driven.
+- The `GhCli` argv shapes are the ones in the module docstring; they were exercised against the fake
+  runner and in the live run of the integrated branch (see the PR body), not against every error GitHub
+  can return.
 - One live launch has gone through `tick --adapter claude` (2026-10-11, policy ceilings 6/12/2): a
   task whose title asked for a `hello.txt` in the workspace. The run settled `completed` with 2 turns
   charged, the file was there, the manifest carried the session id and the workspace, the transcript
@@ -355,8 +431,8 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   line), the CLI truncates a long project slug (the computed transcript path did not exist), and
   `task set-state` could never work because its positional overwrote the global `--state` path. The
   pilot against a real card is PR 4. Everything else is proven against `tests/fake_claude_cli.py`.
-- The readiness fixer loop is not driven by `tick`: `readiness run` and `readiness evaluate` are
-  operator commands, and `launch_fixer` is a function the next PR wires into the dispatch.
+- The readiness fixer loop over the three LOCAL gate commands (`readiness run` / `readiness evaluate`)
+  is still operator-driven; `tick` drives repairs from the PR's required checks (PR 3).
 - `GhIssuePoster` is present but has not been exercised live (the session that wrote it had no
   authenticated `gh`). Tests use the fake poster.
 - Operator account steps that later PRs need, and that the controller never performs: an
