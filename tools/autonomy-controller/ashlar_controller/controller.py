@@ -56,7 +56,8 @@ def _iso_to_epoch(s: Optional[str]) -> float:
 class Controller:
     def __init__(self, store: Store, policy: Policy, adapters: Dict[str, ProviderAdapter], *, holder_id: str,
                  host: Optional[str] = None, pid: Optional[int] = None, clock=None, gh=None, git=None,
-                 workspaces_dir: Optional[str] = None):
+                 workspaces_dir: Optional[str] = None, runs_dir: Optional[str] = None,
+                 evidence_dir: Optional[str] = None):
         self.store = store
         self.policy = policy
         self.adapters = adapters
@@ -64,6 +65,11 @@ class Controller:
         self.host = host
         self.pid = pid
         self.clock = clock or time.time
+        # PR 4: where the evidence of a run lives, so `status` and the archives can name it without an
+        # adapter. The Claude adapter writes <state dir>/runs/<run_id>/; archives go to <state dir>/evidence/.
+        state_dir = os.path.dirname(os.path.abspath(store.path))
+        self.runs_dir = os.path.abspath(runs_dir) if runs_dir else os.path.join(state_dir, "runs")
+        self.evidence_dir = os.path.abspath(evidence_dir) if evidence_dir else os.path.join(state_dir, "evidence")
         self.policy_version_id: Optional[int] = None
         if not store.read_only:
             self.policy_version_id = store.record_policy(policy.version, policy.sha256, policy.source_path,
@@ -559,11 +565,41 @@ class Controller:
 
     # ----- status ----------------------------------------------------------------------------------
 
+    def run_evidence(self, run) -> Dict[str, Any]:
+        """Where the evidence of one run is on this host, read from the ledger row and the run directory
+        alone (no adapter is asked): the run directory, its manifest, stdout and stderr when present, the
+        transcript when the manifest lets it be located, the recorded workspace, and the evidence archive
+        when one has been written. A path is None when the file is not there."""
+        run_id = run["run_id"]
+        run_dir = os.path.join(self.runs_dir, run_id)
+        def present(name: str) -> Optional[str]:
+            path = os.path.join(run_dir, name)
+            return path if os.path.isfile(path) else None
+        manifest_path = present("manifest.json")
+        transcript: Optional[str] = None
+        if manifest_path:
+            try:
+                with open(manifest_path, encoding="utf-8") as f:
+                    manifest = json.load(f)
+                from .adapters.claude import locate_transcript   # a pure path helper; no adapter call
+                transcript = locate_transcript(manifest.get("projects_dir"), manifest.get("session_id"),
+                                               manifest.get("transcript_path"))
+            except (OSError, ValueError, ImportError):
+                transcript = None
+        archive = os.path.join(self.evidence_dir, f"{run_id}.tar.gz")
+        workspace = run["workspace"]
+        return {"run_dir": run_dir if os.path.isdir(run_dir) else None, "manifest": manifest_path,
+                "stdout": present("stdout.json"), "stderr": present("stderr.log"), "transcript": transcript,
+                "workspace": workspace, "workspace_present": bool(workspace and os.path.isdir(workspace)),
+                "archive": archive if os.path.isfile(archive) else None}
+
     def status(self) -> Dict[str, Any]:
         tasks = []
         for t in self.store.rows("SELECT * FROM tasks ORDER BY created_at, task_id"):
             pool = self.store.row("SELECT * FROM budget_pools WHERE pool_id=?", (t["pool_id"],))
-            run = self.store.row("SELECT * FROM runs WHERE task_id=? ORDER BY reserved_at DESC, run_id DESC LIMIT 1", (t["task_id"],))
+            # Latest by insertion order (rowid), as the dispatcher does: two runs reserved in the same second
+            # must not be ordered by their random run ids.
+            run = self.store.row("SELECT * FROM runs WHERE task_id=? ORDER BY reserved_at DESC, rowid DESC LIMIT 1", (t["task_id"],))
             pr = self.store.row("SELECT * FROM prs WHERE task_id=? ORDER BY updated_at DESC, rowid DESC LIMIT 1", (t["task_id"],))
             tasks.append({
                 "task_id": t["task_id"], "card": t["card_number"], "workstream": t["workstream"], "owner": t["owner_agent"],
@@ -581,7 +617,9 @@ class Controller:
                          "attempts_remaining": int(pool["attempts_max"]) - int(pool["attempts_used"])},
                 "last_run": {"run_id": run["run_id"], "state": run["state"], "stop_reason": run["stop_reason"],
                              "model": run["model"], "effort": run["effort"], "session": run["native_session_id"],
-                             "handle": run["native_run_handle"], "workspace": run["workspace"]} if run else None,
+                             "handle": run["native_run_handle"], "workspace": run["workspace"], "role": run["role"],
+                             "pr_number": run["pr_number"]} if run else None,
+                "evidence": self.run_evidence(run) if run else None,
                 "last_event": t["last_event"], "last_event_at": t["last_event_at"],
             })
         lease = self.store.lease_row()
@@ -595,4 +633,5 @@ class Controller:
             "paused": self.paused(), "disabled_providers": json.loads(self.store.control("disabled_providers") or "[]"),
             "lease": dict(lease) if lease else None, "tasks": tasks, "usage": usage,
             "outbox_pending": int(self.store.row("SELECT COUNT(*) AS n FROM outbox WHERE state IN ('pending','sending')")["n"]),
+            "runs_dir": self.runs_dir, "evidence_dir": self.evidence_dir,
         }

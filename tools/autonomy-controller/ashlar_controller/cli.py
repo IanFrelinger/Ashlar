@@ -68,6 +68,10 @@ def _format_status(s: Dict[str, Any]) -> str:
             r = t["last_run"]
             lines.append(f"    last run {r['run_id']} {r['state']} {r['stop_reason'] or ''} model {r['model']}/{r['effort']} "
                          f"session {r['session'] or '-'} workspace {r['workspace'] or '-'}")
+        if t.get("evidence"):
+            e = t["evidence"]
+            lines.append("    evidence: " + "  ".join(f"{k} {e.get(k) or '-'}" for k in
+                                                     ("run_dir", "manifest", "stdout", "stderr", "transcript", "archive")))
     for u in s["usage"]:
         lines.append(f"usage {u['provider']} {u['kind']}: {u['value']} of {u['total']} {u['unit']} ({u['freshness']}, {u['observed_at']})")
     return "\n".join(lines)
@@ -157,6 +161,19 @@ def build_parser() -> argparse.ArgumentParser:
     a = ps.add_parser("enable"); a.add_argument("name")
 
     sub.add_parser("policy", help="show the validated active policy")
+
+    # PR 4: operator controls and evidence retention. None of these calls a model.
+    s = sub.add_parser("backup", help="copy the ledger (SQLite online backup) to a new file; refuses to overwrite")
+    s.add_argument("dest")
+    s = sub.add_parser("restore", help="replace the --state file with a backup; refuses an unknown schema and, without "
+                                       "--replace, an existing state file")
+    s.add_argument("source"); s.add_argument("--replace", action="store_true")
+    s = sub.add_parser("evidence", help="per-run evidence archives under <state dir>/evidence"); ev = s.add_subparsers(dest="evidence_cmd", required=True)
+    a = ev.add_parser("archive", help="tar the run directory (manifest, stdout, stderr, transcript) with the run's ledger rows")
+    a.add_argument("run_id"); a.add_argument("--out", default=None, help="archive directory (default <state dir>/evidence)")
+    a = ev.add_parser("list"); a.add_argument("--out", default=None)
+    sub.add_parser("metrics", help="counts and sums from the ledger: runs by stop reason, PRs by outcome, usage by kind")
+    sub.add_parser("report", help="the LLM-free status report (Markdown) from the ledger: status plus metrics")
     return p
 
 
@@ -237,8 +254,30 @@ def _dispatch(args) -> int:
                + json.dumps(policy.to_json(), indent=2, sort_keys=True), args.json)
         return 0
 
+    if args.cmd == "restore":
+        # Before the state is opened: a restore replaces the file, and `_open` would refuse a missing one.
+        from . import evidence
+        if not args.state:
+            raise ControllerError("--state (or ASHLAR_CONTROLLER_STATE) is required")
+        _print(evidence.restore(args.source, args.state, replace=args.replace), args.json)
+        return 0
+
     read_only = args.cmd == "tick" and args.dry_run
     store = _open(args, read_only=read_only)
+
+    if args.cmd == "backup":
+        from . import evidence
+        _print(evidence.backup(store, args.dest), args.json); return 0
+    if args.cmd == "evidence":
+        from . import evidence
+        state_dir = os.path.dirname(os.path.abspath(args.state))
+        out_dir = args.out or os.path.join(state_dir, "evidence")
+        if args.evidence_cmd == "archive":
+            _print(evidence.archive_run(store, args.run_id, out_dir, os.path.join(state_dir, "runs")), args.json); return 0
+        _print(evidence.list_archives(out_dir), args.json); return 0
+    if args.cmd == "metrics":
+        from . import metrics
+        _print(metrics.collect(store), args.json); return 0
 
     if args.cmd == "lease":
         if args.lease_cmd == "show":
@@ -273,6 +312,11 @@ def _dispatch(args) -> int:
 
     if args.cmd == "status":
         s = ctl.status(); _print(s if args.json else _format_status(s), args.json); return 0
+    if args.cmd == "report":
+        from . import metrics
+        s = ctl.status(); m = metrics.collect(store)
+        text = metrics.render_report(s, m)
+        _print({"status": s, "metrics": m, "markdown": text} if args.json else text, args.json); return 0
     if args.cmd == "pause":
         ctl.pause(args.reason); _print({"paused": args.reason}, args.json); return 0
     if args.cmd == "resume":
