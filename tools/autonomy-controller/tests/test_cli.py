@@ -1,0 +1,77 @@
+import hashlib
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+from .helpers import ControllerCase, PACKAGE_ROOT
+
+CLI = PACKAGE_ROOT / "controller.py"
+
+
+class CommandLine(ControllerCase):
+    def cli(self, *args, state=None, policy=None, expect=0):
+        cmd = [sys.executable, str(CLI), "--state", state or self.state_path, "--policy", policy or self.policy_path,
+               "--holder", "cli-test", "--json", *args]
+        env = dict(os.environ, PYTHONWARNINGS="ignore")
+        p = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=120)
+        self.assertEqual(p.returncode, expect, f"{' '.join(args)}\nstdout: {p.stdout}\nstderr: {p.stderr}")
+        return json.loads(p.stdout) if p.stdout.strip().startswith(("{", "[")) else p.stdout, p.stderr
+
+    def digest(self):
+        h = hashlib.sha256(Path(self.state_path).read_bytes())
+        conn = sqlite3.connect(f"file:{self.state_path}?mode=ro", uri=True)
+        for line in conn.iterdump():
+            h.update(line.encode("utf-8"))
+        conn.close()
+        return h.hexdigest()
+
+    def test_missing_state_exits_3_and_creates_nothing(self):
+        out, err = self.cli("tick", expect=3)
+        self.assertIn("missing", err)
+        self.assertFalse(Path(self.state_path).exists())
+
+    def test_in_checkout_policy_exits_4(self):
+        self.cli("init")
+        out, err = self.cli("status", policy=str(PACKAGE_ROOT / "policy.example.json"), expect=4)
+        self.assertIn("inside a checkout", err)
+
+    def test_init_status_pause_resume_and_dry_run(self):
+        out, _ = self.cli("init")
+        self.assertIn("controller_id", out)
+        out, _ = self.cli("task", "add", "--task-id", "t1", "--card", "755", "--workstream", "budgeted-autonomy",
+                          "--provider", "fake", "--title", "PR 1")
+        self.assertTrue(out["created"])
+        before = self.digest()
+        out, _ = self.cli("tick", "--dry-run")
+        self.assertEqual(out["action"], "would-launch")
+        self.assertEqual(self.digest(), before)
+        self.cli("pause", "--reason", "owner review")
+        out, _ = self.cli("tick")
+        self.assertEqual(out["action"], "paused")
+        self.cli("resume")
+        out, _ = self.cli("status")
+        self.assertIsNone(out["paused"])
+        self.assertEqual(out["tasks"][0]["pool"]["attempts_remaining"], 4)
+        out, _ = self.cli("event", "ingest", "--event-id", "e1", "--kind", "card-ready", "--task-id", "t1")
+        self.assertTrue(out["new"])
+        out, _ = self.cli("event", "ingest", "--event-id", "e1", "--kind", "card-ready", "--task-id", "t1")
+        self.assertTrue(out["duplicate"])
+
+    def test_lease_break_requires_confirmation(self):
+        self.cli("init")
+        out, err = self.cli("lease", "break", "--holder", "x", expect=1)
+        self.assertIn("--confirm-stopped", err)
+
+    def test_corrupt_state_exits_3(self):
+        Path(self.state_path).parent.mkdir(parents=True)
+        Path(self.state_path).write_bytes(b"garbage" * 200)
+        out, err = self.cli("status", expect=3)
+        self.assertIn("not a database", err)
+
+
+if __name__ == "__main__":
+    unittest.main()

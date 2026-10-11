@@ -17,6 +17,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — budgeted autonomy controller, PR 1 (policy and durable state)
+
+- `tools/autonomy-controller/`: a standard-library Python controller with an operator policy loaded from
+  outside every checkout, SQLite state for tasks, budget pools, runs, events, usage observations and
+  milestone posts, a single-writer lease that does not take over an expired holder until it is confirmed
+  stopped, atomic launch reservations, cumulative per-task budgets shared by split tasks, event
+  deduplication, recovery of uncertain launches, `status` / `pause` / `resume` / `tick --dry-run`, and a
+  fake adapter. No live model call; the suite runs in `shell-lint` through
+  `tests/scripts/autonomy-controller.test.sh`.
+
 ### Added — agent clearances and skill composition (SPEC-007 PR 5)
 
 - An agent's clearance comes from `ashlar.policy.yaml` (`clearances.default` and `clearances.agents`). A missing clearance is `Public`. A non-canonical clearance rejects the policy.
