@@ -45,6 +45,7 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from ..store import pid_alive
 from ..models import (LaunchOutcomeUnknown, LaunchRefused, LaunchRequest, LaunchResult, ReconcileResult, RunState,
                       RunStatus, StopReason, UsageFreshness, UsageKind, UsageObservation)
 from .base import AdapterCapabilities
@@ -130,43 +131,6 @@ def _normalise_for_identity(text: str) -> str:
 
 def failure_identity(result_text: str) -> str:
     return "claude:" + hashlib.sha256(_normalise_for_identity(result_text).encode("utf-8")).hexdigest()[:12]
-
-
-def _pid_exists(pid: int) -> bool:
-    """Existence check that cannot kill. On Windows CPython's `os.kill(pid, sig)` calls TerminateProcess
-    for any signal that is not a console-control event, so the POSIX idiom is NOT used there."""
-    if pid is None or pid <= 0:
-        return False
-    if _WINDOWS:
-        import ctypes
-        from ctypes import wintypes
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)  # type: ignore[attr-defined]
-        kernel32.OpenProcess.restype = wintypes.HANDLE
-        kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
-        kernel32.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
-        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
-        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-        STILL_ACTIVE = 259
-        ERROR_ACCESS_DENIED = 5
-        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
-        if not handle:
-            return ctypes.get_last_error() == ERROR_ACCESS_DENIED   # exists, but we may not open it
-        try:
-            code = wintypes.DWORD()
-            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
-                return False
-            return code.value == STILL_ACTIVE
-        finally:
-            kernel32.CloseHandle(handle)
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except OSError as e:
-        return e.errno == errno.EPERM
-    return True
 
 
 class ClaudeAdapter:
@@ -360,7 +324,7 @@ class ClaudeAdapter:
             return False
         # After a restart: a pid check only. A reused pid would read as alive (pids recycle); the lease
         # has the same limit. The exit code of a run polled this way stays unknown.
-        return _pid_exists(int(pid))
+        return pid_alive(int(pid))
 
     def _allowance_observation(self, session_id: Optional[str], rate_limit_info: Optional[Dict[str, Any]] = None,
                                ) -> UsageObservation:

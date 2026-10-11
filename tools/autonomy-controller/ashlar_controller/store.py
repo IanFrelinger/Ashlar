@@ -8,11 +8,14 @@ empty database on its own; `init` is an explicit operator step.
 """
 from __future__ import annotations
 
+import errno
 import json
 import os
 import socket
 import sqlite3
 import time
+
+_WINDOWS = os.name == "nt"
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
@@ -206,18 +209,44 @@ def utcnow_iso(now: Optional[float] = None) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
 
 
-def _pid_alive(pid: int) -> bool:
-    if pid <= 0:
+def pid_alive(pid: int) -> bool:
+    """Existence check that cannot kill. On Windows CPython's `os.kill(pid, sig)` calls TerminateProcess
+    for any signal that is not a console-control event, so the POSIX idiom is NOT used there."""
+    if pid is None or pid <= 0:
         return False
+    if _WINDOWS:
+        import ctypes
+        from ctypes import wintypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)  # type: ignore[attr-defined]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        kernel32.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        STILL_ACTIVE = 259
+        ERROR_ACCESS_DENIED = 5
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if not handle:
+            return ctypes.get_last_error() == ERROR_ACCESS_DENIED   # exists, but we may not open it
+        try:
+            code = wintypes.DWORD()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return False
+            return code.value == STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
     except PermissionError:
         return True
-    except OSError:
-        return False
+    except OSError as e:
+        return e.errno == errno.EPERM
     return True
+
+
+_pid_alive = pid_alive
 
 
 class Store:
