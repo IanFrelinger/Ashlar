@@ -1,0 +1,15 @@
+mutation m1-pending-head-counts-green: KILLED red=failed:8/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m2-match-head-commit-dropped: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m3-red-conclusion-counts-green: KILLED red=failed:15/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m4-merge-current-not-observed-head: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m5-closed-unmerged-is-done: KILLED red=failed:2/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m6-duplicate-event-acts-again: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m7-repair-resumes-previous-session: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m8-repair-prompt-carries-transcript: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m9-repair-rounds-unbounded-by-one: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m10-round-not-counted: KILLED red=failed:4/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m11-next-base-ignores-merge-sha: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m12-prs-not-serial: KILLED red=failed:4/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m13-no-change-still-opens-pr: KILLED red=failed:2/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m14-completed-is-done-not-proposed: KILLED red=failed:21/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
+mutation m15-stale-pr-head-accepted: KILLED red=failed:1/312 green=passed:311/312 ref=9ab820af93bbc0691a8e667c18463d5dac6ae3b5 runner=override
