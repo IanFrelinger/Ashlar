@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Print the last N comments from the agent-bus issue (Grok Bot <-> Claude Code).
+# Print the last N comments from the agent-bus issue (Claude Code, Grok Bot, and the Cursor and Codex
+# agents; see _handoff/bus/PROTOCOL.md for the identities and the claim rule).
 #
 #   scripts/agent-bus-latest.sh [count]        # default 10
 #   ASHLAR_BUS_ISSUE=701 scripts/agent-bus-latest.sh 5
