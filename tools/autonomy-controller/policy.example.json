@@ -62,5 +62,13 @@
     "quota_wait_seconds": 3600,
     "rate_limit_backoff_seconds": [60, 300, 900],
     "lease_ttl_seconds": 300
+  },
+  "pr": {
+    "repo": "IanFrelinger/Ashlar",
+    "remote_url": "https://github.com/IanFrelinger/Ashlar.git",
+    "base_branch": "master",
+    "branch_prefix": "auto/",
+    "required_checks": ["cert-gate", "build-core", "shell-lint", "lychee (README + docs)", "Readiness summary"],
+    "reference_checkout": null
   }
 }
