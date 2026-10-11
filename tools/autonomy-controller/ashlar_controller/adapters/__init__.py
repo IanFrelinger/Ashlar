@@ -1,5 +1,7 @@
-"""Provider adapters. PR 1 ships the protocol and a fake; live adapters arrive in PR 2 and PR 5."""
+"""Provider adapters. PR 1 shipped the protocol and a fake; PR 2 adds the Claude CLI adapter; Codex and
+Cursor arrive in PR 5."""
 from .base import AdapterCapabilities, ProviderAdapter
+from .claude import ClaudeAdapter
 from .fake import FakeAdapter
 
-__all__ = ["AdapterCapabilities", "ProviderAdapter", "FakeAdapter"]
+__all__ = ["AdapterCapabilities", "ProviderAdapter", "FakeAdapter", "ClaudeAdapter"]
