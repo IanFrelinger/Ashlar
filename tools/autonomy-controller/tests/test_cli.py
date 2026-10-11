@@ -77,6 +77,25 @@ class CommandLine(ControllerCase):
         out, err = self.cli("lease", "break", "--holder", "x", expect=1)
         self.assertIn("--confirm-stopped", err)
 
+    def test_pr_records_list_show_and_observe_without_gh(self):
+        self.cli("init")
+        out, _ = self.cli("pr", "list")
+        self.assertEqual(out, [])
+        out, err = self.cli("pr", "show", "7", expect=1)
+        self.assertIn("no PR record 7", err)
+        out, err = self.cli("pr", "observe", "7", expect=1)
+        self.assertIn("no PR record 7", err)
+
+    def test_event_ingest_without_gh_records_once_and_acts_on_nothing(self):
+        self.cli("init")
+        self.cli("task", "add", "--task-id", "t1", "--workstream", "w", "--provider", "fake")
+        out, _ = self.cli("event", "ingest", "--event-id", "pr-1", "--kind", "checks-green", "--task-id", "t1")
+        self.assertEqual((out["new"], out["duplicate"], out["action"]), (True, False, None))
+        out, _ = self.cli("event", "ingest", "--event-id", "pr-1", "--kind", "checks-green", "--task-id", "t1")
+        self.assertEqual((out["new"], out["duplicate"]), (False, True))
+        out, _ = self.cli("status")
+        self.assertIsNone(out["tasks"][0]["pr_record"])
+
     def test_corrupt_state_exits_3(self):
         Path(self.state_path).parent.mkdir(parents=True)
         Path(self.state_path).write_bytes(b"garbage" * 200)

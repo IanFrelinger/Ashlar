@@ -17,6 +17,22 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — budgeted autonomy controller, PR 3 (PR lifecycle and fresh context)
+
+- `tools/autonomy-controller/ashlar_controller/{lifecycle,prs,gitops}.py`: the controller clones the current
+  base onto `auto/<task>` for the worker, commits and pushes what the worker edited, opens the PR once (an
+  existing record or an open PR for the branch is reused), observes the required checks **by head SHA**
+  (`repos/<repo>/commits/<head>/check-runs`, so a green run on an earlier head never counts), merges on green
+  with `--match-head-commit <head>` and records the merge SHA, runs at most `limits.repair_rounds` repair
+  rounds as new runs (no resumed session) briefed only by a compact handoff of failure identities and
+  evidence, treats a PR closed without a merge as `closed-unmerged` (never success), and starts the next task
+  from the newest merge SHA with a compact handoff instead of the previous transcript. PRs are serial while
+  one is open. PR events deduplicated by id trigger one idempotent observation; a repeated id does nothing.
+- Schema 2 (`prs.branch/url/title`, `tasks.branch`, `runs.pr_number`) with an in-place, journalled migration
+  from schema 1; the policy `pr` section (`repo`, `remote_url`, `base_branch`, `branch_prefix`,
+  `required_checks`, `reference_checkout`) with defaults; `tick --gh cli`, `pr list|show|observe`,
+  `event ingest --gh cli`; `status` shows the PR record.
+
 ### Added — budgeted autonomy controller, PR 2 (Claude adapter and bounded readiness)
 
 - `tools/autonomy-controller/ashlar_controller/adapters/claude.py`: a live adapter over the installed Claude

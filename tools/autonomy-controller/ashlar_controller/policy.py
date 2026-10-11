@@ -45,6 +45,17 @@ FUNDING_KEYS: Dict[str, Any] = {
 }
 
 UNOBSERVABLE_CHOICES = ("task-ceiling-only", "wait")
+
+# PR 3: the PR lifecycle section. Optional; every key has a default. `required_checks` are the five
+# required checks on master (CLAUDE.md); a merge needs every one of them green ON THE CURRENT HEAD.
+PR_DEFAULTS: Dict[str, Any] = {
+    "repo": "IanFrelinger/Ashlar",
+    "remote_url": "https://github.com/IanFrelinger/Ashlar.git",
+    "base_branch": "master",
+    "branch_prefix": "auto/",
+    "required_checks": ["cert-gate", "build-core", "shell-lint", "lychee (README + docs)", "Readiness summary"],
+    "reference_checkout": None,        # a local clone whose objects speed up the worker clone (git --reference)
+}
 POOL_KINDS = ("subscription_allowance", "api_grant_balance", "paid_spend")
 PROVIDER_KEYS = ("enabled", "model", "effort", "speed", "funding_pool", "pool_kind", "unit")
 
@@ -58,6 +69,7 @@ class Policy:
     idle: Dict[str, Any]
     sha256: str
     source_path: str
+    pr: Dict[str, Any] = None  # type: ignore[assignment]  # PR 3 section; see PR_DEFAULTS
 
     def provider(self, name: str) -> Dict[str, Any]:
         try:
@@ -72,6 +84,7 @@ class Policy:
             "funding": dict(self.funding),
             "providers": {k: dict(v) for k, v in self.providers.items()},
             "idle": dict(self.idle),
+            "pr": dict(self.pr or PR_DEFAULTS),
         }
 
 
@@ -201,8 +214,28 @@ def _validate(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
     if not idle["rate_limit_backoff_seconds"] or any(x <= 0 for x in idle["rate_limit_backoff_seconds"]):
         raise PolicyError(f"{source}: idle.rate_limit_backoff_seconds must be positive integers")
 
+    pr_raw = raw.get("pr", {})
+    if not isinstance(pr_raw, dict):
+        raise PolicyError(f"{source}: pr must be an object")
+    unknown = sorted(set(pr_raw) - set(PR_DEFAULTS))
+    if unknown:
+        raise PolicyError(f"{source}: unknown pr keys {unknown}")
+    pr = dict(PR_DEFAULTS)
+    pr["required_checks"] = list(PR_DEFAULTS["required_checks"])
+    pr.update(pr_raw)
+    for key in ("repo", "remote_url", "base_branch", "branch_prefix"):
+        if not isinstance(pr[key], str) or not pr[key].strip():
+            raise PolicyError(f"{source}: pr.{key} must be a non-empty string")
+    if pr["reference_checkout"] is not None and not isinstance(pr["reference_checkout"], str):
+        raise PolicyError(f"{source}: pr.reference_checkout must be a string or null")
+    checks = pr["required_checks"]
+    if not isinstance(checks, list) or not checks or not all(isinstance(c, str) and c.strip() for c in checks):
+        raise PolicyError(f"{source}: pr.required_checks must be a non-empty list of check names")
+    if len(set(checks)) != len(checks):
+        raise PolicyError(f"{source}: pr.required_checks has duplicates")
+
     return {"version": version, "limits": dict(limits), "funding": dict(funding),
-            "providers": {k: dict(v) for k, v in providers.items()}, "idle": idle}
+            "providers": {k: dict(v) for k, v in providers.items()}, "idle": idle, "pr": pr}
 
 
 def parse_policy(text: str, source: str = "<text>") -> Policy:
@@ -214,7 +247,7 @@ def parse_policy(text: str, source: str = "<text>") -> Policy:
     v = _validate(raw, source)
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
     return Policy(version=v["version"], limits=v["limits"], funding=v["funding"], providers=v["providers"],
-                  idle=v["idle"], sha256=digest, source_path=source)
+                  idle=v["idle"], sha256=digest, source_path=source, pr=v["pr"])
 
 
 def load_policy(path: str, worker_checkouts: Iterable[str] = (), *, roots: Optional[List[Path]] = None) -> Policy:
@@ -230,4 +263,4 @@ def load_policy(path: str, worker_checkouts: Iterable[str] = (), *, roots: Optio
     policy = parse_policy(text, source=str(p))
     return Policy(version=policy.version, limits=policy.limits, funding=policy.funding,
                   providers=policy.providers, idle=policy.idle, sha256=policy.sha256,
-                  source_path=str(p.resolve()))
+                  source_path=str(p.resolve()), pr=policy.pr)

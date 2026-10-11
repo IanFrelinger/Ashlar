@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2   # 2: PR lifecycle columns (prs.branch/url/title, tasks.branch, runs.pr_number)
 
 
 class TaskState:
@@ -21,6 +21,7 @@ class TaskState:
     BLOCKED_AUTH = "blocked-auth"
     BLOCKED_PERMISSION = "blocked-permission"
     CANCELLED = "cancelled"
+    PR_OPEN = "pr-open"              # a PR is open for the task; the controller observes its current head
     DONE = "done"
 
     # States from which the dispatcher may reserve and launch, once any wait has elapsed.
@@ -72,6 +73,13 @@ class StopReason:
     INVOCATION_CEILING = "invocation-ceiling-reached"   # the CLI stopped at the turn limit; resume within the task budget
     MODEL_UNRECOGNIZED = "model-unrecognized"          # the CLI refused the model id before any request
     FUNDING_ROUTE_MISMATCH = "funding-route-mismatch"  # the CLI would bill a route the policy did not select
+    # PR lifecycle (PR 3)
+    PR_CHECKS_PENDING = "pr-checks-pending"            # the PR's current head has required checks still running
+    PR_MERGED = "pr-merged"                            # merged on the required checks; merge_sha recorded
+    PR_CLOSED_UNMERGED = "pr-closed-unmerged"          # closed without a merge: never success
+    REPAIR_ROUNDS_EXHAUSTED = "repair-rounds-exhausted"  # limits.repair_rounds used; the task parks
+    NO_CHANGE_TO_PROPOSE = "no-change-to-propose"      # the worker completed but left no diff to push
+    PR_OPEN_BLOCKS_DISPATCH = "pr-open-blocks-dispatch"  # PRs are serial: nothing new launches while one is open
 
 
 class UsageFreshness:
@@ -116,6 +124,12 @@ class LaunchRequest:
     role: str = "implementation"              # implementation | readiness-fixer | verifier
     agent: Optional[str] = None               # a named agent role (.claude/agents/<name>.md) to run as, if any
     allowed_tools: Optional[List[str]] = None # restrict the CLI's tool set; None means the CLI default
+    # PR lifecycle (PR 3). The controller prepares the workspace as a clone of `base_sha` on `branch`;
+    # `handoff` is the compact handoff the prompt carries (facts and identities, never a transcript).
+    base_sha: Optional[str] = None
+    branch: Optional[str] = None
+    handoff: Optional[str] = None
+    pr_number: Optional[int] = None           # set on a repair launch: the PR whose head the fixer repairs
 
 
 @dataclass

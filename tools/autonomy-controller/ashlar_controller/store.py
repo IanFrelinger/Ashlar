@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   next_eligible_at TEXT,
   priority INTEGER NOT NULL DEFAULT 100,
   base_sha TEXT,
+  branch TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   last_event_at TEXT,
@@ -101,6 +102,9 @@ CREATE TABLE IF NOT EXISTS prs (
   repair_rounds_used INTEGER NOT NULL DEFAULT 0,
   premium_escalations_used INTEGER NOT NULL DEFAULT 0,
   provider_transfers_used INTEGER NOT NULL DEFAULT 0,
+  branch TEXT,
+  url TEXT,
+  title TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -120,6 +124,7 @@ CREATE TABLE IF NOT EXISTS runs (
   native_session_id TEXT,
   native_run_handle TEXT,
   workspace TEXT,
+  pr_number INTEGER REFERENCES prs(pr_number),
   state TEXT NOT NULL,
   reservation REAL NOT NULL,
   consumed REAL,
@@ -308,8 +313,26 @@ class Store:
         if missing:
             raise StateCorrupt(f"controller state {self.path}: tables missing {missing}; dispatch stops")
         version = self.meta("schema_version")
+        if version == "1" and not self.read_only:
+            self._migrate_1_to_2()
+            version = self.meta("schema_version")
         if version != str(SCHEMA_VERSION):
             raise StateCorrupt(f"controller state {self.path}: schema_version {version!r} != {SCHEMA_VERSION}")
+
+    def _migrate_1_to_2(self) -> None:
+        """Schema 1 (PR 1 and PR 2) to 2 (PR 3): additive columns only, in one transaction, journalled.
+        Nothing is dropped or rewritten, so a schema-1 ledger keeps every row it had."""
+        columns = {"tasks": {"branch": "TEXT"},
+                   "prs": {"branch": "TEXT", "url": "TEXT", "title": "TEXT"},
+                   "runs": {"pr_number": "INTEGER REFERENCES prs(pr_number)"}}
+        with self.tx():
+            for table, cols in columns.items():
+                present = {r[1] for r in self.conn.execute(f"PRAGMA table_info({table})")}
+                for col, decl in cols.items():
+                    if col not in present:
+                        self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+            self.conn.execute("UPDATE meta SET value='2' WHERE key='schema_version'")
+            self.journal("schema-migrated", detail={"from": 1, "to": 2})
 
     def close(self) -> None:
         self.conn.close()
