@@ -304,8 +304,16 @@ class Validator:
         wfs, err = self.gh_json(["workflow", "list", "--all", "--limit", "500", "--json", "id,name,path,state"])
         if err:
             return check("master-workflows", title, "error", err)
+        # GitHub keeps listing a workflow after its file is deleted, and lists Dependabot's built-in workflow
+        # (dynamic/...). Only workflows whose file is on master count; a deleted one's last red run is history.
+        rc, out, e = self.run(["git", "ls-tree", "--name-only", "origin/master", ".github/workflows/"])
+        if rc != 0:
+            return check("master-workflows", title, "error", f"git ls-tree failed: {(e or out).strip()[:200]}")
+        on_master = {line.strip() for line in out.splitlines() if line.strip()}
+        gone = sorted(f"{w.get('name')} ({w.get('path')})" for w in (wfs or []) if w.get("path") not in on_master)
+        wfs = [w for w in (wfs or []) if w.get("path") in on_master]
         red, never, disabled, errors = [], [], [], []
-        for wf in sorted(wfs or [], key=lambda w: w.get("name") or ""):
+        for wf in sorted(wfs, key=lambda w: w.get("name") or ""):
             if wf.get("state") and wf.get("state") != "active":
                 disabled.append(wf.get("name"))
             runs, e = self.gh_json(["run", "list", "--workflow", str(wf.get("id")), "--branch", "master", "--limit", "1",
@@ -320,16 +328,17 @@ class Validator:
             if r.get("status") == "completed" and r.get("conclusion") in RED_CONCLUSIONS:
                 red.append({"workflow": wf.get("name"), "path": wf.get("path"), "conclusion": r.get("conclusion"),
                             "created": (r.get("createdAt") or "")[:10], "event": r.get("event"), "run": r.get("databaseId")})
-        ev = {"workflows": len(wfs or []), "red": red, "never_on_master": never, "not_active": disabled, "errors": errors}
+        ev = {"workflows": len(wfs), "red": red, "never_on_master": never, "not_active": disabled, "errors": errors,
+              "listed_but_not_on_master": gone}
         if errors:
             return check("master-workflows", title, "error", f"{len(errors)} workflow(s) unreadable: {errors[0]}", ev)
         if red:
             names = ", ".join(f"{x['workflow']} ({x['conclusion']}, {x['created']})" for x in red)
             return check("master-workflows", title, "warn",
-                         f"{len(red)} of {len(wfs or [])} workflow(s) end red on master: {names}", ev)
+                         f"{len(red)} of the {len(wfs)} workflow(s) on master end red there: {names}", ev)
         return check("master-workflows", title, "pass",
-                     f"the newest master run of every workflow that has one is green ({len(wfs or [])} workflows, "
-                     f"{len(never)} never run on master)", ev)
+                     f"the newest master run of every workflow that has one is green ({len(wfs)} workflows on master, "
+                     f"{len(never)} never run there)", ev)
 
     def readiness_verdict(self, sha: str) -> Tuple[str, str]:
         """('verified' | 'refused' | 'undetermined' | 'error', the script's verdict line)."""

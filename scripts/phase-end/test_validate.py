@@ -103,6 +103,12 @@ class RequiredChecks(Base):
 
 class MasterWorkflows(Base):
     LIST = ["workflow", "list", "--all", "--limit", "500", "--json", "id,name,path,state"]
+    TREE = ["git", "ls-tree", "--name-only", "origin/master", ".github/workflows/"]
+
+    def setUp(self):
+        super().setUp()
+        self.r.add(self.TREE, 0, "\n".join([".github/workflows/compat-gate.yml", ".github/workflows/cert-gate.yml",
+                                            ".github/workflows/dormant.yml", ".github/workflows/a.yml"]) + "\n")
 
     def newest(self, wid, rows):
         self.gh(["run", "list", "--workflow", str(wid), "--branch", "master", "--limit", "1",
@@ -127,13 +133,29 @@ class MasterWorkflows(Base):
 
     # Kills: a workflow whose runs cannot be read being skipped silently.
     def test_an_unreadable_workflow_is_an_error(self):
-        self.gh(self.LIST, [{"id": 1, "name": "A", "path": "a.yml", "state": "active"}])
+        self.gh(self.LIST, [{"id": 1, "name": "A", "path": ".github/workflows/a.yml", "state": "active"}])
         self.gh(["run", "list", "--workflow", "1", "--branch", "master", "--limit", "1",
                  "--json", "conclusion,status,createdAt,headSha,event,databaseId"], rc=1, err="HTTP 502")
         self.assertEqual(self.v.master_workflows()["status"], "error")
 
+    # Kills: counting workflows whose file is gone from master (GitHub still lists them, and Dependabot's
+    # dynamic workflow): a deleted workflow's last red run would read as a live red gate.
+    def test_a_workflow_deleted_from_master_is_not_counted_or_reported_red(self):
+        self.gh(self.LIST, [{"id": 1, "name": "compat-gate", "path": ".github/workflows/compat-gate.yml", "state": "active"},
+                            {"id": 7, "name": "Old gate", "path": ".github/workflows/old-gate.yml", "state": "active"},
+                            {"id": 8, "name": "Dependabot Updates", "path": "dynamic/dependabot/dependabot-updates", "state": "active"}])
+        self.newest(1, [{"conclusion": "success", "status": "completed", "createdAt": "2026-10-12T00:00:00Z",
+                         "headSha": SHA, "event": "push", "databaseId": 1}])
+        self.newest(7, [{"conclusion": "failure", "status": "completed", "createdAt": "2026-08-01T00:00:00Z",
+                         "headSha": OLD, "event": "push", "databaseId": 2}])
+        c = self.v.master_workflows()
+        self.assertEqual((c["status"], c["evidence"]["workflows"], c["evidence"]["red"]), ("pass", 1, []))
+        self.assertEqual(c["evidence"]["listed_but_not_on_master"],
+                         ["Dependabot Updates (dynamic/dependabot/dependabot-updates)", "Old gate (.github/workflows/old-gate.yml)"])
+        self.assertIn("1 workflows on master", c["detail"])
+
     def test_all_green_passes(self):
-        self.gh(self.LIST, [{"id": 1, "name": "A", "path": "a.yml", "state": "active"}])
+        self.gh(self.LIST, [{"id": 1, "name": "A", "path": ".github/workflows/a.yml", "state": "active"}])
         self.newest(1, [{"conclusion": "success", "status": "completed", "createdAt": "2026-10-12T00:00:00Z",
                          "headSha": SHA, "event": "push", "databaseId": 1}])
         self.assertEqual(self.v.master_workflows()["status"], "pass")

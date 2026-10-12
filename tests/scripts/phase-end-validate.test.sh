@@ -11,7 +11,7 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-MINIMUM_TESTS=26
+MINIMUM_TESTS=27
 
 # Probe by RUNNING the interpreter, not `command -v`: on Windows an App Execution Alias stub answers
 # `command -v python3` and exits 49 without running anything.
