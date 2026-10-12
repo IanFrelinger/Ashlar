@@ -128,7 +128,7 @@ One tick does **one** thing, the first that applies, and journals it with its ex
 | `no-final-result` | `needs-reconcile` | process, workspace, transcript and remote state are reconciled before any retry |
 | `launch-outcome-unknown` | `needs-reconcile` | the original attempt is investigated before another launch |
 | `decision-missing` | `parked-decision` | the decision needed is recorded verbatim |
-| `invocation-ceiling-reached` | `queued` | not a failure and no retry counter is touched; the next launch **resumes the same session** (`resume_session_id`), journalled as `resume`; the pool's attempts and task ceiling bound it |
+| `invocation-ceiling-reached` | `queued` | not a failure and no retry counter is touched; the next launch **resumes the same session** (`resume_session_id`), journalled as `resume`, **in the workspace the capped run was editing** (journalled `workspace-reused`; a missing or empty workspace is cloned afresh); the pool's attempts and task ceiling bound it |
 | `model-unrecognized` | `parked-decision` | the CLI refused the model id before any request; the blocker names the id, and the policy must change |
 | `funding-route-mismatch` | `blocked-auth` | the launch would have billed a route the policy did not select; nothing was started |
 | `completed`, lifecycle on | `pr-open` (`pr-checks-pending`) | the workspace was committed and pushed; the PR is open (or its new head recorded); only a merge on the current head makes the task `done` |
@@ -266,6 +266,16 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   reservation: the conservative reading).
 - The seven-day window as a limiting factor: the adapter records the five-hour utilization, which was
   the higher of the two in every probe.
+- **What `num_turns` counted in one pilot run.** In the PR 4 pilot (2026-10-11) the resumed run
+  `run-3225ebdb59dd` (attempt 2 of `pilot-1`, `--resume`, `--max-turns 12`) finished `success` with
+  `num_turns` 48; the controller charged 48 (overshoot 36) and the task's pool closed at 61 of a 36-turn
+  ceiling. The other two resumed runs of the pilot reported 13 with `error_max_turns`, and a probe on
+  2026-10-12 (fresh session 5 turns; `--resume` with `--max-turns 2` stopped at `error_max_turns`,
+  `num_turns` 3; `--resume` again, `num_turns` 1) showed the limit enforced and the count per invocation.
+  The 48 is not explained by subagents (`subagent_stats.spawned` 0 in that run; 4 in its capped attempt 1,
+  which also called `ScheduleWakeup` once) and is not reproduced. Until it is, a resumed run's reported
+  turns are charged in full as they are reported (the conservative reading), and the pool's task ceiling
+  is what bounds the next launch.
 
 ### How a launch runs
 
@@ -478,9 +488,19 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   `evidence archive` (both runs, transcripts included) and `backup` ran against that ledger. So `gh pr
   create`, `gh pr list --head`, `gh pr view --json`, the check-runs API and a closed PR are exercised live;
   `gh pr merge --match-head-commit` and a repair round are still only exercised against the fake.
-- The pilot (three bounded real tasks through the full lifecycle) has not run. It is prepared for the
-  operator's terminal (`pilot-pr4.md` on the storage branch `claude/budgeted-autonomy-workspace`); whether
-  the controller may merge to master during the pilot is an open owner question.
+- **The pilot ran on 2026-10-11 from the owner's terminal** (ledger `ctl-pilot-pr4`, policy
+  `2026-10-11.pilot-pr4`, ceilings 12/36/3, one repair round, guarded: a sixth never-running required check
+  kept the controller from merging, so the owner reviewed and merged by hand and the next tick recorded it).
+  `pilot-0` (a throwaway file): 2 turns, PR #777, merged `f0fd9d113`, task `done`. `pilot-1` (card #762, the
+  citation lines in `docs/EgressInventory.md`): attempt 1 stopped at the ceiling (13 turns, 4 subagents) after
+  editing the file; attempt 2 resumed the session in a fresh clone, redid the edits, and reported 48 turns
+  (see "What is unverified"); PR #778, merged `ea71db40c`, task `done`, pool 61 of 36. `pilot-2` (card #776):
+  two attempts at the ceiling (13 turns each), `parked-budget` with 10 turns left; the second attempt's
+  partial edits are in its workspace, nothing pushed. Five runs, two PRs merged, zero repair rounds, zero
+  closed-unmerged; `pause`, `resume`, `provider disable|enable`, `report`, `metrics`, `evidence archive`
+  (five archives) and `backup` were exercised on that ledger. Findings fixed afterwards: a resumed session
+  now keeps the workspace its capped run edited (`workspace-reused`), and the report prints a merged PR's
+  state once. Evidence: `live-run-pr4-pilot-evidence/` on the storage branch `claude/budgeted-autonomy-workspace`.
 - `task add --title` is both the card title and the worker's instruction, so the PR title and the commit
   subject of a controller-opened PR are the whole instruction (PR #775). A separate short title is a small
   follow-up.

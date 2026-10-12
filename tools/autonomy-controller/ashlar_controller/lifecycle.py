@@ -54,6 +54,40 @@ def implementation_prompt(task_row, base_sha: str, base_branch: str, branch: str
     return text[:IMPLEMENTATION_PROMPT_LIMIT]
 
 
+def resume_prompt(task_row, base_sha: str, base_branch: str, branch: str, workspace: str, handoff: str) -> str:
+    """The brief for a launch that RESUMES the session of a run that stopped at the turn ceiling, in the
+    workspace that run was editing. The session already holds the task; this says where it is and that
+    the edits so far are still there. Built from the task row and the PR ledger only."""
+    head = f"card #{task_row['card_number']}: {task_row['title']}" if task_row["card_number"] else str(task_row["title"])
+    text = (
+        "Continue the task: the previous invocation stopped at the turn ceiling. "
+        f"Your edits so far are still in the same workspace: {workspace}\n"
+        f"It is a clone of {base_branch} at {base_sha} on the branch {branch}. Edit files in the workspace only. "
+        "Do not run git, gh or dotnet: the controller commits your changes, pushes the branch and opens the "
+        "pull request. Keep the change minimal and leave a note of what you verified in your final message.\n\n"
+        f"The task: {head}\n"
+        f"Handoff from the previous task: {handoff}\n"
+    )
+    return text[:IMPLEMENTATION_PROMPT_LIMIT]
+
+
+def reusable_workspace(run_row) -> Optional[str]:
+    """The workspace of the run whose session the next launch resumes, when it is still on disk with
+    content in it (the worker's edits); otherwise None, and the caller clones afresh. An empty directory
+    is not reused: a fresh clone needs an empty or absent path, and there is nothing in it to keep."""
+    if run_row is None:
+        return None
+    workspace = run_row["workspace"]
+    if not workspace or not os.path.isdir(workspace):
+        return None
+    try:
+        if not os.listdir(workspace):
+            return None
+    except OSError:
+        return None
+    return workspace
+
+
 class PrLifecycle:
     """Owned by the Controller when a GhClient is configured. `git` is the gitops module or a stand-in with
     `prepare_workspace`, `checkout_pr_head` and `commit_and_push`."""
@@ -104,10 +138,29 @@ class PrLifecycle:
 
     # ----- 1. before an implementation launch -----------------------------------------------------
 
-    def prepare_implementation(self, task_row, run_id: str) -> Dict[str, Any]:
+    def prepare_implementation(self, task_row, run_id: str, resume_run=None) -> Dict[str, Any]:
         """Clone the base onto the task's branch. Records `tasks.base_sha` and `tasks.branch`. Raises on a git
-        failure (the caller settles the run as launch-failed)."""
+        failure (the caller settles the run as launch-failed).
+
+        `resume_run` is the run row whose session this launch resumes (the previous run stopped at the turn
+        ceiling). When that run's workspace is still on disk with content, it is REUSED, not cloned over: the
+        resumed session's edits are in it, and a fresh clone would discard them. The PR 4 pilot (2026-10-11)
+        did exactly that: attempt 1 of `pilot-1` edited `docs/EgressInventory.md` and stopped at the ceiling;
+        attempt 2 resumed the session in a fresh clone, found none of its edits, and redid the work. The base
+        and branch are the ones the task recorded when that workspace was prepared."""
         now = self.ctl.clock()
+        reused = reusable_workspace(resume_run)
+        if reused:
+            base = task_row["base_sha"] or self.current_base(task_row)
+            branch = self.branch_for(task_row)
+            with self.store.tx():
+                self.store.journal("workspace-reused", task_id=task_row["task_id"], run_id=run_id,
+                                   detail={"from_run": resume_run["run_id"], "base_sha": base, "branch": branch,
+                                           "workspace": reused}, now=now)
+            handoff = self.handoff_text()
+            return {"base_sha": base, "branch": branch, "workspace": reused, "handoff": handoff,
+                    "reused_from": resume_run["run_id"],
+                    "prompt": resume_prompt(task_row, base or "", self.cfg["base_branch"], branch, reused, handoff)}
         base = self.current_base(task_row)
         if not base:
             raise RuntimeError(f"no base SHA for task {task_row['task_id']}: no merged PR, no task base, "
