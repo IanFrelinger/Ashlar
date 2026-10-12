@@ -168,7 +168,13 @@ def _render_task(t: Dict[str, Any]) -> List[str]:
     lines.append(f"- Funding pool: {t.get('funding_pool') or '-'}")
     pr = t.get("pr_record")
     if pr:
-        lines.append(f"- PR #{pr.get('number')} {pr.get('state') or '-'} {pr.get('outcome') or '-'} "
+        state = pr.get("state") or "-"
+        outcome = pr.get("outcome")
+        # A merged PR's state and outcome are both "merged"; the word is printed once (the pilot's report
+        # read "PR #777 merged merged"). An outcome that differs from the state (closed / closed-unmerged)
+        # is printed after it.
+        label = state if outcome == state else f"{state} {outcome or '-'}"
+        lines.append(f"- PR #{pr.get('number')} {label} "
                      f"{_short(pr.get('head_sha'))} {_short(pr.get('merge_sha'))} rounds {_num(pr.get('repair_rounds_used'))}")
     elif t.get("pr") is not None:
         lines.append(f"- PR #{t.get('pr')}")

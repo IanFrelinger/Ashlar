@@ -330,7 +330,10 @@ class RenderReportPr(LifecycleCase):
         pr = self.pr_row(n)
         status = self.ctl.status()
         text = metrics.render_report(status, metrics.collect(self.store, now=self.clock()))
-        self.assertIn(f"- PR #{n} merged merged {pr['head_sha'][:12]} {pr['merge_sha'][:12]} rounds 0", text)
+        # A merged PR's state and outcome are the same word, printed once (the PR 4 pilot's report read
+        # "PR #777 merged merged"). Kills: `label = state if outcome == state else ...` -> always the pair.
+        self.assertIn(f"- PR #{n} merged {pr['head_sha'][:12]} {pr['merge_sha'][:12]} rounds 0", text)
+        self.assertNotIn("merged merged", text)
         run = self.store.row("SELECT * FROM runs")
         self.assertIn(f"- Last run: {run['run_id']} finished completed {run['model']}/{run['effort']} session fake-session-1", text)
         self.assertIn("| merged | 1 |", text)

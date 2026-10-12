@@ -431,10 +431,12 @@ class Controller:
         resume_session_id: Optional[str] = None
         # Latest by insertion order (rowid): two runs reserved in the same second must not be ordered
         # by their random run ids.
-        last = self.store.row("SELECT native_session_id, stop_reason FROM runs WHERE task_id=? "
-                              "ORDER BY reserved_at DESC, rowid DESC LIMIT 1", (task["task_id"],))
+        last = self.store.row("SELECT * FROM runs WHERE task_id=? ORDER BY reserved_at DESC, rowid DESC LIMIT 1",
+                              (task["task_id"],))
+        resume_run = None
         if last is not None and last["stop_reason"] == StopReason.INVOCATION_CEILING and last["native_session_id"]:
             resume_session_id = last["native_session_id"]
+            resume_run = last
 
         run_id = f"run-{uuid.uuid4().hex[:12]}"
         try:
@@ -460,9 +462,10 @@ class Controller:
         prepared: Dict[str, Any] = {}
         if self.lifecycle is not None:
             # PR 3: the workspace is a clone of the current base on the task's branch, prepared by the
-            # controller; the prompt carries the compact handoff and never a transcript.
+            # controller; the prompt carries the compact handoff and never a transcript. A resumed session
+            # keeps the workspace its capped run was editing (`lifecycle.prepare_implementation`).
             try:
-                prepared = self.lifecycle.prepare_implementation(task, run_id)
+                prepared = self.lifecycle.prepare_implementation(task, run_id, resume_run=resume_run)
             except Exception as e:  # noqa: BLE001 - a git failure is a launch failure; nothing was spent
                 budget.settle(self.store, run_id, state=RunState.FAILED, stop_reason=StopReason.LAUNCH_FAILED,
                               consumed=0.0, result={"error": str(e), "stage": "prepare-workspace"}, now=now)

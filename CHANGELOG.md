@@ -17,6 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — budgeted autonomy controller, PR 4 pilot findings
+
+- `tools/autonomy-controller/ashlar_controller/lifecycle.py`: a launch that resumes a session stopped at the turn
+  ceiling keeps the workspace that run was editing (journalled `workspace-reused`, with a continuation brief)
+  instead of a fresh clone that discarded the edits; a missing or empty workspace is still cloned afresh. The PR 4
+  pilot of 2026-10-11 redid a whole task this way (README, "Not in PR 4").
+- `ashlar_controller/metrics.py`: the report prints a merged PR's state once (`PR #777 merged`, not
+  `merged merged`); an outcome that differs from the state is still printed after it.
+- README: the pilot's record and the one unexplained figure it produced (a resumed run's `num_turns` 48 under a
+  12-turn ceiling, charged in full) under "What is unverified".
+
 ### Added — budgeted autonomy controller, PR 4 (operator controls, evidence retention, pilot)
 
 - `tools/autonomy-controller/ashlar_controller/{metrics,evidence}.py` and the CLI: `status` names the evidence of

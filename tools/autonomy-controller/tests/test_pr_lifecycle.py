@@ -461,5 +461,71 @@ class DryRunAndRestart(LifecycleCase):
         self.assertEqual(self.pr_row(n)["state"], "merged")
 
 
+class ResumeKeepsTheWorkspace(LifecycleCase):
+    """The PR 4 pilot (2026-10-11): attempt 1 of `pilot-1` edited a file and stopped at the turn ceiling; attempt 2
+    resumed the session in a FRESH clone, found none of its edits, and redid the work. A resumed session now
+    keeps the workspace its capped run was editing; only a missing or empty workspace is cloned afresh."""
+
+    def ceiling(self):
+        return RunStatus(state=RunState.FAILED, stop_reason=StopReason.INVOCATION_CEILING, consumed_units=12.0,
+                         result={"blocker": "turn ceiling reached"})
+
+    def first_capped_run(self):
+        """Launch, let the worker edit a file, and settle the run at the ceiling. Returns the workspace."""
+        self.make(adapter=FakeAdapter(script=[{"launch": "ok", "status": self.ceiling()}]))
+        self.add_task()
+        self.assertEqual(self.ctl.tick().action, "launched")
+        ws = self.store.row("SELECT workspace FROM runs")["workspace"]
+        self.assertTrue(os.path.isdir(ws))
+        with open(os.path.join(ws, "edited.txt"), "w", encoding="utf-8") as f:
+            f.write("the worker's edit so far\n")
+        self.assertEqual(self.ctl.tick().action, "settled")
+        t = self.task()
+        self.assertEqual((t["state"], t["stop_reason"]), (TaskState.QUEUED, StopReason.INVOCATION_CEILING))
+        return ws
+
+    # Kills: `if reused:` -> `if False:` in prepare_implementation (a second clone at a new path, the edit gone
+    # from the run's workspace, no `workspace-reused` row).
+    def test_a_resumed_session_keeps_the_workspace_its_capped_run_edited(self):
+        ws = self.first_capped_run()
+        r = self.ctl.tick()
+        self.assertEqual(r.action, "launched")
+        req = self.adapter.requests[1]
+        self.assertEqual(req.resume_session_id, "fake-session-1")
+        self.assertEqual(req.workspace, ws)
+        self.assertEqual(self.store.row("SELECT workspace FROM runs WHERE run_id=?", (r.run_id,))["workspace"], ws)
+        self.assertEqual(len(self.git.prepared), 1)
+        self.assertTrue(os.path.isfile(os.path.join(ws, "edited.txt")))
+        self.assertEqual(self.journal_count("workspace-reused"), 1)
+        row = self.store.row("SELECT detail FROM journal WHERE kind='workspace-reused'")
+        detail = json.loads(row["detail"])
+        self.assertEqual((detail["workspace"], detail["branch"]), (ws, "auto/t1"))
+        self.assertEqual(detail["from_run"], self.adapter.requests[0].run_id)
+        self.assertIn("edits so far are still in the same workspace", req.prompt)
+        self.assertIn(ws, req.prompt)
+        self.assertIn("auto/t1", req.prompt)
+        self.assertNotIn(TRANSCRIPT_MARKER, req.prompt)
+        # The resumed run completes: its workspace, with the edit, is what gets committed and pushed.
+        self.assertEqual(self.ctl.tick().action, "settled")
+        self.assertEqual(self.git.pushes[0]["path"], ws)
+        self.assertEqual(self.task()["state"], TaskState.PR_OPEN)
+
+    # Kills: `reusable_workspace` returning the path of an empty directory (`if not os.listdir(...)` dropped):
+    # the resumed launch would be handed an empty workspace instead of a clone.
+    def test_an_empty_or_missing_workspace_is_cloned_afresh_and_the_session_still_resumes(self):
+        ws = self.first_capped_run()
+        os.remove(os.path.join(ws, "edited.txt"))
+        self.assertEqual(os.listdir(ws), [])
+        r = self.ctl.tick()
+        self.assertEqual(r.action, "launched")
+        req = self.adapter.requests[1]
+        self.assertEqual(req.resume_session_id, "fake-session-1")
+        self.assertNotEqual(req.workspace, ws)
+        self.assertEqual(len(self.git.prepared), 2)
+        self.assertEqual(self.git.prepared[1]["path"], req.workspace)
+        self.assertEqual(self.journal_count("workspace-reused"), 0)
+        self.assertIn("Handoff from the previous task", req.prompt)
+
+
 if __name__ == "__main__":
     unittest.main()
