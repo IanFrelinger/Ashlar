@@ -39,12 +39,14 @@ Say which values you took.
       ```
 
       Exit 1 means at least one check is `fail` or `error`. That is a finding for the handoff, not a reason to stop. Every `fail`, `error` and `warn` is named in the handoff. On Windows, if `bash` resolves to WSL, set `ASHLAR_BASH` to Git Bash.
-   2. **The previous status**, absent on a workstream's first audit:
+   2. **The previous status.** It is absent on a workstream's first audit. The `|| rm` makes sure a failed `git show` does not leave an empty file behind:
 
       ```bash
       git show origin/claude/<workstream>-workspace:_handoff/<workstream>/project-status.json \
-        > <scratchpad>/previous-status.json
+        > <scratchpad>/previous-status.json || rm -f <scratchpad>/previous-status.json
       ```
+
+      No file means `previous` is `null`.
 
    3. **The audit.** Run the saved workflow `project-audit` (Workflow tool, `name: "project-audit"`, in the background). Pass these `args` as JSON values, not as strings:
       - `workstream`, `phase`, and `date` (today, `YYYY-MM-DD`);

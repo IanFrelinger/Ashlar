@@ -4,9 +4,9 @@
 # phase; a script that does not parse would otherwise fail only then, in the middle of ending a phase.
 # Discovered and run bare by scripts/ci/run-repo-gates.sh in the required shell-lint check.
 #
-# The checker is proven both ways: every committed workflow must pass, and three broken fixtures (an unmatched
-# phase and Date.now, a meta that is not a pure literal, a body that does not parse) must each be refused for
-# their own reason. A checker that passed everything would fail here.
+# The checker is proven both ways: every committed workflow must pass, and four broken fixtures (an unmatched
+# phase and Date.now, a meta naming a variable, a meta calling a builtin, a body that does not parse) must each
+# be refused for their own reason. A checker that passed everything would fail here.
 #
 # Needs node (preinstalled on the hosted ubuntu runner shell-lint uses). No node is a failure, not a skip.
 set -uo pipefail
@@ -48,6 +48,10 @@ const v = 1
 export const meta = { name: v, description: 'y' }
 return 1
 JS
+cat >"${TMP}/builtin.js" <<'JS'
+export const meta = { name: 'x', description: String(3) }
+return 1
+JS
 cat >"${TMP}/noparse.js" <<'JS'
 export const meta = {
   name: 'x',
@@ -73,11 +77,13 @@ expect_refused() {   # <fixture> <text the refusal must contain>
 expect_refused unmatched.js "phase('B') has no meta.phases entry"
 expect_refused unmatched.js "meta.phases entry 'A' is never started"
 expect_refused unmatched.js "uses Date.now()"
-expect_refused impure.js "meta is not a pure literal"
+expect_refused impure.js "meta is not a pure literal: the identifier v is not a literal"
+# A builtin call evaluates in a fresh vm context, so the purity check must read the source, not run it.
+expect_refused builtin.js "meta is not a pure literal"
 expect_refused noparse.js "the body does not parse"
 
 if [[ "${fail}" -ne 0 ]]; then
   echo "claude-workflows.test: FAIL" >&2
   exit 1
 fi
-echo "claude-workflows.test: ${count} workflow script(s) pass; 5 refusals observed"
+echo "claude-workflows.test: ${count} workflow script(s) pass; 6 refusals observed"

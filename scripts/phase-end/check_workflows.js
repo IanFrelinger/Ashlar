@@ -58,11 +58,46 @@ function metaSpan(src) {
   return null
 }
 
+// Why the meta literal is not pure, or null. Evaluating it is not enough: a fresh vm context still has the JS
+// builtins, so `Math.max(1, 2)`, `String(3)` and `${1 + 1}` would evaluate. So the source is scanned: outside
+// string literals only braces, brackets, colons, commas, numbers, true/false/null and keys may appear, and no
+// template literal may interpolate.
+function metaImpurity(text) {
+  let code = ''
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (c === "'" || c === '"' || c === '`') {
+      let j = i + 1
+      for (; j < text.length && text[j] !== c; j++) {
+        if (text[j] === BACKSLASH) { j++; continue }
+        if (c === '`' && text[j] === '$' && text[j + 1] === '{') return 'a template literal interpolates ${...}'
+      }
+      code += ' "" '
+      i = j
+      continue
+    }
+    if (c === '/' && text[i + 1] === '/') { while (i < text.length && text[i] !== NEWLINE) i++; continue }
+    if (c === '/' && text[i + 1] === '*') { i = text.indexOf('*/', i + 2); if (i < 0) return 'unterminated comment'; i++; continue }
+    code += c
+  }
+  const bad = code.match(/[^\s{}\[\]:,0-9.\-A-Za-z_$"]/)
+  if (bad) return `"${bad[0]}" outside a string literal (only literals are allowed)`
+  for (const m of code.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) {
+    const word = m[0]
+    const after = code.slice(m.index + word.length).match(/^\s*(.)/)
+    const isKey = after && after[1] === ':'
+    if (!isKey && !['true', 'false', 'null'].includes(word)) return `the identifier ${word} is not a literal`
+  }
+  return null
+}
+
 function problemsOf(file) {
   const src = fs.readFileSync(file, 'utf8')
   const out = []
   const span = metaSpan(src)
   if (!span) return ['no `export const meta = {...}` object literal']
+  const impure = metaImpurity(src.slice(span.start, span.end))
+  if (impure) return [`meta is not a pure literal: ${impure}`]
   let meta
   try {
     // A pure literal: evaluated with no globals in scope, so a variable or a call in it fails here.

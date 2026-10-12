@@ -25,6 +25,7 @@ next to git, or named with ASHLAR_BASH.
 from __future__ import annotations
 
 import argparse
+import calendar
 import json
 import os
 import re
@@ -76,10 +77,12 @@ def find_bash(env: Optional[Dict[str, str]] = None, which: Callable[[str], Optio
         return "bash"
     git = which("git")
     if git:
-        root = os.path.dirname(os.path.dirname(os.path.abspath(git)))   # <Git>\cmd\git.exe -> <Git>
-        for cand in (os.path.join(root, "bin", "bash.exe"), os.path.join(root, "usr", "bin", "bash.exe")):
-            if isfile(cand):
-                return cand
+        # <Git>\cmd\git.exe from a Windows shell; <Git>\mingw64\bin\git.exe from a Git Bash PATH.
+        root = os.path.dirname(os.path.dirname(os.path.abspath(git)))
+        for base in (root, os.path.dirname(root)):
+            for cand in (os.path.join(base, "bin", "bash.exe"), os.path.join(base, "usr", "bin", "bash.exe")):
+                if isfile(cand):
+                    return cand
     found = which("bash")
     if found and "system32" not in found.lower():
         return found
@@ -104,7 +107,9 @@ def normalize_subject(subject: str) -> str:
 
 
 def _iso_epoch(iso: str) -> float:
-    return time.mktime(time.strptime(iso[:19], "%Y-%m-%dT%H:%M:%S")) - time.timezone
+    """Seconds since the epoch of a UTC 'YYYY-MM-DDTHH:MM:SS...' stamp. calendar.timegm, not mktime: mktime reads
+    local time and applies daylight saving, which put the result an hour off in summer."""
+    return float(calendar.timegm(time.strptime(iso[:19], "%Y-%m-%dT%H:%M:%S")))
 
 
 class Validator:
@@ -169,16 +174,14 @@ class Validator:
         return check("unreleased", title, "info", f"{n} commit(s) on master since {tag}; VERSION is {version or 'unreadable'}",
                      {"tag": tag, "commits": n, "version": version})
 
-    def _landed(self, branch: str, master_patch_ids: set, master_subjects: set) -> Optional[bool]:
+    def _landed(self, branch: str, master_patch_ids: set, master_subject_files: Dict[str, set]) -> Optional[bool]:
         """True when the branch's work is safe elsewhere: a remote-tracking branch contains its tip, every file it
-        changed since its merge base is identical on master, its whole diff has the patch id of a master commit
-        (a squash merge), or its tip's subject is a master commit's subject (a squash merge whose combined diff
-        differs). None when git could not tell."""
+        changed since its merge base is identical on master, a master commit with its tip's subject touched the
+        same files (a squash merge whose combined diff differs), or its whole diff has the patch id of a master
+        commit. A subject alone is not enough: "wip" or "Fix tests" can match an unrelated commit. None when git
+        could not tell."""
         rc, remotes, _ = self.run(["git", "branch", "-r", "--contains", branch, "--format=%(refname:short)"])
         if rc == 0 and remotes.strip():
-            return True
-        rc, subject, _ = self.run(["git", "log", "-1", "--format=%s", branch])
-        if rc == 0 and normalize_subject(subject) in master_subjects:
             return True
         rc, base, _ = self.run(["git", "merge-base", "origin/master", branch])
         if rc != 0 or not base.strip():
@@ -192,6 +195,9 @@ class Validator:
             return True
         rc, _, _ = self.run(["git", "diff", "--quiet", "origin/master", branch, "--"] + files)
         if rc == 0:
+            return True
+        rc, subject, _ = self.run(["git", "log", "-1", "--format=%s", branch])
+        if rc == 0 and master_subject_files.get(normalize_subject(subject), set()) & set(files):
             return True
         rc, diff, _ = self.run(["git", "diff", base, branch])
         if rc == 0 and diff.strip():
@@ -211,29 +217,34 @@ class Validator:
             if not line.strip():
                 continue
             name, upstream, track = (line.split("\t") + ["", ""])[:3]
-            if name.strip() and (not upstream.strip() or "gone" in track):
+            # No upstream, an upstream that is gone, or commits the upstream does not have ([ahead N]).
+            if name.strip() and (not upstream.strip() or "gone" in track or "ahead" in track):
                 candidates.append(name.strip())
         if not candidates:
-            return check("stranded-branches", title, "pass", "every local branch tracks a remote branch that exists")
+            return check("stranded-branches", title, "pass", "every local branch's commits are on a remote branch")
         rc, out, _ = self.run(["git", "branch", "--format=%(refname:short)", "--no-merged", "origin/master"])
         if rc != 0:
             return check("stranded-branches", title, "error", "git branch --no-merged failed")
         unmerged = {b.strip() for b in out.splitlines() if b.strip()}
         to_test = [b for b in sorted(set(candidates)) if b in unmerged]
         master_ids: set = set()
-        master_subjects: set = set()
+        subject_files: Dict[str, set] = {}
         if to_test:
             rc, log, _ = self.run(["git", "log", "-p", "--no-merges", "--since=180.days", "origin/master"])
             if rc == 0 and log.strip():
                 rc, pids, _ = self.run(["git", "patch-id", "--stable"], input=log)
                 if rc == 0:
                     master_ids = {l.split()[0] for l in pids.splitlines() if l.split()}
-            rc, subjects, _ = self.run(["git", "log", "--format=%s", "--since=180.days", "origin/master"])
+            # One record per commit: NUL, subject, then the files it changed.
+            rc, named, _ = self.run(["git", "log", "--format=%x00%s", "--name-only", "--since=180.days", "origin/master"])
             if rc == 0:
-                master_subjects = {normalize_subject(s) for s in subjects.splitlines() if s.strip()}
+                for record in named.split("\x00"):
+                    lines = [l for l in record.splitlines() if l.strip()]
+                    if lines:
+                        subject_files.setdefault(normalize_subject(lines[0]), set()).update(l.strip() for l in lines[1:])
         stranded, unknown = [], []
         for b in to_test:
-            landed = self._landed(b, master_ids, master_subjects)
+            landed = self._landed(b, master_ids, subject_files)
             if landed is None:
                 unknown.append(b)
             elif not landed:
@@ -276,6 +287,16 @@ class Validator:
         latest: Dict[str, Dict[str, Any]] = {}
         for r in runs:
             latest.setdefault(r.get("name"), r)   # the API lists the newest run of a name first
+        # A required context can also be a commit status (the Statuses API), which has no check run. The combined
+        # status endpoint gives the latest state per context.
+        st, err = self.gh_json(["api", f"repos/{self.repo}/commits/{self.master_sha}/status"])
+        if err:
+            return check("required-checks", title, "error", f"commit statuses unreadable: {err}")
+        state_map = {"success": ("completed", "success"), "failure": ("completed", "failure"),
+                     "error": ("completed", "failure"), "pending": ("in_progress", None)}
+        for s in (st or {}).get("statuses") or []:
+            status, conclusion = state_map.get(s.get("state"), ("completed", s.get("state")))
+            latest.setdefault(s.get("context"), {"name": s.get("context"), "status": status, "conclusion": conclusion})
         red, pending, green, absent = [], [], [], []
         for name in required:
             r = latest.get(name)
@@ -312,19 +333,32 @@ class Validator:
         on_master = {line.strip() for line in out.splitlines() if line.strip()}
         gone = sorted(f"{w.get('name')} ({w.get('path')})" for w in (wfs or []) if w.get("path") not in on_master)
         wfs = [w for w in (wfs or []) if w.get("path") in on_master]
+        # One bulk read of recent master runs answers most workflows; only the ones it does not reach are asked
+        # one by one (a gate that runs rarely can be far back in the list).
+        recent, e = self.gh_json(["run", "list", "--branch", "master", "--limit", "500",
+                                  "--json", "workflowDatabaseId,conclusion,status,createdAt,headSha,event,databaseId"])
+        if e:
+            return check("master-workflows", title, "error", f"run list failed: {e}")
+        newest: Dict[str, Dict[str, Any]] = {}
+        for r in sorted(recent or [], key=lambda x: x.get("createdAt") or "", reverse=True):
+            newest.setdefault(str(r.get("workflowDatabaseId")), r)
         red, never, disabled, errors = [], [], [], []
         for wf in sorted(wfs, key=lambda w: w.get("name") or ""):
             if wf.get("state") and wf.get("state") != "active":
+                # Disabled on purpose: its last run is history, not a live red gate.
                 disabled.append(wf.get("name"))
-            runs, e = self.gh_json(["run", "list", "--workflow", str(wf.get("id")), "--branch", "master", "--limit", "1",
-                                    "--json", "conclusion,status,createdAt,headSha,event,databaseId"])
-            if e:
-                errors.append(f"{wf.get('name')}: {e}")
                 continue
-            if not runs:
-                never.append(wf.get("name"))
-                continue
-            r = runs[0]
+            r = newest.get(str(wf.get("id")))
+            if r is None:
+                runs, e = self.gh_json(["run", "list", "--workflow", str(wf.get("id")), "--branch", "master", "--limit", "1",
+                                        "--json", "conclusion,status,createdAt,headSha,event,databaseId"])
+                if e:
+                    errors.append(f"{wf.get('name')}: {e}")
+                    continue
+                if not runs:
+                    never.append(wf.get("name"))
+                    continue
+                r = runs[0]
             if r.get("status") == "completed" and r.get("conclusion") in RED_CONCLUSIONS:
                 red.append({"workflow": wf.get("name"), "path": wf.get("path"), "conclusion": r.get("conclusion"),
                             "created": (r.get("createdAt") or "")[:10], "event": r.get("event"), "run": r.get("databaseId")})
@@ -373,6 +407,7 @@ class Validator:
         if err:
             return check("readiness-last-verified", title, "error", err)
         seen: List[str] = []
+        errors: List[str] = []
         for r in runs or []:
             sha = r.get("headSha")
             if not sha or sha in seen or r.get("conclusion") != "success":
@@ -380,7 +415,9 @@ class Validator:
             seen.append(sha)
             kind, line = self.readiness_verdict(sha)
             if kind == "error":
-                return check("readiness-last-verified", title, "error", line)
+                # One unreadable verdict must not hide a verified commit further back.
+                errors.append(f"{sha[:12]}: {line}")
+                continue
             if kind == "verified":
                 rc, out, _ = self.run(["git", "rev-list", "--count", f"{sha}..origin/master"])
                 behind = int(out.strip()) if rc == 0 and out.strip().isdigit() else None
@@ -388,6 +425,10 @@ class Validator:
                              f"{sha[:12]} is VERIFIED ({r.get('event')} run, {(r.get('createdAt') or '')[:10]}); "
                              f"{behind if behind is not None else '?'} commit(s) on master since",
                              {"sha": sha, "commits_since": behind})
+        if errors:
+            return check("readiness-last-verified", title, "error",
+                         f"no VERIFIED commit found, and {len(errors)} verdict(s) could not be read: {errors[0]}",
+                         {"checked": seen, "errors": errors})
         return check("readiness-last-verified", title, "warn",
                      f"none of the last {len(seen)} successful readiness run(s) on master reads VERIFIED", {"checked": seen})
 
@@ -435,6 +476,11 @@ class Validator:
         if err:
             return check("repo-security", title, "error", err)
         visibility = (data or {}).get("visibility")
+        if "security_and_analysis" not in (data or {}):
+            # GitHub returns it only to admins and security managers: absent means not visible, not all enabled.
+            return check("repo-security", title, "error",
+                         "security_and_analysis is not visible to this token (it needs admin or security-manager rights)",
+                         {"visibility": visibility})
         sa = (data or {}).get("security_and_analysis") or {}
         off = sorted(k for k, v in sa.items() if isinstance(v, dict) and v.get("status") == "disabled")
         ev = {"visibility": visibility, "disabled": off}
