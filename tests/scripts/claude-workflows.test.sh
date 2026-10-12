@@ -4,9 +4,9 @@
 # phase; a script that does not parse would otherwise fail only then, in the middle of ending a phase.
 # Discovered and run bare by scripts/ci/run-repo-gates.sh in the required shell-lint check.
 #
-# The checker is proven both ways: every committed workflow must pass, and four broken fixtures (an unmatched
-# phase and Date.now, a meta naming a variable, a meta calling a builtin, a body that does not parse) must each
-# be refused for their own reason. A checker that passed everything would fail here.
+# The checker is proven both ways: every committed workflow must pass, and five broken fixtures (an unmatched
+# phase and Date.now, a meta naming a variable, a meta calling a builtin, a malformed meta literal, a body that
+# does not parse) must each be refused for their own reason. A checker that passed everything would fail here.
 #
 # Needs node (preinstalled on the hosted ubuntu runner shell-lint uses). No node is a failure, not a skip.
 set -uo pipefail
@@ -52,6 +52,10 @@ cat >"${TMP}/builtin.js" <<'JS'
 export const meta = { name: 'x', description: String(3) }
 return 1
 JS
+cat >"${TMP}/malformed.js" <<'JS'
+export const meta = { name: 'x' description: 'y' }
+return 1
+JS
 cat >"${TMP}/noparse.js" <<'JS'
 export const meta = {
   name: 'x',
@@ -80,10 +84,12 @@ expect_refused unmatched.js "uses Date.now()"
 expect_refused impure.js "meta is not a pure literal: the identifier v is not a literal"
 # A builtin call evaluates in a fresh vm context, so the purity check must read the source, not run it.
 expect_refused builtin.js "meta is not a pure literal"
+# Made only of allowed tokens, so the source scan passes it; evaluating it is what refuses it.
+expect_refused malformed.js "meta does not evaluate as a literal"
 expect_refused noparse.js "the body does not parse"
 
 if [[ "${fail}" -ne 0 ]]; then
   echo "claude-workflows.test: FAIL" >&2
   exit 1
 fi
-echo "claude-workflows.test: ${count} workflow script(s) pass; 6 refusals observed"
+echo "claude-workflows.test: ${count} workflow script(s) pass; 7 refusals observed"

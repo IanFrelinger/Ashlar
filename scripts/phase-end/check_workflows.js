@@ -103,7 +103,7 @@ function problemsOf(file) {
     // A pure literal: evaluated with no globals in scope, so a variable or a call in it fails here.
     meta = vm.runInNewContext('(' + src.slice(span.start, span.end) + ')', Object.create(null), { timeout: 1000 })
   } catch (e) {
-    return [`meta is not a pure literal: ${e.message}`]
+    return [`meta does not evaluate as a literal: ${e.message}`]
   }
   if (!meta || typeof meta.name !== 'string' || !meta.name) out.push('meta.name is missing')
   if (!meta || typeof meta.description !== 'string' || !meta.description) out.push('meta.description is missing')
