@@ -16,7 +16,11 @@ show the operator everything the ledger knows, including each run's evidence pat
 without an LLM; `metrics` are counts from the ledger; `backup` and `restore` move the ledger through
 the SQLite backup API with a schema check; `evidence archive` keeps a run's manifest, output, transcript
 and ledger rows after its workspace is gone; and `pause`, `resume`, `provider disable` and `run cancel`
-are proven to take effect at the next tick. The roadmap (PR 5 Codex and Cursor adapters) is in the card.
+are proven to take effect at the next tick. **PR 5 adds the Codex and Cursor adapters and the bounded
+provider transfer**: each adapter declares only what a probe of the installed CLI showed; `task transfer`
+moves a task to another provider, at most `limits.provider_transfers_per_pr` times, keeping its PR, its
+attempts and its budget pool, after the previous writer is stopped and settled; the new provider starts a
+fresh session briefed by the compact handoff.
 
 Python 3.8+ and the standard library only (SQLite through `sqlite3`). Nothing here runs `dotnet`,
 and nothing here runs outside the host the operator starts it on.
@@ -62,6 +66,9 @@ and nothing here runs outside the host the operator starts it on.
    `claude.ai`.
 4. Register tasks (`task add --task-id <id> --card <n> --workstream <w> --provider claude ...`) and run
    `tick --adapter claude`. `tick` without `--adapter` uses the fake, for proving the state machine.
+   `--adapter` is repeatable (`--adapter claude --adapter codex`): register every provider whose tasks the
+   tick may launch, observe or stop. The Codex and Cursor providers are disabled in the example policy;
+   enable one only after its CLI is logged in on this host (see "Codex adapter" and "Cursor adapter").
 
 `ASHLAR_CONTROLLER_STATE` and `ASHLAR_CONTROLLER_POLICY` stand in for `--state` and `--policy`.
 
@@ -76,7 +83,7 @@ and nothing here runs outside the host the operator starts it on.
 | `restore <source> [--replace]` | Replace the `--state` file with a backup. Refuses a source whose `schema_version` the controller does not know (`1` and `2` are known; `1` is migrated on open) and, without `--replace`, an existing state file; swaps the file atomically, removes stale `-wal`/`-shm` sidecars, opens and verifies the result, and journals `restored` in it |
 | `evidence archive <run> [--out <dir>]` / `evidence list` | Tar the run directory (`manifest.json`, `stdout.json`, `stderr.log`, the transcript when it can be located) with the run's ledger rows (`ledger.json`: run, task, pool, PR, journal, usage, policy version) into `<state dir>/evidence/<run>.tar.gz`; never overwrites; journals `evidence-archived` with the archive's sha256 |
 | `pause --reason <text>` / `resume` | Stop launching before the next tick; allow it again |
-| `tick [--dry-run] [--adapter fake\|claude] [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter claude` registers the Claude adapter with its run directory under `<state dir>/runs/`. `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
+| `tick [--dry-run] [--adapter fake\|claude\|codex\|cursor]... [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter` is repeatable; `claude`, `codex` and `cursor` register those CLIs' adapters with their run directories under `<state dir>/runs/` (the fake is always registered). `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
 | `pr list\|show <n>\|observe <n>` | PR records; `observe` reads the PR's current head and its required checks now and merges, repairs or parks as they demand (`--gh cli`) |
 | `readiness run --gate <name> --workspace <path> [--task-id <id>]` | Run one gate command (`repo-gates`, `readiness-local`, `container-tests`) in a workspace and print the parsed report; with `--task-id`, apply it to the task (see "Readiness fixer") |
 | `readiness evaluate --task-id <id> --report <json>` | Apply a saved report (the JSON `readiness run` printed) to a task without running anything |
@@ -87,6 +94,7 @@ and nothing here runs outside the host the operator starts it on.
 | `outbox list|enqueue|flush` | Milestone posts; `flush --poster fake` in PR 1 (`gh` poster present, not exercised live) |
 | `worker register|list` | Worker checkout roots, which the policy may never live under |
 | `provider disable|enable <name>` | Take a provider out of dispatch without editing the policy |
+| `task transfer <id> --to <provider> [--reason <text>] [--adapter <old provider>]` | Move a task to another provider (see "Provider transfer (PR 5)"); refused with exit 6 past `limits.provider_transfers_per_pr`, exit 4 for a target the policy or the operator disabled or whose unit differs |
 | `policy` | Show the validated active policy and its hash |
 
 Exit codes: 0 ok; 1 other error; 2 usage; 3 state missing or corrupt; 4 policy refused; 5 writer
@@ -138,6 +146,7 @@ One tick does **one** thing, the first that applies, and journals it with its ex
 | `repair-rounds-exhausted` | `parked-failure` | the current head is red and `limits.repair_rounds` are used; operator step required |
 | a refusal at launch (`LaunchRefused`) | by the same mapping | the adapter named the reason before anything started: `auth-missing` and `funding-route-mismatch` give `blocked-auth`, `model-unrecognized` gives `parked-decision`, anything else requeues as `launch-failed`; the reservation is released, the attempt stays counted |
 | budget or attempts exhausted at reservation | `parked-budget` | with the remaining counts in the blocker text |
+| `provider-transferred` (operator, `task transfer`) | `queued`, or `pr-open` while the PR is open | the previous writer was stopped and settled first; task, PR, attempts and pool are unchanged; the new provider starts a fresh session |
 
 ### Budget accounting
 
@@ -408,6 +417,48 @@ next tick reads first.
   turns consumed and reserved, overshoot, attempts, PRs by outcome and repair rounds, retries, the latest
   usage per provider and kind, and the per-provider sum of `estimated_api_value` deltas, which stays an
   estimate and is never added to a turns figure.
+
+## Provider transfer (PR 5)
+
+`task transfer <id> --to <provider>` (`Controller.transfer_task`) moves a task from one provider's CLI to
+another. It is an operator command: nothing transfers a task on its own (see "Not in PR 5"). In this
+order, so that a refusal changes nothing:
+
+1. **The target.** It must be a provider the policy names, `enabled`, not disabled by `provider disable`,
+   not the task's current provider, and counting in the same unit as the task's budget pool (provider units
+   are never converted, so a `turns` pool is never moved to a `requests` provider). A `done` task is not
+   transferred. Refusal: exit 4, `PolicyError`.
+2. **The bound.** The transfers already made for the task's pool, counted from the append-only journal over
+   every task that shares the pool (so a split never resets it), must be below
+   `limits.provider_transfers_per_pr` (1 in the example; the policy allows 0 or 1). Refusal: exit 6,
+   `provider-transfers-exhausted`, journalled as `transfer-refused`. The bound is checked before anything
+   is stopped.
+3. **Stop and reconcile the previous writer.** An uncertain launch of the task is reconciled through its own
+   provider's adapter first; one that stays uncertain refuses the transfer (`reconcile-pending`). A run that
+   has already ended is settled with what it actually did (a completed run is committed, pushed and proposed
+   as usual). A run still running is cancelled through its own adapter and settled (`cancelled`, the workspace
+   kept). A running run whose provider has no adapter registered refuses the transfer
+   (`previous-writer-not-stoppable`: pass `--adapter <that provider>`). So there is never a second writer:
+   the journal shows the old run's `settled` before `provider-transferred`, and the new provider's `launched`
+   after both.
+4. **The move**, in one transaction: `tasks.provider` changes; the open PR row's `provider_transfers_used`
+   is incremented; `provider-transferred` is journalled with the from and to providers, the transfer number,
+   the pool, the PR and the stopped runs (that row is the count, written before any launch on the new
+   provider); the task goes back to `pr-open` while its PR is open (the PR phase then repairs through the new
+   provider) or to `queued` (`stop_reason` `provider-transferred`).
+
+Kept as they were: the task row (id, card, title, branch, base), its PR row (number, head, base, branch,
+repair rounds used), its budget pool (consumed, reserved, overshoot, attempts used and allowed). The next
+launch reserves from the same pool and counts as the next attempt.
+
+Fresh on the new provider: a session id recorded by another provider is never resumed (the turn-ceiling
+resume applies only when the last run's provider is the task's provider), so the new provider gets a fresh
+clone of the current base, not the previous provider's workspace, and its brief is the compact handoff plus
+one line of facts: "this task was transferred from `<provider>` after run `<id>` (`<stop reason>`); nothing
+from that run is in this workspace". Never the previous transcript, prompt or session.
+
+`status` shows each task's provider and `transfers: {used, max}`; `metrics` counts `transfers.total` and
+`transfers.refused`; the report prints both.
 
 ## Readiness fixer
 

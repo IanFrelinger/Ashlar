@@ -17,6 +17,26 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — budgeted autonomy controller, PR 5 (Codex and Cursor adapters, bounded provider transfer)
+
+- `tools/autonomy-controller/ashlar_controller/adapters/codex.py`: the Codex CLI (`codex exec --json`) headless,
+  declaring only what a probe of `codex-cli 0.162.0-alpha.17.2` showed on 2026-10-12: the NDJSON event shapes,
+  the thread id and `exec resume`, cancel then resume, `--output-schema`, the model id `gpt-6-astra` (the
+  example's earlier candidate `sol` is refused with HTTP 400 on a ChatGPT login), a ChatGPT-login route check,
+  no turn limit and no allowance figure. The bundled `~/.codex/.sandbox-bin/codex.exe`, which has no code-mode
+  host beside it and cannot run a tool, is never selected.
+- `ashlar_controller/adapters/cursor.py`: the Cursor agent CLI (`cursor-agent -p --output-format stream-json`)
+  headless. The CLI was not logged in when probed, so it declares no capability beyond the route check,
+  refuses to launch while `status` says `Not logged in`, charges the full reservation, and keeps a real run's
+  output so the first logged-in run records the true shape.
+- `task transfer <id> --to <provider>` (`Controller.transfer_task`): moves a task to another provider at most
+  `limits.provider_transfers_per_pr` times (counted per budget pool from the journal, before any launch),
+  after reconciling an uncertain launch and stopping and settling a running writer through its own adapter.
+  The task, its PR row, its attempts and its budget pool are kept; a target in another unit is refused; the
+  new provider never resumes another provider's session and gets a fresh clone and the compact handoff.
+  `status`, `metrics` and the report show the transfers. `--adapter` is repeatable and accepts `codex` and
+  `cursor`.
+
 ### Fixed — budgeted autonomy controller, PR 4 pilot findings
 
 - `tools/autonomy-controller/ashlar_controller/lifecycle.py`: a launch that resumes a session stopped at the turn

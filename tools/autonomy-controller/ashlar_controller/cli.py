@@ -24,6 +24,9 @@ from .policy import Policy, load_policy
 from .store import Store
 
 
+ADAPTER_CHOICES = ["fake", "claude", "codex", "cursor"]
+
+
 def _print(obj: Any, as_json: bool) -> None:
     if as_json:
         print(json.dumps(obj, indent=2, sort_keys=True, default=str))
@@ -94,8 +97,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("tick", help="one controller step: settle, reconcile, observe open PRs, then at most one launch")
     s.add_argument("--dry-run", action="store_true", help="say what would happen; no writes, no adapter calls")
-    s.add_argument("--adapter", choices=["fake", "claude"], default="fake",
-                   help="fake (default) or claude (the installed Claude Code CLI; runs under <state dir>/runs)")
+    s.add_argument("--adapter", choices=ADAPTER_CHOICES, action="append", default=None,
+                   help="register a provider adapter; repeatable (e.g. --adapter claude --adapter codex). fake is always "
+                        "registered. claude, codex, cursor: the installed CLIs, runs under <state dir>/runs")
     s.add_argument("--gh", choices=["none", "cli"], default="none",
                    help="none (default): no PR lifecycle, a completed run is done. cli: the PR lifecycle through "
                         "the gh executable (clone, push, open, observe by head SHA, repair, merge)")
@@ -105,7 +109,7 @@ def build_parser() -> argparse.ArgumentParser:
     prs_.add_parser("list")
     a = prs_.add_parser("show"); a.add_argument("number", type=int)
     a = prs_.add_parser("observe", help="observe one open PR by its current head now (merge, repair or park as it demands)")
-    a.add_argument("number", type=int); a.add_argument("--adapter", choices=["fake", "claude"], default="fake")
+    a.add_argument("number", type=int); a.add_argument("--adapter", choices=ADAPTER_CHOICES, action="append", default=None)
     a.add_argument("--gh", choices=["cli"], default="cli"); a.add_argument("--workspaces", default=None)
 
     s = sub.add_parser("readiness", help="readiness gates: run one, or apply a saved report to a task")
@@ -125,13 +129,18 @@ def build_parser() -> argparse.ArgumentParser:
     ts.add_parser("list")
     a = ts.add_parser("show"); a.add_argument("task_id")
     a = ts.add_parser("set-state"); a.add_argument("task_id"); a.add_argument("new_state", metavar="state"); a.add_argument("--reason"); a.add_argument("--blocker")
+    a = ts.add_parser("transfer", help="move a task to another provider (bounded by limits.provider_transfers_per_pr); "
+                                       "its PR, attempts and budget pool are kept; a running writer is stopped first")
+    a.add_argument("task_id"); a.add_argument("--to", required=True, dest="to_provider"); a.add_argument("--reason")
+    a.add_argument("--adapter", choices=ADAPTER_CHOICES, action="append", default=None,
+                   help="the adapter of the provider whose running writer must be stopped")
 
     s = sub.add_parser("event", help="ingest an external event once"); es = s.add_subparsers(dest="event_cmd", required=True)
     a = es.add_parser("ingest"); a.add_argument("--event-id", required=True); a.add_argument("--source", default="operator")
     a.add_argument("--kind", required=True); a.add_argument("--task-id"); a.add_argument("--payload", default="{}")
     a.add_argument("--gh", choices=["none", "cli"], default="none",
                    help="cli: a NEW PR event also triggers one observation of the task's open PR")
-    a.add_argument("--adapter", choices=["fake", "claude"], default="fake"); a.add_argument("--workspaces", default=None)
+    a.add_argument("--adapter", choices=ADAPTER_CHOICES, action="append", default=None); a.add_argument("--workspaces", default=None)
 
     s = sub.add_parser("run", help="run records"); rs = s.add_subparsers(dest="run_cmd", required=True)
     rs.add_parser("list")
@@ -190,15 +199,40 @@ def _policy(args, store: Optional[Store]) -> Policy:
     return load_policy(args.policy, checkouts)
 
 
+def adapter_names(args) -> List[str]:
+    """The adapters a command registers: fake always, plus every `--adapter` named, in order, once each."""
+    names: List[str] = ["fake"]
+    for n in (getattr(args, "adapter", None) or []):
+        if n not in names:
+            names.append(n)
+    return names
+
+
+def build_adapters(names: List[str], runs_dir: str) -> Dict[str, Any]:
+    """One adapter per name. The live adapters are imported here, not at module level, so the fake adapter and
+    every record command work without them being importable; constructing one runs nothing."""
+    adapters: Dict[str, Any] = {}
+    for n in names:
+        if n == "fake":
+            adapters[n] = FakeAdapter()
+        elif n == "claude":
+            from .adapters.claude import ClaudeAdapter
+            adapters[n] = ClaudeAdapter(runs_dir=runs_dir)
+        elif n == "codex":
+            from .adapters.codex import CodexAdapter
+            adapters[n] = CodexAdapter(runs_dir)
+        elif n == "cursor":
+            from .adapters.cursor import CursorAdapter
+            adapters[n] = CursorAdapter(runs_dir)
+        else:
+            raise ControllerError(f"unknown adapter {n}; one of {ADAPTER_CHOICES}")
+    return adapters
+
+
 def _controller(args, store: Store, policy: Policy) -> Controller:
     holder = args.holder or f"{socket.gethostname()}:{os.getpid()}"
-    adapters: Dict[str, Any] = {"fake": FakeAdapter()}
-    if getattr(args, "adapter", "fake") == "claude":
-        # Imported here, not at module level: the fake adapter and every record command work
-        # without the live adapter being importable.
-        from .adapters.claude import ClaudeAdapter
-        runs_dir = os.path.join(os.path.dirname(os.path.abspath(args.state)), "runs")
-        adapters["claude"] = ClaudeAdapter(runs_dir=runs_dir)
+    runs_dir = os.path.join(os.path.dirname(os.path.abspath(args.state)), "runs")
+    adapters = build_adapters(adapter_names(args), runs_dir)
     gh = None
     if getattr(args, "gh", "none") == "cli":
         from .prs import GhCli
@@ -372,6 +406,8 @@ def _dispatch(args) -> int:
                 raise ControllerError(f"unknown task state {args.new_state}; one of {sorted(allowed)}")
             ctl.set_task_state(args.task_id, args.new_state, stop_reason=args.reason, blocker=args.blocker)
             _print({"task_id": args.task_id, "state": args.new_state}, args.json); return 0
+        if args.task_cmd == "transfer":
+            _print(ctl.transfer_task(args.task_id, args.to_provider, reason=args.reason), args.json); return 0
     if args.cmd == "event":
         out = ctl.handle_event(args.event_id, args.source, args.kind, args.task_id, json.loads(args.payload))
         _print(out, args.json); return 0

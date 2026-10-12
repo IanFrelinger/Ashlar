@@ -27,8 +27,8 @@ from typing import Any, Dict, List, Optional
 
 from . import budget, events
 from .adapters.base import ProviderAdapter
-from .models import (BudgetExhausted, LaunchOutcomeUnknown, LaunchRefused, LaunchRequest, LeaseError, PolicyError,
-                     RunState, StopReason, TaskState, UsageFreshness)
+from .models import (BudgetExhausted, ControllerError, LaunchOutcomeUnknown, LaunchRefused, LaunchRequest, LeaseError,
+                     PolicyError, RunState, StopReason, TaskState, UsageFreshness)
 from .policy import Policy
 from .store import Store, utcnow_iso
 
@@ -328,6 +328,120 @@ class Controller:
         settled["cancelled"] = True
         return settled
 
+    # ----- provider transfer (PR 5) ------------------------------------------------------------------
+
+    def transfers_used(self, pool_id: str) -> int:
+        """Transfers already made for the tasks of one budget pool. Counted from the append-only journal
+        (`provider-transferred` rows), over every task that shares the pool, so splitting a task never
+        resets the count; the PR row's `provider_transfers_used` mirrors it while a PR is open."""
+        return int(self.store.row(
+            "SELECT COUNT(*) AS n FROM journal WHERE kind='provider-transferred' "
+            "AND task_id IN (SELECT task_id FROM tasks WHERE pool_id=?)", (pool_id,))["n"])
+
+    def transfer_task(self, task_id: str, to_provider: str, reason: Optional[str] = None) -> Dict[str, Any]:
+        """Move a task to another provider, bounded by `limits.provider_transfers_per_pr`.
+
+        In this order, so a refusal changes nothing:
+          1. the target must be a provider the policy names, enabled, not disabled by the operator, not the
+             task's current provider, and in the same unit as the task's pool (units are never converted);
+             a `done` task is not transferred;
+          2. the bound: the transfers already made for the pool must be below the limit, else
+             `provider-transfers-exhausted` is journalled and BudgetExhausted raised;
+          3. the previous writer is stopped and reconciled: an uncertain launch is reconciled through its
+             adapter first (still uncertain: refused); a running run is cancelled through ITS adapter and
+             settled (no adapter registered for it: refused, nothing changed); a reserved run is refused;
+          4. one transaction: the task's provider changes, the open PR row's `provider_transfers_used` is
+             incremented, `provider-transferred` is journalled (that row is the count, written before any
+             launch on the new provider), and the task goes back to `pr-open` when its PR is still open,
+             else to `queued`.
+        The task row, its PR row (number, head, base), its budget pool and its attempts are untouched. The
+        next launch is the new provider's: a fresh session (a session id recorded by another provider is
+        never resumed) briefed by the compact handoff."""
+        now = self.clock()
+        task = self.store.row("SELECT * FROM tasks WHERE task_id=?", (task_id,))
+        if task is None:
+            raise PolicyError(f"no task {task_id}")
+        from_provider = task["provider"]
+        if to_provider == from_provider:
+            raise PolicyError(f"task {task_id} is already on provider {to_provider}")
+        if task["state"] == TaskState.DONE:
+            raise PolicyError(f"task {task_id} is done; a done task is not transferred")
+        spec = self.policy.provider(to_provider)
+        if not spec.get("enabled"):
+            raise PolicyError(f"{StopReason.PROVIDER_DISABLED}: provider {to_provider} is disabled by policy {self.policy.version}")
+        disabled = json.loads(self.store.control("disabled_providers") or "[]")
+        if to_provider in disabled:
+            raise PolicyError(f"{StopReason.PROVIDER_DISABLED}: provider {to_provider} is disabled by the operator "
+                              f"(`provider enable {to_provider}`)")
+        pool = budget.pool_row(self.store, task["pool_id"])
+        if spec["unit"] != pool["unit"]:
+            raise PolicyError(f"provider {to_provider} counts {spec['unit']}; task {task_id}'s pool {pool['pool_id']} "
+                              f"counts {pool['unit']}, and provider units are never converted")
+        self.store.acquire_lease(self.holder_id, int(self.policy.idle["lease_ttl_seconds"]), now=now,
+                                 host=self.host, pid=self.pid)
+        limit = int(self.policy.limits["provider_transfers_per_pr"])
+        used = self.transfers_used(task["pool_id"])
+        if used >= limit:
+            self.store.journal("transfer-refused", task_id=task_id,
+                               detail={"reason": StopReason.PROVIDER_TRANSFERS_EXHAUSTED, "from": from_provider,
+                                       "to": to_provider, "used": used, "limit": limit}, now=now)
+            raise BudgetExhausted(f"{StopReason.PROVIDER_TRANSFERS_EXHAUSTED}: task {task_id} (pool {task['pool_id']}) "
+                                  f"has made {used} of {limit} provider transfers")
+
+        # 3. Stop and reconcile the previous writer before anything moves.
+        stopped: List[Dict[str, Any]] = []
+        active = self.store.rows("SELECT * FROM runs WHERE task_id=? AND state IN ('reserved','launching','running','unknown') "
+                                 "ORDER BY reserved_at, rowid", (task_id,))
+        if any(r["state"] in RunState.UNCERTAIN for r in active):
+            self.settle_and_reconcile()
+            active = self.store.rows("SELECT * FROM runs WHERE task_id=? AND state IN ('reserved','launching','running','unknown') "
+                                     "ORDER BY reserved_at, rowid", (task_id,))
+        for run in active:
+            if run["state"] in RunState.UNCERTAIN or run["state"] == RunState.RESERVED:
+                raise ControllerError(f"{StopReason.RECONCILE_PENDING}: run {run['run_id']} of task {task_id} is "
+                                      f"{run['state']} on provider {run['provider']}; reconcile it (tick with that "
+                                      f"provider's adapter, or `run settle`) before a transfer")
+            if self.adapters.get(run["provider"]) is None:
+                raise ControllerError(f"{StopReason.TRANSFER_WRITER_NOT_STOPPABLE}: run {run['run_id']} of task {task_id} is "
+                                      f"running on provider {run['provider']} and no {run['provider']} adapter is "
+                                      f"registered to stop it; pass `--adapter {run['provider']}`")
+        for run in active:
+            # A run that already ended is settled with what it actually did (a completed one is proposed as
+            # usual); only a run still running is cancelled. Either way it is settled before the move.
+            status = self.adapters[run["provider"]].poll(run["native_run_handle"]) if run["native_run_handle"] else None
+            if status is not None and status.state != RunState.RUNNING:
+                out = self._apply_outcome(run, status)
+                how = "settled"
+            else:
+                out = self.cancel_run(run["run_id"])
+                how = "cancelled"
+            stopped.append({"run_id": run["run_id"], "provider": run["provider"], "role": run["role"], "how": how,
+                            "charged": out.get("charged"), "stop_reason": out.get("stop_reason")})
+
+        # 4. The move itself, in one transaction.
+        pr = self.store.row("SELECT * FROM prs WHERE task_id=? AND state='open' ORDER BY rowid DESC LIMIT 1", (task_id,))
+        state = TaskState.PR_OPEN if pr is not None else TaskState.QUEUED
+        transfer_no = used + 1
+        blocker = (f"transferred from {from_provider} to {to_provider} ({transfer_no} of {limit})"
+                   + (f": {reason}" if reason else ""))
+        at = utcnow_iso(now)
+        with self.store.tx():
+            self.store.conn.execute(
+                "UPDATE tasks SET provider=?, state=?, stop_reason=?, blocker=?, next_eligible_at=NULL, updated_at=? "
+                "WHERE task_id=?", (to_provider, state, StopReason.PROVIDER_TRANSFERRED, blocker, at, task_id))
+            if pr is not None:
+                self.store.conn.execute(
+                    "UPDATE prs SET provider_transfers_used = provider_transfers_used + 1, updated_at=? WHERE pr_number=?",
+                    (at, pr["pr_number"]))
+            self.store.journal("provider-transferred", task_id=task_id,
+                               detail={"from": from_provider, "to": to_provider, "transfer_no": transfer_no, "of": limit,
+                                       "pool_id": task["pool_id"], "pr_number": pr["pr_number"] if pr is not None else None,
+                                       "stopped_runs": [s["run_id"] for s in stopped], "state": state,
+                                       "reason": reason}, now=now)
+        return {"task_id": task_id, "from": from_provider, "to": to_provider, "transfer_no": transfer_no, "of": limit,
+                "state": state, "pr_number": pr["pr_number"] if pr is not None else None, "stopped": stopped,
+                "pool_id": task["pool_id"]}
+
     # ----- dispatch --------------------------------------------------------------------------------
 
     def _eligible_task(self):
@@ -434,7 +548,10 @@ class Controller:
         last = self.store.row("SELECT * FROM runs WHERE task_id=? ORDER BY reserved_at DESC, rowid DESC LIMIT 1",
                               (task["task_id"],))
         resume_run = None
-        if last is not None and last["stop_reason"] == StopReason.INVOCATION_CEILING and last["native_session_id"]:
+        # A session belongs to the provider that recorded it: after a provider transfer the new provider
+        # starts a fresh session (and a fresh clone), never another CLI's session id.
+        if (last is not None and last["stop_reason"] == StopReason.INVOCATION_CEILING and last["native_session_id"]
+                and last["provider"] == task["provider"]):
             resume_session_id = last["native_session_id"]
             resume_run = last
 
@@ -623,6 +740,8 @@ class Controller:
                              "handle": run["native_run_handle"], "workspace": run["workspace"], "role": run["role"],
                              "pr_number": run["pr_number"]} if run else None,
                 "evidence": self.run_evidence(run) if run else None,
+                "transfers": {"used": self.transfers_used(t["pool_id"]),
+                              "max": int(self.policy.limits["provider_transfers_per_pr"])},
                 "last_event": t["last_event"], "last_event_at": t["last_event_at"],
             })
         lease = self.store.lease_row()
