@@ -701,9 +701,8 @@ class Controller:
             try:
                 with open(manifest_path, encoding="utf-8") as f:
                     manifest = json.load(f)
-                from .adapters.claude import locate_transcript   # a pure path helper; no adapter call
-                transcript = locate_transcript(manifest.get("projects_dir"), manifest.get("session_id"),
-                                               manifest.get("transcript_path"))
+                from .adapters import locate_run_transcript   # a pure path helper; no adapter call
+                transcript = locate_run_transcript(manifest, run["native_session_id"])
             except (OSError, ValueError, ImportError):
                 transcript = None
         archive = os.path.join(self.evidence_dir, f"{run_id}.tar.gz")

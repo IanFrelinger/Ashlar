@@ -328,5 +328,36 @@ class CommandLine(TransferCase):
         self.assertEqual((args.to_provider, cli_mod.adapter_names(args)), ("codex", ["fake", "cursor"]))
 
 
+class EvidenceByProvider(TransferCase):
+    # Kills: `locate_run_transcript` without its Codex branch (a Codex run's session file, named by thread id under
+    # `sessions_dir`, would be missing from `status` and from the evidence archive), and a Cursor manifest
+    # claiming a transcript it does not have.
+    def test_a_codex_session_file_is_found_for_status_and_the_archive(self):
+        from ashlar_controller import evidence
+        self.make2()
+        self.add_task()
+        r = self.ctl.tick()
+        thread = "01a12e3d-9860-7872-96ef-8dab0310c848"
+        sessions = self.tmp / "codex-home" / "sessions"
+        day = sessions / "2026" / "10" / "12"
+        day.mkdir(parents=True)
+        session_file = day / f"rollout-2026-10-12T00-00-00-{thread}.jsonl"
+        session_file.write_text('{"type":"session_meta"}\n', encoding="utf-8")
+        run_dir = os.path.join(self.ctl.runs_dir, r.run_id)
+        os.makedirs(run_dir)
+        with open(os.path.join(run_dir, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump({"run_id": r.run_id, "provider": "codex", "thread_id": thread, "sessions_dir": str(sessions),
+                       "transcript_path": None}, f)
+        ev = self.ctl.run_evidence(self.run_row(r.run_id))
+        self.assertEqual(ev["transcript"], str(session_file))
+        out = evidence.archive_run(self.store, r.run_id, str(self.tmp / "evidence"), self.ctl.runs_dir)
+        self.assertTrue(out["transcript_included"])
+        self.assertIn("transcript.jsonl", out["members"])
+        # A Cursor manifest names no transcript: none is claimed.
+        with open(os.path.join(run_dir, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump({"run_id": r.run_id, "provider": "cursor"}, f)
+        self.assertIsNone(self.ctl.run_evidence(self.run_row(r.run_id))["transcript"])
+
+
 if __name__ == "__main__":
     unittest.main()

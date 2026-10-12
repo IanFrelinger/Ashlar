@@ -225,11 +225,9 @@ def archive_run(store: Store, run_id: str, out_dir: str, runs_dir: str, now: Opt
         except (OSError, ValueError):
             manifest = {}
     transcript: Optional[str] = None
-    if manifest.get("transcript_path") or manifest.get("projects_dir"):
-        from .adapters.claude import locate_transcript   # a pure path helper; no adapter method is called
-        transcript = locate_transcript(manifest.get("projects_dir"),
-                                       manifest.get("session_id") or run["native_session_id"],
-                                       manifest.get("transcript_path"))
+    if manifest:
+        from .adapters import locate_run_transcript   # a pure path helper; no adapter method is called
+        transcript = locate_run_transcript(manifest, run["native_session_id"])
 
     members: List[str] = []
     sizes: List[tuple] = []

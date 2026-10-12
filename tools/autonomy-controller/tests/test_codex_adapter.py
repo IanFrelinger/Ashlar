@@ -206,9 +206,18 @@ class Argv(CodexAdapterCase):
         self.assertNotIn('model_reasoning_effort="medium"', argv)
 
     def test_resume_runs_exec_resume_with_the_thread_id_and_reports_it(self):
-        # Mutation killed: a fresh `exec` (a new thread) when the request names a thread to resume.
+        # Mutation killed: a fresh `exec` (a new thread) when the request names a thread to resume, and a resume
+        # without the overrides (observed, probe-codex-report-4.json r5: without `-c sandbox_mode` and
+        # `mcp_servers={}` a resume would inherit the operator's config.toml sandbox and MCP servers).
         a, res, status = self.launch_and_settle(request=self.request(resume_session_id=THREAD))
-        self.assertEqual(self.recorded()["argv"], ["exec", "resume", "--json", "--skip-git-repo-check", THREAD, PROMPT])
+        argv = self.recorded()["argv"]
+        self.assertEqual(argv[:4], ["exec", "resume", "--json", "--skip-git-repo-check"])
+        self.assertEqual(argv[-2:], [THREAD, PROMPT])
+        for pair in (["-c", 'sandbox_mode="workspace-write"'], ["-c", 'approval_policy="never"'],
+                     ["-c", "mcp_servers={}"], ["-m", self.request().model]):
+            self.assertTrue(any(argv[i:i + 2] == pair for i in range(len(argv) - 1)), pair)
+        self.assertIn("-o", argv)
+        self.assertNotIn("-s", argv)                      # `exec resume` has no -s; the sandbox is a -c override
         self.assertEqual(res.native_session_id, THREAD)
         self.assertEqual(status.result["thread_id"], THREAD)
         manifest = self.manifest()

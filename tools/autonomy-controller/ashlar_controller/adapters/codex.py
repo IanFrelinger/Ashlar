@@ -29,6 +29,14 @@ Observed, and therefore declared in `capabilities` or relied on:
     `turn.failed{error:{message:<same>}}`, no `turn.completed`, exit 1 (p4, p5);
   * `codex exec resume --json --skip-git-repo-check <thread_id> <prompt>` emits the same shapes with the
     SAME `thread_id` and continued the edit (q2); without the flag it exits 1 with no events (p2_resume);
+  * `codex exec resume --json --skip-git-repo-check -c sandbox_mode="workspace-write" -c approval_policy="never"
+    -c model_reasoning_effort="medium" -c mcp_servers={} -m gpt-6-astra -o <last.txt> <thread_id> <prompt>`
+    (the form this adapter passes on a resume) kept the thread id, appended to the file in the workspace and
+    wrote the `-o` file, exit 0 (probe-codex-report-4.json, r5; `-c` and `-m` alone in report 3, r3/r3b).
+    `exec resume` has no `-s`, so the sandbox is set with `-c sandbox_mode=...`: without it a resume would
+    inherit the operator's `config.toml` (`danger-full-access` on the probed host) and its MCP servers;
+  * the fresh form above, exactly as this adapter passes it, wrote the file and the `-o` file (report 3, r1);
+    the same with `--ignore-user-config` was refused (`... rejected: blocked by policy`, report 3, r2);
   * `taskkill /T /F` mid-run exits 1 with no `turn.completed`; the session file
     `<CODEX_HOME>/sessions/<YYYY>/<MM>/<DD>/rollout-<timestamp>-<thread_id>.jsonl` (local date) exists and
     `exec resume` of that thread then succeeded (p8, q3);
@@ -47,8 +55,6 @@ Unverified, and therefore False in `capabilities` or not relied on:
     and every allowance observation is UNAVAILABLE;
   * the logged-out text of `codex login status`, and the error texts for 401/402/429/5xx: the generic
     status and text rules below are carried over from the Claude adapter, not observed on Codex;
-  * whether `exec resume` honours `-m`/`-s`/`-c` overrides: only the minimal resume form was observed, so
-    a resume passes exactly that form (the observed resume kept writing in the workspace);
   * a tool-restriction flag: none observed, so a request with `allowed_tools` set is refused rather than
     run unrestricted; `agent` (a Claude agent role) has no Codex equivalent and is recorded as ignored;
   * an `error` event followed by `turn.completed`: unobserved; a completed turn stands (below).
@@ -384,9 +390,12 @@ class CodexAdapter:
 
     def _argv(self, prefix: List[str], request: LaunchRequest, workspace: str, last_message_path: str) -> List[str]:
         if request.resume_session_id:
-            # Observed (q2): exactly this form; overrides on a resume are unobserved and not passed.
-            return prefix + ["exec", "resume", "--json", "--skip-git-repo-check", request.resume_session_id,
-                             request.prompt]
+            # Observed (report 4, r5): the resume carries the same overrides as a fresh run. `exec resume` has
+            # no `-s`/`-C`, so the sandbox is a `-c` override and the workspace is the process's cwd.
+            return prefix + ["exec", "resume", "--json", "--skip-git-repo-check",
+                             "-c", f'sandbox_mode="{self.sandbox}"', "-c", 'approval_policy="never"',
+                             "-c", f'model_reasoning_effort="{request.effort}"', "-c", "mcp_servers={}",
+                             "-m", request.model, "-o", last_message_path, request.resume_session_id, request.prompt]
         return prefix + ["exec", "--json", "--skip-git-repo-check", "-C", workspace, "-s", self.sandbox,
                          "-c", 'approval_policy="never"', "-c", f'model_reasoning_effort="{request.effort}"',
                          "-c", "mcp_servers={}", "-m", request.model, "-o", last_message_path, request.prompt]

@@ -144,7 +144,19 @@ def _exec(argv: list, script: dict) -> int:
         if "--skip-git-repo-check" not in argv:   # observed: exit 1, no events
             sys.stderr.write("Not inside a trusted directory and --skip-git-repo-check was not specified.\n")
             return 1
-        positional = [a for a in argv[2:] if not a.startswith("-")]
+        # Options that take a value (observed in `exec resume --help`): their values are not positionals.
+        valued = {"-c", "--config", "-m", "--model", "-o", "--output-last-message", "-i", "--image",
+                  "--enable", "--disable", "--output-schema"}
+        positional, skip = [], False
+        for a in argv[2:]:
+            if skip:
+                skip = False
+                continue
+            if a in valued:
+                skip = True
+                continue
+            if not a.startswith("-"):
+                positional.append(a)
         resume_id = positional[0] if positional else None
     events = script.get("events")
     if events is None:
