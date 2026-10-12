@@ -28,10 +28,27 @@ The handoff is published to `claude/<workstream>-workspace`, sent to the owner, 
 - **Agent-bus (#695):** the open items, or "nothing open".
 - **This phase's exit criteria:** met, or not met with the exact blocker.
 
+### Project status at the end of phase <P>
+
+Filled from the phase-end validation and audit (`.claude/commands/handoff.md` step 4), which cover the whole
+project, not only this workstream. Paste the audit's `status.markdown` here verbatim. Do not write this
+section from memory or from an earlier phase's audit. It contains:
+- a two-to-four sentence headline;
+- the validation summary on master's SHA, and one line for each check that is `fail`, `error` or `warn`;
+- a table of area, distance (near, partway or far), estimate with its basis, change since the last phase, and
+  what blocks the rest;
+- what was resolved and what is new since the last phase;
+- the critical path to the next completion point, with the owner's steps marked;
+- the hard dates, and what could not be verified.
+
+Then one line naming the attachments: `validation-<P>.md`, `project-status-<P>.json` and
+`project-audit-<P>.json`. If the audit did not run, say so and why, and give the validation results alone.
+
 ## 2. Read these first
 
 - **In the repo:** `CLAUDE.md`, the spec, and the records the next phase touches.
-- **On the storage branch:** design notes, lane rules and PR-body drafts, each with its path.
+- **On the storage branch:** design notes, lane rules and PR-body drafts, each with its path; the phase-end
+  validation and audit (`validation-<P>.md`, `project-status.json`, `project-audit-<P>.json`).
 
 ## 3. Decisions
 
@@ -54,7 +71,8 @@ Everything a fresh container needs: tooling, gotchas, known pre-existing failure
 
 ## 7. Queued work
 
-Follow-ups, deferred defects, and task cards outside the phase plan, with the owner's choices noted.
+Follow-ups, deferred defects, and task cards outside the phase plan, with the owner's choices noted. Include the
+audit's findings about this workstream (`status.workstream_findings`).
 
 ## 8. Ways of working the owner has endorsed
 

@@ -39,13 +39,17 @@ Read automatically by Claude Code at the start of every session in this reposito
 - **One thread per phase.** A workstream runs as a sequence of phases, and each phase runs in its own
   thread. A phase ends with **`/handoff <workstream> <phase>`**:
   1. push every in-flight branch;
-  2. write the handoff from `_handoff/phases/HANDOFF-TEMPLATE.md`;
-  3. publish it to the storage branch `claude/<workstream>-workspace` with `scripts/handoff-publish.sh`;
-  4. send it to the owner and notify them;
-  5. stop.
+  2. validate and audit the **whole project**: `scripts/phase-end/validate.py`, then the saved workflow
+     `.claude/workflows/project-audit.js` (read-only, nine agents);
+  3. write the handoff from `_handoff/phases/HANDOFF-TEMPLATE.md`, with the audit's project status in §1;
+  4. publish it to the storage branch `claude/<workstream>-workspace` with `scripts/handoff-publish.sh`,
+     with the validation and the audit attached;
+  5. send it to the owner and notify them;
+  6. stop.
 - The next thread starts with **`/start-phase <workstream>`**:
   1. fetch the handoff with `scripts/handoff-fetch.sh`, or take the attached file;
-  2. read it, and check it against the live repo;
+  2. read it, and check it against the live repo, re-running `scripts/phase-end/validate.py` to see what
+     changed since the handoff;
   3. restate the phase;
   4. execute it.
 - The procedure, the naming, and why handoffs live on a storage branch rather than master:
