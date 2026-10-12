@@ -1,0 +1,436 @@
+{
+  "cli": "C:/Users/icfre/AppData/Local/OpenAI/Codex/bin/2e5e00daee91c61d/codex.exe",
+  "cwd": "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+  "finished": "2026-10-12T03:27:46Z",
+  "model_arg": null,
+  "p0_login_status": {
+    "argv": [
+      "login",
+      "status"
+    ],
+    "exit": 0,
+    "seconds": 0.16,
+    "stderr": "Logged in using ChatGPT\n",
+    "stdout": ""
+  },
+  "p0_version": {
+    "argv": [
+      "--version"
+    ],
+    "exit": 0,
+    "seconds": 0.04,
+    "stderr": "",
+    "stdout": "codex-cli 0.162.0-alpha.17.2\n"
+  },
+  "p1_exec_json_ephemeral": {
+    "argv": [
+      "exec",
+      "--json",
+      "--ephemeral",
+      "-s",
+      "read-only",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 0,
+    "seconds": 7.18,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-2ef9-7cb2-adce-842ddbdf8572\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"OK\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":20242,\"cached_input_tokens\":13312,\"cache_write_input_tokens\":0,\"output_tokens\":5,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 4,
+      "errors": [],
+      "last_message": "OK",
+      "model": null,
+      "thread_id": "01a12e26-2ef9-7cb2-adce-842ddbdf8572",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 13312,
+        "input_tokens": 20242,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "p1b_exec_json_ignore_user_config": {
+    "argv": [
+      "exec",
+      "--json",
+      "--ephemeral",
+      "--ignore-user-config",
+      "-s",
+      "read-only",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 0,
+    "seconds": 11.24,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-4a65-70e1-b1f8-0a47fa707f42\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"OK\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":16183,\"cached_input_tokens\":12544,\"cache_write_input_tokens\":0,\"output_tokens\":5,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 4,
+      "errors": [],
+      "last_message": "OK",
+      "model": null,
+      "thread_id": "01a12e26-4a65-70e1-b1f8-0a47fa707f42",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 12544,
+        "input_tokens": 16183,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "p2_exec_persisted": {
+    "argv": [
+      "exec",
+      "--json",
+      "-s",
+      "read-only",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Reply with exactly the word FIRST and nothing else."
+    ],
+    "exit": 0,
+    "seconds": 5.05,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-7652-7a11-8d73-b94a48ed7bab\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"FIRST\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":17698,\"cached_input_tokens\":13312,\"cache_write_input_tokens\":0,\"output_tokens\":5,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 4,
+      "errors": [],
+      "last_message": "FIRST",
+      "model": null,
+      "thread_id": "01a12e26-7652-7a11-8d73-b94a48ed7bab",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 13312,
+        "input_tokens": 17698,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "p2_resume": {
+    "argv": [
+      "exec",
+      "resume",
+      "--json",
+      "01a12e26-7652-7a11-8d73-b94a48ed7bab",
+      "Reply with exactly the word AGAIN and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 0.12,
+    "stderr": "Not inside a trusted directory and --skip-git-repo-check was not specified.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "errors": [],
+      "last_message": null,
+      "model": null,
+      "thread_id": null,
+      "types": [],
+      "usage": null
+    }
+  },
+  "p2_resume_no_json": {
+    "argv": [
+      "exec",
+      "resume",
+      "01a12e26-7652-7a11-8d73-b94a48ed7bab",
+      "Reply with exactly the word AGAIN and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 0.14,
+    "stderr": "Not inside a trusted directory and --skip-git-repo-check was not specified.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "errors": [],
+      "last_message": null,
+      "model": null,
+      "thread_id": null,
+      "types": [],
+      "usage": null
+    }
+  },
+  "p2_session_file": "C:\\Users\\icfre\\.codex\\sessions\\2026\\10\\11\\rollout-2026-10-11T23-27-15-01a12e26-7652-7a11-8d73-b94a48ed7bab.jsonl",
+  "p3_workspace_write": {
+    "argv": [
+      "exec",
+      "--json",
+      "-s",
+      "workspace-write",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Create a file named hello.txt in the current directory containing the single line hello, then reply done."
+    ],
+    "exit": 0,
+    "hello_txt": "hello\n",
+    "seconds": 8.27,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-8b22-7fc1-8398-ae2b9e6cceb3\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I\u2019ll create hello.txt in the current directory.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\WINDOWS\\\\\\\\System32\\\\\\\\WindowsPowerShell\\\\\\\\v1.0\\\\\\\\powershell.exe\\\" -Command \\\"Set-Content -LiteralPath hello.txt -Value 'hello' -Encoding ascii\\\"\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\WINDOWS\\\\\\\\System32\\\\\\\\WindowsPowerShell\\\\\\\\v1.0\\\\\\\\powershell.exe\\\" -Command \\\"Set-Content -LiteralPath hello.txt -Value 'hello' -Encoding ascii\\\"\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"agent_message\",\"text\":\"done\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":36656,\"cached_input_tokens\":31360,\"cache_write_input_tokens\":0,\"output_tokens\":64,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 7,
+      "errors": [],
+      "last_message": "done",
+      "model": null,
+      "thread_id": "01a12e26-8b22-7fc1-8398-ae2b9e6cceb3",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 31360,
+        "input_tokens": 36656,
+        "output_tokens": 64,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "p4_unrecognised_model": {
+    "argv": [
+      "exec",
+      "--json",
+      "--ephemeral",
+      "-s",
+      "read-only",
+      "-m",
+      "no-such-model-0",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 2.35,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-ab5d-7682-a3e2-b366add3864c\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"error\",\"message\":\"Configured service tier `priority` is not advertised as supported for model `no-such-model-0` and will be omitted from requests.\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"error\",\"message\":\"Model metadata for `no-such-model-0` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.\"}}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"{\\\"type\\\":\\\"error\\\",\\\"status\\\":400,\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"The 'no-such-model-0' model is not supported when using Codex with a ChatGPT account.\\\"}}\"}\n{\"type\":\"turn.failed\",\"error\":{\"message\":\"{\\\"type\\\":\\\"error\\\",\\\"status\\\":400,\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"The 'no-such-model-0' model is not supported when using Codex with a ChatGPT account.\\\"}}\"}}\n",
+    "summary": {
+      "count": 6,
+      "errors": [
+        {
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'no-such-model-0' model is not supported when using Codex with a ChatGPT account.\"}}",
+          "type": "error"
+        },
+        {
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'no-such-model-0' model is not supported when using Codex with a ChatGPT account.\"}}"
+          },
+          "type": "turn.failed"
+        }
+      ],
+      "last_message": null,
+      "model": null,
+      "thread_id": "01a12e26-ab5d-7682-a3e2-b366add3864c",
+      "types": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "error",
+        "turn.failed"
+      ],
+      "usage": null
+    }
+  },
+  "p5_model_sol": {
+    "argv": [
+      "exec",
+      "--json",
+      "--ephemeral",
+      "-s",
+      "read-only",
+      "-m",
+      "sol",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 2.59,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-b48c-7c00-8a9c-71a054355129\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"error\",\"message\":\"Configured service tier `priority` is not advertised as supported for model `sol` and will be omitted from requests.\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"error\",\"message\":\"Model metadata for `sol` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.\"}}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"{\\\"type\\\":\\\"error\\\",\\\"status\\\":400,\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"The 'sol' model is not supported when using Codex with a ChatGPT account.\\\"}}\"}\n{\"type\":\"turn.failed\",\"error\":{\"message\":\"{\\\"type\\\":\\\"error\\\",\\\"status\\\":400,\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"The 'sol' model is not supported when using Codex with a ChatGPT account.\\\"}}\"}}\n",
+    "summary": {
+      "count": 6,
+      "errors": [
+        {
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'sol' model is not supported when using Codex with a ChatGPT account.\"}}",
+          "type": "error"
+        },
+        {
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'sol' model is not supported when using Codex with a ChatGPT account.\"}}"
+          },
+          "type": "turn.failed"
+        }
+      ],
+      "last_message": null,
+      "model": null,
+      "thread_id": "01a12e26-b48c-7c00-8a9c-71a054355129",
+      "types": [
+        "thread.started",
+        "item.completed",
+        "item.completed",
+        "turn.started",
+        "error",
+        "turn.failed"
+      ],
+      "usage": null
+    }
+  },
+  "p6_effort_and_last_message": {
+    "argv": [
+      "exec",
+      "--json",
+      "--ephemeral",
+      "-s",
+      "read-only",
+      "-c",
+      "model_reasoning_effort=\"low\"",
+      "-o",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3\\last.txt",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Reply with exactly the word LOW and nothing else."
+    ],
+    "exit": 0,
+    "last_txt": "LOW",
+    "seconds": 4.32,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-bea6-7032-96a2-3f599b249c37\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"LOW\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":17698,\"cached_input_tokens\":13312,\"cache_write_input_tokens\":0,\"output_tokens\":5,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 4,
+      "errors": [],
+      "last_message": "LOW",
+      "model": null,
+      "thread_id": "01a12e26-bea6-7032-96a2-3f599b249c37",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 13312,
+        "input_tokens": 17698,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "p7_output_schema": {
+    "argv": [
+      "exec",
+      "--json",
+      "--ephemeral",
+      "-s",
+      "read-only",
+      "--output-schema",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3\\schema.json",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "What is 2+2? Answer as JSON."
+    ],
+    "exit": 0,
+    "seconds": 4.5,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-cf7f-7f50-8b34-507d6a04a4ab\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"{\\\"answer\\\":\\\"4\\\"}\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":17723,\"cached_input_tokens\":0,\"cache_write_input_tokens\":0,\"output_tokens\":15,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 4,
+      "errors": [],
+      "last_message": "{\"answer\":\"4\"}",
+      "model": null,
+      "thread_id": "01a12e26-cf7f-7f50-8b34-507d6a04a4ab",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 17723,
+        "output_tokens": 15,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "p8_cancel": {
+    "argv": [
+      "exec",
+      "--json",
+      "-s",
+      "workspace-write",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd3",
+      "Write a 600-word story about a lighthouse keeper into story.txt, then reply done."
+    ],
+    "exit": 1,
+    "first_line": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-e11a-7810-b796-140393be8530\"}\n",
+    "seconds": 4.43,
+    "session_file": "C:\\Users\\icfre\\.codex\\sessions\\2026\\10\\11\\rollout-2026-10-11T23-27-42-01a12e26-e11a-7810-b796-140393be8530.jsonl",
+    "stderr_tail": "Reading additional input from stdin...\n",
+    "stdout_tail": "{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I\u2019ll write the 600-word story to story.txt.\"}}\n",
+    "story_exists": false,
+    "thread_id": "01a12e26-e11a-7810-b796-140393be8530"
+  },
+  "p8_resume_after_cancel": {
+    "argv": [
+      "exec",
+      "resume",
+      "--json",
+      "01a12e26-e11a-7810-b796-140393be8530",
+      "Reply with exactly the word RESUMED and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 0.13,
+    "stderr": "Not inside a trusted directory and --skip-git-repo-check was not specified.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "errors": [],
+      "last_message": null,
+      "model": null,
+      "thread_id": null,
+      "types": [],
+      "usage": null
+    }
+  },
+  "started": "2026-10-12T03:26:56Z"
+}

@@ -1,0 +1,181 @@
+{
+  "c0_about": {
+    "argv": [
+      "about"
+    ],
+    "exit": 0,
+    "seconds": 0.86,
+    "stderr": "",
+    "stdout": "About Cursor CLI\n\nCLI Version         2026.10.01-e373342\nLatest              2026.10.01-e373342 (up to date)\nModel               Auto\nSubscription Tier   Unknown\nOS                  win32 (x64)\nTerminal            unknown\nShell               c:\\program files\\git\\bin\\bash.exe\nUser Email          Not logged in\n"
+  },
+  "c0_models": {
+    "argv": [
+      "models"
+    ],
+    "exit": 1,
+    "seconds": 0.74,
+    "stderr": "Error: Authentication required. Run 'agent login', pass --api-key/--auth-token, or set CURSOR_API_KEY/CURSOR_AUTH_TOKEN.\n",
+    "stdout": ""
+  },
+  "c0_status": {
+    "argv": [
+      "status"
+    ],
+    "exit": 0,
+    "seconds": 0.84,
+    "stderr": "",
+    "stdout": "Not logged in\n"
+  },
+  "c0_version": {
+    "argv": [
+      "--version"
+    ],
+    "exit": 0,
+    "seconds": 1.08,
+    "stderr": "",
+    "stdout": "2026.10.01-e373342\n"
+  },
+  "c1_print_json": {
+    "argv": [
+      "-p",
+      "--output-format",
+      "json",
+      "--trust",
+      "--workspace",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd-cursor",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 1.13,
+    "stderr": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "keys_by_type": {},
+      "result": null,
+      "session_id": null,
+      "types": []
+    }
+  },
+  "c1b_print_stream_json": {
+    "argv": [
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--trust",
+      "--workspace",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd-cursor",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 0.89,
+    "stderr": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "keys_by_type": {},
+      "result": null,
+      "session_id": null,
+      "types": []
+    }
+  },
+  "c3_edit_force": {
+    "argv": [
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--trust",
+      "--workspace",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd-cursor",
+      "-f",
+      "Create a file named hello.txt in the current directory containing the single line hello, then reply done."
+    ],
+    "exit": 1,
+    "hello_txt": null,
+    "seconds": 0.89,
+    "stderr": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "keys_by_type": {},
+      "result": null,
+      "session_id": null,
+      "types": []
+    }
+  },
+  "c4_unrecognised_model": {
+    "argv": [
+      "-p",
+      "--output-format",
+      "json",
+      "--trust",
+      "--workspace",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd-cursor",
+      "--model",
+      "no-such-model-0",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 0.89,
+    "stderr": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "keys_by_type": {},
+      "result": null,
+      "session_id": null,
+      "types": []
+    }
+  },
+  "c5_model_composer_standard": {
+    "argv": [
+      "-p",
+      "--output-format",
+      "json",
+      "--trust",
+      "--workspace",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd-cursor",
+      "--model",
+      "composer-standard",
+      "Reply with exactly the word OK and nothing else."
+    ],
+    "exit": 1,
+    "seconds": 0.87,
+    "stderr": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n",
+    "stdout": "",
+    "summary": {
+      "count": 0,
+      "keys_by_type": {},
+      "result": null,
+      "session_id": null,
+      "types": []
+    }
+  },
+  "c6_cancel": {
+    "argv": [
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--trust",
+      "--workspace",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd-cursor",
+      "-f",
+      "Write a 900-word story about a lighthouse keeper into story.txt, then reply done."
+    ],
+    "exit": 1,
+    "first_lines": [
+      "",
+      ""
+    ],
+    "seconds": 4.01,
+    "session_id": null,
+    "stderr_tail": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n",
+    "stdout_tail": "",
+    "story_exists": false
+  },
+  "cli": "C:/Users/icfre/AppData/Roaming/Cursor/User/globalStorage/anysphere.cursor-agent-worker/agent-cli/.local/share/cursor-agent/versions/2026.10.01-e373342/cursor-agent.cmd",
+  "cwd": "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd-cursor",
+  "finished": "2026-10-12T03:24:10Z",
+  "model_arg": null,
+  "started": "2026-10-12T03:23:58Z"
+}

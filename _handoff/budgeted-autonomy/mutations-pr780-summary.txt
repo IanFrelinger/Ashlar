@@ -1,0 +1,4 @@
+mutation f1-resume-clones-afresh: KILLED red=failed:1/386 green=passed:385/386 ref=e042ea7bb398faa911697fb69a9600c928beb193 runner=override
+mutation f2-empty-workspace-reused: KILLED red=failed:1/386 green=passed:385/386 ref=e042ea7bb398faa911697fb69a9600c928beb193 runner=override
+mutation f3-report-prints-merged-twice: KILLED red=failed:1/386 green=passed:385/386 ref=e042ea7bb398faa911697fb69a9600c928beb193 runner=override
+mutation f4-resume-passes-no-run: KILLED red=failed:1/386 green=passed:385/386 ref=e042ea7bb398faa911697fb69a9600c928beb193 runner=override

@@ -1,0 +1,274 @@
+{
+  "cli": "C:/Users/icfre/AppData/Local/OpenAI/Codex/bin/2e5e00daee91c61d/codex.exe",
+  "cwd": "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd7",
+  "finished": "2026-10-12T03:53:01Z",
+  "r1_fresh_adapter_argv": {
+    "argv": [
+      "exec",
+      "--json",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd7",
+      "-s",
+      "workspace-write",
+      "-c",
+      "approval_policy=\"never\"",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "-c",
+      "mcp_servers={}",
+      "-m",
+      "gpt-6-astra",
+      "-o",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd7\\last.txt",
+      "Create a file named hello.txt in the current directory containing the single line hello, then reply done."
+    ],
+    "events": [
+      {
+        "thread_id": "01a12e3d-9860-7872-96ef-8dab0310c848",
+        "type": "thread.started"
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "item": {
+          "id": "item_0",
+          "text": "I\u2019ll create hello.txt with the single line requested.",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "item": {
+          "aggregated_output": "",
+          "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Set-Content -LiteralPath hello.txt -Value 'hello' -Encoding ascii\"",
+          "exit_code": null,
+          "id": "item_1",
+          "status": "in_progress",
+          "type": "command_execution"
+        },
+        "type": "item.started"
+      },
+      {
+        "item": {
+          "aggregated_output": "",
+          "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Set-Content -LiteralPath hello.txt -Value 'hello' -Encoding ascii\"",
+          "exit_code": 0,
+          "id": "item_1",
+          "status": "completed",
+          "type": "command_execution"
+        },
+        "type": "item.completed"
+      },
+      {
+        "item": {
+          "id": "item_2",
+          "text": "done",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "type": "turn.completed",
+        "usage": {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 33920,
+          "input_tokens": 41745,
+          "output_tokens": 64,
+          "reasoning_output_tokens": 0
+        }
+      }
+    ],
+    "exit": 0,
+    "hello_txt": "hello\n",
+    "last_txt": "done",
+    "seconds": 9.95,
+    "stderr": "Reading additional input from stdin...\n",
+    "thread_id": "01a12e3d-9860-7872-96ef-8dab0310c848"
+  },
+  "r2_ignore_user_config": {
+    "argv": [
+      "exec",
+      "--json",
+      "--skip-git-repo-check",
+      "--ignore-user-config",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd7",
+      "-s",
+      "workspace-write",
+      "-c",
+      "approval_policy=\"never\"",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "-c",
+      "mcp_servers={}",
+      "-m",
+      "gpt-6-astra",
+      "Create a file named other.txt in the current directory containing the single line other, then reply done."
+    ],
+    "events": [
+      {
+        "thread_id": "01a12e3d-bd72-7ce3-93ed-1654a71a5d32",
+        "type": "thread.started"
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "item": {
+          "id": "item_0",
+          "text": "I\u2019ll try to create the file in the current directory.",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "item": {
+          "id": "item_1",
+          "text": "I couldn\u2019t create `other.txt` because the workspace is read-only; the write was blocked by policy.",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "type": "turn.completed",
+        "usage": {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 28416,
+          "input_tokens": 32417,
+          "output_tokens": 86,
+          "reasoning_output_tokens": 0
+        }
+      }
+    ],
+    "exit": 0,
+    "other_txt": null,
+    "seconds": 8.14,
+    "stderr": "Reading additional input from stdin...\n2026-10-12T03:52:44.720454Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\WINDOWS\\\\\\\\\\\\\\\\System32\\\\\\\\\\\\\\\\WindowsPowerShell\\\\\\\\\\\\\\\\v1.0\\\\\\\\\\\\\\\\powershell.exe\\\\\\\" -Command \\\\\\\"Set-Content -LiteralPath 'other.txt' -Value 'other'\\\\\\\"` rejected: blocked by policy\\\")\" }\n",
+    "thread_id": "01a12e3d-bd72-7ce3-93ed-1654a71a5d32"
+  },
+  "r3_resume_with_c_overrides": {
+    "argv": [
+      "exec",
+      "resume",
+      "--json",
+      "--skip-git-repo-check",
+      "-c",
+      "approval_policy=\"never\"",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "-c",
+      "mcp_servers={}",
+      "01a12e3d-9860-7872-96ef-8dab0310c848",
+      "Append a second line again to hello.txt, then reply done."
+    ],
+    "events": [
+      {
+        "thread_id": "01a12e3d-9860-7872-96ef-8dab0310c848",
+        "type": "thread.started"
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "item": {
+          "id": "item_0",
+          "text": "I\u2019ll append the second line to hello.txt.",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "item": {
+          "aggregated_output": "",
+          "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Add-Content -LiteralPath hello.txt -Value 'again' -Encoding ascii\"",
+          "exit_code": null,
+          "id": "item_1",
+          "status": "in_progress",
+          "type": "command_execution"
+        },
+        "type": "item.started"
+      },
+      {
+        "item": {
+          "aggregated_output": "",
+          "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Add-Content -LiteralPath hello.txt -Value 'again' -Encoding ascii\"",
+          "exit_code": 0,
+          "id": "item_1",
+          "status": "completed",
+          "type": "command_execution"
+        },
+        "type": "item.completed"
+      },
+      {
+        "item": {
+          "id": "item_2",
+          "text": "done",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "type": "turn.completed",
+        "usage": {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 78464,
+          "input_tokens": 89924,
+          "output_tokens": 127,
+          "reasoning_output_tokens": 0
+        }
+      }
+    ],
+    "exit": 0,
+    "hello_txt": "hello\nagain\n",
+    "seconds": 7.9,
+    "stderr": "",
+    "thread_id": "01a12e3d-9860-7872-96ef-8dab0310c848"
+  },
+  "r3b_resume_with_model_flag": {
+    "argv": [
+      "exec",
+      "resume",
+      "--json",
+      "--skip-git-repo-check",
+      "-m",
+      "gpt-6-astra",
+      "01a12e3d-9860-7872-96ef-8dab0310c848",
+      "Reply with exactly the word M."
+    ],
+    "events": [
+      {
+        "thread_id": "01a12e3d-9860-7872-96ef-8dab0310c848",
+        "type": "thread.started"
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "item": {
+          "id": "item_0",
+          "text": "M",
+          "type": "agent_message"
+        },
+        "type": "item.completed"
+      },
+      {
+        "type": "turn.completed",
+        "usage": {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 102400,
+          "input_tokens": 114089,
+          "output_tokens": 132,
+          "reasoning_output_tokens": 0
+        }
+      }
+    ],
+    "exit": 0,
+    "seconds": 4.56,
+    "stderr": "",
+    "thread_id": "01a12e3d-9860-7872-96ef-8dab0310c848"
+  },
+  "r4_resume_help": "Resume a previous session by id or pick the most recent with --last\n\nUsage: codex exec resume [OPTIONS] [SESSION_ID] [PROMPT]\n\nArguments:\n  [SESSION_ID]\n          Conversation/session id (UUID) or thread name. UUIDs take precedence if it parses. If\n          omitted, use --last to pick the most recent recorded session\n\n  [PROMPT]\n          Prompt to send after resuming the session. If `-` is used, read from stdin\n\nOptions:\n  -c, --config <key=value>\n          Override a configuration value that would otherwise be loaded from `~/.codex/config.toml`.\n          Use a dotted path (`foo.bar.baz`) to override nested values. The `value` portion is parsed\n          as TOML. If it fails to parse as TOML, the raw string is used as a literal.\n          \n          Examples: - `-c model=\"o3\"` - `-c 'sandbox_permissions=[\"disk-full-read-access\"]'` - `-c\n          shell_environment_policy.inherit=all`\n\n      --last\n          Resume the most recent recorded session (newest) without specifying an id\n\n      --all\n          Show all sessions (disables cwd filtering)\n\n      --enable <FEATURE>\n          Enable a feature (repeatable). Equivalent to `-c features.<name>=true`\n\n      --disable <FEATURE>\n          Disable a feature (repeatable). Equivalent to `-c features.<name>=false`\n\n  -i, --image <FILE>\n          Optional image(s) to attach to the prompt sent after resuming\n\n      --strict-config\n          Error out when config.toml contains fields that are not recognized by this version of\n          Codex\n\n  -m, --model <MODEL>\n          Model the agent should use\n\n      --dangerously-bypass-approvals-and-sandbox\n          Skip all confirmation prompts and execute commands without sandboxing. EXTREMELY\n          DANGEROUS. Intended solely for running in environments that are externally sandboxed\n\n      --dangerously-bypass-hook-trust\n          Run enabled hooks without requiring persisted hook trust for this invocation. DANGEROUS.\n          Intended only for automation that already vets hook sources\n\n      --worktree\n          Run the session in a new managed Git worktree\n\n      --thread-source <SOURCE>\n          Source classification for newly created or forked threads\n\n      --cyber-access-program <PROGRAM>\n          Request an experimental Cyber access program for this turn (OpenAI provider only). Omit to\n          use server defaults. Not supported with review; fork requires a prompt\n          \n          [possible values: standard, daybreak_blue, daybreak_red]\n\n      --skip-git-repo-check\n          Allow running Codex outside a Git repository\n\n      --ephemeral\n          Run without persisting session files to disk\n\n      --ignore-user-config\n          Do not load `$CODEX_HOME/config.toml`; auth still uses `CODEX_HOME`\n\n      --ignore-rules\n          Do not load user or project execpolicy `.rules` files\n\n      --output-schema <FILE>\n          Path to a JSON Schema file describing the model's final response shape\n\n      --json\n          Print events to stdout as JSONL\n\n  -o, --output-last-message <FILE>\n          Specifies file where the last message from the agent should be written\n\n  -h, --help\n          Print help (see a summary with '-h')\n",
+  "started": "2026-10-12T03:52:30Z"
+}

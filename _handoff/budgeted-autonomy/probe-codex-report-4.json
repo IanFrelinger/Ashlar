@@ -1,0 +1,85 @@
+{
+  "probe": "r5_resume_full_adapter_form",
+  "argv": [
+    "exec",
+    "resume",
+    "--json",
+    "--skip-git-repo-check",
+    "-c",
+    "sandbox_mode=\"workspace-write\"",
+    "-c",
+    "approval_policy=\"never\"",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-c",
+    "mcp_servers={}",
+    "-m",
+    "gpt-6-astra",
+    "-o",
+    "C:/Users/icfre/AppData/Local/Temp/claude/C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction/56c1a737-9604-4035-910c-22e974a23997/scratchpad/probe/cwd7\\last2.txt",
+    "01a12e3d-9860-7872-96ef-8dab0310c848",
+    "Append a third line third to hello.txt, then reply done."
+  ],
+  "exit": 0,
+  "seconds": 7.19,
+  "events": [
+    {
+      "type": "thread.started",
+      "thread_id": "01a12e3d-9860-7872-96ef-8dab0310c848"
+    },
+    {
+      "type": "turn.started"
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_0",
+        "type": "agent_message",
+        "text": "I\u2019ll append the third line to hello.txt."
+      }
+    },
+    {
+      "type": "item.started",
+      "item": {
+        "id": "item_1",
+        "type": "command_execution",
+        "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Add-Content -LiteralPath hello.txt -Value 'third' -Encoding ascii\"",
+        "aggregated_output": "",
+        "exit_code": null,
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_1",
+        "type": "command_execution",
+        "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Add-Content -LiteralPath hello.txt -Value 'third' -Encoding ascii\"",
+        "aggregated_output": "",
+        "exit_code": 0,
+        "status": "completed"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_2",
+        "type": "agent_message",
+        "text": "done"
+      }
+    },
+    {
+      "type": "turn.completed",
+      "usage": {
+        "input_tokens": 164168,
+        "cached_input_tokens": 151168,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 195,
+        "reasoning_output_tokens": 0
+      }
+    }
+  ],
+  "stderr": "",
+  "hello_txt": "hello\nagain\nthird\n",
+  "last2_txt": "done"
+}

@@ -1,0 +1,186 @@
+{
+  "cli": "C:/Users/icfre/AppData/Local/OpenAI/Codex/bin/2e5e00daee91c61d/codex.exe",
+  "cwd": "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd4",
+  "finished": "2026-10-12T03:28:13Z",
+  "q0_features": {
+    "argv": [
+      "features"
+    ],
+    "exit": 2,
+    "seconds": 0.03,
+    "stderr": "Inspect feature flags\n\nUsage: codex features [OPTIONS] <COMMAND>\n\nCommands:\n  list     List known features with their stage and effective state\n  enable   Enable a feature in config.toml\n  disable  Disable a feature in config.toml\n  help     Print this message or the help of the given subcommand(s)\n\nOptions:\n  -c, --config <key=value>  Override a configuration value that would otherwise be loaded from\n                            `~/.codex/config.toml`. Use a dotted path (`foo.bar.baz`) to override\n                            nested values. The `value` portion is parsed as TOML. If it fails to\n                            parse as TOML, the raw string is used as a literal\n      --enable <FEATURE>    Enable a feature (repeatable). Equivalent to `-c features.<name>=true`\n      --disable <FEATURE>   Disable a feature (repeatable). Equivalent to `-c features.<name>=false`\n  -h, --help                Print help (see more with '--help')\n",
+    "stdout": ""
+  },
+  "q1_edit_code_mode_off": {
+    "argv": [
+      "exec",
+      "--json",
+      "-s",
+      "workspace-write",
+      "-c",
+      "features.code_mode=false",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd4",
+      "Create a file named hello.txt in the current directory containing the single line hello, then reply done."
+    ],
+    "exit": 0,
+    "hello_txt": "hello\n",
+    "seconds": 7.08,
+    "stderr": "Reading additional input from stdin...\n",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-f397-73f0-a7fc-b3877d7c6a77\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I\u2019ll create hello.txt with the requested line.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\WINDOWS\\\\\\\\System32\\\\\\\\WindowsPowerShell\\\\\\\\v1.0\\\\\\\\powershell.exe\\\" -Command \\\"Set-Content -LiteralPath hello.txt -Value 'hello' -Encoding ascii\\\"\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\WINDOWS\\\\\\\\System32\\\\\\\\WindowsPowerShell\\\\\\\\v1.0\\\\\\\\powershell.exe\\\" -Command \\\"Set-Content -LiteralPath hello.txt -Value 'hello' -Encoding ascii\\\"\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"agent_message\",\"text\":\"done\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":36657,\"cached_input_tokens\":31360,\"cache_write_input_tokens\":0,\"output_tokens\":64,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 7,
+      "errors": [],
+      "item_types": [
+        "item.completed:agent_message",
+        "item.started:command_execution",
+        "item.completed:command_execution",
+        "item.completed:agent_message"
+      ],
+      "last_message": "done",
+      "thread_id": "01a12e26-f397-73f0-a7fc-b3877d7c6a77",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 31360,
+        "input_tokens": 36657,
+        "output_tokens": 64,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "q1_session_file": "C:\\Users\\icfre\\.codex\\sessions\\2026\\10\\11\\rollout-2026-10-11T23-27-47-01a12e26-f397-73f0-a7fc-b3877d7c6a77.jsonl",
+  "q2_resume": {
+    "argv": [
+      "exec",
+      "resume",
+      "--json",
+      "--skip-git-repo-check",
+      "01a12e26-f397-73f0-a7fc-b3877d7c6a77",
+      "Append a second line 'again' to hello.txt, then reply done."
+    ],
+    "exit": 0,
+    "hello_txt": "hello\nagain\n",
+    "seconds": 7.46,
+    "stderr": "",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e26-f397-73f0-a7fc-b3877d7c6a77\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I\u2019ll append the second line.\"}}\n{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\WINDOWS\\\\\\\\System32\\\\\\\\WindowsPowerShell\\\\\\\\v1.0\\\\\\\\powershell.exe\\\" -Command \\\"Add-Content -LiteralPath hello.txt -Value 'again' -Encoding ascii\\\"\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\WINDOWS\\\\\\\\System32\\\\\\\\WindowsPowerShell\\\\\\\\v1.0\\\\\\\\powershell.exe\\\" -Command \\\"Add-Content -LiteralPath hello.txt -Value 'again' -Encoding ascii\\\"\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"agent_message\",\"text\":\"done\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":74031,\"cached_input_tokens\":67968,\"cache_write_input_tokens\":0,\"output_tokens\":125,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 7,
+      "errors": [],
+      "item_types": [
+        "item.completed:agent_message",
+        "item.started:command_execution",
+        "item.completed:command_execution",
+        "item.completed:agent_message"
+      ],
+      "last_message": "done",
+      "thread_id": "01a12e26-f397-73f0-a7fc-b3877d7c6a77",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "item.started",
+        "item.completed",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 67968,
+        "input_tokens": 74031,
+        "output_tokens": 125,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "q3_cancel": {
+    "argv": [
+      "exec",
+      "--json",
+      "-s",
+      "workspace-write",
+      "-c",
+      "features.code_mode=false",
+      "--skip-git-repo-check",
+      "-C",
+      "C:\\Users\\icfre\\AppData\\Local\\Temp\\claude\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\56c1a737-9604-4035-910c-22e974a23997\\scratchpad\\probe\\cwd4",
+      "Write a 900-word story about a lighthouse keeper into story.txt, then reply done."
+    ],
+    "exit": 1,
+    "first_lines": [
+      "{\"type\":\"thread.started\",\"thread_id\":\"01a12e27-2c55-7800-a1cd-a249e8a741bb\"}\n",
+      "{\"type\":\"turn.started\"}\n",
+      "{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I\u2019ll write the story into story.txt and check that it contains 900 words.\"}}\n"
+    ],
+    "seconds": 6.88,
+    "session_file": "C:\\Users\\icfre\\.codex\\sessions\\2026\\10\\11\\rollout-2026-10-11T23-28-01-01a12e27-2c55-7800-a1cd-a249e8a741bb.jsonl",
+    "stderr_tail": "Reading additional input from stdin...\n",
+    "stdout_tail": "gated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"\\\"C:\\\\\\\\WINDOWS\\\\\\\\System32\\\\\\\\WindowsPowerShell\\\\\\\\v1.0\\\\\\\\powershell.exe\\\" -Command 'Get-Location; rg --files -g AGENTS.md -g story.txt'\",\"aggregated_output\":\"\\r\\nPath                                                                                                                   \\r\\n----                                                                                                                   \\r\\nC:\\\\Users\\\\icfre\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction...\\r\\nrg : The term 'rg' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the \\r\\nspelling of the name, or if a path was included, verify that the path is correct and try again.\\r\\nAt line:2 char:15\\r\\n+ Get-Location; rg --files -g AGENTS.md -g story.txt\\r\\n+               ~~\\r\\n    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException\\r\\n    + FullyQualifiedErrorId : CommandNotFoundException\\r\\n \\r\\n\\r\\n\\r\\n\",\"exit_code\":1,\"status\":\"failed\"}}\n",
+    "story_exists": false,
+    "thread_id": "01a12e27-2c55-7800-a1cd-a249e8a741bb"
+  },
+  "q3_resume_after_cancel": {
+    "argv": [
+      "exec",
+      "resume",
+      "--json",
+      "--skip-git-repo-check",
+      "01a12e27-2c55-7800-a1cd-a249e8a741bb",
+      "Reply with exactly the word RESUMED and nothing else."
+    ],
+    "exit": 0,
+    "seconds": 4.87,
+    "stderr": "",
+    "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a12e27-2c55-7800-a1cd-a249e8a741bb\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"RESUMED\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":37089,\"cached_input_tokens\":31744,\"cache_write_input_tokens\":0,\"output_tokens\":73,\"reasoning_output_tokens\":0}}\n",
+    "summary": {
+      "count": 4,
+      "errors": [],
+      "item_types": [
+        "item.completed:agent_message"
+      ],
+      "last_message": "RESUMED",
+      "thread_id": "01a12e27-2c55-7800-a1cd-a249e8a741bb",
+      "types": [
+        "thread.started",
+        "turn.started",
+        "item.completed",
+        "turn.completed"
+      ],
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 31744,
+        "input_tokens": 37089,
+        "output_tokens": 73,
+        "reasoning_output_tokens": 0
+      }
+    }
+  },
+  "q4_0_app_server_account_rateLimits_read": {
+    "exit": 0,
+    "seconds": 0.22,
+    "stderr": "",
+    "stdout": "{\"id\":1,\"result\":{\"userAgent\":\"ashlar-probe/0.162.0-alpha.17.2 (Windows 10.0.26300; x86_64) xterm-256color (ashlar-probe; 0.0.0)\",\"codexHome\":\"C:\\\\Users\\\\icfre\\\\.codex\",\"platformFamily\":\"windows\",\"platformOs\":\"windows\"}}\n{\"method\":\"remoteControl/status/changed\",\"params\":{\"status\":\"disabled\",\"serverName\":\"Jeff\",\"installationId\":\"a1e811c0-fc07-47b1-9cb0-f2024d19e701\",\"environmentId\":null},\"emittedAtMs\":1791775693363}\n",
+    "timeout": null
+  },
+  "q4_1_app_server_getAccountRateLimits": {
+    "exit": 0,
+    "seconds": 0.22,
+    "stderr": "",
+    "stdout": "{\"id\":1,\"result\":{\"userAgent\":\"ashlar-probe/0.162.0-alpha.17.2 (Windows 10.0.26300; x86_64) xterm-256color (ashlar-probe; 0.0.0)\",\"codexHome\":\"C:\\\\Users\\\\icfre\\\\.codex\",\"platformFamily\":\"windows\",\"platformOs\":\"windows\"}}\n{\"method\":\"remoteControl/status/changed\",\"params\":{\"status\":\"disabled\",\"serverName\":\"Jeff\",\"installationId\":\"a1e811c0-fc07-47b1-9cb0-f2024d19e701\",\"environmentId\":null},\"emittedAtMs\":1791775693582}\n",
+    "timeout": null
+  },
+  "q5_models_in_session_file": [
+    "gpt-6-astra"
+  ],
+  "q5_session_head": "{\"timestamp\":\"2026-10-12T03:27:47.261Z\",\"ordinal\":0,\"type\":\"session_meta\",\"payload\":{\"creator_user_id\":\"<redacted>\",\"creator_account_id\":\"<redacted>\",\"session_id\":\"01a12e26-f397-73f0-a7fc-b3877d7c6a77\",\"id\":\"01a12e26-f397-73f0-a7fc-b3877d7c6a77\",\"timestamp\":\"2026-10-12T03:27:47.100Z\",\"cwd\":\"C:\\\\Users\\\\icfre\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\\\56c1a737-9604-4035-910c-22e974a23997\\\\scratchpad\\\\probe\\\\cwd4\",\"runtime_workspace_roots\":[\"C:\\\\Users\\\\icfre\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction\\\\56c1a737-9604-4035-910c-22e974a23997\\\\scratchpad\\\\probe\\\\cwd4\"],\"originator\":\"codex_exec\",\"cli_version\":\"0.162.0-alpha.17.2\",\"source\":\"exec\",\"thread_source\":\"user\",\"model_provider\":\"openai\",\"base_instructions\":{\"text\":\"You are Codex, an agent based on GPT-6. You and the user share one workspace, and your job is to collaborate with them until their intended goal is completely handled.\\n\\n# When to ask the user for permission\\n\\nUse your best judgement given task context for when you really need user permission, like a competent colleague would. Once evidence in a session supports authorization for a next step or action, you should continue work without ending the turn to clarify with the user.\\n\\nUser authorization and preferences persist across turns. Do not request permission again when the user has already au",
+  "started": "2026-10-12T03:27:46Z"
+}
