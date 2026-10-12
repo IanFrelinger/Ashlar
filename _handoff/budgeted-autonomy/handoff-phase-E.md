@@ -91,6 +91,71 @@ Three findings came out of the pilot, all handled in #780:
 2. The report printed `merged merged`. **Fixed.**
 3. A resumed run reported `num_turns` 48 under `--max-turns 12`. A probe did not reproduce it: a resume with `--max-turns 2` stopped at 3 turns, and the run spawned no subagents. **Recorded as unverified in the README; still charged as reported.**
 
+### Project status at the end of phase E
+
+*Added 2026-10-12, after this handoff was first published. It is the first run of the phase-end validation
+and audit that the owner asked to run before every handoff (card #782, PR #783): `scripts/phase-end/validate.py`,
+then the saved workflow `.claude/workflows/project-audit.js`. That run used nine agents and took about 31
+minutes, on master `b130228ee`. It covers the whole project, not only this workstream. There was no previous
+status to compare with, so every row reads "first audit". Phase F's audit will compare against this one
+(`project-status.json`).*
+
+*One correction since the audit ran: its critic found that the validation counted 66 workflows where master
+has 61 files, because GitHub also lists deleted workflows and Dependabot's built-in one. The validation now
+counts only workflows on master. The 7 red workflows it reported all exist on master, so that finding
+stands. `validation-E.md` is the corrected run.*
+
+Master b130228ee is healthy where merges happen. The required checks are green (shell-lint runs on PRs only and is green on #783, which is built on this commit), and readiness is VERIFIED (run 38266204232). The budgeted-autonomy workstream has merged all five PRs and meets 34 of 36 card criteria. The PR 5 live run through Codex and Cursor is what remains, and only you can launch it. The wider project is far from its end states: 5 of 41 completion-roadmap exit criteria are done, 1 of 5 dogfood unlock criteria is met, and the next release has not started. This phase merged PR 5 (#781) and the pilot fixes (#780), and built the phase-end validation and audit (#783, merged after this audit as `dd38c007c`).
+
+Validation on b130228eecf7: 4 pass, 3 warn, 0 fail, 0 error.
+- Warn: 7 workflows end red on master. The validator counted 66 workflows, but 4 are deleted and one is Dependabot's; 61 files exist. compat-gate has been red since 2026-09-12 with no issue. The other six are dispatch-only and stale.
+- Warn: secret scanning, push protection and Dependabot security updates are off on a public repository.
+- Warn: local work on no remote. This phase's branch is now pushed. Of the 65 branches left, 53 bx/* hold the unlanded 2026-10-01 tech-debt backlog, and 12 are throwaway or already landed.
+
+| Area | Distance | Estimate (basis) | Since last phase | Blocks the rest |
+|---|---|---|---|---|
+| Product roadmap | far | 5 done, 10 partial, 26 open of 41 exit criteria (completion roadmap checked against code) | First audit | You: which end state governs |
+| Next release | partway | 0 of 9 runbook pre-tag steps on a release commit; 1.5 of 4 exit criteria | First audit | You: version and API stability; compat-gate |
+| Security specs | partway | 7 of 12 planned items done, 2 partial | First audit | You: SPEC-007 rows 519-521; PR 5 shape |
+| Autonomy unlock | far | 1 of 5 criteria met, 2 partial; 0 of 7 3a rows landed | First audit | You: record JSON decision; 3b pass |
+| Bug backlog | partway | 17 of 41 defects fixed on master (10 fully), 0 closed; 0 of 11 security defects triaged | First audit | You: severity triage |
+| CI health | partway | 3.5 of 8 integrator criteria | First audit | You: security settings; dormant workflows |
+| Workstream budgeted-autonomy | near | 5 of 5 PRs; 34 of 36 card criteria; phase F 1 of 5 | First audit | You: run live-run-pr5.md |
+
+#### Moved since the last phase
+First audit.
+
+#### Critical path to the next release tag (number not chosen)
+1. You: choose the version number.
+2. You: decide whether the 160 unshipped Ashlar.Abstractions API lines ship as stable or [Experimental], as a dated SPEC-007 decisions-log row.
+3. You: confirm or strike SPEC-007 rows 519-521, and answer Q-C (#766).
+4. Fix the refusal masking BL4 and BL5 (PR 4.8b). This tag is the first to carry the AirGapped/SecureWorkstation enforce switch.
+5. Fix compat-gate's stale tier B assertion (scripts/kernel-gate-tier-b.sh:80-84).
+6. Land a records PR answering Grok's drift-746 and drift-748 asks.
+7. You: classify the 11 open security defects and sign an exception for any that ships unfixed. Separately, close the 10 issues already fixed on master.
+8. Re-run the dispatch-only RC gates on the release SHA.
+9. Make the release commit, run the rc1 rehearsal, get VERIFIED on the release SHA, tag, and re-pin deploy/node.yml.
+10. You: give the Product sign-off and provide an environment for a real rollback drill.
+
+#### Hard dates
+- 2026-10-01, passed: v0.2.0 shipped with the SPEC-006 S-4 dev-HMAC fallback still in place, and the roadmap's 0.2.0 launch target was missed without a re-baseline.
+- 2026-10-13 to 2026-10-26: dogfood sweep-log artifacts expire daily.
+- 2026-10-19: ubuntu-latest starts moving to 26.04; the next weekly readiness run.
+- 2026-10-26: the artifacts of VERIFIED run 38266204232 expire.
+- 2026-10-29 to 2026-11-11: the dogfood ledger-patch artifacts expire. After 2026-11-06, the existing runs can no longer supply 7 rows for 3a.
+- 2026-11-10: .NET 8 end of support (Microsoft policy, recorded in no repo doc). 48 projects target net8.0 only.
+
+#### Not verified
+- No dotnet tests or mutations ran. Counts and KILLED lines are quoted from PR bodies, the bus and reviews.
+- Whether SPEC-007 rows 519-521 record your decisions.
+- Per-layer readiness convergence: the ledger last converged on 2026-08-26.
+- Live Codex and Cursor behaviour through the controller, and whether workstream questions 2-5 reached you.
+- nuget.org trusted publishing, and whether the social preview card is uploaded.
+
+Attachments: `validation-E.md` and `validation-E.json` (the validation), `project-status-E.json` and
+`project-status.json` (this status, structured), and `project-audit-E.json` (every reader's full report and the
+critic's 17 verdicts).
+
 ## 2. Read these first
 
 **In the repo (master).** Read `CLAUDE.md`, then `tools/autonomy-controller/README.md`. In the README, these sections first:
@@ -119,6 +184,8 @@ Then the code and tests:
   - the scripts: `probe_codex_runtime{,_2,_3}.py`, `probe_cursor_runtime.py` and `probe_claude_resume_turns.py`.
   - Account ids and emails are redacted from the reports.
 - **Mutations:** `mutations-pr780-summary.txt`, `mutations-pr781-summary.txt`, and `mutation-logs-pr{780,781}.tar.gz`, which include the batch runners `run.sh`, `run2.sh` and `lanes.sh`.
+- **Project status:** `validation-E.md`, `project-status.json` and `project-audit-E.json`, the phase-end
+  validation and audit summarised in §1.
 - **Evidence:** `live-run-pr4-pilot-evidence.tar.gz`. The README on master calls this `live-run-pr4-pilot-evidence/`; the tarball holds that folder, as `live-run-pr3-evidence.tar.gz` holds the PR 3 run's.
 - **Bus posts:** `12-` to `18-*.md`.
 
