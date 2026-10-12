@@ -16,7 +16,11 @@ show the operator everything the ledger knows, including each run's evidence pat
 without an LLM; `metrics` are counts from the ledger; `backup` and `restore` move the ledger through
 the SQLite backup API with a schema check; `evidence archive` keeps a run's manifest, output, transcript
 and ledger rows after its workspace is gone; and `pause`, `resume`, `provider disable` and `run cancel`
-are proven to take effect at the next tick. The roadmap (PR 5 Codex and Cursor adapters) is in the card.
+are proven to take effect at the next tick. **PR 5 adds the Codex and Cursor adapters and the bounded
+provider transfer**: each adapter declares only what a probe of the installed CLI showed; `task transfer`
+moves a task to another provider, at most `limits.provider_transfers_per_pr` times, keeping its PR, its
+attempts and its budget pool, after the previous writer is stopped and settled; the new provider starts a
+fresh session briefed by the compact handoff.
 
 Python 3.8+ and the standard library only (SQLite through `sqlite3`). Nothing here runs `dotnet`,
 and nothing here runs outside the host the operator starts it on.
@@ -32,7 +36,7 @@ and nothing here runs outside the host the operator starts it on.
 | `ashlar_controller/events.py` | Event deduplication (an event id is an idempotency key) |
 | `ashlar_controller/outbox.py` | Milestone posts (claim / handoff / done) with duplicate-safe recovery |
 | `ashlar_controller/controller.py` | The tick: settle, reconcile, then at most one launch |
-| `ashlar_controller/adapters/` | The adapter protocol, declared capabilities, the fake adapter and `claude.py` (the Claude Code CLI) |
+| `ashlar_controller/adapters/` | The adapter protocol, declared capabilities, the fake adapter, `claude.py` (the Claude Code CLI), `codex.py` (the Codex CLI) and `cursor.py` (the Cursor agent CLI); `locate_run_transcript` finds a run's transcript by the provider that wrote it |
 | `ashlar_controller/readiness.py` | The three gate commands, their parsers, stable failure identities, the bounded fixer launch |
 | `ashlar_controller/prs.py` | PR records, the `gh` client (`GhCli`) and its in-memory twin (`FakeGh`), checks evaluated by head SHA, the compact handoff |
 | `ashlar_controller/gitops.py` | The controller's git: clone the base onto a branch, commit and push a workspace, clone a PR head for a repair |
@@ -40,7 +44,7 @@ and nothing here runs outside the host the operator starts it on.
 | `ashlar_controller/metrics.py` | Counts and sums from the ledger (`metrics`) and the LLM-free Markdown report (`report`) |
 | `ashlar_controller/evidence.py` | `backup` and `restore` through the SQLite backup API; per-run evidence archives |
 | `policy.example.json` | The operator policy example (copy it outside every checkout) |
-| `tests/` | The unit suite (`tests/fake_claude_cli.py` stands in for the CLI); `tests/scripts/autonomy-controller.test.sh` runs it in the required `shell-lint` check |
+| `tests/` | The unit suite (`tests/fake_claude_cli.py`, `fake_codex_cli.py` and `fake_cursor_cli.py` stand in for the CLIs); `tests/scripts/autonomy-controller.test.sh` runs it in the required `shell-lint` check |
 | `mutation-runner.sh` | `ASHLAR_MUTATION_RUNNER` for `scripts/mutation-check.sh` |
 
 ## Operator setup
@@ -62,6 +66,9 @@ and nothing here runs outside the host the operator starts it on.
    `claude.ai`.
 4. Register tasks (`task add --task-id <id> --card <n> --workstream <w> --provider claude ...`) and run
    `tick --adapter claude`. `tick` without `--adapter` uses the fake, for proving the state machine.
+   `--adapter` is repeatable (`--adapter claude --adapter codex`): register every provider whose tasks the
+   tick may launch, observe or stop. The Codex and Cursor providers are disabled in the example policy;
+   enable one only after its CLI is logged in on this host (see "Codex adapter" and "Cursor adapter").
 
 `ASHLAR_CONTROLLER_STATE` and `ASHLAR_CONTROLLER_POLICY` stand in for `--state` and `--policy`.
 
@@ -76,7 +83,7 @@ and nothing here runs outside the host the operator starts it on.
 | `restore <source> [--replace]` | Replace the `--state` file with a backup. Refuses a source whose `schema_version` the controller does not know (`1` and `2` are known; `1` is migrated on open) and, without `--replace`, an existing state file; swaps the file atomically, removes stale `-wal`/`-shm` sidecars, opens and verifies the result, and journals `restored` in it |
 | `evidence archive <run> [--out <dir>]` / `evidence list` | Tar the run directory (`manifest.json`, `stdout.json`, `stderr.log`, the transcript when it can be located) with the run's ledger rows (`ledger.json`: run, task, pool, PR, journal, usage, policy version) into `<state dir>/evidence/<run>.tar.gz`; never overwrites; journals `evidence-archived` with the archive's sha256 |
 | `pause --reason <text>` / `resume` | Stop launching before the next tick; allow it again |
-| `tick [--dry-run] [--adapter fake\|claude] [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter claude` registers the Claude adapter with its run directory under `<state dir>/runs/`. `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
+| `tick [--dry-run] [--adapter fake\|claude\|codex\|cursor]... [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter` is repeatable; `claude`, `codex` and `cursor` register those CLIs' adapters with their run directories under `<state dir>/runs/` (the fake is always registered). `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
 | `pr list\|show <n>\|observe <n>` | PR records; `observe` reads the PR's current head and its required checks now and merges, repairs or parks as they demand (`--gh cli`) |
 | `readiness run --gate <name> --workspace <path> [--task-id <id>]` | Run one gate command (`repo-gates`, `readiness-local`, `container-tests`) in a workspace and print the parsed report; with `--task-id`, apply it to the task (see "Readiness fixer") |
 | `readiness evaluate --task-id <id> --report <json>` | Apply a saved report (the JSON `readiness run` printed) to a task without running anything |
@@ -87,6 +94,7 @@ and nothing here runs outside the host the operator starts it on.
 | `outbox list|enqueue|flush` | Milestone posts; `flush --poster fake` in PR 1 (`gh` poster present, not exercised live) |
 | `worker register|list` | Worker checkout roots, which the policy may never live under |
 | `provider disable|enable <name>` | Take a provider out of dispatch without editing the policy |
+| `task transfer <id> --to <provider> [--reason <text>] [--adapter <old provider>]` | Move a task to another provider (see "Provider transfer (PR 5)"); refused with exit 6 past `limits.provider_transfers_per_pr`, exit 4 for a target the policy or the operator disabled or whose unit differs |
 | `policy` | Show the validated active policy and its hash |
 
 Exit codes: 0 ok; 1 other error; 2 usage; 3 state missing or corrupt; 4 policy refused; 5 writer
@@ -138,6 +146,7 @@ One tick does **one** thing, the first that applies, and journals it with its ex
 | `repair-rounds-exhausted` | `parked-failure` | the current head is red and `limits.repair_rounds` are used; operator step required |
 | a refusal at launch (`LaunchRefused`) | by the same mapping | the adapter named the reason before anything started: `auth-missing` and `funding-route-mismatch` give `blocked-auth`, `model-unrecognized` gives `parked-decision`, anything else requeues as `launch-failed`; the reservation is released, the attempt stays counted |
 | budget or attempts exhausted at reservation | `parked-budget` | with the remaining counts in the blocker text |
+| `provider-transferred` (operator, `task transfer`) | `queued`, or `pr-open` while the PR is open | the previous writer was stopped and settled first; task, PR, attempts and pool are unchanged; the new provider starts a fresh session |
 
 ### Budget accounting
 
@@ -322,6 +331,133 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   /T /F` on Windows, `killpg` on POSIX). The workspace and the transcript are never touched; the
   session can be resumed afterwards.
 
+## Codex adapter
+
+`ashlar_controller/adapters/codex.py` runs the Codex CLI headless (`codex exec --json`). It declares only what
+was observed; the module docstring lists each observation with its probe id. The probes were run on Windows
+on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage branch
+`claude/budgeted-autonomy-workspace`.
+
+### What was observed
+
+- **Executable.** It is `codex-cli 0.162.0-alpha.17.2`, the Codex desktop app's binary at
+  `%LOCALAPPDATA%\OpenAI\Codex\bin\<hash>\codex.exe`, which has `codex-code-mode-host.exe` beside it.
+  The other `codex.exe` on the host, `~/.codex/.sandbox-bin/codex.exe` (0.162.0-alpha.2), has no code-mode
+  host beside it. There every tool call fails closed ("Code Mode is unavailable ... host executable was
+  not found"), and the model reports that it could not edit. `resolve_cli()` therefore never picks a
+  `codex.exe` without the host beside it, including one found on `PATH`. A `codex.cmd` shim is used as
+  found. Otherwise it takes the newest app binary that has the host.
+- **Login.** `codex login status` exits 0 and prints `Logged in using ChatGPT`, on stderr. The route
+  check reads both streams. An `OPENAI_API_KEY` in the child environment means the `api-key` route: paid
+  spend, refused as `funding-route-mismatch`. Anything else is refused as `auth-missing`; the logged-out
+  text is unobserved.
+- **The fresh run**, exactly as passed (report 3, r1):
+  `codex exec --json --skip-git-repo-check -C <workspace> -s workspace-write -c approval_policy="never"
+  -c model_reasoning_effort=<effort> -c mcp_servers={} -m <model> -o <run dir>/last_message.txt <prompt>`.
+  It runs from the workspace with stdin closed; with stdin open the CLI waits ("Reading additional input
+  from stdin..."). It prints NDJSON in this order:
+  - `thread.started{thread_id}`, then `turn.started`;
+  - `item.started` / `item.completed` events whose item is either
+    `{type: "agent_message", text}` or
+    `{type: "command_execution", command, aggregated_output, exit_code, status}`.
+    The file was written by a PowerShell `Set-Content` through `command_execution`;
+  - `turn.completed{usage: {input_tokens, cached_input_tokens, cache_write_input_tokens, output_tokens,
+    reasoning_output_tokens}}`.
+
+  `-o` writes the last agent message. `--ignore-user-config` is never passed: with it the same write was
+  refused ("rejected: blocked by policy", r2). The operator's `config.toml` stays loaded and the command line
+  overrides what matters. `mcp_servers={}` keeps the operator's MCP servers out of every run.
+- **The resume** (report 4, r5): `codex exec resume --json --skip-git-repo-check -c sandbox_mode="workspace-write"
+  -c approval_policy="never" -c model_reasoning_effort=<effort> -c mcp_servers={} -m <model> -o <file>
+  <thread_id> <prompt>`. It kept the same `thread_id`, appended to the file in the workspace and wrote the
+  `-o` file. `exec resume` has no `-s`. Without the `-c sandbox_mode` override a resume would inherit the
+  operator's configured sandbox, which on the probed host is `danger-full-access`. Without
+  `--skip-git-repo-check` a resume exits 1 with "Not inside a trusted directory".
+- **Models.** `gpt-6-astra` is accepted. An unrecognised id, including the PR 1 candidate `sol`, yields
+  `{"type": "error", "message": <JSON with status 400 and "... model is not supported when using Codex
+  with a ChatGPT account.">}` and then `turn.failed`, with no `turn.completed`, exit 1. That is
+  `model-unrecognized`, charged 0.
+- **Cancel.** `taskkill /T /F` mid-run exits 1 with no `turn.completed`. The session file
+  `<CODEX_HOME>/sessions/<YYYY>/<MM>/<DD>/rollout-<timestamp>-<thread_id>.jsonl` exists afterwards, and
+  `exec resume` of that thread succeeded. The transcript is found by thread id, and `status` and
+  `evidence archive` find it through `adapters.locate_run_transcript`.
+- **Other flags.** `--output-schema <file>` makes the last message the JSON. `--ephemeral` writes no
+  session file.
+
+### What is unverified
+
+- A turn limit. No flag exists, so `turn_limit` is False: a Codex run is bounded by the task budget, the
+  attempts and the operator's `run cancel`, never by the CLI.
+- The subscription allowance. Nothing is printed. `codex app-server` answered `initialize`, but neither
+  `account/rateLimits/read` nor `getAccountRateLimits` replied, so `usage_observation` is False and every
+  allowance observation is `unavailable`. With the default `unobservable_allowance: task-ceiling-only`,
+  launches rely on the task ceilings.
+- The error texts for 401, 402, 429 and 5xx, and the logged-out login text. The generic rules are carried
+  over from the Claude adapter.
+- A tool-restriction flag. A request with `allowed_tools` set is refused rather than run unrestricted.
+  `agent`, a Claude agent role, has no Codex equivalent and is recorded as ignored.
+
+### Accounting (integrator decision)
+
+`consumed_units` is the number of `item.completed` events whose item is not an `error` warning: one
+completed model step is one unit of the `turns` pool. A cancelled run, and a run with no final result,
+report None and are charged the full reservation. An unrecognised model is charged 0. A turn that
+completed with an empty last message is `no-final-result`. The token usage is kept in the run result;
+it is not a charge.
+
+## Cursor adapter
+
+`ashlar_controller/adapters/cursor.py` runs the Cursor agent CLI headless:
+`cursor-agent -p --output-format stream-json --trust --workspace <ws> --model <m> -f <prompt>`. **The CLI on
+the probe host was not logged in**, so no `-p` run produced any output (report `probe-cursor-report-1.json`).
+The adapter declares no capability beyond the funding-route check, and it is built to leave evidence of the
+real shape on its first logged-in run.
+
+### What was observed
+
+- **Executable.** The Cursor IDE's embedded agent CLI `2026.10.01-e373342`, at
+  `%APPDATA%\Cursor\User\globalStorage\anysphere.cursor-agent-worker\agent-cli\.local\share\cursor-agent\versions\<v>\cursor-agent.cmd`.
+  `resolve_cli()` takes `cursor-agent` on `PATH`, then the newest of those version directories, compared
+  by version and not as text. `cursor --help` (the IDE) has an `agent` subcommand, which is not used.
+- **Login.** `cursor-agent status` printed `Not logged in` (exit 0). `about` printed `Subscription Tier
+  Unknown`. Logged out, `models` and every `-p` run exit 1 with an `Authentication required` error on
+  stderr and empty stdout. The adapter refuses a launch while `status` says `Not logged in`
+  (`auth-missing`; the operator step is `cursor-agent login`). A `CURSOR_API_KEY` or `CURSOR_AUTH_TOKEN`
+  in the environment is the `api-key` route and is refused as `funding-route-mismatch`. The logged-in
+  `status` text is unobserved: any other non-empty text at exit 0 counts as logged in, and the text is
+  recorded.
+- **Flags, from `--help` only:** `--resume [chatId]`, `--model`, `-f`, `--trust`, `--workspace`,
+  `--mode plan|ask`, `--sandbox`. No turn-limit flag, no tool-restriction flag and no schema flag are
+  listed.
+
+### What is unverified, and how the adapter treats it
+
+- **Resume** (`exact_resume` False). No chat id was seen, so `--resume` is never passed. A request that
+  carries a session to resume launches fresh and records `resume_unsupported`.
+- **Cancel** (`cancel` False). Nothing lived long enough to be cancelled. `run cancel` still records
+  `cancelled_at` first and kills the process tree.
+- **Turns and allowance** (`usage_observation` and `turn_limit` False). `consumed_units` is always None,
+  so every run is charged the full reservation (`turns_unobserved`). Every allowance observation is
+  `unavailable`.
+- **Transcript** (`transcript_retention` False). Where the CLI keeps a chat is unknown.
+- **What the first logged-in run keeps.** Every settled run keeps the first 2000 characters of stdout,
+  the `type` of every JSON line, any `session_id` / `chatId` value seen, and the stderr tail.
+
+### Integrator decisions
+
+- **The launcher.** The `.cmd` runs PowerShell, which runs `node.exe index.js`, so a multi-line prompt
+  would be cut at its first line break and `% ! " & | < > ^` rewritten. The adapter therefore launches
+  `node.exe index.js` directly when they are beside the `.cmd` (as `claude.py` launches `claude.exe`
+  rather than the npm shim). It refuses a bare `.cmd` when an argument holds one of those characters.
+- **Classification order.** An exit 0 with output is `completed` before the quota, rate-limit and
+  transient texts are looked for. Those texts only classify a run that did not exit 0, because a finished
+  run's stdout carries the model's own words.
+- **Refused before anything starts:** a speed other than `standard`, and a restricted `allowed_tools`
+  (`-f` would widen it silently). `effort`, `invocation_ceiling` and `agent` have no flag and are
+  recorded as ignored.
+- **Policy.** The example's `cursor` provider counts `requests` and stays disabled. A task in a `turns`
+  pool cannot be transferred to it, because units are never converted. `composer-standard` is unverified.
+
 ## PR lifecycle
 
 `ashlar_controller/lifecycle.py`, `prs.py` and `gitops.py`; on with `--gh cli`. The worker (a headless CLI
@@ -409,6 +545,48 @@ next tick reads first.
   usage per provider and kind, and the per-provider sum of `estimated_api_value` deltas, which stays an
   estimate and is never added to a turns figure.
 
+## Provider transfer (PR 5)
+
+`task transfer <id> --to <provider>` (`Controller.transfer_task`) moves a task from one provider's CLI to
+another. It is an operator command: nothing transfers a task on its own (see "Not in PR 5"). In this
+order, so that a refusal changes nothing:
+
+1. **The target.** It must be a provider the policy names, `enabled`, not disabled by `provider disable`,
+   not the task's current provider, and counting in the same unit as the task's budget pool (provider units
+   are never converted, so a `turns` pool is never moved to a `requests` provider). A `done` task is not
+   transferred. Refusal: exit 4, `PolicyError`.
+2. **The bound.** The transfers already made for the task's pool, counted from the append-only journal over
+   every task that shares the pool (so a split never resets it), must be below
+   `limits.provider_transfers_per_pr` (1 in the example; the policy allows 0 or 1). Refusal: exit 6,
+   `provider-transfers-exhausted`, journalled as `transfer-refused`. The bound is checked before anything
+   is stopped.
+3. **Stop and reconcile the previous writer.** An uncertain launch of the task is reconciled through its own
+   provider's adapter first; one that stays uncertain refuses the transfer (`reconcile-pending`). A run that
+   has already ended is settled with what it actually did (a completed run is committed, pushed and proposed
+   as usual). A run still running is cancelled through its own adapter and settled (`cancelled`, the workspace
+   kept). A running run whose provider has no adapter registered refuses the transfer
+   (`previous-writer-not-stoppable`: pass `--adapter <that provider>`). So there is never a second writer:
+   the journal shows the old run's `settled` before `provider-transferred`, and the new provider's `launched`
+   after both.
+4. **The move**, in one transaction: `tasks.provider` changes; the open PR row's `provider_transfers_used`
+   is incremented; `provider-transferred` is journalled with the from and to providers, the transfer number,
+   the pool, the PR and the stopped runs (that row is the count, written before any launch on the new
+   provider); the task goes back to `pr-open` while its PR is open (the PR phase then repairs through the new
+   provider) or to `queued` (`stop_reason` `provider-transferred`).
+
+Kept as they were: the task row (id, card, title, branch, base), its PR row (number, head, base, branch,
+repair rounds used), its budget pool (consumed, reserved, overshoot, attempts used and allowed). The next
+launch reserves from the same pool and counts as the next attempt.
+
+Fresh on the new provider: a session id recorded by another provider is never resumed (the turn-ceiling
+resume applies only when the last run's provider is the task's provider), so the new provider gets a fresh
+clone of the current base, not the previous provider's workspace, and its brief is the compact handoff plus
+one line of facts: "this task was transferred from `<provider>` after run `<id>` (`<stop reason>`); nothing
+from that run is in this workspace". Never the previous transcript, prompt or session.
+
+`status` shows each task's provider and `transfers: {used, max}`; `metrics` counts `transfers.total` and
+`transfers.refused`; the report prints both.
+
 ## Readiness fixer
 
 `ashlar_controller/readiness.py` turns the output of the three gate commands into a report whose
@@ -472,6 +650,24 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   scripts/mutation-check.sh --id <name> --file tools/autonomy-controller/ashlar_controller/<f>.py \
   --old '<text>' --new '<text>'                           # red / restore / clean / green, in a clone
 ```
+
+## Not in PR 5
+
+- **No live task through either new adapter yet.** A Claude Code session's classifier refuses worker
+  launches. The owner's terminal is the place for one small real task through `--adapter codex`, which is
+  logged in, and one through `--adapter cursor`, after `cursor-agent login`. The Codex CLI's shapes were
+  probed live (the reports above); the controller's own launch through it was not.
+- **Transfers are operator-initiated only.** Nothing moves a task to another provider by itself, for
+  example when a provider's allowance is exhausted or its login is missing. That would be a fallback
+  launch on another provider's allowance, a policy the owner has not set. "Quota exhaustion results in a
+  wait" still holds.
+- **Workspace after a transfer.** The previous provider's uncommitted edits stay in its run's workspace,
+  for inspection. The new provider starts from a fresh clone of the current base, or of the PR head for a
+  repair.
+- **Neither new CLI has a turn limit.** A Codex or Cursor run is bounded by the task budget, the attempts
+  and `run cancel`, never by an invocation ceiling. A Cursor run is always charged its full reservation.
+- **No allowance figure.** Neither CLI printed one, so both providers' allowance observations are
+  `unavailable`.
 
 ## Not in PR 4
 

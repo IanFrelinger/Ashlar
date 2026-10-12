@@ -356,7 +356,8 @@ class CommandLinePr2(ControllerCase):
         self.cli("task", "add", "--task-id", "t1", "--card", "755", "--workstream", "budgeted-autonomy", "--provider", "fake")
         out, _ = self.cli("tick", "--adapter", "fake")
         self.assertEqual(out["action"], "launched")
-        _, err = self.cli("tick", "--adapter", "codex", expect=2)
+        # PR 5 made codex and cursor valid choices; a name no adapter has is still a usage error.
+        _, err = self.cli("tick", "--adapter", "nosuch", expect=2)
         self.assertIn("invalid choice", err)
 
     def test_readiness_evaluate_applies_a_saved_report(self):

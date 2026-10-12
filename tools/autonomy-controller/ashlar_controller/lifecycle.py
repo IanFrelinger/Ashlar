@@ -173,9 +173,20 @@ class PrLifecycle:
                                     (base, branch, utcnow_iso(now), task_row["task_id"]))
             self.store.journal("workspace-prepared", task_id=task_row["task_id"], run_id=run_id,
                                detail={"base_sha": base, "branch": branch, "workspace": workspace}, now=now)
-        handoff = self.handoff_text()
+        handoff = self.handoff_text() + self.transfer_note(task_row, run_id)
         return {"base_sha": base, "branch": branch, "workspace": workspace, "handoff": handoff,
                 "prompt": implementation_prompt(task_row, base, self.cfg["base_branch"], branch, workspace, handoff)}
+
+    def transfer_note(self, task_row, run_id: str) -> str:
+        """After a provider transfer, one line of facts for the new provider's first run: which provider and
+        run came before and how it stopped. Never its transcript, prompt, session or workspace. `run_id` is
+        the run being prepared (already reserved, so it is excluded)."""
+        last = self.store.row("SELECT run_id, provider, stop_reason FROM runs WHERE task_id=? AND run_id != ? "
+                              "ORDER BY reserved_at DESC, rowid DESC LIMIT 1", (task_row["task_id"], run_id))
+        if last is None or last["provider"] == task_row["provider"]:
+            return ""
+        return (f"; this task was transferred from {last['provider']} after run {last['run_id']} "
+                f"({last['stop_reason'] or 'unsettled'}); nothing from that run is in this workspace")
 
     # ----- 2./3. after a completed run --------------------------------------------------------------
 

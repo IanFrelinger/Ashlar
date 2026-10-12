@@ -100,6 +100,10 @@ def collect(store: Store, now: Optional[float] = None) -> Dict[str, Any]:
             "repair_rounds_total": _int(store, "SELECT COALESCE(SUM(repair_rounds_used), 0) FROM prs"),
             "by_outcome": _count_by(store, "prs", "outcome", "outcome IS NOT NULL"),
         },
+        "transfers": {
+            "total": _int(store, "SELECT COUNT(*) FROM journal WHERE kind='provider-transferred'"),
+            "refused": _int(store, "SELECT COUNT(*) FROM journal WHERE kind='transfer-refused'"),
+        },
         "retries": {
             "identities": int(retries_row["identities"]) if retries_row else 0,
             "total": int(retries_row["total"]) if retries_row else 0,
@@ -166,6 +170,10 @@ def _render_task(t: Dict[str, Any]) -> List[str]:
     lines.append(f"- Budget: {_num(pool.get('consumed'))}+{_num(pool.get('reserved'))} of "
                  f"{_num(pool.get('ceiling'))} {pool.get('unit') or ''}".rstrip())
     lines.append(f"- Funding pool: {t.get('funding_pool') or '-'}")
+    lines.append(f"- Provider: {t.get('provider') or '-'}")
+    tr = t.get("transfers")
+    if tr:
+        lines.append(f"- Provider transfers: {_num(tr.get('used'))}/{_num(tr.get('max'))}")
     pr = t.get("pr_record")
     if pr:
         state = pr.get("state") or "-"
@@ -244,6 +252,9 @@ def render_report(status: Dict[str, Any], metrics: Dict[str, Any]) -> str:
     out.append("")
     out.append(f"PRs {_num(prs.get('total'))}; open {_num(prs.get('open'))}; merged {_num(prs.get('merged'))}; "
                f"closed unmerged {_num(prs.get('closed_unmerged'))}; repair rounds {_num(prs.get('repair_rounds_total'))}")
+    out.append("")
+    transfers = metrics.get("transfers") or {}
+    out.append(f"Provider transfers {_num(transfers.get('total', 0))}; refused {_num(transfers.get('refused', 0))}")
     out.append("")
 
     usage = metrics.get("usage") or {}
