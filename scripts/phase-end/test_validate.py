@@ -1,0 +1,342 @@
+"""Unit tests for scripts/phase-end/validate.py. No test touches git, gh, bash or the network: every command
+goes through FakeRunner, which answers from a table keyed by the exact argv and fails loudly otherwise.
+
+Run: python -m unittest discover -s scripts/phase-end -p 'test_*.py'
+(tests/scripts/phase-end-validate.test.sh runs this in the required shell-lint check, with a floor.)"""
+import contextlib
+import io
+import json
+import os
+import sys
+import tempfile
+import time
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import validate as v  # noqa: E402
+
+SHA = "a" * 40
+OLD = "b" * 40
+REPO = "o/r"
+NOW = time.mktime(time.strptime("2026-10-12T12:00:00", "%Y-%m-%dT%H:%M:%S")) - time.timezone
+BASH = "/fake/bash"
+
+
+class FakeRunner:
+    def __init__(self, table=None):
+        self.table = dict(table or {})
+        self.calls = []
+
+    def add(self, argv, rc=0, out="", err=""):
+        self.table[tuple(argv)] = (rc, out, err)
+
+    def __call__(self, argv, input=None):
+        self.calls.append((tuple(argv), input))
+        key = tuple(argv)
+        if key not in self.table:
+            return 127, "", f"FakeRunner has no answer for {key}"
+        return self.table[key]
+
+
+def verdict_line(sha, word):
+    return f"readiness-verdict-for-sha: {sha} {word}\n"
+
+
+class Base(unittest.TestCase):
+    def setUp(self):
+        self.r = FakeRunner()
+        self.r.add([BASH, "-c", "echo bash-ok"], 0, "bash-ok\n")
+        self.v = v.Validator(self.r, REPO, "py", BASH, NOW, stale_days=3)
+        self.v.master_sha = SHA
+
+    def gh(self, args, data=None, rc=0, err=""):
+        self.r.add(["gh"] + list(args), rc, json.dumps(data) if data is not None else "", err)
+
+
+class RequiredChecks(Base):
+    PROT = ["api", f"repos/{REPO}/branches/master/protection"]
+    RUNS = ["gh", "api", "--paginate", f"repos/{REPO}/commits/{SHA}/check-runs", "--jq", ".check_runs[] | {name, status, conclusion}"]
+
+    def runs(self, *rows):
+        self.r.add(self.RUNS, 0, "".join(json.dumps(x) + "\n" for x in rows))
+
+    def protect(self, *names):
+        self.gh(self.PROT, {"required_status_checks": {"contexts": list(names)}})
+
+    # Kills: a red required check reported as anything but fail (`if red:` dropped or downgraded).
+    def test_a_red_required_check_on_the_head_fails(self):
+        self.protect("cert-gate", "build-core")
+        self.runs({"name": "cert-gate", "status": "completed", "conclusion": "failure"},
+                  {"name": "build-core", "status": "completed", "conclusion": "success"})
+        c = self.v.required_checks()
+        self.assertEqual(c["status"], "fail")
+        self.assertIn("cert-gate (failure)", c["detail"])
+
+    # Kills: the newest run of a name not winning (setdefault replaced by plain assignment: an older green run
+    # listed after a newer red one would hide the red).
+    def test_the_newest_run_of_a_name_decides(self):
+        self.protect("cert-gate")
+        self.runs({"name": "cert-gate", "status": "completed", "conclusion": "failure"},
+                  {"name": "cert-gate", "status": "completed", "conclusion": "success"})
+        self.assertEqual(self.v.required_checks()["status"], "fail")
+
+    # Kills: an absent required check counted as red, or pending counted as green.
+    def test_absent_is_noted_and_pending_warns(self):
+        self.protect("cert-gate", "shell-lint")
+        self.runs({"name": "cert-gate", "status": "completed", "conclusion": "success"})
+        c = self.v.required_checks()
+        self.assertEqual(c["status"], "pass")
+        self.assertIn("not reported on the push", c["detail"])
+        self.assertEqual(c["evidence"]["not_reported"], ["shell-lint"])
+        self.runs({"name": "cert-gate", "status": "in_progress", "conclusion": None},
+                  {"name": "shell-lint", "status": "completed", "conclusion": "skipped"})
+        c = self.v.required_checks()
+        self.assertEqual((c["status"], c["evidence"]["pending"]), ("warn", ["cert-gate"]))
+
+    # Kills: a gh failure reported as pass.
+    def test_unreadable_protection_is_an_error(self):
+        self.gh(self.PROT, rc=1, err="HTTP 403")
+        c = self.v.required_checks()
+        self.assertEqual(c["status"], "error")
+        self.assertIn("403", c["detail"])
+
+
+class MasterWorkflows(Base):
+    LIST = ["workflow", "list", "--all", "--limit", "500", "--json", "id,name,path,state"]
+
+    def newest(self, wid, rows):
+        self.gh(["run", "list", "--workflow", str(wid), "--branch", "master", "--limit", "1",
+                 "--json", "conclusion,status,createdAt,headSha,event,databaseId"], rows)
+
+    # Kills: asking one run list for all workflows (a rarely run red gate behind green runs is missed), and a
+    # red newest run not reported.
+    def test_a_workflow_whose_newest_master_run_is_red_warns(self):
+        self.gh(self.LIST, [{"id": 1, "name": "compat-gate", "path": ".github/workflows/compat-gate.yml", "state": "active"},
+                            {"id": 2, "name": "Cert gate", "path": ".github/workflows/cert-gate.yml", "state": "active"},
+                            {"id": 3, "name": "Dormant", "path": ".github/workflows/dormant.yml", "state": "active"}])
+        self.newest(1, [{"conclusion": "failure", "status": "completed", "createdAt": "2026-09-30T20:48:51Z",
+                         "headSha": OLD, "event": "push", "databaseId": 9}])
+        self.newest(2, [{"conclusion": "success", "status": "completed", "createdAt": "2026-10-12T04:00:00Z",
+                         "headSha": SHA, "event": "push", "databaseId": 10}])
+        self.newest(3, [])
+        c = self.v.master_workflows()
+        self.assertEqual(c["status"], "warn")
+        self.assertEqual([x["workflow"] for x in c["evidence"]["red"]], ["compat-gate"])
+        self.assertIn("compat-gate (failure, 2026-09-30)", c["detail"])
+        self.assertEqual(c["evidence"]["never_on_master"], ["Dormant"])
+
+    # Kills: a workflow whose runs cannot be read being skipped silently.
+    def test_an_unreadable_workflow_is_an_error(self):
+        self.gh(self.LIST, [{"id": 1, "name": "A", "path": "a.yml", "state": "active"}])
+        self.gh(["run", "list", "--workflow", "1", "--branch", "master", "--limit", "1",
+                 "--json", "conclusion,status,createdAt,headSha,event,databaseId"], rc=1, err="HTTP 502")
+        self.assertEqual(self.v.master_workflows()["status"], "error")
+
+    def test_all_green_passes(self):
+        self.gh(self.LIST, [{"id": 1, "name": "A", "path": "a.yml", "state": "active"}])
+        self.newest(1, [{"conclusion": "success", "status": "completed", "createdAt": "2026-10-12T00:00:00Z",
+                         "headSha": SHA, "event": "push", "databaseId": 1}])
+        self.assertEqual(self.v.master_workflows()["status"], "pass")
+
+
+class Readiness(Base):
+    def verdict(self, sha, rc, text):
+        self.r.add([BASH, "scripts/release/readiness-verdict-for-sha.sh", sha], rc, text)
+
+    # Kills: VERIFIED read from anything but the verdict line with exit 0.
+    def test_verified_head_passes_and_refused_warns(self):
+        self.verdict(SHA, 0, verdict_line(SHA, "VERIFIED"))
+        self.assertEqual(self.v.readiness_head()["status"], "pass")
+        self.verdict(SHA, 1, "looking up runs\n" + verdict_line(SHA, "REFUSED (no-readiness-run)"))
+        c = self.v.readiness_head()
+        self.assertEqual(c["status"], "warn")
+        self.assertIn("REFUSED (no-readiness-run)", c["detail"])
+
+    # Kills: the observed Windows failure (WSL's bash.exe ran instead of Git Bash, exit 1, no verdict line) being
+    # read as a REFUSED verdict. Without a verdict line it is an error.
+    def test_no_verdict_line_is_an_error_not_a_refusal(self):
+        self.verdict(SHA, 1, "<3>WSL (13 - Relay) ERROR: CreateProcessCommon:818: execvpe(/bin/bash) failed\n")
+        c = self.v.readiness_head()
+        self.assertEqual(c["status"], "error")
+        self.assertIn("no verdict line", c["detail"])
+
+    # Kills: the bash probe being skipped (a broken bash would reach the verdict script).
+    def test_a_broken_bash_is_an_error_before_any_script_runs(self):
+        self.r.add([BASH, "-c", "echo bash-ok"], 1, "", "execvpe(/bin/bash) failed")
+        self.assertEqual(self.v.readiness_head()["status"], "error")
+        self.assertEqual(self.v.local("docs-paths", "Docs", [BASH, "scripts/check-docs-phantom-paths.sh"],
+                                      needs_bash=True)["status"], "error")
+        self.assertNotIn(((BASH, "scripts/release/readiness-verdict-for-sha.sh", SHA), None), self.r.calls)
+
+    # Kills: the first successful run being taken as verified without asking the verdict script, and the
+    # commits-since count.
+    def test_last_verified_skips_refused_runs_and_counts_commits_since(self):
+        self.gh(["run", "list", "--workflow", v.READINESS_WORKFLOW, "--branch", "master", "--limit", "20",
+                 "--json", "headSha,conclusion,event,createdAt"],
+                [{"headSha": SHA, "conclusion": "success", "event": "push", "createdAt": "2026-10-11T00:00:00Z"},
+                 {"headSha": "c" * 40, "conclusion": "failure", "event": "push", "createdAt": "2026-10-10T00:00:00Z"},
+                 {"headSha": OLD, "conclusion": "success", "event": "schedule", "createdAt": "2026-10-05T00:00:00Z"}])
+        self.verdict(SHA, 1, verdict_line(SHA, "REFUSED (partial)"))
+        self.verdict(OLD, 0, verdict_line(OLD, "VERIFIED"))
+        self.r.add(["git", "rev-list", "--count", f"{OLD}..origin/master"], 0, "7\n")
+        c = self.v.readiness_last_verified()
+        self.assertEqual((c["status"], c["evidence"]["sha"], c["evidence"]["commits_since"]), ("info", OLD, 7))
+
+    def test_no_verified_run_warns(self):
+        self.gh(["run", "list", "--workflow", v.READINESS_WORKFLOW, "--branch", "master", "--limit", "20",
+                 "--json", "headSha,conclusion,event,createdAt"],
+                [{"headSha": SHA, "conclusion": "success", "event": "push", "createdAt": "2026-10-11T00:00:00Z"}])
+        self.verdict(SHA, 1, verdict_line(SHA, "REFUSED (partial)"))
+        self.assertEqual(self.v.readiness_last_verified()["status"], "warn")
+
+
+class PullRequestsAndSecurity(Base):
+    PRS = ["pr", "list", "--state", "open", "--limit", "200", "--json", "number,title,mergeStateStatus,updatedAt,isDraft,headRefName"]
+
+    # Kills: the stale test comparing the wrong way, or the stale-days threshold being ignored.
+    def test_stale_prs_warn_and_fresh_ones_are_info(self):
+        self.gh(self.PRS, [{"number": 750, "mergeStateStatus": "DIRTY", "updatedAt": "2026-10-08T00:00:00Z"},
+                           {"number": 781, "mergeStateStatus": "BEHIND", "updatedAt": "2026-10-12T10:00:00Z"}])
+        c = self.v.open_prs()
+        self.assertEqual((c["status"], c["evidence"]["stale"]), ("warn", [750]))
+        self.assertEqual(c["evidence"]["by_merge_state"], {"DIRTY": 1, "BEHIND": 1})
+        self.gh(self.PRS, [{"number": 781, "mergeStateStatus": "BEHIND", "updatedAt": "2026-10-12T10:00:00Z"}])
+        self.assertEqual(self.v.open_prs()["status"], "info")
+
+    # Kills: a public repository with secret scanning off reported as plain info.
+    def test_public_repo_without_secret_scanning_warns(self):
+        sa = {"secret_scanning": {"status": "disabled"}, "dependabot_security_updates": {"status": "disabled"}}
+        self.gh(["api", f"repos/{REPO}"], {"visibility": "public", "security_and_analysis": sa})
+        c = self.v.repo_security()
+        self.assertEqual(c["status"], "warn")
+        self.assertIn("secret_scanning", c["detail"])
+        self.gh(["api", f"repos/{REPO}"], {"visibility": "private", "security_and_analysis": sa})
+        self.assertEqual(self.v.repo_security()["status"], "info")
+
+
+class Stranded(Base):
+    REFS = ["git", "for-each-ref", "--format=%(refname:short)\t%(upstream:short)\t%(upstream:track)", "refs/heads"]
+    NOMERGED = ["git", "branch", "--format=%(refname:short)", "--no-merged", "origin/master"]
+    LOG_P = ["git", "log", "-p", "--no-merges", "--since=180.days", "origin/master"]
+    SUBJECTS = ["git", "log", "--format=%s", "--since=180.days", "origin/master"]
+
+    def setUp(self):
+        super().setUp()
+        self.r.add(self.LOG_P, 0, "")
+        self.r.add(self.SUBJECTS, 0, "fix the gate (#12)\nunrelated\n")
+
+    def branch(self, name, remote=False, subject="wip", files="a.txt\n", same_content=False):
+        self.r.add(["git", "branch", "-r", "--contains", name, "--format=%(refname:short)"], 0,
+                   "origin/" + name + "\n" if remote else "")
+        self.r.add(["git", "log", "-1", "--format=%s", name], 0, subject + "\n")
+        self.r.add(["git", "merge-base", "origin/master", name], 0, "base\n")
+        self.r.add(["git", "diff", "--name-only", "base", name], 0, files)
+        self.r.add(["git", "diff", "--quiet", "origin/master", name, "--"] + [f for f in files.split() if f],
+                   0 if same_content else 1, "")
+        self.r.add(["git", "diff", "base", name], 0, "diff --git a/a.txt b/a.txt\n+x\n")
+        self.r.add(["git", "patch-id", "--stable"], 0, "")
+        self.r.add(["git", "rev-list", "--count", f"origin/master..{name}"], 0, "3\n")
+        self.r.add(["git", "log", "-1", "--format=%cs", name], 0, "2026-10-01\n")
+
+    # Kills: each "landed" test (remote containment, subject match, identical content) and the warn itself.
+    def test_only_work_that_is_nowhere_else_is_stranded(self):
+        self.r.add(self.REFS, 0, "on-remote\t\t\nsquashed\t\t\nsame\t\t\nlost\t\t\ngone\torigin/gone\t[gone]\ntracked\torigin/tracked\t\n")
+        self.r.add(self.NOMERGED, 0, "on-remote\nsquashed\nsame\nlost\ngone\ntracked\n")
+        self.branch("on-remote", remote=True)
+        self.branch("squashed", subject="Fix the gate")
+        self.branch("same", same_content=True)
+        self.branch("lost")
+        self.branch("gone")
+        c = self.v.stranded_branches()
+        self.assertEqual(c["status"], "warn")
+        self.assertEqual([s["branch"] for s in c["evidence"]["stranded"]], ["gone", "lost"])
+        self.assertEqual(c["evidence"]["stranded"][1], {"branch": "lost", "ahead": 3, "tip_date": "2026-10-01"})
+        self.assertNotIn("tracked", json.dumps(c["evidence"]))
+
+    def test_nothing_stranded_passes(self):
+        self.r.add(self.REFS, 0, "main\torigin/main\t\n")
+        self.assertEqual(self.v.stranded_branches()["status"], "pass")
+
+    def test_normalize_subject_strips_squash_suffixes(self):
+        self.assertEqual(v.normalize_subject("Fix  the gate (#12) (#13)"), "fix the gate")
+
+
+class LocalChecksAndExit(Base):
+    # Kills: a failing local script reported as pass, and a missing one reported as fail rather than error.
+    def test_local_check_statuses(self):
+        self.r.add(["py", "kg.py"], 0, "knowledge-graph: current\n")
+        self.assertEqual(self.v.local("kg", "KG", ["py", "kg.py"])["status"], "pass")
+        self.r.add(["py", "kg.py"], 1, "", "knowledge-graph: 2 check(s) failed\n")
+        c = self.v.local("kg", "KG", ["py", "kg.py"])
+        self.assertEqual(c["status"], "fail")
+        self.assertIn("2 check(s) failed", c["detail"])
+        self.assertEqual(self.v.local("x", "X", ["missing"])["status"], "error")
+
+    # Kills: exit_code ignoring error, or treating warn as failure.
+    def test_exit_code(self):
+        mk = lambda s: v.check("x", "X", s, "")
+        self.assertEqual(v.exit_code([mk("pass"), mk("warn"), mk("info")]), 0)
+        self.assertEqual(v.exit_code([mk("pass"), mk("fail")]), 1)
+        self.assertEqual(v.exit_code([mk("pass"), mk("error")]), 1)
+
+    def test_unknown_status_is_refused(self):
+        with self.assertRaises(ValueError):
+            v.check("x", "X", "ok", "")
+
+    def test_unreleased_counts_and_missing_tag_errors(self):
+        self.r.add(["git", "describe", "--tags", "--abbrev=0", "--match", "v*", "origin/master"], 0, "v0.2.0\n")
+        self.r.add(["git", "rev-list", "--count", "v0.2.0..origin/master"], 0, "89\n")
+        c = self.v.unreleased()
+        self.assertEqual((c["status"], c["evidence"]["commits"], c["evidence"]["tag"]), ("info", 89, "v0.2.0"))
+        self.r.add(["git", "describe", "--tags", "--abbrev=0", "--match", "v*", "origin/master"], 128, "", "fatal: No names found")
+        self.assertEqual(self.v.unreleased()["status"], "error")
+
+
+class FindBash(unittest.TestCase):
+    # Kills: WSL's System32 bash.exe being chosen on Windows (observed: execvpe(/bin/bash) failed).
+    def test_windows_prefers_git_bash_beside_git(self):
+        git = os.path.join("C:\\", "Git", "cmd", "git.exe")
+        want = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(git))), "bin", "bash.exe")
+        which = {"git": git, "bash": "C:\\Windows\\System32\\bash.exe"}.get
+        self.assertEqual(v.find_bash(env={}, which=which, isfile=lambda p: p == want, windows=True), want)
+
+    def test_windows_never_picks_system32_bash(self):
+        which = {"bash": "C:\\Windows\\System32\\bash.exe"}.get
+        self.assertEqual(v.find_bash(env={}, which=which, isfile=lambda p: False, windows=True), "bash")
+
+    def test_override_and_posix(self):
+        self.assertEqual(v.find_bash(env={"ASHLAR_BASH": "/x/bash"}, windows=True), "/x/bash")
+        self.assertEqual(v.find_bash(env={}, windows=False), "bash")
+
+
+class Main(unittest.TestCase):
+    # Kills: main not returning the computed exit code, the files not written, or Markdown pipes unescaped.
+    def test_main_writes_json_and_markdown_and_returns_the_exit_code(self):
+        r = FakeRunner()
+        r.add([BASH, "-c", "echo bash-ok"], 1, "")      # every bash-dependent check errors; the rest have no answer
+        with tempfile.TemporaryDirectory() as d:
+            js, md = os.path.join(d, "v.json"), os.path.join(d, "v.md")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = v.main(["--no-fetch", "--json", js, "--markdown", md, "--workstream", "w", "--phase", "E"],
+                            runner=r, now=NOW, bash=BASH)
+            self.assertEqual(rc, 1)
+            with open(js, encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual((data["schema_version"], data["workstream"], data["phase"], data["exit_code"]), (1, "w", "E", 1))
+            self.assertEqual(sum(data["summary"].values()), len(data["checks"]))
+            self.assertTrue(all(c["status"] in v.STATUSES for c in data["checks"]))
+            self.assertGreaterEqual(len(data["checks"]), 12)
+            with open(md, encoding="utf-8") as f:
+                text = f.read()
+            self.assertEqual(text, out.getvalue())
+            self.assertIn("| Check | Status | Detail |", text)
+            self.assertIn("error", text)
+
+    def test_markdown_escapes_pipes(self):
+        rep = v.report([v.check("x", "X", "warn", "a | b")], REPO, None, None, SHA, NOW)
+        self.assertIn("a \\| b", v.render_markdown(rep))
+
+
+if __name__ == "__main__":
+    unittest.main()

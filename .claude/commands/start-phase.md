@@ -1,5 +1,5 @@
 ---
-description: Start a phase from its handoff. Fetch the handoff, read it, check it against the live repo, restate the phase, then execute it. Usage - /start-phase <workstream>
+description: Start a phase from its handoff. Fetch the handoff, read it and its project status, check both against the live repo, restate the phase, then execute it. Usage - /start-phase <workstream>
 ---
 
 # /start-phase: begin a phase from the previous phase's handoff
@@ -17,9 +17,9 @@ The argument is `$ARGUMENTS`: `<workstream>`, for example `spec-007-pr4`. If the
    bash scripts/handoff-fetch.sh --workstream <workstream> --list   # what else is stored
    ```
 
-   Save every attachment the handoff names into the scratchpad as well, with `git show origin/claude/<workstream>-workspace:_handoff/<workstream>/<file>`.
+   Save every attachment the handoff names into the scratchpad as well, with `git show origin/claude/<workstream>-workspace:_handoff/<workstream>/<file>`. That includes `project-status.json`, the last phase-end audit's status.
 
-2. **Read it in full**, starting with §0, then everything its "Read these first" section names. `CLAUDE.md` is already loaded.
+2. **Read it in full**, starting with §0. Read §1's "Project status" too, and then everything its "Read these first" section names. `CLAUDE.md` is already loaded.
 
 3. **Check it against the live repo** before acting:
    - `git fetch origin`. Master's SHA, and the merges the handoff lists.
@@ -27,6 +27,13 @@ The argument is `$ARGUMENTS`: `<workstream>`, for example `spec-007-pr4`. If the
    - Each PR it lists is in the state it gives.
    - The agent-bus (#695) has nothing new that changes the plan.
    - The environment works: docker answers and the devtest image exists. If not, run `CLAUDE_CODE_REMOTE=true bash .claude/hooks/session-start.sh`.
+   - **The project's state is still the one the handoff describes.** Re-run the validation and compare it with the handoff's `validation-<phase>.md`:
+
+     ```bash
+     python scripts/phase-end/validate.py --workstream <workstream> --json <scratchpad>/validation-start.json
+     ```
+
+     A check that changed status since the handoff is a difference to report, for example a required check now red, a new red workflow, or a readiness verdict that changed.
 
    Report every difference in one short list. If a difference changes the plan, resolve it, or ask the owner, before starting.
 
@@ -41,4 +48,4 @@ The argument is `$ARGUMENTS`: `<workstream>`, for example `spec-007-pr4`. If the
 
 5. **Execute the phase**, following `CLAUDE.md` and the handoff's routine steps.
 
-6. **End with `/handoff <workstream> <phase>`.** Do not start the following phase in this thread.
+6. **End with `/handoff <workstream> <phase>`.** It validates and audits the whole project before it writes the handoff. Do not start the following phase in this thread.
