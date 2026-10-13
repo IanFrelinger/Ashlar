@@ -241,7 +241,7 @@ class Argv(CodexAdapterCase):
         # accept: the server would stay enabled for the run).
         self.write_config('[mcp_servers."two words"]\ncommand = "x"\n')
         self.write_script()
-        blocker = self.assert_refused(self.adapter(), StopReason.LAUNCH_FAILED)
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
         self.assertIn("['two words']", blocker)
         self.assertEqual(self.login_records(), [])
 
@@ -394,7 +394,7 @@ class ServiceTier(CodexAdapterCase):
         self.write_config('model = "gpt-6-astra"\nmodel_reasoning_effort = "high"\n'
                           'service_tier = "priority"   # the Codex app\'s Fast mode\n\n[profiles.slow]\nmodel = "x"\n')
         self.write_script()
-        blocker = self.assert_refused(self.adapter(), StopReason.LAUNCH_FAILED)
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
         self.assertEqual(self.login_records(), [])            # not even `codex login status` ran
         path = str(self.config_path())
         self.assertIn(f"{path} sets service_tier (line 3 (top level): service_tier = \"priority\")", blocker)
@@ -417,21 +417,42 @@ class ServiceTier(CodexAdapterCase):
         self.write_script()
         for name, reader in self.readers():
             with self.subTest(reader=name), mock.patch.object(codex_module, "_tomllib", reader):
-                blocker = self.assert_refused(self.adapter(), StopReason.LAUNCH_FAILED)
+                blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
                 self.assertIn(f"line 4 ({PROFILE_WHERE}): service_tier = \"priority\"", blocker)
 
     def test_a_config_tomllib_cannot_parse_is_read_line_by_line(self):
         # Mutation killed: treating a file tomllib rejects as setting no tier (the CLI's own reader may differ).
         self.write_config('service_tier = "priority"\nthis line is not toml\n')
         self.write_script()
-        blocker = self.assert_refused(self.adapter(), StopReason.LAUNCH_FAILED)
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
         self.assertIn("(line 1 (top level): service_tier = \"priority\")", blocker)
+
+    def test_the_config_is_found_through_codex_home_in_the_environment_as_the_cli_builds_the_adapter(self):
+        # Mutation killed: reading the config from the constructor's codex_home or ~/.codex only, ignoring CODEX_HOME
+        # in the child environment (lane C's review: every test passed codex_home=, which cli.build_adapters never
+        # does, so such a mutation survived).
+        self.write_config('service_tier = "priority"\n')
+        self.write_script()
+        a = CodexAdapter(str(self.runs_dir), cli=[sys.executable, FAKE_CLI], clock=self.clock,
+                         env=self.env(CODEX_HOME=str(self.codex_home)))
+        self.adapters.append(a)
+        blocker = self.assert_refused(a, StopReason.OPERATOR_CONFIG_REFUSED)
+        self.assertIn(str(self.config_path()), blocker)
+        self.assertEqual(self.login_records(), [])
+
+    def test_a_resume_is_refused_like_a_fresh_run(self):
+        # Mutation killed: the tier check skipped on a resume (`if tier["sources"] and not request.resume_session_id:`):
+        # the invocation-ceiling resume, which the live run uses, would run under the priority tier.
+        self.write_config('service_tier = "priority"\n')
+        self.write_script()
+        self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED, self.request(resume_session_id=THREAD))
+        self.assertEqual(self.login_records(), [])
 
     def test_a_config_that_cannot_be_read_is_refused(self):
         # Mutation killed: treating an unreadable config.toml as absent (the CLI would still load whatever it holds).
         self.config_path().mkdir(parents=True)            # opening a directory fails, and not as "not found"
         self.write_script()
-        blocker = self.assert_refused(self.adapter(), StopReason.LAUNCH_FAILED)
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
         self.assertIn(f"{self.config_path()} could not be read to check its service_tier", blocker)
 
     def test_the_line_reader_and_tomllib_find_the_same_tiers_on_the_same_lines(self):

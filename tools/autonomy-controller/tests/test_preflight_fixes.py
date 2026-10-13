@@ -26,7 +26,8 @@ from ashlar_controller import cli as cli_mod
 from ashlar_controller.adapters.fake import FakeAdapter
 from ashlar_controller.controller import Controller
 from ashlar_controller.gitops import GitError
-from ashlar_controller.models import (ControllerError, ReconcileResult, RunState, RunStatus, StopReason, TaskState)
+from ashlar_controller.models import (ControllerError, LaunchRefused, ReconcileResult, RunState, RunStatus, StopReason,
+                                      TaskState)
 from ashlar_controller.prs import FakeGh, GhError
 from ashlar_controller.store import Store
 
@@ -342,6 +343,37 @@ class A2TheTransferJournalsHowEachRunStopped(PreflightCase):
         self.assertEqual(detail.get("stopped"), [{"run_id": r1.run_id, "provider": "fake", "role": "implementation",
                                                   "how": "cancelled", "charged": 20.0, "stop_reason": StopReason.CANCELLED}])
         self.assertEqual(detail["stopped"], out["stopped"])
+
+
+class RefusesForTheOperatorsConfig(FakeAdapter):
+    """An adapter that refuses every launch because the operator's own CLI config sets something the policy refuses
+    (a Codex service tier)."""
+
+    def launch(self, request):
+        self.launch_count += 1
+        raise LaunchRefused(StopReason.OPERATOR_CONFIG_REFUSED, "config.toml sets service_tier; comment it out")
+
+
+class AnOperatorConfigRefusal(ControllerCase):
+    # Kills: mapping operator-config-refused back to `queued` (`if stop_reason == StopReason.OPERATOR_CONFIG_REFUSED:`
+    # -> `if False:` in `_refusal_target`), lane C's review: every tick while the line was still in config.toml was
+    # refused again and spent an attempt, and after three the task parked with no work done.
+    def test_a_refusal_for_the_operators_config_spends_one_attempt_and_then_waits(self):
+        adapter = RefusesForTheOperatorsConfig()
+        ctl = self.make_controller(adapter=adapter)
+        self.add_task()
+        r = ctl.tick()
+        self.assertEqual((r.action, r.reason), ("blocked", StopReason.OPERATOR_CONFIG_REFUSED))
+        self.assertEqual((self.task()["state"], self.task()["stop_reason"]),
+                         (TaskState.BLOCKED_PERMISSION, StopReason.OPERATOR_CONFIG_REFUSED))
+        self.assertIn("comment it out", self.task()["blocker"])
+        for _ in range(4):
+            self.assertEqual(ctl.tick().action, "idle")
+        self.assertEqual((adapter.launch_count, self.pool()["attempts_used"], self.pool()["consumed"]), (1, 1, 0.0))
+        # After the operator's fix and `task set-state t1 queued`, the next tick launches again.
+        ctl.set_task_state("t1", TaskState.QUEUED, stop_reason="operator: config fixed")
+        ctl.tick()
+        self.assertEqual(adapter.launch_count, 2)
 
 
 class A3CancelRun(ControllerCase):

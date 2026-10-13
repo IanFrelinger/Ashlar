@@ -796,6 +796,10 @@ class Controller:
             return TaskState.BLOCKED_AUTH, stop_reason
         if stop_reason == StopReason.MODEL_UNRECOGNIZED:
             return TaskState.PARKED_DECISION, stop_reason
+        if stop_reason == StopReason.OPERATOR_CONFIG_REFUSED:
+            # One attempt is spent; the task then waits for the operator's fix instead of being re-queued and
+            # refused on every tick until its attempts are gone.
+            return TaskState.BLOCKED_PERMISSION, stop_reason
         return TaskState.QUEUED, StopReason.LAUNCH_FAILED
 
     def _propose_failed_tasks(self) -> List[str]:

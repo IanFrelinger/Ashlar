@@ -51,6 +51,10 @@ class StopReason:
     SAME_FAILURE_RETRY_EXHAUSTED = "same-failure-retry-exhausted"
     AUTH_MISSING = "auth-missing"
     PERMISSION_MISSING = "permission-missing"
+    # The operator's own CLI configuration sets something the policy refuses (a Codex `service_tier`, an MCP server
+    # that cannot be disabled, a config that cannot be read): an operator step, so the task waits instead of
+    # spending an attempt on every tick until the line is changed.
+    OPERATOR_CONFIG_REFUSED = "operator-config-refused"
     TRANSIENT = "transient"
     CANCELLED = "cancelled"
     TASK_FAILED = "task-failed"

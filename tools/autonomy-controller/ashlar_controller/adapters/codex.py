@@ -404,7 +404,8 @@ def service_tier_refusal(info: Dict[str, Any]) -> str:
     return (f"{info['path']} sets service_tier ({places}). The Codex CLI applies it to every run, because the "
             f"adapter keeps config.toml loaded, and \"priority\" is \"Fast: 2x speed, increased usage\"; the policy "
             f"selected speed standard and no value meaning standard was observed, so no override is passed. "
-            f"Operator step: comment out service_tier in {info['path']} for the controller's runs")
+            f"Operator step: comment out service_tier in {info['path']} for the controller's runs, then "
+            f"`task set-state <task> queued`")
 
 
 # ----- the stream --------------------------------------------------------------------------------------
@@ -647,14 +648,15 @@ class CodexAdapter:
         # process (the route check included) starts.
         tier = read_service_tier(os.path.join(codex_home, "config.toml"))
         if tier["error"]:
-            raise LaunchRefused(StopReason.LAUNCH_FAILED,
+            raise LaunchRefused(StopReason.OPERATOR_CONFIG_REFUSED,
                                 f"{tier['path']} could not be read to check its service_tier ({tier['error']}); "
-                                f"the Codex CLI would load it for the run")
+                                f"the Codex CLI would load it for the run. Operator step: make it readable (close "
+                                f"the Codex app if it holds the file), then `task set-state <task> queued`")
         if tier["sources"]:
-            raise LaunchRefused(StopReason.LAUNCH_FAILED, service_tier_refusal(tier))
+            raise LaunchRefused(StopReason.OPERATOR_CONFIG_REFUSED, service_tier_refusal(tier))
         servers = configured_mcp_servers(tier["path"])
         if servers["unsafe"]:
-            raise LaunchRefused(StopReason.LAUNCH_FAILED,
+            raise LaunchRefused(StopReason.OPERATOR_CONFIG_REFUSED,
                                 f"{servers['path']} declares MCP server(s) {servers['unsafe']} whose names cannot be "
                                 f"disabled with a bare `-c mcp_servers.<name>.enabled=false` override; the run would "
                                 f"get them. Operator step: rename or remove them for the controller's runs")

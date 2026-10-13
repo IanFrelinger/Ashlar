@@ -135,6 +135,7 @@ One tick does **one** thing, the first that applies, and journals it with its ex
 | `rate-limited`, `transient` | `waiting-rate-limit` | bounded backoff from `idle.rate_limit_backoff_seconds`, inside the task budget |
 | `task-failed` with a failure identity | `queued` once, then `parked-failure` | the same diagnosed failure is retried **once** across all cycles and providers (`failure_retries` table) |
 | `auth-missing`, `permission-missing` | `blocked-auth`, `blocked-permission` | the exact blocker is recorded; an operator step is required |
+| `operator-config-refused` (a launch refused for the operator's own CLI config, e.g. a Codex `service_tier`) | `blocked-permission` | one attempt counted, nothing charged; fix the config, then `task set-state <task> queued` |
 | `cancelled` | `cancelled` | the run row and its workspace path are preserved |
 | `no-final-result` | `needs-reconcile` | process, workspace, transcript and remote state are reconciled before any retry |
 | `launch-outcome-unknown` | `needs-reconcile` | the original attempt is investigated before another launch |
@@ -392,13 +393,15 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
   `gpt-6-astra` as "Fast: 2x speed, increased usage", and the PR 5 probe sessions recorded
   `thread_settings_applied service_tier=priority`. The catalog lists no other tier and no `-c` value can
   unset a key, so no override is passed. `launch` reads `<codex home>/config.toml` (`CODEX_HOME`, else
-  `~/.codex`) before any process starts, the `codex login status` check included, with tomllib on 3.11+ and
-  a minimal line reader otherwise, and refuses with `launch-failed` when `service_tier` is set at top level or
+  `~/.codex`) before any Codex process starts, the `codex login status` check included (with `--gh cli` the
+  workspace is already cloned), with tomllib on 3.11+ and a best-effort line reader otherwise, and refuses
+  with `operator-config-refused` when `service_tier` is set at top level or
   in the `[profiles.<name>]` table a top-level `profile` selects (a tier in any other table is not applied).
   The blocker names the file, the line and the step (comment out `service_tier` for the controller's runs).
-  An unreadable `config.toml` is refused the same way. A refusal charges nothing but counts the attempt and
-  requeues the task, so fix the file before ticking again; the Codex app rewrites it, so check it right
-  before each tick that launches Codex. The manifest records `codex_config` and `service_tier`. Not
+  An unreadable `config.toml`, and an MCP server name that cannot be disabled, are refused the same way. A
+  refusal charges nothing and counts one attempt; the task then waits in `blocked-permission` instead of
+  being refused on every tick until its attempts are gone, so fix the file and run `task set-state <task>
+  queued`. The Codex app rewrites the file, so check it right before each tick that launches Codex. The manifest records `codex_config` and `service_tier`. Not
   checked: managed or system config layers, a project `.codex/config.toml` (Ashlar tracks none), and
   whether a thread first run under priority keeps that tier on a resume.
 - **The resume** (report 4, r5): `codex exec resume --json --skip-git-repo-check -c sandbox_mode="workspace-write"
