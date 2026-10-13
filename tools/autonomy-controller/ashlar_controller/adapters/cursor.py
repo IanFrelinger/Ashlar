@@ -53,10 +53,16 @@ INTEGRATOR DECISIONS (no owner row; listed for the next handoff):
     restricted `allowed_tools` (no tool-restriction flag in `--help`, and every run passes `-f`, so the
     restriction would silently widen). `effort`, `invocation_ceiling` and `agent` have no flag. They are
     recorded in the manifest under `ignored`.
+  * The exit recorder. The classification rests on the exit code, and only the process that started the
+    CLI can read it, while every `tick` is its own process: the tick that launches a run returns at once
+    and a later tick settles it. So the CLI runs under `_exit_recorder.py`, which waits for it and writes
+    its exit code to `exit_code` in the run directory. The manifest's `pid` is the recorder's, so the tree
+    kill of `cancel` still takes the CLI. Once that file exists the run has finished, whatever the pid now
+    names: a poll classifies it, and `cancel` neither records a cancellation nor kills anything.
 
 Run layout, as `claude.py`: `<runs_dir>/<run_id>/manifest.json` (written BEFORE the spawn),
-`stdout.json` (the stream), `stderr.log`, and a `workspace/` directory unless the request names one.
-The run id is the handle.
+`stdout.json` (the stream), `stderr.log`, `exit_code` (written by the recorder when the CLI exits), and a
+`workspace/` directory unless the request names one. The run id is the handle.
 """
 from __future__ import annotations
 
@@ -85,6 +91,8 @@ STDERR_TAIL_LIMIT = 2000
 IDENTITY_PREFIX_CHARS = 200
 EVENT_TYPES_LIMIT = 1000
 USAGE_UNIT = "requests"          # the unit of the `cursor` pool in policy.example.json
+EXIT_FILE = "exit_code"          # in the run directory, written by the exit recorder when the CLI exits
+EXIT_RECORDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_exit_recorder.py")
 
 # Observed (c0_status): logged out, `cursor-agent status` prints exactly `Not logged in`, exit 0.
 _NOT_LOGGED_IN_RE = re.compile(r"not logged in", re.IGNORECASE)
@@ -227,9 +235,10 @@ def _line_at(text: str, match) -> str:
 
 
 def kill_tree(pid: int) -> None:
-    """Terminate `pid` and every process it started: a `.cmd` launcher starts PowerShell, which starts
-    node, and node (launched directly or not) starts its tools. `taskkill /T` on Windows; on POSIX the
-    run is its own session, so `killpg`. A process that is already gone is not an error."""
+    """Terminate `pid` and every process it started: the exit recorder starts the CLI, a `.cmd` launcher
+    starts PowerShell, which starts node, and node (launched directly or not) starts its tools.
+    `taskkill /T` on Windows; on POSIX the run is its own session, so `killpg`. A process that is already
+    gone is not an error."""
     if _WINDOWS:
         try:
             subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], stdin=subprocess.DEVNULL,
@@ -262,8 +271,8 @@ class CursorAdapter:
         self._env_source = env
         self.clock = clock or time.time
         self.expected_route = expected_route
-        # Popen objects of runs launched by THIS process (polling through them reaps the child and
-        # records its exit code); after a restart only the manifest's pid is left.
+        # Popen objects (of the exit recorder) of runs launched by THIS process. Any other process, which
+        # under the CLI is every later `tick`, has the manifest's pid and the recorder's exit file.
         self._procs: Dict[str, subprocess.Popen] = {}
 
     # ----- resolution --------------------------------------------------------------------------
@@ -388,6 +397,8 @@ class CursorAdapter:
                         "agent": request.agent},
             "started_at": _utc_iso(self.clock()), "pid": None, "exit": None, "cancelled_at": None,
             "stdout": os.path.join(run_dir, "stdout.json"), "stderr": os.path.join(run_dir, "stderr.log"),
+            # `argv` is the CLI's; `pid` is the recorder's, which runs it and writes its exit code here.
+            "exit_file": os.path.join(run_dir, EXIT_FILE), "exit_recorder": [sys.executable, "-I", EXIT_RECORDER],
         }
         self._write_manifest(run_id, manifest)
 
@@ -398,7 +409,10 @@ class CursorAdapter:
             if not _WINDOWS:
                 kwargs["start_new_session"] = True   # so cancel can killpg the whole tree
             try:
-                proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=out_f, stderr=err_f, cwd=workspace,
+                # The launching `tick` exits at once; a later `tick` (another process) can read the exit
+                # code only from the file the recorder writes.
+                proc = subprocess.Popen(manifest["exit_recorder"] + [manifest["exit_file"], "--"] + argv,
+                                        stdin=subprocess.DEVNULL, stdout=out_f, stderr=err_f, cwd=workspace,
                                         env=env, **kwargs)
             except (OSError, ValueError) as e:
                 # Popen reports a failed exec only after it has reaped the child: nothing is running.
@@ -418,6 +432,19 @@ class CursorAdapter:
 
     # ----- poll --------------------------------------------------------------------------------
 
+    @staticmethod
+    def _recorded_exit(manifest: Dict[str, Any]) -> Optional[int]:
+        """The exit code the recorder wrote when the CLI exited, or None (still running, killed, or a run
+        launched before the recorder existed)."""
+        path = manifest.get("exit_file")
+        if not path:
+            return None
+        try:
+            with open(path, "r", encoding="ascii") as f:
+                return int(f.read().strip())
+        except (OSError, ValueError):
+            return None
+
     def _alive(self, run_id: str, manifest: Dict[str, Any]) -> bool:
         proc = self._procs.get(run_id)
         if proc is not None:
@@ -428,10 +455,17 @@ class CursorAdapter:
                 manifest["exit"] = rc
                 self._write_manifest(run_id, manifest)
             return False
+        # Another process launched the run (every `tick` is its own process). The exit file is read BEFORE
+        # the pid: once the CLI has exited the run is over, and a live pid may already be someone else's.
+        rc = self._recorded_exit(manifest)
+        if rc is not None:
+            if manifest.get("exit") is None:
+                manifest["exit"] = rc
+                self._write_manifest(run_id, manifest)
+            return False
         pid = manifest.get("pid")
         if pid is None:
             return False
-        # After a restart: a pid check only, and the exit code of a run polled this way stays unknown.
         return pid_alive(int(pid))
 
     def _allowance_observation(self, key: Optional[str]) -> UsageObservation:
@@ -503,7 +537,8 @@ class CursorAdapter:
             m = pattern.search(text)
             if m:
                 return failure(reason, {"blocker": _line_at(text, m)[:RESULT_TEXT_LIMIT]})
-        # 5. The exit code is unknown (the run ended while no controller process held it).
+        # 5. The exit code is unknown: the recorder was killed before it wrote one, or the run was launched
+        #    before the recorder existed.
         if rc is None:
             return failure(StopReason.NO_FINAL_RESULT,
                            {"blocker": "the exit code of the run was not recorded; stdout and stderr are kept"})
@@ -516,10 +551,14 @@ class CursorAdapter:
 
     def cancel(self, handle: str) -> None:
         """Record the cancellation FIRST, then terminate the process tree. The workspace is never
-        touched: it is the evidence an operator inspects."""
+        touched: it is the evidence an operator inspects. A run whose exit code was recorded has already
+        finished: nothing is recorded and nothing is killed (a live pid then belongs to another process),
+        and the next poll classifies it from its output."""
         run_id = handle
         manifest = self._read_manifest(run_id)
         if manifest is None:
+            return
+        if self._recorded_exit(manifest) is not None:
             return
         if not manifest.get("cancelled_at"):
             manifest["cancelled_at"] = _utc_iso(self.clock())

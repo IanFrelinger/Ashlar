@@ -64,7 +64,7 @@ class CursorAdapterCase(unittest.TestCase):
                     cursor_module.kill_tree(proc.pid)
                     proc.kill()
                     proc.wait(timeout=10)
-        for rec in self.recorded("print"):
+        for rec in self.recorded("child"):
             child = rec.get("child_pid")
             if child and pid_alive(child):
                 try:
@@ -337,8 +337,9 @@ class CancelAndReconcile(CursorAdapterCase):
     def test_cancel_records_first_then_kills_the_whole_tree(self):
         # kills: killing before cancelled_at is recorded; killing only the launcher (taskkill without /T, kill instead of killpg)
         a, res = self.launch_sleeping(spawn_child=True)
-        self.assertTrue(wait_for(lambda: self.recorded("print")[0].get("child_pid")), "the fake never started its child")
-        child = self.recorded("print")[0]["child_pid"]
+        # The child's pid has its own record: the fake never renames onto a file this poll may hold open.
+        self.assertTrue(wait_for(lambda: self.recorded("child")), "the fake never started its child")
+        child = self.recorded("child")[0]["child_pid"]
         self.assertTrue(pid_alive(child))
         self.assertEqual(a.poll(res.native_run_handle).state, RunState.RUNNING)
         marker = Path(res.workspace) / "half-done.txt"
