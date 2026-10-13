@@ -590,6 +590,17 @@ class ArchivePersonalData(ArchiveCase):
         detail = json.loads(self.store.row("SELECT detail FROM journal WHERE kind='evidence-archived'")["detail"])
         self.assertEqual(detail["redacted"], result["redacted"])
 
+    # Kills: dropping the kept domain (`KEPT_DOMAINS = ("example.invalid",)` -> `()`), lane P's review: the safety net
+    # must leave a test address alone, or the tests above stop telling a broken structured layer from a working one
+    # (the net would mask the owner's test address itself).
+    def test_the_safety_net_keeps_the_test_domain_and_names_no_member_for_it(self):
+        self.write_run([b'{"type":"user","text":"TRANSCRIPT-BODY"}', b""],
+                       {"stdout.json": b'{"type":"assistant","text":"seen owner@example.invalid"}\n'})
+        result = self.archive()
+        members = self.members_of(result["path"])
+        self.assertEqual(members["run/stdout.json"], b'{"type":"assistant","text":"seen owner@example.invalid"}\n')
+        self.assertEqual(result["redacted"], [])
+
     # Kills: ignoring the escaping backslash before a local part (`if slashes % 2 == 1:` -> `if False:`), which
     # would write `\<redacted>` and break the JSON line.
     def test_a_masked_address_right_after_a_json_escape_keeps_the_line_valid(self):

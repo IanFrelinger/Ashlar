@@ -906,7 +906,10 @@ class Controller:
                          "consumed": pool["consumed"], "reserved": pool["reserved"], "overshoot": pool["overshoot"],
                          "remaining": budget.remaining(pool), "attempts_used": pool["attempts_used"],
                          "attempts_max": pool["attempts_max"],
-                         "attempts_remaining": int(pool["attempts_max"]) - int(pool["attempts_used"]),
+                         # The attempts `budget.reserve` still allows: it caps the pool's max by the policy's.
+                         "attempts_remaining": max(0, min(int(pool["attempts_max"]),
+                                                          int(self.policy.limits["max_attempts_per_task"]))
+                                                   - int(pool["attempts_used"])),
                          # What one reservation needs (`budget.reserve`), so a reader can tell the attempts the
                          # budget still permits from the attempts left (`metrics.permitted_attempts`).
                          "invocation_ceiling": min(float(pool["invocation_ceiling"]),

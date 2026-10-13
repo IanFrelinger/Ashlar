@@ -382,6 +382,41 @@ class PermittedAttempts(ControllerCase):
         pool = ctl.status()["tasks"][0]["pool"]
         self.assertEqual((pool["remaining"], pool["invocation_ceiling"], metrics.permitted_attempts(pool)), (10.0, 10.0, 1))
 
+    def other_policy(self, version, **limits):
+        raw = example_policy_dict()
+        raw.pop("_comment", None)
+        raw["policy_version"] = version
+        raw["limits"].update({"task_turn_ceiling": 36, "invocation_turn_ceiling": 12, "max_attempts_per_task": 3})
+        raw["limits"].update(limits)
+        return Controller(self.store, parse_policy(json.dumps(raw), source=version), {"fake": self.adapter},
+                          holder_id="holder-a", host="host-a", pid=4242, clock=self.clock)
+
+    # Kills: the status pool's invocation ceiling read from the policy alone (lane O's review): a policy that raises
+    # the ceiling over a pool frozen at 12 must not let the 10 turns left look like an invocation.
+    def test_a_raised_policy_ceiling_does_not_raise_the_pools_frozen_one(self):
+        self.parked_after_two_13_turn_attempts()
+        pool = self.other_policy("2026-10-13.raised-20", invocation_turn_ceiling=20).status()["tasks"][0]["pool"]
+        self.assertEqual((pool["invocation_ceiling"], metrics.permitted_attempts(pool)), (12.0, 0))
+
+    # Kills: `attempts_remaining` from the pool's attempts_max alone (lane O's review): `budget.reserve` caps it by
+    # the policy's `max_attempts_per_task`, so under a policy tightened to 2 a pool that used 1 of 3 has 1 left, and
+    # one that used 2 has none.
+    def test_a_tightened_policy_attempts_max_is_the_one_the_attempts_left_use(self):
+        def limits(raw):
+            raw["limits"].update({"task_turn_ceiling": 36, "invocation_turn_ceiling": 12, "max_attempts_per_task": 3})
+        self.policy_path = self.write_policy(limits, name="policy-36-12-3b.json")
+        self.adapter = FakeAdapter(script=[{"launch": "ok", "status": failed(StopReason.TASK_FAILED,
+                                                                            failure_identity="build:CS1", consumed_units=5.0)}])
+        ctl = self.make_controller(adapter=self.adapter)
+        self.add_task()
+        ctl.tick()
+        ctl.tick()
+        self.assertEqual(self.pool()["attempts_used"], 1)
+        pool = self.other_policy("2026-10-13.attempts-2", max_attempts_per_task=2).status()["tasks"][0]["pool"]
+        self.assertEqual((pool["attempts_max"], pool["attempts_remaining"], metrics.permitted_attempts(pool)), (3, 1, 1))
+        pool = self.other_policy("2026-10-13.attempts-1", max_attempts_per_task=1).status()["tasks"][0]["pool"]
+        self.assertEqual((pool["attempts_remaining"], metrics.permitted_attempts(pool)), (0, 0))
+
     # Kills: dropping either bound of the min, or rounding the budget quotient up instead of down.
     def test_permitted_is_the_smaller_of_the_attempts_left_and_the_whole_invocations_left(self):
         def pool(left, remaining, invocation):
