@@ -1,0 +1,4 @@
+mutation c776-cli-brief-not-passed: KILLED red=failed:6/555 green=passed:554/555 ref=bf3473a73c88e6673db6a60dcca45e3988c3990d runner=override
+mutation c776-line-break-allowed: KILLED red=failed:11/555 green=passed:554/555 ref=bf3473a73c88e6673db6a60dcca45e3988c3990d runner=override
+mutation c776-schema-2-not-migrated: KILLED red=failed:4/555 green=passed:554/555 ref=bf3473a73c88e6673db6a60dcca45e3988c3990d runner=override
+mutation c776-subject-ignores-brief: KILLED red=failed:1/555 green=passed:554/555 ref=bf3473a73c88e6673db6a60dcca45e3988c3990d runner=override

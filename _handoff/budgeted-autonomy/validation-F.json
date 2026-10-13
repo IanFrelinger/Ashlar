@@ -1,0 +1,373 @@
+{
+  "checks": [
+    {
+      "detail": "origin/master is 7c50e379fcc4",
+      "evidence": {
+        "sha": "7c50e379fcc42810bd7e590ecc04f21ddbc17b64"
+      },
+      "id": "master-head",
+      "status": "info",
+      "title": "Master's head"
+    },
+    {
+      "detail": "1 of 5 green on 7c50e379fcc4; pending: cert-gate, build-core; not reported on the push (PR-only or path-filtered): shell-lint, Readiness summary",
+      "evidence": {
+        "green": [
+          "lychee (README + docs)"
+        ],
+        "not_reported": [
+          "shell-lint",
+          "Readiness summary"
+        ],
+        "pending": [
+          "cert-gate",
+          "build-core"
+        ],
+        "red": [],
+        "required": [
+          "cert-gate",
+          "build-core",
+          "shell-lint",
+          "lychee (README + docs)",
+          "Readiness summary"
+        ]
+      },
+      "id": "required-checks",
+      "status": "warn",
+      "title": "Required checks on master's head"
+    },
+    {
+      "detail": "7 of the 61 workflow(s) on master end red there: Air-Gapped Multi-Env Tests (failure, 2026-05-23), Cross-Platform Tests (failure, 2026-08-11), Mesh lab TLS gate (failure, 2026-09-08), Mesh lab stress gate (failure, 2026-08-10), Mesh virtual lab gate (failure, 2026-08-11), Runtime Release Promotion (failure, 2026-05-11), compat-gate (failure, 2026-09-30)",
+      "evidence": {
+        "errors": [],
+        "listed_but_not_on_master": [
+          "Autonomous Release Manager (.github/workflows/autonomous-release-manager.yml)",
+          "Dependabot Updates (dynamic/dependabot/dependabot-updates)",
+          "Dogfood Campaign (.github/workflows/dogfood-campaign.yml)",
+          "Infra hang diagnosis (temporary) (.github/workflows/infra-hang-diagnosis.yml)",
+          "ingress-unit-gate (.github/workflows/ingress-unit-gate.yml)"
+        ],
+        "never_on_master": [
+          ".github/workflows/reusable-container-publish.yml",
+          ".github/workflows/reusable-release-nuget.yml",
+          ".github/workflows/reusable-verify-nuget-consumer.yml",
+          "Application Gate",
+          "Composition Mesh Gate",
+          "Devlog Ghost publish",
+          "Release",
+          "Release staging on label",
+          "Shell lint",
+          "Testing strategy gate",
+          "Workflow Regression Gate",
+          "layer-boundary",
+          "perf-certification",
+          "waterproofing-gate"
+        ],
+        "not_active": [],
+        "red": [
+          {
+            "conclusion": "failure",
+            "created": "2026-05-23",
+            "event": "workflow_dispatch",
+            "path": ".github/workflows/test-air-gapped-no-network.yml",
+            "run": 26344391373,
+            "workflow": "Air-Gapped Multi-Env Tests"
+          },
+          {
+            "conclusion": "failure",
+            "created": "2026-08-11",
+            "event": "push",
+            "path": ".github/workflows/cross-platform-tests.yml",
+            "run": 31543263067,
+            "workflow": "Cross-Platform Tests"
+          },
+          {
+            "conclusion": "failure",
+            "created": "2026-09-08",
+            "event": "schedule",
+            "path": ".github/workflows/mesh-lab-tls-gate.yml",
+            "run": 34223640833,
+            "workflow": "Mesh lab TLS gate"
+          },
+          {
+            "conclusion": "failure",
+            "created": "2026-08-10",
+            "event": "schedule",
+            "path": ".github/workflows/mesh-lab-stress-gate.yml",
+            "run": 31365347320,
+            "workflow": "Mesh lab stress gate"
+          },
+          {
+            "conclusion": "failure",
+            "created": "2026-08-11",
+            "event": "push",
+            "path": ".github/workflows/mesh-lab-gate.yml",
+            "run": 31543262983,
+            "workflow": "Mesh virtual lab gate"
+          },
+          {
+            "conclusion": "failure",
+            "created": "2026-05-11",
+            "event": "schedule",
+            "path": ".github/workflows/runtime-release-promotion.yml",
+            "run": 25656051308,
+            "workflow": "Runtime Release Promotion"
+          },
+          {
+            "conclusion": "failure",
+            "created": "2026-09-30",
+            "event": "push",
+            "path": ".github/workflows/compat-gate.yml",
+            "run": 36775242670,
+            "workflow": "compat-gate"
+          }
+        ],
+        "workflows": 61
+      },
+      "id": "master-workflows",
+      "status": "warn",
+      "title": "Newest master run of every workflow"
+    },
+    {
+      "detail": "readiness-verdict-for-sha: 7c50e379fcc42810bd7e590ecc04f21ddbc17b64 REFUSED (no-readiness-run)",
+      "evidence": {
+        "verdict": "refused"
+      },
+      "id": "readiness-head",
+      "status": "warn",
+      "title": "Readiness verdict for master's head"
+    },
+    {
+      "detail": "b130228eecf7 is VERIFIED (schedule run, 2026-10-12); 6 commit(s) on master since",
+      "evidence": {
+        "commits_since": 6,
+        "sha": "b130228eecf7a76ff38cb2cb09425d8b41ca13eb"
+      },
+      "id": "readiness-last-verified",
+      "status": "info",
+      "title": "Last verified readiness commit"
+    },
+    {
+      "detail": "14 open (UNKNOWN 14)",
+      "evidence": {
+        "by_merge_state": {
+          "UNKNOWN": 14
+        },
+        "stale": [],
+        "stale_days": 3,
+        "total": 14
+      },
+      "id": "open-prs",
+      "status": "info",
+      "title": "Open pull requests"
+    },
+    {
+      "detail": "50 open: 32 labelled bug, 11 agent-task card(s)",
+      "evidence": {
+        "agent-task": 11,
+        "all": 50,
+        "bug": 32
+      },
+      "id": "open-issues",
+      "status": "info",
+      "title": "Open issues"
+    },
+    {
+      "detail": "public repository with dependabot_security_updates, secret_scanning, secret_scanning_non_provider_patterns, secret_scanning_push_protection, secret_scanning_validity_checks disabled",
+      "evidence": {
+        "disabled": [
+          "dependabot_security_updates",
+          "secret_scanning",
+          "secret_scanning_non_provider_patterns",
+          "secret_scanning_push_protection",
+          "secret_scanning_validity_checks"
+        ],
+        "visibility": "public"
+      },
+      "id": "repo-security",
+      "status": "warn",
+      "title": "Repository security settings"
+    },
+    {
+      "detail": "95 commit(s) on master since v0.2.0; VERSION is 0.2.0",
+      "evidence": {
+        "commits": 95,
+        "tag": "v0.2.0",
+        "version": "0.2.0"
+      },
+      "id": "unreleased",
+      "status": "info",
+      "title": "Commits since the last release tag"
+    },
+    {
+      "detail": "69 local branch(es) hold work that is on no remote and not on master: bx/WS-A/A2, bx/WS-A/A3, bx/WS-A/A4, bx/WS-A/A5, bx/WS-A/A6, bx/WS-A/A7, bx/WS-B/B1, bx/WS-B/B2 ...",
+      "evidence": {
+        "candidates": 167,
+        "stranded": [
+          {
+            "ahead": 1,
+            "branch": "bx/WS-A/A2",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 2,
+            "branch": "bx/WS-A/A3",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 3,
+            "branch": "bx/WS-A/A4",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 4,
+            "branch": "bx/WS-A/A5",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 5,
+            "branch": "bx/WS-A/A6",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 6,
+            "branch": "bx/WS-A/A7",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 1,
+            "branch": "bx/WS-B/B1",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 2,
+            "branch": "bx/WS-B/B2",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 3,
+            "branch": "bx/WS-B/B3",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 4,
+            "branch": "bx/WS-B/B4",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 5,
+            "branch": "bx/WS-B/B5",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 6,
+            "branch": "bx/WS-B/B6",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 1,
+            "branch": "bx/WS-C/C1",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 2,
+            "branch": "bx/WS-C/C2",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 3,
+            "branch": "bx/WS-C/C3",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 4,
+            "branch": "bx/WS-C/C4",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 5,
+            "branch": "bx/WS-C/C5",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 6,
+            "branch": "bx/WS-C/C6",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 1,
+            "branch": "bx/WS-D/D1",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 2,
+            "branch": "bx/WS-D/D2",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 3,
+            "branch": "bx/WS-D/D3",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 4,
+            "branch": "bx/WS-D/D4",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 6,
+            "branch": "bx/WS-D/D5",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 1,
+            "branch": "bx/WS-E/E1",
+            "tip_date": "2026-10-01"
+          },
+          {
+            "ahead": 2,
+            "branch": "bx/WS-E/E2",
+            "tip_date": "2026-10-01"
+          }
+        ],
+        "stranded_total": 69,
+        "undetermined": []
+      },
+      "id": "stranded-branches",
+      "status": "warn",
+      "title": "Local work on no remote"
+    },
+    {
+      "detail": "\u2713 All referenced paths exist (0 missing)",
+      "evidence": {
+        "exit": 0
+      },
+      "id": "docs-paths",
+      "status": "pass",
+      "title": "Paths referenced in the docs exist"
+    },
+    {
+      "detail": "knowledge-graph: current (60 projects, 5150 declared facts, 0 undocumented operator variables)",
+      "evidence": {
+        "exit": 0
+      },
+      "id": "knowledge-graph",
+      "status": "pass",
+      "title": "The knowledge graph is current"
+    }
+  ],
+  "exit_code": 0,
+  "generated_at": "2026-10-13T18:54:57Z",
+  "master_sha": "7c50e379fcc42810bd7e590ecc04f21ddbc17b64",
+  "phase": "F",
+  "repo": "IanFrelinger/Ashlar",
+  "schema_version": 1,
+  "summary": {
+    "error": 0,
+    "fail": 0,
+    "info": 5,
+    "pass": 2,
+    "warn": 5
+  },
+  "workstream": "budgeted-autonomy"
+}

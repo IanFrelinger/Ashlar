@@ -1,0 +1,522 @@
+{
+  "headline": "Master 7c50e379f is green on every required check that reports on a push. It has no readiness verdict of its own, because phase F's six commits touched only tooling and docs; b130228ee is the last VERIFIED commit. The budgeted-autonomy roadmap is closed: the PR 5 live run happened on 2026-10-13, #791 fixed its findings, and #779 and #776 are closed. Nothing else moved: the next release has not started, SPEC-007 is at 4.5 of 8 PRs, the dogfood unlock is at 1.5 of 5, and no defect issue was closed.",
+  "areas": [
+    {
+      "key": "roadmap",
+      "name": "Product roadmap",
+      "distance": "far",
+      "done_means": "No single end state. Four documents disagree: CONTINUITY.md sections 1 and 5; the 2026-09-05 completion roadmap (docs/audits/2026-09-completion-roadmap.md: M0-M6 end in 'commercial claims unlocked', M7 after; the only document with countable criteria, 46 checkboxes); the five-SKU product fleet plan (docs/ProductsAndBusinessPlan.md, docs/ProductFleetImplementationRoadmap.md); and the 2026-09-19 product-boundary lock (docs/marketing/product-boundary.md), which says autonomy is not required and holds Forge, Cloud, autonomy and Learn. Scored against the completion roadmap's 41 unique criteria.",
+      "status": "The governance core shipped in v0.2.0 (CHANGELOG.md:619): gate, signed verdicts and hash-chained ledger, .ashpkg, F1-F4 federation, export native/aws/azure, NuGet. The autonomy-led roadmap is mostly unbuilt. M1.2, M1.3, M1.4, M2.1, M5.3 and M7.1 are partly built: the behaviours have tests inside the cert-gate filter (e.g. AutonomyAdversarialCampaignTests.cs), but the dedicated workflows do not exist. M3-M6 and M7.2-M7.8 have not started: ashlar-forge and ashlar-public-ledger return 404 and there is no ILearningHarness. Product fleet: Phase 0 has 5 of 6 steps done; Phase 1 (Private) 6 of 6 started, none finished; Phase 2 (Cloud) 3 of 9 started, hosted scaffold parked 2026-10-03; Phases 3-5 not started. SPEC-007 PR 5 is merged but its done-when is not met (scored under security). The roadmap's 0.2.0 launch target passed on 2026-10-01 without a re-baseline. Dogfood unlock criteria 3a, 3b and 4 are unmet. Not assessed by any reader: extensions/ashlar-vscode (0.5.3, untouched since 29049b116), infra/terraform/ashlar-sms-ingress, the MCP/A2A transports, ingress adapters and deploy/k8s.",
+      "estimate": "5 of 41 unique completion-roadmap exit criteria done, 6 partly built, 30 open (the document itself ticks 4 of 46 boxes).",
+      "basis": "Every '- [ ]' and '- [x]' line in docs/audits/2026-09-completion-roadmap.md at 7c50e379f (46 boxes; 41 after removing the 5 M6.1 sub-boxes that repeat M1-M5), checked against src/, application/, commercial/, .github/workflows and GitHub. Done: M0.1, M0.2, M1.1a, M1.1b, plus M7.7 (done but unticked; DocsIndex.md:40 links LearningHarness.md). Partly: M1.2, M1.3, M1.4, M2.1, M5.3, M7.1. Tests were located in the cert-gate filter, not watched running. The critic confirmed the box count, not the classification.",
+      "blocker": "Owner decision on which end state governs (completion roadmap or product-boundary lock), and roadmap open questions 1-4 (timeline, public-ledger scope, M2 fallback, Forge repo). M6 needs legal, privacy and security sign-offs and a first customer.",
+      "change_since_previous": "No code movement: phase F merged only autonomy-controller tooling and phase-end scripts. Re-scored more strictly: partly built fell from 10 to 6 (M0.4, M2.4, M3.4 and M5.1 now counted open), so open rose from 26 to 30. Done is unchanged at 5. The critic corrected the .NET 8 exposure from 81 to 90 projects.",
+      "units": {
+        "done": 5,
+        "partial": 6,
+        "open": 30,
+        "unit": "unique completion-roadmap exit criteria (M0-M7)"
+      }
+    },
+    {
+      "key": "release",
+      "name": "Next release",
+      "distance": "partway",
+      "done_means": "docs/RELEASE_RUNBOOK.md 'Before you tag' steps 1-9 on one release commit, then the tag, release.yml and the deploy/node.yml re-pin; the four exit items of docs/ProductionReadinessGate-v1.md section 6; a row in docs/production-readiness/ReleaseSignOff-v1.md citing the SHA's runs and a verified Readiness summary. No record names the next version; 0.3.0 appears only as an example in .claude/commands/handoff.md:85.",
+      "status": "No release commit exists. VERSION, ci/published-version and consumer-template AshlarConsumerPackageVersion all read 0.2.0, and master is 95 commits past v0.2.0. The base is sound: b130228ee is VERIFIED and none of the six commits since touches a readiness path; Production Readiness Gate A-D passed on 9faefe46c (run 38111473229, 74/74/2 tests per OS) and carries forward because src/, application/ and commercial/ are unchanged since; runtime-release-gate is green on 9faefe46c (38111473248). Standing between master and a tag: no version decision; no stable-or-[Experimental] decision for the 160 unshipped lines in src/Ashlar.Abstractions/PublicAPI.Unshipped.txt (150 Ashlar.Abstractions.Security, 10 AshlarResolvedDeploymentProfileOptions); compat-gate red since 2026-09-12; no tested rollback (the only drill is 2026-05-22, restore-in-place on bec2a6ed, 900 commits behind); docs/exceptions.yaml empty while 11 security defects are unfixed; no sign-off row (v0.2.0 also shipped without one); the release-notes snippet bug (scripts/changelog-snippet-for-release.sh:6-9 returns the tag itself on a tag commit). The tag will carry #746's AirGapped/SecureWorkstation enforce switch, so the SPEC-007 review section 9 conditions apply (BL4/BL5, PR 4.9b or recorded deviations, the gRPC/Fleet.Host scope, ProdStyle twins). waterproofing-gate has never run. The publish path (release.yml, release-nuget.yml with id-token: write) has no protected environment, no v* tag ruleset and mutable third-party action tags.",
+      "estimate": "0 of 9 runbook pre-tag steps done on a release commit (steps 1 and 9 partly evidenced on ancestors); of the 4 Production Readiness Gate exit items, 1 is met outright and 1 only by the letter.",
+      "basis": "Steps counted from RELEASE_RUNBOOK.md 'Before you tag'. Partial: step 1 (runtime-release-gate green on 9faefe46c) and step 9 (VERIFIED on b130228ee, no product diff to the head). Gate section 6: A-D met; 'no unapproved High/Critical exceptions' holds by the letter (exceptions: []) but the registry is untriaged; CI green on master not met (7 red workflows); tested rollback not met.",
+      "blocker": "Owner decisions: the version number and the API stability call (a dated SPEC-007 row). Engineering: compat-gate, BL4/BL5 refusal masking, and the SPEC-007 records drift.",
+      "change_since_previous": "No movement toward a tag. Master went from 89 to 95 commits past v0.2.0, all tooling and docs. Corrections applied: compat-gate red since 2026-09-12 (one reader said 09-30); the 160-line API decision also covers a non-Security type; the exceptions item moves from 'undetermined' to 'met by the letter only'. Newly identified: the release-notes snippet bug, the unprotected publish path, and the Ubuntu 26.04 rollout reaching release.yml, release-nuget.yml and reusable-container-publish.yml.",
+      "units": {
+        "done": 0,
+        "partial": 2,
+        "open": 7,
+        "unit": "runbook pre-tag steps"
+      }
+    },
+    {
+      "key": "security",
+      "name": "Security specs",
+      "distance": "partway",
+      "done_means": "SPEC-007 section 5 'Done when' for PRs 1-8, with every section 2 MUST naming a passing test (section 7); SPEC-006 section 6 items 1-4 plus its unmet obligations (S-4). An item counts as done only when merged and its done-when holds through a production caller.",
+      "status": "SPEC-007 PRs 1-4 are merged and wired: AddAshlarEgressGuard is called from AddAshlar, Ashlar.API and Fleet.Host; 41 production ThrowIfRefused calls; AirGapped and SecureWorkstation enforce by default (EgressEnforcement.cs:12); readiness VERIFIED on 7cb132897, d4dfbf379 and ac264559f. PR 5 (#748, ac264559f) is merged as a library only: SkillComposition.Decide has no production caller, AshlarHostingOptions.Clearance (:43) is never read, and the Pack calls at PkgCommand.cs:95, :460 and SelfExtendAdmissionBridge.cs:295 pass no highestLevel; SPEC-007:24 still says 'Merge pending'. PRs 6-8 have not started. The phase H plan never started: BL4 (ProviderFactory.cs:792-798 with ProviderBackedModel.cs:28-30) and BL5 (OrchestrationHotSwappableModel.cs:56-67) can still turn an egress refusal into echo output under ASHLAR_ALLOW_MOCK=1; Grok's drift-746 and drift-748 asks (6104884527, 6104884657) are unanswered since 2026-10-11; decisions-log rows :519-521 are unattested; mutation cases m6, m8 and m20 are invalid (stale fragment at scripts/mutations/spec007-redirects.json:225); 10 SPEC-007 cards (#757-#761, #763-#767) are unclaimed; the 19-comment bus backfill was never posted. SPEC-006: items 1, 2 and 4 are done (item 4 by #390 d55fa54e0, though SPEC-006:562-563 says outstanding); item 3 is partial (InstanceLedger covers verification entries only); S-4 is open, with DefaultDevKey still the fallback (CertificationRecordSigning.cs:20, :590), overdue since v0.1.1.",
+      "estimate": "7 of 12 planned spec items done, 2 partial, 3 open (SPEC-007 4.5 of 8 PRs; SPEC-006 3.5 of 4 items).",
+      "basis": "SPEC-007 section 5 PR table and SPEC-006 section 6 items. Done: SPEC-007 PRs 1-4; SPEC-006 items 1, 2, 4. Partial: SPEC-007 PR 5 (merged, done-when not met, confirmed by the critic); SPEC-006 item 3. Open: SPEC-007 PRs 6-8. Excludes the PR 4 remediation queue and SPEC-006 S-4.",
+      "blocker": "Owner decisions: Q-A (confirm or strike rows :519-521 and the Codex branch's Q4 row), Q-B (PR 5 shape), Q-C (#766 loopback scope), review section 10 (a)-(d), and the S-4 interpretation.",
+      "change_since_previous": "No movement: no SPEC-007 or SPEC-006 code merged this phase, and all Claude bus traffic since 2026-10-11 was budgeted-autonomy. Same 7/2/3. The SPEC-007 card count is 10, not the nine the previous status gave.",
+      "units": {
+        "done": 7,
+        "partial": 2,
+        "open": 3,
+        "unit": "planned spec PRs and implementation items (8 SPEC-007 PRs, 4 SPEC-006 items)"
+      }
+    },
+    {
+      "key": "autonomy",
+      "name": "Autonomy unlock",
+      "distance": "far",
+      "done_means": "The end of the autonomy marketing HOLD: every criterion in docs/dogfood-scorecard.md:63-76 holds on rows landed on master. 1: the four thresholds (last-10 scheduled sweeps at least 80% PASS, mean time-to-admit at most 15 min, Strict rejection rate at most 70%, all held for 7 consecutive days). 2: Strict requires Ed25519. 3a: at least 7 rows citing a persisted, re-read, Strict-verified record and its signer. 3b: one attended pass signed by an operator key and pinned to that key alone. 4: a real hygiene PR through the loop, merged after review. Thresholds are still 'Proposed defaults' (scorecard:7). docs/LearningHarness.md:325-332 holds a second, broader Honesty Gate.",
+      "status": "The HOLD is correct. Landed evidence has not moved since #654 (655c0b42a, 2026-09-27): nine fixture E2E PASS rows (2026-09-15 to 09-25, unverified and dev-key signed) and one GAP. Criterion 2 is done (#523). Criterion 1 is partly met: threshold 1 has 9 of its 10-row window, threshold 2 is met (13.9-18.7 s), threshold 3 has never been measured (every CI sweep replays one recorded proposal, so a CI rejection rate is 0 by construction), threshold 4 cannot be established. 3a: the pipeline exists (#665, 755cf6101) and 13 runs from 2026-09-29 to 10-13 emitted 3a citations (CI-minted Ed25519 key, pinned=false), but none has landed; the workflow is contents: read and publishes a patch for a human; no PR or card lands them; the 2026-09-29 sweep logs have already expired and the record artifacts expire from 2026-10-29. 3b is mechanically possible since #661 but needs an attended owner run; the OperatorCertificationIdentity bridge is not built. Criterion 4 has no path: no product code opens a PR and the sweep holds admission (SweepMode.cs:85). The scorecard's ticks on criteria 1 and 4 are false.",
+      "estimate": "1.5 of 5 unlock criteria on landed rows: 1 done (criterion 2), 1 partly met (criterion 1), 3 open (3a, 3b, 4); 0 of 7 3a rows landed.",
+      "basis": "docs/dogfood-scorecard.md:63-76 with 3a and 3b counted separately, scored only on rows landed in docs/dogfood-ledger.md on master. CI artifacts do not count (claims-cheat-sheet.md:75). Landing 7 of the 13 runs with durable record files would make 3a met.",
+      "blocker": "Owner decision on committing the record JSON and evidence sidecars (dogfood-continuous-proof.yml:250-254) before 2026-10-29; how threshold 3 is measured; ratifying the thresholds. Owner actions: the attended 3b pass; defining and reviewing the criterion-4 PR.",
+      "change_since_previous": "No landed movement. Re-scored: the previous status counted 3a as partly met; with 0 of 7 rows landed it is now counted open, so 1/2/2 became 1/1/3. Unlanded 3a-eligible runs grew from 10 to 13, and the first sweep-log artifacts have expired.",
+      "units": {
+        "done": 1,
+        "partial": 1,
+        "open": 3,
+        "unit": "unlock criteria (1, 2, 3a, 3b, 4)"
+      }
+    },
+    {
+      "key": "bugs",
+      "name": "Bug backlog",
+      "distance": "partway",
+      "done_means": "No repo doc defines an end state. Nearest: ReleaseSignOff-v1.md:27 with the docs/exceptions.yaml header. Every open defect is fixed on master and closed, or recorded as an exception with owner, expiry, mitigation and sign-off.",
+      "status": "42 open defect issues: 32 labelled bug (#454-#493) and 10 unlabelled (#252, #568, #757-#761, #765, #766, #790). None was closed. Fixed on master but left open: 11 (#252, #455, #459, #460, #461, #462, #463, #464, #465, #487, #488); #463 and #493's fixes never cite their issues. Partly fixed: 5 (#457, #458, #466, #485, #493). Still present: 26, including #483 (PR #751: required checks green, conflicts only on the generated knowledge graph) and #484 (PR #750: its own new test fails on the Windows readiness runner, run 38107303915). Security: 16 reports, 5 fixed, 11 not (#468, #474 called a blocker, #478, #480, #481, #483, #492, #493 partly, #765, #766, #790). One more security defect has no issue: `ashlar bg proposals apply` writes an agent-authored TargetPath with no containment check (ProposalsBackgroundAgentCommand.cs:193); its only fix is on the local-only branch bx/WS-Ia/I2 (00544cc7a). Data-loss: #457 partly, #475, #479. docs/exceptions.yaml reads `exceptions: []`, so nothing is triaged.",
+      "estimate": "11 of 42 open defect issues fixed on master (0 closed), 5 partly fixed, 26 open; 0 of the 14 unfixed security or data-loss defects recorded as exceptions (15 counting the untracked traversal).",
+      "basis": "Each open defect issue checked against the code on origin/master 7c50e379f by reading it, nothing run. The critic re-checked 5 of the 11 fixed-but-open issues and confirmed #252 passes on Linux, macOS and Windows in readiness run 38266204232.",
+      "blocker": "Owner: triage the security and data-loss defects (fix or sign exceptions); decisions on #468, #481, #493's consumer half, #759, #765, #766, #790. Closing the 11 fixed issues needs no decision (Grok owns issue hygiene).",
+      "change_since_previous": "Grew from 41 to 42 (#790 filed 2026-10-13). Re-scored: #465 is now fixed (the auth middleware covers it under every auth mode), and #483 moved from partly fixed to open because its fix sits in unmerged #751. New: the untracked proposals-apply traversal. Still none closed and none triaged.",
+      "units": {
+        "done": 11,
+        "partial": 5,
+        "open": 26,
+        "unit": "open defect issues"
+      }
+    },
+    {
+      "key": "ci",
+      "name": "CI health",
+      "distance": "partway",
+      "done_means": "No single end state. Nearest: the five required checks green with strict and enforce_admins (CLAUDE.md; docs/CiGateInventory.md:10-22); a VERIFIED readiness verdict for a release SHA (RELEASE_RUNBOOK.md:91-110); every check in scripts/phase-end/validate.py passing; every red workflow either green or carrying a DORMANT header and inventory row (CiGateInventory.md:218-227); no stuck PRs and no stranded local work.",
+      "status": "Every check that reported on 7c50e379f is green: cert-gate, build-core, lychee and both uat lanes. shell-lint and Readiness summary never report on a master push. Head readiness is REFUSED (no-readiness-run), as expected; b130228ee is VERIFIED; the next scheduled run is 2026-10-19 (recent schedule runs started 6-9 hours late). 40 of the 47 workflows with a master run end green. Six red ones are documented DORMANT and dispatch-only (only #252 tracks one). compat-gate is the untracked red: failing since 2026-09-12 because #363 (e6dd19928) made the unconfigured pipeline adapter fail closed, which breaks scripts/kernel-gate-tier-b.sh:67; its path filter never fired, and CiGateInventory.md:231 and KernelReadiness-v1.md:28 still call it healthy. 14 workflows have no master run (waterproofing-gate never ran). None of the 14 open PRs can merge as-is (12 BEHIND, #750 and #751 DIRTY) and none is claimed; #753 is green but BEHIND; #752's required shell-lint is red on a stale knowledge graph; #728's kernel-coverage was cancelled at its 30-minute timeout. 66 local branches hold work on no remote (53 bx/WS-*, at least four with fixes master lacks). On the public repo, secret scanning, push protection, Dependabot alerts and updates, private vulnerability reporting and code scanning are all off; allowed_actions is 'all' and 0 approving reviews are required. Open blind spots: Stress tests never run (#568), UnitTestBridgeTests hangs (#489), layer-boundary is not required.",
+      "estimate": "40 of 47 workflows with a master run are green; 3 of 5 required checks report green on the head (the other 2 never report on a push); 0 of 14 open PRs mergeable as-is.",
+      "basis": "Newest master run per workflow file (`gh run list --workflow <file> --branch master --limit 1` over all 61 files: 40 green, 7 red, 14 never on master); check runs on 7c50e379f; mergeStateStatus from `gh pr view` for each open PR.",
+      "blocker": "Owner actions: repository security settings; the fate of the 53 bx/WS-* branches; assigning owners for #750-#753 and the cards. Owner decision: fix or retire compat-gate and the six dormant workflows.",
+      "change_since_previous": "Open PRs went from 15 to 14 (#783 merged). Head readiness went from VERIFIED (b130228ee) to no verdict, because phase F touched no readiness path; this is not a failure. Red workflows unchanged at 7. Newly found: private vulnerability reporting, Dependabot alerts and code scanning are also off; the publish jobs are unprotected; #750's red Readiness is a real test failure, not the cancelled run a bus post blamed.",
+      "units": {
+        "done": 40,
+        "partial": 0,
+        "open": 7,
+        "unit": "workflows whose newest master run is green (of the 47 with a master run)"
+      }
+    },
+    {
+      "key": "workstream",
+      "name": "Workstream budgeted-autonomy",
+      "distance": "near",
+      "done_means": "No spec. The five ordered roadmap PRs in card #755, each closed by its card (#755, #768, #770, #772, #779); the phase F exit criteria in the phase E handoff section 4 (lines 291-296): the live run recorded in the ledger and the handoff, its findings fixed and merged, #779 closed with a done naming the evidence, every drift ask answered, owner questions 2-5 asked; and the owner row at tools/autonomy-controller/README.md:844.",
+      "status": "The roadmap is closed. All five roadmap PRs are merged and cards #755, #768, #770, #772, #779, #776, #782 and #762 are closed; #790 (Claude worker isolation) is open, deferred by owner row README:847. Phase F merged #784 (decisions log), #785 (pre-flight fixes, 15/15 mutations killed), #789 (eight owner rows), #791 (live-run fixes, 12/12 killed) and #792 (--brief for #776, 4/4 killed, 555 tests in shell-lint run 38449085779). The PR 5 live run ran on 2026-10-13, operated by Codex under owner row README:840; ledger ctl-pr5-live records Codex 6 turns (#786), Cursor 12 requests (#787), a transfer that cancelled Codex and completed in Claude in 7 turns (#788), a second transfer refused with exit 6, and #776 parked at 26/36. #779 closed at 18:18:51Z (done 6152213652). Grok's drift-792 note (6153522959, 19:31:15Z) is clean, so no drift ask is open for this workstream. Remaining: this handoff; owner calls on the pre-rewrite storage commits that GitHub still serves with the unredacted tarball blob a81c1a1c, the six local PR 5 archives, and the outbox post signed From: codex. Merge, repair, check observation and Codex/Cursor resume have never run live, and four brief items were never built.",
+      "estimate": "4.5 of 5 phase F exit criteria; 5 of 5 roadmap PRs merged; every workstream card closed except the new, deferred #790.",
+      "basis": "Phase F exit criteria from the phase E handoff section 4: findings fixed (#791, with F5 settled by owner row README:843), #779 closed with a done, drift asks answered (none were posted; drift-792 clean), questions 2-5 asked (2026-10-12 rows) are met; 'live run recorded in ledger and handoff' is half met until this handoff is published. Roadmap PRs and cards from #755 and `gh issue list --label agent-task`.",
+      "blocker": "None for the handoff. Owner decisions on the privacy residue and on whether the workstream continues.",
+      "change_since_previous": "Resolved: the PR 5 live run (previously the one open card criterion) happened and is in the ledger; #779 and #776 closed; #783, #784, #785, #789, #791 and #792 merged; Grok's drift audits are clean through #792. Phase F exit criteria went from 1 of 5 to 4.5 of 5. New: #790, the pre-rewrite storage commits, six unredacted local archives, and the From: codex outbox ruling.",
+      "units": {
+        "done": 4,
+        "partial": 1,
+        "open": 0,
+        "unit": "phase F exit criteria"
+      }
+    }
+  ],
+  "resolved_since_previous": [
+    "PR 5 live run done on 2026-10-13 and recorded in ledger ctl-pr5-live (Codex #786, Cursor #787, transfer to Claude #788, second transfer refused with exit 6); it was the one open #779 criterion in the previous status.",
+    "Card #779 closed 2026-10-13T18:18:51Z with done 6152213652 naming the evidence (owner row README:844).",
+    "Card #776 closed by #792 (merged as 7c50e379f); the previous finding that #776 was still assigned despite a released claim is moot.",
+    "#783 (phase-end validation and audit) merged as dd38c007c; open PRs went from 15 to 14.",
+    "#784 (decisions log, dccba4e03), #785 (pre-flight fixes, af7ff471b, 15/15 killed), #789 (eight owner rows, f2ddbee01) and #791 (live-run fixes, 200fd1e5e, 12/12 killed) merged.",
+    "Phase E owner questions 2-5 answered as dated owner rows (README:824-839).",
+    "Storage-branch tip redacted: live-run-pr4-pilot-evidence.tar.gz replaced (blob a81c1a1c to 09f5a9a2) and the branch history rewritten.",
+    "Live-run branches deleted (no refs/heads/auto/* on origin), per owner row README:846.",
+    "Grok's drift audits clean for every budgeted-autonomy PR through #792 (6125584428, 6131070487, 6146640744, 6150353136, 6152500004, 6153522959).",
+    "Required checks on the head: cert-gate and build-core, pending in the validation, completed with success (18:59:35Z and 18:56:50Z)."
+  ],
+  "new_since_previous": [
+    "Issue #790 filed 2026-10-13 (Claude workers inherit the operator's hooks, skills, agents, auto-memory and account email); deferred by owner row README:847.",
+    "Untracked security defect: `ashlar bg proposals apply` writes TargetPath with no containment check (application/src/Ashlar.CLI/Commands/BackgroundAgent/ProposalsBackgroundAgentCommand.cs:193; ChangeProposal.cs:22 does not validate). No issue exists; the only fix is on local-only branch bx/WS-Ia/I2 (00544cc7a).",
+    "GitHub still serves pre-rewrite storage commits cbc1a0d72929 and ec6ac7cfd by SHA; cbc1a0d72929's tree holds the unredacted PR 4 tarball blob a81c1a1c (3,532,965 bytes). The local ref claude/budgeted-autonomy-workspace at 3ad39c834 also holds it.",
+    "Six PR 5 evidence archives exist only locally under pr5\\state\\evidence, four holding the owner's email unredacted, with no decision row.",
+    "Outbox post 6149018991 was signed From: codex, against the 2026-10-12 row requiring From: claude; no ruling.",
+    "Master head 7c50e379f has no readiness verdict (REFUSED, no-readiness-run) because phase F touched no readiness path; b130228ee remains the last VERIFIED commit.",
+    "13 un-landed 3a-eligible dogfood runs (was 10); the 2026-09-29 sweep-log artifacts have already expired.",
+    "Wider security-settings gap: private vulnerability reporting is off although SECURITY.md:11 directs reporters to it; Dependabot alerts are off; no code-scanning analysis exists.",
+    "Release supply chain: release.yml and release-nuget.yml publish with id-token: write but no protected environment gates them, no ruleset protects v* tags, Actions policy is allowed_actions=all with sha_pinning_required=false, and third-party actions are pinned by mutable tag.",
+    "PR #750's red Readiness summary is a real failure of its own test on Windows (run 38107303915), contrary to Grok's bus status.",
+    "compat-gate root cause pinned to e6dd19928 (#363): the unconfigured pipeline adapter fails closed, breaking scripts/kernel-gate-tier-b.sh:67.",
+    "Release-notes snippet bug confirmed: scripts/changelog-snippet-for-release.sh:6-9 returns the same tag on a tag commit, so 'Changes since' comes out empty.",
+    "The Ubuntu 26.04 rollout (2026-10-19 to 11-19) reaches release.yml, release-nuget.yml, reusable-container-publish.yml, runtime-release-gate.yml and dogfood-continuous-proof.yml, not only the advisory gates.",
+    ".NET 9 end of support is likely 2026-11-10 under Microsoft's 24-month STS policy (external), contradicting docs/architecture/DotnetVersions.md:5.",
+    "Grok-authored code PRs #752 and #753 have no developing owner under CLAUDE.md's ownership split."
+  ],
+  "critical_path": [
+    {
+      "step": "You: choose the next version number (0.3.0 is implied by the default-behaviour changes in [Unreleased], but no record says so).",
+      "owner_only": true
+    },
+    {
+      "step": "You: decide whether the 160 unshipped Ashlar.Abstractions lines (150 Security/Egress, 10 AshlarResolvedDeploymentProfileOptions) ship stable or [Experimental] with ASHLAREXP002, landed as a dated SPEC-007 decisions-log row before the release commit.",
+      "owner_only": true
+    },
+    {
+      "step": "You: confirm or strike SPEC-007 decisions-log rows :519-521 and the Codex branch's Q4 row; answer Q-B (PR 5 shape), Q-C (#766) and review section 10 (a) docker exec and (b) exit-77 scope.",
+      "owner_only": true
+    },
+    {
+      "step": "Fix BL4 and BL5 refusal masking (PR 4.8b: ProviderFactory.cs:792-798 with ProviderBackedModel.cs:28-30; OrchestrationHotSwappableModel.cs:56-67), mutation-checked.",
+      "owner_only": false
+    },
+    {
+      "step": "Land a records PR that answers Grok's drift-746 and drift-748 asks and corrects the PR 5 'refused' claims (SPEC-007:24, :302, :446; CHANGELOG.md:189; ci/cert-gate-assertions.md:68), then post done on both slugs.",
+      "owner_only": false
+    },
+    {
+      "step": "Fix compat-gate: make scripts/kernel-gate-tier-b.sh:67, :80-84 register a concrete deterministic adapter (or retire the Tier B claim), under a new issue, and get the gate green.",
+      "owner_only": false
+    },
+    {
+      "step": "Land the proposals-apply containment fix (from bx/WS-Ia/I2 00544cc7a or rewritten) with an issue; rebase and land #751; fix #750's Windows test and land it; land #753 and #752 (regenerate the knowledge graph); close #729-#737.",
+      "owner_only": false
+    },
+    {
+      "step": "You: for the 11 unfixed security defects, the untracked traversal and the 3 data-loss defects, either schedule the fix or sign an exception in docs/exceptions.yaml; Grok closes the 11 issues already fixed.",
+      "owner_only": true
+    },
+    {
+      "step": "Make the release commit: VERSION, ci/published-version and AshlarConsumerPackageVersion together; fold CHANGELOG [Unreleased] (lines 18-618) with the behaviour changes classified; promote PublicAPI.Unshipped; rewrite consumer-template/CONSUMING.md trust rows for egress and AG/SW enforcement; sweep the 0.2.0 doc pins; fix scripts/changelog-snippet-for-release.sh.",
+      "owner_only": false
+    },
+    {
+      "step": "Rehearse X.Y.Z-rc1 through release-nuget.yml from the release commit; get runtime-release-gate green and readiness-verdict-for-sha.sh VERIFIED on that SHA; run the RC and waterproofing evidence.",
+      "owner_only": false
+    },
+    {
+      "step": "You: sign the Product row of a new ReleaseSignOff-v1.md entry and provide an environment for a real version-downgrade rollback drill.",
+      "owner_only": true
+    },
+    {
+      "step": "Tag, run release.yml, then re-pin deploy/node.yml to the published nexo-cli digest.",
+      "owner_only": false
+    }
+  ],
+  "next_completion_point": "The next release after v0.2.0 (version not recorded; 0.3.0 is implied), cut from a release commit that completes docs/RELEASE_RUNBOOK.md steps 1-9 with a VERIFIED readiness verdict on that SHA. It is the first release to carry #746's AirGapped/SecureWorkstation default-enforce switch, so the SPEC-007 review section 9 conditions also apply.",
+  "owner_decisions": [
+    "Choose the next version number, and whether the 160 unshipped Ashlar.Abstractions lines ship stable or [Experimental] (ASHLAREXP002), as a dated SPEC-007 row before the tag.",
+    "SPEC-007: confirm or strike decisions-log rows :519-521 (Q-A) and the contradictory Q4 row on codex/spec007-clearance-reads; choose the PR 5 shape (Q-B); answer Q-C (#766) and review section 10 (a) docker exec, (b) exit-77 scope (#765), (c) FailurePolicy.Continue (#759), (d) the C12 adaptation (#763); section 8 questions 1, 2, 5, 6; open questions A, B, E; the 'PROPOSED' status line.",
+    "Assign an owning agent for SPEC-007 phase H and the open PRs: land #753, rebase #750/#751/#752, close #729-#737, re-run #728's kernel-coverage, take cards #757-#767. Say whether Claude adopts, rewrites or closes the Grok-authored code PRs #752 and #753.",
+    "Before 2026-10-29: decide whether dogfood certification records and evidence sidecars are committed to the repo so 3a rows cite durable files (dogfood-continuous-proof.yml:250-254). Also: how threshold 3 is measured, ratifying the 'proposed' thresholds, whether a raw ASHLAR_CERT_ED25519_KEY counts as an operator key for 3b, running the attended 3b pass, and what qualifies for criterion 4.",
+    "Triage the 11 unfixed security defects, the untracked proposals-apply traversal and the 3 data-loss defects: fix, or sign exceptions in docs/exceptions.yaml. Decide #468 (options a-c), #481 (next major), and #493's consumer half (should Default require the gate-emitted artifact).",
+    "Repository settings: turn on secret scanning, push protection, Dependabot alerts and security updates, private vulnerability reporting (SECURITY.md:11 depends on it) and code scanning. Protect the publish path: a required-reviewer environment for release.yml and release-nuget.yml, a v* tag ruleset, an Actions allow-list or SHA pinning, and required reviews (#545).",
+    "Decide the fate of the 53 local-only bx/WS-* branches (land, push to an archive ref, or drop); they exist only in this clone and hold at least four fixes master lacks.",
+    "Fix or retire compat-gate and the six dormant red workflows, and have CiGateInventory.md:231 and KernelReadiness-v1.md:28 corrected.",
+    "Budgeted-autonomy: ask GitHub Support to purge the pre-rewrite storage commits (cbc1a0d72929, ec6ac7cfd) or accept the exposure. The email is already public as the author email on 712 master commits, so the decision should rest on what else the tarball holds, which nobody has inventoried. Also decide on the six local PR 5 archives, rule on outbox post 6149018991 (From: codex), schedule #790, and say whether another live run should exercise merge, repair and check observation.",
+    "Decide whether budgeted-autonomy closes after phase F or whether the unbuilt brief items get cards (tick-driven bus claims, card intake, container validation in tick, the phases table, premium escalation); promote any phase A-F integrator decisions to owner rows.",
+    "Delete the pre-rewrite local ref claude/budgeted-autonomy-workspace (3ad39c834) so it is never pushed.",
+    "SPEC-006 S-4: does the Ed25519 verify floor retire the dev-HMAC, or must DefaultDevKey be removed?",
+    "Whether the next release keeps net8.0 targets given .NET 8 leaves support on 2026-11-10, and whether the net9.0 runtime-consumer lane stays.",
+    "Which end state governs: the 2026-09-05 completion roadmap or the 2026-09-19 product-boundary lock; re-baseline or mark the other historical; answer roadmap open questions 1-4 (including whether to create ashlar-forge and ashlar-public-ledger).",
+    "Release sign-off: the Product row, a rollback-drill environment; for public v0.x, the social preview card and external-reader validation.",
+    "Product scope: the commercial/ license split (LICENSING.md says a separate deliverable, but commercial/src sits in this Apache-2.0 repo), HMAC private licenses, renaming the GHCR images away from nexo-cli and nexo-api, Studio GUI (#541), v2 trust, product fleet phases 0.6-5.",
+    "Sign off the claims-cheat-sheet wording for the 3a/3b split (Marketing/Product), and make the final call to lift the HOLD once all criteria are met on landed rows."
+  ],
+  "hard_dates": [
+    {
+      "date": "2026-09-01 (passed)",
+      "what": "SPEC-006 S-4 said the dev-HMAC-only path goes 'in the release after keys ship' (v0.1.1). DefaultDevKey is still the fallback after v0.1.2 and v0.2.0 (CertificationRecordSigning.cs:20, :590)."
+    },
+    {
+      "date": "2026-10-01 (passed)",
+      "what": "v0.2.0 shipped with M1-M6 open, missing the completion roadmap's 0.2.0 launch target without a re-baseline, and with no ReleaseSignOff-v1 row."
+    },
+    {
+      "date": "2026-10-14T11:28Z",
+      "what": "Sweep-log artifact of dogfood run 36708583529 (2026-09-30), the oldest surviving 3a-eligible log, expires; one more expires daily through 2026-10-27."
+    },
+    {
+      "date": "2026-10-15",
+      "what": "Artifacts of run 36859971058, the VERIFIED readiness run for the v0.2.0 release commit, expire."
+    },
+    {
+      "date": "2026-10-19",
+      "what": "GitHub starts moving ubuntu-latest to Ubuntu 26.04 (through 2026-11-19). It reaches release.yml, release-nuget.yml, reusable-container-publish.yml, runtime-release-gate.yml, dogfood-continuous-proof.yml and the advisory release gates. Same day: weekly scheduled Full Platform Readiness run (cron 06:00Z; recent runs started 6-9 hours late), the first chance of a verdict after b130228ee."
+    },
+    {
+      "date": "2026-10-26",
+      "what": "Artifacts of VERIFIED readiness run 38266204232 (b130228ee) expire."
+    },
+    {
+      "date": "2026-10-28T12:08Z",
+      "what": "Ledger artifact of run 36419782419 (the 2026-09-28 scheduled PASS that would fill threshold 1's 10-row window) expires."
+    },
+    {
+      "date": "2026-10-29",
+      "what": "Ledger and record artifacts of the first 3a-eligible runs (36520721770 at 04:18Z, 36563102856 at 11:40Z) expire, and with them the only copy of each record; one more expires per run through 2026-11-12."
+    },
+    {
+      "date": "2026-11-01",
+      "what": "Monthly scheduled rc-gate run; its last run was the 2026-10-01 success on 5bd7b893."
+    },
+    {
+      "date": "2026-11-09",
+      "what": "Logs of the red Cross-Platform Tests (31543263067) and Mesh virtual lab gate (31543262983) runs expire under 90-day retention."
+    },
+    {
+      "date": "2026-11-10",
+      "what": ".NET 8 LTS end of support (Microsoft lifecycle, not in any repo doc). 90 projects build net8.0 and cert-gate tests with -f net8.0. .NET 9 likely ends the same day under the 24-month STS policy, which docs/architecture/DotnetVersions.md:5 contradicts."
+    },
+    {
+      "date": "2026-11-14",
+      "what": "Derived: end of the completion roadmap's 70-day plan counted from 2026-09-05."
+    },
+    {
+      "date": "2026-11-19",
+      "what": "The ubuntu-latest move to 26.04 completes."
+    },
+    {
+      "date": "2026-12-07",
+      "what": "Logs of the last red Mesh lab TLS gate run (34223640833) expire."
+    },
+    {
+      "date": "2026-12-11",
+      "what": "Logs of compat-gate's first red run (34687917953, 2026-09-12) expire."
+    }
+  ],
+  "stale_docs": [
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:24, :446, :520-521",
+      "claim": "PR 5 (#748) 'Merge pending'",
+      "reality": "#748 merged 2026-10-11T00:08:48Z as ac264559f. Grok's drift-748 ask (6104884657) is unanswered."
+    },
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:24, :302, :446; CHANGELOG.md:189; ci/cert-gate-assertions.md:68",
+      "claim": "Composing an agent with a skill above its clearance is refused",
+      "reality": "SkillComposition.Decide has no production caller, AshlarHostingOptions.Clearance is never read, and the Pack calls at PkgCommand.cs:95, :460 and SelfExtendAdmissionBridge.cs:295 pass no highestLevel. It is a library with unit tests."
+    },
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:112, :117, :128, :543-544; docs/governed-pipeline.md:21; CHANGELOG.md:226, :237, :460, :463, :547",
+      "claim": "Decisions are report-only by default; EgressGuard.Evaluate never refuses",
+      "reality": "Since #746 (7cb132897) AirGapped and SecureWorkstation enforce by default (EgressEnforcement.cs:12). Grok's drift-746 ask (6104884527) is unanswered."
+    },
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:149",
+      "claim": "Readiness for the repaired master is pending",
+      "reality": "readiness-verdict-for-sha.sh gives d4dfbf379 VERIFIED."
+    },
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:494-497, :519-521",
+      "claim": "These rows record the owner's decisions",
+      "reality": "REVIEW-2026-10-11.md section 3 classes all three as agent-written; #748's body cites no owner answer, and :570 says section 8's six questions are still open."
+    },
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:571-583 (open question A)",
+      "claim": "A receiver-side ParseOrPublic helper is still open",
+      "reality": "#748 added SecurityLabel.ParseOrPublic (src/Ashlar.Abstractions/Security/SecurityLabel.cs:274) with no record."
+    },
+    {
+      "path": "docs/DocsIndex.md:25",
+      "claim": "SPEC-007 has merged PRs 1, 2, 3a and 3b",
+      "reality": "PR 4 (through #746) and PR 5 (#748) have merged too."
+    },
+    {
+      "path": "ci/cert-gate-assertions.md:85",
+      "claim": "152 .cs files in Tests/Certification",
+      "reality": "153 on master (#748 added SubjectClearanceCompositionTests.cs)."
+    },
+    {
+      "path": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs:50",
+      "claim": "HostOptOutBasis is 'Not produced yet'",
+      "reality": "Produced since #746 (EgressGuard.cs:162, :274); card #761."
+    },
+    {
+      "path": "docs/specs/SPEC-006-keys-and-signing.md:562-563",
+      "claim": "Items 3-4 are outstanding",
+      "reality": "Item 4 landed in #390 (d55fa54e0; ProjectVerifier.cs:76-80 provenance course); item 3 landed in part in #389 (2443ad935, verification entries only)."
+    },
+    {
+      "path": "docs/specs/SPEC-006-keys-and-signing.md:117-120 and :101",
+      "claim": "The HMAC-only path is removed in the release after keys ship; SPEC-003 is not yet written",
+      "reality": "DefaultDevKey is still the fallback after v0.1.1, v0.1.2 and v0.2.0 (CertificationRecordSigning.cs:586-590). docs/InstanceLedger.md calls itself SPEC-003 v1, but no SPEC-003 file exists."
+    },
+    {
+      "path": "docs/specs/SPEC-006-keys-and-signing.md:625-632, :551",
+      "claim": "The certification-record half of S-1 stays unmet; 'SPEC-007's honest sentence'",
+      "reality": "Limitations 7 and 8 closed 2026-09-06 by #523 on non-Legacy paths; the only SPEC-007 is the security-labels spec, which has no such sentence (its open question E)."
+    },
+    {
+      "path": "docs/audits/2026-09-completion-roadmap.md:53, :179-181",
+      "claim": "No adversarial campaign yet; M1.2-M1.4 not CI-proven",
+      "reality": "AutonomyAdversarialCampaignTests.cs (since 29049b116) and the pause, watch-window, rollback and revocation tests run inside the required cert-gate filter."
+    },
+    {
+      "path": "docs/audits/2026-09-completion-roadmap.md:622, :789, :1027, :1035, :1047",
+      "claim": "Launch at 0.2.0; M7.7 unticked; Forge still in products/Ashlar.Forge; 57 workflows; dependency-boundary-gate.yml",
+      "reality": "v0.2.0 shipped 2026-10-01 with M1-M6 open; M7.7 is done (DocsIndex.md:40); Forge was never in-tree (product-split.md:7); 61 workflows; the file is dependency-boundary.yml."
+    },
+    {
+      "path": "docs/audits/2026-09-completion-roadmap.md vs docs/marketing/product-boundary.md",
+      "claim": "The end state is commercial autonomous self-extension with Forge as product proof",
+      "reality": "The 2026-09-19 lock says autonomy is not required and holds autonomy, Forge GA and Cloud; neither document supersedes the other."
+    },
+    {
+      "path": "CONTINUITY.md:170-176 and section 2",
+      "claim": "Dependabot #359-#361 unreviewed; repo rename pending; <Authors> pending; the done table ends at mesh slice 3",
+      "reality": "#359 closed, #360 and #361 merged; the repo is IanFrelinger/Ashlar; Authors resolved (Directory.Build.props:25-27); the table omits v0.1.0-v0.2.0, F1-F4, SPEC-007 PRs 1-5 and the autonomy controller."
+    },
+    {
+      "path": "docs/DocsIndex.md:28; docs/dogfood-ledger.md:40; .github/workflows/dogfood-continuous-proof.yml:3-4",
+      "claim": "Rows are appended to the ledger automatically; the workflow proves extend-certify-admit",
+      "reality": "The workflow is contents: read and publishes a patch for a human (:22-25, :215-226); no row has landed since 2026-09-27; it admits nothing (HoldAdmission=true, SweepMode.cs:85)."
+    },
+    {
+      "path": "docs/dogfood-scorecard.md:67, :76, :75, :82, :86",
+      "claim": "Criteria 1 and 4 ticked; pinning and record persist-and-reread still to build",
+      "reality": "Criteria 1 and 4 are not met (line 83 itself says 4 is not); #661 (615728b7a) and #665 (755cf6101) built pinning and the persist-reread pipeline."
+    },
+    {
+      "path": "docs/dogfood-scorecard.md:109 vs docs/marketing/claims-cheat-sheet.md:75",
+      "claim": "CI artifacts are a metric source",
+      "reality": "The cheat sheet forbids 'Dogfood PASS from CI artifacts alone'; the two docs disagree."
+    },
+    {
+      "path": "docs/marketing/claims-cheat-sheet.md:83; docs/LearningHarness.md:314, :318, :325-332, :394",
+      "claim": "Unlock needs 7 landed Strict PASS rows; LearningHarness DocsIndex link unticked",
+      "reality": "The scorecard split criterion 3 into 3a and 3b (the cheat sheet omits 3b); LearningHarness adds a second Honesty Gate; DocsIndex.md:40 already links it."
+    },
+    {
+      "path": "docs/release/RELEASE-READINESS.md:51, :125, :184, :191, :255, :268, :331, :440",
+      "claim": "No dated E2E pass; 0.1.2 is the live NuGet version; Discussions and Pages not enabled",
+      "reality": "Nine fixture PASS rows landed (#654); v0.2.0 is on nuget.org; has_discussions=true and Pages is live at ianfrelinger.github.io/Ashlar."
+    },
+    {
+      "path": "docs/production-readiness/ReleaseSignOff-v1.md:5-9, :11, :27, :77",
+      "claim": "bec2a6ed is 746 behind; only v0.1.x shipped without a row; security is supported by an empty exceptions.yaml",
+      "reality": "900 behind; v0.2.0 also has no row; the empty registry is untriaged while 11 security defects are unfixed."
+    },
+    {
+      "path": "scripts/kernel-gate-tier-b.sh:67, :80-84; docs/CiGateInventory.md:231; docs/production-readiness/KernelReadiness-v1.md:28",
+      "claim": "An unconfigured pipeline run succeeds; compat-gate kept as-is; Tier B PASS",
+      "reality": "The adapter fails closed since #363 (e6dd19928), as ProductionReadinessGate-v1.md:71 requires; compat-gate has been red since 2026-09-12 (runs 34687917953, 36775242670)."
+    },
+    {
+      "path": "docs/CiGateInventory.md:222; .github/workflows/cross-platform-tests.yml:10-21",
+      "claim": "#252 fails everywhere and is invisible; no Windows or macOS coverage while muted",
+      "reality": "The test passes on Linux, macOS and Windows in readiness run 38266204232; the readiness gate is a Windows/macOS matrix."
+    },
+    {
+      "path": "docs/ProductionReadinessGate-v1.md:186; docs/architecture/DotnetVersions.md:5",
+      "claim": "Pipeline tests for net8/net9; .NET 9 left support in May 2026",
+      "reality": "The gate tests net8.0 and net10.0; under Microsoft's 24-month STS policy .NET 9 ends 2026-11-10 (external, not verifiable from the repo)."
+    },
+    {
+      "path": "README.md:114, :125",
+      "claim": "Release Manager scheduled for extraction; autonomy evidence is local spike runs needing Ollama",
+      "reality": "Release Manager was extracted 2026-09-01; the scheduled CI sweep runs the loop without Ollama by replaying a recorded proposal."
+    },
+    {
+      "path": "samples/autonomy-objectives/README.md:9-12, :65",
+      "claim": "'The three files' table; SessionImage sdk:9.0",
+      "reality": "The table has no rows since #446/#448; the sweep and the options default use sdk:10.0."
+    },
+    {
+      "path": "docs/ProductsAndBusinessPlan.md sections 3 and 6; docs/marketing/positioning.md ('What's Live'); docs/marketing/claims-cheat-sheet.md:72",
+      "claim": "Launch hosted Cloud first; mesh federation live; Forge GA experimental",
+      "reality": "There is no hosted service (README.md:27; scaffold parked 2026-10-03); #539/#540 require dogfood-dated E2E, which does not exist; no Forge product exists (ashlar-forge returns 404)."
+    },
+    {
+      "path": ".github/workflows/release.yml:236-237",
+      "claim": "Release summary lists ashlar-cli and ashlar-api images",
+      "reality": "The images pushed are ghcr.io/<owner>/nexo-cli and nexo-api (reusable-container-publish.yml:66)."
+    },
+    {
+      "path": "_handoff/readiness/README.md (pointer to STATE-2026-08-27.md)",
+      "claim": "Start here if picking the project up cold",
+      "reality": "The snapshot says zero packages and zero v* tags; v0.1.1, v0.1.2 and v0.2.0 exist and are on nuget.org."
+    },
+    {
+      "path": "SECURITY.md:11",
+      "claim": "Report vulnerabilities through private GitHub Security Advisories",
+      "reality": "Private vulnerability reporting is disabled on the repository (`gh api .../private-vulnerability-reporting` returns enabled:false)."
+    },
+    {
+      "path": "LICENSING.md (covenants 1 and 3)",
+      "claim": "Commercial capability is a separate deliverable in separate projects and feed",
+      "reality": "commercial/src (Fleet.*, MeshDirector) sits in this public repository under the root Apache-2.0 license."
+    },
+    {
+      "path": "src/Ashlar.Manifest/Admission/GateStore.cs:7; application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs:117-118",
+      "claim": "GateRecord keeps decision history; a device file gets a 404",
+      "reality": "DecideAsync overwrites Actor and DecidedAt (#478); #492 reports a character device returns 500 (not re-run)."
+    },
+    {
+      "path": "Issues #463, #468, #487, #493 (bodies)",
+      "claim": "Defects as originally described",
+      "reality": "#463 fixed by #645 (9a5e580ae); #487 fixed by #749 (9faefe46c); #493's certifier half fixed by #494 (d4b3cb767); #468's premise changed by #640's .csproj allowance. All still open."
+    },
+    {
+      "path": "Issue #695 grok status (About: land-749-753)",
+      "claim": "#750's Readiness failure is the cancelled discover run",
+      "reality": "Run 38107303915 failed CliHandlerExitCodeTests.Docker_ps_without_a_daemon_exits_non_zero on Windows ('Did not expect value to be 0')."
+    },
+    {
+      "path": "tools/autonomy-controller/README.md:3, :37, :841",
+      "claim": "The controller takes an eligible task card and posts claim/handoff/done; no commit holds the unredacted file",
+      "reality": "Tasks enter only through `task add --card`; tick never enqueues outbox posts (cli.py:184, :375-382); GitHub still serves pre-rewrite commit cbc1a0d72929 with blob a81c1a1c."
+    },
+    {
+      "path": "origin/claude/budgeted-autonomy-workspace:_handoff/budgeted-autonomy/live-run-pr5.md:23-24, :231",
+      "claim": "#776 may take up to 3 attempts of 12 turns within 36",
+      "reality": "Each capped run is charged 13, so two fit and the task parked at 26/36 (README.md:165-171); the sheet still lacks a `lease release` step."
+    },
+    {
+      "path": "origin/claude/budgeted-autonomy-workspace:_handoff/budgeted-autonomy/handoff.md (phase E)",
+      "claim": "Master b130228ee; #779 open; Cursor not logged in; #776 open",
+      "reality": "Master 7c50e379f; #779 and #776 closed; Cursor ran run-bdc63ec68d56. Expected until this handoff is published."
+    },
+    {
+      "path": "C:/Users/icfre/.claude/projects/C--Users-icfre-Documents-Codex-2026-09-12-f-2-work-ashlar-record-correction/memory/MEMORY.md (Open threads)",
+      "claim": "PR 5 live run still not done",
+      "reality": "Done and verified on 2026-10-13 (done 6152213652); #776 merged as #792."
+    },
+    {
+      "path": "scripts/phase-end/validate.py output (2026-10-13T18:54:57Z)",
+      "claim": "Required checks 1 of 5 with cert-gate and build-core pending; 69 stranded branches; 14 open PRs UNKNOWN",
+      "reality": "Both checks passed minutes later (3 of 5); a re-run of its own stranded_branches() gives 66; per-PR views show 12 BEHIND and 2 DIRTY. These are changes over time and a lazy GitHub state, not validator defects."
+    }
+  ],
+  "workstream_findings": [
+    "The roadmap is closed: all five #755 PRs merged and cards #755, #768, #770, #772, #779, #776, #782 and #762 closed. #762 was done by this workstream (storage file 12-done-card-762.md); count it once. #790 is open and deferred by owner row README:847.",
+    "Phase F met 4.5 of 5 exit criteria. Only the publication of this handoff remains for 'live run recorded in ledger and handoff'.",
+    "Grok posted drift-792 clean at 19:31:15Z (6153522959), after the workstream reader ran. No drift ask is open for this workstream. Project-wide, SPEC-007's drift-746 and drift-748 are still open, so the handoff must not say 'no drift ask is open' without that scope.",
+    "Privacy residue: GitHub still serves pre-rewrite storage commits cbc1a0d72929 and ec6ac7cfd by SHA, and cbc1a0d72929's tree holds the unredacted PR 4 tarball blob a81c1a1c. Both SHAs are cited publicly (bus 6151763815, live-run-pr5-record.md). README:841's 'removed from history' holds only for reachable commits. The owner's email is already public as the author email on 712 master commits, so a purge decision should rest on the tarball's other contents, which nobody has inventoried.",
+    "The local ref claude/budgeted-autonomy-workspace at 3ad39c834 in this clone is a pre-rewrite copy holding blob a81c1a1c and must never be pushed. handoff-publish.sh:74-82 parents on the remote branch, so publishing does not reintroduce it.",
+    "Six PR 5 evidence archives stay local under pr5\\state\\evidence, four with the owner's email unredacted; `evidence archive` refuses to overwrite. There is no decision row.",
+    "Outbox post 6149018991 was signed From: codex, against the 2026-10-12 row requiring From: claude. The dedup key is spent, and there is no ruling.",
+    "Paths never run live, only against fakes: controller merge (gh pr merge --match-head-commit), a repair round, check observation on a Codex or Cursor PR, Codex resume, Cursor resume and cancel, outbox find, and transfers of a finished writer or with a PR open (README.md:874-879, 916, 946-948, 960-962).",
+    "Brief items no PR delivered: tick posts no claim, handoff or done (no outbox call in controller.py or lifecycle.py); there is no card intake from GitHub; container validation is operator-driven, not in tick; the phases table is never written (store.py:86); premium_escalations_used is counted but not driven. README.md:3 and :37 overstate the first two.",
+    "Known limits with no card: nothing prunes <state dir>/evidence; restore does not stop a lease holder; outbox flush and provider disable/enable leave no journal row; Codex and Cursor have no turn limit or allowance figure; Cursor's billing unit is unobserved.",
+    "The 48-turn charge on resumed run run-3225ebdb59dd is still unexplained (README.md:308-321).",
+    "The run sheet live-run-pr5.md is stale (S1 not applied: it still promises 3 attempts and lacks a lease release step).",
+    "tools/autonomy-controller/PILOT-PR4.md, the throwaway file from #777, is still on master.",
+    "#792 changed CHANGELOG.md and tests/scripts beyond #776's stated scope; this is disclosed in the PR body as an integrator decision.",
+    "AGENTS.md (Codex instructions) and .agents/skills are untracked in this clone, yet Codex operated the live run. pilot-report.md, pilot-status.json and pilot-metrics.json (ctl-pilot-pr4 output) are also untracked. None contains the owner's email.",
+    "MEMORY.md's open-threads line ('PR 5 live run still not done') is stale.",
+    "validate.py timing: it read required checks before the push checks finished, and read PR mergeability from the lazy list call (UNKNOWN). Its stranded-branch count moved from 69 to 66 within the hour. Consider re-reading checks after completion, and using per-PR views.",
+    "Integrator decisions from phases A-F have not been promoted to owner rows (README.md:835)."
+  ],
+  "unverified": [
+    "No dotnet build, test or mutation was run in this audit. Test counts and mutation results are quoted from CI logs, PR bodies and bus posts. Only readiness-verdict-for-sha.sh and validate.py's stranded_branches() were re-run.",
+    "The roadmap reader's classification of the 41 unique completion-roadmap criteria (5 done, 6 partly, 30 open) was not re-checked by the critic.",
+    "6 of the 11 'fixed but left open' bugs were not re-checked by the critic (#455, #459, #460, #462, #464, #488).",
+    "Whether SPEC-007 decisions-log rows :519-521 record real owner decisions.",
+    "The contents of the unredacted PR 4 tarball blob a81c1a1c beyond the email; it was not downloaded.",
+    "The .NET 8 and .NET 9 end-of-support dates (Microsoft lifecycle, outside the repo).",
+    "Whether waterproofing-gate would fail like compat-gate (inferred from Makefile:420-421, never run).",
+    "#468's exploitability through the #640 .csproj allowance; #492's character-device 500; #760's double audit record.",
+    "8 of the 12 bx/WS-* workstream tips were not checked against master; the validator's 69 stranded branches could not be reconstructed (66 now).",
+    "The causes of the Air-Gapped Multi-Env Tests and Runtime Release Promotion failures (logs expired, HTTP 410).",
+    "Whether the VS Code extension works against a SecureWorkstation host now that it enforces egress (README.md:100). The MCP/A2A transports, ingress adapters, deploy/k8s and infra/terraform were not assessed.",
+    "Runbook steps 2-3 (local scripts) and any unrecorded local runs; M0.3/M0.4 (briefing, blog); customer or revenue evidence for the product fleet phases."
+  ],
+  "markdown": "### Project status at the end of phase F\n\nMaster 7c50e379f is green on every required check that reports on a push. It has no readiness verdict of its own, because phase F's six commits touched only tooling and docs; b130228ee is the last VERIFIED commit. The budgeted-autonomy roadmap is closed: the PR 5 live run happened on 2026-10-13, #791 fixed its findings, and #779 and #776 are closed. Nothing else moved: the next release has not started, SPEC-007 is at 4.5 of 8 PRs, the dogfood unlock is at 1.5 of 5, and no defect issue was closed.\n\nValidation on 7c50e379fcc4 (2026-10-13T18:54:57Z): 2 pass, 5 warn, 0 fail, 0 error.\n\n- Required checks: 1 of 5 at the time. cert-gate and build-core passed minutes later, so 3 of 5. shell-lint and Readiness summary never report on a master push.\n- Red workflows: 7 of 61. Six are documented DORMANT. compat-gate has been red since 2026-09-12 and has no issue.\n- Readiness verdict: REFUSED (no-readiness-run), as expected. The next scheduled run is 2026-10-19.\n- Security settings: private vulnerability reporting, Dependabot alerts and code scanning are also off.\n- Local-only work: a re-run finds 66 branches (53 bx/WS-*), holding at least four fixes master lacks.\n\n| Area | Distance | Estimate (basis) | Since last phase | Blocks the rest |\n|---|---|---|---|---|\n| Product roadmap | far | 5 of 41 roadmap criteria done, 6 partly, 30 open (code check) | No code change; 4 partials re-scored open | Owner: which end state governs |\n| Next release | partway | 0 of 9 runbook pre-tag steps, 2 partly evidenced | 95 commits past v0.2.0 (was 89) | Owner: version, API stability |\n| Security specs | partway | 7 of 12 spec items done, 2 partial, 3 open | None; phase H never started | Owner: Q-A, Q-B, Q-C |\n| Autonomy unlock | far | 1.5 of 5 criteria on landed rows; 0 of 7 3a rows | 13 unlanded 3a runs (was 10) | Owner: record files, before 2026-10-29 |\n| Bug backlog | partway | 11 of 42 fixed but open, 5 partly, 26 open | +#790; untracked traversal | Owner: security triage |\n| CI health | partway | 40 of 47 workflows green; 0 of 14 PRs mergeable | PRs 15 to 14 | Owner: settings, bx/* branches |\n| budgeted-autonomy | near | 4.5 of 5 phase F exit criteria | Live run done; #779, #776 closed | This handoff |\n\n**Moved since the last phase**\n\nResolved: #783, #784, #785, #789, #791 and #792 merged. The live run is in ledger ctl-pr5-live. #779 closed (done 6152213652) and #776 closed by #792. Grok's drift audits are clean through #792 (6153522959).\n\nNew:\n- #790 is open and deferred.\n- `ashlar bg proposals apply` can write outside the repo root (ProposalsBackgroundAgentCommand.cs:193). It has no issue, and its only fix is on the local branch bx/WS-Ia/I2.\n- GitHub still serves the pre-rewrite commits cbc1a0d72929 and ec6ac7cfd, which hold the unredacted tarball.\n- Six unredacted PR 5 archives exist only locally.\n- #750's red Readiness is a real Windows test failure.\n- The publish jobs have no protected environment and no tag ruleset.\n\n**Critical path to the next release after v0.2.0**\n\n1. You: choose the version (0.3.0 is implied, but not recorded).\n2. You: decide stable or [Experimental] for the 160 unshipped Ashlar.Abstractions lines, as a dated SPEC-007 row.\n3. You: confirm or strike SPEC-007 rows :519-521, and answer Q-B, Q-C and review section 10 (a) and (b).\n4. Fix BL4 and BL5 refusal masking (PR 4.8b), mutation-checked.\n5. Land a records PR that answers drift-746 and drift-748 and corrects PR 5's \"refused\" claims.\n6. Fix compat-gate (kernel-gate-tier-b.sh:67, :80-84) under an issue.\n7. Land the proposals-apply fix, #751, a fixed #750, #753 and #752.\n8. You: fix, or sign exceptions for, the 11 unfixed security defects and the 3 data-loss defects.\n9. Make the release commit: version files, CHANGELOG fold, PublicAPI promotion, CONSUMING.md, pin sweep. Fix changelog-snippet-for-release.sh.\n10. Run the rc1 rehearsal, and get runtime-release-gate green and readiness VERIFIED on that SHA.\n11. You: sign the Product row and run a real downgrade rollback drill.\n12. Tag, run release.yml, and re-pin deploy/node.yml.\n\n**Hard dates**\n\n- 2026-10-19: ubuntu-latest starts moving to 26.04, release.yml included. The weekly readiness run is the same day.\n- 2026-10-26: the artifacts of VERIFIED run 38266204232 expire.\n- 2026-10-29: the first 3a record artifacts expire, then one per run until 2026-11-12.\n- 2026-11-01: monthly rc-gate run.\n- 2026-11-10: .NET 8 end of support (an external date). 90 projects build net8.0.\n- Passed, 2026-09-01: the SPEC-006 S-4 deadline. DefaultDevKey is still the fallback.\n\n**Not verified**\n\n- No dotnet build, test or mutation ran in this audit. Counts come from CI logs, PR bodies and the bus.\n- The critic did not re-check the 41-box roadmap classification or 6 of the 11 fixed-but-open bugs.\n- Whether SPEC-007 rows :519-521 are owner decisions.\n- What else the unredacted tarball holds; it was not downloaded.\n- The .NET 8 and .NET 9 end dates, and 8 of the 12 bx/WS-* tips."
+}

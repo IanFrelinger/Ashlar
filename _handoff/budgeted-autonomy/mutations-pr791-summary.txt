@@ -1,0 +1,12 @@
+mutation live-M1: KILLED red=failed:2/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-M5: KILLED red=failed:1/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-M8: KILLED red=failed:5/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-P-M1: KILLED red=failed:2/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-P-M2: KILLED red=failed:3/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-P-M3: KILLED red=failed:4/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-P-M8: KILLED red=failed:4/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-f2-status-text-verbatim: KILLED red=failed:3/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-f6-capability-usage-true: KILLED red=failed:2/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-f6-result-event-not-settled: KILLED red=failed:2/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-lr1-attempts-left-ignores-the-policy: KILLED red=failed:1/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
+mutation live-lr3-net-masks-the-test-domain: KILLED red=failed:1/539 green=passed:538/539 ref=da496656b6e9970c077ad71a080c6a62e328fb3d runner=override
