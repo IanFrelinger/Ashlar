@@ -209,7 +209,13 @@ class PrLifecycle:
         message = (f"{task['title'] or task_id}\n\nTask {task_id}" + (f", card #{task['card_number']}" if task["card_number"] else "")
                    + f", run {run['run_id']} ({role}) by the budgeted autonomy controller.\n\n"
                    + prs.attribution_trailers(run))
-        head = self.git.commit_and_push(workspace, branch, message)
+        # The commit the workspace started from: the PR head a repair was cloned at (the PR row's head until
+        # this push records the new one), else the task's base. A worker's own commits on top are folded back.
+        start = task["base_sha"]
+        if role == readiness.FIXER_ROLE and run["pr_number"]:
+            pr_row = self.store.row("SELECT head_sha FROM prs WHERE pr_number=?", (int(run["pr_number"]),))
+            start = pr_row["head_sha"] if pr_row is not None else None
+        head = self.git.commit_and_push(workspace, branch, message, start_sha=start)
         if head is None:
             self.store.journal("no-change-to-propose", task_id=task_id, run_id=run["run_id"],
                                detail={"role": role, "workspace": workspace, "branch": branch}, now=now)
