@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -33,6 +34,16 @@ class FakeClock:
 
 def example_policy_dict() -> Dict[str, Any]:
     return json.loads(EXAMPLE_POLICY.read_text(encoding="utf-8"))
+
+
+def downgrade_to_v2(path: str) -> None:
+    """Rebuild a closed ledger file as a schema-2 ledger (PR 3 to PR 5): drop `tasks.brief` (card #776) when
+    it is there, and write version 2."""
+    conn = sqlite3.connect(path, isolation_level=None)
+    if "brief" in {r[1] for r in conn.execute("PRAGMA table_info(tasks)")}:
+        conn.execute("ALTER TABLE tasks DROP COLUMN brief")
+    conn.execute("UPDATE meta SET value='2' WHERE key='schema_version'")
+    conn.close()
 
 
 class ControllerCase(unittest.TestCase):

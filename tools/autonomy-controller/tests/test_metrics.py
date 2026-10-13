@@ -181,7 +181,7 @@ class CollectCounts(ControllerCase):
             self.assertIn(key, m)
         self.assertEqual(m["generated_at"], "2027-01-15T08:00:00Z")
         self.assertEqual(m["controller_id"], "ctl-test")
-        self.assertEqual(m["schema_version"], "2")
+        self.assertEqual(m["schema_version"], "3")
         self.assertEqual(m["tasks"], {"total": 0, "by_state": {}})
         self.assertEqual(m["runs"], {"total": 0, "by_state": {}, "by_stop_reason": {}, "by_role": {}, "consumed_total": 0.0,
                                      "reserved_active_total": 0.0, "overshoot_total": 0.0, "attempts_used_total": 0})

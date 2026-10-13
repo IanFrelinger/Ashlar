@@ -13,9 +13,10 @@ import json
 
 class SchemaMigration(ControllerCase):
     def downgrade_to_v1(self):
-        """Rebuild the file as a schema-1 ledger: drop the PR 3 columns and write version 1."""
+        """Rebuild the file as a schema-1 ledger: drop the PR 3 columns and schema 3's `tasks.brief`, and
+        write version 1."""
         conn = sqlite3.connect(self.state_path, isolation_level=None)
-        for table, cols in (("tasks", ["branch"]), ("prs", ["branch", "url", "title"]), ("runs", ["pr_number"])):
+        for table, cols in (("tasks", ["branch", "brief"]), ("prs", ["branch", "url", "title"]), ("runs", ["pr_number"])):
             for col in cols:
                 conn.execute(f"ALTER TABLE {table} DROP COLUMN {col}")
         conn.execute("UPDATE meta SET value='1' WHERE key='schema_version'")
@@ -35,11 +36,13 @@ class SchemaMigration(ControllerCase):
         cols = {r[1] for r in reopened.conn.execute("PRAGMA table_info(prs)")}
         self.assertTrue({"branch", "url", "title"} <= cols)
         self.assertIn("pr_number", {r[1] for r in reopened.conn.execute("PRAGMA table_info(runs)")})
-        self.assertIn("branch", {r[1] for r in reopened.conn.execute("PRAGMA table_info(tasks)")})
+        self.assertTrue({"branch", "brief"} <= {r[1] for r in reopened.conn.execute("PRAGMA table_info(tasks)")})
         self.assertEqual(reopened.row("SELECT COUNT(*) AS n FROM runs")["n"], runs_before)
         self.assertEqual(reopened.row("SELECT COUNT(*) AS n FROM tasks")["n"], 1)
-        kinds = [r["kind"] for r in reopened.rows("SELECT kind FROM journal ORDER BY id")]
-        self.assertEqual(kinds.count("schema-migrated"), 1)
+        # One journalled step per schema: 1 to 2, then 2 to 3 (card #776).
+        steps = [json.loads(r["detail"]) for r in reopened.rows("SELECT detail FROM journal WHERE kind='schema-migrated' "
+                                                                "ORDER BY id")]
+        self.assertEqual(steps, [{"from": 1, "to": 2}, {"from": 2, "to": 3}])
 
     def test_a_read_only_open_of_a_schema_1_ledger_refuses_rather_than_migrating(self):
         self.init_store().close()

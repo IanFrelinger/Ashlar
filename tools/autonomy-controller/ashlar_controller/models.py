@@ -4,7 +4,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-SCHEMA_VERSION = 2   # 2: PR lifecycle columns (prs.branch/url/title, tasks.branch, runs.pr_number)
+SCHEMA_VERSION = 3   # 2: PR lifecycle columns (prs.branch/url/title, tasks.branch, runs.pr_number)
+                     # 3: tasks.brief (card #776)
+
+# A task's brief is the PR title and the commit subject of its controller-opened PR. Card #776 sets the
+# limit: at most 72 characters.
+BRIEF_MAX_CHARS = 72
 
 
 class TaskState:
