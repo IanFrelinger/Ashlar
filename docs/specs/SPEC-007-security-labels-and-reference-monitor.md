@@ -495,7 +495,8 @@ vision, split the cert-gate tests into their own project, and move the commercia
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
 applied", the eight PR 4 answers of 2026-10-05, the PR 4.2 and phase C answers of 2026-10-06, the PR 5 answers
 of 2026-10-10 (§8 questions 3 and 4), and the release answers of 2026-10-13: the next version, and the tier of the
-public API this workstream added. The other §8 questions stand as written. Design choices that merged with
+public API this workstream added to `Ashlar.Abstractions` (its `PublicAPI.Unshipped.txt`). The tier of the public
+members it added to other packages is not decided. The other §8 questions stand as written. Design choices that merged with
 those PRs but were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
