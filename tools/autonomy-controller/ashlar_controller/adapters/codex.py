@@ -22,7 +22,10 @@ Observed, and therefore declared in `capabilities` or relied on:
     reports a read-only session (recorded in the PR 5 lane contract; p1b shows the flag on a read-only
     run): it is NEVER passed. The operator's `config.toml` stays
     loaded and the command line overrides what matters (`-m`, `-s`, `approval_policy`,
-    `model_reasoning_effort`, and `mcp_servers={}` so the operator's MCP servers never enter a run);
+    `model_reasoning_effort`). The PR 5 probes passed `mcp_servers={}` too, believing it kept the operator's MCP
+    servers out; phase F found it removes nothing (see PLUGINS_OFF), so a run now passes
+    `features.plugins=false`, `notify=[]` and `mcp_servers.<name>.enabled=false` for each server config.toml
+    declares, instead;
   * an unrecognised model (`-m no-such-model-0`, and `sol`) gives `thread.started`, two `item.completed`
     items of type `error` (warnings), `turn.started`, then `{"type":"error","message":<JSON text with
     status 400 and "... model is not supported when using Codex with a ChatGPT account.">}` and
@@ -339,6 +342,57 @@ def read_service_tier(config_path: str) -> Dict[str, Any]:
     return info
 
 
+# Observed 2026-10-13 (phase F pre-flight finding C8; probe-codex-mcp-list-report.txt and
+# probe-codex-prompt-input-report.json, codex-cli 0.162.0-alpha.17.2, no model called): with the user config
+# loaded, a run is offered the operator's plugins: `codex debug prompt-input` with PR 5's overrides lists the
+# plugin skills (`computer-use: Control Windows apps`, browser, chrome) and `codex mcp list` shows the plugin MCP
+# server `cua_repl` and the config's `node_repl` enabled. `-c mcp_servers={}` removes NOTHING (overrides merge).
+# `-c features.plugins=false` removes the plugin skills and the plugin MCP servers; `-c mcp_servers.<name>.enabled=
+# false` disables a server config.toml declares. `-c notify=[]` loads; its effect (no notify program after a
+# turn) is not observed. An unattended worker under `approval_policy="never"` gets none of them.
+PLUGINS_OFF = ["-c", "features.plugins=false", "-c", "notify=[]"]
+_MCP_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def configured_mcp_servers(config_path: str) -> Dict[str, Any]:
+    """The MCP servers `config.toml` declares (`[mcp_servers.<name>]` tables or dotted keys), so each can be
+    disabled with `-c mcp_servers.<name>.enabled=false`. Returns {"path", "names", "unsafe": names that cannot be
+    written as a bare dotted key (the CLI's handling of a quoted key segment is not observed), "error"}."""
+    info: Dict[str, Any] = {"path": config_path, "names": [], "unsafe": [], "error": None}
+    try:
+        with open(config_path, "rb") as f:
+            text = f.read().decode("utf-8-sig", "replace")
+    except FileNotFoundError:
+        return info
+    except OSError as e:
+        info["error"] = f"{type(e).__name__}: {e}"
+        return info
+    names = set()
+    parsed: Optional[Dict[str, Any]] = None
+    if _tomllib is not None:
+        try:
+            parsed = _tomllib.loads(text)
+        except Exception:  # noqa: BLE001 - a file tomllib cannot parse is read by the line reader instead
+            parsed = None
+    if parsed is not None:
+        servers = parsed.get("mcp_servers")
+        if isinstance(servers, dict):
+            names.update(str(k) for k in servers)
+    else:
+        names.update(path[1] for path in _scan_toml(text) if len(path) >= 3 and path[0] == "mcp_servers")
+    info["names"] = sorted(n for n in names if _MCP_NAME_RE.fullmatch(n))
+    info["unsafe"] = sorted(n for n in names if not _MCP_NAME_RE.fullmatch(n))
+    return info
+
+
+def isolation_overrides(mcp_names: List[str]) -> List[str]:
+    """The `-c` overrides that keep the operator's plugins, notify program and MCP servers out of a run."""
+    out = list(PLUGINS_OFF)
+    for name in mcp_names:
+        out += ["-c", f"mcp_servers.{name}.enabled=false"]
+    return out
+
+
 def _shown(value: Any) -> str:
     return json.dumps(value) if isinstance(value, (str, int, float, bool)) else repr(value)
 
@@ -562,17 +616,19 @@ class CodexAdapter:
 
     # ----- launch --------------------------------------------------------------------------------------
 
-    def _argv(self, prefix: List[str], request: LaunchRequest, workspace: str, last_message_path: str) -> List[str]:
+    def _argv(self, prefix: List[str], request: LaunchRequest, workspace: str, last_message_path: str,
+              mcp_names: Optional[List[str]] = None) -> List[str]:
+        isolation = isolation_overrides(mcp_names or [])
         if request.resume_session_id:
             # Observed (report 4, r5): the resume carries the same overrides as a fresh run. `exec resume` has
             # no `-s`/`-C`, so the sandbox is a `-c` override and the workspace is the process's cwd.
             return prefix + ["exec", "resume", "--json", "--skip-git-repo-check",
                              "-c", f'sandbox_mode="{self.sandbox}"', "-c", 'approval_policy="never"',
-                             "-c", f'model_reasoning_effort="{request.effort}"', "-c", "mcp_servers={}",
+                             "-c", f'model_reasoning_effort="{request.effort}"', *isolation,
                              "-m", request.model, "-o", last_message_path, request.resume_session_id, request.prompt]
         return prefix + ["exec", "--json", "--skip-git-repo-check", "-C", workspace, "-s", self.sandbox,
                          "-c", 'approval_policy="never"', "-c", f'model_reasoning_effort="{request.effort}"',
-                         "-c", "mcp_servers={}", "-m", request.model, "-o", last_message_path, request.prompt]
+                         *isolation, "-m", request.model, "-o", last_message_path, request.prompt]
 
     def launch(self, request: LaunchRequest) -> LaunchResult:
         if request.speed != "standard":
@@ -596,6 +652,12 @@ class CodexAdapter:
                                 f"the Codex CLI would load it for the run")
         if tier["sources"]:
             raise LaunchRefused(StopReason.LAUNCH_FAILED, service_tier_refusal(tier))
+        servers = configured_mcp_servers(tier["path"])
+        if servers["unsafe"]:
+            raise LaunchRefused(StopReason.LAUNCH_FAILED,
+                                f"{servers['path']} declares MCP server(s) {servers['unsafe']} whose names cannot be "
+                                f"disabled with a bare `-c mcp_servers.<name>.enabled=false` override; the run would "
+                                f"get them. Operator step: rename or remove them for the controller's runs")
         prefix = self._cli_prefix()
         route = self._check_route(prefix, env)
 
@@ -605,13 +667,14 @@ class CodexAdapter:
         os.makedirs(run_dir, exist_ok=True)
         os.makedirs(workspace, exist_ok=True)
         last_message_path = os.path.join(run_dir, "last_message.txt")
-        argv = self._argv(prefix, request, workspace, last_message_path)
+        argv = self._argv(prefix, request, workspace, last_message_path, servers["names"])
         manifest: Dict[str, Any] = {
             "run_id": run_id, "task_id": request.task_id, "provider": self.name, "thread_id": None,
             "resume_of": request.resume_session_id, "model": request.model, "effort": request.effort,
             "sandbox": self.sandbox, "route": route, "argv": argv, "cwd": workspace,
             "started_at": _utc_iso(self.clock()), "pid": None, "exit": None, "cancelled_at": None,
             "codex_config": tier["path"], "service_tier": tier["value"],
+            "plugins": "disabled", "mcp_servers_disabled": servers["names"],
             "codex_home": codex_home, "sessions_dir": os.path.join(codex_home, "sessions"),
             "transcript_path": None, "stdout": os.path.join(run_dir, "stdout.json"),
             "stderr": os.path.join(run_dir, "stderr.log"),
