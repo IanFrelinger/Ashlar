@@ -44,7 +44,16 @@ Observed, and therefore declared in `capabilities` or relied on:
     file; `-c model_reasoning_effort="low"` is accepted (p6);
   * the bundled `~/.codex/.sandbox-bin/codex.exe` (0.162.0-alpha.2) has no code-mode host beside it and
     every tool call fails closed (sandbox-bin report p3): `resolve_cli` never picks a `codex.exe` that
-    has no `codex-code-mode-host.exe` beside it.
+    has no `codex-code-mode-host.exe` beside it;
+  * `service_tier = "priority"` in the operator's `config.toml` (the CLI's catalog: "Fast: 2x speed,
+    increased usage") applies to every run, because the user config stays loaded: the resumed probe
+    threads record `thread_settings_applied service_tier=priority`. No value that means the standard tier
+    was observed, so no override is passed: a launch is REFUSED (`launch-failed`) while `<codex home>/
+    config.toml` sets `service_tier` at top level, or in the `[profiles.<name>]` table its top-level
+    `profile` selects, and the manifest records the tier (None) of every launch that proceeds;
+  * a stream that holds `turn.completed` or `turn.failed` is a turn the CLI has finished: after a restart
+    a live pid beside it is the CLI exiting or a reused pid, so `poll` classifies from the stream and
+    `cancel` neither records `cancelled_at` nor kills (a reused pid would be someone else's tree).
 
 Unverified, and therefore False in `capabilities` or not relied on:
 
@@ -65,9 +74,9 @@ warnings such as missing model metadata); a cancelled run and a run with no fina
 (charged at the full reservation), an unrecognised model 0. A turn that completed with an empty last
 agent message is `no-final-result`, not `completed`.
 
-Run layout: `<runs_dir>/<run_id>/manifest.json` (written BEFORE the spawn), `stdout.json` (the NDJSON
-stream), `stderr.log`, `last_message.txt` (the `-o` file), and a `workspace/` directory unless the request
-names one. The run id is the handle.
+Run layout: `<runs_dir>/<run_id>/manifest.json` (written BEFORE the spawn; it records the `config.toml`
+checked and its `service_tier`), `stdout.json` (the NDJSON stream), `stderr.log`, `last_message.txt` (the
+`-o` file), and a `workspace/` directory unless the request names one. The run id is the handle.
 """
 from __future__ import annotations
 
@@ -87,6 +96,11 @@ from ..models import (LaunchOutcomeUnknown, LaunchRefused, LaunchRequest, Launch
                       RunStatus, StopReason, UsageFreshness, UsageKind, UsageObservation)
 from ..store import pid_alive
 from .base import AdapterCapabilities
+
+try:   # Python 3.11+; on 3.8-3.10 the minimal reader `_scan_toml` stands in (the controller supports 3.8+)
+    import tomllib as _tomllib  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - Python < 3.11
+    _tomllib = None
 
 LOGGED_IN_CHATGPT = "Logged in using ChatGPT"
 CODE_MODE_HOST = "codex-code-mode-host.exe"
@@ -177,6 +191,166 @@ def locate_session_file(sessions_dir: Optional[str], thread_id: Optional[str], h
             if name.startswith("rollout-") and name.endswith(suffix):
                 matches.append(os.path.join(root, name))
     return sorted(matches)[0] if matches else None
+
+
+# ----- the operator's config.toml ----------------------------------------------------------------------
+
+_MISSING = object()
+_TOML_HEADER_RE = re.compile(r"""^\s*(\[\[?)\s*([A-Za-z0-9_\-."' ]+?)\s*\]\]?\s*(?:#.*)?$""")
+_TOML_KEY_RE = re.compile(r"""^[A-Za-z0-9_\-."' ]+$""")
+
+
+def _toml_key_path(text: str) -> Tuple[str, ...]:
+    """`a."b.c".d` -> ("a", "b.c", "d"): the dots outside quotes separate the parts."""
+    parts: List[str] = []
+    buf = ""
+    quote = None
+    for ch in text:
+        if quote:
+            if ch == quote:
+                quote = None
+            else:
+                buf += ch
+        elif ch in "\"'":
+            quote = ch
+        elif ch == ".":
+            parts.append(buf.strip())
+            buf = ""
+        else:
+            buf += ch
+    parts.append(buf.strip())
+    return tuple(parts)
+
+
+def _toml_assignment(line: str) -> Optional[Tuple[Tuple[str, ...], str]]:
+    """(key path, the text after `=`) of a `key = value` line, or None."""
+    quote = None
+    for i, ch in enumerate(line):
+        if quote:
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "#":
+            return None
+        elif ch == "=":
+            key = line[:i].strip()
+            return (_toml_key_path(key), line[i + 1:]) if key and _TOML_KEY_RE.match(key) else None
+    return None
+
+
+def _toml_scalar(rest: str) -> Any:
+    """The value of a one-line `key = value`: a basic or literal string unquoted, anything else as written."""
+    s = rest.strip()
+    if s.startswith('"') and not s.startswith('"""'):
+        end = 1
+        while end < len(s) and s[end] != '"':
+            end += 2 if s[end] == "\\" else 1
+        try:
+            return json.loads(s[:end + 1])
+        except ValueError:
+            return s[1:end]
+    if s.startswith("'") and not s.startswith("'''"):
+        end = s.find("'", 1)
+        return s[1:end] if end > 0 else s[1:]
+    return s.split("#", 1)[0].strip()
+
+
+def _scan_toml(text: str) -> Dict[Tuple[str, ...], Tuple[Any, int]]:
+    """A minimal line reader of a TOML file: every one-line `key = value`, keyed by its full dotted path under
+    the current `[table]`, with its value and its 1-based line number. It stands in for tomllib on Python
+    3.8-3.10 and gives the line numbers on every version. Multi-line strings are skipped and arrays of tables
+    are not read; enough to find `service_tier` and `profile`, not a TOML parser."""
+    entries: Dict[Tuple[str, ...], Tuple[Any, int]] = {}
+    table: Optional[Tuple[str, ...]] = ()
+    closing: Optional[str] = None
+    for number, line in enumerate(text.splitlines(), 1):
+        if closing:
+            if closing in line:
+                closing = None
+            continue
+        if not line.strip() or line.strip().startswith("#"):
+            continue
+        header = _TOML_HEADER_RE.match(line)
+        if header:
+            table = None if header.group(1) == "[[" else _toml_key_path(header.group(2))
+            continue
+        assignment = _toml_assignment(line)
+        if assignment is None:
+            continue
+        key, rest = assignment
+        value_text = rest.strip()
+        for delim in ('"""', "'''"):
+            if value_text.startswith(delim) and value_text.count(delim) == 1:
+                closing = delim
+        if table is not None:
+            entries.setdefault(table + key, (_toml_scalar(rest), number))
+    return entries
+
+
+def read_service_tier(config_path: str) -> Dict[str, Any]:
+    """Where the Codex CLI's `config.toml` sets `service_tier` for a run that passes no `-p` and no `-c` for
+    it: at top level, or in the `[profiles.<name>]` table that the top-level `profile` key selects (a profile
+    overrides the top level). A tier in any other table is not applied and does not count.
+
+    Returns {"path", "value": the tier the CLI would apply (None when unset), "sources": [{"where", "line",
+    "value"}] (every place that sets it), "error": set when the file exists but could not be read}. tomllib
+    reads the file where it exists (3.11+) and parses it; otherwise `_scan_toml` does."""
+    info: Dict[str, Any] = {"path": config_path, "value": None, "sources": [], "error": None}
+    try:
+        with open(config_path, "rb") as f:
+            text = f.read().decode("utf-8-sig", "replace")
+    except FileNotFoundError:
+        return info
+    except OSError as e:
+        info["error"] = f"{type(e).__name__}: {e}"
+        return info
+    scanned = _scan_toml(text)
+    parsed: Optional[Dict[str, Any]] = None
+    if _tomllib is not None:
+        try:
+            parsed = _tomllib.loads(text)
+        except Exception:  # noqa: BLE001 - a file tomllib cannot parse is read by the line reader instead
+            parsed = None
+
+    def get(path: Tuple[str, ...]) -> Any:
+        if parsed is None:
+            hit = scanned.get(path)
+            return _MISSING if hit is None else hit[0]
+        node: Any = parsed
+        for part in path:
+            if not isinstance(node, dict) or part not in node:
+                return _MISSING
+            node = node[part]
+        return node
+
+    def add(path: Tuple[str, ...], where: str) -> None:
+        value = get(path)
+        if value is _MISSING:
+            return
+        hit = scanned.get(path)
+        info["sources"].append({"where": where, "line": hit[1] if hit else None, "value": value})
+        info["value"] = value   # the later source wins: a selected profile overrides the top level
+
+    add(("service_tier",), "top level")
+    profile = get(("profile",))
+    if isinstance(profile, str) and profile:
+        add(("profiles", profile, "service_tier"), f"[profiles.{profile}], which the top-level `profile` selects")
+    return info
+
+
+def _shown(value: Any) -> str:
+    return json.dumps(value) if isinstance(value, (str, int, float, bool)) else repr(value)
+
+
+def service_tier_refusal(info: Dict[str, Any]) -> str:
+    """The blocker of a launch refused because `config.toml` sets a service tier."""
+    places = "; ".join(f"line {s['line'] if s['line'] is not None else 'unknown'} ({s['where']}): "
+                       f"service_tier = {_shown(s['value'])}" for s in info["sources"])
+    return (f"{info['path']} sets service_tier ({places}). The Codex CLI applies it to every run, because the "
+            f"adapter keeps config.toml loaded, and \"priority\" is \"Fast: 2x speed, increased usage\"; the policy "
+            f"selected speed standard and no value meaning standard was observed, so no override is passed. "
+            f"Operator step: comment out service_tier in {info['path']} for the controller's runs")
 
 
 # ----- the stream --------------------------------------------------------------------------------------
@@ -411,6 +585,17 @@ class CodexAdapter:
         if not _EFFORT_RE.fullmatch(request.effort or ""):
             raise LaunchRefused(StopReason.LAUNCH_FAILED, f"effort {request.effort!r} is not a plain effort name")
         env = self._env()
+        codex_home = self._codex_home(env)
+        # The speed is standard here (checked above). The user config stays loaded, so a service tier it sets
+        # applies to the run; no value meaning standard was observed, so the launch is refused, before any
+        # process (the route check included) starts.
+        tier = read_service_tier(os.path.join(codex_home, "config.toml"))
+        if tier["error"]:
+            raise LaunchRefused(StopReason.LAUNCH_FAILED,
+                                f"{tier['path']} could not be read to check its service_tier ({tier['error']}); "
+                                f"the Codex CLI would load it for the run")
+        if tier["sources"]:
+            raise LaunchRefused(StopReason.LAUNCH_FAILED, service_tier_refusal(tier))
         prefix = self._cli_prefix()
         route = self._check_route(prefix, env)
 
@@ -421,12 +606,12 @@ class CodexAdapter:
         os.makedirs(workspace, exist_ok=True)
         last_message_path = os.path.join(run_dir, "last_message.txt")
         argv = self._argv(prefix, request, workspace, last_message_path)
-        codex_home = self._codex_home(env)
         manifest: Dict[str, Any] = {
             "run_id": run_id, "task_id": request.task_id, "provider": self.name, "thread_id": None,
             "resume_of": request.resume_session_id, "model": request.model, "effort": request.effort,
             "sandbox": self.sandbox, "route": route, "argv": argv, "cwd": workspace,
             "started_at": _utc_iso(self.clock()), "pid": None, "exit": None, "cancelled_at": None,
+            "codex_config": tier["path"], "service_tier": tier["value"],
             "codex_home": codex_home, "sessions_dir": os.path.join(codex_home, "sessions"),
             "transcript_path": None, "stdout": os.path.join(run_dir, "stdout.json"),
             "stderr": os.path.join(run_dir, "stderr.log"),
@@ -496,13 +681,21 @@ class CodexAdapter:
         pid = manifest.get("pid")
         if pid is None:
             return False
-        return pid_alive(int(pid))   # after a restart: an existence check only; the exit code stays unknown
+        # After a restart: an existence check only, and the exit code stays unknown. A pid can be reused, so a
+        # run whose stream already reports the turn's outcome is over whatever process holds that pid now.
+        return pid_alive(int(pid)) and not self._turn_ended(manifest)
 
     def _read_text(self, path: Optional[str]) -> str:
         if not path or not os.path.exists(path):
             return ""
         with open(path, "rb") as f:
             return f.read().decode("utf-8", "replace")
+
+    def _turn_ended(self, manifest: Dict[str, Any]) -> bool:
+        """True when the run's stream holds `turn.completed` or `turn.failed`: the CLI has reported the turn's
+        outcome and is exiting or gone."""
+        stream = parse_stream(self._read_text(manifest.get("stdout")))
+        return bool(stream["turn_completed"]) or stream["turn_failed"] is not None
 
     def _allowance_observation(self, thread_id: Optional[str], usage: Optional[Dict[str, Any]] = None
                                ) -> UsageObservation:
@@ -612,10 +805,16 @@ class CodexAdapter:
 
     def cancel(self, handle: str) -> None:
         """Record the cancellation FIRST, then terminate the process tree. The workspace and the session
-        file are never touched: they are the evidence an operator inspects, and the thread resumes."""
+        file are never touched: they are the evidence an operator inspects, and the thread resumes.
+
+        A run whose stream already holds `turn.completed` or `turn.failed` has finished: nothing is recorded
+        and nothing is killed (a live pid is then the CLI exiting, or a reused pid that belongs to another
+        process tree), and `poll` classifies the run from its stream."""
         run_id = handle
         manifest = self._read_manifest(run_id)
         if manifest is None:
+            return
+        if self._turn_ended(manifest):
             return
         if not manifest.get("cancelled_at"):
             manifest["cancelled_at"] = _utc_iso(self.clock())

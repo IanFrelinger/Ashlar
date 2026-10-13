@@ -29,6 +29,10 @@ It is recorded as an ESTIMATED_API_VALUE observation and is never summed with th
 Run layout: `<runs_dir>/<run_id>/manifest.json` (written BEFORE the spawn, so a crash between the
 write and the spawn leaves a record to reconcile), `stdout.json` (the NDJSON stream), `stderr.log`,
 and a `workspace/` directory unless the request names one. The run id is the handle.
+
+A stream that holds the terminal `result` event is a run the CLI has finished. After a restart a live pid
+beside it is the CLI exiting or a reused pid, so `poll` classifies from the stream and `cancel` neither
+records `cancelled_at` nor kills (a reused pid would be someone else's process tree).
 """
 from __future__ import annotations
 
@@ -356,9 +360,15 @@ class ClaudeAdapter:
         pid = manifest.get("pid")
         if pid is None:
             return False
-        # After a restart: a pid check only. A reused pid would read as alive (pids recycle); the lease
-        # has the same limit. The exit code of a run polled this way stays unknown.
-        return pid_alive(int(pid))
+        # After a restart: a pid check only, and the exit code of a run polled this way stays unknown. A
+        # reused pid would read as alive (pids recycle; the lease has the same limit), so a run whose stream
+        # already holds its terminal `result` event is over whatever process holds that pid now.
+        return pid_alive(int(pid)) and not self._result_seen(manifest)
+
+    def _result_seen(self, manifest: Dict[str, Any]) -> bool:
+        """True when the run's stream holds its terminal `result` event: the CLI has reported the run's
+        outcome and is exiting or gone."""
+        return parse_stream(self._read_text(manifest.get("stdout")))["result"] is not None
 
     def _allowance_observation(self, session_id: Optional[str], rate_limit_info: Optional[Dict[str, Any]] = None,
                                ) -> UsageObservation:
@@ -516,10 +526,16 @@ class ClaudeAdapter:
 
     def cancel(self, handle: str) -> None:
         """Record the cancellation FIRST, then terminate the process tree. The workspace and the
-        transcript are never touched: they are the evidence an operator inspects."""
+        transcript are never touched: they are the evidence an operator inspects.
+
+        A run whose stream already holds its terminal `result` event has finished: nothing is recorded and
+        nothing is killed (a live pid is then the CLI exiting, or a reused pid that belongs to another
+        process tree), and `poll` classifies the run from its stream."""
         run_id = handle
         manifest = self._read_manifest(run_id)
         if manifest is None:
+            return
+        if self._result_seen(manifest):
             return
         if not manifest.get("cancelled_at"):
             manifest["cancelled_at"] = _utc_iso(self.clock())
