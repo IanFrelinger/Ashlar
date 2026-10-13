@@ -333,7 +333,9 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   the recorded delta is the per-invocation cost. `status` shows the latest of each.
 - Cancel writes `cancelled_at` into the manifest first, then terminates the process tree (`taskkill
   /T /F` on Windows, `killpg` on POSIX). The workspace and the transcript are never touched; the
-  session can be resumed afterwards.
+  session can be resumed afterwards. A run whose stream already holds its terminal `result` event is over:
+  `cancel` then records nothing and kills nothing (its pid may have been reused), and `poll` classifies it
+  from the stream (phase F).
 
 ## Codex adapter
 
@@ -355,9 +357,12 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
   check reads both streams. An `OPENAI_API_KEY` in the child environment means the `api-key` route: paid
   spend, refused as `funding-route-mismatch`. Anything else is refused as `auth-missing`; the logged-out
   text is unobserved.
-- **The fresh run**, exactly as passed (report 3, r1):
+- **The fresh run**, as probed (report 3, r1):
   `codex exec --json --skip-git-repo-check -C <workspace> -s workspace-write -c approval_policy="never"
   -c model_reasoning_effort=<effort> -c mcp_servers={} -m <model> -o <run dir>/last_message.txt <prompt>`.
+  Since phase F the adapter passes `-c features.plugins=false -c notify=[]` and
+  `-c mcp_servers.<name>.enabled=false` per declared server in place of `-c mcp_servers={}` (see "Plugins and
+  MCP servers" below).
   It runs from the workspace with stdin closed; with stdin open the CLI waits ("Reading additional input
   from stdin..."). It prints NDJSON in this order:
   - `thread.started{thread_id}`, then `turn.started`;
@@ -370,10 +375,36 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
 
   `-o` writes the last agent message. `--ignore-user-config` is never passed: with it the same write was
   refused ("rejected: blocked by policy", r2). The operator's `config.toml` stays loaded and the command line
-  overrides what matters. `mcp_servers={}` keeps the operator's MCP servers out of every run.
+  overrides what matters.
+- **Plugins and MCP servers** (phase F, `probe-codex-mcp-list-report.txt` and
+  `probe-codex-prompt-input-report.json`, no model called). With the user config loaded, a run is offered the
+  operator's plugins: `codex debug prompt-input` with PR 5's overrides lists the plugin skills (among them
+  `computer-use: Control Windows apps`, browser and chrome) and `codex mcp list` shows the plugin server
+  `cua_repl` and the config's `node_repl` enabled. `-c mcp_servers={}`, which PR 5 passed for this, removes
+  nothing: overrides merge. `-c features.plugins=false` removes the plugin skills and the plugin servers, and
+  `-c mcp_servers.<name>.enabled=false` disables a server `config.toml` declares. Every run and resume passes
+  both (one per server, read from `config.toml` the way the service tier is), and `-c notify=[]`, which
+  loads but whose effect (no notify program after a turn) is not observed. A server whose name cannot be a
+  bare dotted key is refused before launch. The manifest records `plugins: disabled` and
+  `mcp_servers_disabled`.
+- **Service tier.** The operator's `config.toml` stays loaded, so a `service_tier` it sets applies to every
+  controller run; on the probed host it is `priority`, which the CLI's own catalog describes for
+  `gpt-6-astra` as "Fast: 2x speed, increased usage", and the PR 5 probe sessions recorded
+  `thread_settings_applied service_tier=priority`. The catalog lists no other tier and no `-c` value can
+  unset a key, so no override is passed. `launch` reads `<codex home>/config.toml` (`CODEX_HOME`, else
+  `~/.codex`) before any process starts, the `codex login status` check included, with tomllib on 3.11+ and
+  a minimal line reader otherwise, and refuses with `launch-failed` when `service_tier` is set at top level or
+  in the `[profiles.<name>]` table a top-level `profile` selects (a tier in any other table is not applied).
+  The blocker names the file, the line and the step (comment out `service_tier` for the controller's runs).
+  An unreadable `config.toml` is refused the same way. A refusal charges nothing but counts the attempt and
+  requeues the task, so fix the file before ticking again; the Codex app rewrites it, so check it right
+  before each tick that launches Codex. The manifest records `codex_config` and `service_tier`. Not
+  checked: managed or system config layers, a project `.codex/config.toml` (Ashlar tracks none), and
+  whether a thread first run under priority keeps that tier on a resume.
 - **The resume** (report 4, r5): `codex exec resume --json --skip-git-repo-check -c sandbox_mode="workspace-write"
   -c approval_policy="never" -c model_reasoning_effort=<effort> -c mcp_servers={} -m <model> -o <file>
-  <thread_id> <prompt>`. It kept the same `thread_id`, appended to the file in the workspace and wrote the
+  <thread_id> <prompt>` (now with the plugin and MCP overrides above in place of `mcp_servers={}`). It kept the
+  same `thread_id`, appended to the file in the workspace and wrote the
   `-o` file. `exec resume` has no `-s`. Without the `-c sandbox_mode` override a resume would inherit the
   operator's configured sandbox, which on the probed host is `danger-full-access`. Without
   `--skip-git-repo-check` a resume exits 1 with "Not inside a trusted directory".
@@ -385,6 +416,13 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
   `<CODEX_HOME>/sessions/<YYYY>/<MM>/<DD>/rollout-<timestamp>-<thread_id>.jsonl` exists afterwards, and
   `exec resume` of that thread succeeded. The transcript is found by thread id, and `status` and
   `evidence archive` find it through `adapters.locate_run_transcript`.
+- **A finished run is never cancelled.** After a restart the adapter knows a run only by the manifest's pid,
+  and Windows reuses pids. A run whose `stdout.json` already holds `turn.completed` or `turn.failed` is over,
+  whatever process now holds that pid: `poll` classifies it from the stream, and `cancel` returns without
+  writing `cancelled_at` and without `taskkill /T /F`, which would kill an unrelated process tree. Not
+  covered: a run that died without either event and whose pid was then reused still polls `running`, and a
+  run that finishes between `cancel`'s check and its kill is still recorded `cancelled`; closing both needs
+  the process's creation time in the manifest, which is not recorded.
 - **Other flags.** `--output-schema <file>` makes the last message the JSON. `--ephemeral` writes no
   session file.
 
