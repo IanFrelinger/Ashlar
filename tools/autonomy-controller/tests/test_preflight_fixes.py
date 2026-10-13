@@ -443,8 +443,15 @@ class A6AFailedProposal(PreflightCase):
         self.assertEqual((r1.action, r1.task_id), ("launched", "t1"))
         self.assert_propose_failed(self.ctl.tick(), r1.run_id, "gh pr create: HTTP 422: Validation Failed")
         self.assertEqual((self.journal_count("pushed"), self.store.row("SELECT COUNT(*) AS n FROM prs")["n"]), (1, 0))
-        # t1 is not eligible again until an operator moves it. No PR row exists, so nothing blocks dispatch: the next
-        # queued task launches (integrator decision, no guard; see the lane report).
+        # Kills: dropping the propose-failed dispatch guard (`if stranded:` in tick): t1 may have left a branch or a
+        # PR on GitHub the ledger does not know, so nothing else launches (t2 stays queued) until an operator has
+        # looked and moved t1; the dry run says the same. Then the next queued task launches.
+        r = self.ctl.tick()
+        self.assertEqual((r.action, r.reason, r.details), ("blocked", StopReason.PROPOSE_FAILED_BLOCKS_DISPATCH, {"tasks": ["t1"]}))
+        self.assertEqual(self.task("t2")["state"], TaskState.QUEUED)
+        d = self.ctl.tick(dry_run=True)
+        self.assertEqual((d.action, d.reason), ("would-block", StopReason.PROPOSE_FAILED_BLOCKS_DISPATCH))
+        self.ctl.set_task_state("t1", TaskState.PARKED_FAILURE, stop_reason="operator: checked the remote")
         r = self.ctl.tick()
         self.assertEqual((r.action, r.task_id), ("launched", "t2"))
 
@@ -454,7 +461,8 @@ class A6AFailedProposal(PreflightCase):
         r1 = self.ctl.tick()
         self.assert_propose_failed(self.ctl.tick(), r1.run_id, rejected_push("auto/t1"))
         self.assertEqual((self.journal_count("pushed"), self.gh.create_count), (0, 0))
-        self.assertEqual(self.ctl.tick().action, "idle")
+        r = self.ctl.tick()
+        self.assertEqual((r.action, r.reason), ("blocked", StopReason.PROPOSE_FAILED_BLOCKS_DISPATCH))
 
     # A repair whose push fails: the PR row stays open, and a task in needs-reconcile keeps its PR counted as open
     # without being observed, so dispatch stays blocked until an operator moves the task.

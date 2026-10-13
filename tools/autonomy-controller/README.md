@@ -83,22 +83,25 @@ and nothing here runs outside the host the operator starts it on.
 | `restore <source> [--replace]` | Replace the `--state` file with a backup. Refuses a source whose `schema_version` the controller does not know (`1` and `2` are known; `1` is migrated on open) and, without `--replace`, an existing state file; swaps the file atomically, removes stale `-wal`/`-shm` sidecars, opens and verifies the result, and journals `restored` in it |
 | `evidence archive <run> [--out <dir>]` / `evidence list` | Tar the run directory (`manifest.json`, `stdout.json`, `stderr.log`, the transcript when it can be located) with the run's ledger rows (`ledger.json`: run, task, pool, PR, journal, usage, policy version) into `<state dir>/evidence/<run>.tar.gz`; never overwrites; journals `evidence-archived` with the archive's sha256 |
 | `pause --reason <text>` / `resume` | Stop launching before the next tick; allow it again |
-| `tick [--dry-run] [--adapter fake\|claude\|codex\|cursor]... [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, touches no adapter, and says what would happen. `--adapter` is repeatable; `claude`, `codex` and `cursor` register those CLIs' adapters with their run directories under `<state dir>/runs/` (the fake is always registered). `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
+| `tick [--dry-run] [--adapter fake\|claude\|codex\|cursor]... [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, calls no adapter and no `gh`, and says what a tick with the same options would do, by the tick's own rules: an implementation or repair run in `reserved`/`launching`/`running` is the writer (`would-block writer-busy`); with `--gh cli` any open PR blocks (`would-block pr-open-blocks-dispatch`); the picked task's provider must have its adapter registered, else it is `would-block provider-disabled`, as the tick reports it, so give the dry run the same `--adapter`s as the real tick. It polls nothing: a run whose process has exited stays the writer until a real tick settles it, and an open PR is not observed. `--adapter` is repeatable; `claude`, `codex` and `cursor` register those CLIs' adapters with their run directories under `<state dir>/runs/` (the fake is always registered). `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
 | `pr list\|show <n>\|observe <n>` | PR records; `observe` reads the PR's current head and its required checks now and merges, repairs or parks as they demand (`--gh cli`) |
 | `readiness run --gate <name> --workspace <path> [--task-id <id>]` | Run one gate command (`repo-gates`, `readiness-local`, `container-tests`) in a workspace and print the parsed report; with `--task-id`, apply it to the task (see "Readiness fixer") |
-| `readiness evaluate --task-id <id> --report <json>` | Apply a saved report (the JSON `readiness run` printed) to a task without running anything |
+| `readiness evaluate --task-id <id> --report <json>` | Apply a saved report (the JSON `readiness run` printed) to a task without running anything. A passing report finishes a task only when it has no open PR; while a PR is open it changes nothing (action `pr-open`): the PR phase decides |
 | `task add|list|show|set-state` | Task records; `--parent` makes a child that **shares** the parent's budget pool |
 | `event ingest --event-id ... [--gh cli]` | Record an event once; a repeated id is reported as a duplicate and does nothing. With `--gh cli`, a **new** PR event (`pr-opened`, `checks-green`, `checks-red`, `merged`, `closed`, `pr-head`) also triggers one idempotent observation of the task's open PR |
-| `run list|settle|cancel` | Run records; `settle` is the operator's manual reconciliation; `cancel` keeps the workspace |
+| `run list` / `run settle <run> --stop-reason <r>` / `run cancel <run> [--adapter <provider>]...` | Run records. `settle` is the operator's manual reconciliation of an UNSETTLED run: a run already settled is refused (exit 1, naming its state and stop reason; nothing changes; `task set-state` moves its task), and so is `--stop-reason completed` of an implementation or repair run (exit 1): `settle` has no PR lifecycle, so the task would be `done` with nothing proposed; tick with `--adapter <provider> --gh cli` instead. `cancel` stops the run through its provider's adapter and keeps the workspace; a `launching`, `running` or `unknown` run is refused without that provider's `--adapter` (`previous-writer-not-stoppable`, exit 1, nothing changed), and a run that had already finished when the cancel reached it is settled with what it did (`cancelled: false`, `finished_before_cancel: true`) |
 | `lease show|release|break` | The writer lease; `break --confirm-stopped` is the operator asserting the old holder is gone |
 | `outbox list|enqueue|flush` | Milestone posts; `flush --poster fake` in PR 1 (`gh` poster present, not exercised live) |
 | `worker register|list` | Worker checkout roots, which the policy may never live under |
 | `provider disable|enable <name>` | Take a provider out of dispatch without editing the policy |
-| `task transfer <id> --to <provider> [--reason <text>] [--adapter <old provider>]` | Move a task to another provider (see "Provider transfer (PR 5)"); refused with exit 6 past `limits.provider_transfers_per_pr`, exit 4 for a target the policy or the operator disabled or whose unit differs |
+| `task transfer <id> --to <provider> [--reason <text>] [--adapter <old provider>]... [--gh none\|cli] [--workspaces <dir>]` | Move a task to another provider (see "Provider transfer (PR 5)"). Refused with exit 6 past `limits.provider_transfers_per_pr`; exit 4 for a target the policy or the operator disabled, or whose unit differs; exit 1 `transfer-needs-pr-lifecycle` when the previous writer has completed and `--gh cli` is not given (nothing changed); exit 1 `previous-writer-not-stoppable` or `reconcile-pending` for a writer it cannot stop or reconcile. Prints `moved: true`, or `moved: false` with `ended` when a settlement ended the transfer |
 | `policy` | Show the validated active policy and its hash |
 
 Exit codes: 0 ok; 1 other error; 2 usage; 3 state missing or corrupt; 4 policy refused; 5 writer
 lease not held; 6 budget refused.
+
+Output written to a file or a pipe (not a terminal) is UTF-8 whatever the console code page, so `report > file`
+keeps blockers that quote model or CLI text (arrows, check marks, U+FFFD). A terminal keeps its own encoding.
 
 ## What one tick does
 
@@ -140,13 +143,14 @@ One tick does **one** thing, the first that applies, and journals it with its ex
 | `model-unrecognized` | `parked-decision` | the CLI refused the model id before any request; the blocker names the id, and the policy must change |
 | `funding-route-mismatch` | `blocked-auth` | the launch would have billed a route the policy did not select; nothing was started |
 | `completed`, lifecycle on | `pr-open` (`pr-checks-pending`) | the workspace was committed and pushed; the PR is open (or its new head recorded); only a merge on the current head makes the task `done` |
+| `completed`, lifecycle on, and the commit, push or PR fails | `needs-reconcile` (`propose-failed`) | the run stays settled and charged; `propose-failed` is journalled with the error and the tick reports the settle normally (no traceback). Nothing launches for ANY task while a task is `needs-reconcile` with `propose-failed` (`propose-failed-blocks-dispatch`): the operator checks its workspace, the branch on the remote and GitHub (the push, or even the PR, may have happened), then moves it with `task set-state` or adopts an open PR with `event ingest --kind pr-opened --task-id <id> --gh cli` |
 | `no-change-to-propose` | `queued` once, then `parked-failure` | the worker completed and left no diff; a diagnosed failure through the same retry counter (`pr:no-change:<task>`) |
 | `pr-merged` | `done` | every required check green on the current head; merged with the head pinned; `merge_sha` recorded |
 | `pr-closed-unmerged` | `parked-failure` | the PR was closed without a merge: never success; nothing from it is the next base |
 | `repair-rounds-exhausted` | `parked-failure` | the current head is red and `limits.repair_rounds` are used; operator step required |
 | a refusal at launch (`LaunchRefused`) | by the same mapping | the adapter named the reason before anything started: `auth-missing` and `funding-route-mismatch` give `blocked-auth`, `model-unrecognized` gives `parked-decision`, anything else requeues as `launch-failed`; the reservation is released, the attempt stays counted |
 | budget or attempts exhausted at reservation | `parked-budget` | with the remaining counts in the blocker text |
-| `provider-transferred` (operator, `task transfer`) | `queued`, or `pr-open` while the PR is open | the previous writer was stopped and settled first; task, PR, attempts and pool are unchanged; the new provider starts a fresh session |
+| `provider-transferred` (operator, `task transfer`) | `queued`, or `pr-open` while the PR is open | the previous writer was stopped and settled first (a completed one proposed, which needs `--gh cli`); task, PR, attempts and pool are unchanged; the new provider starts a fresh session |
 
 ### Budget accounting
 
@@ -387,7 +391,7 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
 ### What is unverified
 
 - A turn limit. No flag exists, so `turn_limit` is False: a Codex run is bounded by the task budget, the
-  attempts and the operator's `run cancel`, never by the CLI.
+  attempts and the operator's `run cancel <run> --adapter codex`, never by the CLI.
 - The subscription allowance. Nothing is printed. `codex app-server` answered `initialize`, but neither
   `account/rateLimits/read` nor `getAccountRateLimits` replied, so `usage_observation` is False and every
   allowance observation is `unavailable`. With the default `unobservable_allowance: task-ceiling-only`,
@@ -434,8 +438,11 @@ real shape on its first logged-in run.
 
 - **Resume** (`exact_resume` False). No chat id was seen, so `--resume` is never passed. A request that
   carries a session to resume launches fresh and records `resume_unsupported`.
-- **Cancel** (`cancel` False). Nothing lived long enough to be cancelled. `run cancel` still records
-  `cancelled_at` first and kills the process tree.
+- **Cancel** (`cancel` False). Nothing lived long enough to be cancelled. `run cancel <run> --adapter cursor`
+  still records `cancelled_at` first and then kills the process tree: the exit recorder, the CLI and everything
+  it started. A run whose `exit_code` already exists has finished: `cancel` then records nothing and kills
+  nothing, because a live pid then belongs to another process, and the next poll classifies the run from its
+  output.
 - **Turns and allowance** (`usage_observation` and `turn_limit` False). `consumed_units` is always None,
   so every run is charged the full reservation (`turns_unobserved`). Every allowance observation is
   `unavailable`.
@@ -452,6 +459,17 @@ real shape on its first logged-in run.
 - **Classification order.** An exit 0 with output is `completed` before the quota, rate-limit and
   transient texts are looked for. Those texts only classify a run that did not exit 0, because a finished
   run's stdout carries the model's own words.
+- **The exit code outlives the tick.** Every `tick` is its own process, and only the process that started a CLI
+  can read its exit code; before the phase F fix no later tick saw it, so a clean run settled `no-final-result`
+  (or, when the model's own text held a quota, rate-limit or network word, `quota-exhausted`, `rate-limited` or
+  `transient`, and was queued again). The CLI now runs under `ashlar_controller/adapters/_exit_recorder.py`
+  (`python -I _exit_recorder.py <run dir>/exit_code -- <argv>`), which waits for the CLI (it inherits the run's
+  stdout and stderr), writes the exit code to `exit_code` atomically, records a CLI that cannot start as 127
+  with the reason in `stderr.log`, ignores a console Ctrl+C while it waits, and exits with the same code. The
+  manifest records `exit_file` and `exit_recorder`; its `argv` is the CLI's and its `pid` the recorder's, so the
+  tree kill of `run cancel` still takes the CLI. A poll reads `exit_code` before it looks at the pid: once the
+  CLI has exited the run is over, whatever process the pid now names. A run with no `exit_code` still settles
+  `no-final-result` (its recorder was killed by something other than a cancel).
 - **Refused before anything starts:** a speed other than `standard`, and a restricted `allowed_tools`
   (`-f` would widen it silently). `effort`, `invocation_ceiling` and `agent` have no flag and are
   recorded as ignored.
@@ -522,8 +540,9 @@ next tick reads first.
 - **Controls take effect at the next tick.** `pause` is the first thing a tick checks, before the PR
   phase, so a red head gets no repair while paused and the PR is not even observed; `resume` lets the
   next tick act. `provider disable <name>` removes the provider from dispatch and from repair launches
-  (the PR stays open and watched, no round is spent); `provider enable` restores it. `run cancel <run>`
-  of a running repair settles the run `cancelled`, keeps its round spent, keeps the PR open and watched
+  (the PR stays open and watched, no round is spent); `provider enable` restores it. `run cancel <run> --adapter
+  <provider>` of a running repair (without that provider's `--adapter` a live run is refused, because settling it
+  would leave the worker running) settles the run `cancelled`, keeps its round spent, keeps the PR open and watched
   (a merge done by hand is still recorded and makes the task `done`), moves the task to `cancelled` and
   launches nothing more for it; the workspace and the transcript are preserved for inspection.
 - **The operator view.** `status` adds, per task, the PR record and `evidence`: the last run's directory
@@ -568,19 +587,28 @@ order, so that a refusal changes nothing:
    `limits.provider_transfers_per_pr` (1 in the example; the policy allows 0 or 1). Refusal: exit 6,
    `provider-transfers-exhausted`, journalled as `transfer-refused`. The bound is checked before anything
    is stopped.
-3. **Stop and reconcile the previous writer.** An uncertain launch of the task is reconciled through its own
-   provider's adapter first; one that stays uncertain refuses the transfer (`reconcile-pending`). A run that
-   has already ended is settled with what it actually did (a completed run is committed, pushed and proposed
-   as usual). A run still running is cancelled through its own adapter and settled (`cancelled`, the workspace
-   kept). A running run whose provider has no adapter registered refuses the transfer
-   (`previous-writer-not-stoppable`: pass `--adapter <that provider>`). So there is never a second writer:
-   the journal shows the old run's `settled` before `provider-transferred`, and the new provider's `launched`
-   after both.
+3. **Stop and reconcile the previous writer.** An uncertain launch of this task (and only this task) is
+   reconciled through its own provider's adapter first; one that stays uncertain refuses the transfer
+   (`reconcile-pending`). A running run whose provider has no adapter registered refuses it
+   (`previous-writer-not-stoppable`: pass `--adapter <that provider>`). Every active run is then polled once,
+   before anything is settled. A completed implementation or repair run, polled or found by the reconcile, is
+   committed, pushed and proposed as usual **when `--gh cli` is given**; without it the transfer is refused
+   (`transfer-needs-pr-lifecycle`, exit 1, nothing changed), because the run would be settled `done` with its
+   work never proposed and the move would then overwrite `done` with `queued`. A run that ended otherwise is
+   settled with what it did. A run still running is cancelled through its own adapter and settled
+   (`cancelled`, the workspace kept); if it has finished by then, it is settled with what it did. The transfer
+   ends there if a settlement leaves the task `done` (a run that completed between the poll and the cancel,
+   without `--gh cli`) or a completed run's proposal failed (`propose-failed`): `transfer-ended` is journalled
+   with the stopped runs, nothing moves, no transfer is counted, and the output says `moved: false` with
+   `ended` (`task-done-by-settlement` or `propose-failed`). So there is never a second writer: the journal shows
+   the old run's `settled` before `provider-transferred`, and the new provider's `launched` after both.
 4. **The move**, in one transaction: `tasks.provider` changes; the open PR row's `provider_transfers_used`
    is incremented; `provider-transferred` is journalled with the from and to providers, the transfer number,
-   the pool, the PR and the stopped runs (that row is the count, written before any launch on the new
-   provider); the task goes back to `pr-open` while its PR is open (the PR phase then repairs through the new
-   provider) or to `queued` (`stop_reason` `provider-transferred`).
+   the pool, the PR, the stopped runs (`stopped_runs`) and how each was stopped (`stopped`: run, provider, role,
+   `how` = `settled`, `cancelled` or `reconciled`, charged, stop reason); that row is the count, written before
+   any launch on the new provider. The task goes back to `pr-open` while its PR is open (the PR phase then
+   repairs through the new provider) or to `queued` (`stop_reason` `provider-transferred`); the output says
+   `moved: true`.
 
 Kept as they were: the task row (id, card, title, branch, base), its PR row (number, head, base, branch,
 repair rounds used), its budget pool (consumed, reserved, overshoot, attempts used and allowed). The next
@@ -615,7 +643,8 @@ again" from "a different failure".
 - `run_gate` executes the command once and parses it. It never retries. A script that crashes without
   parsable output raises `GateInfrastructureError`, which the CLI reports as an error, not a verdict.
 - `evaluate_readiness` (also `readiness run --task-id`, `readiness evaluate`): no failures means the
-  task is `done`. Failures put the first failure's identity through the **same** retry counter as a
+  task is `done`, unless it has an open PR: then nothing changes (action `pr-open`), and only a merge on the
+  PR's current head finishes it. Failures put the first failure's identity through the **same** retry counter as a
   diagnosed run failure: `queued` once per identity, then `parked-failure`. The counter lives in the
   task's pool, so it survives a second cycle, a restart and a task split; a failure a run reported and
   the same failure a gate reported share one retry.
@@ -690,7 +719,7 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   for inspection. The new provider starts from a fresh clone of the current base, or of the PR head for a
   repair.
 - **Neither new CLI has a turn limit.** A Codex or Cursor run is bounded by the task budget, the attempts
-  and `run cancel`, never by an invocation ceiling. A Cursor run is always charged its full reservation.
+  and `run cancel <run> --adapter <provider>`, never by an invocation ceiling. A Cursor run is always charged its full reservation.
 - **No allowance figure.** Neither CLI printed one, so both providers' allowance observations are
   `unavailable`.
 

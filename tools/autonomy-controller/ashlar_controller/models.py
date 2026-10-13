@@ -81,6 +81,7 @@ class StopReason:
     NO_CHANGE_TO_PROPOSE = "no-change-to-propose"      # the worker completed but left no diff to push
     PR_OPEN_BLOCKS_DISPATCH = "pr-open-blocks-dispatch"  # PRs are serial: nothing new launches while one is open
     PROPOSE_FAILED = "propose-failed"                  # a completed run was charged, but its commit, push or PR failed
+    PROPOSE_FAILED_BLOCKS_DISPATCH = "propose-failed-blocks-dispatch"  # nothing launches until the operator resolves it
     # Provider transfer (PR 5)
     PROVIDER_TRANSFERRED = "provider-transferred"        # the task moved to another provider; task, PR and pool kept
     PROVIDER_TRANSFERS_EXHAUSTED = "provider-transfers-exhausted"  # limits.provider_transfers_per_pr used

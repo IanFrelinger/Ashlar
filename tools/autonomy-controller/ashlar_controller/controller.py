@@ -630,6 +630,17 @@ class Controller:
                 return TickReport("blocked", StopReason.PR_OPEN_BLOCKS_DISPATCH, settled=recon["settled"],
                                   details={"open_prs": ph["open"]})
 
+        stranded = self._propose_failed_tasks()
+        if stranded:
+            # A completed run whose commit, push or PR failed may have left a branch or even a PR on GitHub that
+            # the ledger does not know: launching the next task would start a second line of work beside it, out
+            # of order. Nothing launches until the operator has looked and moved the task (an integrator
+            # decision, the same caution as PRs being serial).
+            self.store.journal("tick-blocked", detail={"reason": StopReason.PROPOSE_FAILED_BLOCKS_DISPATCH,
+                                                       "tasks": stranded}, now=now)
+            return TickReport("blocked", StopReason.PROPOSE_FAILED_BLOCKS_DISPATCH, settled=recon["settled"],
+                              details={"tasks": stranded})
+
         task = self._eligible_task()
         if task is None:
             # Idle: no adapter is touched, no model is called.
@@ -765,6 +776,12 @@ class Controller:
             return TaskState.PARKED_DECISION, stop_reason
         return TaskState.QUEUED, StopReason.LAUNCH_FAILED
 
+    def _propose_failed_tasks(self) -> List[str]:
+        """Tasks whose completed run was charged but not proposed (`needs-reconcile`, `propose-failed`)."""
+        return [r["task_id"] for r in self.store.rows(
+            "SELECT task_id FROM tasks WHERE state=? AND stop_reason=? ORDER BY task_id",
+            (TaskState.NEEDS_RECONCILE, StopReason.PROPOSE_FAILED))]
+
     def _plan(self) -> TickReport:
         """Dry run: say what a tick would do, by the tick's own dispatch rules in the tick's order. Reads only:
         no adapter and no GitHub call is made, so a run the ledger still records as running is reported as
@@ -785,6 +802,10 @@ class Controller:
             if open_prs > 0:
                 return TickReport("would-block", StopReason.PR_OPEN_BLOCKS_DISPATCH,
                                   details={**details, "open_prs": open_prs})
+        stranded = self._propose_failed_tasks()
+        if stranded:
+            return TickReport("would-block", StopReason.PROPOSE_FAILED_BLOCKS_DISPATCH,
+                              details={**details, "tasks": stranded})
         task = self._eligible_task()
         if task is None:
             return TickReport("would-idle", StopReason.EMPTY_QUEUE, details=details)
