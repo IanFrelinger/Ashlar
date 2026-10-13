@@ -737,6 +737,14 @@ integrator decision until the owner promotes it here.
 | 2026-10-12 | PR 5 live run (#779) | **The live run happens in one sitting, after the fix for the transfer defect found in its pre-flight has merged.** The live evidence is then on the code that closes #779. |
 | 2026-10-12 | PR 5 live run (#779) | **The outbox's `gh` poster is exercised once.** One `status` post on the agent-bus issue (#695), sent from the owner's existing `gh` login and signed `From: claude`. No new credential (open question 4). |
 | 2026-10-12 | Card #776 | **#776 is the live run's fourth task, on Claude.** A run that stops at the turn ceiling then exercises #780's workspace reuse live (open question 5). |
+| 2026-10-13 | PR 5 live run (#779) | **The owner delegated the PR 5 live run to the Codex agent, running from the owner's terminal.** Codex ran the worker-launching ticks and closed the three test PRs. The 2026-10-11 row (worker launches stay on the owner's terminal) otherwise stands. |
+| 2026-10-13 | Evidence | **The owner's account email in published evidence is removed from history.** The PR 4 pilot evidence on the storage branch `claude/budgeted-autonomy-workspace` held it in its Claude transcripts. It is replaced by a redacted copy, and the storage branch's history is rewritten and force-pushed so that no commit holds the unredacted file. The archive code redacts it from then on. |
+| 2026-10-13 | Card #776 | **#776 is finished by hand by Claude, as a normal PR**, from the partial edits its two capped attempts left. It is not relaunched through the controller. |
+| 2026-10-13 | Budget accounting | **A Claude run stopped at the turn ceiling stays charged what the CLI reports** (13 at a ceiling of 12, observed every time). A pool therefore fits two capped attempts at 12/36/3, and three when it is sized attempts x (ceiling + 1). This is documented, not changed in code. |
+| 2026-10-13 | Card #779 | **#779 closes once the live run's follow-up PR merges.** The live run's evidence is the record. Merge and repair stay exercised only against fakes. |
+| 2026-10-13 | Policy example | **`policy.example.json` names `composer-2.5` for Cursor.** That is the model the live run used. `composer-standard` was not offered by the CLI. The example's Cursor provider stays disabled. |
+| 2026-10-13 | Branches | **The live run's branches `auto/pr5-codex`, `auto/pr5-cursor` and `auto/pr5-transfer` are deleted.** The PRs, the ledger and the archives keep their heads. |
+| 2026-10-13 | Claude workers | **Isolating Claude workers from the owner's user-level hooks, skills, agents, slash commands and auto-memory is a card for later**, not built in phase F. |
 
 ## Verification
 
