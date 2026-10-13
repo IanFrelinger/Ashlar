@@ -15,21 +15,25 @@ from pathlib import Path
 from unittest import mock
 
 from ashlar_controller.adapters import cursor as cursor_module
-from ashlar_controller.adapters.cursor import CursorAdapter, failure_identity, node_direct, resolve_cli
+from ashlar_controller.adapters.cursor import CursorAdapter, failure_identity, node_direct, parse_stream, resolve_cli
 from ashlar_controller.controller import Controller
 from ashlar_controller.models import (LaunchRefused, LaunchRequest, RunState, StopReason, TaskState, UsageFreshness,
                                       UsageKind)
 from ashlar_controller.store import pid_alive
 
+from . import fake_cursor_cli as fake
 from .helpers import ControllerCase, FakeClock
 
 FAKE_CLI = str(Path(__file__).resolve().parent / "fake_cursor_cli.py")
 # Observed verbatim (probe-cursor-report-1.json, c1..c6): the stderr of every logged-out `-p` run.
 OBSERVED_AUTH_ERROR = ("Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY "
                        "environment variable.\n")
-LOGGED_IN = "Logged in as fake-operator\n"   # the real logged-in text is unobserved
+# The observed logged-in shape (run-bdc63ec68d56, 2026-10-13), with a test address in place of the account's.
+LOGGED_IN = fake.OBSERVED_LOGGED_IN
+TEST_ADDRESS = "owner@example.invalid"
 PROMPT = "card #779: PR 5 lane B"
-# A plausible stream; its real shape is unobserved, which is why the adapter only keeps it as evidence.
+# A short stream with a `result` event that lacks most of the observed keys (see fake.observed_stream for the
+# observed shape); the adapter keeps any stream as evidence.
 STREAM = "\n".join(json.dumps(o) for o in (
     {"type": "system", "subtype": "init", "session_id": "chat-0001", "model": "composer-standard"},
     {"type": "assistant", "message": {"content": [{"type": "text", "text": "editing"}]}},
@@ -326,6 +330,85 @@ class Classification(CursorAdapterCase):
         self.assertIsNone(status.consumed_units)
 
 
+class ObservedLiveShapes(CursorAdapterCase):
+    """The shapes of the first logged-in run (fake.OBSERVED_SOURCE): the status text names the account by its
+    email address, and the stream ends in a `result` event that lies past the first 2000 characters."""
+
+    def test_the_logged_in_status_text_is_stored_with_the_address_masked(self):
+        # kills: storing the `cursor-agent status` text verbatim in the manifest (the observed text names the account's address)
+        a, res, status = self.launch_and_settle(print_stdout=STREAM)
+        self.assertEqual(status.stop_reason, StopReason.COMPLETED)      # login detection is unchanged
+        self.assertEqual(self.manifest()["status_text"], "\u2713 Logged in as <redacted>")
+        raw = (self.runs_dir / "run-1" / "manifest.json").read_text(encoding="utf-8")
+        self.assertNotIn(TEST_ADDRESS, raw)
+        self.assertNotIn("owner@", raw)
+
+    def test_an_address_across_the_500_character_cut_is_masked_whole(self):
+        # kills: cutting the status text to 500 characters before masking (a cut address no longer matches and its start is kept)
+        status_text = "x" * 480 + " Logged in as " + TEST_ADDRESS + "\n"
+        a, res, status = self.launch_and_settle(print_stdout=STREAM, status_stdout=status_text)
+        stored = self.manifest()["status_text"]
+        self.assertEqual(stored, ("x" * 480 + " Logged in as <redacted>")[:500])
+        self.assertNotIn("owner@", stored)
+
+    def test_a_refused_status_does_not_carry_the_address_into_the_blocker(self):
+        # kills: quoting the logged-in status text unmasked in the auth-missing blocker (the task's blocker and the journal keep it)
+        self.write_script(status_stdout=LOGGED_IN, status_exit=1, print_stdout=STREAM)
+        with self.assertRaises(LaunchRefused) as cm:
+            self.adapter().launch(self.request())
+        self.assertEqual(cm.exception.stop_reason, StopReason.AUTH_MISSING)
+        self.assertIn("exit 1", cm.exception.blocker)
+        self.assertIn("Logged in as <redacted>", cm.exception.blocker)
+        self.assertNotIn(TEST_ADDRESS, cm.exception.blocker)
+        self.assertEqual(self.recorded("print"), [])
+
+    def test_the_last_result_event_of_the_observed_stream_is_kept_and_is_not_a_charge(self):
+        # kills: keeping only result_text, which ends before the observed result event; dropping a result_event key;
+        # reading a charge or a capability from the event
+        stream = fake.observed_stream()
+        self.assertGreater(stream.rindex('{"type":"result"'), cursor_module.RESULT_TEXT_LIMIT,
+                           "the fixture must put the result event past result_text, as the live stream did")
+        a, res, status = self.launch_and_settle(print_stream="observed")
+        self.assertEqual((status.state, status.stop_reason), (RunState.FINISHED, StopReason.COMPLETED))
+        self.assertEqual(status.result["result_text"], stream[:cursor_module.RESULT_TEXT_LIMIT])
+        self.assertNotIn("request_id", status.result["result_text"])
+        self.assertEqual(status.result["result_event"],
+                         {"subtype": "success", "is_error": False, "duration_ms": 13601,
+                          "session_id": fake.OBSERVED_SESSION_ID, "request_id": fake.OBSERVED_REQUEST_ID,
+                          "usage": fake.OBSERVED_USAGE})
+        self.assertEqual(status.result["event_types"][0], "system")
+        self.assertEqual(status.result["event_types"][-1], "result")
+        self.assertEqual(status.result["session_id_candidates"], [fake.OBSERVED_SESSION_ID])
+        # Not a charge: a request count is still unobserved, so the controller charges the full reservation.
+        self.assertIsNone(status.consumed_units)
+        self.assertIsNone(status.usage)
+        self.assertIs(status.result["turns_unobserved"], True)
+        self.assertIsNone(res.native_session_id)
+        caps = CursorAdapter.capabilities
+        self.assertEqual((caps.exact_resume, caps.usage_observation, caps.turn_limit), (False, False, False))
+        [obs] = status.observations
+        self.assertEqual((obs.freshness, obs.value), (UsageFreshness.UNAVAILABLE, None))
+        self.assertEqual(obs.raw["why"], "cursor-agent's stream prints token usage in its result event, but no turn, "
+                                         "request, cost or allowance figure")
+
+    def test_the_result_event_is_the_last_one_with_missing_keys_none(self):
+        # kills: keeping the first result event rather than the last; leaving out a key the event lacks instead of None
+        text = "\n".join([
+            json.dumps({"type": "result", "subtype": "error", "is_error": True, "request_id": "req-first",
+                        "usage": {"inputTokens": 1}}),
+            "not json", "[1, 2]", json.dumps({"type": "assistant", "session_id": "chat-0001"}),
+            json.dumps({"type": "result", "subtype": "success", "session_id": "chat-0001", "result": "done"}),
+            json.dumps({"type": "assistant", "request_id": "req-after"})])
+        self.assertEqual(parse_stream(text)["result_event"],
+                         {"subtype": "success", "is_error": None, "duration_ms": None, "session_id": "chat-0001",
+                          "request_id": None, "usage": None})
+        self.assertIsNone(parse_stream("x" * 5000 + "\n")["result_event"])
+        self.assertIsNone(parse_stream(json.dumps({"type": "assistant"}))["result_event"])
+        # A settled run without a result event records None, as a cancelled or failed one does.
+        a, res, status = self.launch_and_settle(print_exit=1, print_stderr="Error: Build FAILED\n")
+        self.assertIsNone(status.result["result_event"])
+
+
 class CancelAndReconcile(CursorAdapterCase):
     def launch_sleeping(self, **script):
         self.write_script(status_stdout=LOGGED_IN, print_stdout=STREAM, sleep_seconds=60, **script)
@@ -521,6 +604,33 @@ class ThroughTheController(ControllerCase):
         self.assertEqual((pool["consumed"], pool["reserved"]), (reservation, 0.0))
         argv = json.loads(self.prints()[0].read_text(encoding="utf-8"))["argv"]
         self.assertEqual(argv[argv.index("--model") + 1], "composer-standard")
+
+    def test_the_observed_result_event_reaches_the_ledger_and_the_charge_is_the_full_reservation(self):
+        # kills: the ledger losing the result event (its result_text ends before it); a token count or request id
+        # becoming a charge; the account address reaching the run directory or the ledger
+        ctl = self.controller(status_stdout=fake.OBSERVED_LOGGED_IN, print_stream="observed")
+        r = ctl.tick()
+        self.assertEqual(r.action, "launched")
+        reservation = r.details["reservation"]
+        settled = self.tick_until_settled(ctl)
+        self.assertEqual(settled.settled[0]["stop_reason"], StopReason.COMPLETED)
+        self.assertEqual(settled.settled[0]["charged"], reservation)
+        run = self.store.row("SELECT * FROM runs")
+        self.assertEqual((run["state"], run["consumed"]), (RunState.FINISHED, reservation))
+        result = json.loads(run["result_json"])
+        self.assertEqual(result["result_event"]["request_id"], fake.OBSERVED_REQUEST_ID)
+        self.assertEqual(result["result_event"]["usage"], fake.OBSERVED_USAGE)
+        self.assertEqual(result["result_event"]["subtype"], "success")
+        self.assertIs(result["turns_unobserved"], True)
+        self.assertEqual(self.pool()["consumed"], reservation)
+        run_dir = self.tmp / "runs" / run["run_id"]
+        self.assertEqual(json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))["status_text"],
+                         "\u2713 Logged in as <redacted>")
+        self.store.close()
+        files = [p for d in (self.tmp / "runs", Path(self.state_path).parent) for p in d.rglob("*") if p.is_file()]
+        self.assertIn(Path(self.state_path), files)
+        for path in files:
+            self.assertNotIn(TEST_ADDRESS.encode("ascii"), path.read_bytes(), str(path))
 
     def test_a_logged_out_cli_blocks_the_task_on_auth_without_a_run(self):
         # kills: launching a run while `cursor-agent status` says `Not logged in`
