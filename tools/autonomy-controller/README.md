@@ -622,7 +622,7 @@ again" from "a different failure".
 
 These are the conservative defaults in `policy.example.json`, taken because the owner has not
 decided otherwise. They are **integrator decisions**, recorded here and in the PR body, not owner
-rows in any decisions log: paid inference off; no new paid infrastructure; one implementation writer
+rows in the decisions log below: paid inference off; no new paid infrastructure; one implementation writer
 across providers; one scoped verifier; one readiness fixer; one retry of the same diagnosed failure;
 at most two PR repair rounds; at most one premium escalation and one provider transfer per PR; a
 25 percent interactive reserve where allowance is observable; idle on an empty queue; checkpoint and
@@ -640,6 +640,23 @@ edits and the controller does every git and `gh` step (under `acceptEdits` a wor
 `success` and `skipped` are the only green check conclusions; a repair round is counted before its
 launch; `pr.required_checks` default to the five required checks on master. The Codex `sol` and Cursor
 `composer-standard` ids remain candidates for PR 5.
+
+## Decisions log (added 2026-10-12)
+
+The owner's decisions only. This workstream has no spec, so this section is its decisions log. Every other
+default in this README and in the PR bodies of #756, #769, #771, #773, #774, #780 and #781 stays an
+integrator decision until the owner promotes it here.
+
+| Date | Applies to | Decision |
+|---|---|---|
+| 2026-10-11 | PR 4 pilot (#772) | **The pilot is guarded.** The controller never merges. Its policy lists a required check that never runs, so the owner reviews each PR and merges or closes it by hand, and the next tick records the outcome. |
+| 2026-10-11 | Every live run | **Worker launches stay on the owner's terminal, with no allow rule.** A Claude Code session prepares the ledger, the policy and the exact commands. The owner runs every `tick` that launches a CLI worker. |
+| 2026-10-12 | PR 5 (#779) | **Transfers are operator-initiated only.** Nothing moves a task to another provider by itself, for example after `waiting-quota` or a missing login. An exhausted allowance means a wait (phase E open question 2). |
+| 2026-10-12 | Records | **Only the rows in this log are owner decisions.** The phases A to E defaults stay integrator decisions until the owner promotes one (open question 3). |
+| 2026-10-12 | PR 5 live run (#779) | **Cursor is logged in, and carries one live task** through `--adapter cursor` (open question 1). |
+| 2026-10-12 | PR 5 live run (#779) | **The live run happens in one sitting, after the fix for the transfer defect found in its pre-flight has merged.** The live evidence is then on the code that closes #779. |
+| 2026-10-12 | PR 5 live run (#779) | **The outbox's `gh` poster is exercised once.** One `status` post on the agent-bus issue (#695), sent from the owner's existing `gh` login and signed `From: claude`. No new credential (open question 4). |
+| 2026-10-12 | Card #776 | **#776 is the live run's fourth task, on Claude.** A run that stops at the turn ceiling then exercises #780's workspace reuse live (open question 5). |
 
 ## Verification
 
@@ -659,8 +676,8 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   probed live (the reports above); the controller's own launch through it was not.
 - **Transfers are operator-initiated only.** Nothing moves a task to another provider by itself, for
   example when a provider's allowance is exhausted or its login is missing. That would be a fallback
-  launch on another provider's allowance, a policy the owner has not set. "Quota exhaustion results in a
-  wait" still holds.
+  launch on another provider's allowance, and the owner decided on 2026-10-12 that it stays
+  operator-initiated (decisions log). "Quota exhaustion results in a wait" still holds.
 - **Workspace after a transfer.** The previous provider's uncommitted edits stay in its run's workspace,
   for inspection. The new provider starts from a fresh clone of the current base, or of the PR head for a
   repair.
@@ -703,7 +720,8 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
 - `restore` replaces the file the operator names; it does not stop a controller that holds the writer
   lease on it. Stop every controller on the ledger first (the lease row travels with the backup).
 - Archives are written once per run and never pruned; nothing rotates `<state dir>/evidence/`.
-- `premium_escalations_used` and `provider_transfers_used` are still counted and not driven (PR 5).
+- `premium_escalations_used` is still counted and not driven. `provider_transfers_used` is driven by
+  `task transfer` since PR 5.
 
 ## Not in PR 3
 
