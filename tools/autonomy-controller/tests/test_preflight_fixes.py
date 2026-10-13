@@ -50,6 +50,24 @@ class FinishesAtCancel(FakeAdapter):
         return self.finished if self.cancel_count else RUNNING
 
 
+class ExitsAfterCancel(FakeAdapter):
+    """A run whose turn is over but whose process is still exiting, under an adapter whose cancel does nothing to a
+    finished turn (lanes B3 and C2): it polls RUNNING for a few more polls after the cancel, then completed."""
+
+    def __init__(self, polls_running_after_cancel=3):
+        super().__init__()
+        self.left = polls_running_after_cancel
+
+    def poll(self, handle):
+        self.poll_count += 1
+        if not self.cancel_count:
+            return RUNNING
+        if self.left > 0:
+            self.left -= 1
+            return RUNNING
+        return done()
+
+
 class FailingPrCreate(FakeGh):
     def pr_create(self, repo, head_branch, base_branch, title, body):
         self.create_count += 1
@@ -162,14 +180,74 @@ class A1TransferWithoutTheLifecycle(PreflightCase):
         self.assertEqual([(s["run_id"], s["how"], s["stop_reason"]) for s in out["stopped"]],
                          [(r1.run_id, "reconciled", StopReason.COMPLETED)])
 
+    # Kills: dropping the refusal in cancel_run (`if self._completed_unproposed(run, after):` -> `if False:`), lane A's
+    # review must-fix: a writer that completed between the transfer's poll and its cancel was settled `done` with its
+    # work never proposed. Without the lifecycle the transfer is now refused and nothing is settled; with it the run
+    # is proposed and the transfer moves the PR.
+    def test_a_writer_that_completes_at_the_cancel_is_refused_without_the_lifecycle_and_proposed_with_it(self):
+        a1 = FinishesAtCancel()
+        self.make2(a1=a1)
+        self.add_task()
+        r1 = self.ctl.tick()
+        before, kinds = self.snapshot(), journal_kinds(self.store)
+        with self.assertRaises(ControllerError) as cm:
+            self.without_lifecycle({"fake": a1}).transfer_task("t1", "fake2")
+        self.assertTrue(str(cm.exception).startswith(StopReason.TRANSFER_NEEDS_PR_LIFECYCLE), str(cm.exception))
+        self.assertEqual((self.snapshot(), journal_kinds(self.store)), (before, kinds))
+        self.assertEqual(self.run_row(r1.run_id)["state"], RunState.RUNNING)
+        out = self.ctl.transfer_task("t1", "fake2")
+        pr = self.store.row("SELECT * FROM prs WHERE task_id='t1'")
+        self.assertEqual((out["moved"], out["state"], out["pr_number"]), (True, TaskState.PR_OPEN, pr["pr_number"]))
+        self.assertEqual([(s["how"], s["stop_reason"]) for s in out["stopped"]], [("settled", StopReason.COMPLETED)])
+
+    # Kills: cancel_run settling a synthesized CANCELLED at the first poll that still says RUNNING (the wait loop
+    # dropped: `while after.state == RunState.RUNNING and polls < CANCEL_SETTLE_POLLS:` -> `while False:`), lane A's
+    # review should-fix with lane C: a Codex run whose turn had ended was still exiting, the adapter's cancel did
+    # nothing, and the completed work was recorded as cancelled, charged in full and dropped.
+    def test_a_run_still_exiting_after_a_no_op_cancel_is_waited_for_and_proposed(self):
+        a1 = ExitsAfterCancel(polls_running_after_cancel=3)
+        self.make2(a1=a1)
+        self.add_task()
+        r1 = self.ctl.tick()
+        self.assertEqual(self.ctl.tick().reason, StopReason.WRITER_BUSY)
+        out = self.ctl.transfer_task("t1", "fake2")
+        pr = self.store.row("SELECT * FROM prs WHERE task_id='t1'")
+        self.assertIsNotNone(pr)
+        self.assertEqual((out["moved"], out["state"], out["pr_number"]), (True, TaskState.PR_OPEN, pr["pr_number"]))
+        self.assertEqual([(s["run_id"], s["how"], s["stop_reason"], s["charged"]) for s in out["stopped"]],
+                         [(r1.run_id, "settled", StopReason.COMPLETED, 3.0)])
+        self.assertEqual(self.run_row(r1.run_id)["state"], RunState.FINISHED)
+
+    # Kills: dropping the refusal in settle_and_reconcile's second loop (`if refuse_unproposed and
+    # self._completed_unproposed(run, status):` -> `if False:`), lane A's review should-fix: the first loop turned a
+    # reconciled launch into a running run, and the second loop then settled its completed poll `done`, unproposed.
+    def test_a_reconciled_launch_whose_poll_says_completed_is_refused_without_the_lifecycle(self):
+        found = ReconcileResult(found=True, status=RUNNING, native_session_id="s-1", native_run_handle="h-1")
+        a1 = FakeAdapter(script=[{"launch": "unknown", "reconcile": found}])
+        a1.default_status = done()
+        self.make2(a1=a1)
+        self.add_task()
+        r1 = self.ctl.tick()
+        self.assertEqual(r1.reason, StopReason.LAUNCH_UNKNOWN)
+        with self.assertRaises(ControllerError) as cm:
+            self.without_lifecycle({"fake": a1}).transfer_task("t1", "fake2")
+        self.assertTrue(str(cm.exception).startswith(StopReason.TRANSFER_NEEDS_PR_LIFECYCLE), str(cm.exception))
+        run = self.run_row(r1.run_id)
+        self.assertIsNone(run["settled_at"])
+        self.assertNotEqual(self.task()["state"], TaskState.DONE)
+        self.assertEqual(self.journal_count("provider-transferred"), 0)
+
     # Kills: dropping the check after the settlements (`if after["state"] == TaskState.DONE:` -> `if False:`): a task
-    # that a settlement left `done` would be moved to `queued` on the new provider anyway.
+    # that a settlement left `done` would be moved to `queued` on the new provider anyway. A writer never gets there
+    # any more (it is proposed, or the transfer is refused), so the active run here is a non-writer role.
     def test_a_settlement_that_finishes_the_task_ends_the_transfer_without_moving_it(self):
         a1 = FinishesAtCancel()
         self.make2(a1=a1)
         self.add_task()
         r1 = self.ctl.tick()
         self.assertEqual(r1.action, "launched")
+        with self.store.tx():
+            self.store.conn.execute("UPDATE runs SET role='verifier' WHERE run_id=?", (r1.run_id,))
         out = self.without_lifecycle({"fake": a1}).transfer_task("t1", "fake2")
         self.assertEqual((out.get("moved"), out.get("ended"), out["state"], out["transfer_no"]),
                          (False, "task-done-by-settlement", TaskState.DONE, None))
@@ -300,19 +378,40 @@ class A3CancelRun(ControllerCase):
 
     # Kills: settling every cancel as `cancelled` (`if after.state != RunState.RUNNING and ...` -> `if False and ...`):
     # a run that had already completed would be thrown away as cancelled and charged its whole reservation.
+    # The run here is a non-writer role: a completed WRITER found at the cancel needs the PR lifecycle, which `run
+    # cancel` does not have, so it is refused (next test).
     def test_a_run_that_finished_before_the_cancel_is_settled_with_what_it_did(self):
         adapter = FinishesAtCancel()
         ctl = self.make_controller(adapter=adapter)
         self.add_task()
         r = ctl.tick()
         self.assertEqual(ctl.tick().reason, StopReason.WRITER_BUSY)     # it polls as running
+        with self.store.tx():
+            self.store.conn.execute("UPDATE runs SET role='verifier' WHERE run_id=?", (r.run_id,))
         out = ctl.cancel_run(r.run_id)
         self.assertEqual((out["stop_reason"], out["cancelled"], out.get("finished_before_cancel"), out["charged"]),
                          (StopReason.COMPLETED, False, True, 3.0))
         run = self.run_row(r.run_id)
         self.assertEqual((run["state"], run["stop_reason"], run["consumed"]), (RunState.FINISHED, StopReason.COMPLETED, 3.0))
-        self.assertEqual(self.task()["state"], TaskState.DONE)            # no lifecycle here: completed is done
         self.assertEqual(adapter.cancel_count, 1)
+
+    # Kills: dropping the refusal in cancel_run (`if self._completed_unproposed(run, after):` -> `if False:`), lane A's
+    # review must-fix: `run cancel` (no `--gh`) of a writer that had completed set its task `done` with the work
+    # never committed, pushed or proposed.
+    def test_a_writer_that_completed_before_the_cancel_is_refused_without_the_lifecycle(self):
+        adapter = FinishesAtCancel()
+        ctl = self.make_controller(adapter=adapter)
+        self.add_task()
+        r = ctl.tick()
+        self.assertEqual(ctl.tick().reason, StopReason.WRITER_BUSY)
+        kinds = journal_kinds(self.store)
+        with self.assertRaises(ControllerError) as cm:
+            ctl.cancel_run(r.run_id)
+        self.assertTrue(str(cm.exception).startswith(StopReason.TRANSFER_NEEDS_PR_LIFECYCLE), str(cm.exception))
+        self.assertIn("--gh cli", str(cm.exception))
+        run = self.run_row(r.run_id)
+        self.assertEqual((run["state"], run["settled_at"]), (RunState.RUNNING, None))
+        self.assertEqual((self.task()["state"], journal_kinds(self.store)), (TaskState.RUNNING, kinds))
 
 
 class A3CancelCommandLine(CodexEnabled):

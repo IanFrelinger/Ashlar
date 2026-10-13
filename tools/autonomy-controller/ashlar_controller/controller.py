@@ -34,6 +34,10 @@ from .store import Store, utcnow_iso
 
 # The roles that edit code. One writer at a time across both, and a completed one is proposed, not done.
 WRITER_ROLES = ("implementation", "readiness-fixer")
+# After a cancel, a run that still polls RUNNING is polled again this many times, this far apart, before it is
+# settled `cancelled`: a cancel that found the run's turn over did nothing, and its process may be exiting.
+CANCEL_SETTLE_POLLS = 10
+CANCEL_SETTLE_INTERVAL_SECONDS = 0.5
 
 
 @dataclass
@@ -60,7 +64,7 @@ class Controller:
     def __init__(self, store: Store, policy: Policy, adapters: Dict[str, ProviderAdapter], *, holder_id: str,
                  host: Optional[str] = None, pid: Optional[int] = None, clock=None, gh=None, git=None,
                  workspaces_dir: Optional[str] = None, runs_dir: Optional[str] = None,
-                 evidence_dir: Optional[str] = None):
+                 evidence_dir: Optional[str] = None, sleep=None):
         self.store = store
         self.policy = policy
         self.adapters = adapters
@@ -68,6 +72,9 @@ class Controller:
         self.host = host
         self.pid = pid
         self.clock = clock or time.time
+        # Only `cancel_run` waits (for a run whose process is still exiting). A test that injects its clock gets
+        # no real sleep unless it injects one too.
+        self.sleep = sleep or (time.sleep if clock is None else (lambda _seconds: None))
         # PR 4: where the evidence of a run lives, so `status` and the archives can name it without an
         # adapter. The Claude adapter writes <state dir>/runs/<run_id>/; archives go to <state dir>/evidence/.
         state_dir = os.path.dirname(os.path.abspath(store.path))
@@ -365,6 +372,9 @@ class Controller:
             status = adapter.poll(run["native_run_handle"])
             if status.state == RunState.RUNNING:
                 continue
+            if refuse_unproposed and self._completed_unproposed(run, status):
+                # The first loop may just have turned a reconciled launch into this running run.
+                raise self._needs_lifecycle(run)
             out["settled"].append(self._apply_outcome(run, status))
         return out
 
@@ -388,9 +398,21 @@ class Controller:
         if adapter is not None and run["native_run_handle"]:
             adapter.cancel(run["native_run_handle"])
             after = adapter.poll(run["native_run_handle"])
+            polls = 1
+            while after.state == RunState.RUNNING and polls < CANCEL_SETTLE_POLLS:
+                # An adapter's cancel does nothing to a run whose turn is already over (its pid may be exiting, or
+                # reused), so the run can poll RUNNING a moment longer. Wait for it: never record a cancel that
+                # nothing performed, and never drop the work of a run that completed.
+                self.sleep(CANCEL_SETTLE_INTERVAL_SECONDS)
+                after = adapter.poll(run["native_run_handle"])
+                polls += 1
             if after.state != RunState.RUNNING and after.state != RunState.CANCELLED \
                     and after.stop_reason != StopReason.CANCELLED:
-                # It had already finished before the cancel reached it: settle what it actually did.
+                # It had already finished before the cancel reached it: settle what it actually did. A completed
+                # writer needs the PR lifecycle to be proposed; without it (`run cancel` has no `--gh`) the task
+                # would be `done` with its work never proposed, so the cancel is refused and nothing is settled.
+                if self._completed_unproposed(run, after):
+                    raise self._needs_lifecycle(run)
                 settled = self._apply_outcome(run, after)
                 settled.update({"cancelled": False, "finished_before_cancel": True})
                 return settled
