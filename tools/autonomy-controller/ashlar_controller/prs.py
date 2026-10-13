@@ -35,7 +35,7 @@ GREEN_CONCLUSIONS = ("success", "skipped")
 RED_CONCLUSIONS = ("failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure")
 
 PR_JSON_FIELDS = "number,state,headRefOid,baseRefOid,headRefName,baseRefName,mergeCommit,url,title"
-CHECK_RUNS_JQ = ".check_runs[] | {name,status,conclusion,details_url,output:{title,summary}}"
+CHECK_RUNS_JQ = ".check_runs[] | {id,name,status,conclusion,details_url,output:{title,summary}}"
 
 HANDOFF_MAX_LINES = 60      # evidence lines per red check carried into a repair handoff
 HANDOFF_MAX_CHARS = 4000    # evidence characters per red check
@@ -70,6 +70,7 @@ class CheckRun:
     title: str = ""
     summary: str = ""
     details_url: Optional[str] = None
+    id: Optional[int] = None        # GitHub's check-run id; ids grow in creation order, so a re-run has the larger one
 
 
 @dataclass
@@ -140,13 +141,14 @@ def _pr_view_from_json(obj: Dict[str, Any]) -> PrView:
 
 
 def _check_run_from_json(obj: Dict[str, Any]) -> CheckRun:
-    """One line of the check-runs jq projection: {name,status,conclusion,details_url,output:{title,summary}}."""
+    """One line of the check-runs jq projection: {id,name,status,conclusion,details_url,output:{title,summary}}."""
     try:
         output = obj.get("output") or {}
+        run_id = obj.get("id")
         return CheckRun(name=str(obj["name"]), status=str(obj.get("status") or ""), conclusion=obj.get("conclusion"),
                         title=str(output.get("title") or ""), summary=str(output.get("summary") or ""),
-                        details_url=obj.get("details_url"))
-    except (KeyError, TypeError, AttributeError) as e:
+                        details_url=obj.get("details_url"), id=int(run_id) if run_id is not None else None)
+    except (KeyError, TypeError, AttributeError, ValueError) as e:
         raise GhError(f"unexpected check-run JSON ({e}): {json.dumps(obj)[:500]}") from e
 
 
@@ -381,13 +383,18 @@ def check_failure(run: CheckRun) -> CheckFailure:
 def evaluate_checks(required: Sequence[str], head_sha: str, runs: Sequence[CheckRun]) -> CheckVerdict:
     """Green / red / pending for `head_sha` from the runs the caller fetched FOR THAT SHA.
 
-    For each required name the LATEST run of that name (last in the list) decides. A completed run
-    with a GREEN conclusion is green, with a RED conclusion red; anything else (no run, queued,
-    in_progress, neutral, unknown) is pending. Red wins over pending; pending wins over green. Runs
-    for names that are not required are ignored: they are not what the merge waits for."""
+    For each required name the LATEST run of that name decides: the one with the largest check-run id,
+    because GitHub lists a commit's check runs newest first, so a re-run of a check comes BEFORE the run
+    it replaces; runs without ids (the fake) count in list order, the later one being the latest. A
+    completed run with a GREEN conclusion is green, with a RED conclusion red; anything else (no run,
+    queued, in_progress, neutral, unknown) is pending. Red wins over pending; pending wins over green.
+    Runs for names that are not required are ignored: they are not what the merge waits for."""
     latest: Dict[str, CheckRun] = {}
     for run in runs:
-        if run.name in required:
+        if run.name not in required:
+            continue
+        seen = latest.get(run.name)
+        if seen is None or run.id is None or seen.id is None or run.id > seen.id:
             latest[run.name] = run
     verdict = CheckVerdict(head_sha=head_sha, verdict="green")
     for name in required:
