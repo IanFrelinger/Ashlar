@@ -473,12 +473,17 @@ step and records each one:
    the prompt is built from the task row and the PR ledger only.
 2. **When the run completes**, the controller runs `git add -A`, commits (author `ashlar-controller`)
    and pushes the branch (`gitops.commit_and_push`). No diff is `no-change-to-propose`, a diagnosed
-   failure retried once and then parked. Then it opens the PR **once** (`prs.open_or_reuse_pr`): an
+   failure retried once and then parked. The commit message ends with a `Worker: <provider> <model>`
+   trailer from the run row, and only a Claude run adds a `Co-Authored-By: Claude` trailer; the PR body
+   names the worker and the run too (`prs.attribution_trailers`, `prs.pr_body`), so a Codex or Cursor PR
+   never credits Claude. Then it opens the PR **once** (`prs.open_or_reuse_pr`): an
    existing row for the task is reused with zero `gh` calls, an open PR already on GitHub for the branch
    is adopted, otherwise `gh pr create`. The task is `pr-open`.
 3. **On every tick** each open PR is observed **by head SHA**: `gh pr view` gives the current head,
    `GET repos/<repo>/commits/<head>/check-runs` gives the checks for that commit alone, and
-   `prs.evaluate_checks` reads `pr.required_checks` (the five on master) against them. A required check
+   `prs.evaluate_checks` reads `pr.required_checks` (the five on master) against them. Of several runs
+   of one check (a re-run), the one with the largest check-run id decides: GitHub lists a commit's
+   check runs newest first, so the order of the list is never trusted. A required check
    with no run on the head is pending; `success` or `skipped` is green; `failure`, `cancelled`,
    `timed_out`, `action_required`, `stale`, `startup_failure` is red. A green run on an earlier head
    never counts, because it is never fetched.
@@ -540,6 +545,9 @@ next tick reads first.
   `ledger.json` (the run, task, pool and PR rows, the journal rows of the run and its task, the usage rows,
   the policy version) and `MANIFEST.txt`. It refuses to overwrite, and journals `evidence-archived` with
   the file's sha256. An archive outlives the workspace, which a later run or the operator may remove.
+  The archived transcript leaves out the account identifiers a Codex session file carries in its
+  `session_meta` record (`creator_user_id`, `creator_account_id`), because an archive may be published;
+  `MANIFEST.txt` and the journal row say what was removed, and the file on disk is not changed.
 - **Metrics** are the ledger's counts and sums: tasks and runs by state, runs by stop reason and role,
   turns consumed and reserved, overshoot, attempts, PRs by outcome and repair rounds, retries, the latest
   usage per provider and kind, and the per-provider sum of `estimated_api_value` deltas, which stays an
