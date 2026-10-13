@@ -1,0 +1,6 @@
+mutation close-m1-attribute-dropped: KILLED red=failed:1/35 green=passed:35/35 ref=248c0886cd5aaf4b29de6d6725f7251baee505cd runner=override
+mutation close-m2-attribute-crlf: KILLED red=failed:1/35 green=passed:35/35 ref=248c0886cd5aaf4b29de6d6725f7251baee505cd runner=override
+mutation close-m3-control-check-skipped: KILLED red=failed:1/35 green=passed:35/35 ref=248c0886cd5aaf4b29de6d6725f7251baee505cd runner=override
+mutation close-m4-cr-allowed: KILLED red=failed:1/35 green=passed:35/35 ref=248c0886cd5aaf4b29de6d6725f7251baee505cd runner=override
+
+[exited with code 0]

@@ -1,5 +1,16 @@
 # PR 5 live run: one task through Codex, one through Cursor, one transfer, and card #776 (v2, 2026-10-13)
 
+> **Historical: do not reuse (marked 2026-10-13).** This sheet ran once, on 2026-10-13; the verified record is
+> `live-run-pr5-record.md`. Two of its expectations proved wrong (`live-run-pr5-verification.md`, item S1):
+> - it promises card #776 up to 3 attempts of 12 turns, but a capped Claude run is charged 13, so a 12/36/3 pool
+>   admits two (decisions log, 2026-10-13, "Budget accounting");
+> - it has no step that releases the writer lease (`lease release --holder pr5-live`); the lease was left held and
+>   expired.
+>
+> The workstream closed after phase F (decisions log, 2026-10-13, "Workstream"). Card #790 must be built before the
+> next live run that launches Claude workers. Write a new sheet from `tools/autonomy-controller/README.md` for any
+> future run.
+
 This is v2 of the sheet. v1 (2026-10-12) was never run. A pre-flight against master found defects in the
 controller and in v1 itself, and **#785 (`af7ff471b`)** fixed the defects in the code. v2 assumes master at or after #785's
 merge. The decisions behind it are rows in the controller README's decisions log (#784): Cursor is logged in,

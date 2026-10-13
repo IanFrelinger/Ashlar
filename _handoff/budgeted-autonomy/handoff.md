@@ -1,6 +1,88 @@
-# budgeted-autonomy handoff: end of phase F (close-out), start of phase G (not planned; the owner's choice)
+# budgeted-autonomy handoff: end of phase F (close-out); the workstream is closed (no phase G)
 
 *Written 2026-10-13 ~19:55 UTC at the end of phase F. The storage branch is `claude/budgeted-autonomy-workspace`, folder `_handoff/budgeted-autonomy/`. List it with `bash scripts/handoff-fetch.sh --workstream budgeted-autonomy --list`. If the owner starts another phase, begin with the prompt in §9 or with `/start-phase budgeted-autonomy`.*
+
+## Addendum (2026-10-13, after this handoff was first published): the close-out
+
+*Added in the same thread, after the owner answered §3, as phase E's thread added #783 after its handoff. Where
+this addendum and the sections below disagree, this addendum is current.*
+
+**The owner's answers.** On the pre-rewrite storage commits, the owner said "I don't care about my email". For the
+rest, the owner said "I'll go with your judgement". Claude's recommendations became six owner rows dated 2026-10-13
+in the decisions log of `tools/autonomy-controller/README.md`, marked *Accepted recommendation*:
+- **The pre-rewrite storage commits are not purged.** GitHub serves **four** of them by SHA, not the two §3 names:
+  `cbc1a0d72929`, `c9eb03d92`, `3ad39c834` and `ec6ac7cfd`. Each holds blob `a81c1a1c`.
+  - A recursive scan of that blob from the local object store (40 members, nested archives included) found no
+    token, key, JWT, bearer header or password.
+  - The scanner was first seen catching a planted token two archives deep.
+- The six PR 5 archives stay local. The `From: codex` outbox post stands. The owner's Codex priority tier stays.
+- **The workstream closes after one cleanup PR.** No phase G is planned, and the undelivered brief items get no
+  cards.
+- **Card #790 must be built and merged before the next live controller run that launches Claude workers.**
+
+**Merged:**
+
+| PR | What | Merge SHA |
+|---|---|---|
+| #793 | The six decision rows (records only) | `2d60ba8fc` |
+| #794 | Cleanup: saved workflows pinned LF; the checker refuses control characters; README :3, :37 and "Not in PR 3"; the package docstring; `ci/cert-gate-assertions.md` row 82; `PILOT-PR4.md` removed | `4287a18a1` |
+
+**Verification.**
+- #794: `scripts/mutation-check.sh` killed 4 of 4 at `248c0886c`:
+  - the attribute dropped;
+  - the attribute set to `crlf`;
+  - the control-character check skipped;
+  - CR allowed.
+
+  The test was also observed red on CRLF copies and green on LF copies.
+- An adversarial review (three lenses) checked both PRs, and its findings were fixed before merge. They included:
+  - the four-commit count;
+  - two wrong row references;
+  - the registry row not updated;
+  - the checker not enforcing the rule its header claims;
+  - Git for Windows' `grep` being unable to see a CR, which made the first byte check pass on CRLF copies.
+
+**What this changes below.**
+- **§1, bus:**
+  - posts 36 (`claim` budgeted-autonomy-close, 6153979028), 37 (`handoff` pr-793, 6154029835), 38 (`done` pr-793,
+    6154444451), 39 (`handoff` pr-794, 6154462566) and 40 (`done` pr-794 and budgeted-autonomy-close; see
+    `40-done-pr-794-close.md`);
+  - Grok's drift notes: on #792 (6153522959), and an interim note on #793 (6154358236) with no `block`.
+- **§3 open questions:**
+  - 1, 2 and 4 to 8 are answered (above). The live merge-and-repair exercise is not scheduled.
+  - **3 (the cloud-cost review) and 9 (promoting integrator decisions) stay open.**
+- **§4 phase G:** none. The candidates are kept for the record only. Their status:
+  - the cleanup PR is #794;
+  - #790 is gated on the next live run;
+  - the merge-and-repair exercise is not scheduled;
+  - the `validate.py` fixes ride with whichever workstream comes next, as project tooling.
+- **§6, saved workflows on Windows:**
+  - After #794, a Windows checkout gets LF workflow files once it re-checks them out:
+    `rm <file> && git checkout -- <file>`. The session checkout `ashlar-record-correction` was fixed this way after
+    #794 merged. Its `project-audit.js` is now byte-identical to the LF copy that ran through `scriptPath`, and its
+    only control character is LF.
+  - **Launching it by name in this same session was still refused** with the same "control characters" error. The
+    likely cause is that the session read its saved workflows when it started, before the fix. **Unverified:** a
+    by-name launch in a new thread.
+  - If the next `/handoff` is still refused by name, run the LF copy through `scriptPath`, as phase F did, and record
+    it.
+- **§7:** removed or decided:
+  - `PILOT-PR4.md` is removed;
+  - the README :3, :37 and :942 items are done;
+  - the `.gitattributes` item is done;
+  - the run sheet `live-run-pr5.md` on this branch now opens with a "Historical: do not reuse" banner naming its two
+    wrong expectations.
+
+  The reviewers' coverage nits stay listed, unscheduled.
+- **The pre-rewrite local ref** `claude/budgeted-autonomy-workspace` (`3ad39c834`) in `ashlar-record-correction` was
+  deleted, as §4 says. `3ad39c834` itself is one of the four commits GitHub still serves.
+
+**Next.** Nothing in this workstream. The audit's project-wide priorities are in §1:
+- the repository security settings (owner-only);
+- the dogfood record decision before 2026-10-29;
+- the release path, which needs the owner's version number and the API stability call.
+
+Any of those starts in its own thread.
 
 ## 0. How we work: one thread per phase
 
