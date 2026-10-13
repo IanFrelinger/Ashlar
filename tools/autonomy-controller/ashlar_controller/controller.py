@@ -906,7 +906,11 @@ class Controller:
                          "consumed": pool["consumed"], "reserved": pool["reserved"], "overshoot": pool["overshoot"],
                          "remaining": budget.remaining(pool), "attempts_used": pool["attempts_used"],
                          "attempts_max": pool["attempts_max"],
-                         "attempts_remaining": int(pool["attempts_max"]) - int(pool["attempts_used"])},
+                         "attempts_remaining": int(pool["attempts_max"]) - int(pool["attempts_used"]),
+                         # What one reservation needs (`budget.reserve`), so a reader can tell the attempts the
+                         # budget still permits from the attempts left (`metrics.permitted_attempts`).
+                         "invocation_ceiling": min(float(pool["invocation_ceiling"]),
+                                                   float(self.policy.limits["invocation_turn_ceiling"]))},
                 "last_run": {"run_id": run["run_id"], "state": run["state"], "stop_reason": run["stop_reason"],
                              "model": run["model"], "effort": run["effort"], "session": run["native_session_id"],
                              "handle": run["native_run_handle"], "workspace": run["workspace"], "role": run["role"],

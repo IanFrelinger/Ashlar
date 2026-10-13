@@ -283,6 +283,9 @@ class Argv(CodexAdapterCase):
 
     def test_stdin_is_closed(self):
         # Mutation killed: dropping `stdin=subprocess.DEVNULL` from the spawn (the CLI then reads stdin).
+        # The stdin message is NOT evidence of an open stdin: both live Codex runs of 2026-10-13 (run-4c1f88184756,
+        # run-82eb9983dca6) printed it as stderr line 1 under DEVNULL, which gives EOF at once, so nothing waits.
+        # The fake prints it on every `exec`; the evidence is the spawn's stdin and the run completing.
         spawned = []
         real_popen = subprocess.Popen
 
@@ -300,8 +303,16 @@ class Argv(CodexAdapterCase):
         self.assertEqual(execs, [subprocess.DEVNULL])
         self.assertTrue(all(stdin is subprocess.DEVNULL for argv, stdin in spawned), spawned)   # login status too
         self.assertIs(self.recorded()["stdin"]["eof"], True)
-        self.assertNotIn("Reading additional input from stdin",
-                         (self.runs_dir / "run-1" / "stderr.log").read_text(encoding="utf-8"))
+
+    def test_the_stdin_message_on_stderr_line_one_does_not_stop_a_completed_run(self):
+        # The observed shape (2026-10-13, both live Codex runs): `Reading additional input from stdin...` is stderr
+        # line 1 although stdin was DEVNULL. Mutation killed (in the fake): printing it only when stdin stays open,
+        # the shape the fake encoded before the live run and the real CLI does not have.
+        a, res, status = self.launch_and_settle()
+        stderr = (self.runs_dir / "run-1" / "stderr.log").read_text(encoding="utf-8")
+        self.assertEqual(stderr.splitlines()[:1], ["Reading additional input from stdin..."])
+        self.assertIs(self.recorded()["stdin"]["eof"], True)
+        self.assertEqual((status.state, status.stop_reason), (RunState.FINISHED, StopReason.COMPLETED))
 
     def test_child_env_strips_claude_markers_keeps_openai_and_sets_codex_home(self):
         # Mutation killed: stripping OPENAI_* from the child env (the route check could no longer see a key).

@@ -38,6 +38,7 @@ def _print(obj: Any, as_json: bool) -> None:
 
 
 def _format_status(s: Dict[str, Any]) -> str:
+    from .metrics import permitted_attempts   # the report's figure, so `status` and `report` agree
     lines = [f"controller {s['controller_id']}  state {s['state_path']}",
              f"policy {s['policy']['version']} ({s['policy']['sha256'][:12]}) from {s['policy']['source']}; "
              f"paid inference {'ENABLED' if s['policy']['paid_inference_enabled'] else 'off'}",
@@ -62,7 +63,7 @@ def _format_status(s: Dict[str, Any]) -> str:
                          f"merge {(pr['merge_sha'] or '-')[:12]} repair rounds {pr['repair_rounds_used']}")
         lines.append(f"    budget {p['consumed']:g}+{p['reserved']:g} of {p['ceiling']:g} {p['unit']} "
                      f"(remaining {p['remaining']:g}, overshoot {p['overshoot']:g}); attempts {p['attempts_used']}/{p['attempts_max']} "
-                     f"({p['attempts_remaining']} permitted); funding pool {t['funding_pool']}")
+                     f"({permitted_attempts(p)} permitted); funding pool {t['funding_pool']}")
         if t["blocker"]:
             lines.append(f"    blocker: {t['blocker']}")
         if t["next_eligible_at"]:

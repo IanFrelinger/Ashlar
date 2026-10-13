@@ -13,6 +13,7 @@ still renders.
 from __future__ import annotations
 
 import json
+import math
 from typing import Any, Dict, List, Optional
 
 from .store import Store, utcnow_iso
@@ -154,6 +155,30 @@ def _table(headers: List[str], rows: List[List[Any]]) -> List[str]:
     return out
 
 
+def permitted_attempts(pool: Dict[str, Any]) -> Optional[int]:
+    """The attempts the budget still permits: min(attempts left, floor(remaining / invocation ceiling)),
+    where remaining is ceiling - consumed - reserved and the invocation ceiling is the one a reservation
+    needs (`budget.reserve` refuses below it). The live run of 2026-10-13 printed "2/3 (1 permitted)" for a
+    pool with 10 turns left when an invocation needed 12: the attempt left could never be reserved.
+
+    `pool` is a `Controller.status()` pool. A status written before the invocation ceiling was in it
+    gives the attempts left alone; None when not even the attempts are known."""
+    left = pool.get("attempts_remaining")
+    if left is None:
+        used, amax = pool.get("attempts_used"), pool.get("attempts_max")
+        if used is None or amax is None:
+            return None
+        left = int(amax) - int(used)
+    left = int(left)
+    remaining = pool.get("remaining")
+    if remaining is None and all(pool.get(k) is not None for k in ("ceiling", "consumed", "reserved")):
+        remaining = float(pool["ceiling"]) - float(pool["consumed"]) - float(pool["reserved"])
+    invocation = pool.get("invocation_ceiling")
+    if remaining is None or invocation is None or float(invocation) <= 0:
+        return left
+    return max(0, min(left, int(math.floor(float(remaining) / float(invocation)))))
+
+
 def _render_task(t: Dict[str, Any]) -> List[str]:
     lines = [f"### {t.get('task_id', '?')}", ""]
     state = t.get("state") or "-"
@@ -163,10 +188,7 @@ def _render_task(t: Dict[str, Any]) -> List[str]:
     pool = t.get("pool") or {}
     used = pool.get("attempts_used")
     amax = pool.get("attempts_max")
-    rem = pool.get("attempts_remaining")
-    if rem is None and used is not None and amax is not None:
-        rem = int(amax) - int(used)
-    lines.append(f"- Attempts: {_num(used)}/{_num(amax)} ({_num(rem)} permitted)")
+    lines.append(f"- Attempts: {_num(used)}/{_num(amax)} ({_num(permitted_attempts(pool))} permitted)")
     lines.append(f"- Budget: {_num(pool.get('consumed'))}+{_num(pool.get('reserved'))} of "
                  f"{_num(pool.get('ceiling'))} {pool.get('unit') or ''}".rstrip())
     lines.append(f"- Funding pool: {t.get('funding_pool') or '-'}")
