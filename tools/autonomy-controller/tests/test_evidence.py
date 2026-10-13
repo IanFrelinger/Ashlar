@@ -277,6 +277,32 @@ class Archive(LifecycleCase):
         self.assertEqual(members["run/stderr.log"], b"no errors\n")
         self.assertNotIn("run/workspace", members)
 
+    # Kills: the transcript added verbatim (`tar.add(transcript, ...)`), or a redaction that rewrites lines it
+    # does not change (pre-flight finding C7: a Codex session file's session_meta names the ChatGPT account, and
+    # an archive may be published on a public repository).
+    def test_archive_drops_the_account_identifiers_and_keeps_everything_else(self):
+        self.make_run_dir(transcript=True)
+        transcript = self.tmp / "projects" / "slug" / "fake-session-1.jsonl"
+        meta = {"type": "session_meta", "payload": {"id": "thread-1", "cwd": "C:/ws", "creator_user_id": "user-SECRET",
+                                                    "creator_account_id": "acct-SECRET", "cli_version": "0.162.0"}}
+        original = (json.dumps(meta).encode("utf-8") + b"\r\n" + b'{"type":"turn_context","payload":{"x":1}}\n'
+                    + b"not json\n" + b'{"type":"user","text":"TRANSCRIPT-BODY"}\n')
+        transcript.write_bytes(original)
+        result = evidence.archive_run(self.store, self.run_id, self.out_dir, self.runs_dir, now=self.clock())
+        self.assertEqual(result["redacted"], ["session_meta.creator_account_id", "session_meta.creator_user_id"])
+        archived = self.members_of(result["path"])["transcript.jsonl"]
+        self.assertNotIn(b"SECRET", archived)
+        lines = archived.split(b"\n")
+        first = json.loads(lines[0].rstrip(b"\r"))
+        self.assertEqual(first["payload"], {"id": "thread-1", "cwd": "C:/ws", "cli_version": "0.162.0"})
+        self.assertTrue(lines[0].endswith(b"\r"))
+        self.assertEqual(b"\n".join(lines[1:]), original.split(b"\r\n", 1)[1])
+        self.assertEqual(read_bytes(str(transcript)), original)          # the file on disk is left as it is
+        self.assertIn(b"redacted from transcript.jsonl: session_meta.creator_account_id, session_meta.creator_user_id",
+                      self.members_of(result["path"])["MANIFEST.txt"])
+        detail = json.loads(self.store.row("SELECT detail FROM journal WHERE kind='evidence-archived'")["detail"])
+        self.assertEqual(detail["redacted"], result["redacted"])
+
     # Kills: `"transcript_included": True` unconditionally, or `transcript = manifest.get("transcript_path")`.
     def test_archive_without_a_transcript_omits_the_member_and_says_so(self):
         self.make_run_dir(transcript=False)

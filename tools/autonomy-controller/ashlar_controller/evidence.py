@@ -186,6 +186,37 @@ def _ledger_slice(store: Store, run: sqlite3.Row, now: Optional[float]) -> Dict[
     }
 
 
+# Account identifiers a transcript carries, by record type. Observed (phase F pre-flight, finding C7): the first
+# line of every Codex session file is a `session_meta` record whose payload names the ChatGPT account
+# (`creator_user_id`, `creator_account_id`). An archive may be published (the storage branch is on a public
+# repository), so they are removed from the archived copy; the transcript on disk is left as it is.
+TRANSCRIPT_ACCOUNT_KEYS = {"session_meta": ("creator_user_id", "creator_account_id")}
+
+
+def redact_transcript(data: bytes) -> tuple:
+    """Return (the transcript without the account identifiers of TRANSCRIPT_ACCOUNT_KEYS, the dotted names
+    removed). A line that is not a JSON object is kept byte for byte, and so is its line ending."""
+    removed: List[str] = []
+    out: List[bytes] = []
+    for line in data.split(b"\n"):
+        body, cr = (line[:-1], b"\r") if line.endswith(b"\r") else (line, b"")
+        try:
+            obj = json.loads(body.decode("utf-8")) if body.strip() else None
+        except (UnicodeDecodeError, ValueError):
+            obj = None
+        payload = obj.get("payload") if isinstance(obj, dict) else None
+        keys = TRANSCRIPT_ACCOUNT_KEYS.get(obj.get("type")) if isinstance(obj, dict) else None
+        if keys and isinstance(payload, dict) and any(k in payload for k in keys):
+            for k in keys:
+                if k in payload:
+                    del payload[k]
+                    removed.append(f"{obj['type']}.{k}")
+            out.append(json.dumps(obj, ensure_ascii=False).encode("utf-8") + cr)
+        else:
+            out.append(line)
+    return b"\n".join(out), removed
+
+
 def _add_bytes(tar: tarfile.TarFile, name: str, data: bytes, mtime: float) -> None:
     info = tarfile.TarInfo(name)
     info.size = len(data)
@@ -231,6 +262,7 @@ def archive_run(store: Store, run_id: str, out_dir: str, runs_dir: str, now: Opt
 
     members: List[str] = []
     sizes: List[tuple] = []
+    redacted: List[str] = []
     with tarfile.open(out_path, "w:gz") as tar:
         for name in run_files:
             src = os.path.join(run_dir, name)
@@ -239,15 +271,19 @@ def archive_run(store: Store, run_id: str, out_dir: str, runs_dir: str, now: Opt
             members.append(arcname)
             sizes.append((arcname, os.path.getsize(src)))
         if transcript:
-            tar.add(transcript, arcname="transcript.jsonl", recursive=False)
+            with open(transcript, "rb") as f:
+                data, redacted = redact_transcript(f.read())
+            _add_bytes(tar, "transcript.jsonl", data, os.path.getmtime(transcript))
             members.append("transcript.jsonl")
-            sizes.append(("transcript.jsonl", os.path.getsize(transcript)))
+            sizes.append(("transcript.jsonl", len(data)))
         ledger_bytes = json.dumps(ledger, indent=2, sort_keys=True, default=str).encode("utf-8")
         _add_bytes(tar, "ledger.json", ledger_bytes, t)
         members.append("ledger.json")
         sizes.append(("ledger.json", len(ledger_bytes)))
         lines = [f"run_id {run_id}", f"archived_at {ledger['archived_at']}"]
         lines += [f"{size} {name}" for name, size in sizes]
+        if redacted:
+            lines.append("redacted from transcript.jsonl: " + ", ".join(sorted(set(redacted))))
         lines.append("MANIFEST.txt")
         manifest_bytes = ("\n".join(lines) + "\n").encode("utf-8")
         _add_bytes(tar, "MANIFEST.txt", manifest_bytes, t)
@@ -256,10 +292,11 @@ def archive_run(store: Store, run_id: str, out_dir: str, runs_dir: str, now: Opt
     digest = _sha256_file(out_path)
     pr_number = ledger["pr"]["pr_number"] if ledger["pr"] else None
     store.journal("evidence-archived", task_id=run["task_id"], run_id=run_id,
-                  detail={"run_id": run_id, "path": os.path.abspath(out_path), "sha256": digest, "members": members},
+                  detail={"run_id": run_id, "path": os.path.abspath(out_path), "sha256": digest, "members": members,
+                          "redacted": sorted(set(redacted))},
                   now=now)
     return {"path": out_path, "sha256": digest, "run_id": run_id, "members": members,
-            "transcript_included": transcript is not None, "pr_number": pr_number}
+            "transcript_included": transcript is not None, "pr_number": pr_number, "redacted": sorted(set(redacted))}
 
 
 def list_archives(out_dir: str) -> List[Dict[str, Any]]:
