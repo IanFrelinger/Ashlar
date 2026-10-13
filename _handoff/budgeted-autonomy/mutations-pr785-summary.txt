@@ -1,0 +1,15 @@
+mutation f1-transfer-polled-refusal-dropped: KILLED red=failed:2/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f10-propose-failed-does-not-block-dispatch: KILLED red=failed:2/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f11-oldest-check-run-decides: KILLED red=failed:2/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f12-claude-credited-for-every-worker: KILLED red=failed:1/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f13-archive-keeps-account-ids: KILLED red=failed:1/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f14-worker-commit-not-folded: KILLED red=failed:1/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f15-redirected-output-not-utf8: KILLED red=failed:3/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f2-cursor-launched-without-recorder: KILLED red=failed:7/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f3-codex-service-tier-not-refused: KILLED red=failed:4/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f4-codex-plugins-left-on: KILLED red=failed:2/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f5-codex-cancels-a-finished-turn: KILLED red=failed:2/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f6-run-cancel-live-run-without-adapter: KILLED red=failed:2/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f7-cancel-settles-completed-writer-unproposed: KILLED red=failed:2/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f8-cancel-does-not-wait-for-an-exiting-run: KILLED red=failed:1/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override
+mutation f9-propose-failure-escapes: KILLED red=failed:4/510 green=passed:509/510 ref=738198fe28f7f0b3e0187ab8f6683f576a17a88c runner=override

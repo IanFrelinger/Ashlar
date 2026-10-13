@@ -1,0 +1,8 @@
+Phase F probe, 2026-10-13: codex mcp list under config overrides (no model call). Columns: name:status.
+codex: codex-cli 0.162.0-alpha.17.2
+args [] => code-review:disabled codex_app:disabled cua_repl:enabled node_repl:enabled
+args [-c mcp_servers={}] => code-review:disabled codex_app:disabled cua_repl:enabled node_repl:enabled
+args [-c features.plugins=false] => node_repl:enabled
+args [-c mcp_servers.node_repl.enabled=false] => code-review:disabled codex_app:disabled cua_repl:enabled node_repl:disabled
+args [-c features.plugins=false -c mcp_servers.node_repl.enabled=false] => node_repl:disabled
+args [-c features.plugins=false -c mcp_servers={}] => node_repl:enabled

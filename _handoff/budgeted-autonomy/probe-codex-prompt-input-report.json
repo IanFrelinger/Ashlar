@@ -1,0 +1,110 @@
+{
+  "pr5-argv": {
+    "exit": 0,
+    "stdout_chars": 19883,
+    "stderr_tail": "",
+    "markers": {
+      "computer-use": 4,
+      "Control Windows": 1,
+      "browser": 0,
+      "chrome": 0,
+      "cua_repl": 0,
+      "node_repl": 0,
+      "code-review": 0,
+      "mcp__": 0,
+      "plugin": 7,
+      "Skills": 3,
+      "notify": 0,
+      "service_tier": 0
+    },
+    "items": 5,
+    "roles": [
+      "developer",
+      "developer",
+      "developer",
+      "user",
+      "user"
+    ]
+  },
+  "plugins-off": {
+    "exit": 0,
+    "stdout_chars": 15822,
+    "stderr_tail": "",
+    "markers": {
+      "computer-use": 0,
+      "Control Windows": 0,
+      "browser": 0,
+      "chrome": 0,
+      "cua_repl": 0,
+      "node_repl": 0,
+      "code-review": 0,
+      "mcp__": 0,
+      "plugin": 0,
+      "Skills": 3,
+      "notify": 0,
+      "service_tier": 0
+    },
+    "items": 5,
+    "roles": [
+      "developer",
+      "developer",
+      "developer",
+      "user",
+      "user"
+    ]
+  },
+  "plugins-off+node_repl-off": {
+    "exit": 0,
+    "stdout_chars": 15822,
+    "stderr_tail": "",
+    "markers": {
+      "computer-use": 0,
+      "Control Windows": 0,
+      "browser": 0,
+      "chrome": 0,
+      "cua_repl": 0,
+      "node_repl": 0,
+      "code-review": 0,
+      "mcp__": 0,
+      "plugin": 0,
+      "Skills": 3,
+      "notify": 0,
+      "service_tier": 0
+    },
+    "items": 5,
+    "roles": [
+      "developer",
+      "developer",
+      "developer",
+      "user",
+      "user"
+    ]
+  },
+  "plugins-apps-hooks-cu-bu-off+node_repl-off": {
+    "exit": 0,
+    "stdout_chars": 15819,
+    "stderr_tail": "",
+    "markers": {
+      "computer-use": 0,
+      "Control Windows": 0,
+      "browser": 0,
+      "chrome": 0,
+      "cua_repl": 0,
+      "node_repl": 0,
+      "code-review": 0,
+      "mcp__": 0,
+      "plugin": 0,
+      "Skills": 3,
+      "notify": 0,
+      "service_tier": 0
+    },
+    "items": 5,
+    "roles": [
+      "developer",
+      "developer",
+      "developer",
+      "user",
+      "user"
+    ]
+  }
+}
