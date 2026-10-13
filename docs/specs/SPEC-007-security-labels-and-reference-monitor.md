@@ -380,7 +380,8 @@ Follow the patterns already in the project (records and `init` are already used 
 `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`, or the build fails (RS0016). Unshipped means "not yet
 promised", so whether this ships as stable or `[Experimental]` is decided before the next tag. If it
 becomes experimental, `docs/SdkCompatibilityPolicy.md` requires a **new** diagnostic id
-(`ASHLAREXP002`) with its own row and constant, not a reuse of `ASHLAREXP001`.
+(`ASHLAREXP002`) with its own row and constant, not a reuse of `ASHLAREXP001`. **Decided 2026-10-13:** it ships in
+0.3.0 as `[Experimental]` under `ASHLAREXP002` (decisions log).
 
 ### 4.3 Tests
 
@@ -492,8 +493,10 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", the eight PR 4 answers of 2026-10-05, the PR 4.2 and phase C answers of 2026-10-06, and the PR 5 answers
-of 2026-10-10 (§8 questions 3 and 4). The other §8 questions stand as written. Design choices that merged with
+applied", the eight PR 4 answers of 2026-10-05, the PR 4.2 and phase C answers of 2026-10-06, the PR 5 answers
+of 2026-10-10 (§8 questions 3 and 4), and the release answers of 2026-10-13: the next version, and the tier of the
+public API this workstream added to `Ashlar.Abstractions` (its `PublicAPI.Unshipped.txt`). The tier of the public
+members it added to other packages is not decided. The other §8 questions stand as written. Design choices that merged with
 those PRs but were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
@@ -519,6 +522,9 @@ those PRs but were not the owner's are in the next section.
 | 2026-10-08 | PR 4 (4.5b, D16) | **Governed responses from every non-model target are unlabelled reads until PR 5.** The owner accepted the review recommendation to include every key other than `local:` and `cloud:` (trimmed, case-insensitive), including unknown or null keys. Observe `SystemHigh` on completion, fault, synchronous throw, before each streamed update and at stream end. Host clients registered under `local:` or `cloud:` remain a trusted host boundary; the legacy three-argument targetless `EgressGuardChatClient` overload retains its existing non-reader behavior. This does not settle the separate §8 policy questions. |
 | 2026-10-10 | PR 5 (§8 Q3) | **Clearances are configured in `ashlar.policy.yaml`.** A per-agent map overrides a default. A missing clearance is `Public`. Host options may only tighten that ceiling (the meet of the two). An unparseable host ceiling fails closed to `Public`. **Implemented in:** #748 (`SubjectClearance.Resolve`, `PolicyClearances`). Merge pending. |
 | 2026-10-10 | PR 5 (§8 Q4) | **A skill's highest level stays in the sealed package manifest, not in the signed certification record.** `ExtensionPackage.HighestLevel` is covered by the package seal. Moving the label into the gate record waits for PR 6, when a downgrade receipt has to bind the old label, the new label and the human sign-off. **Implemented in:** #748. Merge pending. |
+| 2026-10-13 | Next release | **The next release is 0.3.0.** It is the first tag that carries the `AirGapped` and `SecureWorkstation` enforce switch (#746). |
+| 2026-10-13 | PR 1, PR 3a to PR 5 (public API, §4.2) | **The unshipped `Ashlar.Abstractions.Security` and `Ashlar.Abstractions.Security.Egress` surface ships in 0.3.0 as `[Experimental]`**, under a new diagnostic id, `ASHLAREXP002`. That is 150 lines of `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt` at `4287a18a1`. As §4.2 and `docs/SdkCompatibilityPolicy.md` require, the id gets its own constant and its own policy row; it is not a reuse of `ASHLAREXP001`. It is applied before the 0.3.0 tag. |
+| 2026-10-13 | PR 4.10 (#720, public API) | **`AshlarResolvedDeploymentProfileOptions` ships in 0.3.0 as `[Experimental]` under `ASHLAREXP002` too.** It is the deployment-profile type that PR 4.10 added to `Ashlar.Abstractions`: the other 10 unshipped lines (the profile name, the `full`, `air-gapped` and `secure-workstation` constants, `IsAirGapped`, `IsSecureWorkstation` and `RequiresLoopback`). It is applied before the 0.3.0 tag. |
 
 ## Design as merged (added 2026-10-04)
 
