@@ -288,6 +288,22 @@ class PrRows(ControllerCase):
         self.assertIn("opened by the budgeted autonomy controller", body)
         self.assertEqual(body.rstrip("\n").split("\n")[-1], prs.GENERATED_LINE)
 
+    # Kills: a Claude co-author trailer or the Claude Code line on every provider's commit and PR (pre-flight
+    # finding ENV-7), and a Claude run losing its co-author trailer.
+    def test_attribution_names_the_worker_and_credits_claude_only_for_a_claude_run(self):
+        codex = {"provider": "codex", "model": "gpt-6-astra", "run_id": "run-1"}
+        claude = {"provider": "claude", "model": "claude-sonnet-5", "run_id": "run-2"}
+        self.assertEqual(prs.attribution_trailers(codex), "Worker: codex gpt-6-astra")
+        self.assertEqual(prs.attribution_trailers(claude),
+                         "Worker: claude claude-sonnet-5\nCo-Authored-By: Claude <noreply@anthropic.com>")
+        body = prs.pr_body(self.task, "b" * 40, "h" * 40, codex)
+        self.assertIn("- Worker: `codex` (`gpt-6-astra`), run `run-1`", body)
+        self.assertNotIn("Claude", body)
+        self.assertIn("`codex` worker", body.rstrip("\n").split("\n")[-1])
+        body = prs.pr_body(self.task, "b" * 40, "h" * 40, claude)
+        self.assertIn("- Worker: `claude` (`claude-sonnet-5`), run `run-2`", body)
+        self.assertEqual(body.rstrip("\n").split("\n")[-1], prs.GENERATED_LINE)
+
 
 class CompactHandoff(ControllerCase):
     def setUp(self):

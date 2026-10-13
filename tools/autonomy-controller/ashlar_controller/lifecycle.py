@@ -208,7 +208,7 @@ class PrLifecycle:
             return out
         message = (f"{task['title'] or task_id}\n\nTask {task_id}" + (f", card #{task['card_number']}" if task["card_number"] else "")
                    + f", run {run['run_id']} ({role}) by the budgeted autonomy controller.\n\n"
-                   "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>")
+                   + prs.attribution_trailers(run))
         head = self.git.commit_and_push(workspace, branch, message)
         if head is None:
             self.store.journal("no-change-to-propose", task_id=task_id, run_id=run["run_id"],
@@ -234,7 +234,7 @@ class PrLifecycle:
         base = task["base_sha"]
         title = f"{task['title'] or task_id}" + (f" (#{task['card_number']})" if task["card_number"] else "")
         row = prs.open_or_reuse_pr(self.store, self.gh, self.cfg["repo"], task_id, branch, self.cfg["base_branch"], base,
-                                   title, prs.pr_body(task, base or "", head), now=now)
+                                   title, prs.pr_body(task, base or "", head, run), now=now)
         prs.record_head(self.store, int(row["pr_number"]), head, now=now)
         self.ctl.set_task_state(task_id, TaskState.PR_OPEN, stop_reason=StopReason.PR_CHECKS_PENDING,
                                 blocker=f"PR #{row['pr_number']} open at {head}; awaiting the required checks on that head")

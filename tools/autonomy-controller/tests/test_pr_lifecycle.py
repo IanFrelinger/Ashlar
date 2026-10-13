@@ -127,6 +127,27 @@ class OpeningThePr(LifecycleCase):
         status = self.ctl.status()["tasks"][0]
         self.assertEqual(status["pr_record"]["number"], row["pr_number"])
 
+    # Kills: the commit message or the PR body built without the run (pre-flight finding ENV-7: every provider's
+    # commit carried a Claude co-author trailer, and the PR named no worker).
+    def test_the_commit_and_the_pr_name_the_worker_that_edited(self):
+        self.make()
+        bodies = []
+        create = self.gh.pr_create
+
+        def capture(repo, head_branch, base_branch, title, body):
+            bodies.append(body)
+            return create(repo, head_branch, base_branch, title, body)
+
+        self.gh.pr_create = capture
+        self.open_pr()
+        run = self.store.row("SELECT * FROM runs WHERE task_id='t1'")
+        message = self.git.pushes[0]["message"]
+        self.assertTrue(message.endswith(f"Worker: fake {run['model']}"), message)
+        self.assertNotIn("Co-Authored-By", message)
+        self.assertEqual(len(bodies), 1)
+        self.assertIn(f"- Worker: `fake` (`{run['model']}`), run `{run['run_id']}`", bodies[0])
+        self.assertNotIn("Claude Code", bodies[0])
+
     def test_the_run_workspace_is_the_prepared_clone(self):
         self.make()
         self.open_pr()
