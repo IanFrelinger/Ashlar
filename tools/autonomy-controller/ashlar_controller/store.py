@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   card_number INTEGER,
   workstream TEXT NOT NULL,
   title TEXT NOT NULL DEFAULT '',
+  brief TEXT,
   handoff_ref TEXT,
   decision_refs TEXT NOT NULL DEFAULT '[]',
   owner_agent TEXT NOT NULL DEFAULT 'claude',
@@ -316,6 +317,9 @@ class Store:
         if version == "1" and not self.read_only:
             self._migrate_1_to_2()
             version = self.meta("schema_version")
+        if version == "2" and not self.read_only:
+            self._migrate_2_to_3()
+            version = self.meta("schema_version")
         if version != str(SCHEMA_VERSION):
             raise StateCorrupt(f"controller state {self.path}: schema_version {version!r} != {SCHEMA_VERSION}")
 
@@ -333,6 +337,16 @@ class Store:
                         self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
             self.conn.execute("UPDATE meta SET value='2' WHERE key='schema_version'")
             self.journal("schema-migrated", detail={"from": 1, "to": 2})
+
+    def _migrate_2_to_3(self) -> None:
+        """Schema 2 (PR 3 to PR 5) to 3 (card #776): one additive column, tasks.brief, in one transaction,
+        journalled. Every existing task's brief is NULL, so its PR title and commit subject stay its title."""
+        with self.tx():
+            present = {r[1] for r in self.conn.execute("PRAGMA table_info(tasks)")}
+            if "brief" not in present:
+                self.conn.execute("ALTER TABLE tasks ADD COLUMN brief TEXT")
+            self.conn.execute("UPDATE meta SET value='3' WHERE key='schema_version'")
+            self.journal("schema-migrated", detail={"from": 2, "to": 3})
 
     def close(self) -> None:
         self.conn.close()

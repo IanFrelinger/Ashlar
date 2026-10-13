@@ -72,6 +72,47 @@ class CommandLine(ControllerCase):
         out, _ = self.cli("task", "show", "t1")
         self.assertEqual((out["state"], out["stop_reason"]), ("queued", "operator-requeue"))
 
+    # Kills: `--brief` parsed but not passed to ensure_task, or not written by its INSERT (card #776).
+    def test_task_add_brief_round_trips_through_task_show(self):
+        self.cli("init")
+        title = "Add --brief to task add: a short title for the PR title and the commit subject of controller PRs"
+        out, _ = self.cli("task", "add", "--task-id", "t1", "--card", "776", "--workstream", "budgeted-autonomy",
+                          "--provider", "fake", "--title", title, "--brief", "task add --brief")
+        self.assertTrue(out["created"])
+        out, _ = self.cli("task", "show", "t1")
+        self.assertEqual((out["brief"], out["title"]), ("task add --brief", title))
+        self.cli("task", "add", "--task-id", "t2", "--workstream", "w", "--provider", "fake", "--title", "no brief")
+        out, _ = self.cli("task", "show", "t2")
+        self.assertEqual((out["brief"], out["title"]), (None, "no brief"))
+
+    # Kills: the length check deleted from `_brief`, or `>` made `>=` (a brief of exactly 72 is accepted). The
+    # refusal is a usage error, exit 2, before the state is opened: the ledger is byte-identical afterwards.
+    def test_a_brief_over_72_characters_exits_2_and_writes_nothing(self):
+        self.cli("init")
+        before = self.digest()
+        out, err = self.cli("task", "add", "--task-id", "t1", "--workstream", "w", "--provider", "fake",
+                            "--brief", "b" * 73, expect=2)
+        self.assertIn("argument --brief: 73 characters; a brief is at most 72 (it is the PR title and the commit "
+                      "subject)", err)
+        self.assertEqual(self.digest(), before)
+        self.cli("task", "show", "t1", expect=1)
+        out, _ = self.cli("task", "add", "--task-id", "t1", "--workstream", "w", "--provider", "fake", "--brief", "b" * 72)
+        self.assertTrue(out["created"])
+        out, _ = self.cli("task", "show", "t1")
+        self.assertEqual(out["brief"], "b" * 72)
+
+    # Kills: the CLI's `_brief` checking the length only (#776's review): a brief with a line break or of only
+    # whitespace exits 2 before the state is opened.
+    def test_a_brief_with_a_line_break_or_only_whitespace_exits_2_and_writes_nothing(self):
+        self.cli("init")
+        before = self.digest()
+        for brief, why in (("line one\nline two", "a brief is one line"), ("   ", "a brief is not empty")):
+            with self.subTest(brief=brief):
+                _, err = self.cli("task", "add", "--task-id", "t1", "--workstream", "w", "--provider", "fake",
+                                  "--brief", brief, expect=2)
+                self.assertIn(why, err)
+                self.assertEqual(self.digest(), before)
+
     def test_lease_break_requires_confirmation(self):
         self.cli("init")
         out, err = self.cli("lease", "break", "--holder", "x", expect=1)

@@ -148,6 +148,39 @@ class OpeningThePr(LifecycleCase):
         self.assertIn(f"- Worker: `fake` (`{run['model']}`), run `{run['run_id']}`", bodies[0])
         self.assertNotIn("Claude Code", bodies[0])
 
+    # Kills: the PR title or the commit subject built from the title when a brief is given (`subject_line`
+    # returning `task_row["title"]`), or the full title left out of the commit body (card #776: PR #775's title
+    # and commit subject were the whole instruction).
+    def test_a_task_with_a_brief_opens_a_pr_titled_by_the_brief_with_the_full_title_in_the_commit_body(self):
+        self.make()
+        instruction = ("In docs/EgressInventory.md, cite the line of each egress the inventory names, and keep "
+                       "every other line of the file as it is")
+        self.ctl.ensure_task("t1", workstream="budgeted-autonomy", provider="fake", card_number=776,
+                             title=instruction, brief="Cite the egress lines in the inventory")
+        self.assertEqual(self.ctl.tick().action, "launched")
+        self.assertEqual(self.ctl.tick().action, "settled")
+        row = self.store.row("SELECT * FROM prs WHERE task_id='t1'")
+        self.assertEqual(self.gh.prs[row["pr_number"]].title, "Cite the egress lines in the inventory (#776)")
+        self.assertEqual(row["title"], "Cite the egress lines in the inventory (#776)")
+        message = self.git.pushes[0]["message"]
+        subject, body = message.split("\n\n", 1)
+        self.assertEqual(subject, "Cite the egress lines in the inventory")
+        self.assertTrue(body.startswith(instruction + "\n\nTask t1, card #776, run "), body)
+        # The worker still receives the full instruction (implementation_prompt is unchanged).
+        self.assertTrue(self.adapter.requests[0].prompt.startswith(f"card #776: {instruction}\n\n"))
+
+    # Kills: a brief with no fallback (`subject_line` returning `task_row["brief"] or task_row["task_id"]`), or the
+    # title written twice when there is no brief (`full_title` without the `task["brief"] and` guard).
+    def test_without_a_brief_the_pr_title_and_the_commit_subject_are_the_title(self):
+        self.make()
+        self.open_pr()
+        self.assertIsNone(self.task()["brief"])
+        row = self.store.row("SELECT * FROM prs WHERE task_id='t1'")
+        self.assertEqual(self.gh.prs[row["pr_number"]].title, "PR 1 (#755)")
+        message = self.git.pushes[0]["message"]
+        self.assertTrue(message.startswith("PR 1\n\nTask t1, card #755, run "), message)
+        self.assertEqual(message.count("PR 1"), 1)
+
     def test_the_run_workspace_is_the_prepared_clone(self):
         self.make()
         self.open_pr()

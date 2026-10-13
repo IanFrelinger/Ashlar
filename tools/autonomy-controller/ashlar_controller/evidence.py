@@ -23,9 +23,9 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from .models import PolicyError, StateCorrupt
 from .store import REQUIRED_TABLES, Store, utcnow_iso
 
-# Schema 1 is migrated in place when the restored file is opened; anything outside this tuple is a
-# ledger this controller cannot vouch for, so `restore` refuses it before writing a byte.
-KNOWN_SCHEMA_VERSIONS = ("1", "2")
+# Schemas 1 and 2 are migrated in place when the restored file is opened; anything outside this tuple
+# is a ledger this controller cannot vouch for, so `restore` refuses it before writing a byte.
+KNOWN_SCHEMA_VERSIONS = ("1", "2", "3")
 
 _SIDECAR_SUFFIXES = ("-wal", "-shm")
 
@@ -146,7 +146,7 @@ def restore(src_path: str, dest_path: str, *, replace: bool = False, now: Option
                 os.remove(p)
         raise
 
-    restored = Store.open(dest_path)      # migrates schema 1 to 2 and runs the integrity check
+    restored = Store.open(dest_path)      # migrates schema 1 or 2 to 3 and runs the integrity check
     try:
         version_after = restored.meta("schema_version")
         restored.journal("restored", detail={"source": os.path.abspath(src_path), "sha256": digest,

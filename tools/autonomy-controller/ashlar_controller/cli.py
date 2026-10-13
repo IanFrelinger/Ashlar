@@ -19,12 +19,22 @@ from typing import Any, Dict, List, Optional
 from . import budget, events, outbox
 from .adapters.fake import FakeAdapter
 from .controller import WRITER_ROLES, Controller
-from .models import ControllerError, RunState, RunStatus, StopReason, TaskState
+from .models import BRIEF_MAX_CHARS, ControllerError, RunState, RunStatus, StopReason, TaskState, brief_problem
 from .policy import Policy, load_policy
 from .store import Store
 
 
 ADAPTER_CHOICES = ["fake", "claude", "codex", "cursor"]
+
+
+def _brief(text: str) -> str:
+    """`task add --brief`: a usage error (exit 2) when it cannot be a PR title and a commit subject (over
+    BRIEF_MAX_CHARS, a line break, only whitespace: `models.brief_problem`), before the state is opened, so
+    nothing is written. Controller.ensure_task refuses it too, for a caller that is not this CLI."""
+    problem = brief_problem(text)
+    if problem:
+        raise argparse.ArgumentTypeError(problem)
+    return text
 
 
 def _print(obj: Any, as_json: bool) -> None:
@@ -124,7 +134,10 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("task", help="task records"); ts = s.add_subparsers(dest="task_cmd", required=True)
     a = ts.add_parser("add")
     a.add_argument("--task-id", required=True); a.add_argument("--card", type=int); a.add_argument("--workstream", required=True)
-    a.add_argument("--provider", required=True); a.add_argument("--title", default=""); a.add_argument("--handoff-ref")
+    a.add_argument("--provider", required=True); a.add_argument("--title", default="", help="the worker's instruction")
+    a.add_argument("--brief", type=_brief, help=f"a short title, at most {BRIEF_MAX_CHARS} characters: the PR title and the "
+                                                "commit subject of the task's PR (default: the title)")
+    a.add_argument("--handoff-ref")
     a.add_argument("--decision-ref", action="append", default=[]); a.add_argument("--parent"); a.add_argument("--priority", type=int, default=100)
     a.add_argument("--owner", default="claude"); a.add_argument("--base-sha")
     ts.add_parser("list")
@@ -419,7 +432,7 @@ def _dispatch(args) -> int:
     if args.cmd == "task":
         if args.task_cmd == "add":
             created = ctl.ensure_task(args.task_id, workstream=args.workstream, provider=args.provider, card_number=args.card,
-                                      title=args.title, handoff_ref=args.handoff_ref, decision_refs=args.decision_ref,
+                                      title=args.title, brief=args.brief, handoff_ref=args.handoff_ref, decision_refs=args.decision_ref,
                                       parent_task_id=args.parent, owner_agent=args.owner, priority=args.priority, base_sha=args.base_sha)
             _print({"task_id": args.task_id, "created": created}, args.json); return 0
         if args.task_cmd == "list":

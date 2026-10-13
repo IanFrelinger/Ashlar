@@ -80,14 +80,14 @@ and nothing here runs outside the host the operator starts it on.
 | `report [--json]` | The LLM-free status report: `status` plus `metrics` rendered as Markdown from the ledger alone (`--json` gives both dicts and the Markdown) |
 | `metrics [--json]` | Counts and sums from the ledger: tasks and runs by state, runs by stop reason and role, turns consumed and reserved, PRs by outcome, repair rounds, retries, latest usage per provider and kind, journal by kind. No model is called |
 | `backup <dest>` | Copy the open ledger to a new file through the SQLite online backup API; refuses to overwrite; journals `backup` in the source |
-| `restore <source> [--replace]` | Replace the `--state` file with a backup. Refuses a source whose `schema_version` the controller does not know (`1` and `2` are known; `1` is migrated on open) and, without `--replace`, an existing state file; swaps the file atomically, removes stale `-wal`/`-shm` sidecars, opens and verifies the result, and journals `restored` in it |
+| `restore <source> [--replace]` | Replace the `--state` file with a backup. Refuses a source whose `schema_version` the controller does not know (`1`, `2` and `3` are known; `1` and `2` are migrated on open) and, without `--replace`, an existing state file; swaps the file atomically, removes stale `-wal`/`-shm` sidecars, opens and verifies the result, and journals `restored` in it |
 | `evidence archive <run> [--out <dir>]` / `evidence list` | Tar the run directory (`manifest.json`, `stdout.json`, `stderr.log`, the transcript when it can be located) with the run's ledger rows (`ledger.json`: run, task, pool, PR, journal, usage, policy version) into `<state dir>/evidence/<run>.tar.gz`; never overwrites; journals `evidence-archived` with the archive's sha256 |
 | `pause --reason <text>` / `resume` | Stop launching before the next tick; allow it again |
 | `tick [--dry-run] [--adapter fake\|claude\|codex\|cursor]... [--gh none\|cli] [--workspaces <dir>]` | One step. `--dry-run` opens the state read-only, calls no adapter and no `gh`, and says what a tick with the same options would do, by the tick's own rules: an implementation or repair run in `reserved`/`launching`/`running` is the writer (`would-block writer-busy`); with `--gh cli` any open PR blocks (`would-block pr-open-blocks-dispatch`); the picked task's provider must have its adapter registered, else it is `would-block provider-disabled`, as the tick reports it, so give the dry run the same `--adapter`s as the real tick. It polls nothing: a run whose process has exited stays the writer until a real tick settles it, and an open PR is not observed. `--adapter` is repeatable; `claude`, `codex` and `cursor` register those CLIs' adapters with their run directories under `<state dir>/runs/` (the fake is always registered). `--gh cli` turns the PR lifecycle on through the `gh` executable (worker clones under `<state dir>/workspaces/`); without it a completed run is `done` and no PR is opened |
 | `pr list\|show <n>\|observe <n>` | PR records; `observe` reads the PR's current head and its required checks now and merges, repairs or parks as they demand (`--gh cli`) |
 | `readiness run --gate <name> --workspace <path> [--task-id <id>]` | Run one gate command (`repo-gates`, `readiness-local`, `container-tests`) in a workspace and print the parsed report; with `--task-id`, apply it to the task (see "Readiness fixer") |
 | `readiness evaluate --task-id <id> --report <json>` | Apply a saved report (the JSON `readiness run` printed) to a task without running anything. A passing report finishes a task only when it has no open PR; while a PR is open it changes nothing (action `pr-open`): the PR phase decides |
-| `task add|list|show|set-state` | Task records; `--parent` makes a child that **shares** the parent's budget pool |
+| `task add|list|show|set-state` | Task records; `--parent` makes a child that **shares** the parent's budget pool. `task add --title` is the worker's instruction; `--brief <text>` (card #776, optional: one line, not blank, at most 72 characters; anything else is a usage error, exit 2, with nothing written) is the PR title and the commit subject of the task's controller-opened PR, whose commit body then begins with the full title. Without `--brief` both are the title. The worker's prompt is the full title either way |
 | `event ingest --event-id ... [--gh cli]` | Record an event once; a repeated id is reported as a duplicate and does nothing. With `--gh cli`, a **new** PR event (`pr-opened`, `checks-green`, `checks-red`, `merged`, `closed`, `pr-head`) also triggers one idempotent observation of the task's open PR |
 | `run list` / `run settle <run> --stop-reason <r>` / `run cancel <run> [--adapter <provider>]...` | Run records. `settle` is the operator's manual reconciliation of an UNSETTLED run: a run already settled is refused (exit 1, naming its state and stop reason; nothing changes; `task set-state` moves its task), and so is `--stop-reason completed` of an implementation or repair run (exit 1): `settle` has no PR lifecycle, so the task would be `done` with nothing proposed; tick with `--adapter <provider> --gh cli` instead. `cancel` stops the run through its provider's adapter and keeps the workspace; a `launching`, `running` or `unknown` run is refused without that provider's `--adapter` (`previous-writer-not-stoppable`, exit 1, nothing changed), and a run that still polls running after the cancel is polled again for up to five seconds (a cancel does nothing to a run whose turn is over, and its process may be exiting). A run that had finished by then is settled with what it did (`cancelled: false`, `finished_before_cancel: true`), except a completed implementation or repair run, which is refused (`transfer-needs-pr-lifecycle`, exit 1, nothing settled): `cancel` has no PR lifecycle, so tick with `--adapter <provider> --gh cli` to propose it |
 | `lease show|release|break` | The writer lease; `break --confirm-stopped` is the operator asserting the old holder is gone |
@@ -596,7 +596,9 @@ step and records each one:
    the prompt is built from the task row and the PR ledger only.
 2. **When the run completes**, the controller runs `git add -A`, commits (author `ashlar-controller`)
    and pushes the branch (`gitops.commit_and_push`). No diff is `no-change-to-propose`, a diagnosed
-   failure retried once and then parked. The commit message ends with a `Worker: <provider> <model>`
+   failure retried once and then parked. The commit subject and the PR title are the task's `--brief`
+   when it has one, with the full title opening the commit body, else its title (card #776,
+   `lifecycle.subject_line`). The commit message ends with a `Worker: <provider> <model>`
    trailer from the run row, and only a Claude run adds a `Co-Authored-By: Claude` trailer; the PR body
    names the worker and the run too (`prs.attribution_trailers`, `prs.pr_body`), so a Codex or Cursor PR
    never credits Claude. Then it opens the PR **once** (`prs.open_or_reuse_pr`): an
@@ -634,7 +636,10 @@ step and records each one:
 
 Schema 2 adds `prs.branch`, `prs.url`, `prs.title`, `tasks.branch` and `runs.pr_number`; a schema-1
 ledger is migrated in place (additive columns, journalled `schema-migrated`) on its first read-write
-open, and refused read-only until then.
+open, and refused read-only until then. Schema 3 (card #776) adds `tasks.brief` the same way: a
+schema-2 ledger is migrated on its first read-write open (one more `schema-migrated` row, `{"from": 2,
+"to": 3}`; every existing task's brief is NULL, so its PR title stays its title) and refused read-only
+until then. A schema-1 ledger takes both steps in one open, each journalled.
 
 ## Operator controls and evidence (PR 4)
 
@@ -658,10 +663,10 @@ next tick reads first.
   renders the same dict and the metrics as Markdown, so a status post needs no model.
 - **Backups and restore.** `backup <dest>` uses `sqlite3.Connection.backup` on the open ledger (a
   consistent copy under WAL) and journals it in the source. `restore <source>` runs before the state is
-  opened: it checks the source's integrity, its tables and its `schema_version` (`1` or `2`; anything
+  opened: it checks the source's integrity, its tables and its `schema_version` (`1`, `2` or `3`; anything
   else is refused with nothing written), refuses an existing `--state` unless `--replace` is given, copies
   into a temporary file beside the destination, removes stale `-wal`/`-shm` sidecars, replaces the file
-  atomically, then opens the result with the normal `Store.open` (which migrates schema 1 and runs the
+  atomically, then opens the result with the normal `Store.open` (which migrates schemas 1 and 2 and runs the
   integrity check) and journals `restored`. A restored ledger therefore accepts exactly what the original
   did; the tests restore a backup and run a task through it.
 - **Evidence archives.** `evidence archive <run>` writes `<state dir>/evidence/<run>.tar.gz` with
@@ -923,8 +928,8 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   now keeps the workspace its capped run edited (`workspace-reused`, exercised live on #776 in the PR 5 live
   run), and the report prints a merged PR's state once. Evidence: `live-run-pr4-pilot-evidence/` on the storage branch `claude/budgeted-autonomy-workspace`.
 - `task add --title` is both the card title and the worker's instruction, so the PR title and the commit
-  subject of a controller-opened PR are the whole instruction (PR #775). A separate short title is a small
-  follow-up.
+  subject of a controller-opened PR were the whole instruction (PR #775). Card #776 adds `task add --brief`, a
+  short title of at most 72 characters for both; the title stays the instruction and opens the commit body.
 - `restore` replaces the file the operator names; it does not stop a controller that holds the writer
   lease on it. Stop every controller on the ledger first (the lease row travels with the backup).
 - Archives are written once per run and never pruned; nothing rotates `<state dir>/evidence/`.

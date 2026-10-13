@@ -17,7 +17,7 @@ from ashlar_controller import evidence
 from ashlar_controller.models import PolicyError, SCHEMA_VERSION, StateCorrupt
 from ashlar_controller.store import REQUIRED_TABLES, Store
 
-from .helpers import ControllerCase
+from .helpers import ControllerCase, downgrade_to_v2
 from .test_pr_lifecycle import LifecycleCase
 
 
@@ -168,11 +168,33 @@ class Restore(EvidenceCase):
         self.addCleanup(restored.close)
         self.assertEqual(restored.meta("schema_version"), str(SCHEMA_VERSION))
         kinds = [r["kind"] for r in restored.rows("SELECT kind FROM journal ORDER BY id")]
-        self.assertEqual(kinds.count("schema-migrated"), 1)
+        # One journalled step per schema: 1 to 2, then 2 to 3 (card #776).
+        steps = [json.loads(r["detail"]) for r in restored.rows("SELECT detail FROM journal WHERE kind='schema-migrated' "
+                                                                "ORDER BY id")]
+        self.assertEqual(steps, [{"from": 1, "to": 2}, {"from": 2, "to": 3}])
         self.assertEqual(kinds.count("restored"), 1)
         # The source file itself was not touched.
         source = sqlite3.connect(f"file:{self.bak}?mode=ro", uri=True)
         self.assertEqual(source.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0], "1")
+        source.close()
+
+    # Kills: `KNOWN_SCHEMA_VERSIONS = ("1", "3")` (a schema-2 backup, from PR 3 to PR 5, would be refused instead of
+    # migrated), or a store that opens schema 2 without migrating it (card #776).
+    def test_restore_of_a_schema_2_file_opens_and_is_migrated_to_3(self):
+        downgrade_to_v2(self.bak)
+        result = evidence.restore(self.bak, self.dest, now=self.clock())
+        self.assertEqual((result["schema_version_before"], result["schema_version_after"]), ("2", "3"))
+        restored = Store.open(self.dest)
+        self.addCleanup(restored.close)
+        self.assertEqual(restored.meta("schema_version"), "3")
+        self.assertIn("brief", {r[1] for r in restored.conn.execute("PRAGMA table_info(tasks)")})
+        self.assertEqual([r["brief"] for r in restored.rows("SELECT brief FROM tasks")], [None])
+        steps = [json.loads(r["detail"]) for r in restored.rows("SELECT detail FROM journal WHERE kind='schema-migrated'")]
+        self.assertEqual(steps, [{"from": 2, "to": 3}])
+        self.assertEqual(restored.row("SELECT COUNT(*) AS n FROM runs")["n"], 1)
+        source = sqlite3.connect(f"file:{self.bak}?mode=ro", uri=True)
+        self.assertEqual(source.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0], "2")
+        self.assertNotIn("brief", {r[1] for r in source.execute("PRAGMA table_info(tasks)")})
         source.close()
 
     # Kills: deleting `_remove_sidecars(dest_path)` (a stale WAL would be replayed over the restored pages).

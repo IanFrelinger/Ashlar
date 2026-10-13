@@ -71,6 +71,12 @@ def resume_prompt(task_row, base_sha: str, base_branch: str, branch: str, worksp
     return text[:IMPLEMENTATION_PROMPT_LIMIT]
 
 
+def subject_line(task_row) -> str:
+    """The commit subject and the PR title of the task's controller-opened PR: its brief when it has one
+    (card #776), else its title, else its id. The worker's prompt is always the full title."""
+    return str(task_row["brief"] or task_row["title"] or task_row["task_id"])
+
+
 def reusable_workspace(run_row) -> Optional[str]:
     """The workspace of the run whose session the next launch resumes, when it is still on disk with
     content in it (the worker's edits); otherwise None, and the caller clones afresh. An empty directory
@@ -206,7 +212,11 @@ class PrLifecycle:
                                                 int(limits["same_failure_retries"]))
             out["lifecycle"] = "workspace-missing"
             return out
-        message = (f"{task['title'] or task_id}\n\nTask {task_id}" + (f", card #{task['card_number']}" if task["card_number"] else "")
+        # card #776: the brief, when the task has one, is the commit subject (and the PR title below), and the
+        # full title opens the commit body, so nothing the task carries is lost. Without a brief, the title.
+        full_title = f"{task['title']}\n\n" if task["brief"] and task["title"] else ""
+        message = (f"{subject_line(task)}\n\n{full_title}Task {task_id}"
+                   + (f", card #{task['card_number']}" if task["card_number"] else "")
                    + f", run {run['run_id']} ({role}) by the budgeted autonomy controller.\n\n"
                    + prs.attribution_trailers(run))
         # The commit the workspace started from: the PR head a repair was cloned at (the PR row's head until
@@ -238,7 +248,7 @@ class PrLifecycle:
                                     blocker=f"repair pushed {head}; awaiting the required checks on that head")
             return {"task_id": task_id, "action": "repair-pushed", "pr_number": run["pr_number"], "head_sha": head}
         base = task["base_sha"]
-        title = f"{task['title'] or task_id}" + (f" (#{task['card_number']})" if task["card_number"] else "")
+        title = subject_line(task) + (f" (#{task['card_number']})" if task["card_number"] else "")
         row = prs.open_or_reuse_pr(self.store, self.gh, self.cfg["repo"], task_id, branch, self.cfg["base_branch"], base,
                                    title, prs.pr_body(task, base or "", head, run), now=now)
         prs.record_head(self.store, int(row["pr_number"]), head, now=now)

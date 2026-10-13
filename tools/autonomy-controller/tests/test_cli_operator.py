@@ -69,7 +69,7 @@ class OperatorCommands(CommandLine):
         self.cli("task", "add", "--task-id", "t3", "--workstream", "w", "--provider", "fake")
         out, _ = self.cli("restore", dest, "--replace")
         self.assertTrue(out["replaced"])
-        self.assertEqual(out["schema_version_after"], "2")
+        self.assertEqual(out["schema_version_after"], "3")
         tasks, _ = self.cli("task", "list")
         self.assertEqual(sorted(t["task_id"] for t in tasks), ["t1", "t2"])
         # the restored ledger refuses nothing it should accept: a tick launches the queued task

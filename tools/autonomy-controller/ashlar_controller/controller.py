@@ -27,8 +27,8 @@ from typing import Any, Dict, List, Optional
 
 from . import budget, events
 from .adapters.base import ProviderAdapter
-from .models import (BudgetExhausted, ControllerError, LaunchOutcomeUnknown, LaunchRefused, LaunchRequest, LeaseError,
-                     PolicyError, RunState, StopReason, TaskState, UsageFreshness)
+from .models import (BudgetExhausted, ControllerError, LaunchOutcomeUnknown, LaunchRefused, LaunchRequest,
+                     LeaseError, PolicyError, RunState, StopReason, TaskState, UsageFreshness, brief_problem)
 from .policy import Policy
 from .store import Store, utcnow_iso
 
@@ -97,11 +97,18 @@ class Controller:
     # ----- tasks ---------------------------------------------------------------------------------
 
     def ensure_task(self, task_id: str, *, workstream: str, provider: str, card_number: Optional[int] = None,
-                    title: str = "", handoff_ref: Optional[str] = None, decision_refs: Optional[List[str]] = None,
+                    title: str = "", brief: Optional[str] = None, handoff_ref: Optional[str] = None,
+                    decision_refs: Optional[List[str]] = None,
                     parent_task_id: Optional[str] = None, owner_agent: str = "claude", priority: int = 100,
                     base_sha: Optional[str] = None) -> bool:
         """Create the task and its pool if absent. A child task shares its parent's pool. Returns True
-        when created."""
+        when created. `brief` (card #776), when given, is the PR title and the commit subject of the task's
+        controller-opened PR; `title` stays the worker's instruction. A brief that cannot be one (over
+        BRIEF_MAX_CHARS, a line break, only whitespace: `models.brief_problem`) is refused before anything is
+        written."""
+        problem = brief_problem(brief) if brief is not None else None
+        if problem:
+            raise ControllerError(f"the brief of task {task_id}: {problem}")
         now = self.clock()
         if self.store.row("SELECT 1 FROM tasks WHERE task_id=?", (task_id,)):
             return False
@@ -117,10 +124,10 @@ class Controller:
         at = utcnow_iso(now)
         with self.store.tx():
             self.store.conn.execute(
-                "INSERT INTO tasks(task_id, card_number, workstream, title, handoff_ref, decision_refs, owner_agent, "
+                "INSERT INTO tasks(task_id, card_number, workstream, title, brief, handoff_ref, decision_refs, owner_agent, "
                 "provider, parent_task_id, pool_id, state, priority, base_sha, created_at, updated_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (task_id, card_number, workstream, title, handoff_ref, json.dumps(decision_refs or []), owner_agent,
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (task_id, card_number, workstream, title, brief, handoff_ref, json.dumps(decision_refs or []), owner_agent,
                  provider, parent_task_id, pool_id, TaskState.QUEUED, priority, base_sha, at, at))
             self.store.journal("task-created", task_id=task_id,
                                detail={"pool_id": pool_id, "parent": parent_task_id, "provider": provider}, now=now)
