@@ -12,6 +12,7 @@ A recorder that is killed writes nothing. `cancel` kills the whole tree (the rec
 has recorded `cancelled_at`, which already says what happened. Standard library only, Python 3.8+: it runs
 under `-I`, so no environment variable and no user site directory changes what it does."""
 import os
+import signal
 import subprocess
 import sys
 
@@ -30,6 +31,10 @@ def main(argv: list) -> int:
         sys.stderr.write("usage: _exit_recorder.py <exit file> -- <argv...>\n")
         return 64
     path, cmd = argv[0], argv[2:]
+    # A Ctrl+C in the console the run is attached to reaches the CLI as well. The recorder ignores it and keeps
+    # waiting, so the CLI's own exit code, whatever the interrupt made it, is still recorded; without this,
+    # subprocess.call would kill the CLI on KeyboardInterrupt and write nothing. The CLI's handling is unchanged.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     try:
         code = subprocess.call(cmd)   # the CLI inherits the run's stdin (closed), stdout and stderr files
     except OSError as e:

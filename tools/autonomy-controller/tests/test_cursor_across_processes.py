@@ -149,8 +149,29 @@ class CursorAcrossProcesses(CursorAdapterCase):
         [run] = self.recorded("print")
         self.assertEqual(run["argv"][-1], AWKWARD_PROMPT)
         self.assertEqual(run["argv"], manifest["argv"][2:])   # the manifest keeps the CLI's argv, not the recorder's
-        self.assertEqual(run["ppid"], manifest["pid"])        # the CLI is the recorder's child: one tree to kill
+        if sys.prefix == sys.base_prefix:
+            self.assertEqual(run["ppid"], manifest["pid"])    # the CLI is the recorder's child: one tree to kill
+        else:
+            # In a venv, sys.executable is a launcher that starts the real interpreter as its child, so the
+            # recorder is the CLI's grandparent; it is still not this test process.
+            self.assertNotEqual(run["ppid"], os.getpid())
         self.assertNotEqual(run["pid"], manifest["pid"])
+
+    def test_the_recorder_ignores_ctrl_c_while_it_waits_for_the_cli(self):
+        # kills: dropping `signal.signal(SIGINT, SIG_IGN)` (a Ctrl+C in the run's console made subprocess.call
+        # kill the CLI and the recorder write no exit code; the run then settled as if the recorder had been killed)
+        import importlib.util
+        import signal
+        spec = importlib.util.spec_from_file_location("_exit_recorder_under_test", str(RECORDER))
+        recorder = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(recorder)
+        seen = []
+        before = signal.getsignal(signal.SIGINT)
+        self.addCleanup(signal.signal, signal.SIGINT, before)
+        with mock.patch.object(recorder.subprocess, "call", lambda cmd: seen.append(signal.getsignal(signal.SIGINT)) or 0):
+            self.assertEqual(recorder.main([str(self.tmp / "exit_code"), "--", "cli"]), 0)
+        self.assertEqual(seen, [signal.SIG_IGN])
+        self.assertEqual((self.tmp / "exit_code").read_text(encoding="ascii").strip(), "0")
 
     def test_the_recorder_mirrors_the_exit_code_and_inherits_the_output(self):
         # kills: a recorder that writes or returns another code, writes it non-atomically, or captures the CLI's output
