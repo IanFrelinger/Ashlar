@@ -78,4 +78,4 @@ those items:
 - branch protection needs no approving review;
 - the outbox CLI path works on a ledger copy with the fake poster.
 
-The session also scanned the published PR 3 and PR 4 evidence tarballs: no emails, account ids or tokens matched.
+Correction (2026-10-13): the session's scan of the published PR 3 and PR 4 evidence tarballs reported no emails, but it did not open the per-run archives nested inside the PR 4 tarball. Those held the owner's account email in five Claude transcripts. The tarball was replaced by a redacted copy, and the storage branch's history was rewritten (decisions log, 2026-10-13; bus 6151763815). The live run's verification found it.

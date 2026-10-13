@@ -1,0 +1,148 @@
+diff --git a/tools/autonomy-controller/ashlar_controller/cli.py b/tools/autonomy-controller/ashlar_controller/cli.py
+index 8664a0a42..90979fbf1 100644
+--- a/tools/autonomy-controller/ashlar_controller/cli.py
++++ b/tools/autonomy-controller/ashlar_controller/cli.py
+@@ -123,7 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
+     s = sub.add_parser("task", help="task records"); ts = s.add_subparsers(dest="task_cmd", required=True)
+     a = ts.add_parser("add")
+     a.add_argument("--task-id", required=True); a.add_argument("--card", type=int); a.add_argument("--workstream", required=True)
+-    a.add_argument("--provider", required=True); a.add_argument("--title", default=""); a.add_argument("--handoff-ref")
++    a.add_argument("--provider", required=True); a.add_argument("--title", default=""); a.add_argument("--brief"); a.add_argument("--handoff-ref")
+     a.add_argument("--decision-ref", action="append", default=[]); a.add_argument("--parent"); a.add_argument("--priority", type=int, default=100)
+     a.add_argument("--owner", default="claude"); a.add_argument("--base-sha")
+     ts.add_parser("list")
+@@ -417,8 +417,10 @@ def _dispatch(args) -> int:
+         _print({"disabled_providers": sorted(current)}, args.json); return 0
+     if args.cmd == "task":
+         if args.task_cmd == "add":
++            if args.brief is not None and len(args.brief) > 72:
++                raise ControllerError(f"--brief is {len(args.brief)} characters; at most 72")
+             created = ctl.ensure_task(args.task_id, workstream=args.workstream, provider=args.provider, card_number=args.card,
+-                                      title=args.title, handoff_ref=args.handoff_ref, decision_refs=args.decision_ref,
++                                      title=args.title, brief=args.brief, handoff_ref=args.handoff_ref, decision_refs=args.decision_ref,
+                                       parent_task_id=args.parent, owner_agent=args.owner, priority=args.priority, base_sha=args.base_sha)
+             _print({"task_id": args.task_id, "created": created}, args.json); return 0
+         if args.task_cmd == "list":
+diff --git a/tools/autonomy-controller/ashlar_controller/controller.py b/tools/autonomy-controller/ashlar_controller/controller.py
+index 180268100..7220b967b 100644
+--- a/tools/autonomy-controller/ashlar_controller/controller.py
++++ b/tools/autonomy-controller/ashlar_controller/controller.py
+@@ -97,7 +97,8 @@ class Controller:
+     # ----- tasks ---------------------------------------------------------------------------------
+ 
+     def ensure_task(self, task_id: str, *, workstream: str, provider: str, card_number: Optional[int] = None,
+-                    title: str = "", handoff_ref: Optional[str] = None, decision_refs: Optional[List[str]] = None,
++                    title: str = "", brief: Optional[str] = None, handoff_ref: Optional[str] = None,
++                    decision_refs: Optional[List[str]] = None,
+                     parent_task_id: Optional[str] = None, owner_agent: str = "claude", priority: int = 100,
+                     base_sha: Optional[str] = None) -> bool:
+         """Create the task and its pool if absent. A child task shares its parent's pool. Returns True
+@@ -117,10 +118,10 @@ class Controller:
+         at = utcnow_iso(now)
+         with self.store.tx():
+             self.store.conn.execute(
+-                "INSERT INTO tasks(task_id, card_number, workstream, title, handoff_ref, decision_refs, owner_agent, "
++                "INSERT INTO tasks(task_id, card_number, workstream, title, brief, handoff_ref, decision_refs, owner_agent, "
+                 "provider, parent_task_id, pool_id, state, priority, base_sha, created_at, updated_at) "
+-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+-                (task_id, card_number, workstream, title, handoff_ref, json.dumps(decision_refs or []), owner_agent,
++                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
++                (task_id, card_number, workstream, title, brief, handoff_ref, json.dumps(decision_refs or []), owner_agent,
+                  provider, parent_task_id, pool_id, TaskState.QUEUED, priority, base_sha, at, at))
+             self.store.journal("task-created", task_id=task_id,
+                                detail={"pool_id": pool_id, "parent": parent_task_id, "provider": provider}, now=now)
+diff --git a/tools/autonomy-controller/ashlar_controller/evidence.py b/tools/autonomy-controller/ashlar_controller/evidence.py
+index 69baead46..2b8369159 100644
+--- a/tools/autonomy-controller/ashlar_controller/evidence.py
++++ b/tools/autonomy-controller/ashlar_controller/evidence.py
+@@ -22,9 +22,9 @@ from typing import Any, Dict, List, Optional
+ from .models import PolicyError, StateCorrupt
+ from .store import REQUIRED_TABLES, Store, utcnow_iso
+ 
+-# Schema 1 is migrated in place when the restored file is opened; anything outside this tuple is a
+-# ledger this controller cannot vouch for, so `restore` refuses it before writing a byte.
+-KNOWN_SCHEMA_VERSIONS = ("1", "2")
++# Schema 1 and 2 are migrated in place when the restored file is opened; anything outside this tuple
++# is a ledger this controller cannot vouch for, so `restore` refuses it before writing a byte.
++KNOWN_SCHEMA_VERSIONS = ("1", "2", "3")
+ 
+ _SIDECAR_SUFFIXES = ("-wal", "-shm")
+ 
+diff --git a/tools/autonomy-controller/ashlar_controller/lifecycle.py b/tools/autonomy-controller/ashlar_controller/lifecycle.py
+index 81960d215..cee17f012 100644
+--- a/tools/autonomy-controller/ashlar_controller/lifecycle.py
++++ b/tools/autonomy-controller/ashlar_controller/lifecycle.py
+@@ -206,7 +206,11 @@ class PrLifecycle:
+                                                 int(limits["same_failure_retries"]))
+             out["lifecycle"] = "workspace-missing"
+             return out
+-        message = (f"{task['title'] or task_id}\n\nTask {task_id}" + (f", card #{task['card_number']}" if task["card_number"] else "")
++        # card #776: a brief, when the task has one, is the commit subject and the PR title; the full
++        # title still goes into the commit body, so nothing the task carries is lost.
++        subject = task["brief"] or task["title"] or task_id
++        full_title = f"\n\n{task['title']}" if task["brief"] and task["title"] else ""
++        message = (f"{subject}{full_title}\n\nTask {task_id}" + (f", card #{task['card_number']}" if task["card_number"] else "")
+                    + f", run {run['run_id']} ({role}) by the budgeted autonomy controller.\n\n"
+                    + prs.attribution_trailers(run))
+         # The commit the workspace started from: the PR head a repair was cloned at (the PR row's head until
+@@ -238,7 +242,7 @@ class PrLifecycle:
+                                     blocker=f"repair pushed {head}; awaiting the required checks on that head")
+             return {"task_id": task_id, "action": "repair-pushed", "pr_number": run["pr_number"], "head_sha": head}
+         base = task["base_sha"]
+-        title = f"{task['title'] or task_id}" + (f" (#{task['card_number']})" if task["card_number"] else "")
++        title = f"{task['brief'] or task['title'] or task_id}" + (f" (#{task['card_number']})" if task["card_number"] else "")
+         row = prs.open_or_reuse_pr(self.store, self.gh, self.cfg["repo"], task_id, branch, self.cfg["base_branch"], base,
+                                    title, prs.pr_body(task, base or "", head, run), now=now)
+         prs.record_head(self.store, int(row["pr_number"]), head, now=now)
+diff --git a/tools/autonomy-controller/ashlar_controller/models.py b/tools/autonomy-controller/ashlar_controller/models.py
+index 8757f9866..58d622cee 100644
+--- a/tools/autonomy-controller/ashlar_controller/models.py
++++ b/tools/autonomy-controller/ashlar_controller/models.py
+@@ -4,7 +4,8 @@ from __future__ import annotations
+ from dataclasses import dataclass, field
+ from typing import Any, Dict, List, Optional
+ 
+-SCHEMA_VERSION = 2   # 2: PR lifecycle columns (prs.branch/url/title, tasks.branch, runs.pr_number)
++SCHEMA_VERSION = 3   # 2: PR lifecycle columns (prs.branch/url/title, tasks.branch, runs.pr_number)
++                      # 3: tasks.brief
+ 
+ 
+ class TaskState:
+diff --git a/tools/autonomy-controller/ashlar_controller/store.py b/tools/autonomy-controller/ashlar_controller/store.py
+index 6767c2d86..5e6e22e16 100644
+--- a/tools/autonomy-controller/ashlar_controller/store.py
++++ b/tools/autonomy-controller/ashlar_controller/store.py
+@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS tasks (
+   card_number INTEGER,
+   workstream TEXT NOT NULL,
+   title TEXT NOT NULL DEFAULT '',
++  brief TEXT,
+   handoff_ref TEXT,
+   decision_refs TEXT NOT NULL DEFAULT '[]',
+   owner_agent TEXT NOT NULL DEFAULT 'claude',
+@@ -316,6 +317,9 @@ class Store:
+         if version == "1" and not self.read_only:
+             self._migrate_1_to_2()
+             version = self.meta("schema_version")
++        if version == "2" and not self.read_only:
++            self._migrate_2_to_3()
++            version = self.meta("schema_version")
+         if version != str(SCHEMA_VERSION):
+             raise StateCorrupt(f"controller state {self.path}: schema_version {version!r} != {SCHEMA_VERSION}")
+ 
+@@ -334,6 +338,15 @@ class Store:
+             self.conn.execute("UPDATE meta SET value='2' WHERE key='schema_version'")
+             self.journal("schema-migrated", detail={"from": 1, "to": 2})
+ 
++    def _migrate_2_to_3(self) -> None:
++        """Schema 2 to 3 (card #776): one additive column, tasks.brief, in one transaction, journalled."""
++        with self.tx():
++            present = {r[1] for r in self.conn.execute("PRAGMA table_info(tasks)")}
++            if "brief" not in present:
++                self.conn.execute("ALTER TABLE tasks ADD COLUMN brief TEXT")
++            self.conn.execute("UPDATE meta SET value='3' WHERE key='schema_version'")
++            self.journal("schema-migrated", detail={"from": 2, "to": 3})
++
+     def close(self) -> None:
+         self.conn.close()
+ 

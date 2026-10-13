@@ -1,0 +1,785 @@
+==== Tue 10/13/2026 10:58:44.34 exit 0 :: pr5 status
+controller ctl-pr5-live  state C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\controller.db
+policy 2026-10-12.pr5-live (c4f540d57de2) from C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\policy.json; paid inference off
+paused: no   disabled providers: cursor   outbox pending: 0
+lease: none
+- pr5-codex card #779 [budgeted-autonomy] owner claude provider codex pr - state queued
+    budget 0+0 of 36 turns (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool codex-subscription
+- pr5-cursor card #779 [budgeted-autonomy] owner claude provider cursor pr - state queued
+    budget 0+0 of 36 requests (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool cursor-subscription
+- pr5-transfer card #779 [budgeted-autonomy] owner claude provider codex pr - state queued
+    budget 0+0 of 36 turns (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool codex-subscription
+- pr5-776 card #776 [budgeted-autonomy] owner claude provider claude pr - state queued
+    budget 0+0 of 36 turns (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool claude-subscription
+==== Tue 10/13/2026 10:58:44.63 exit 0 :: pr5 tick --dry-run --adapter codex --gh cli
+would-launch: dry-run task pr5-codex
+{"attempt_no": 1, "dry_run": true, "effort": "medium", "model": "gpt-6-astra", "provider": "codex", "remaining_after": 24.0, "reservation": 12.0}
+==== Tue 10/13/2026 11:14:15.65 exit 0 :: pr5 status
+controller ctl-pr5-live  state C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\controller.db
+policy 2026-10-12.pr5-live (c4f540d57de2) from C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\policy.json; paid inference off
+paused: no   disabled providers: cursor   outbox pending: 0
+lease: none
+- pr5-codex card #779 [budgeted-autonomy] owner claude provider codex pr - state queued
+    budget 0+0 of 36 turns (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool codex-subscription
+- pr5-cursor card #779 [budgeted-autonomy] owner claude provider cursor pr - state queued
+    budget 0+0 of 36 requests (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool cursor-subscription
+- pr5-transfer card #779 [budgeted-autonomy] owner claude provider codex pr - state queued
+    budget 0+0 of 36 turns (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool codex-subscription
+- pr5-776 card #776 [budgeted-autonomy] owner claude provider claude pr - state queued
+    budget 0+0 of 36 turns (remaining 36, overshoot 0); attempts 0/3 (3 permitted); funding pool claude-subscription
+==== Tue 10/13/2026 11:15:41.44 exit 0 :: pr5 tick --dry-run --adapter codex --gh cli
+would-launch: dry-run task pr5-codex
+{"attempt_no": 1, "dry_run": true, "effort": "medium", "model": "gpt-6-astra", "provider": "codex", "remaining_after": 24.0, "reservation": 12.0}
+==== Tue 10/13/2026 11:15:50.12 exit 0 :: pr5 --json tick --adapter codex --gh cli
+{
+  "action": "launched",
+  "details": {
+    "attempt_no": 1,
+    "effort": "medium",
+    "model": "gpt-6-astra",
+    "reservation": 12.0
+  },
+  "reason": "launched",
+  "run_id": "run-4c1f88184756",
+  "settled": [],
+  "task_id": "pr5-codex"
+}
+==== Tue 10/13/2026 11:16:43.79 exit 0 :: pr5 --json tick --adapter codex --gh cli
+{
+  "action": "blocked",
+  "details": {
+    "active": [
+      {
+        "role": "implementation",
+        "run_id": "run-4c1f88184756",
+        "task_id": "pr5-codex"
+      }
+    ]
+  },
+  "reason": "writer-busy",
+  "run_id": null,
+  "settled": [],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:17:30.60 exit 0 :: pr5 --json tick --adapter codex --gh cli
+{
+  "action": "settled",
+  "details": {},
+  "reason": "settled",
+  "run_id": null,
+  "settled": [
+    {
+      "charged": 6.0,
+      "lifecycle": {
+        "action": "pr-open",
+        "head_sha": "3d32bb91a172a64b86bde0fd15e3bb6b759c3831",
+        "pr_number": 786,
+        "task_id": "pr5-codex"
+      },
+      "overshoot": 0.0,
+      "run_id": "run-4c1f88184756",
+      "stop_reason": "completed",
+      "task_id": "pr5-codex"
+    }
+  ],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:17:55.39 exit 0 :: pr5 --json tick --adapter codex --gh cli
+{
+  "action": "pr",
+  "details": {
+    "action": "pr-closed-unmerged",
+    "head_sha": "3d32bb91a172a64b86bde0fd15e3bb6b759c3831",
+    "pr_number": 786,
+    "task_id": "pr5-codex"
+  },
+  "reason": "pr-closed-unmerged",
+  "run_id": null,
+  "settled": [],
+  "task_id": "pr5-codex"
+}
+==== Tue 10/13/2026 11:17:59.70 exit 0 :: pr5 provider enable cursor
+disabled_providers: []
+==== Tue 10/13/2026 11:18:08.70 exit 0 :: pr5 --json tick --adapter cursor --gh cli
+{
+  "action": "launched",
+  "details": {
+    "attempt_no": 1,
+    "effort": "medium",
+    "model": "composer-2.5",
+    "reservation": 12.0
+  },
+  "reason": "launched",
+  "run_id": "run-bdc63ec68d56",
+  "settled": [],
+  "task_id": "pr5-cursor"
+}
+==== Tue 10/13/2026 11:19:00.50 exit 0 :: pr5 --json tick --adapter cursor --gh cli
+{
+  "action": "settled",
+  "details": {},
+  "reason": "settled",
+  "run_id": null,
+  "settled": [
+    {
+      "charged": 12.0,
+      "lifecycle": {
+        "action": "pr-open",
+        "head_sha": "fdfb1bca582861b8b38680458fcce3441727082e",
+        "pr_number": 787,
+        "task_id": "pr5-cursor"
+      },
+      "overshoot": 0.0,
+      "run_id": "run-bdc63ec68d56",
+      "stop_reason": "completed",
+      "task_id": "pr5-cursor"
+    }
+  ],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:19:20.91 exit 0 :: pr5 --json tick --adapter cursor --gh cli
+{
+  "action": "pr",
+  "details": {
+    "action": "pr-closed-unmerged",
+    "head_sha": "fdfb1bca582861b8b38680458fcce3441727082e",
+    "pr_number": 787,
+    "task_id": "pr5-cursor"
+  },
+  "reason": "pr-closed-unmerged",
+  "run_id": null,
+  "settled": [],
+  "task_id": "pr5-cursor"
+}
+==== Tue 10/13/2026 11:19:28.04 exit 0 :: pr5 provider disable cursor
+disabled_providers: ['cursor']
+==== Tue 10/13/2026 11:19:45.03 exit 0 :: pr5 --json tick --adapter codex --gh cli
+{
+  "action": "launched",
+  "details": {
+    "attempt_no": 1,
+    "effort": "medium",
+    "model": "gpt-6-astra",
+    "reservation": 12.0
+  },
+  "reason": "launched",
+  "run_id": "run-82eb9983dca6",
+  "settled": [],
+  "task_id": "pr5-transfer"
+}
+==== Tue 10/13/2026 11:19:45.49 exit 0 :: pr5 --json task transfer pr5-transfer --to claude --reason "live transfer check" --adapter codex --gh cli
+{
+  "from": "codex",
+  "moved": true,
+  "of": 1,
+  "pool_id": "pool:pr5-transfer",
+  "pr_number": null,
+  "state": "queued",
+  "stopped": [
+    {
+      "charged": 12.0,
+      "how": "cancelled",
+      "provider": "codex",
+      "role": "implementation",
+      "run_id": "run-82eb9983dca6",
+      "stop_reason": "cancelled"
+    }
+  ],
+  "task_id": "pr5-transfer",
+  "to": "claude",
+  "transfer_no": 1
+}
+==== Tue 10/13/2026 11:19:52.35 exit 6 :: pr5 task transfer pr5-transfer --to codex --gh cli
+controller: provider-transfers-exhausted: task pr5-transfer (pool pool:pr5-transfer) has made 1 of 1 provider transfers
+==== Tue 10/13/2026 11:19:59.41 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "launched",
+  "details": {
+    "attempt_no": 2,
+    "effort": "medium",
+    "model": "claude-sonnet-5",
+    "reservation": 12.0
+  },
+  "reason": "launched",
+  "run_id": "run-effc72e96849",
+  "settled": [],
+  "task_id": "pr5-transfer"
+}
+==== Tue 10/13/2026 11:20:45.90 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "settled",
+  "details": {},
+  "reason": "settled",
+  "run_id": null,
+  "settled": [
+    {
+      "charged": 7.0,
+      "lifecycle": {
+        "action": "pr-open",
+        "head_sha": "2364f62714dc8f1d7d38d5113a9bf302d2af6087",
+        "pr_number": 788,
+        "task_id": "pr5-transfer"
+      },
+      "overshoot": 0.0,
+      "run_id": "run-effc72e96849",
+      "stop_reason": "completed",
+      "task_id": "pr5-transfer"
+    }
+  ],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:21:08.45 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "pr",
+  "details": {
+    "action": "pr-closed-unmerged",
+    "head_sha": "2364f62714dc8f1d7d38d5113a9bf302d2af6087",
+    "pr_number": 788,
+    "task_id": "pr5-transfer"
+  },
+  "reason": "pr-closed-unmerged",
+  "run_id": null,
+  "settled": [],
+  "task_id": "pr5-transfer"
+}
+==== Tue 10/13/2026 11:21:15.37 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "launched",
+  "details": {
+    "attempt_no": 1,
+    "effort": "medium",
+    "model": "claude-sonnet-5",
+    "reservation": 12.0
+  },
+  "reason": "launched",
+  "run_id": "run-5c155cbe6f82",
+  "settled": [],
+  "task_id": "pr5-776"
+}
+==== Tue 10/13/2026 11:22:08.14 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "blocked",
+  "details": {
+    "active": [
+      {
+        "role": "implementation",
+        "run_id": "run-5c155cbe6f82",
+        "task_id": "pr5-776"
+      }
+    ]
+  },
+  "reason": "writer-busy",
+  "run_id": null,
+  "settled": [],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:22:16.60 exit 0 :: pr5 evidence archive run-4c1f88184756
+path: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-4c1f88184756.tar.gz
+sha256: 52914c0d965e4af57cbbc1068ac1a215b5917d3f65f0f94b6c252797aee03721
+run_id: run-4c1f88184756
+members: ['run/last_message.txt', 'run/manifest.json', 'run/stderr.log', 'run/stdout.json', 'transcript.jsonl', 'ledger.json', 'MANIFEST.txt']
+transcript_included: True
+pr_number: 786
+redacted: ['session_meta.creator_account_id', 'session_meta.creator_user_id']
+==== Tue 10/13/2026 11:22:23.17 exit 0 :: pr5 evidence archive run-bdc63ec68d56
+path: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-bdc63ec68d56.tar.gz
+sha256: 902a413c7f266b7f1f946335cd8dc356159e1192ce5dab8ec53f02da6c82538f
+run_id: run-bdc63ec68d56
+members: ['run/exit_code', 'run/manifest.json', 'run/stderr.log', 'run/stdout.json', 'ledger.json', 'MANIFEST.txt']
+transcript_included: False
+pr_number: 787
+redacted: []
+==== Tue 10/13/2026 11:22:24.26 exit 0 :: pr5 evidence archive run-82eb9983dca6
+path: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-82eb9983dca6.tar.gz
+sha256: b778e5e93676acf5ca2a2118acaec301d9ff8c8f4b70e5f8b253dcd67ab63d41
+run_id: run-82eb9983dca6
+members: ['run/manifest.json', 'run/stderr.log', 'run/stdout.json', 'transcript.jsonl', 'ledger.json', 'MANIFEST.txt']
+transcript_included: True
+pr_number: 788
+redacted: ['session_meta.creator_account_id', 'session_meta.creator_user_id']
+==== Tue 10/13/2026 11:22:25.38 exit 0 :: pr5 evidence archive run-effc72e96849
+path: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-effc72e96849.tar.gz
+sha256: 3a4d6dd7482a58b8b1d39f7d3ceeb4cd7fe88ee042f3fcca348c7918f09576ae
+run_id: run-effc72e96849
+members: ['run/manifest.json', 'run/stderr.log', 'run/stdout.json', 'transcript.jsonl', 'ledger.json', 'MANIFEST.txt']
+transcript_included: True
+pr_number: 788
+redacted: []
+==== Tue 10/13/2026 11:23:00.35 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "settled",
+  "details": {},
+  "reason": "settled",
+  "run_id": null,
+  "settled": [
+    {
+      "charged": 13.0,
+      "overshoot": 1.0,
+      "run_id": "run-5c155cbe6f82",
+      "stop_reason": "invocation-ceiling-reached",
+      "task_id": "pr5-776"
+    }
+  ],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:23:05.35 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "launched",
+  "details": {
+    "attempt_no": 2,
+    "effort": "medium",
+    "model": "claude-sonnet-5",
+    "reservation": 12.0
+  },
+  "reason": "launched",
+  "run_id": "run-a062813c1dae",
+  "settled": [],
+  "task_id": "pr5-776"
+}
+==== Tue 10/13/2026 11:24:11.28 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "blocked",
+  "details": {
+    "active": [
+      {
+        "role": "implementation",
+        "run_id": "run-a062813c1dae",
+        "task_id": "pr5-776"
+      }
+    ]
+  },
+  "reason": "writer-busy",
+  "run_id": null,
+  "settled": [],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:25:00.35 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "settled",
+  "details": {},
+  "reason": "settled",
+  "run_id": null,
+  "settled": [
+    {
+      "charged": 13.0,
+      "overshoot": 1.0,
+      "run_id": "run-a062813c1dae",
+      "stop_reason": "invocation-ceiling-reached",
+      "task_id": "pr5-776"
+    }
+  ],
+  "task_id": null
+}
+==== Tue 10/13/2026 11:25:05.84 exit 0 :: pr5 --json tick --adapter claude --gh cli
+{
+  "action": "blocked",
+  "details": {
+    "error": "task-budget-exhausted: pool pool:pr5-776 has 10 turns left (ceiling 36, consumed 26, reserved 0); an invocation needs 12"
+  },
+  "reason": "task-budget-exhausted",
+  "run_id": null,
+  "settled": [],
+  "task_id": "pr5-776"
+}
+==== Tue 10/13/2026 11:25:21.82 exit 0 :: pr5 pr list
+[{'pr_number': 786, 'task_id': 'pr5-codex', 'state': 'closed', 'outcome': 'closed-unmerged', 'branch': 'auto/pr5-codex', 'base_sha': 'af7ff471b31ec703ba102d4f139f0a689b3b6c6b', 'head_sha': '3d32bb91a172a64b86bde0fd15e3bb6b759c3831', 'merge_sha': None, 'repair_rounds_used': 0, 'url': 'https://github.com/IanFrelinger/Ashlar/pull/786'}, {'pr_number': 787, 'task_id': 'pr5-cursor', 'state': 'closed', 'outcome': 'closed-unmerged', 'branch': 'auto/pr5-cursor', 'base_sha': 'af7ff471b31ec703ba102d4f139f0a689b3b6c6b', 'head_sha': 'fdfb1bca582861b8b38680458fcce3441727082e', 'merge_sha': None, 'repair_rounds_used': 0, 'url': 'https://github.com/IanFrelinger/Ashlar/pull/787'}, {'pr_number': 788, 'task_id': 'pr5-transfer', 'state': 'closed', 'outcome': 'closed-unmerged', 'branch': 'auto/pr5-transfer', 'base_sha': 'af7ff471b31ec703ba102d4f139f0a689b3b6c6b', 'head_sha': '2364f62714dc8f1d7d38d5113a9bf302d2af6087', 'merge_sha': None, 'repair_rounds_used': 0, 'url': 'https://github.com/IanFrelinger/Ashlar/pull/788'}]
+==== Tue 10/13/2026 11:25:27.74 exit 0 :: pr5 outbox enqueue --key pr5-live-status --kind status --target issue:695 --slug card-779 --body-file "C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\outbox-status.md"
+enqueued: True
+key: pr5-live-status
+==== Tue 10/13/2026 11:25:32.75 exit 0 :: pr5 outbox flush --poster gh --repo IanFrelinger/Ashlar
+reconciled: {'recovered_sent': 0, 'requeued': 0}
+flushed: {'sent': 1, 'failed': 0, 'deferred': 0}
+==== Tue 10/13/2026 11:25:42.78 exit 0 :: pr5 outbox list
+[]
+==== Tue 10/13/2026 11:25:43.96 exit 0 :: pr5 evidence archive run-5c155cbe6f82
+path: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-5c155cbe6f82.tar.gz
+sha256: f014496ab25046a7d10c8a1b385b0161df8bf36aec821393742afbb04ad1c2cb
+run_id: run-5c155cbe6f82
+members: ['run/manifest.json', 'run/stderr.log', 'run/stdout.json', 'transcript.jsonl', 'ledger.json', 'MANIFEST.txt']
+transcript_included: True
+pr_number: None
+redacted: []
+==== Tue 10/13/2026 11:25:45.08 exit 0 :: pr5 evidence archive run-a062813c1dae
+path: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-a062813c1dae.tar.gz
+sha256: b6766483ce1ba79a064bfa98d1904fae0fc8eee06b8fabd4ddd3016f21c5a317
+run_id: run-a062813c1dae
+members: ['run/manifest.json', 'run/stderr.log', 'run/stdout.json', 'transcript.jsonl', 'ledger.json', 'MANIFEST.txt']
+transcript_included: True
+pr_number: None
+redacted: []
+==== Tue 10/13/2026 11:25:50.74 exit 0 :: pr5 --json run list
+[
+  {
+    "attempt_no": 1,
+    "consumed": 6.0,
+    "model": "gpt-6-astra",
+    "native_run_handle": "run-4c1f88184756",
+    "native_session_id": "01a135d5-8bca-7832-9f36-d1683d867dfa",
+    "provider": "codex",
+    "reservation": 12.0,
+    "run_id": "run-4c1f88184756",
+    "state": "finished",
+    "stop_reason": "completed",
+    "task_id": "pr5-codex",
+    "workspace": "C:\\Users\\icfre\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Local\\ashlar-controller\\pr5\\state\\workspaces\\run-4c1f88184756"
+  },
+  {
+    "attempt_no": 1,
+    "consumed": 12.0,
+    "model": "composer-2.5",
+    "native_run_handle": "run-bdc63ec68d56",
+    "native_session_id": null,
+    "provider": "cursor",
+    "reservation": 12.0,
+    "run_id": "run-bdc63ec68d56",
+    "state": "finished",
+    "stop_reason": "completed",
+    "task_id": "pr5-cursor",
+    "workspace": "C:\\Users\\icfre\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Local\\ashlar-controller\\pr5\\state\\workspaces\\run-bdc63ec68d56"
+  },
+  {
+    "attempt_no": 1,
+    "consumed": 12.0,
+    "model": "gpt-6-astra",
+    "native_run_handle": "run-82eb9983dca6",
+    "native_session_id": "01a135d9-2171-7671-8155-18da825b0bb2",
+    "provider": "codex",
+    "reservation": 12.0,
+    "run_id": "run-82eb9983dca6",
+    "state": "cancelled",
+    "stop_reason": "cancelled",
+    "task_id": "pr5-transfer",
+    "workspace": "C:\\Users\\icfre\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Local\\ashlar-controller\\pr5\\state\\workspaces\\run-82eb9983dca6"
+  },
+  {
+    "attempt_no": 2,
+    "consumed": 7.0,
+    "model": "claude-sonnet-5",
+    "native_run_handle": "run-effc72e96849",
+    "native_session_id": "49437071-1848-4f35-9188-38228183a333",
+    "provider": "claude",
+    "reservation": 12.0,
+    "run_id": "run-effc72e96849",
+    "state": "finished",
+    "stop_reason": "completed",
+    "task_id": "pr5-transfer",
+    "workspace": "C:\\Users\\icfre\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Local\\ashlar-controller\\pr5\\state\\workspaces\\run-effc72e96849"
+  },
+  {
+    "attempt_no": 1,
+    "consumed": 13.0,
+    "model": "claude-sonnet-5",
+    "native_run_handle": "run-5c155cbe6f82",
+    "native_session_id": "625f35bf-7cbb-4920-a9fb-ac554f5d232f",
+    "provider": "claude",
+    "reservation": 12.0,
+    "run_id": "run-5c155cbe6f82",
+    "state": "failed",
+    "stop_reason": "invocation-ceiling-reached",
+    "task_id": "pr5-776",
+    "workspace": "C:\\Users\\icfre\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Local\\ashlar-controller\\pr5\\state\\workspaces\\run-5c155cbe6f82"
+  },
+  {
+    "attempt_no": 2,
+    "consumed": 13.0,
+    "model": "claude-sonnet-5",
+    "native_run_handle": "run-a062813c1dae",
+    "native_session_id": "625f35bf-7cbb-4920-a9fb-ac554f5d232f",
+    "provider": "claude",
+    "reservation": 12.0,
+    "run_id": "run-a062813c1dae",
+    "state": "failed",
+    "stop_reason": "invocation-ceiling-reached",
+    "task_id": "pr5-776",
+    "workspace": "C:\\Users\\icfre\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Local\\ashlar-controller\\pr5\\state\\workspaces\\run-5c155cbe6f82"
+  }
+]
+==== Tue 10/13/2026 11:25:51.88 exit 0 :: pr5 report
+# Controller ctl-pr5-live
+
+- State: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\controller.db
+- Policy: 2026-10-13.pr5-live-composer-2.5 (f81aea01411d)
+- Paused: no
+- Disabled providers: cursor
+
+## Tasks
+
+### pr5-codex
+
+- State: parked-failure (stop reason: pr-closed-unmerged)
+- Blocker: PR #786 was closed without a merge at head 3d32bb91a172a64b86bde0fd15e3bb6b759c3831; nothing landed, the task is not done
+- Attempts: 1/3 (2 permitted)
+- Budget: 6+0 of 36 turns
+- Funding pool: codex-subscription
+- Provider: codex
+- Provider transfers: 0/1
+- PR #786 closed closed-unmerged 3d32bb91a172 - rounds 0
+- Last run: run-4c1f88184756 finished completed gpt-6-astra/medium session 01a135d5-8bca-7832-9f36-d1683d867dfa
+- Evidence:
+  - archive: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-4c1f88184756.tar.gz
+  - manifest: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-4c1f88184756\manifest.json
+  - run_dir: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-4c1f88184756
+  - stderr: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-4c1f88184756\stderr.log
+  - stdout: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-4c1f88184756\stdout.json
+  - transcript: C:\Users\icfre\.codex\sessions\2026\10\13\rollout-2026-10-13T11-15-49-01a135d5-8bca-7832-9f36-d1683d867dfa.jsonl
+  - workspace: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\workspaces\run-4c1f88184756
+  - workspace_present: True
+
+### pr5-cursor
+
+- State: parked-failure (stop reason: pr-closed-unmerged)
+- Blocker: PR #787 was closed without a merge at head fdfb1bca582861b8b38680458fcce3441727082e; nothing landed, the task is not done
+- Attempts: 1/3 (2 permitted)
+- Budget: 12+0 of 36 requests
+- Funding pool: cursor-subscription
+- Provider: cursor
+- Provider transfers: 0/1
+- PR #787 closed closed-unmerged fdfb1bca5828 - rounds 0
+- Last run: run-bdc63ec68d56 finished completed composer-2.5/medium session -
+- Evidence:
+  - archive: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-bdc63ec68d56.tar.gz
+  - manifest: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-bdc63ec68d56\manifest.json
+  - run_dir: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-bdc63ec68d56
+  - stderr: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-bdc63ec68d56\stderr.log
+  - stdout: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-bdc63ec68d56\stdout.json
+  - transcript: -
+  - workspace: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\workspaces\run-bdc63ec68d56
+  - workspace_present: True
+
+### pr5-transfer
+
+- State: parked-failure (stop reason: pr-closed-unmerged)
+- Blocker: PR #788 was closed without a merge at head 2364f62714dc8f1d7d38d5113a9bf302d2af6087; nothing landed, the task is not done
+- Attempts: 2/3 (1 permitted)
+- Budget: 19+0 of 36 turns
+- Funding pool: claude-subscription
+- Provider: claude
+- Provider transfers: 1/1
+- PR #788 closed closed-unmerged 2364f62714dc - rounds 0
+- Last run: run-effc72e96849 finished completed claude-sonnet-5/medium session 49437071-1848-4f35-9188-38228183a333
+- Evidence:
+  - archive: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-effc72e96849.tar.gz
+  - manifest: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-effc72e96849\manifest.json
+  - run_dir: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-effc72e96849
+  - stderr: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-effc72e96849\stderr.log
+  - stdout: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-effc72e96849\stdout.json
+  - transcript: C:\Users\icfre\.claude\projects\C--Users-icfre-AppData-Local-Packages-Claude-pzs8sxrjxfjjc-LocalCache-Local-ashlar-controller-pr5-state-workspaces-run-effc72e96849\49437071-1848-4f35-9188-38228183a333.jsonl
+  - workspace: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\workspaces\run-effc72e96849
+  - workspace_present: True
+
+### pr5-776
+
+- State: parked-budget (stop reason: task-budget-exhausted)
+- Blocker: task-budget-exhausted: pool pool:pr5-776 has 10 turns left (ceiling 36, consumed 26, reserved 0); an invocation needs 12
+- Attempts: 2/3 (1 permitted)
+- Budget: 26+0 of 36 turns
+- Funding pool: claude-subscription
+- Provider: claude
+- Provider transfers: 0/1
+- Last run: run-a062813c1dae failed invocation-ceiling-reached claude-sonnet-5/medium session 625f35bf-7cbb-4920-a9fb-ac554f5d232f
+- Evidence:
+  - archive: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\evidence\run-a062813c1dae.tar.gz
+  - manifest: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-a062813c1dae\manifest.json
+  - run_dir: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-a062813c1dae
+  - stderr: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-a062813c1dae\stderr.log
+  - stdout: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\runs\run-a062813c1dae\stdout.json
+  - transcript: C:\Users\icfre\.claude\projects\C--Users-icfre-AppData-Local-Packages-Claude-pzs8sxrjxfjjc-LocalCache-Local-ashlar-controller-pr5-state-workspaces-run-5c155cbe6f82\625f35bf-7cbb-4920-a9fb-ac554f5d232f.jsonl
+  - workspace: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\state\workspaces\run-5c155cbe6f82
+  - workspace_present: True
+
+## Metrics
+
+Generated at 2026-10-13T15:25:51Z
+
+### Runs by stop reason
+
+| stop reason | runs |
+|---|---|
+| cancelled | 1 |
+| completed | 3 |
+| invocation-ceiling-reached | 2 |
+
+Runs 6; consumed 63; reserved (active) 0; overshoot 2; attempts used 6
+
+### PRs by outcome
+
+| outcome | prs |
+|---|---|
+| closed-unmerged | 3 |
+
+PRs 3; open 0; merged 0; closed unmerged 3; repair rounds 0
+
+Provider transfers 1; refused 1
+
+### Usage (latest per provider and kind)
+
+estimated_api_value is an estimate of API list value, not a charge
+
+| provider | kind | unit | freshness | value | total | observed at |
+|---|---|---|---|---|---|---|
+| claude | estimated_api_value | usd | fresh | 0.306182 | - | 2026-10-13T15:25:00Z |
+| claude | subscription_allowance | percent | fresh | 2 | 100 | 2026-10-13T15:25:00Z |
+| codex | subscription_allowance | turns | unavailable | - | - | 2026-10-13T15:17:25Z |
+| cursor | subscription_allowance | requests | unavailable | - | - | 2026-10-13T15:18:55Z |
+
+Estimated API value by provider (estimate, not a charge): claude 0.828999
+
+### Retries
+
+Diagnosed failure identities retried: 0; retries total: 0
+
+### Journal by kind
+
+| kind | rows |
+|---|---|
+| backup | 3 |
+| evidence-archived | 6 |
+| init | 1 |
+| launched | 6 |
+| lease-acquired | 1 |
+| pr-closed-unmerged | 3 |
+| pr-opened | 3 |
+| provider-transferred | 1 |
+| pushed | 3 |
+| reserved | 6 |
+| resume | 1 |
+| settled | 6 |
+| task-created | 4 |
+| task-state | 10 |
+| transfer-refused | 1 |
+| workspace-prepared | 5 |
+| workspace-reused | 1 |
+
+Journal rows 61
+
+==== Tue 10/13/2026 11:25:52.94 exit 0 :: pr5 --json metrics
+{
+  "controller_id": "ctl-pr5-live",
+  "controls": {
+    "disabled_providers": [
+      "cursor"
+    ],
+    "paused": false
+  },
+  "events": {
+    "handled": 0,
+    "total": 0
+  },
+  "generated_at": "2026-10-13T15:25:52Z",
+  "journal": {
+    "by_kind": {
+      "backup": 3,
+      "evidence-archived": 6,
+      "init": 1,
+      "launched": 6,
+      "lease-acquired": 1,
+      "pr-closed-unmerged": 3,
+      "pr-opened": 3,
+      "provider-transferred": 1,
+      "pushed": 3,
+      "reserved": 6,
+      "resume": 1,
+      "settled": 6,
+      "task-created": 4,
+      "task-state": 10,
+      "transfer-refused": 1,
+      "workspace-prepared": 5,
+      "workspace-reused": 1
+    },
+    "total": 61
+  },
+  "prs": {
+    "by_outcome": {
+      "closed-unmerged": 3
+    },
+    "closed_unmerged": 3,
+    "merged": 0,
+    "open": 0,
+    "repair_rounds_total": 0,
+    "total": 3
+  },
+  "retries": {
+    "identities": 0,
+    "total": 0
+  },
+  "runs": {
+    "attempts_used_total": 6,
+    "by_role": {
+      "implementation": 6
+    },
+    "by_state": {
+      "cancelled": 1,
+      "failed": 2,
+      "finished": 3
+    },
+    "by_stop_reason": {
+      "cancelled": 1,
+      "completed": 3,
+      "invocation-ceiling-reached": 2
+    },
+    "consumed_total": 63.0,
+    "overshoot_total": 2.0,
+    "reserved_active_total": 0.0,
+    "total": 6
+  },
+  "schema_version": "2",
+  "tasks": {
+    "by_state": {
+      "parked-budget": 1,
+      "parked-failure": 3
+    },
+    "total": 4
+  },
+  "transfers": {
+    "refused": 1,
+    "total": 1
+  },
+  "usage": {
+    "estimated_api_value_total_by_provider": {
+      "claude": 0.8289994
+    },
+    "latest": [
+      {
+        "freshness": "fresh",
+        "kind": "estimated_api_value",
+        "observed_at": "2026-10-13T15:25:00Z",
+        "provider": "claude",
+        "total": null,
+        "unit": "usd",
+        "value": 0.30618200000000007
+      },
+      {
+        "freshness": "fresh",
+        "kind": "subscription_allowance",
+        "observed_at": "2026-10-13T15:25:00Z",
+        "provider": "claude",
+        "total": 100.0,
+        "unit": "percent",
+        "value": 2.0
+      },
+      {
+        "freshness": "unavailable",
+        "kind": "subscription_allowance",
+        "observed_at": "2026-10-13T15:17:25Z",
+        "provider": "codex",
+        "total": null,
+        "unit": "turns",
+        "value": null
+      },
+      {
+        "freshness": "unavailable",
+        "kind": "subscription_allowance",
+        "observed_at": "2026-10-13T15:18:55Z",
+        "provider": "cursor",
+        "total": null,
+        "unit": "requests",
+        "value": null
+      }
+    ]
+  }
+}
+==== Tue 10/13/2026 11:25:54.06 exit 0 :: pr5 backup "C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\backups\99-end.db"
+path: C:\Users\icfre\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\ashlar-controller\pr5\backups\99-end.db
+sha256: 8422d47cdc82192fc1db7e3dac701c013a1f5b6c913fb518363ec9e91a9273cc
+schema_version: 2
+rows: {'meta': 3, 'policy_versions': 2, 'budget_pools': 4, 'failure_retries': 0, 'tasks': 4, 'phases': 0, 'prs': 3, 'runs': 6, 'usage_observations': 8, 'events': 0, 'outbox': 1, 'lease': 1, 'controls': 1, 'journal': 61, 'worker_checkouts': 0}
