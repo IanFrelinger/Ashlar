@@ -1,7 +1,7 @@
 """The Cursor agent CLI adapter: one headless `cursor-agent -p` per run, every run recorded on disk.
 
-WHAT WAS OBSERVED. The CLI on the probe host is NOT logged in, so no `-p` run has produced any output.
-Report `probe-cursor-report-1.json` (script `probe_cursor_runtime.py`, 2026-10-12), against the Cursor
+WHAT WAS OBSERVED. The CLI on the probe host was NOT logged in when probed, so no probe `-p` run produced
+any output. Report `probe-cursor-report-1.json` (script `probe_cursor_runtime.py`, 2026-10-12), against the Cursor
 IDE's embedded agent CLI `2026.10.01-e373342`
 (`%APPDATA%\\Cursor\\User\\globalStorage\\anysphere.cursor-agent-worker\\agent-cli\\.local\\share\\cursor-agent\\versions\\<v>\\cursor-agent.cmd`),
 recorded only this:
@@ -18,23 +18,37 @@ recorded only this:
     set CURSOR_API_KEY environment variable.`. So no model id was checked (`composer-standard` and
     `no-such-model-0` failed the same way), and c6 had nothing to cancel.
 
+The first logged-in run, run-bdc63ec68d56 of the PR 5 live run (2026-10-13, model `composer-2.5`, PR #787),
+showed: `cursor-agent status` prints a check mark and `Logged in as <account email>` (masked before it is
+stored, below); the `--output-format stream-json` stream is `system/init`, `user`, `thinking` (delta,
+completed), `assistant`, `tool_call` (started, completed) and last `result` (subtype `success`, `session_id`,
+`request_id`, token `usage`), 38 events with one `session_id` on every event; the exit recorder wrote exit 0
+and the next tick settled the run `completed`; the multi-line prompt arrived whole through `node.exe
+index.js`; no transcript file was located. `composer-2.5` was accepted.
+
 UNVERIFIED, and therefore False in `capabilities`:
-  * exact_resume: the stream's session or chat id was never seen, so `--resume` is NEVER passed. A
-    request carrying `resume_session_id` launches fresh and records `resume_unsupported: true`;
-  * cancel: no run lived long enough to be cancelled. `cancel` still records first and kills the tree;
+  * exact_resume: the live stream printed a `session_id` on every event, but resuming with it was never
+    tried, so `--resume` is NEVER passed. A request carrying `resume_session_id` launches fresh and records
+    `resume_unsupported: true`;
+  * cancel: no run has been cancelled (the probe runs exited at once, the live run finished). `cancel` still
+    records first and kills the tree;
   * structured_output: no schema flag in `--help`;
-  * usage_observation: no turn count, cost or allowance figure was ever printed. `consumed_units` is
-    always None, so the controller charges the FULL reservation (`turns_unobserved: true`), and
-    `observe_usage` is an `unavailable` observation;
+  * usage_observation: no turn, request, cost or allowance figure was ever printed (the one logged-in
+    stream, run-bdc63ec68d56 of 2026-10-13, prints token usage in its `result` event, which is kept as
+    `result_event` and never charged). What Cursor bills as a request is unobserved. `consumed_units` is
+    always None, so the controller charges the FULL reservation (`turns_unobserved: true`), a ceiling and not
+    a measurement, and `observe_usage` is an `unavailable` observation;
   * transcript_retention: where (and whether) the CLI keeps a chat was never seen;
   * turn_limit: `--help` lists no turn-limit flag, so the invocation ceiling is not enforced by the CLI.
-  Also unseen: the logged-in `status` text (any other non-empty text, at exit 0, counts as logged in and
-  is recorded in the manifest), the shape of `--output-format stream-json`, a successful run's exit code,
-  and what `--trust`, `--workspace` and `-f` do.
+  Any non-empty `status` text other than `Not logged in`, at exit 0, counts as logged in, and is recorded in
+  the manifest with every email address masked. What `--trust`, `--workspace` and `-f` each do was not probed
+  one by one.
 
-So that the first logged-in run leaves evidence of the real shape, every settled run keeps the first
+So that a run leaves evidence of the real shape, every settled run keeps the first
 2000 characters of stdout (`result_text`), the `type` of every JSON line (`event_types`), any
-`session_id`/`sessionId`/`chat_id`/`chatId` value seen (`session_id_candidates`) and the stderr tail.
+`session_id`/`sessionId`/`chat_id`/`chatId` value seen (`session_id_candidates`), the subtype, is_error,
+duration_ms, session_id, request_id and usage of the last `result` event (`result_event`, which in the
+observed stream lies past `result_text`) and the stderr tail.
 
 INTEGRATOR DECISIONS (no owner row; listed for the next handoff):
   * An exit 0 with non-empty stdout is `completed` BEFORE the quota, rate-limit and transient texts are
@@ -101,6 +115,16 @@ _AUTH_REQUIRED_RE = re.compile(r"authentication required", re.IGNORECASE)
 # Observed (c0_models): the variables the CLI names as alternatives to a login. Either one bills a key.
 API_KEY_VARS = ("CURSOR_API_KEY", "CURSOR_AUTH_TOKEN")
 _SESSION_KEYS = ("session_id", "sessionId", "chat_id", "chatId")
+# Observed (run-bdc63ec68d56, the PR 5 live run of 2026-10-13): the last line of a finished run's stream is
+# {"type":"result","subtype":"success","duration_ms","duration_api_ms","is_error","result","session_id",
+# "request_id","usage":{"inputTokens","outputTokens","cacheReadTokens","cacheWriteTokens"}}. These keys of
+# the LAST `result` event are kept as `result_event`, each None when absent. Recorded data, never a charge.
+RESULT_EVENT_KEYS = ("subtype", "is_error", "duration_ms", "session_id", "request_id", "usage")
+# Observed (the same run): logged in, `cursor-agent status` prints `\u2713 Logged in as <account email>`. Any
+# address in the status text is masked before it is stored or quoted, so it reaches no record. The lengths
+# are the RFC 5321 limits, which also bound the backtracking on a long run of address characters.
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})+")
+REDACTED = "<redacted>"
 # Characters that cmd.exe (with delayed expansion) or the PowerShell hop rewrites, executes or cuts at.
 _CMD_UNSAFE = frozenset('\r\n"%!^&|<>')
 # The launcher's own rule for a version directory (cursor-agent.ps1): YYYY.MM.DD[-HH-MM-SS]-<commit>.
@@ -113,6 +137,11 @@ _WINDOWS = sys.platform.startswith("win")
 
 def _utc_iso(t: float) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
+
+
+def mask_emails(text: str) -> str:
+    """`text` with every email address replaced by `<redacted>`."""
+    return _EMAIL_RE.sub(REDACTED, text)
 
 
 def _clean_env(env: Dict[str, str]) -> Dict[str, str]:
@@ -190,10 +219,12 @@ def node_direct(cli: str) -> Optional[List[str]]:
 
 def parse_stream(text: str) -> Dict[str, Any]:
     """What the stdout of a run shows, whatever its shape: the `type` of every JSON-object line, in
-    order (capped at EVENT_TYPES_LIMIT), and every session or chat id seen. Lines that are not JSON
-    objects are counted, never an error: the stream-json shape is unobserved."""
+    order (capped at EVENT_TYPES_LIMIT), every session or chat id seen, and the RESULT_EVENT_KEYS of the
+    LAST `result` event (`result_event`, None when there is none). Lines that are not JSON objects are
+    counted, never an error: one logged-in stream has been observed, not every shape."""
     out: Dict[str, Any] = {"event_types": [], "events": 0, "unparsed_lines": 0, "session_id_candidates": [],
-                           "event_types_truncated": False}
+                           "event_types_truncated": False, "result_event": None}
+    last_result: Optional[Dict[str, Any]] = None
     for line in text.splitlines():
         s = line.strip()
         if not s:
@@ -212,10 +243,14 @@ def parse_stream(text: str) -> Dict[str, Any]:
                 out["event_types"].append(kind)
             else:
                 out["event_types_truncated"] = True
+        if kind == "result":
+            last_result = obj
         for key in _SESSION_KEYS:
             value = obj.get(key)
             if isinstance(value, str) and value and value not in out["session_id_candidates"]:
                 out["session_id_candidates"].append(value)
+    if last_result is not None:
+        out["result_event"] = {key: last_result.get(key) for key in RESULT_EVENT_KEYS}
     return out
 
 
@@ -255,14 +290,15 @@ def kill_tree(pid: int) -> None:
 class CursorAdapter:
     name = "cursor"
     capabilities = AdapterCapabilities(
-        exact_resume=False,          # unobserved: no session or chat id was ever printed (logged out)
-        cancel=False,                # unobserved: every probe run exited at once with the auth error
+        exact_resume=False,          # a session_id is printed, but resuming with it was never tried
+        cancel=False,                # unobserved: no run has been cancelled
         structured_output=False,     # no schema flag in --help
-        usage_observation=False,     # no turns, cost or allowance was ever printed
+        usage_observation=False,     # token usage only: no turn, request, cost or allowance figure printed
         transcript_retention=False,  # unobserved
         turn_limit=False,            # no turn-limit flag in --help
         funding_route_check=True,    # observed (c0_status): `cursor-agent status` prints `Not logged in`
-        evidence="probe-cursor-report-1.json (2026-10-12): logged out; -p runs unexercised")
+        evidence="probe-cursor-report-1.json (2026-10-12, logged out); run-bdc63ec68d56 (2026-10-13, one logged-in "
+                 "-p run)")
 
     def __init__(self, runs_dir: str, *, cli: Optional[Union[str, Sequence[str]]] = None,
                  env: Optional[Dict[str, str]] = None, clock=None, expected_route: str = "cursor-login"):
@@ -332,7 +368,9 @@ class CursorAdapter:
         """`cursor-agent status`, then the route. A key in the child env bills the key whatever the
         login says (c0_models names both variables as the alternative to a login). Logged out
         (observed: `Not logged in`), a non-zero exit, or no text at all refuses `auth-missing`; any
-        other text is taken as logged in and recorded, because the logged-in text is unobserved."""
+        other text is taken as logged in and recorded. The login is decided on the text as printed; what
+        is recorded or quoted has every email address masked (logged in, the text names the account by its
+        address), and is masked before it is cut to 500 characters, so a cut address is masked whole."""
         argv = prefix + ["status"]
         try:
             os.makedirs(self.runs_dir, exist_ok=True)
@@ -348,18 +386,19 @@ class CursorAdapter:
             raise LaunchRefused(StopReason.FUNDING_ROUTE_MISMATCH,
                                 f"{route} would be billed; policy selected {self.expected_route}")
         if proc.returncode != 0 or not text or _NOT_LOGGED_IN_RE.search(text):
-            shown = text or proc.stderr.decode("utf-8", "replace").strip() or "(no output)"
+            shown = mask_emails(text or proc.stderr.decode("utf-8", "replace").strip() or "(no output)")
             raise LaunchRefused(StopReason.AUTH_MISSING,
                                 f"cursor-agent is not logged in (`cursor-agent status` exit {proc.returncode}: "
                                 f"{shown[:500]}); operator step: `cursor-agent login`")
-        return {"route": route, "status_text": text[:500], "status_exit": proc.returncode}
+        return {"route": route, "status_text": mask_emails(text)[:500], "status_exit": proc.returncode}
 
     # ----- launch ------------------------------------------------------------------------------
 
     @staticmethod
     def _argv(prefix: List[str], request: LaunchRequest, workspace: str) -> List[str]:
-        # From --help (unexercised): -p print mode, stream-json output, --trust the workspace without a
-        # prompt, -f run commands unless denied. Never --resume: no session id was ever observed.
+        # From --help, and run once logged in (run-bdc63ec68d56): -p print mode, stream-json output, --trust the
+        # workspace without a prompt, -f run commands unless denied. Never --resume: a session id is printed, but
+        # resuming with it was never tried.
         return prefix + ["-p", "--output-format", "stream-json", "--trust", "--workspace", workspace,
                          "--model", request.model, "-f", request.prompt]
 
@@ -472,7 +511,8 @@ class CursorAdapter:
         return UsageObservation(provider=self.name, kind=UsageKind.SUBSCRIPTION_ALLOWANCE, unit=USAGE_UNIT,
                                 freshness=UsageFreshness.UNAVAILABLE, native_session_id=key,
                                 observed_at=_utc_iso(self.clock()),
-                                raw={"why": "cursor-agent printed no allowance, turn or cost figure in any probe"})
+                                raw={"why": "cursor-agent's stream prints token usage in its result event, but no "
+                                            "turn, request, cost or allowance figure"})
 
     @staticmethod
     def _read_text(path: Optional[str]) -> str:
@@ -504,8 +544,12 @@ class CursorAdapter:
             "event_types": stream["event_types"], "event_types_truncated": stream["event_types_truncated"],
             "stream_events": stream["events"], "unparsed_lines": stream["unparsed_lines"],
             "session_id_candidates": stream["session_id_candidates"],
-            # No turn count was ever observed: consumed_units is None and the controller charges the
-            # full reservation, the conservative reading.
+            # The last `result` event (subtype, is_error, duration_ms, session_id, request_id, usage), which
+            # lies past result_text in an observed stream. Recorded data only: its token usage is not a turn
+            # or request count, and its session_id is not used to resume.
+            "result_event": stream["result_event"],
+            # No turn or request count was ever observed: consumed_units is None and the controller charges
+            # the full reservation, the conservative reading.
             "turns_unobserved": True,
             "resume_unsupported": bool(manifest.get("resume_unsupported")), "resume_of": manifest.get("resume_of"),
         }

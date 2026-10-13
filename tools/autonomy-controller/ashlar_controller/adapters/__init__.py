@@ -17,7 +17,7 @@ def locate_run_transcript(manifest: Dict[str, Any], native_session_id: Optional[
     """Where the CLI kept the run's transcript, or None, from the run's manifest alone (no adapter method is
     called). A Codex manifest names `sessions_dir` and `thread_id` (the session file is
     `rollout-*-<thread_id>.jsonl` under it); a Claude manifest names `projects_dir` and `session_id`; a Cursor
-    run keeps no transcript the controller can locate (unobserved while the CLI was logged out)."""
+    run keeps no transcript the controller can locate (none was found for the one logged-in run, run-bdc63ec68d56)."""
     if manifest.get("provider") == "codex" or manifest.get("sessions_dir"):
         from .codex import locate_session_file
         return locate_session_file(manifest.get("sessions_dir"), manifest.get("thread_id") or native_session_id,

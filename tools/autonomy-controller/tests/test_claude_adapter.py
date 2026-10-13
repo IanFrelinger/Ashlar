@@ -320,8 +320,58 @@ class Classification(ClaudeAdapterCase):
         self.assertEqual((allowance.kind, allowance.unit, allowance.freshness, allowance.value, allowance.total),
                          (UsageKind.SUBSCRIPTION_ALLOWANCE, "percent", UsageFreshness.FRESH, 69.0, 100.0))
         self.assertEqual(allowance.native_session_id, res.native_session_id)
-        self.assertEqual(allowance.raw, info)
+        self.assertEqual(allowance.raw, dict(info, allowance_window="five_hour"))
         self.assertEqual(status.result["rate_limit_info"]["unifiedWindows"]["seven_day"]["utilization"], 0.18)
+
+    def test_the_higher_window_is_the_allowance_and_raw_names_it(self):
+        # The live run of 2026-10-13 (PR 5): every Claude rate_limit_event carried five_hour 0.02 AND seven_day 0.69,
+        # and the adapter recorded 2. Mutation killed: reading the five-hour window alone, so the interactive reserve
+        # cannot see a binding seven-day window.
+        info = {"status": "allowed", "resetsAt": 1791910800, "rateLimitType": "five_hour", "overageStatus": "rejected",
+                "overageDisabledReason": "org_level_disabled", "isUsingOverage": False,
+                "unifiedWindows": {"five_hour": {"resetsAt": 1791910800, "utilization": 0.02},
+                                   "seven_day": {"resetsAt": 1792285200, "utilization": 0.69}}}
+        a, res, status = self.launch_and_settle(result_object(), rate_limit_info=info)
+        self.assertEqual(status.stop_reason, StopReason.COMPLETED)
+        allowance = status.observations[0]
+        self.assertEqual((allowance.kind, allowance.unit, allowance.freshness, allowance.value, allowance.total),
+                         (UsageKind.SUBSCRIPTION_ALLOWANCE, "percent", UsageFreshness.FRESH, 69.0, 100.0))
+        self.assertEqual(allowance.native_session_id, res.native_session_id)
+        self.assertEqual(allowance.raw["allowance_window"], "seven_day")
+        self.assertEqual(allowance.raw, dict(info, allowance_window="seven_day"))   # the event is kept whole beside it
+
+    def test_a_five_hour_window_alone_is_recorded_as_before(self):
+        # Mutation killed: dropping the window's name from raw (the ledger could not say which window bound).
+        info = {"isUsingOverage": False, "unifiedWindows": {"five_hour": {"utilization": 0.4, "resetsAt": 1}}}
+        obs = self.adapter()._allowance_observation("s-1", info)
+        self.assertEqual((obs.provider, obs.kind, obs.unit, obs.freshness, obs.value, obs.total, obs.native_session_id),
+                         ("claude", UsageKind.SUBSCRIPTION_ALLOWANCE, "percent", UsageFreshness.FRESH, 40.0, 100.0, "s-1"))
+        self.assertEqual(obs.raw, dict(info, allowance_window="five_hour"))
+        self.assertIsNotNone(obs.observed_at)
+
+    def test_a_missing_or_null_window_is_ignored(self):
+        # Mutation killed: requiring the five-hour window (a seven-day window alone read as unavailable), or a null
+        # window counted as a utilization.
+        a = self.adapter()
+        five = {"utilization": 0.3, "resetsAt": 1}
+        seven = {"utilization": 0.12, "resetsAt": 2}
+        cases = (("seven_day null", {"five_hour": five, "seven_day": None}, 30.0, "five_hour"),
+                 ("seven_day utilization null", {"five_hour": five, "seven_day": {"utilization": None, "resetsAt": 2}},
+                  30.0, "five_hour"),
+                 ("seven_day without utilization", {"five_hour": five, "seven_day": {"resetsAt": 2}}, 30.0, "five_hour"),
+                 ("five_hour null", {"five_hour": None, "seven_day": seven}, 12.0, "seven_day"),
+                 ("five_hour missing", {"seven_day": seven}, 12.0, "seven_day"))
+        for name, windows, value, window in cases:
+            with self.subTest(name):
+                obs = a._allowance_observation("s-1", {"unifiedWindows": windows})
+                self.assertEqual((obs.kind, obs.unit, obs.freshness, obs.value, obs.total, obs.raw.get("allowance_window")),
+                                 (UsageKind.SUBSCRIPTION_ALLOWANCE, "percent", UsageFreshness.FRESH, value, 100.0, window))
+        for windows in ({}, {"five_hour": None, "seven_day": None}, {"five_hour": {"utilization": None}}):
+            with self.subTest(windows=windows):
+                obs = a._allowance_observation("s-1", {"unifiedWindows": windows})
+                self.assertEqual((obs.kind, obs.unit, obs.freshness, obs.value, obs.total),
+                                 (UsageKind.SUBSCRIPTION_ALLOWANCE, "percent", UsageFreshness.UNAVAILABLE, None, None))
+                self.assertNotIn("allowance_window", obs.raw)
 
     def test_overage_is_quota_exhausted_even_on_a_successful_result(self):
         info = {"status": "allowed", "isUsingOverage": True, "overageStatus": "allowed",
@@ -616,9 +666,10 @@ class ThroughTheController(ControllerCase):
         self.script_path = self.tmp / "script.json"
         self.policy_path = self.write_policy(lambda raw: raw["providers"]["claude"].update({"model": "claude-sonnet-5"}))
 
-    def controller(self, stdout, exit=1):
-        self.script_path.write_text(json.dumps({"auth": {"loggedIn": True, "authMethod": "claude.ai"},
-                                                "stdout": stdout, "exit": exit}), encoding="utf-8")
+    def controller(self, stdout, exit=1, **more):
+        script = {"auth": {"loggedIn": True, "authMethod": "claude.ai"}, "stdout": stdout, "exit": exit}
+        script.update(more)
+        self.script_path.write_text(json.dumps(script), encoding="utf-8")
         env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
         env.update({"FAKE_CLAUDE_SCRIPT": str(self.script_path), "FAKE_CLAUDE_ARGV_OUT": str(self.argv_dir) + os.sep})
         self.adapter = ClaudeAdapter(str(self.tmp / "runs"), cli=[sys.executable, FAKE_CLI], env=env, clock=self.clock)
@@ -669,6 +720,27 @@ class ThroughTheController(ControllerCase):
         self.assertIn("OAuth session expired", t["blocker"])
         for _ in range(3):
             self.assertEqual(ctl.tick().action, "idle")
+        self.assertEqual(len(self.argv_files()), 1)
+
+    def test_a_binding_seven_day_window_holds_the_next_launch_behind_the_reserve(self):
+        # The live run of 2026-10-13 recorded 2 percent from five_hour 0.02 while seven_day read 0.69. With the weekly
+        # window at 0.80 only 20 percent is unused, inside the 25 percent interactive reserve: the next launch waits.
+        # Mutation killed: reading the five-hour window alone (2 percent: the second task would launch).
+        info = {"status": "allowed", "rateLimitType": "five_hour", "isUsingOverage": False,
+                "unifiedWindows": {"five_hour": {"resetsAt": 1791910800, "utilization": 0.02},
+                                   "seven_day": {"resetsAt": 1792285200, "utilization": 0.8}}}
+        ctl = self.controller(result_object(num_turns=2), exit=0, rate_limit_info=info)
+        self.assertEqual(ctl.tick().action, "launched")
+        self.tick_until_settled(ctl)
+        self.assertEqual(self.task()["state"], TaskState.DONE)
+        row = self.store.row("SELECT value, total, unit, raw FROM usage_observations WHERE kind=? ORDER BY id DESC LIMIT 1",
+                             (UsageKind.SUBSCRIPTION_ALLOWANCE,))
+        self.assertEqual((row["value"], row["total"], row["unit"]), (80.0, 100.0, "percent"))
+        self.assertEqual(json.loads(row["raw"])["allowance_window"], "seven_day")
+        ctl.ensure_task("t2", workstream="budgeted-autonomy", provider="claude", card_number=756, title="PR 3")
+        r = ctl.tick()
+        self.assertEqual((r.action, r.reason, r.task_id), ("blocked", StopReason.ALLOWANCE_RESERVE, "t2"))
+        self.assertEqual(self.task("t2")["state"], TaskState.WAITING_ALLOWANCE)
         self.assertEqual(len(self.argv_files()), 1)
 
 

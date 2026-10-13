@@ -217,7 +217,7 @@ class Restore(EvidenceCase):
         self.assertFalse(fresh["replaced"])
 
 
-class Archive(LifecycleCase):
+class ArchiveCase(LifecycleCase):
     """A ledger with one task, one settled implementation run and an open PR (through the lifecycle fixtures)."""
 
     def setUp(self):
@@ -252,6 +252,8 @@ class Archive(LifecycleCase):
         with tarfile.open(path, "r:gz") as tar:
             return {m.name: tar.extractfile(m).read() for m in tar.getmembers() if m.isfile()}
 
+
+class Archive(ArchiveCase):
     # Kills: deleting archive_run's `if os.path.exists(out_path): raise StateCorrupt(...)` guard.
     def test_archive_refuses_an_existing_path(self):
         self.make_run_dir()
@@ -407,6 +409,217 @@ class Archive(LifecycleCase):
         evidence.backup(self.store, str(self.tmp / "b.bak"), now=self.clock())
         self.assertEqual(self.adapter_calls(), calls)
         self.assertEqual(self.adapter.launch_count, 1)
+
+
+# The owner's address, as the fixtures stand it in for the real one (never a real address here).
+OWNER = "owner@example.invalid"
+# The safety net keeps the reserved test domain `example.invalid` itself, so that the tests of the structured
+# layers see their own effect and not the net's. An address no structured layer knows about therefore uses a
+# subdomain of it, which the net does not keep.
+STRAY = "owner@mail.example.invalid"
+NOREPLY_TRAILER = "Co-Authored-By: Claude <noreply@anthropic.com>"
+CONTEXT_SENTENCE = (f"The user's email address is {OWNER}. Use it only to identify the user, such as for "
+                    "authorship, attribution, or filtering their own work.")
+
+
+def compact(obj):
+    """One transcript or stream line the way the CLIs write it: compact JSON."""
+    return json.dumps(obj, separators=(",", ":")).encode("utf-8")
+
+
+def session_context_record():
+    """The record every Claude transcript of the PR 5 live run held (CLI 2.1.263): an `attachment` of type
+    `session_context` whose `context.userEmail` names the account's address, and a `rendered` reminder (a key
+    of the record itself) that repeats the sentence."""
+    return {"parentUuid": "00000000-0000-4000-8000-000000000001", "isSidechain": False,
+            "attachment": {"type": "session_context",
+                           "context": {"userEmail": CONTEXT_SENTENCE,
+                                       "gitStatus": "Current branch: auto/t1\n\nStatus:\n(clean)"}},
+            "type": "attachment", "uuid": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-10-13T15:20:01.000Z",
+            "rendered": [{"content": "<system-reminder>\nAs you answer the user's questions, you can use the "
+                                     "following context:\n# userEmail\n" + CONTEXT_SENTENCE
+                                     + "\n# gitStatus\nCurrent branch: auto/t1\n</system-reminder>"}],
+            "userType": "external", "entrypoint": "sdk-cli", "cwd": "C:/ws", "sessionId": "fake-session-1",
+            "version": "2.1.263", "gitBranch": "auto/t1"}
+
+
+class ArchivePersonalData(ArchiveCase):
+    """Phase F live-run fixes F1 and F3: the owner's email address reached four of the six PR 5 archives, in the
+    Claude transcript's `session_context` record and in the Cursor manifest's `status_text`."""
+
+    PROMPT_SNAPSHOT = compact({"type": "attachment", "attachment": {
+        "type": "prompt_snapshot", "tools": [{"name": "Bash", "description": "End commit messages with:\n"
+                                                                            + NOREPLY_TRAILER}]}})
+
+    def write_run(self, transcript_lines, run_files):
+        """A run directory whose manifest finds `transcript_lines`; `run_files` maps a file name to its bytes,
+        and `manifest.json` in it is merged into the manifest, written as the Cursor adapter writes it."""
+        self.make_run_dir(transcript=True)
+        d = self.tmp / "runs" / self.run_id
+        transcript = self.tmp / "projects" / "slug" / "fake-session-1.jsonl"
+        transcript.write_bytes(b"\n".join(transcript_lines))
+        manifest = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+        manifest.update(run_files.pop("manifest.json", {}))
+        (d / "manifest.json").write_bytes((json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+        for name, data in run_files.items():
+            (d / name).write_bytes(data)
+        return transcript
+
+    def make_owner_run(self):
+        """The observed shapes: the session_context record in the transcript, `Logged in as <address>` in the
+        manifest, and the noreply commit trailer, which is not personal, in a transcript line and in stdout."""
+        self.transcript_lines = [b'{"type":"user","text":"TRANSCRIPT-BODY"}', compact(session_context_record()),
+                                 self.PROMPT_SNAPSHOT, b'{"type":"assistant","text":"a windows line"}\r',
+                                 b"not json", b""]
+        transcript = self.write_run(self.transcript_lines, {
+            "manifest.json": {"route": "cursor-login", "status_text": "\u2713 Logged in as " + OWNER},
+            "stdout.json": b'{"type":"result","result":"done"}\n' + compact({"type": "assistant",
+                                                                             "text": NOREPLY_TRAILER}) + b"\n"})
+        return transcript
+
+    def make_stray_run(self):
+        """Addresses no structured layer knows about, in every kind of text member, next to JSON escapes, next
+        to the noreply trailer, in the ledger, and in a member that is not UTF-8."""
+        self.stray_stdout = [b'{"type":"result","result":"done"}',
+                             compact({"type": "assistant", "text": NOREPLY_TRAILER + ", reviewed by " + STRAY}),
+                             json.dumps({"type": "assistant", "text": "contact:\n" + STRAY}).encode("utf-8"),
+                             json.dumps({"type": "assistant", "text": "\u2713" + STRAY}).encode("utf-8"), b""]
+        self.blob = b"\xff\xfe\x00binary " + STRAY.encode("ascii") + b"\x00\x81"
+        transcript = self.write_run(
+            [b'{"type":"user","text":"TRANSCRIPT-BODY"}', compact({"type": "user", "text": "Ask " + STRAY}),
+             self.PROMPT_SNAPSHOT, b""],
+            {"stdout.json": b"\n".join(self.stray_stdout),
+             "stderr.log": f"warning: could not notify {STRAY}\n".encode("utf-8"),
+             "last_message.txt": f"Done. Questions to {STRAY}.\n".encode("utf-8"),
+             "blob.bin": self.blob})
+        self.store.journal("operator-note", task_id="t1", detail={"text": f"reported by {STRAY}"}, now=self.clock())
+        return transcript
+
+    def archive(self):
+        return evidence.archive_run(self.store, self.run_id, self.out_dir, self.runs_dir, now=self.clock())
+
+    # Kills: dropping the `del context[k]` of the session_context record, masking its rendered text with the
+    # kept domains allowed, or emptying RUN_FILE_ACCOUNT_KEYS (the safety net keeps example.invalid, so only the
+    # structured layers can take the owner's address out).
+    def test_no_member_of_the_archive_holds_the_owners_address(self):
+        self.make_owner_run()
+        result = self.archive()
+        members = self.members_of(result["path"])
+        self.assertEqual(set(members), {"run/manifest.json", "run/stderr.log", "run/stdout.json", "transcript.jsonl",
+                                        "ledger.json", "MANIFEST.txt"})
+        for name, body in members.items():
+            self.assertNotIn(OWNER.encode("ascii"), body, f"{name} still holds the owner's address")
+
+    # Kills: `removed.append(f"attachment.{kind}.rendered")` deleted, or the manifest's keys never reported.
+    def test_redacted_names_the_session_context_fields_and_the_status_text(self):
+        self.make_owner_run()
+        result = self.archive()
+        self.assertEqual(result["redacted"], ["attachment.session_context.rendered",
+                                              "attachment.session_context.userEmail",
+                                              "run/manifest.json:status_text"])
+        detail = json.loads(self.store.row("SELECT detail FROM journal WHERE kind='evidence-archived'")["detail"])
+        self.assertEqual(detail["redacted"], result["redacted"])
+        text = self.members_of(result["path"])["MANIFEST.txt"].decode("utf-8")
+        self.assertIn("redacted from run/manifest.json: status_text\n", text)
+        self.assertIn("redacted from transcript.jsonl: attachment.session_context.rendered, "
+                      "attachment.session_context.userEmail\n", text)
+        self.assertNotIn("email addresses masked in", text)
+
+    # Kills: re-serializing every JSON line (`if names or isinstance(obj, dict):`), or a manifest rewritten
+    # through json.dumps instead of in place.
+    def test_only_the_address_changes_and_every_other_line_and_byte_is_kept(self):
+        self.make_owner_run()
+        result = self.archive()
+        members = self.members_of(result["path"])
+        lines = members["transcript.jsonl"].split(b"\n")
+        self.assertEqual(len(lines), len(self.transcript_lines))
+        for i, (archived, original) in enumerate(zip(lines, self.transcript_lines)):
+            if i != 1:
+                self.assertEqual(archived, original, f"transcript line {i} was rewritten")
+        record = json.loads(lines[1])
+        expected = session_context_record()
+        del expected["attachment"]["context"]["userEmail"]
+        expected["rendered"][0]["content"] = expected["rendered"][0]["content"].replace(OWNER, "<redacted>")
+        self.assertEqual(record, expected)
+        disk = read_bytes(os.path.join(self.runs_dir, self.run_id, "manifest.json"))
+        self.assertEqual(members["run/manifest.json"], disk.replace(OWNER.encode("ascii"), b"<redacted>"))
+        self.assertEqual(json.loads(members["run/manifest.json"])["status_text"], "\u2713 Logged in as <redacted>")
+        stdout = read_bytes(os.path.join(self.runs_dir, self.run_id, "stdout.json"))
+        self.assertEqual(members["run/stdout.json"], stdout)
+
+    # Kills: `KEPT_ADDRESSES = set()` (the commit trailer's noreply address is not personal and stays).
+    def test_the_anthropic_noreply_address_is_kept_beside_a_masked_one(self):
+        self.make_stray_run()
+        members = self.members_of(self.archive()["path"])
+        stdout = members["run/stdout.json"].split(b"\n")
+        self.assertEqual(stdout[1], compact({"type": "assistant",
+                                             "text": NOREPLY_TRAILER + ", reviewed by <redacted>"}))
+        self.assertIn(self.PROMPT_SNAPSHOT, members["transcript.jsonl"].split(b"\n"))
+        self.assertIn(b"<noreply@anthropic.com>", members["transcript.jsonl"])
+
+    # Kills: an archive that writes its redacted copy back over the source (`open(transcript, "wb").write(data)`).
+    def test_the_run_directory_and_the_transcript_on_disk_are_not_changed(self):
+        transcript = self.make_owner_run()
+        run_dir = os.path.join(self.runs_dir, self.run_id)
+        paths = [str(transcript)] + [os.path.join(run_dir, n) for n in sorted(os.listdir(run_dir))
+                                     if os.path.isfile(os.path.join(run_dir, n))]
+        before = {p: read_bytes(p) for p in paths}
+        members = self.members_of(self.archive()["path"])
+        self.assertEqual({p: read_bytes(p) for p in paths}, before)
+        self.assertIn(OWNER.encode("ascii"), before[str(transcript)])
+        self.assertNotEqual(members["transcript.jsonl"], before[str(transcript)])
+        self.assertNotEqual(members["run/manifest.json"], before[os.path.join(run_dir, "manifest.json")])
+
+    # Kills: the safety net bypassed in mask_member (`masked, n = text, 0`), the ledger written without it, or
+    # `<member>:email` left out of `redacted`.
+    def test_the_safety_net_masks_a_stray_address_in_every_text_member_and_names_each(self):
+        self.make_stray_run()
+        result = self.archive()
+        members = self.members_of(result["path"])
+        self.assertEqual(result["redacted"], ["ledger.json:email", "run/last_message.txt:email", "run/stderr.log:email",
+                                              "run/stdout.json:email", "transcript.jsonl:email"])
+        for name, body in members.items():
+            if name != "run/blob.bin":
+                self.assertNotIn(STRAY.encode("ascii"), body, f"{name} still holds the stray address")
+        self.assertEqual(members["run/stderr.log"], b"warning: could not notify <redacted>\n")
+        self.assertEqual(members["run/last_message.txt"], b"Done. Questions to <redacted>.\n")
+        self.assertEqual(json.loads(members["ledger.json"])["run"]["run_id"], self.run_id)
+        self.assertIn("email addresses masked in: ledger.json, run/last_message.txt, run/stderr.log, run/stdout.json, "
+                      "transcript.jsonl\n", members["MANIFEST.txt"].decode("utf-8"))
+        detail = json.loads(self.store.row("SELECT detail FROM journal WHERE kind='evidence-archived'")["detail"])
+        self.assertEqual(detail["redacted"], result["redacted"])
+
+    # Kills: dropping the kept domain (`KEPT_DOMAINS = ("example.invalid",)` -> `()`), lane P's review: the safety net
+    # must leave a test address alone, or the tests above stop telling a broken structured layer from a working one
+    # (the net would mask the owner's test address itself).
+    def test_the_safety_net_keeps_the_test_domain_and_names_no_member_for_it(self):
+        self.write_run([b'{"type":"user","text":"TRANSCRIPT-BODY"}', b""],
+                       {"stdout.json": b'{"type":"assistant","text":"seen owner@example.invalid"}\n'})
+        result = self.archive()
+        members = self.members_of(result["path"])
+        self.assertEqual(members["run/stdout.json"], b'{"type":"assistant","text":"seen owner@example.invalid"}\n')
+        self.assertEqual(result["redacted"], [])
+
+    # Kills: ignoring the escaping backslash before a local part (`if slashes % 2 == 1:` -> `if False:`), which
+    # would write `\<redacted>` and break the JSON line.
+    def test_a_masked_address_right_after_a_json_escape_keeps_the_line_valid(self):
+        self.make_stray_run()
+        stdout = self.members_of(self.archive()["path"])["run/stdout.json"].split(b"\n")
+        self.assertEqual(json.loads(stdout[2])["text"], "contact:\n<redacted>")
+        self.assertEqual(json.loads(stdout[3])["text"], "\u2713<redacted>")
+        self.assertEqual(stdout[0], self.stray_stdout[0])
+        self.assertEqual(stdout[4], b"")
+
+    # Kills: decoding with `errors="replace"` in mask_member (a member that is not UTF-8 would be rewritten).
+    def test_a_member_that_is_not_utf8_is_copied_unchanged(self):
+        self.make_stray_run()
+        result = self.archive()
+        members = self.members_of(result["path"])
+        self.assertEqual(members["run/blob.bin"], self.blob)
+        self.assertNotIn("run/blob.bin:email", result["redacted"])
+        self.assertIn("run/stderr.log:email", result["redacted"])
+        self.assertIn(f"{len(self.blob)} run/blob.bin", members["MANIFEST.txt"].decode("utf-8"))
 
 
 if __name__ == "__main__":

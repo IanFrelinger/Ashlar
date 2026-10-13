@@ -17,11 +17,17 @@ records the shapes verbatim. Observed, and therefore declared in `capabilities`:
     later `--resume` of the same id succeeds;
   * `--json-schema` returns `structured_output`; `--no-session-persistence` writes no transcript;
   * `--output-format stream-json --verbose` emits NDJSON: `system/init`, then a `rate_limit_event`
-    whose `rate_limit_info.unifiedWindows.five_hour.utilization` is the subscription allowance (the
-    only headless source for it), then messages, then the `result` object;
+    whose `rate_limit_info.unifiedWindows` carries the subscription allowance (the only headless
+    source for it), then messages, then the `result` object. The live run of 2026-10-13 showed both
+    windows, `five_hour` and `seven_day`, in every event; the allowance recorded is the higher
+    utilization of the windows present, and the observation's raw names that window. That run's streams
+    also had `system/hook_started` and `system/hook_response` (the operator's SessionStart hook) before
+    `system/init`, `system/thinking_tokens` between messages, and the `rate_limit_event` after the first
+    assistant message; nothing here depends on the order;
   * `--strict-mcp-config` (no `--mcp-config`) keeps the operator's claude.ai connectors out of the
     run: `mcp_servers:[]`, and the first-call cache creation drops from ~70k to ~9k tokens. Every
-    launch passes it.
+    launch passes it. It covers MCP servers only: the live run's workers still loaded the operator's
+    user-level hooks, skills, agents, slash commands and auto-memory (isolating them is card #790).
 
 `total_cost_usd` is `costBasis:"list"`: an estimate of API value, never a charge on a subscription.
 It is recorded as an ESTIMATED_API_VALUE observation and is never summed with the allowance.
@@ -39,6 +45,7 @@ from __future__ import annotations
 import errno
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -373,17 +380,29 @@ class ClaudeAdapter:
     def _allowance_observation(self, session_id: Optional[str], rate_limit_info: Optional[Dict[str, Any]] = None,
                                ) -> UsageObservation:
         """The subscription allowance. Its only headless source is the stream's `rate_limit_event`:
-        `rate_limit_info.unifiedWindows.five_hour.utilization` is the fraction of the five-hour window
-        used, reported here as a percentage of 100. Without an event (no stream, a run that died before
-        the first request, `observe_usage` with no run) the observation is UNAVAILABLE."""
+        `rate_limit_info.unifiedWindows.<window>.utilization` is the fraction of that window used. The live
+        run of 2026-10-13 showed both windows in every event (five_hour 0.02, seven_day 0.69), so the
+        value is the HIGHER utilization of the windows present, reported as a percentage of 100, and
+        `raw.allowance_window` names the window it came from: the interactive reserve then sees the
+        binding window. A window that is missing, null or without a numeric utilization is ignored.
+        Without any (no stream, a run that died before the first request, `observe_usage` with no run)
+        the observation is UNAVAILABLE."""
         at = _utc_iso(self.clock())
         windows = (rate_limit_info or {}).get("unifiedWindows") if isinstance(rate_limit_info, dict) else None
-        five = windows.get("five_hour") if isinstance(windows, dict) else None
-        utilization = five.get("utilization") if isinstance(five, dict) else None
-        if isinstance(utilization, (int, float)):
+        binding: Optional[str] = None
+        utilization: Optional[float] = None
+        for name in sorted(windows) if isinstance(windows, dict) else ():
+            window = windows[name]
+            u = window.get("utilization") if isinstance(window, dict) else None
+            if isinstance(u, bool) or not isinstance(u, (int, float)) or not math.isfinite(u):
+                continue
+            if utilization is None or float(u) > utilization:
+                binding, utilization = str(name), float(u)
+        if utilization is not None:
             return UsageObservation(provider=self.name, kind=UsageKind.SUBSCRIPTION_ALLOWANCE, unit="percent",
-                                    freshness=UsageFreshness.FRESH, value=round(float(utilization) * 100, 2),
-                                    total=100.0, native_session_id=session_id, observed_at=at, raw=dict(rate_limit_info))
+                                    freshness=UsageFreshness.FRESH, value=round(utilization * 100, 2),
+                                    total=100.0, native_session_id=session_id, observed_at=at,
+                                    raw=dict(rate_limit_info, allowance_window=binding))
         return UsageObservation(provider=self.name, kind=UsageKind.SUBSCRIPTION_ALLOWANCE, unit="percent",
                                 freshness=UsageFreshness.UNAVAILABLE, native_session_id=session_id, observed_at=at,
                                 raw=dict(rate_limit_info) if isinstance(rate_limit_info, dict) else {})

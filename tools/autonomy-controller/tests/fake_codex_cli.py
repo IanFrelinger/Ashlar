@@ -18,7 +18,8 @@ Script keys:
                        without a thread_id gets the resume id, or a fresh uuid on a fresh launch.
   sleep_seconds        how long an `exec` sleeps after printing `sleep_after` events  (default 0)
   sleep_after          how many events are printed before the sleep                  (default 1)
-  stderr               text an `exec` writes to stderr after its events
+  stderr               text an `exec` writes to stderr after its events (every `exec` first writes
+                       `Reading additional input from stdin...` as stderr line 1, as the real CLI does)
   exit                 exit code of an `exec`                                          (default 0)
   write_session_file   when true, append a line to
                        <CODEX_HOME>/sessions/2026/10/12/rollout-2026-10-12T00-00-00-<thread_id>.jsonl
@@ -39,6 +40,7 @@ import time
 import uuid
 
 LOGGED_IN = "Logged in using ChatGPT"
+STDIN_MESSAGE = "Reading additional input from stdin..."
 
 
 def _load_script() -> dict:
@@ -205,10 +207,12 @@ def main() -> int:
         sys.stderr.flush()
         return int(script.get("login_status_exit", 0))
     if argv[:1] == ["exec"]:
+        # What the real CLI says on every `exec` whose stdin is not a terminal, DEVNULL included: both live runs
+        # of 2026-10-13 (run-4c1f88184756, run-82eb9983dca6) have it as stderr line 1. DEVNULL gives EOF at once,
+        # so nothing waits; an open stdin would block, which `stdin.eof` records.
+        sys.stderr.write(STDIN_MESSAGE + "\n")
+        sys.stderr.flush()
         stdin = _stdin_state()
-        if not stdin["eof"]:
-            sys.stderr.write("Reading additional input from stdin...\n")   # what the real CLI says
-            sys.stderr.flush()
         _record("argv", argv, stdin)
         return _exec(argv, script)
     sys.stderr.write(f"fake_codex_cli: unsupported invocation {argv!r}\n")

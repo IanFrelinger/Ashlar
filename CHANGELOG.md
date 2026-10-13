@@ -17,6 +17,29 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — budgeted autonomy controller, PR 5 live-run findings (phase F)
+
+The PR 5 live run of 2026-10-13 (ledger `ctl-pr5-live`, operated by the Codex agent on the owner's delegation:
+PRs #786, #787 and #788 opened and closed unmerged, a second transfer refused with exit 6, card #776 parked at 26
+of 36 turns) found these. Each code fix has tests that were observed red under a mutation of the fix.
+
+- `tools/autonomy-controller/ashlar_controller/evidence.py`: evidence archives redact the account email: the
+  `userEmail` of a Claude transcript's `session_context` attachment and its rendered copy, the Cursor manifest's
+  `status_text`, and a safety net over every text member (keeping the commit-trailer address and the reserved
+  test domain), each named in `MANIFEST.txt` and the `evidence-archived` row. Four of the six live-run archives
+  held the address.
+- `ashlar_controller/adapters/cursor.py`: the logged-in `cursor-agent status` text (`Logged in as <account email>`)
+  is masked before it is stored or quoted, and a settled run keeps the last `result` event (`result_event`:
+  subtype, is_error, duration_ms, session_id, request_id, token usage) as recorded data, never a charge.
+- `ashlar_controller/adapters/claude.py`: the allowance is the binding (higher) rate-limit window, named in
+  `raw.allowance_window`; the live run recorded 2 percent while the seven-day window stood at 69.
+- `status` and `report` show the attempts the budget still permits (min(attempts left, floor(remaining /
+  invocation ceiling))): the report printed `2/3 (1 permitted)` for a pool that could not fund another
+  invocation. The Codex test fake prints the stdin line the real CLI prints under `DEVNULL`.
+- README: the live run's record, the observed Codex, Cursor and Claude stream shapes, capped Claude runs charged
+  ceiling + 1 (kept by the owner), the operator's deviations and known limits; `policy.example.json` names
+  `composer-2.5` for Cursor.
+
 ### Fixed — budgeted autonomy controller, PR 5 pre-flight findings (phase F)
 
 A pre-flight of the owner-run PR 5 live run, before any worker launched, found these in PR 5's code. Each fix
