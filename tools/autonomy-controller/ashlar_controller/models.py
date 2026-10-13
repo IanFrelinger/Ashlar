@@ -80,10 +80,12 @@ class StopReason:
     REPAIR_ROUNDS_EXHAUSTED = "repair-rounds-exhausted"  # limits.repair_rounds used; the task parks
     NO_CHANGE_TO_PROPOSE = "no-change-to-propose"      # the worker completed but left no diff to push
     PR_OPEN_BLOCKS_DISPATCH = "pr-open-blocks-dispatch"  # PRs are serial: nothing new launches while one is open
+    PROPOSE_FAILED = "propose-failed"                  # a completed run was charged, but its commit, push or PR failed
     # Provider transfer (PR 5)
     PROVIDER_TRANSFERRED = "provider-transferred"        # the task moved to another provider; task, PR and pool kept
     PROVIDER_TRANSFERS_EXHAUSTED = "provider-transfers-exhausted"  # limits.provider_transfers_per_pr used
     TRANSFER_WRITER_NOT_STOPPABLE = "previous-writer-not-stoppable"  # a running run whose adapter is not registered
+    TRANSFER_NEEDS_PR_LIFECYCLE = "transfer-needs-pr-lifecycle"  # a completed writer would be marked done, not proposed
 
 
 class UsageFreshness:

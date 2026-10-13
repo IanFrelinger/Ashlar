@@ -32,6 +32,9 @@ from .models import (BudgetExhausted, ControllerError, LaunchOutcomeUnknown, Lau
 from .policy import Policy
 from .store import Store, utcnow_iso
 
+# The roles that edit code. One writer at a time across both, and a completed one is proposed, not done.
+WRITER_ROLES = ("implementation", "readiness-fixer")
+
 
 @dataclass
 class TickReport:
@@ -177,13 +180,21 @@ class Controller:
         run_state = status.state if status.state in (RunState.FINISHED, RunState.FAILED, RunState.CANCELLED) else RunState.FAILED
         settled = budget.settle(self.store, run["run_id"], state=run_state, stop_reason=reason, consumed=consumed,
                                 failure_identity=status.failure_identity, result=status.result, now=self.clock())
+        if settled.get("already_settled"):
+            # A settled run never moves its task again: the run row keeps its first settlement, and a second
+            # one (an operator's `run settle`, or a race with another settlement) changes no task state.
+            settled["task_id"] = task_id
+            return settled
         idle = self.policy.idle
         blocker = status.result.get("blocker") if status.result else None
         if reason == StopReason.COMPLETED:
-            if self.lifecycle is not None and run["role"] in ("implementation", "readiness-fixer"):
+            if self.lifecycle is not None and run["role"] in WRITER_ROLES:
                 # PR 3: completed means "proposed", not "done". The workspace is committed and pushed and the
                 # PR opened (or its new head recorded); only a merge on the current head makes the task done.
-                settled["lifecycle"] = self.lifecycle.after_completed(run, limits)
+                try:
+                    settled["lifecycle"] = self.lifecycle.after_completed(run, limits)
+                except Exception as e:  # noqa: BLE001 - GitError, GhError, OSError: charged, but not proposed
+                    settled["lifecycle"] = self._propose_failed(run, e)
             else:
                 self.set_task_state(task_id, TaskState.DONE, stop_reason=reason)
         elif reason == StopReason.QUOTA_EXHAUSTED:
@@ -234,6 +245,20 @@ class Controller:
         settled["task_id"] = task_id
         return settled
 
+    def _propose_failed(self, run, error: Exception) -> Dict[str, Any]:
+        """A completed writer run whose commit, push or PR failed. The run stays settled and charged as it was;
+        the error is journalled (`propose-failed`) instead of escaping as a traceback, and the task goes to
+        `needs-reconcile` so nothing launches for it until an operator has looked at the workspace and the
+        remote (the branch may have been pushed, or the PR opened, before the failure)."""
+        text = str(error).strip() or type(error).__name__
+        first = text.splitlines()[0]
+        self.store.journal("propose-failed", task_id=run["task_id"], run_id=run["run_id"],
+                           detail={"run_id": run["run_id"], "role": run["role"], "error_type": type(error).__name__,
+                                   "error": text[:2000], "workspace": run["workspace"]}, now=self.clock())
+        self.set_task_state(run["task_id"], TaskState.NEEDS_RECONCILE, stop_reason=StopReason.PROPOSE_FAILED,
+                            blocker=f"completed run not proposed: {first[:500]}")
+        return {"action": "propose-failed", "error": text[:2000]}
+
     def _apply_failure_retry(self, task_id: str, pool_id: str, failure_identity: Optional[str], reason: str,
                              same_failure_retries: int) -> Dict[str, Any]:
         """The same diagnosed failure is retried `same_failure_retries` times across every cycle and
@@ -253,16 +278,22 @@ class Controller:
 
     def evaluate_readiness(self, task_id: str, report) -> Dict[str, Any]:
         """Apply a readiness gate report (the shape of readiness.GateReport: `failures`, each with a
-        stable `identity`, plus `passed`, `source`, `commit`) to a task. No failures: the task is done.
-        Failures: the first failure's identity goes through the same retry counter as a diagnosed
-        task failure, so the same gate failure is retried once and then parked, on any cycle and
-        after any restart."""
+        stable `identity`, plus `passed`, `source`, `commit`) to a task. No failures: the task is done,
+        unless it has an open PR: then only a merge on the PR's current head finishes it, the PR phase
+        decides, and the task is left as it is (action `pr-open`). Failures: the first failure's identity
+        goes through the same retry counter as a diagnosed task failure, so the same gate failure is
+        retried once and then parked, on any cycle and after any restart."""
         task = self.store.row("SELECT pool_id FROM tasks WHERE task_id=?", (task_id,))
         if task is None:
             raise PolicyError(f"no task {task_id}")
         failures = [{"gate": f.gate, "identity": f.identity, "evidence": f.evidence} for f in report.failures]
         passed = list(report.passed)
-        if not failures:
+        open_pr = self.store.row("SELECT pr_number FROM prs WHERE task_id=? AND state='open' ORDER BY rowid DESC LIMIT 1",
+                                 (task_id,))
+        if not failures and open_pr is not None:
+            out = {"task_id": task_id, "action": "pr-open", "identity": None, "retry": 0,
+                   "pr_number": int(open_pr["pr_number"])}
+        elif not failures:
             self.set_task_state(task_id, TaskState.DONE, stop_reason=StopReason.COMPLETED)
             out = {"task_id": task_id, "action": "completed", "identity": None, "retry": 0}
         else:
@@ -276,16 +307,40 @@ class Controller:
                                    "passed": passed}, now=self.clock())
         return out
 
-    def settle_and_reconcile(self) -> Dict[str, Any]:
+    def _completed_unproposed(self, run, status) -> bool:
+        """True when settling `status` would mark a completed writer run's task `done` with its work never
+        committed, pushed or proposed: the run edits code, it completed, and there is no PR lifecycle."""
+        if self.lifecycle is not None or status is None or status.state == RunState.RUNNING:
+            return False
+        if run["role"] not in WRITER_ROLES:
+            return False
+        reason = status.stop_reason or (StopReason.COMPLETED if status.state == RunState.FINISHED else StopReason.TASK_FAILED)
+        return reason == StopReason.COMPLETED
+
+    def _needs_lifecycle(self, run) -> ControllerError:
+        return ControllerError(
+            f"{StopReason.TRANSFER_NEEDS_PR_LIFECYCLE}: run {run['run_id']} of task {run['task_id']} ({run['role']}) has "
+            f"completed on provider {run['provider']}; without the PR lifecycle it would be settled as done and its work "
+            f"never committed, pushed or proposed. Pass `--gh cli` to the transfer (the run is then proposed before the "
+            f"move), or tick with `--adapter {run['provider']} --gh cli` first. Nothing was changed")
+
+    def settle_and_reconcile(self, task_id: Optional[str] = None, refuse_unproposed: bool = False) -> Dict[str, Any]:
         """Poll running runs, settle finished ones, and resolve uncertain launches. Returns the
-        uncertainty that remains, if any."""
+        uncertainty that remains, if any. `task_id` limits it to that task's runs (the transfer settles
+        only its own task's writer). `refuse_unproposed`: a reconciled run that completed as a writer with
+        no PR lifecycle raises `transfer-needs-pr-lifecycle` before that run's row is touched."""
         out: Dict[str, Any] = {"settled": [], "uncertain": []}
-        for run in self.store.rows("SELECT * FROM runs WHERE state IN ('launching','unknown') ORDER BY reserved_at"):
+        mine = " AND task_id=?" if task_id is not None else ""
+        args = (task_id,) if task_id is not None else ()
+        for run in self.store.rows(f"SELECT * FROM runs WHERE state IN ('launching','unknown'){mine} ORDER BY reserved_at",
+                                   args):
             adapter = self.adapters.get(run["provider"])
             if adapter is None:
                 out["uncertain"].append({"run_id": run["run_id"], "why": f"no adapter for {run['provider']}"})
                 continue
             found = adapter.reconcile(run["run_id"], run["native_run_handle"])
+            if refuse_unproposed and found.found and self._completed_unproposed(run, found.status):
+                raise self._needs_lifecycle(run)
             if not found.found:
                 # Definitely never started: the reservation is released; the attempt stays counted.
                 budget.settle(self.store, run["run_id"], state=RunState.FAILED, stop_reason=StopReason.LAUNCH_FAILED,
@@ -303,7 +358,7 @@ class Controller:
             if found.status is not None and found.status.state != RunState.RUNNING:
                 run = self.store.row("SELECT * FROM runs WHERE run_id=?", (run["run_id"],))
                 out["settled"].append(self._apply_outcome(run, found.status))
-        for run in self.store.rows("SELECT * FROM runs WHERE state='running' ORDER BY reserved_at"):
+        for run in self.store.rows(f"SELECT * FROM runs WHERE state='running'{mine} ORDER BY reserved_at", args):
             adapter = self.adapters.get(run["provider"])
             if adapter is None or not run["native_run_handle"]:
                 continue
@@ -314,15 +369,31 @@ class Controller:
         return out
 
     def cancel_run(self, run_id: str) -> Dict[str, Any]:
+        """Stop a run through its provider's adapter and settle it. A run that may have a live process
+        (`launching`, `running`, `unknown`) is refused when its provider's adapter is not registered: settling
+        it `cancelled` would leave the worker running with nothing left to poll it. After the adapter's cancel
+        the run is polled once more; a run that had already finished is settled with what it did, not as
+        `cancelled` (the output then says `cancelled: false`, `finished_before_cancel: true`)."""
         run = self.store.row("SELECT * FROM runs WHERE run_id=?", (run_id,))
         if run is None:
             raise PolicyError(f"no run {run_id}")
         if run["state"] not in RunState.ACTIVE and run["state"] != RunState.UNKNOWN:
             return {"run_id": run_id, "state": run["state"], "cancelled": False}
         adapter = self.adapters.get(run["provider"])
+        if adapter is None and run["state"] in (RunState.LAUNCHING, RunState.RUNNING, RunState.UNKNOWN):
+            raise ControllerError(f"{StopReason.TRANSFER_WRITER_NOT_STOPPABLE}: run {run_id} is {run['state']} on provider "
+                                  f"{run['provider']} and no {run['provider']} adapter is registered to stop it; pass "
+                                  f"`--adapter {run['provider']}`. Nothing was changed")
+        from .models import RunStatus
         if adapter is not None and run["native_run_handle"]:
             adapter.cancel(run["native_run_handle"])
-        from .models import RunStatus
+            after = adapter.poll(run["native_run_handle"])
+            if after.state != RunState.RUNNING and after.state != RunState.CANCELLED \
+                    and after.stop_reason != StopReason.CANCELLED:
+                # It had already finished before the cancel reached it: settle what it actually did.
+                settled = self._apply_outcome(run, after)
+                settled.update({"cancelled": False, "finished_before_cancel": True})
+                return settled
         settled = self._apply_outcome(run, RunStatus(state=RunState.CANCELLED, stop_reason=StopReason.CANCELLED,
                                                      consumed_units=None, result={"workspace": run["workspace"]}))
         settled["cancelled"] = True
@@ -347,13 +418,21 @@ class Controller:
              a `done` task is not transferred;
           2. the bound: the transfers already made for the pool must be below the limit, else
              `provider-transfers-exhausted` is journalled and BudgetExhausted raised;
-          3. the previous writer is stopped and reconciled: an uncertain launch is reconciled through its
-             adapter first (still uncertain: refused); a running run is cancelled through ITS adapter and
-             settled (no adapter registered for it: refused, nothing changed); a reserved run is refused;
+          3. the previous writer is stopped and reconciled: an uncertain launch of THIS task is reconciled
+             through its adapter first (stopped `reconciled`; still uncertain: refused); a reserved run is
+             refused; a running run whose adapter is not registered is refused (nothing changed). Every active
+             run is then polled ONCE before anything is settled. A writer run that has completed (polled, or
+             found by the reconcile) is proposed through the PR lifecycle; without the lifecycle (no `--gh cli`)
+             the transfer is refused (`transfer-needs-pr-lifecycle`, nothing changed), because the run would be
+             settled `done` and its work dropped. A run that ended otherwise is settled with what it did
+             (`settled`); a run still running is cancelled through ITS adapter and settled (`cancelled`). A
+             settlement that leaves the task `done`, or a completed run whose proposal failed
+             (`propose-failed`), ends the transfer there: `transfer-ended` is journalled and nothing moves
+             (`moved: False`);
           4. one transaction: the task's provider changes, the open PR row's `provider_transfers_used` is
-             incremented, `provider-transferred` is journalled (that row is the count, written before any
-             launch on the new provider), and the task goes back to `pr-open` when its PR is still open,
-             else to `queued`.
+             incremented, `provider-transferred` is journalled with the stopped runs and how each was stopped
+             (that row is the count, written before any launch on the new provider), and the task goes back
+             to `pr-open` when its PR is still open, else to `queued` (`moved: True`).
         The task row, its PR row (number, head, base), its budget pool and its attempts are untouched. The
         next launch is the new provider's: a fresh session (a session id recorded by another provider is
         never resumed) briefed by the compact handoff."""
@@ -393,7 +472,12 @@ class Controller:
         active = self.store.rows("SELECT * FROM runs WHERE task_id=? AND state IN ('reserved','launching','running','unknown') "
                                  "ORDER BY reserved_at, rowid", (task_id,))
         if any(r["state"] in RunState.UNCERTAIN for r in active):
-            self.settle_and_reconcile()
+            # Only this task's runs: the transfer settles nothing of another task's. A run the reconcile settles
+            # is reported (and journalled) as stopped `reconciled`.
+            for s in self.settle_and_reconcile(task_id=task_id, refuse_unproposed=True)["settled"]:
+                r = self.store.row("SELECT provider, role, consumed FROM runs WHERE run_id=?", (s["run_id"],))
+                stopped.append({"run_id": s["run_id"], "provider": r["provider"], "role": r["role"], "how": "reconciled",
+                                "charged": s.get("charged", r["consumed"]), "stop_reason": s.get("stop_reason")})
             active = self.store.rows("SELECT * FROM runs WHERE task_id=? AND state IN ('reserved','launching','running','unknown') "
                                      "ORDER BY reserved_at, rowid", (task_id,))
         for run in active:
@@ -405,18 +489,45 @@ class Controller:
                 raise ControllerError(f"{StopReason.TRANSFER_WRITER_NOT_STOPPABLE}: run {run['run_id']} of task {task_id} is "
                                       f"running on provider {run['provider']} and no {run['provider']} adapter is "
                                       f"registered to stop it; pass `--adapter {run['provider']}`")
-        for run in active:
-            # A run that already ended is settled with what it actually did (a completed one is proposed as
-            # usual); only a run still running is cancelled. Either way it is settled before the move.
-            status = self.adapters[run["provider"]].poll(run["native_run_handle"]) if run["native_run_handle"] else None
+        # Every active run is polled ONCE, before anything is settled, so that the refusal below changes nothing.
+        polled = [(run, self.adapters[run["provider"]].poll(run["native_run_handle"]) if run["native_run_handle"] else None)
+                  for run in active]
+        for run, status in polled:
+            if self._completed_unproposed(run, status):
+                # Settled without the lifecycle it would be `done`, its work never committed, pushed or proposed,
+                # and the move below would then overwrite `done` with `queued` on the new provider.
+                raise self._needs_lifecycle(run)
+        for run, status in polled:
+            # A run that already ended is settled with what it actually did (a completed one is proposed);
+            # only a run still running is cancelled. Either way it is settled before the move.
             if status is not None and status.state != RunState.RUNNING:
                 out = self._apply_outcome(run, status)
                 how = "settled"
             else:
                 out = self.cancel_run(run["run_id"])
-                how = "cancelled"
+                how = "cancelled" if out.get("cancelled") else "settled"
             stopped.append({"run_id": run["run_id"], "provider": run["provider"], "role": run["role"], "how": how,
                             "charged": out.get("charged"), "stop_reason": out.get("stop_reason")})
+
+        # A settlement above can finish the task (a run that completed between the poll and the cancel, with no
+        # lifecycle), or leave a completed run unproposed (`propose-failed`). A done task is not transferred
+        # (rule 1), and moving an unproposed one would drop its work: the transfer ends here and moves nothing.
+        after = self.store.row("SELECT state, stop_reason FROM tasks WHERE task_id=?", (task_id,))
+        ended = None
+        if after["state"] == TaskState.DONE:
+            ended = "task-done-by-settlement"
+        elif after["state"] == TaskState.NEEDS_RECONCILE and after["stop_reason"] == StopReason.PROPOSE_FAILED:
+            ended = StopReason.PROPOSE_FAILED
+        if ended is not None:
+            pr = self.store.row("SELECT pr_number FROM prs WHERE task_id=? AND state='open' ORDER BY rowid DESC LIMIT 1",
+                                (task_id,))
+            self.store.journal("transfer-ended", task_id=task_id,
+                               detail={"reason": ended, "from": from_provider, "to": to_provider, "state": after["state"],
+                                       "stopped_runs": [s["run_id"] for s in stopped], "stopped": stopped}, now=now)
+            return {"task_id": task_id, "from": from_provider, "to": to_provider, "moved": False, "ended": ended,
+                    "transfer_no": None, "of": limit, "state": after["state"],
+                    "pr_number": pr["pr_number"] if pr is not None else None, "stopped": stopped,
+                    "pool_id": task["pool_id"]}
 
         # 4. The move itself, in one transaction.
         pr = self.store.row("SELECT * FROM prs WHERE task_id=? AND state='open' ORDER BY rowid DESC LIMIT 1", (task_id,))
@@ -436,10 +547,10 @@ class Controller:
             self.store.journal("provider-transferred", task_id=task_id,
                                detail={"from": from_provider, "to": to_provider, "transfer_no": transfer_no, "of": limit,
                                        "pool_id": task["pool_id"], "pr_number": pr["pr_number"] if pr is not None else None,
-                                       "stopped_runs": [s["run_id"] for s in stopped], "state": state,
-                                       "reason": reason}, now=now)
-        return {"task_id": task_id, "from": from_provider, "to": to_provider, "transfer_no": transfer_no, "of": limit,
-                "state": state, "pr_number": pr["pr_number"] if pr is not None else None, "stopped": stopped,
+                                       "stopped_runs": [s["run_id"] for s in stopped], "stopped": stopped,
+                                       "state": state, "reason": reason}, now=now)
+        return {"task_id": task_id, "from": from_provider, "to": to_provider, "moved": True, "transfer_no": transfer_no,
+                "of": limit, "state": state, "pr_number": pr["pr_number"] if pr is not None else None, "stopped": stopped,
                 "pool_id": task["pool_id"]}
 
     # ----- dispatch --------------------------------------------------------------------------------
@@ -655,17 +766,32 @@ class Controller:
         return TaskState.QUEUED, StopReason.LAUNCH_FAILED
 
     def _plan(self) -> TickReport:
-        """Dry run: say what a tick would do. Reads only; no adapter is touched."""
+        """Dry run: say what a tick would do, by the tick's own dispatch rules in the tick's order. Reads only:
+        no adapter and no GitHub call is made, so a run the ledger still records as running is reported as
+        the writer even if its process has exited (a real tick polls it first and may settle it), and an open
+        PR is reported as blocking dispatch (a real tick observes it first and may merge, repair or park)."""
         details: Dict[str, Any] = {"dry_run": True}
         uncertain = [dict(r) for r in self.store.rows("SELECT run_id, task_id, provider, state FROM runs WHERE state IN ('launching','unknown')")]
         if uncertain:
             return TickReport("would-block", StopReason.RECONCILE_PENDING, details={**details, "uncertain": uncertain})
-        active = [dict(r) for r in self.store.rows("SELECT run_id, task_id FROM runs WHERE role='implementation' AND state IN ('reserved','launching','running')")]
+        # The same writers as the tick: a repair run edits code like an implementation run.
+        active = [dict(r) for r in self.store.rows("SELECT run_id, task_id, role FROM runs WHERE role IN ('implementation','readiness-fixer') "
+                                                   "AND state IN ('reserved','launching','running')")]
         if len(active) >= int(self.policy.limits["active_writers"]):
             return TickReport("would-block", StopReason.WRITER_BUSY, details={**details, "active": active})
+        if self.lifecycle is not None:
+            # The tick's PR phase: PRs are serial, so nothing new launches while one is open.
+            open_prs = int(self.store.row("SELECT COUNT(*) AS n FROM prs WHERE state='open'")["n"])
+            if open_prs > 0:
+                return TickReport("would-block", StopReason.PR_OPEN_BLOCKS_DISPATCH,
+                                  details={**details, "open_prs": open_prs})
         task = self._eligible_task()
         if task is None:
             return TickReport("would-idle", StopReason.EMPTY_QUEUE, details=details)
+        if self.adapters.get(task["provider"]) is None:
+            # The tick's own report when the picked task's provider has no registered adapter.
+            return TickReport("would-block", StopReason.PROVIDER_DISABLED, task_id=task["task_id"],
+                              details={**details, "error": f"no adapter registered for provider {task['provider']}"})
         pool = budget.pool_row(self.store, task["pool_id"])
         permitted, why = budget.allowance_decision(self.policy, budget.latest_allowance(self.store, task["provider"]),
                                                    float(pool["invocation_ceiling"]))
