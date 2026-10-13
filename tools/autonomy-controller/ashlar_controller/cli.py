@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 from . import budget, events, outbox
 from .adapters.fake import FakeAdapter
 from .controller import WRITER_ROLES, Controller
-from .models import BRIEF_MAX_CHARS, ControllerError, RunState, RunStatus, StopReason, TaskState
+from .models import BRIEF_MAX_CHARS, ControllerError, RunState, RunStatus, StopReason, TaskState, brief_problem
 from .policy import Policy, load_policy
 from .store import Store
 
@@ -28,11 +28,12 @@ ADAPTER_CHOICES = ["fake", "claude", "codex", "cursor"]
 
 
 def _brief(text: str) -> str:
-    """`task add --brief`: a usage error (exit 2) when it is longer than BRIEF_MAX_CHARS, before the state is
-    opened, so nothing is written. Controller.ensure_task refuses it too, for a caller that is not this CLI."""
-    if len(text) > BRIEF_MAX_CHARS:
-        raise argparse.ArgumentTypeError(f"{len(text)} characters; a brief is at most {BRIEF_MAX_CHARS} "
-                                         f"(it is the PR title and the commit subject)")
+    """`task add --brief`: a usage error (exit 2) when it cannot be a PR title and a commit subject (over
+    BRIEF_MAX_CHARS, a line break, only whitespace: `models.brief_problem`), before the state is opened, so
+    nothing is written. Controller.ensure_task refuses it too, for a caller that is not this CLI."""
+    problem = brief_problem(text)
+    if problem:
+        raise argparse.ArgumentTypeError(problem)
     return text
 
 

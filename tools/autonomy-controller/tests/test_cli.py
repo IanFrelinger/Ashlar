@@ -101,6 +101,18 @@ class CommandLine(ControllerCase):
         out, _ = self.cli("task", "show", "t1")
         self.assertEqual(out["brief"], "b" * 72)
 
+    # Kills: the CLI's `_brief` checking the length only (#776's review): a brief with a line break or of only
+    # whitespace exits 2 before the state is opened.
+    def test_a_brief_with_a_line_break_or_only_whitespace_exits_2_and_writes_nothing(self):
+        self.cli("init")
+        before = self.digest()
+        for brief, why in (("line one\nline two", "a brief is one line"), ("   ", "a brief is not empty")):
+            with self.subTest(brief=brief):
+                _, err = self.cli("task", "add", "--task-id", "t1", "--workstream", "w", "--provider", "fake",
+                                  "--brief", brief, expect=2)
+                self.assertIn(why, err)
+                self.assertEqual(self.digest(), before)
+
     def test_lease_break_requires_confirmation(self):
         self.cli("init")
         out, err = self.cli("lease", "break", "--holder", "x", expect=1)

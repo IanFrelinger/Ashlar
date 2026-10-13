@@ -27,8 +27,8 @@ from typing import Any, Dict, List, Optional
 
 from . import budget, events
 from .adapters.base import ProviderAdapter
-from .models import (BRIEF_MAX_CHARS, BudgetExhausted, ControllerError, LaunchOutcomeUnknown, LaunchRefused, LaunchRequest,
-                     LeaseError, PolicyError, RunState, StopReason, TaskState, UsageFreshness)
+from .models import (BudgetExhausted, ControllerError, LaunchOutcomeUnknown, LaunchRefused, LaunchRequest,
+                     LeaseError, PolicyError, RunState, StopReason, TaskState, UsageFreshness, brief_problem)
 from .policy import Policy
 from .store import Store, utcnow_iso
 
@@ -103,11 +103,12 @@ class Controller:
                     base_sha: Optional[str] = None) -> bool:
         """Create the task and its pool if absent. A child task shares its parent's pool. Returns True
         when created. `brief` (card #776), when given, is the PR title and the commit subject of the task's
-        controller-opened PR; `title` stays the worker's instruction. A brief over BRIEF_MAX_CHARS is refused
-        before anything is written."""
-        if brief is not None and len(brief) > BRIEF_MAX_CHARS:
-            raise ControllerError(f"the brief of task {task_id} is {len(brief)} characters; a brief is at most "
-                                  f"{BRIEF_MAX_CHARS} (it is the PR title and the commit subject)")
+        controller-opened PR; `title` stays the worker's instruction. A brief that cannot be one (over
+        BRIEF_MAX_CHARS, a line break, only whitespace: `models.brief_problem`) is refused before anything is
+        written."""
+        problem = brief_problem(brief) if brief is not None else None
+        if problem:
+            raise ControllerError(f"the brief of task {task_id}: {problem}")
         now = self.clock()
         if self.store.row("SELECT 1 FROM tasks WHERE task_id=?", (task_id,)):
             return False

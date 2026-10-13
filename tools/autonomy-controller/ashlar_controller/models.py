@@ -12,6 +12,19 @@ SCHEMA_VERSION = 3   # 2: PR lifecycle columns (prs.branch/url/title, tasks.bran
 BRIEF_MAX_CHARS = 72
 
 
+def brief_problem(brief: str) -> Optional[str]:
+    """Why `brief` cannot be a PR title and a commit subject, or None when it can: longer than BRIEF_MAX_CHARS;
+    a line break (the PR title would carry it, and git would cut the subject at it); nothing but whitespace
+    (git strips a blank first line, and the full instruction would be the subject again)."""
+    if len(brief) > BRIEF_MAX_CHARS:
+        return f"{len(brief)} characters; a brief is at most {BRIEF_MAX_CHARS} (it is the PR title and the commit subject)"
+    if "\n" in brief or "\r" in brief:
+        return "a brief is one line (it is the PR title and the commit subject)"
+    if not brief.strip():
+        return "a brief is not empty or only whitespace (it is the PR title and the commit subject)"
+    return None
+
+
 class TaskState:
     QUEUED = "queued"
     RESERVED = "reserved"

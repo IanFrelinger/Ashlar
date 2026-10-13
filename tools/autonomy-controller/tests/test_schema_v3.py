@@ -64,12 +64,27 @@ class BriefLength(ControllerCase):
         ctl = self.make_controller()
         with self.assertRaises(ControllerError) as cm:
             ctl.ensure_task("t1", workstream="w", provider="fake", title="the instruction", brief="b" * 73)
-        self.assertEqual(str(cm.exception), "the brief of task t1 is 73 characters; a brief is at most 72 (it is the "
+        self.assertEqual(str(cm.exception), "the brief of task t1: 73 characters; a brief is at most 72 (it is the "
                                             "PR title and the commit subject)")
         for table in ("tasks", "budget_pools"):
             self.assertEqual(self.store.row(f"SELECT COUNT(*) AS n FROM {table}")["n"], 0)
         self.assertEqual(self.store.row("SELECT COUNT(*) AS n FROM journal WHERE kind='task-created'")["n"], 0)
         self.assertTrue(ctl.ensure_task("t1", workstream="w", provider="fake", title="the instruction", brief="b" * 72))
+
+    # Kills: dropping the line-break or the blank check from models.brief_problem (#776's review): a brief
+    # 'line one\nline two' put a line break in the PR title and cut the commit subject at it, and a brief of only
+    # whitespace became a blank first line that git strips, so the full instruction was the subject again.
+    def test_a_brief_with_a_line_break_or_only_whitespace_is_refused_and_writes_nothing(self):
+        ctl = self.make_controller()
+        for brief, why in (("line one\nline two", "a brief is one line"), ("a\rb", "a brief is one line"),
+                           ("   ", "a brief is not empty or only whitespace"), ("", "a brief is not empty")):
+            with self.subTest(brief=brief):
+                with self.assertRaises(ControllerError) as cm:
+                    ctl.ensure_task("t1", workstream="w", provider="fake", title="the instruction", brief=brief)
+                self.assertIn(why, str(cm.exception))
+                self.assertEqual(self.store.row("SELECT COUNT(*) AS n FROM tasks")["n"], 0)
+        self.assertTrue(ctl.ensure_task("t1", workstream="w", provider="fake", title="the instruction",
+                                        brief="  a padded one-line brief  "))
 
 
 if __name__ == "__main__":

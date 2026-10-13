@@ -19,8 +19,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Added — budgeted autonomy controller: task add --brief (card #776)
 
-- `task add --brief <text>`: a short title, at most 72 characters (a longer one is a usage error, exit 2, with
-  nothing written), that is the PR title and the commit subject of the task's controller-opened PR; the full
+- `task add --brief <text>`: a short title, one line, not blank, at most 72 characters (anything else is a usage
+  error, exit 2, with nothing written), that is the PR title and the commit subject of the task's controller-opened PR; the full
   `--title` opens the commit body and stays the worker's instruction. Without a brief both are the title, as
   before. The live run of 2026-10-11 (PR #775) opened a PR titled by the whole instruction.
 - Ledger schema 3 adds `tasks.brief`: a schema-2 ledger is migrated in place on its first read-write open
