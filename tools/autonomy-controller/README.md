@@ -1,7 +1,7 @@
 # Budgeted autonomy controller
 
 A small controller that takes the first eligible task from its queue (the operator adds each one with
-`task add`, naming its card; nothing reads cards from GitHub), reserves budget for one bounded worker launch,
+`task add`, optionally naming its card; nothing reads cards from GitHub), reserves budget for one bounded worker launch,
 records every attempt durably, and stops spending when the operator's policy says so. It is the
 foundation of the budgeted autonomous development workflow (workstream `budgeted-autonomy`, card
 #755). PR 1 shipped the policy and the durable state over a fake adapter. **PR 2 adds the Claude
