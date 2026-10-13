@@ -7,6 +7,7 @@
 # The checker is proven both ways: every committed workflow must pass, and five broken fixtures (an unmatched
 # phase and Date.now, a meta naming a variable, a meta calling a builtin, a malformed meta literal, a body that
 # does not parse) must each be refused for their own reason. A checker that passed everything would fail here.
+# Every saved workflow is also LF, pinned by .gitattributes: the Workflow tool refuses a script holding a CR.
 #
 # Needs node (preinstalled on the hosted ubuntu runner shell-lint uses). No node is a failure, not a skip.
 set -uo pipefail
@@ -25,6 +26,24 @@ if [[ "${count}" -lt 2 ]]; then
   echo "claude-workflows.test: ERROR: expected at least 2 workflow scripts in .claude/workflows, found ${count}." >&2
   exit 1
 fi
+# The Workflow tool refuses a script that holds a control character, and a CR is one. A CRLF checkout of a saved
+# workflow (core.autocrlf=true on Windows) therefore cannot be run by name, so .gitattributes pins them to LF, and
+# no checked-out copy may hold a CR. Linux CI checks the attribute; a Windows checkout made before the attribute
+# landed is caught by the byte check. The byte check compares the file with itself minus every CR, because Git for
+# Windows' grep drops a CR before a line end and so cannot see one.
+for f in "${ROOT}"/.claude/workflows/*.js; do
+  rel=".claude/workflows/$(basename "${f}")"
+  eol="$(git -C "${ROOT}" check-attr eol -- "${rel}" | sed 's/^.*: eol: //')"
+  if [[ "${eol}" != "lf" ]]; then
+    echo "claude-workflows.test: FAIL: ${rel} is not pinned to LF in .gitattributes (eol: ${eol})." >&2
+    fail=1
+  fi
+  if ! tr -d '\r' <"${f}" | cmp -s - "${f}"; then
+    echo "claude-workflows.test: FAIL: ${rel} holds a CR in this checkout, so it cannot be run by name; check it out again: rm '${rel}' && git checkout -- '${rel}'" >&2
+    fail=1
+  fi
+done
+
 if ! out="$(node "${CHECK}")"; then
   echo "${out}"
   echo "claude-workflows.test: FAIL: a committed workflow script is broken (above)." >&2
@@ -92,4 +111,4 @@ if [[ "${fail}" -ne 0 ]]; then
   echo "claude-workflows.test: FAIL" >&2
   exit 1
 fi
-echo "claude-workflows.test: ${count} workflow script(s) pass; 7 refusals observed"
+echo "claude-workflows.test: ${count} workflow script(s) pass and are LF; 7 refusals observed"

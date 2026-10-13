@@ -1,6 +1,7 @@
 # Budgeted autonomy controller
 
-A small controller that takes an eligible task card, reserves budget for one bounded worker launch,
+A small controller that takes the first eligible task from its queue (the operator adds each one with
+`task add`, naming its card; nothing reads cards from GitHub), reserves budget for one bounded worker launch,
 records every attempt durably, and stops spending when the operator's policy says so. It is the
 foundation of the budgeted autonomous development workflow (workstream `budgeted-autonomy`, card
 #755). PR 1 shipped the policy and the durable state over a fake adapter. **PR 2 adds the Claude
@@ -34,7 +35,7 @@ and nothing here runs outside the host the operator starts it on.
 | `ashlar_controller/store.py` | The SQLite schema, integrity checks and the single-writer lease |
 | `ashlar_controller/budget.py` | Budget pools, atomic reservations, settlement, usage deltas, the interactive reserve |
 | `ashlar_controller/events.py` | Event deduplication (an event id is an idempotency key) |
-| `ashlar_controller/outbox.py` | Milestone posts (claim / handoff / done) with duplicate-safe recovery |
+| `ashlar_controller/outbox.py` | Milestone posts (claim / handoff / done) that the operator enqueues and flushes (`outbox enqueue`, `outbox flush`), with duplicate-safe recovery; the tick posts nothing itself |
 | `ashlar_controller/controller.py` | The tick: settle, reconcile, then at most one launch |
 | `ashlar_controller/adapters/` | The adapter protocol, declared capabilities, the fake adapter, `claude.py` (the Claude Code CLI), `codex.py` (the Codex CLI) and `cursor.py` (the Cursor agent CLI); `locate_run_transcript` finds a run's transcript by the provider that wrote it |
 | `ashlar_controller/readiness.py` | The three gate commands, their parsers, stable failure identities, the bounded fixer launch |
@@ -945,10 +946,12 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
 ## Not in PR 3
 
 - The `phases` table exists but nothing writes it yet.
-- No Codex or Cursor adapter (PR 5). `tick --adapter` accepts `fake` and `claude` only.
+- No Codex or Cursor adapter: `tick --adapter` accepted `fake` and `claude` only. PR 5 added `codex` and
+  `cursor`.
 - A repair run that stops at the turn ceiling requeues like any run; the next observation of the still
   red head starts a new round with a fresh session rather than resuming the fixer's session (the rounds
-  bound it). Premium escalation and provider transfer per PR are counted in `prs` but not driven.
+  bound it). Premium escalation and provider transfer per PR were counted in `prs` but not driven. PR 5
+  drives the transfer (`task transfer`); premium escalation is still not driven.
 - The `GhCli` argv shapes are the ones in the module docstring; `pr create`, `pr list --head`, `pr view
   --json`, the check-runs API and a closed PR were exercised live on 2026-10-11 (PR #775, see "Not in PR 4");
   `pr merge --match-head-commit` only against the fake; none against every error GitHub can return.
