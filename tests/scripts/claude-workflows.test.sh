@@ -4,9 +4,10 @@
 # phase; a script that does not parse would otherwise fail only then, in the middle of ending a phase.
 # Discovered and run bare by scripts/ci/run-repo-gates.sh in the required shell-lint check.
 #
-# The checker is proven both ways: every committed workflow must pass, and five broken fixtures (an unmatched
+# The checker is proven both ways: every committed workflow must pass, and six broken fixtures (an unmatched
 # phase and Date.now, a meta naming a variable, a meta calling a builtin, a malformed meta literal, a body that
-# does not parse) must each be refused for their own reason. A checker that passed everything would fail here.
+# does not parse, a CRLF script) must each be refused for their own reason. A checker that passed everything would
+# fail here. Every saved workflow is also pinned LF in .gitattributes: the Workflow tool refuses a script holding a CR.
 #
 # Needs node (preinstalled on the hosted ubuntu runner shell-lint uses). No node is a failure, not a skip.
 set -uo pipefail
@@ -25,6 +26,19 @@ if [[ "${count}" -lt 2 ]]; then
   echo "claude-workflows.test: ERROR: expected at least 2 workflow scripts in .claude/workflows, found ${count}." >&2
   exit 1
 fi
+# The Workflow tool refuses a script that holds a control character, and a CR is one. A CRLF checkout of a saved
+# workflow (core.autocrlf=true on Windows) therefore cannot be run by name, so .gitattributes pins every one to LF.
+# The checker refuses a checked-out copy that holds a CR (the crlf.js fixture below), so a Windows checkout made
+# before the attribute landed fails here too, with the fix in its message.
+for f in "${ROOT}"/.claude/workflows/*.js; do
+  rel=".claude/workflows/$(basename "${f}")"
+  eol="$(git -C "${ROOT}" check-attr eol -- "${rel}" | sed 's/^.*: eol: //')"
+  if [[ "${eol}" != "lf" ]]; then
+    echo "claude-workflows.test: FAIL: ${rel} is not pinned to LF in .gitattributes (eol: ${eol})." >&2
+    fail=1
+  fi
+done
+
 if ! out="$(node "${CHECK}")"; then
   echo "${out}"
   echo "claude-workflows.test: FAIL: a committed workflow script is broken (above)." >&2
@@ -64,6 +78,8 @@ export const meta = {
 const r = await agent('hi')
 return 1 +
 JS
+# A valid script, but with CRLF line ends: what a Windows checkout without the .gitattributes pin produces.
+printf "export const meta = { name: 'x', description: 'y' }\r\nreturn 1\r\n" >"${TMP}/crlf.js"
 
 expect_refused() {   # <fixture> <text the refusal must contain>
   local f="$1" want="$2" got
@@ -87,9 +103,10 @@ expect_refused builtin.js "meta is not a pure literal"
 # Made only of allowed tokens, so the source scan passes it; evaluating it is what refuses it.
 expect_refused malformed.js "meta does not evaluate as a literal"
 expect_refused noparse.js "the body does not parse"
+expect_refused crlf.js "holds a control character (U+000D at line 1)"
 
 if [[ "${fail}" -ne 0 ]]; then
   echo "claude-workflows.test: FAIL" >&2
   exit 1
 fi
-echo "claude-workflows.test: ${count} workflow script(s) pass; 7 refusals observed"
+echo "claude-workflows.test: ${count} workflow script(s) pass and are pinned LF; 8 refusals observed"

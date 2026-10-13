@@ -17,6 +17,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — saved Claude workflows on a CRLF checkout
+
+- `.gitattributes` keeps `.claude/workflows/*.js` LF on every checkout. With `core.autocrlf=true`, the Git for
+  Windows default, they were checked out CRLF. The Workflow tool refuses a script that holds a control
+  character, so a saved workflow such as `project-audit` could not be run by name.
+  `tests/scripts/claude-workflows.test.sh` now asserts the attribute. `scripts/phase-end/check_workflows.js` now
+  refuses a workflow that holds a control character other than tab and newline, which a CRLF fixture proves. To
+  fix a checkout made before this change, run `rm <file> && git checkout -- <file>`.
+- `tools/autonomy-controller/PILOT-PR4.md`, the throwaway file the PR 4 pilot merged (#777), is removed.
+
 ### Added — budgeted autonomy controller: task add --brief (card #776)
 
 - `task add --brief <text>`: a short title, one line, not blank, at most 72 characters (anything else is a usage

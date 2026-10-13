@@ -5,7 +5,9 @@
 //   - meta is a pure literal with a name and a description;
 //   - every phase('<title>') call has a meta.phases entry with the same title, and every entry is started
 //     (by phase() or by an agent's { phase: '<title>' } option);
-//   - no Date.now(), Math.random() or argless new Date() (they throw: they would break resume).
+//   - no Date.now(), Math.random() or argless new Date() (they throw: they would break resume);
+//   - no control character other than tab and newline (the tool refuses one; a CRLF checkout holds a CR on
+//     every line).
 // Usage: node scripts/phase-end/check_workflows.js [file ...]   (default: every .claude/workflows/*.js)
 // Exit 0 when every file passes; 1 otherwise, with one line per problem.
 'use strict'
@@ -91,9 +93,29 @@ function metaImpurity(text) {
   return null
 }
 
+// The first control character other than tab and newline, as { code, line }, or null. The Workflow tool refuses a
+// script that holds one ("script contains control characters that would be hidden in the approval dialog"); a CR
+// was observed refused on 2026-10-13, which is why a CRLF checkout of a saved workflow cannot be run by name.
+function controlCharacter(src) {
+  let line = 1
+  for (let i = 0; i < src.length; i++) {
+    const code = src.charCodeAt(i)
+    if (code === 10) { line++; continue }
+    if (code === 9) continue
+    if (code < 32 || code === 127) return { code, line }
+  }
+  return null
+}
+
 function problemsOf(file) {
   const src = fs.readFileSync(file, 'utf8')
   const out = []
+  const ctl = controlCharacter(src)
+  if (ctl) {
+    const hex = ctl.code.toString(16).toUpperCase().padStart(4, '0')
+    return [`holds a control character (U+${hex} at line ${ctl.line}), which the Workflow tool refuses; ` +
+            `a CRLF checkout is fixed with: rm <file> && git checkout -- <file>`]
+  }
   const span = metaSpan(src)
   if (!span) return ['no `export const meta = {...}` object literal']
   const impure = metaImpurity(src.slice(span.start, span.end))

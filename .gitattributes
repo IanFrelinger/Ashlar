@@ -19,3 +19,6 @@ scripts/stop-ashlar-api-dev.sh text eol=lf
 # The reference consumer host is copied verbatim into a generated tree by
 # scripts/verify-external-product-shape.sh; CRLF here would change the bytes that gate compares.
 consumer-template/host/** text eol=lf
+# The Workflow tool refuses a script that holds a control character, and a CR is one: a CRLF checkout of a saved
+# workflow (core.autocrlf=true on Windows) cannot be run by name. tests/scripts/claude-workflows.test.sh asserts this.
+.claude/workflows/*.js text eol=lf
