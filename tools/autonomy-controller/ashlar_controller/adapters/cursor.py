@@ -1,7 +1,7 @@
 """The Cursor agent CLI adapter: one headless `cursor-agent -p` per run, every run recorded on disk.
 
-WHAT WAS OBSERVED. The CLI on the probe host is NOT logged in, so no `-p` run has produced any output.
-Report `probe-cursor-report-1.json` (script `probe_cursor_runtime.py`, 2026-10-12), against the Cursor
+WHAT WAS OBSERVED. The CLI on the probe host was NOT logged in when probed, so no probe `-p` run produced
+any output. Report `probe-cursor-report-1.json` (script `probe_cursor_runtime.py`, 2026-10-12), against the Cursor
 IDE's embedded agent CLI `2026.10.01-e373342`
 (`%APPDATA%\\Cursor\\User\\globalStorage\\anysphere.cursor-agent-worker\\agent-cli\\.local\\share\\cursor-agent\\versions\\<v>\\cursor-agent.cmd`),
 recorded only this:
@@ -18,22 +18,33 @@ recorded only this:
     set CURSOR_API_KEY environment variable.`. So no model id was checked (`composer-standard` and
     `no-such-model-0` failed the same way), and c6 had nothing to cancel.
 
+The first logged-in run, run-bdc63ec68d56 of the PR 5 live run (2026-10-13, model `composer-2.5`, PR #787),
+showed: `cursor-agent status` prints a check mark and `Logged in as <account email>` (masked before it is
+stored, below); the `--output-format stream-json` stream is `system/init`, `user`, `thinking` (delta,
+completed), `assistant`, `tool_call` (started, completed) and last `result` (subtype `success`, `session_id`,
+`request_id`, token `usage`), 38 events with one `session_id` on every event; the exit recorder wrote exit 0
+and the next tick settled the run `completed`; the multi-line prompt arrived whole through `node.exe
+index.js`; no transcript file was located. `composer-2.5` was accepted.
+
 UNVERIFIED, and therefore False in `capabilities`:
-  * exact_resume: the stream's session or chat id was never seen, so `--resume` is NEVER passed. A
-    request carrying `resume_session_id` launches fresh and records `resume_unsupported: true`;
-  * cancel: no run lived long enough to be cancelled. `cancel` still records first and kills the tree;
+  * exact_resume: the live stream printed a `session_id` on every event, but resuming with it was never
+    tried, so `--resume` is NEVER passed. A request carrying `resume_session_id` launches fresh and records
+    `resume_unsupported: true`;
+  * cancel: no run has been cancelled (the probe runs exited at once, the live run finished). `cancel` still
+    records first and kills the tree;
   * structured_output: no schema flag in `--help`;
   * usage_observation: no turn, request, cost or allowance figure was ever printed (the one logged-in
     stream, run-bdc63ec68d56 of 2026-10-13, prints token usage in its `result` event, which is kept as
-    `result_event` and never charged). `consumed_units` is always None, so the controller charges the FULL
-    reservation (`turns_unobserved: true`), and `observe_usage` is an `unavailable` observation;
+    `result_event` and never charged). What Cursor bills as a request is unobserved. `consumed_units` is
+    always None, so the controller charges the FULL reservation (`turns_unobserved: true`), a ceiling and not
+    a measurement, and `observe_usage` is an `unavailable` observation;
   * transcript_retention: where (and whether) the CLI keeps a chat was never seen;
   * turn_limit: `--help` lists no turn-limit flag, so the invocation ceiling is not enforced by the CLI.
-  Also unseen in the probe: the logged-in `status` text (any other non-empty text, at exit 0, counts as logged in and
-  is recorded in the manifest with every email address masked), the shape of `--output-format
-  stream-json`, a successful run's exit code, and what `--trust`, `--workspace` and `-f` do.
+  Any non-empty `status` text other than `Not logged in`, at exit 0, counts as logged in, and is recorded in
+  the manifest with every email address masked. What `--trust`, `--workspace` and `-f` each do was not probed
+  one by one.
 
-So that the first logged-in run leaves evidence of the real shape, every settled run keeps the first
+So that a run leaves evidence of the real shape, every settled run keeps the first
 2000 characters of stdout (`result_text`), the `type` of every JSON line (`event_types`), any
 `session_id`/`sessionId`/`chat_id`/`chatId` value seen (`session_id_candidates`), the subtype, is_error,
 duration_ms, session_id, request_id and usage of the last `result` event (`result_event`, which in the
@@ -279,14 +290,15 @@ def kill_tree(pid: int) -> None:
 class CursorAdapter:
     name = "cursor"
     capabilities = AdapterCapabilities(
-        exact_resume=False,          # unobserved: no session or chat id was ever printed (logged out)
-        cancel=False,                # unobserved: every probe run exited at once with the auth error
+        exact_resume=False,          # a session_id is printed, but resuming with it was never tried
+        cancel=False,                # unobserved: no run has been cancelled
         structured_output=False,     # no schema flag in --help
         usage_observation=False,     # token usage only: no turn, request, cost or allowance figure printed
         transcript_retention=False,  # unobserved
         turn_limit=False,            # no turn-limit flag in --help
         funding_route_check=True,    # observed (c0_status): `cursor-agent status` prints `Not logged in`
-        evidence="probe-cursor-report-1.json (2026-10-12): logged out; -p runs unexercised")
+        evidence="probe-cursor-report-1.json (2026-10-12, logged out); run-bdc63ec68d56 (2026-10-13, one logged-in "
+                 "-p run)")
 
     def __init__(self, runs_dir: str, *, cli: Optional[Union[str, Sequence[str]]] = None,
                  env: Optional[Dict[str, str]] = None, clock=None, expected_route: str = "cursor-login"):
@@ -384,8 +396,9 @@ class CursorAdapter:
 
     @staticmethod
     def _argv(prefix: List[str], request: LaunchRequest, workspace: str) -> List[str]:
-        # From --help (unexercised): -p print mode, stream-json output, --trust the workspace without a
-        # prompt, -f run commands unless denied. Never --resume: no session id was ever observed.
+        # From --help, and run once logged in (run-bdc63ec68d56): -p print mode, stream-json output, --trust the
+        # workspace without a prompt, -f run commands unless denied. Never --resume: a session id is printed, but
+        # resuming with it was never tried.
         return prefix + ["-p", "--output-format", "stream-json", "--trust", "--workspace", workspace,
                          "--model", request.model, "-f", request.prompt]
 

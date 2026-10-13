@@ -76,7 +76,7 @@ and nothing here runs outside the host the operator starts it on.
 
 | Command | Does |
 |---|---|
-| `status [--json]` | Owner, task, PR record, state, stop reason, blocker, budget consumed/reserved/remaining, attempts remaining, funding pool, lease, latest usage per provider, and the evidence paths of each task's last run (run directory, manifest, stdout, stderr, transcript, workspace, archive) |
+| `status [--json]` | Owner, task, PR record, state, stop reason, blocker, budget consumed/reserved/remaining, attempts used of the maximum and the attempts the budget still permits, funding pool, lease, latest usage per provider, and the evidence paths of each task's last run (run directory, manifest, stdout, stderr, transcript, workspace, archive) |
 | `report [--json]` | The LLM-free status report: `status` plus `metrics` rendered as Markdown from the ledger alone (`--json` gives both dicts and the Markdown) |
 | `metrics [--json]` | Counts and sums from the ledger: tasks and runs by state, runs by stop reason and role, turns consumed and reserved, PRs by outcome, repair rounds, retries, latest usage per provider and kind, journal by kind. No model is called |
 | `backup <dest>` | Copy the open ledger to a new file through the SQLite online backup API; refuses to overwrite; journals `backup` in the source |
@@ -91,7 +91,7 @@ and nothing here runs outside the host the operator starts it on.
 | `event ingest --event-id ... [--gh cli]` | Record an event once; a repeated id is reported as a duplicate and does nothing. With `--gh cli`, a **new** PR event (`pr-opened`, `checks-green`, `checks-red`, `merged`, `closed`, `pr-head`) also triggers one idempotent observation of the task's open PR |
 | `run list` / `run settle <run> --stop-reason <r>` / `run cancel <run> [--adapter <provider>]...` | Run records. `settle` is the operator's manual reconciliation of an UNSETTLED run: a run already settled is refused (exit 1, naming its state and stop reason; nothing changes; `task set-state` moves its task), and so is `--stop-reason completed` of an implementation or repair run (exit 1): `settle` has no PR lifecycle, so the task would be `done` with nothing proposed; tick with `--adapter <provider> --gh cli` instead. `cancel` stops the run through its provider's adapter and keeps the workspace; a `launching`, `running` or `unknown` run is refused without that provider's `--adapter` (`previous-writer-not-stoppable`, exit 1, nothing changed), and a run that still polls running after the cancel is polled again for up to five seconds (a cancel does nothing to a run whose turn is over, and its process may be exiting). A run that had finished by then is settled with what it did (`cancelled: false`, `finished_before_cancel: true`), except a completed implementation or repair run, which is refused (`transfer-needs-pr-lifecycle`, exit 1, nothing settled): `cancel` has no PR lifecycle, so tick with `--adapter <provider> --gh cli` to propose it |
 | `lease show|release|break` | The writer lease; `break --confirm-stopped` is the operator asserting the old holder is gone |
-| `outbox list|enqueue|flush` | Milestone posts; `flush --poster fake` in PR 1 (`gh` poster present, not exercised live) |
+| `outbox list|enqueue|flush` | Milestone posts; `flush --poster fake\|gh`. The `gh` poster's `post` ran live once, on 2026-10-13 (comment 6149018991 on #695, one attempt); its `find`, the interrupted-send check, has not run live |
 | `worker register|list` | Worker checkout roots, which the policy may never live under |
 | `provider disable|enable <name>` | Take a provider out of dispatch without editing the policy |
 | `task transfer <id> --to <provider> [--reason <text>] [--adapter <old provider>]... [--gh none\|cli] [--workspaces <dir>]` | Move a task to another provider (see "Provider transfer (PR 5)"). Refused with exit 6 past `limits.provider_transfers_per_pr`; exit 4 for a target the policy or the operator disabled, or whose unit differs; exit 1 `transfer-needs-pr-lifecycle` when the previous writer has completed and `--gh cli` is not given (nothing changed); exit 1 `previous-writer-not-stoppable` or `reconcile-pending` for a writer it cannot stop or reconcile. Prints `moved: true`, or `moved: false` with `ended` when a settlement ended the transfer |
@@ -162,6 +162,20 @@ One tick does **one** thing, the first that applies, and journals it with its ex
   adapter reports; unknown consumption is charged at the full reservation; consumption above the
   reservation is charged in full and recorded as `overshoot`, because a provider's turn limit is an
   estimate.
+- **A Claude run stopped at the turn ceiling is charged ceiling + 1.** Under `--max-turns 12` every capped
+  run has reported `num_turns` 13: those of the PR 4 pilot, and the two of `pr5-776` in the PR 5 live run (the
+  fresh run-5c155cbe6f82 and its `--resume`, run-a062813c1dae, each with 12 assistant messages). Each was
+  charged 13, overshoot 1. A 36-turn pool with a 12-turn invocation ceiling therefore fits two capped
+  attempts (26 charged, 10 left, `parked-budget`), not the three `attempts_max` 3 allows; a pool sized
+  attempts x (ceiling + 1), 39 here, fits three. The owner kept charging what the CLI reports (decisions log,
+  2026-10-13).
+- `status` and `report` print the attempts as `<used>/<max> (<N> permitted)`. N is the smaller of the
+  attempts `budget.reserve` still allows (the pool's `attempts_max`, capped by the policy's
+  `max_attempts_per_task`, less those used) and floor(remaining / invocation ceiling), where remaining is
+  ceiling - consumed - reserved and the invocation ceiling is the smaller of the pool's frozen one and the
+  current policy's. The PR 5 live run's report printed `Attempts: 2/3 (1 permitted)` for `pr5-776`, which had
+  10 turns left against the 12 an invocation needs; it now prints `2/3 (0 permitted)`. `status --json` keeps
+  `pool.attempts_remaining` (the attempts `budget.reserve` allows) and adds `pool.invocation_ceiling`.
 - Usage observations are stored by kind and never summed across kinds: `subscription_allowance`
   (the provider's own units), `api_grant_balance`, `paid_spend`, `estimated_api_value`. An estimated
   API dollar figure is an estimate, not a charge. Each observation carries `fresh`, `stale` or
@@ -218,11 +232,20 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   `slash_commands:[...]`), then
   `{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","resetsAt":<epoch s>,"rateLimitType":"five_hour","overageStatus":"rejected","overageDisabledReason":"org_level_disabled","isUsingOverage":false,"unifiedWindows":{"five_hour":{"utilization":0.69,"resetsAt":1791702600},"seven_day":{"utilization":0.18,"resetsAt":1792285200}}},"session_id":...}`,
   then `assistant` messages, then the `result` object (the same fields as `--output-format json`).
-  The adapter takes the last line whose `type` is `result`.
+  The adapter takes the last line whose `type` is `result`. The three Claude runs of the PR 5 live run
+  (2026-10-13, same CLI version) showed more: `system` events `hook_started` and `hook_response` (the
+  operator's `SessionStart:startup` hook, `SessionStart:resume` on a resume) before `system/init`,
+  `system/thinking_tokens` events between messages, and the `rate_limit_event` after the first assistant
+  message rather than before it. The adapter depends on neither order.
 - **The `rate_limit_event` is the subscription allowance source.** `utilization` is the used fraction
   of the window; the adapter records the last event seen as a `subscription_allowance` observation in
-  `percent` (`five_hour.utilization * 100`, total 100, fresh, by session), or `unavailable` when no
-  event was seen. `isUsingOverage: true` would mean paid overflow: the run is classified
+  `percent`: the higher `utilization * 100` of the windows present in `unifiedWindows` (`five_hour`,
+  `seven_day`; a window that is missing, null or without a finite numeric utilization is ignored), total
+  100, fresh, by session, with `raw.allowance_window` naming the window taken. It is `unavailable` when no
+  event, or no usable window, was seen. The seven-day window can bind: every `rate_limit_event` of the PR 5
+  live run carried `five_hour` 0.02 and `seven_day` 0.69, and the adapter, which then read the five-hour
+  window alone, recorded 2 percent, so the 25 percent interactive reserve could not see the weekly window.
+  It now records 69 there (phase F). `isUsingOverage: true` would mean paid overflow: the run is classified
   `quota-exhausted` with the blocker "the provider is billing overage; paid inference is off", and
   there is no fallback.
 - `num_turns` and `total_cost_usd` are **per invocation**, not cumulative on the session: a first call
@@ -252,7 +275,9 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   JSON text (`num_turns` 2). `--no-session-persistence`: no transcript file is written.
 - Transcript: `<projectsDirectory>/<slug>/<session_id>.jsonl`, where `projectsDirectory` comes from
   `claude auth status --json` and `slug` is the cwd with every character outside `[A-Za-z0-9]`
-  replaced by `-`.
+  replaced by `-`. Every Claude transcript of the PR 5 live run holds an `attachment` record of type
+  `session_context` whose `attachment.context.userEmail` names the account's email address, repeated in
+  the record's `rendered` text. Evidence archives redact both (see "Evidence archives").
 - Tools: with `--tools default`, headless tools include `Workflow`, `Task`, `Bash`, `Edit`, `Read`,
   `Skill` and the rest. **The Workflow tool is available headless**, which answers the handoff's
   question: the converge-readiness command's Workflow tool can be driven through this adapter.
@@ -261,7 +286,10 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
 - MCP: with `--strict-mcp-config` and no `--mcp-config`, `mcp_servers` is `[]` and the first call's
   cache creation dropped from 70k tokens to 9k (cost 0.28 to 0.043). Without it, the operator's
   claude.ai connectors (Gmail, Drive, Slack, Docs) load into every worker and their tools are exposed
-  to it. **Every controller launch passes `--strict-mcp-config`.**
+  to it. **Every controller launch passes `--strict-mcp-config`.** It covers MCP servers only: each worker
+  of the PR 5 live run ran the operator's user-level `SessionStart` hook, and its `system/init` listed 19
+  skills, 9 agents and 58 slash commands, the operator's user-level ones among them, and the auto-memory
+  paths (`memory_paths`). Isolating workers from these is card #790 (decisions log, 2026-10-13).
 - `--effort low|medium|high|xhigh|max` is accepted. There is no speed flag; `usage.speed` is always
   `"standard"` and `fast_mode_state` is `"off"`.
 - Auth: `claude auth status --json` prints `{loggedIn, authMethod:"claude.ai", apiProvider:"firstParty",
@@ -278,8 +306,6 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
 - The shape of a `permission_denials` entry for tools other than Bash (one Bash denial was observed).
 - `num_turns` under a cancelled run (no result object is written, so nothing is charged beyond the
   reservation: the conservative reading).
-- The seven-day window as a limiting factor: the adapter records the five-hour utilization, which was
-  the higher of the two in every probe.
 - **What `num_turns` counted in one pilot run.** In the PR 4 pilot (2026-10-11) the resumed run
   `run-3225ebdb59dd` (attempt 2 of `pilot-1`, `--resume`, `--max-turns 12`) finished `success` with
   `num_turns` 48; the controller charged 48 (overshoot 36) and the task's pool closed at 61 of a 36-turn
@@ -289,7 +315,10 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
   The 48 is not explained by subagents (`subagent_stats.spawned` 0 in that run; 4 in its capped attempt 1,
   which also called `ScheduleWakeup` once) and is not reproduced. Until it is, a resumed run's reported
   turns are charged in full as they are reported (the conservative reading), and the pool's task ceiling
-  is what bounds the next launch.
+  is what bounds the next launch. The PR 5 live run (2026-10-13) added two capped runs under `--max-turns
+  12`, one fresh and one resumed in the same workspace: each reported `num_turns` 13 with 12 distinct
+  assistant messages, so a capped run counts one more turn than the model calls it made (see "Budget
+  accounting").
 
 ### How a launch runs
 
@@ -364,13 +393,19 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
   Since phase F the adapter passes `-c features.plugins=false -c notify=[]` and
   `-c mcp_servers.<name>.enabled=false` per declared server in place of `-c mcp_servers={}` (see "Plugins and
   MCP servers" below).
-  It runs from the workspace with stdin closed; with stdin open the CLI waits ("Reading additional input
-  from stdin..."). It prints NDJSON in this order:
+  It runs from the workspace with stdin closed (`DEVNULL`). Whenever stdin is not a terminal the CLI prints
+  `Reading additional input from stdin...` as stderr line 1, under `DEVNULL` too: both live runs of
+  2026-10-13, run-4c1f88184756 and run-82eb9983dca6, show it. `DEVNULL` gives end-of-file at once, so nothing
+  waits; an open stdin would block. The test fake prints the line on every `exec`. It prints NDJSON in this
+  order:
   - `thread.started{thread_id}`, then `turn.started`;
-  - `item.started` / `item.completed` events whose item is either
-    `{type: "agent_message", text}` or
-    `{type: "command_execution", command, aggregated_output, exit_code, status}`.
-    The file was written by a PowerShell `Set-Content` through `command_execution`;
+  - `item.started` / `item.completed` events whose item is
+    `{type: "agent_message", text}`,
+    `{type: "command_execution", command, aggregated_output, exit_code, status}` or
+    `{type: "file_change", changes: [{path, kind}], status}`.
+    In the probes the file was written by a PowerShell `Set-Content` through `command_execution`. The live
+    run-4c1f88184756 (2026-10-13) also showed a `file_change` item (`item.started`, then `item.completed`, a
+    unit like any other) and a `command_execution` that ended with `status` `failed` and `exit_code` 1;
   - `turn.completed{usage: {input_tokens, cached_input_tokens, cache_write_input_tokens, output_tokens,
     reasoning_output_tokens}}`.
 
@@ -418,7 +453,10 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
 - **Cancel.** `taskkill /T /F` mid-run exits 1 with no `turn.completed`. The session file
   `<CODEX_HOME>/sessions/<YYYY>/<MM>/<DD>/rollout-<timestamp>-<thread_id>.jsonl` exists afterwards, and
   `exec resume` of that thread succeeded. The transcript is found by thread id, and `status` and
-  `evidence archive` find it through `adapters.locate_run_transcript`.
+  `evidence archive` find it through `adapters.locate_run_transcript`. The controller's own cancel ran live
+  once, through `task transfer` on 2026-10-13: run-82eb9983dca6 was started at 15:19:44Z and cancelled at
+  15:19:45Z, its stdout holds only `thread.started` and `turn.started`, and it was charged the full
+  reservation of 12. A resume after that cancel was not exercised.
 - **A finished run is never cancelled.** After a restart the adapter knows a run only by the manifest's pid,
   and Windows reuses pids. A run whose `stdout.json` already holds `turn.completed` or `turn.failed` is over,
   whatever process now holds that pid: `poll` classifies it from the stream, and `cancel` returns without
@@ -448,15 +486,18 @@ on 2026-10-12, with reports `probe-codex-report-{1,2,3,4}.json` on the storage b
 completed model step is one unit of the `turns` pool. A cancelled run, and a run with no final result,
 report None and are charged the full reservation. An unrecognised model is charged 0. A turn that
 completed with an empty last message is `no-final-result`. The token usage is kept in the run result;
-it is not a charge.
+it is not a charge. A unit is a completed item, not a model request: the live run-4c1f88184756 was charged 6
+(2 `agent_message`, 3 `command_execution`, 1 `file_change`), while its session file holds 5 `token_count`
+records.
 
 ## Cursor adapter
 
 `ashlar_controller/adapters/cursor.py` runs the Cursor agent CLI headless:
 `cursor-agent -p --output-format stream-json --trust --workspace <ws> --model <m> -f <prompt>`. **The CLI on
-the probe host was not logged in**, so no `-p` run produced any output (report `probe-cursor-report-1.json`).
-The adapter declares no capability beyond the funding-route check, and it is built to leave evidence of the
-real shape on its first logged-in run.
+the probe host was not logged in** when it was probed, so no probe `-p` run produced any output (report
+`probe-cursor-report-1.json`), and the adapter was built to leave evidence of the real shape on its first
+logged-in run. That run is run-bdc63ec68d56 of the PR 5 live run (2026-10-13, model `composer-2.5`, PR #787).
+The adapter still declares no capability beyond the funding-route check.
 
 ### What was observed
 
@@ -468,28 +509,48 @@ real shape on its first logged-in run.
   Unknown`. Logged out, `models` and every `-p` run exit 1 with an `Authentication required` error on
   stderr and empty stdout. The adapter refuses a launch while `status` says `Not logged in`
   (`auth-missing`; the operator step is `cursor-agent login`). A `CURSOR_API_KEY` or `CURSOR_AUTH_TOKEN`
-  in the environment is the `api-key` route and is refused as `funding-route-mismatch`. The logged-in
-  `status` text is unobserved: any other non-empty text at exit 0 counts as logged in, and the text is
-  recorded.
+  in the environment is the `api-key` route and is refused as `funding-route-mismatch`. Any other non-empty
+  text at exit 0 counts as logged in.
 - **Flags, from `--help` only:** `--resume [chatId]`, `--model`, `-f`, `--trust`, `--workspace`,
   `--mode plan|ask`, `--sandbox`. No turn-limit flag, no tool-restriction flag and no schema flag are
   listed.
+- **The first logged-in run** (run-bdc63ec68d56, 2026-10-13). `cursor-agent status` printed `✓ Logged in as
+  <account email>`. The login is still decided on the text as printed, but every email address in it is
+  masked as `<redacted>` before the text is stored in the manifest's `status_text` or quoted in an
+  `auth-missing` blocker, and before the 500-character cut, so an address reaches neither the run directory
+  nor the ledger (phase F; the live run's own manifest still holds it). The stream had 38 events with the
+  same `session_id` on every one: `system/init`, `user`, `thinking` (`delta`, then `completed`),
+  `assistant`, `tool_call` (`started`, then `completed`), and last `{"type":"result","subtype":"success",
+  "duration_ms","duration_api_ms","is_error":false,"result","session_id","request_id","usage":{"inputTokens",
+  "outputTokens","cacheReadTokens","cacheWriteTokens"}}`. The exit code, 0, reached the next tick through the
+  exit recorder, and the run settled `completed`. The multi-line prompt arrived whole through the
+  `node.exe index.js` launcher. No transcript file was located.
 
 ### What is unverified, and how the adapter treats it
 
-- **Resume** (`exact_resume` False). No chat id was seen, so `--resume` is never passed. A request that
-  carries a session to resume launches fresh and records `resume_unsupported`.
-- **Cancel** (`cancel` False). Nothing lived long enough to be cancelled. `run cancel <run> --adapter cursor`
+- **Resume** (`exact_resume` False). The live run printed a `session_id` on every event, but resuming with
+  it was never tried, so `--resume` is never passed and the id is only recorded. A request that carries a
+  session to resume launches fresh and records `resume_unsupported`.
+- **Cancel** (`cancel` False). No Cursor run has been cancelled: the probe runs exited at once and the live
+  run finished. `run cancel <run> --adapter cursor`
   still records `cancelled_at` first and then kills the process tree: the exit recorder, the CLI and everything
   it started. A run whose `exit_code` already exists has finished: `cancel` then records nothing and kills
   nothing, because a live pid then belongs to another process, and the next poll classifies the run from its
   output.
-- **Turns and allowance** (`usage_observation` and `turn_limit` False). `consumed_units` is always None,
-  so every run is charged the full reservation (`turns_unobserved`). Every allowance observation is
-  `unavailable`.
-- **Transcript** (`transcript_retention` False). Where the CLI keeps a chat is unknown.
-- **What the first logged-in run keeps.** Every settled run keeps the first 2000 characters of stdout,
-  the `type` of every JSON line, any `session_id` / `chatId` value seen, and the stderr tail.
+- **Turns and allowance** (`usage_observation` and `turn_limit` False). The live stream printed token usage
+  but no turn, request, cost or allowance figure, and what Cursor bills as a `request` is unobserved.
+  `consumed_units` is always None, so every run is charged the full reservation (`turns_unobserved`): the
+  12 requests charged to run-bdc63ec68d56 are the invocation ceiling, not a measurement. Every allowance
+  observation is `unavailable`, with `raw.why` "cursor-agent's stream prints token usage in its result
+  event, but no turn, request, cost or allowance figure".
+- **Transcript** (`transcript_retention` False). Where the CLI keeps a chat is unknown; none was located
+  for the live run.
+- **What a settled run keeps.** The first 2000 characters of stdout (`result_text`), the `type` of every
+  JSON line, any `session_id` / `chatId` value seen, `result_event` and the stderr tail. `result_event` is
+  the `subtype`, `is_error`, `duration_ms`, `session_id`, `request_id` and `usage` of the last `result`
+  event, each `null` when the event lacks it (`result_event` is `null` when there is no result event); it
+  was added in phase F because the live run's result event lay far past the first 2000 characters. It is
+  recorded data, not a charge, and its `session_id` is not used to resume.
 
 ### Integrator decisions
 
@@ -514,8 +575,11 @@ real shape on its first logged-in run.
 - **Refused before anything starts:** a speed other than `standard`, and a restricted `allowed_tools`
   (`-f` would widen it silently). `effort`, `invocation_ceiling` and `agent` have no flag and are
   recorded as ignored.
-- **Policy.** The example's `cursor` provider counts `requests` and stays disabled. A task in a `turns`
-  pool cannot be transferred to it, because units are never converted. `composer-standard` is unverified.
+- **Policy.** The example's `cursor` provider counts `requests`, names `composer-2.5` and stays disabled
+  (decisions log, 2026-10-13). A task in a `turns` pool cannot be transferred to it, because units are never
+  converted. `composer-2.5` was accepted live (`system/init` model `Composer 2.5`, result `success`) under the
+  run policy `2026-10-13.pr5-live-composer-2.5`. The operator reported that `cursor-agent models` did not
+  offer `composer-standard`, the earlier example's id; that listing was not captured.
 
 ## PR lifecycle
 
@@ -605,9 +669,28 @@ next tick reads first.
   `ledger.json` (the run, task, pool and PR rows, the journal rows of the run and its task, the usage rows,
   the policy version) and `MANIFEST.txt`. It refuses to overwrite, and journals `evidence-archived` with
   the file's sha256. An archive outlives the workspace, which a later run or the operator may remove.
-  The archived transcript leaves out the account identifiers a Codex session file carries in its
-  `session_meta` record (`creator_user_id`, `creator_account_id`), because an archive may be published;
-  `MANIFEST.txt` and the journal row say what was removed, and the file on disk is not changed.
+  `ledger.json`'s PR row is the run's own PR for a repair run, and otherwise the task's latest PR when the
+  archive is written: the archive of the cancelled Codex run-82eb9983dca6 names #788, which the Claude run
+  after the transfer opened.
+  An archive may be published, so it holds redacted copies; the transcript and the run directory on disk
+  are only read. Three layers, in this order. (1) Transcript records: the account identifiers of a Codex
+  session file's `session_meta` record (`creator_user_id`, `creator_account_id`) are removed, and so is
+  `attachment.context.userEmail` of a Claude transcript's `session_context` attachment, whose rendered text
+  (`rendered[*].content`) has every address replaced by `<redacted>` (observed in every Claude transcript of
+  the PR 5 live run, CLI 2.1.263). (2) Run files: every address in the manifest's `status_text` (a Cursor
+  manifest's `Logged in as <account email>`) becomes `<redacted>`. (3) A safety net over every member that
+  is UTF-8 (the transcript, each `run/` file, `ledger.json`): any address left becomes `<redacted>`, except
+  `noreply@anthropic.com` (the commit trailer) and the reserved test domain `example.invalid`; a JSON member
+  is masked as raw JSON, so the line stays valid. `MANIFEST.txt`, the result and the `evidence-archived`
+  row's `redacted` list name each change: a transcript record path (`session_meta.creator_user_id`,
+  `attachment.session_context.userEmail`, `attachment.session_context.rendered`), `run/<file>:<key>`
+  (`run/manifest.json:status_text`), and `<member>:email` for the safety net. The net does not catch an
+  address split by a JSON escape (`\u0040` for the `@`), a non-ASCII local part, a URL-encoded `%40`, or an
+  address in a member that is not UTF-8 (copied unchanged); it over-masks a `git@<host>:` SSH remote.
+  Archives written before phase F are not rewritten (`evidence archive`
+  refuses to overwrite): four of the six PR 5 live-run archives (the three Claude runs and the Cursor run)
+  hold the address and are not published, and the PR 4 pilot evidence on the storage branch is replaced by
+  a redacted copy (decisions log, 2026-10-13).
 - **Metrics** are the ledger's counts and sums: tasks and runs by state, runs by stop reason and role,
   turns consumed and reserved, overshoot, attempts, PRs by outcome and repair rounds, retries, the latest
   usage per provider and kind, and the per-provider sum of `estimated_api_value` deltas, which stays an
@@ -664,7 +747,18 @@ one line of facts: "this task was transferred from `<provider>` after run `<id>`
 from that run is in this workspace". Never the previous transcript, prompt or session.
 
 `status` shows each task's provider and `transfers: {used, max}`; `metrics` counts `transfers.total` and
-`transfers.refused`; the report prints both.
+`transfers.refused`; the report prints both. The PR row's `provider_transfers_used` counts only transfers
+made while that PR is open: a transfer made before the task has a PR increments no row, so the journal is the
+count (PR #788 shows 0 after the live run's transfer, which came before it opened).
+
+**Exercised live on 2026-10-13** (PR 5 live run): `task transfer pr5-transfer --to claude` took the
+still-running branch. It returned in 0.43 s with `moved: true`, transfer 1 of 1: Codex run-82eb9983dca6 was
+cancelled through its adapter and charged its reservation of 12, the journal holds `settled` (row 31),
+`provider-transferred` (33) and then the Claude run's `launched` (37), and run-effc72e96849 started a fresh
+session in a fresh clone, briefed that nothing from the cancelled run was in its workspace, and completed in
+7 turns (PR #788). A second transfer was refused with exit 6, `provider-transfers-exhausted` ("has made 1 of
+1"), journalled as `transfer-refused` (row 34). A transfer of a finished writer, and one while a PR is open,
+have not run live.
 
 ## Readiness fixer
 
@@ -718,8 +812,9 @@ the turns; the readiness fixer falls back to a general-purpose run exactly once,
 named agent role is missing; PRs are serial (nothing new launches while one is open); the worker only
 edits and the controller does every git and `gh` step (under `acceptEdits` a worker cannot push);
 `success` and `skipped` are the only green check conclusions; a repair round is counted before its
-launch; `pr.required_checks` default to the five required checks on master. The Codex `sol` and Cursor
-`composer-standard` ids remain candidates for PR 5.
+launch; `pr.required_checks` default to the five required checks on master; `codex.model` is `gpt-6-astra`,
+which the live run of 2026-10-13 used (the PR 1 candidate `sol` is refused on a ChatGPT login). The Cursor
+model, `composer-2.5`, is an owner decision (decisions log, 2026-10-13).
 
 ## Decisions log (added 2026-10-12)
 
@@ -758,10 +853,35 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
 
 ## Not in PR 5
 
-- **No live task through either new adapter yet.** A Claude Code session's classifier refuses worker
-  launches. The owner's terminal is the place for one small real task through `--adapter codex`, which is
-  logged in, and one through `--adapter cursor`, after `cursor-agent login`. The Codex CLI's shapes were
-  probed live (the reports above); the controller's own launch through it was not.
+- **The live run happened on 2026-10-13, from the owner's terminal, operated by the Codex agent on the
+  owner's delegation** (decisions log). Ledger `ctl-pr5-live` on master `af7ff471b`, policy
+  `2026-10-13.pr5-live-composer-2.5` (sha256 `f81aea01411d…`), six runs in about ten minutes:
+  - `pr5-codex`: run-4c1f88184756 (`gpt-6-astra`) completed, 6 turns charged, PR #786;
+  - `pr5-cursor`: run-bdc63ec68d56 (`composer-2.5`) completed, charged the full 12 requests, PR #787;
+  - `pr5-transfer`: Codex run-82eb9983dca6 was cancelled by `task transfer` and charged 12, then Claude
+    run-effc72e96849 completed in 7 turns, PR #788; a second transfer was refused with exit 6 (see "Provider
+    transfer (PR 5)");
+  - `pr5-776` (card #776, on Claude): run-5c155cbe6f82 and its `--resume` run-a062813c1dae, in the same
+    workspace (`workspace-reused`), each stopped at the 12-turn ceiling and were charged 13. The task parked
+    `parked-budget` at 26 of 36 with 10 turns left and nothing pushed (see "Budget accounting"); the owner
+    decided it is finished by hand.
+
+  The three PRs were closed unmerged 18 to 24 seconds after they opened, with their required checks still
+  pending; all five checks later concluded success on every head. The controller never observed those checks
+  (no `pr-observed` row: the next tick found each PR closed and recorded `pr-closed-unmerged`). Zero repair
+  rounds and zero merges: merge and repair stay exercised only against fakes (decisions log). The outbox's `gh` poster posted comment 6149018991 on #695 in one attempt. Six evidence archives and
+  an end backup were written. Not exercised live: Codex resume, Cursor resume and cancel, outbox `find`, a
+  transfer of a finished writer, and a transfer while a PR is open.
+- **Operator deviations in the live run**, recorded as facts, not as owner decisions. The operator (Codex)
+  changed the run policy's Cursor model from `composer-standard` to `composer-2.5` itself, as a new policy
+  version, instead of stopping as the run sheet asked. The outbox post went out signed `From: codex` and
+  reported the outcome, where the 2026-10-12 row says `From: claude` and the prepared body reported none.
+  Codex wrote all six evidence archives during the sitting, four of them while run-5c155cbe6f82 was in flight,
+  where the sheet left archiving to the session afterwards.
+- **Known limits.** `outbox flush` and `provider disable|enable` leave no journal row. The Claude allowance's
+  per-session delta compares a value with the previous one of the same session, but the utilization is
+  account-wide: a new session's first delta is the whole value, which overstates that run's use, and two
+  values are compared whatever window each came from. The delta is recorded, never charged.
 - **Transfers are operator-initiated only.** Nothing moves a task to another provider by itself, for
   example when a provider's allowance is exhausted or its login is missing. That would be a fallback
   launch on another provider's allowance, and the owner decided on 2026-10-12 that it stays
@@ -800,8 +920,8 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   partial edits are in its workspace, nothing pushed. Five runs, two PRs merged, zero repair rounds, zero
   closed-unmerged; `pause`, `resume`, `provider disable|enable`, `report`, `metrics`, `evidence archive`
   (five archives) and `backup` were exercised on that ledger. Findings fixed afterwards: a resumed session
-  now keeps the workspace its capped run edited (`workspace-reused`), and the report prints a merged PR's
-  state once. Evidence: `live-run-pr4-pilot-evidence/` on the storage branch `claude/budgeted-autonomy-workspace`.
+  now keeps the workspace its capped run edited (`workspace-reused`, exercised live on #776 in the PR 5 live
+  run), and the report prints a merged PR's state once. Evidence: `live-run-pr4-pilot-evidence/` on the storage branch `claude/budgeted-autonomy-workspace`.
 - `task add --title` is both the card title and the worker's instruction, so the PR title and the commit
   subject of a controller-opened PR are the whole instruction (PR #775). A separate short title is a small
   follow-up.
@@ -832,8 +952,9 @@ ASHLAR_MUTATION_RUNNER="bash tools/autonomy-controller/mutation-runner.sh" \
   pilot against a real card is PR 4. Everything else is proven against `tests/fake_claude_cli.py`.
 - The readiness fixer loop over the three LOCAL gate commands (`readiness run` / `readiness evaluate`)
   is still operator-driven; `tick` drives repairs from the PR's required checks (PR 3).
-- `GhIssuePoster` is present but has not been exercised live (the session that wrote it had no
-  authenticated `gh`). Tests use the fake poster.
+- `GhIssuePoster` was written without an authenticated `gh`. Its `post` ran live once, in the PR 5 live run
+  (2026-10-13: comment 6149018991 on #695, the dedup marker once, outbox attempts 1); its `find`, the
+  interrupted-send check, has not run live. Tests use the fake poster.
 - Operator account steps that later PRs need, and that the controller never performs: an
   authenticated `gh` with issue write for the bus and cards; the provider CLIs installed and logged
   in on the controller host. The controller purchases nothing, enables no paid overflow, changes no

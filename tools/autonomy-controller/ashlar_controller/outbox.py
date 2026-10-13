@@ -106,9 +106,9 @@ class FakePoster:
 
 
 class GhIssuePoster:
-    """Posts through the `gh` CLI. Target is `issue:<number>`. Not exercised live in PR 1; it is here
-    so the outbox has a real destination shape. `find` lists the issue's comments and looks for the
-    dedup marker; it needs an authenticated gh with issue read/write."""
+    """Posts through the `gh` CLI. Target is `issue:<number>`. `post` ran live once, in the PR 5 live run
+    of 2026-10-13 (comment 6149018991 on #695, one attempt). `find` lists the issue's comments and looks
+    for the dedup marker; it has not run live. Both need an authenticated gh with issue read/write."""
 
     def __init__(self, repo: str, gh: str = "gh"):
         self.repo = repo

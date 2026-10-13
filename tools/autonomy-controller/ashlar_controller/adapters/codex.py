@@ -15,9 +15,12 @@ Observed, and therefore declared in `capabilities` or relied on:
     `item.started` / `item.completed` events whose `item` is `{id, type:"agent_message", text}` or
     `{id, type:"command_execution", command, aggregated_output, exit_code, status}`, then
     `turn.completed{usage:{input_tokens, cached_input_tokens, cache_write_input_tokens, output_tokens,
-    reasoning_output_tokens}}`. `-o` writes the last agent message to the file (p6);
-  * stderr says `Reading additional input from stdin...` when stdin is open: every spawn here passes
-    `stdin=subprocess.DEVNULL`;
+    reasoning_output_tokens}}`. `-o` writes the last agent message to the file (p6). The live
+    run-4c1f88184756 (2026-10-13) also showed `{id, type:"file_change", changes:[{path, kind}], status}`
+    and a `command_execution` completed with `status:"failed"` and `exit_code` 1;
+  * stderr line 1 is `Reading additional input from stdin...` whenever stdin is not a terminal (both live
+    runs of 2026-10-13); every spawn here passes `stdin=subprocess.DEVNULL`, which gives EOF at once, so
+    nothing waits;
   * `--ignore-user-config` turns the write into `Rejected(... blocked by policy)` on stderr and the model
     reports a read-only session (recorded in the PR 5 lane contract; p1b shows the flag on a read-only
     run): it is NEVER passed. The operator's `config.toml` stays
@@ -51,7 +54,7 @@ Observed, and therefore declared in `capabilities` or relied on:
   * `service_tier = "priority"` in the operator's `config.toml` (the CLI's catalog: "Fast: 2x speed,
     increased usage") applies to every run, because the user config stays loaded: the resumed probe
     threads record `thread_settings_applied service_tier=priority`. No value that means the standard tier
-    was observed, so no override is passed: a launch is REFUSED (`launch-failed`) while `<codex home>/
+    was observed, so no override is passed: a launch is REFUSED (`operator-config-refused`) while `<codex home>/
     config.toml` sets `service_tier` at top level, or in the `[profiles.<name>]` table its top-level
     `profile` selects, and the manifest records the tier (None) of every launch that proceeds;
   * a stream that holds `turn.completed` or `turn.failed` is a turn the CLI has finished: after a restart

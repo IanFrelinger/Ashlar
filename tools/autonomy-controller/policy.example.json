@@ -1,5 +1,5 @@
 {
-  "_comment": "Example operator policy for tools/autonomy-controller. Copy it OUTSIDE every checkout (for example /etc/ashlar/controller-policy.json, mode 0600) and point the controller at it with --policy or ASHLAR_CONTROLLER_POLICY. The loader refuses a policy that lives inside a checkout, so this file cannot be the active policy. Model ids: claude-sonnet-5 is recognised by the installed Claude Code CLI (2.1.263, probed 2026-10-11); whether the API accepts it on this account is unverified until the first live launch. Codex (PR 5): gpt-6-astra was accepted by codex-cli 0.162.0-alpha.17.2 on a ChatGPT login (probed 2026-10-12); the earlier candidate sol was refused with HTTP 400 \"not supported when using Codex with a ChatGPT account\". Cursor (PR 5): composer-standard is unverified, because the Cursor agent CLI was not logged in when probed. Both stay disabled until the operator enables them.",
+  "_comment": "Example operator policy for tools/autonomy-controller. Copy it OUTSIDE every checkout (for example /etc/ashlar/controller-policy.json, mode 0600) and point the controller at it with --policy or ASHLAR_CONTROLLER_POLICY. The loader refuses a policy that lives inside a checkout, so this file cannot be the active policy. Model ids: claude-sonnet-5 is recognised by the installed Claude Code CLI (2.1.263, probed 2026-10-11) and was accepted by the API in the live launches of 2026-10-11 and 2026-10-13. Codex (PR 5): gpt-6-astra was accepted by codex-cli 0.162.0-alpha.17.2 on a ChatGPT login (probed 2026-10-12, and in the live run of 2026-10-13); the earlier candidate sol was refused with HTTP 400 \"not supported when using Codex with a ChatGPT account\". Cursor (PR 5): composer-2.5 was accepted by cursor-agent 2026.10.01-e373342 in the live run of 2026-10-13; the earlier example id composer-standard was reported not offered by the CLI (the model listing was not captured). Both stay disabled until the operator enables them.",
   "policy_version": "2026-10-11.1",
   "limits": {
     "active_writers": 1,
@@ -40,7 +40,7 @@
     },
     "cursor": {
       "enabled": false,
-      "model": "composer-standard",
+      "model": "composer-2.5",
       "effort": "medium",
       "speed": "standard",
       "funding_pool": "cursor-subscription",

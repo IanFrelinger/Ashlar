@@ -20,10 +20,14 @@ records the shapes verbatim. Observed, and therefore declared in `capabilities`:
     whose `rate_limit_info.unifiedWindows` carries the subscription allowance (the only headless
     source for it), then messages, then the `result` object. The live run of 2026-10-13 showed both
     windows, `five_hour` and `seven_day`, in every event; the allowance recorded is the higher
-    utilization of the windows present, and the observation's raw names that window;
+    utilization of the windows present, and the observation's raw names that window. That run's streams
+    also had `system/hook_started` and `system/hook_response` (the operator's SessionStart hook) before
+    `system/init`, `system/thinking_tokens` between messages, and the `rate_limit_event` after the first
+    assistant message; nothing here depends on the order;
   * `--strict-mcp-config` (no `--mcp-config`) keeps the operator's claude.ai connectors out of the
     run: `mcp_servers:[]`, and the first-call cache creation drops from ~70k to ~9k tokens. Every
-    launch passes it.
+    launch passes it. It covers MCP servers only: the live run's workers still loaded the operator's
+    user-level hooks, skills, agents, slash commands and auto-memory (isolating them is card #790).
 
 `total_cost_usd` is `costBasis:"list"`: an estimate of API value, never a charge on a subscription.
 It is recorded as an ESTIMATED_API_VALUE observation and is never summed with the allowance.

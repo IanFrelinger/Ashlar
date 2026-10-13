@@ -484,7 +484,8 @@ class CancelAndReconcile(CursorAdapterCase):
                      "turn_limit"):
             self.assertIs(getattr(caps, name), False, name)
         self.assertIs(caps.funding_route_check, True)
-        self.assertEqual(caps.evidence, "probe-cursor-report-1.json (2026-10-12): logged out; -p runs unexercised")
+        self.assertEqual(caps.evidence, "probe-cursor-report-1.json (2026-10-12, logged out); run-bdc63ec68d56 "
+                                        "(2026-10-13, one logged-in -p run)")
         obs = self.adapter().observe_usage()
         self.assertEqual((obs.provider, obs.kind, obs.unit, obs.freshness, obs.value, obs.total),
                          ("cursor", UsageKind.SUBSCRIPTION_ALLOWANCE, "requests", UsageFreshness.UNAVAILABLE, None, None))
@@ -603,7 +604,7 @@ class ThroughTheController(ControllerCase):
         pool = self.pool()
         self.assertEqual((pool["consumed"], pool["reserved"]), (reservation, 0.0))
         argv = json.loads(self.prints()[0].read_text(encoding="utf-8"))["argv"]
-        self.assertEqual(argv[argv.index("--model") + 1], "composer-standard")
+        self.assertEqual(argv[argv.index("--model") + 1], "composer-2.5")   # the example policy's model
 
     def test_the_observed_result_event_reaches_the_ledger_and_the_charge_is_the_full_reservation(self):
         # kills: the ledger losing the result event (its result_text ends before it); a token count or request id
