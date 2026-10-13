@@ -3,6 +3,7 @@ real `claude`: the adapter is always given `cli=[sys.executable, fake_claude_cli
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -13,6 +14,7 @@ from ashlar_controller.adapters.claude import ClaudeAdapter, failure_identity
 from ashlar_controller.controller import Controller
 from ashlar_controller.models import (LaunchRefused, LaunchRequest, RunState, StopReason, TaskState, UsageFreshness,
                                       UsageKind)
+from ashlar_controller.store import pid_alive
 
 from .helpers import ControllerCase, FakeClock
 
@@ -109,6 +111,29 @@ class ClaudeAdapterCase(unittest.TestCase):
         a = self.adapter()
         res = a.launch(self.request())
         return a, res, self.wait_exit(a, res.native_run_handle)
+
+    def manifest(self, run_id="run-1"):
+        return json.loads((self.runs_dir / run_id / "manifest.json").read_text(encoding="utf-8"))
+
+    def start_unrelated_process(self):
+        """A harmless sleeping python child of the test: the process Windows gave a finished run's pid to."""
+        kwargs = {} if sys.platform.startswith("win") else {"start_new_session": True}   # so a killpg reaches it
+        victim = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"], stdin=subprocess.DEVNULL,
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kwargs)
+
+        def stop():
+            if victim.poll() is None:
+                victim.kill()
+            victim.wait(timeout=10)
+
+        self.addCleanup(stop)
+        return victim
+
+    def point_manifest_at(self, pid, run_id="run-1"):
+        path = self.runs_dir / run_id / "manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["pid"] = pid
+        path.write_bytes((json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"))
 
 
 class Argv(ClaudeAdapterCase):
@@ -463,10 +488,47 @@ class CancelAndReconcile(ClaudeAdapterCase):
         self.assertEqual(a.poll(res.native_run_handle).stop_reason, StopReason.CANCELLED)
 
     def test_cancel_of_a_finished_or_missing_run_is_not_an_error(self):
+        # Mutation killed: recording a cancellation over a run whose stream holds its result (T5: a completed run
+        # would settle as cancelled, charged its full reservation). It used to expect exactly that.
         a, res, status = self.launch_and_settle(result_object())
         a.cancel(res.native_run_handle)
         a.cancel("run-never-existed")
-        self.assertEqual(a.poll(res.native_run_handle).stop_reason, StopReason.CANCELLED)
+        self.assertIsNone(self.manifest()["cancelled_at"])
+        self.assertEqual(a.poll(res.native_run_handle).stop_reason, StopReason.COMPLETED)
+
+    def test_cancel_of_a_finished_run_under_a_reused_pid_kills_nothing_and_records_nothing(self):
+        # Mutation killed: cancel writing `cancelled_at` and killing the manifest pid's tree although the stream
+        # already holds its terminal `result` (T5: a reused pid's unrelated tree killed, completed work cancelled).
+        finished = (("success", result_object(num_turns=4), 0, RunState.FINISHED, StopReason.COMPLETED),
+                    ("is_error", api_error("You've hit your usage limit"), 1, RunState.FAILED, StopReason.QUOTA_EXHAUSTED))
+        for name, obj, code, state, reason in finished:
+            with self.subTest(result=name):
+                shutil.rmtree(self.runs_dir, True)
+                a, res, status = self.launch_and_settle(obj, exit=code)
+                self.assertEqual(status.stop_reason, reason)
+                victim = self.start_unrelated_process()
+                self.point_manifest_at(victim.pid)
+                self.assertTrue(pid_alive(victim.pid))       # the finished run's pid now belongs to a live process
+                fresh = self.adapter()                         # a later tick: no Popen held
+                fresh.cancel("run-1")
+                time.sleep(0.3)
+                self.assertIsNone(victim.poll(), "cancel killed the process that now holds the finished run's pid")
+                self.assertIsNone(self.manifest()["cancelled_at"])
+                again = fresh.poll("run-1")
+                self.assertEqual((again.state, again.stop_reason), (state, reason))
+                self.assertIsNone(victim.poll())
+
+    def test_a_finished_run_under_a_reused_pid_polls_from_its_stream(self):
+        # Mutation killed: `_alive` answering from the pid alone after a restart (a completed run polls as running,
+        # and the transfer then cancels it).
+        a, res, status = self.launch_and_settle(result_object(num_turns=4))
+        victim = self.start_unrelated_process()
+        self.point_manifest_at(victim.pid)
+        self.assertTrue(pid_alive(victim.pid))
+        found = self.adapter().reconcile("run-1", "run-1")
+        self.assertEqual((found.status.state, found.status.stop_reason, found.status.consumed_units),
+                         (RunState.FINISHED, StopReason.COMPLETED, 4.0))
+        self.assertIsNone(victim.poll())
 
     def test_a_fresh_adapter_sees_the_running_process_then_cancels_it(self):
         """After a controller restart only the manifest's pid is left: the existence check must say

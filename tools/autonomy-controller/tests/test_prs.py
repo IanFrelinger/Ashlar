@@ -68,6 +68,20 @@ class EvaluateChecks(unittest.TestCase):
         self.assertEqual(v.verdict, "pending")
         self.assertEqual(v.pending, ["cert-gate"])
 
+    # Kills: "the last run of a name in the list decides" (pre-flight finding C1). GitHub lists a commit's check
+    # runs newest first (ids descending, observed on #784's head 2c35c56f0), so a green re-run of a red check came
+    # first and the old rule judged the head by the old red run, launching a repair on a green head.
+    def test_the_run_with_the_largest_id_decides_whatever_the_list_order(self):
+        rerun_green = CheckRun(name="cert-gate", status="completed", conclusion="success", id=20)
+        first_red = CheckRun(name="cert-gate", status="completed", conclusion="failure", title="1 failed", id=10)
+        others = completed(FIVE[1:])
+        self.assertEqual(evaluate_checks(FIVE, "aaa", others + [rerun_green, first_red]).verdict, "green")
+        self.assertEqual(evaluate_checks(FIVE, "aaa", others + [first_red, rerun_green]).verdict, "green")
+        rerun_red = CheckRun(name="cert-gate", status="completed", conclusion="failure", title="1 failed", id=30)
+        self.assertEqual(evaluate_checks(FIVE, "aaa", others + [rerun_red, rerun_green]).verdict, "red")
+        rerun_running = CheckRun(name="cert-gate", status="in_progress", conclusion=None, id=40)
+        self.assertEqual(evaluate_checks(FIVE, "aaa", others + [rerun_running, rerun_green]).verdict, "pending")
+
     def test_neutral_is_pending_not_green(self):
         runs = completed(FIVE[1:]) + completed(FIVE[:1], conclusion="neutral")
         self.assertEqual(evaluate_checks(FIVE, "aaa", runs).verdict, "pending")
@@ -288,6 +302,22 @@ class PrRows(ControllerCase):
         self.assertIn("opened by the budgeted autonomy controller", body)
         self.assertEqual(body.rstrip("\n").split("\n")[-1], prs.GENERATED_LINE)
 
+    # Kills: a Claude co-author trailer or the Claude Code line on every provider's commit and PR (pre-flight
+    # finding ENV-7), and a Claude run losing its co-author trailer.
+    def test_attribution_names_the_worker_and_credits_claude_only_for_a_claude_run(self):
+        codex = {"provider": "codex", "model": "gpt-6-astra", "run_id": "run-1"}
+        claude = {"provider": "claude", "model": "claude-sonnet-5", "run_id": "run-2"}
+        self.assertEqual(prs.attribution_trailers(codex), "Worker: codex gpt-6-astra")
+        self.assertEqual(prs.attribution_trailers(claude),
+                         "Worker: claude claude-sonnet-5\nCo-Authored-By: Claude <noreply@anthropic.com>")
+        body = prs.pr_body(self.task, "b" * 40, "h" * 40, codex)
+        self.assertIn("- Worker: `codex` (`gpt-6-astra`), run `run-1`", body)
+        self.assertNotIn("Claude", body)
+        self.assertIn("`codex` worker", body.rstrip("\n").split("\n")[-1])
+        body = prs.pr_body(self.task, "b" * 40, "h" * 40, claude)
+        self.assertIn("- Worker: `claude` (`claude-sonnet-5`), run `run-2`", body)
+        self.assertEqual(body.rstrip("\n").split("\n")[-1], prs.GENERATED_LINE)
+
 
 class CompactHandoff(ControllerCase):
     def setUp(self):
@@ -437,6 +467,18 @@ class GhCliArgv(unittest.TestCase):
                                            summary="FAIL a\nFAIL b", details_url="https://x/1"))
         self.assertEqual(runs[1], CheckRun(name="build-core", status="in_progress", conclusion=None))
         self.assertEqual(evaluate_checks(FIVE, "h" * 40, runs).verdict, "red")
+
+    # Kills: the check-run id dropped from the jq projection or from the parse (the verdict would fall back to
+    # list order, which is newest first on GitHub).
+    def test_check_runs_carry_their_id(self):
+        self.assertIn("{id,", prs.CHECK_RUNS_JQ)
+        lines = [json.dumps({"id": 115065647558, "name": "cert-gate", "status": "completed", "conclusion": "success",
+                             "details_url": None, "output": {"title": None, "summary": None}}),
+                 json.dumps({"id": 115065272343, "name": "cert-gate", "status": "completed", "conclusion": "failure",
+                             "details_url": None, "output": {"title": "1 failed", "summary": "FAIL a"}})]
+        runs = GhCli(runner=RecordingRunner((0, "\n".join(lines) + "\n", ""))).check_runs(REPO, "h" * 40)
+        self.assertEqual([r.id for r in runs], [115065647558, 115065272343])
+        self.assertEqual(evaluate_checks(FIVE, "h" * 40, runs + completed(FIVE[1:])).verdict, "green")
 
     def test_check_runs_empty_output_is_no_runs(self):
         self.assertEqual(GhCli(runner=RecordingRunner((0, "", ""))).check_runs(REPO, "h" * 40), [])

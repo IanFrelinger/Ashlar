@@ -208,8 +208,14 @@ class PrLifecycle:
             return out
         message = (f"{task['title'] or task_id}\n\nTask {task_id}" + (f", card #{task['card_number']}" if task["card_number"] else "")
                    + f", run {run['run_id']} ({role}) by the budgeted autonomy controller.\n\n"
-                   "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>")
-        head = self.git.commit_and_push(workspace, branch, message)
+                   + prs.attribution_trailers(run))
+        # The commit the workspace started from: the PR head a repair was cloned at (the PR row's head until
+        # this push records the new one), else the task's base. A worker's own commits on top are folded back.
+        start = task["base_sha"]
+        if role == readiness.FIXER_ROLE and run["pr_number"]:
+            pr_row = self.store.row("SELECT head_sha FROM prs WHERE pr_number=?", (int(run["pr_number"]),))
+            start = pr_row["head_sha"] if pr_row is not None else None
+        head = self.git.commit_and_push(workspace, branch, message, start_sha=start)
         if head is None:
             self.store.journal("no-change-to-propose", task_id=task_id, run_id=run["run_id"],
                                detail={"role": role, "workspace": workspace, "branch": branch}, now=now)
@@ -234,7 +240,7 @@ class PrLifecycle:
         base = task["base_sha"]
         title = f"{task['title'] or task_id}" + (f" (#{task['card_number']})" if task["card_number"] else "")
         row = prs.open_or_reuse_pr(self.store, self.gh, self.cfg["repo"], task_id, branch, self.cfg["base_branch"], base,
-                                   title, prs.pr_body(task, base or "", head), now=now)
+                                   title, prs.pr_body(task, base or "", head, run), now=now)
         prs.record_head(self.store, int(row["pr_number"]), head, now=now)
         self.ctl.set_task_state(task_id, TaskState.PR_OPEN, stop_reason=StopReason.PR_CHECKS_PENDING,
                                 blocker=f"PR #{row['pr_number']} open at {head}; awaiting the required checks on that head")

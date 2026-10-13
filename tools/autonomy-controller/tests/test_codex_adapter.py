@@ -13,10 +13,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from ashlar_controller.adapters import codex as codex_module
 from ashlar_controller.adapters.codex import CodexAdapter, failure_identity, locate_session_file, resolve_cli
 from ashlar_controller.controller import Controller
 from ashlar_controller.models import (LaunchRefused, LaunchRequest, RunState, StopReason, TaskState, UsageFreshness,
                                       UsageKind)
+from ashlar_controller.store import pid_alive
 
 from .helpers import ControllerCase, FakeClock
 
@@ -170,10 +172,39 @@ class CodexAdapterCase(unittest.TestCase):
         self.assertFalse((self.runs_dir / "run-1").exists())        # no manifest, no run dir
         return cm.exception.blocker
 
+    def config_path(self):
+        return self.codex_home / "config.toml"
+
+    def write_config(self, text):
+        """The operator's `<CODEX_HOME>/config.toml`, written byte for byte (LF unless the text says otherwise)."""
+        self.codex_home.mkdir(parents=True, exist_ok=True)
+        self.config_path().write_bytes(text.encode("utf-8"))
+
+    def start_unrelated_process(self):
+        """A harmless sleeping python child of the test: the process Windows gave a finished run's pid to."""
+        kwargs = {} if sys.platform.startswith("win") else {"start_new_session": True}   # so a killpg reaches it
+        victim = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"], stdin=subprocess.DEVNULL,
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kwargs)
+
+        def stop():
+            if victim.poll() is None:
+                victim.kill()
+            victim.wait(timeout=10)
+
+        self.addCleanup(stop)
+        return victim
+
+    def point_manifest_at(self, pid, run_id="run-1"):
+        path = self.runs_dir / run_id / "manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["pid"] = pid
+        path.write_bytes((json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+
 
 class Argv(CodexAdapterCase):
-    def test_fresh_argv_overrides_model_effort_sandbox_approval_and_mcp(self):
-        # Mutation killed: dropping `-c mcp_servers={}` (the operator's MCP servers would enter every run).
+    def test_fresh_argv_overrides_model_effort_sandbox_approval_and_plugins(self):
+        # Mutation killed: dropping `-c features.plugins=false` (phase F finding C8: the operator's plugins, among
+        # them computer-use, browser and chrome, were offered to every unattended run; `mcp_servers={}` removed none).
         a, res, status = self.launch_and_settle()
         argv = self.recorded()["argv"]
         self.assertEqual(argv[:3], ["exec", "--json", "--skip-git-repo-check"])
@@ -184,8 +215,35 @@ class Argv(CodexAdapterCase):
             self.assertEqual(os.path.normcase(argv[argv.index(flag) + 1]), os.path.normcase(value), flag)
         overrides = [argv[i + 1] for i, x in enumerate(argv) if x == "-c"]
         self.assertEqual(sorted(overrides), sorted(['approval_policy="never"', 'model_reasoning_effort="medium"',
-                                                    "mcp_servers={}"]))
+                                                    "features.plugins=false", "notify=[]"]))
+        self.assertNotIn("mcp_servers={}", argv)          # observed to remove nothing; it is not claimed any more
         self.assertEqual(os.path.normcase(self.recorded()["cwd"]), os.path.normcase(workspace))
+        self.assertEqual((self.manifest()["plugins"], self.manifest()["mcp_servers_disabled"]), ("disabled", []))
+
+    def test_every_mcp_server_the_config_declares_is_disabled_on_a_run_and_a_resume(self):
+        # Mutation killed: `isolation_overrides` without the per-server loop (the config's `node_repl`, a REPL with
+        # browser access on the probed host, stayed enabled: `-c mcp_servers={}` does not remove it).
+        self.write_config('model = "gpt-6-astra"\n\n[mcp_servers.node_repl]\ncommand = "node_repl.exe"\n\n'
+                          '[mcp_servers.node_repl.env]\nX = "1"\n\n[mcp_servers.docs-2]\ncommand = "docs"\n')
+        for name, reader in ServiceTier.readers(self):
+            with self.subTest(reader=name), mock.patch.object(codex_module, "_tomllib", reader):
+                self.assertEqual(codex_module.configured_mcp_servers(str(self.config_path()))["names"],
+                                 ["docs-2", "node_repl"])
+        a, res, status = self.launch_and_settle()
+        argv = self.recorded()["argv"]
+        for name in ("node_repl", "docs-2"):
+            self.assertTrue(any(argv[i:i + 2] == ["-c", f"mcp_servers.{name}.enabled=false"]
+                                for i in range(len(argv) - 1)), name)
+        self.assertEqual(self.manifest()["mcp_servers_disabled"], ["docs-2", "node_repl"])
+
+    def test_an_mcp_server_name_that_cannot_be_disabled_is_refused(self):
+        # Mutation killed: dropping the refusal of an unsafe name (a quoted key the CLI's -c handling is not known to
+        # accept: the server would stay enabled for the run).
+        self.write_config('[mcp_servers."two words"]\ncommand = "x"\n')
+        self.write_script()
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
+        self.assertIn("['two words']", blocker)
+        self.assertEqual(self.login_records(), [])
 
     def test_fresh_argv_never_ignores_user_config_names_no_thread_and_ends_with_the_prompt(self):
         # Mutation killed: passing `--ignore-user-config` (observed: every write is then rejected by policy).
@@ -214,7 +272,7 @@ class Argv(CodexAdapterCase):
         self.assertEqual(argv[:4], ["exec", "resume", "--json", "--skip-git-repo-check"])
         self.assertEqual(argv[-2:], [THREAD, PROMPT])
         for pair in (["-c", 'sandbox_mode="workspace-write"'], ["-c", 'approval_policy="never"'],
-                     ["-c", "mcp_servers={}"], ["-m", self.request().model]):
+                     ["-c", "features.plugins=false"], ["-c", "notify=[]"], ["-m", self.request().model]):
             self.assertTrue(any(argv[i:i + 2] == pair for i in range(len(argv) - 1)), pair)
         self.assertIn("-o", argv)
         self.assertNotIn("-s", argv)                      # `exec resume` has no -s; the sandbox is a -c override
@@ -301,6 +359,134 @@ class Route(CodexAdapterCase):
                                                               self.request(allowed_tools=[])))
         self.assertEqual(self.login_records(), [])
         self.assertFalse(self.runs_dir.exists())
+
+
+PROFILE_WHERE = "[profiles.fast], which the top-level `profile` selects"
+
+
+class ServiceTier(CodexAdapterCase):
+    """ENV-3: the operator's `config.toml` set `service_tier = "priority"` (the Codex app's Fast mode), and the
+    adapter keeps the user config loaded, so every controller run would have used it at speed standard."""
+
+    def readers(self):
+        """The two ways `read_service_tier` reads a file: the line reader (Python 3.8-3.10, or a file tomllib
+        cannot parse) and tomllib (3.11+)."""
+        out = [("line reader", None)]
+        if codex_module._tomllib is not None:
+            out.append(("tomllib", codex_module._tomllib))
+        return out
+
+    def test_an_unset_service_tier_launches_and_the_manifest_records_it(self):
+        # Mutation killed: leaving `service_tier` out of the manifest (the run's own evidence would not show it).
+        a, res, status = self.launch_and_settle()
+        self.assertEqual(status.stop_reason, StopReason.COMPLETED)
+        manifest = self.manifest()
+        self.assertIn("service_tier", manifest)
+        self.assertIsNone(manifest["service_tier"])
+        self.assertEqual(os.path.normcase(manifest["codex_config"]), os.path.normcase(str(self.config_path())))
+        self.write_config('model = "gpt-6-astra"\n# service_tier = "priority"\napproval_policy = "on-request"\n')
+        res2 = a.launch(self.request(run_id="run-2"))
+        self.assertEqual(self.wait_exit(a, res2.native_run_handle).stop_reason, StopReason.COMPLETED)
+        self.assertIsNone(self.manifest("run-2")["service_tier"])
+
+    def test_a_top_level_priority_tier_is_refused_before_any_process_starts(self):
+        # Mutation killed: dropping the refusal (every controller run would use the priority tier at speed standard).
+        self.write_config('model = "gpt-6-astra"\nmodel_reasoning_effort = "high"\n'
+                          'service_tier = "priority"   # the Codex app\'s Fast mode\n\n[profiles.slow]\nmodel = "x"\n')
+        self.write_script()
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
+        self.assertEqual(self.login_records(), [])            # not even `codex login status` ran
+        path = str(self.config_path())
+        self.assertIn(f"{path} sets service_tier (line 3 (top level): service_tier = \"priority\")", blocker)
+        self.assertIn(f"comment out service_tier in {path} for the controller's runs", blocker)
+
+    def test_a_tier_inside_a_profiles_table_is_not_top_level_and_does_not_count(self):
+        # Mutation killed: the line reader ignoring `[table]` headers (a tier the CLI does not apply would refuse).
+        self.write_config('model = "gpt-6-astra"\n\n[profiles.fast]\nservice_tier = "priority"\n')
+        self.write_script()
+        for name, reader in self.readers():
+            with self.subTest(reader=name), mock.patch.object(codex_module, "_tomllib", reader):
+                shutil.rmtree(self.runs_dir, True)
+                a, res, status = self.launch_and_settle()
+                self.assertEqual(status.stop_reason, StopReason.COMPLETED)
+                self.assertIsNone(self.manifest()["service_tier"])
+
+    def test_a_tier_in_the_profile_the_config_selects_is_refused(self):
+        # Mutation killed: reading only the top level (a top-level `profile = "fast"` applies [profiles.fast]).
+        self.write_config('profile = "fast"\n\n[profiles.fast]\nservice_tier = "priority"\n')
+        self.write_script()
+        for name, reader in self.readers():
+            with self.subTest(reader=name), mock.patch.object(codex_module, "_tomllib", reader):
+                blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
+                self.assertIn(f"line 4 ({PROFILE_WHERE}): service_tier = \"priority\"", blocker)
+
+    def test_a_config_tomllib_cannot_parse_is_read_line_by_line(self):
+        # Mutation killed: treating a file tomllib rejects as setting no tier (the CLI's own reader may differ).
+        self.write_config('service_tier = "priority"\nthis line is not toml\n')
+        self.write_script()
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
+        self.assertIn("(line 1 (top level): service_tier = \"priority\")", blocker)
+
+    def test_the_config_is_found_through_codex_home_in_the_environment_as_the_cli_builds_the_adapter(self):
+        # Mutation killed: reading the config from the constructor's codex_home or ~/.codex only, ignoring CODEX_HOME
+        # in the child environment (lane C's review: every test passed codex_home=, which cli.build_adapters never
+        # does, so such a mutation survived).
+        self.write_config('service_tier = "priority"\n')
+        self.write_script()
+        a = CodexAdapter(str(self.runs_dir), cli=[sys.executable, FAKE_CLI], clock=self.clock,
+                         env=self.env(CODEX_HOME=str(self.codex_home)))
+        self.adapters.append(a)
+        blocker = self.assert_refused(a, StopReason.OPERATOR_CONFIG_REFUSED)
+        self.assertIn(str(self.config_path()), blocker)
+        self.assertEqual(self.login_records(), [])
+
+    def test_a_resume_is_refused_like_a_fresh_run(self):
+        # Mutation killed: the tier check skipped on a resume (`if tier["sources"] and not request.resume_session_id:`):
+        # the invocation-ceiling resume, which the live run uses, would run under the priority tier.
+        self.write_config('service_tier = "priority"\n')
+        self.write_script()
+        self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED, self.request(resume_session_id=THREAD))
+        self.assertEqual(self.login_records(), [])
+
+    def test_a_config_that_cannot_be_read_is_refused(self):
+        # Mutation killed: treating an unreadable config.toml as absent (the CLI would still load whatever it holds).
+        self.config_path().mkdir(parents=True)            # opening a directory fails, and not as "not found"
+        self.write_script()
+        blocker = self.assert_refused(self.adapter(), StopReason.OPERATOR_CONFIG_REFUSED)
+        self.assertIn(f"{self.config_path()} could not be read to check its service_tier", blocker)
+
+    def test_the_line_reader_and_tomllib_find_the_same_tiers_on_the_same_lines(self):
+        # Mutation killed: a line reader that is not a TOML reader at all (a grep for `service_tier`).
+        top = "top level"
+        cases = (
+            ('service_tier = "priority"\n', "priority", [(top, 1, "priority")]),
+            ("model = 'x'\nservice_tier='flex'  # the app's setting\n", "flex", [(top, 2, "flex")]),
+            ('"service_tier" = "priority"\n', "priority", [(top, 1, "priority")]),
+            ('service_tier = "priority"\r\nmodel = "x"\r\n', "priority", [(top, 1, "priority")]),
+            ('﻿service_tier = "priority"\n', "priority", [(top, 1, "priority")]),
+            ('model = "x"\n\n[profiles.fast]\nservice_tier = "priority"\n', None, []),
+            ('profile = "fast"\n\n[profiles.fast]\nservice_tier = "flex"\n', "flex", [(PROFILE_WHERE, 4, "flex")]),
+            ('profile = "fast"\nservice_tier = "priority"\n[profiles.fast]\nservice_tier = "flex"\n', "flex",
+             [(top, 2, "priority"), (PROFILE_WHERE, 4, "flex")]),
+            ('profile = "fast"\nprofiles.fast.service_tier = "flex"\n', "flex", [(PROFILE_WHERE, 2, "flex")]),
+            ('profile = "my.p"\n[profiles."my.p"]\nservice_tier = "flex"\n', "flex",
+             [("[profiles.my.p], which the top-level `profile` selects", 3, "flex")]),
+            ('[profiles.fast]\nservice_tier = "flex"\n[other]\nprofile = "fast"\n', None, []),
+            ('notes = """\nservice_tier = "priority"\n"""\n', None, []),
+            ('[[skills]]\nservice_tier = "priority"\n', None, []),
+            ('# service_tier = "priority"\n', None, []),
+            ("", None, []),
+        )
+        path = self.tmp / "config-case.toml"
+        for name, reader in self.readers():
+            for text, value, sources in cases:
+                with self.subTest(reader=name, text=text), mock.patch.object(codex_module, "_tomllib", reader):
+                    path.write_bytes(text.encode("utf-8"))
+                    info = codex_module.read_service_tier(str(path))
+                    self.assertIsNone(info["error"])
+                    self.assertEqual(info["value"], value)
+                    self.assertEqual([(s["where"], s["line"], s["value"]) for s in info["sources"]], sources)
+        self.assertEqual(codex_module.read_service_tier(str(self.tmp / "absent.toml"))["sources"], [])
 
 
 class Classification(CodexAdapterCase):
@@ -497,6 +683,45 @@ class CancelResumeReconcile(CodexAdapterCase):
             time.sleep(0.05)
         self.assertIsNotNone(a._procs["run-1"].poll(), "cancel from a fresh adapter did not reach the process")
         self.assertEqual(self.wait_exit(fresh, "run-1").stop_reason, StopReason.CANCELLED)
+
+    def test_cancel_of_a_finished_turn_under_a_reused_pid_kills_nothing_and_records_nothing(self):
+        # Mutation killed: cancel writing `cancelled_at` and killing the manifest pid's tree although the stream
+        # already holds the turn's outcome (T5: a reused pid's unrelated tree killed, completed work settled cancelled).
+        finished = (
+            ("turn.completed", [thread_started(), TURN_STARTED, agent("item_0", "done"), turn_completed()], 0,
+             RunState.FINISHED, StopReason.COMPLETED),
+            ("turn.failed", [thread_started(), TURN_STARTED, agent("item_0", "building")] + api_failure("Build failed"),
+             1, RunState.FAILED, StopReason.TASK_FAILED),
+        )
+        for name, events, code, state, reason in finished:
+            with self.subTest(stream=name):
+                shutil.rmtree(self.runs_dir, True)
+                a, res, status = self.launch_and_settle(events=events, exit=code)
+                self.assertEqual(status.stop_reason, reason)
+                victim = self.start_unrelated_process()
+                self.point_manifest_at(victim.pid)
+                self.assertTrue(pid_alive(victim.pid))       # the finished run's pid now belongs to a live process
+                fresh = self.adapter()                         # a later tick: no Popen held
+                fresh.cancel("run-1")
+                time.sleep(0.3)
+                self.assertIsNone(victim.poll(), "cancel killed the process that now holds the finished run's pid")
+                self.assertIsNone(self.manifest()["cancelled_at"])
+                again = fresh.poll("run-1")
+                self.assertEqual((again.state, again.stop_reason), (state, reason))
+                self.assertIsNone(victim.poll())
+
+    def test_a_finished_turn_under_a_reused_pid_polls_from_its_stream(self):
+        # Mutation killed: `_alive` answering from the pid alone after a restart (a completed run polls as running,
+        # and the transfer then cancels it).
+        a, res, status = self.launch_and_settle(events=[thread_started(), TURN_STARTED, agent("item_0", "done"),
+                                                        turn_completed()])
+        victim = self.start_unrelated_process()
+        self.point_manifest_at(victim.pid)
+        self.assertTrue(pid_alive(victim.pid))
+        found = self.adapter().reconcile("run-1", "run-1")
+        self.assertEqual((found.status.state, found.status.stop_reason, found.status.consumed_units),
+                         (RunState.FINISHED, StopReason.COMPLETED, 1.0))
+        self.assertIsNone(victim.poll())
 
     def test_observe_usage_is_an_unavailable_allowance_in_turns(self):
         # Mutation killed: reporting an allowance figure (none was observed, in exec or the app-server).

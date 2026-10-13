@@ -51,6 +51,10 @@ class StopReason:
     SAME_FAILURE_RETRY_EXHAUSTED = "same-failure-retry-exhausted"
     AUTH_MISSING = "auth-missing"
     PERMISSION_MISSING = "permission-missing"
+    # The operator's own CLI configuration sets something the policy refuses (a Codex `service_tier`, an MCP server
+    # that cannot be disabled, a config that cannot be read): an operator step, so the task waits instead of
+    # spending an attempt on every tick until the line is changed.
+    OPERATOR_CONFIG_REFUSED = "operator-config-refused"
     TRANSIENT = "transient"
     CANCELLED = "cancelled"
     TASK_FAILED = "task-failed"
@@ -80,10 +84,13 @@ class StopReason:
     REPAIR_ROUNDS_EXHAUSTED = "repair-rounds-exhausted"  # limits.repair_rounds used; the task parks
     NO_CHANGE_TO_PROPOSE = "no-change-to-propose"      # the worker completed but left no diff to push
     PR_OPEN_BLOCKS_DISPATCH = "pr-open-blocks-dispatch"  # PRs are serial: nothing new launches while one is open
+    PROPOSE_FAILED = "propose-failed"                  # a completed run was charged, but its commit, push or PR failed
+    PROPOSE_FAILED_BLOCKS_DISPATCH = "propose-failed-blocks-dispatch"  # nothing launches until the operator resolves it
     # Provider transfer (PR 5)
     PROVIDER_TRANSFERRED = "provider-transferred"        # the task moved to another provider; task, PR and pool kept
     PROVIDER_TRANSFERS_EXHAUSTED = "provider-transfers-exhausted"  # limits.provider_transfers_per_pr used
     TRANSFER_WRITER_NOT_STOPPABLE = "previous-writer-not-stoppable"  # a running run whose adapter is not registered
+    TRANSFER_NEEDS_PR_LIFECYCLE = "transfer-needs-pr-lifecycle"  # a completed writer would be marked done, not proposed
 
 
 class UsageFreshness:

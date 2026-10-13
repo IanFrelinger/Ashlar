@@ -35,7 +35,7 @@ GREEN_CONCLUSIONS = ("success", "skipped")
 RED_CONCLUSIONS = ("failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure")
 
 PR_JSON_FIELDS = "number,state,headRefOid,baseRefOid,headRefName,baseRefName,mergeCommit,url,title"
-CHECK_RUNS_JQ = ".check_runs[] | {name,status,conclusion,details_url,output:{title,summary}}"
+CHECK_RUNS_JQ = ".check_runs[] | {id,name,status,conclusion,details_url,output:{title,summary}}"
 
 HANDOFF_MAX_LINES = 60      # evidence lines per red check carried into a repair handoff
 HANDOFF_MAX_CHARS = 4000    # evidence characters per red check
@@ -70,6 +70,7 @@ class CheckRun:
     title: str = ""
     summary: str = ""
     details_url: Optional[str] = None
+    id: Optional[int] = None        # GitHub's check-run id; ids grow in creation order, so a re-run has the larger one
 
 
 @dataclass
@@ -140,13 +141,14 @@ def _pr_view_from_json(obj: Dict[str, Any]) -> PrView:
 
 
 def _check_run_from_json(obj: Dict[str, Any]) -> CheckRun:
-    """One line of the check-runs jq projection: {name,status,conclusion,details_url,output:{title,summary}}."""
+    """One line of the check-runs jq projection: {id,name,status,conclusion,details_url,output:{title,summary}}."""
     try:
         output = obj.get("output") or {}
+        run_id = obj.get("id")
         return CheckRun(name=str(obj["name"]), status=str(obj.get("status") or ""), conclusion=obj.get("conclusion"),
                         title=str(output.get("title") or ""), summary=str(output.get("summary") or ""),
-                        details_url=obj.get("details_url"))
-    except (KeyError, TypeError, AttributeError) as e:
+                        details_url=obj.get("details_url"), id=int(run_id) if run_id is not None else None)
+    except (KeyError, TypeError, AttributeError, ValueError) as e:
         raise GhError(f"unexpected check-run JSON ({e}): {json.dumps(obj)[:500]}") from e
 
 
@@ -381,13 +383,18 @@ def check_failure(run: CheckRun) -> CheckFailure:
 def evaluate_checks(required: Sequence[str], head_sha: str, runs: Sequence[CheckRun]) -> CheckVerdict:
     """Green / red / pending for `head_sha` from the runs the caller fetched FOR THAT SHA.
 
-    For each required name the LATEST run of that name (last in the list) decides. A completed run
-    with a GREEN conclusion is green, with a RED conclusion red; anything else (no run, queued,
-    in_progress, neutral, unknown) is pending. Red wins over pending; pending wins over green. Runs
-    for names that are not required are ignored: they are not what the merge waits for."""
+    For each required name the LATEST run of that name decides: the one with the largest check-run id,
+    because GitHub lists a commit's check runs newest first, so a re-run of a check comes BEFORE the run
+    it replaces; runs without ids (the fake) count in list order, the later one being the latest. A
+    completed run with a GREEN conclusion is green, with a RED conclusion red; anything else (no run,
+    queued, in_progress, neutral, unknown) is pending. Red wins over pending; pending wins over green.
+    Runs for names that are not required are ignored: they are not what the merge waits for."""
     latest: Dict[str, CheckRun] = {}
     for run in runs:
-        if run.name in required:
+        if run.name not in required:
+            continue
+        seen = latest.get(run.name)
+        if seen is None or run.id is None or seen.id is None or run.id > seen.id:
             latest[run.name] = run
     verdict = CheckVerdict(head_sha=head_sha, verdict="green")
     for name in required:
@@ -569,9 +576,20 @@ def latest_merge_sha(store: Store) -> Optional[str]:
     return None if row is None else row["merge_sha"]
 
 
-def pr_body(task_row: Any, base_sha: str, head_sha: str) -> str:
-    """The PR body the controller writes: task id, card, workstream, base and head sha, who opened it,
-    and the generated-with line last."""
+def attribution_trailers(run_row: Any) -> str:
+    """The commit trailers that name the worker which edited the workspace: its provider and model, from the
+    run row. Only a Claude run carries a Claude co-author trailer; a Codex or Cursor run names itself and no
+    co-author, so GitHub never credits Claude with another provider's work."""
+    lines = [f"Worker: {run_row['provider']} {run_row['model']}"]
+    if run_row["provider"] == "claude":
+        lines.append("Co-Authored-By: Claude <noreply@anthropic.com>")
+    return "\n".join(lines)
+
+
+def pr_body(task_row: Any, base_sha: str, head_sha: str, run_row: Any = None) -> str:
+    """The PR body the controller writes: task id, card, workstream, base and head sha, the worker (provider,
+    model and run, when the run is given), who opened it, and a generated-by line last: the Claude Code line
+    for a Claude run (or when no run is given), the worker's provider otherwise."""
     card = task_row["card_number"]
     lines = [
         f"## {task_row['title'] or task_row['task_id']}",
@@ -582,15 +600,19 @@ def pr_body(task_row: Any, base_sha: str, head_sha: str) -> str:
         f"- Base sha: `{base_sha}`",
         f"- Head sha: `{head_sha}`",
     ]
+    if run_row is not None:
+        lines.append(f"- Worker: `{run_row['provider']}` (`{run_row['model']}`), run `{run_row['run_id']}`")
     handoff_ref = task_row["handoff_ref"] if "handoff_ref" in task_row.keys() else None
     if handoff_ref:
         lines.append(f"- Handoff: {handoff_ref}")
+    generated = (GENERATED_LINE if run_row is None or run_row["provider"] == "claude"
+                 else f"Generated by the budgeted autonomy controller's `{run_row['provider']}` worker.")
     lines += [
         "",
         "This pull request was opened by the budgeted autonomy controller. The worker edited the workspace; "
         "the controller committed, pushed and opened the PR, and merges only when every required check is "
         "green on the current head.",
         "",
-        GENERATED_LINE,
+        generated,
     ]
     return "\n".join(lines) + "\n"

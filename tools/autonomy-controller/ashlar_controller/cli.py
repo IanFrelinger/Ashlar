@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from . import budget, events, outbox
 from .adapters.fake import FakeAdapter
-from .controller import Controller
+from .controller import WRITER_ROLES, Controller
 from .models import ControllerError, RunState, RunStatus, StopReason, TaskState
 from .policy import Policy, load_policy
 from .store import Store
@@ -134,6 +134,11 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("task_id"); a.add_argument("--to", required=True, dest="to_provider"); a.add_argument("--reason")
     a.add_argument("--adapter", choices=ADAPTER_CHOICES, action="append", default=None,
                    help="the adapter of the provider whose running writer must be stopped")
+    a.add_argument("--gh", choices=["none", "cli"], default="none",
+                   help="cli: a previous writer that has already completed is committed, pushed and proposed before "
+                        "the move, as `tick --gh cli` would. none (default): such a transfer is refused "
+                        "(transfer-needs-pr-lifecycle) and nothing changes")
+    a.add_argument("--workspaces", default=None, help="where worker clones live (default <state dir>/workspaces)")
 
     s = sub.add_parser("event", help="ingest an external event once"); es = s.add_subparsers(dest="event_cmd", required=True)
     a = es.add_parser("ingest"); a.add_argument("--event-id", required=True); a.add_argument("--source", default="operator")
@@ -144,10 +149,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("run", help="run records"); rs = s.add_subparsers(dest="run_cmd", required=True)
     rs.add_parser("list")
-    a = rs.add_parser("settle", help="record a run's outcome by hand (operator reconciliation)")
+    a = rs.add_parser("settle", help="record an unsettled run's outcome by hand (operator reconciliation; no PR "
+                                     "lifecycle, so `completed` is refused for an implementation or repair run)")
     a.add_argument("run_id"); a.add_argument("--stop-reason", required=True); a.add_argument("--consumed", type=float)
     a.add_argument("--failure-identity"); a.add_argument("--result", default="{}")
-    a = rs.add_parser("cancel"); a.add_argument("run_id")
+    a = rs.add_parser("cancel", help="stop a run through its provider's adapter and settle it; the workspace is kept")
+    a.add_argument("run_id")
+    a.add_argument("--adapter", choices=ADAPTER_CHOICES, action="append", default=None,
+                   help="the adapter of the run's provider, which stops its process; repeatable. A launching, "
+                        "running or unknown run whose provider's adapter is not registered is refused")
 
     s = sub.add_parser("lease", help="the writer lease"); ls = s.add_subparsers(dest="lease_cmd", required=True)
     ls.add_parser("show")
@@ -264,7 +274,26 @@ def _report_to_json(report) -> Dict[str, Any]:
             "passed": list(report.passed), "raw": getattr(report, "raw", {})}
 
 
+def _utf8_when_redirected() -> None:
+    """A redirected stdout or stderr (a file or a pipe, not a terminal) is written as UTF-8. Python otherwise
+    encodes it in the locale's legacy code page (cp1252 on this Windows host), and one character outside it in
+    a blocker (model or CLI text: an arrow, a check mark, U+FFFD) made `report > file` fail with
+    UnicodeEncodeError and leave an empty file. A terminal keeps the console's own encoding. A lone surrogate,
+    which no encoding can write, is escaped rather than raised."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)   # TextIOWrapper, Python 3.7+
+        if reconfigure is None:
+            continue
+        try:
+            if stream.isatty():
+                continue
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+        except (OSError, ValueError):
+            continue
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    _utf8_when_redirected()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
@@ -436,6 +465,17 @@ def _dispatch(args) -> int:
             run = store.row("SELECT * FROM runs WHERE run_id=?", (args.run_id,))
             if run is None:
                 raise ControllerError(f"no run {args.run_id}")
+            if run["settled_at"] is not None:
+                charged = f", charged {run['consumed']:g}" if run["consumed"] is not None else ""
+                raise ControllerError(f"run {args.run_id} is already settled ({run['state']}, stop reason "
+                                      f"{run['stop_reason']}{charged}); nothing was recorded. A settled run never moves "
+                                      f"its task again: to move task {run['task_id']}, use `task set-state "
+                                      f"{run['task_id']} <state> --reason <text>`")
+            if args.stop_reason == StopReason.COMPLETED and run["role"] in WRITER_ROLES:
+                raise ControllerError(f"`run settle --stop-reason completed` of {run['role']} run {args.run_id} is refused: "
+                                      f"`run settle` has no PR lifecycle, so task {run['task_id']} would be marked done "
+                                      f"with nothing committed, pushed or proposed. Tick with `--adapter "
+                                      f"{run['provider']} --gh cli` instead: it polls the run and proposes it")
             state = RunState.FINISHED if args.stop_reason == StopReason.COMPLETED else (
                 RunState.CANCELLED if args.stop_reason == StopReason.CANCELLED else RunState.FAILED)
             out = ctl._apply_outcome(run, RunStatus(state=state, stop_reason=args.stop_reason, consumed_units=args.consumed,

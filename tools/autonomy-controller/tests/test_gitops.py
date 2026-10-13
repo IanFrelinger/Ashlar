@@ -230,6 +230,32 @@ class CommitAndPushTests(GitFixture):
         sha = commit_and_push(self.path, "ctl/t1", message)
         self.assertEqual(self.remote_log(sha, "%B").strip(), message.strip())
 
+    # Kills: dropping the `reset --soft <start_sha>` fold (pre-flight finding C9: a worker that commits its own
+    # edit leaves a clean tree, the run reads as no-change-to-propose, and its commit is stranded).
+    def test_a_worker_commit_is_folded_into_one_controller_commit(self):
+        self.edit("w.txt", "the worker's edit\n")
+        _run(["add", "-A"], self.path, self.env)
+        _run(["-c", "user.name=worker", "-c", "user.email=worker@example.invalid", "commit", "-q", "-m", "worker"],
+             self.path, self.env)
+        self.assertIsNone(commit_and_push(self.path, "ctl/t1", "ctl: not folded"), "without start_sha: stranded")
+        sha = commit_and_push(self.path, "ctl/t1", "ctl: folded", start_sha=self.base_sha)
+        self.assertIsNotNone(sha)
+        self.assertEqual(self.remote_tip("ctl/t1"), sha)
+        self.assertEqual(self.remote_log(sha, "%an"), "ashlar-controller")
+        self.assertEqual(self.remote_log(sha, "%P"), self.base_sha, "one commit on top of the base")
+        self.assertEqual(self.remote_log(sha, "%s"), "ctl: folded")
+        self.assertEqual(_run(["show", f"{sha}:w.txt"], self.path, self.env), "the worker's edit")
+
+    # Kills: a fold that commits when the worker's commits add up to no change.
+    def test_worker_commits_that_change_nothing_are_still_nothing_to_propose(self):
+        self.edit("w.txt", "x\n")
+        _run(["add", "-A"], self.path, self.env)
+        _run(["-c", "user.name=w", "-c", "user.email=w@example.invalid", "commit", "-q", "-m", "add"], self.path, self.env)
+        _run(["rm", "-q", "w.txt"], self.path, self.env)
+        _run(["-c", "user.name=w", "-c", "user.email=w@example.invalid", "commit", "-q", "-m", "rm"], self.path, self.env)
+        self.assertIsNone(commit_and_push(self.path, "ctl/t1", "ctl: nothing", start_sha=self.base_sha))
+        self.assertIsNone(self.remote_tip("ctl/t1"))
+
     def test_second_push_advances_the_remote_tip(self):
         self.edit("a.txt", "a\n")
         first = commit_and_push(self.path, "ctl/t1", "ctl: first")

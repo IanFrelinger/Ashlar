@@ -162,12 +162,20 @@ def checkout_pr_head(path: str, remote_url: str, branch: str, expected_head: str
     return head
 
 
-def commit_and_push(path: str, branch: str, message: str, *,
+def commit_and_push(path: str, branch: str, message: str, *, start_sha: Optional[str] = None,
                     runner: Callable[..., Any] = subprocess.run) -> Optional[str]:
     """Stage everything the worker changed in the clone at `path`; when nothing changed return None
     (no commit, no push: there is nothing to propose). Otherwise commit with `message` as ONE argv
-    element and push `branch` to origin, returning the new HEAD sha. A rejected push raises GitError."""
+    element and push `branch` to origin, returning the new HEAD sha. A rejected push raises GitError.
+
+    `start_sha` is the commit the workspace started from (the base of an implementation run, the PR head
+    of a repair). A worker told not to run git may still commit (the Cursor CLI runs with `-f` and no
+    sandbox): its tree is then clean with HEAD past `start_sha`, and without this the edit would read as
+    `no-change-to-propose` and its commit be stranded. Such commits are folded back (`git reset --soft
+    <start_sha>`) and committed once more under the controller's identity and `message`."""
     git(["add", "-A"], path, runner=runner)
+    if start_sha and head_sha(path, runner=runner) != start_sha:
+        git(["reset", "-q", "--soft", start_sha], path, runner=runner)
     if not git(["status", "--porcelain"], path, runner=runner):
         return None
     git(["commit", "-q", "-m", message], path, runner=runner)

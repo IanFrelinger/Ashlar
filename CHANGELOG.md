@@ -17,6 +17,37 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — budgeted autonomy controller, PR 5 pre-flight findings (phase F)
+
+A pre-flight of the owner-run PR 5 live run, before any worker launched, found these in PR 5's code. Each fix
+has tests observed red on the unfixed code and hand mutations killed.
+
+- `task transfer` gains `--gh none|cli` and `--workspaces`. Without the PR lifecycle, a previous writer that had
+  already completed was settled `done` with its work never committed, pushed or proposed, and the task was then
+  re-queued on the new provider. Such a transfer is now refused (`transfer-needs-pr-lifecycle`); with `--gh cli`
+  the run is proposed before the move. The transfer reconciles only its own task's runs, journals how each run
+  was stopped, and reports `moved`.
+- `ashlar_controller/adapters/_exit_recorder.py` (new) and `adapters/cursor.py`: every `tick` is its own process,
+  so the exit code of a Cursor run was lost and a clean run settled `no-final-result` (or, when the model's text
+  held a quota, rate-limit or network word, was queued again). The CLI now runs under a recorder that writes its
+  exit code to the run directory; a finished run is never cancelled; the fake CLI's Windows race is fixed.
+- `adapters/codex.py`: a `service_tier` in the operator's `config.toml` (on the probed host `priority`, "2x speed,
+  increased usage") is refused before launch, since the policy's speed is standard and no standard value is
+  observed. The operator's plugins (computer-use, browser, chrome), notify program and MCP servers are kept out
+  of every run (`-c features.plugins=false`, `-c notify=[]`, `-c mcp_servers.<name>.enabled=false`): `-c
+  mcp_servers={}`, passed since PR 5, was observed to remove nothing. Codex and Claude never cancel a run whose
+  stream has ended (a reused pid would have been killed).
+- `run cancel` gains `--adapter`; without it a live run was settled `cancelled` while its worker kept running. A
+  cancel now waits for a run still exiting and never settles a completed writer unproposed. `run settle` refuses
+  an already-settled run and `--stop-reason completed` of a writer; `readiness evaluate` leaves a task with an
+  open PR to the PR phase.
+- A failed commit, push or PR after a completed run is journalled `propose-failed` (no traceback; the task
+  `needs-reconcile`), and nothing else launches until the operator resolves it.
+- The dry run applies the tick's own dispatch rules; redirected output is UTF-8 (a non-cp1252 character in a
+  blocker crashed `report > file`); a required check is judged by its newest run (GitHub lists runs newest
+  first); a worker's own commits are folded into the controller's commit; commits and PRs name the worker and
+  credit Claude only for a Claude run; evidence archives drop the Codex account identifiers from transcripts.
+
 ### Added — budgeted autonomy controller, PR 5 (Codex and Cursor adapters, bounded provider transfer)
 
 - `tools/autonomy-controller/ashlar_controller/adapters/codex.py`: the Codex CLI (`codex exec --json`) headless,
