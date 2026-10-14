@@ -244,6 +244,20 @@ public sealed class LaneBlameWindowConventionTests
     /// it is left to the run of this convention that happens under that framework rather than
     /// measured against the wrong inventory.
     /// </summary>
+    [Fact]
+    public void Ci_verify_runs_ProdStyle_on_both_frameworks_including_the_real_api_host()
+    {
+        var prodStyle = LanesThatRunThisSuite()
+            .Where(lane => Path.GetFileName(lane.File) == "CiCommand.cs"
+                && lane.Filter is not null && lane.Filter.StartsWith("Category=ProdStyle", StringComparison.Ordinal))
+            .ToArray();
+        prodStyle.Select(lane => lane.Framework).Should().Contain(new[] { "net8.0", "net10.0" },
+            "the API-host default-enforcement twins are compiled out on net8.0; readiness must run net10.0 too");
+        prodStyle.Where(lane => lane.Framework == "net10.0").Should().Contain(lane =>
+            !lane.Filter!.Contains("!~Egress", StringComparison.Ordinal)
+            && !lane.Filter.Contains("!~VirtualProduction", StringComparison.Ordinal));
+    }
+
     private static bool MeasurableHere(LaneInvocation lane) =>
         lane.Framework is null
         || string.Equals(lane.Framework, RunningFramework, StringComparison.Ordinal);
