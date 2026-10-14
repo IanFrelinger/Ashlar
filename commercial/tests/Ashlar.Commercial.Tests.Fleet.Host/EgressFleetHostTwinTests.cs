@@ -90,7 +90,9 @@ public sealed class EgressFleetHostTwinTests
         var paths = new ConcurrentQueue<string>();
         var serverBuilder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Production", ContentRootPath = AppContext.BaseDirectory });
         serverBuilder.Logging.ClearProviders();
-        serverBuilder.WebHost.ConfigureKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+        // The test output also contains gRPC appsettings; this redirect fixture speaks HTTP/1.
+        serverBuilder.WebHost.ConfigureKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0,
+            listener => listener.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1));
         await using var server = serverBuilder.Build();
         server.Run(context =>
         {
