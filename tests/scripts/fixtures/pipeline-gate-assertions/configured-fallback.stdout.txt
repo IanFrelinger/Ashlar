@@ -1,0 +1,21 @@
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-fallback started for template gate-demo.
+info: Ashlar.Infrastructure.Pipelines.DefaultDeterministicStageExecutionAdapter[0]
+      Deterministic adapter 'default' running in mock mode (ASHLAR_ALLOW_MOCK=1); stage ingest reported as succeeded for CI testing.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage ingest completed with state Completed on worker Deterministic.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage hybrid failed by test hook.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage hybrid failed by test hook.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage hybrid failed by test hook.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Stage hybrid failed on Deterministic; falling back to Agentic.
+info: Ashlar.Infrastructure.Pipelines.DefaultAgenticStageExecutionAdapter[0]
+      Agentic adapter 'default' running in mock mode (ASHLAR_ALLOW_MOCK=1); stage hybrid reported as succeeded for CI testing.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage hybrid completed with state Completed on worker Agentic.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-fallback completed successfully.
+{"ok":true,"correlationId":"8b3dbedb44e246ed939562532496e5be","data":{"runId":"gate-run-fallback","templateId":"gate-demo","state":"Completed","startedAt":"2026-10-14T00:40:59.9558694+00:00","completedAt":"2026-10-14T00:41:00.1760546+00:00","stages":[{"stageId":"hybrid","state":"Completed","attempt":4,"workerType":"Agentic","workerId":"agentic-default-mock","output":"agentic:hybrid:mock-success"},{"stageId":"ingest","state":"Completed","attempt":1,"workerType":"Deterministic","workerId":"deterministic-default-mock","output":"deterministic:ingest:mock-success"}]}}

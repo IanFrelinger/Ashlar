@@ -1,0 +1,21 @@
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-fallback started for template gate-demo.
+info: Ashlar.Infrastructure.Pipelines.DefaultDeterministicStageExecutionAdapter[0]
+      Deterministic adapter 'default' executed stage ingest.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage ingest completed with state Completed on worker Deterministic.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage hybrid failed by test hook.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage hybrid failed by test hook.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage hybrid failed by test hook.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Stage hybrid failed on Deterministic; falling back to Agentic.
+info: Ashlar.Infrastructure.Pipelines.DefaultAgenticStageExecutionAdapter[0]
+      Agentic adapter 'default' executed stage hybrid.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage hybrid completed with state Completed on worker Agentic.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-fallback completed successfully.
+{"ok":true,"correlationId":"db401088d8d9437ab1fa6bb53c6366e2","data":{"runId":"gate-run-fallback","templateId":"gate-demo","state":"Completed","startedAt":"2026-08-23T02:23:00.9651728+00:00","completedAt":"2026-08-23T02:23:01.1902093+00:00","stages":[{"stageId":"hybrid","state":"Completed","attempt":4,"workerType":"Agentic","workerId":"agentic-default","output":"agentic:hybrid:ok"},{"stageId":"ingest","state":"Completed","attempt":1,"workerType":"Deterministic","workerId":"deterministic-default","output":"deterministic:ingest:ok"}]}}

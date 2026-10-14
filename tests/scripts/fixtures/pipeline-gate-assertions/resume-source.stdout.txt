@@ -1,0 +1,13 @@
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-resume-source started for template gate-demo.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage ingest failed by test hook.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage ingest failed by test hook.
+warn: Ashlar.Infrastructure.Pipelines.DeterministicPipelineStageExecutor[0]
+      Deterministic stage ingest failed by test hook.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage ingest completed with state Failed on worker Deterministic.
+warn: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-resume-source stalled with no ready stages.
+{"ok":false,"correlationId":"0c0d386201024ee7a95026061aa6b62a","data":{"runId":"gate-resume-source","templateId":"gate-demo","state":"Failed","startedAt":"2026-10-14T00:41:08.271+00:00","completedAt":"2026-10-14T00:41:08.606+00:00","stages":[{"stageId":"hybrid","state":"Pending","attempt":0},{"stageId":"ingest","state":"Failed","attempt":3,"workerType":"Deterministic","workerId":"deterministic-test-hook","error":"Deterministic execution failed (test hook)."}]}}
