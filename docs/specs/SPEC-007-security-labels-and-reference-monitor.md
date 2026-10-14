@@ -143,9 +143,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   model. `ProviderFactory` keeps nothing itself: it records the refused probe on the caller's
   `ProviderRefusalScope`, and the scope holds it. Besides `AdaptiveProviderFactory`, `ProviderBackedModel` (which
   throws it) and `BehaviorExecutor` (which reports it) now open one. `BehaviorExecutor` follows D23: a refused
-  probe counts as a skipped alternative, and when every alternative failed or was skipped, the first refusal is
-  the step's last error event, also after a failing deterministic fallback; it is not appended again when the
-  refused attempt was itself the last error (and is listed twice when a fallback failed after it). A
+  probe counts as a skipped alternative, and when every alternative of a step failed or was skipped, the first
+  refusal is that step's last error event, also after a failing deterministic fallback; it is not appended again
+  when the last event written already carried it (and is listed twice when a fallback failed after the refused
+  attempt). D23 holds per step: under `FailurePolicy.Continue` later steps' errors follow. A
   deterministic implementation that succeeds after a refusal still completes the step at the event level,
   because it is not the echo model. `IBehaviorExecutor.ExecuteAsync` still returns `Success = false` once any
   step error was emitted; that predates 4.8b.
@@ -159,12 +160,16 @@ The status line above and the starting prompt are the owner's, as written; the s
     pass-through, both opt-in (`ReplaceMapIntelligenceWithModelBackedDefaults`).
   The factory's row-24 Warning is windowed (event 7307, flushed when the factory is disposed).
   No echo model and no canned or pass-through output answers a refusal; every model or chat catch-all in `src/`
-  was read on 2026-10-13. Residuals remain and are listed as dated Known limits in
+  was read on 2026-10-13 (17 unfiltered catch-alls, 5 refusal-filtered). Residuals remain and are listed as dated
+  Known limits in
   `docs/EgressInventory.md` ("Catch-alls and availability probes"):
   - status callers report a refused probe as "unavailable";
   - `workflow stress` reports success over refused probes, and `workflow optimize` fails without naming the
     refusal (card #802);
   - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
+  - `BehaviorExecutor`'s outer catch (a throwing outcome recorder or semantic cache, or cancellation, which wins
+    by design) ends a step's stream with its own event, not the refusal;
+  - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed`;
   - the `adapt` and `improve` verbs never flush the window.
   Every 4.8b site reaches the internal `EgressRefusal` through the existing `InternalsVisibleTo` list of
   `Ashlar.Abstractions` (`Ashlar.Abstractions.csproj:33-47`, 15 friends, unchanged by 4.8b; Orchestration and

@@ -23,12 +23,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `ProviderBackedModel` throws the refusal itself, so `HotSwappableModel`'s caller receives it under
   `ashlar.model.prefer=deterministic`, under `ASHLAR_ALLOW_MOCK=1` and with neither. Until now the 4.8 sentence
   "unavailable-model fallbacks cannot turn them into echo success" held only for refusals thrown by the model call.
-- Behaviour steps follow D23. A refused probe counts as a skipped alternative. When no implementation produced
-  output, the first refusal is the step's final error: instead of "No available implementation", and also after
-  a deterministic fallback failed for its own reason. It is appended as the step's last error event unless the
-  last error event already carried it, so a refused last attempt is not listed twice; a refused attempt followed by
-  a failing fallback lists it at the attempt and again at the end, and `IBehaviorExecutor.ExecuteAsync`'s `Errors`
-  then names it twice. A deterministic fallback that succeeds after a refusal completes the step at the event
+- Behaviour steps follow D23, per step. A refused probe counts as a skipped alternative. When no implementation
+  produced output, the first refusal is the step's last error event: instead of "No available implementation",
+  and also after a deterministic fallback failed for its own reason. It is appended unless the last error event
+  written already carried it (judged from the written text), so a refused last attempt, or a no-output fallback
+  that re-wrote its text, is not listed again. A refused attempt followed by a failing fallback lists it at the
+  attempt and again at the end, and `IBehaviorExecutor.ExecuteAsync`'s `Errors` then names it twice. Under
+  `FailurePolicy.Continue` later steps' errors follow, and `BehaviorExecutor`'s outer catch (a throwing outcome
+  recorder or semantic cache, or cancellation, which wins by design) still ends the stream with its own event. A deterministic fallback that succeeds after a refusal completes the step at the event
   level (`StepCompletedEvent`, `BehaviorCompletedEvent.Success`). `IBehaviorExecutor.ExecuteAsync` still returns
   `Success = false` whenever any `StepErrorEvent` was emitted; that predates 4.8b.
 - `OrchestrationHotSwappableModel`, which wraps every orchestration agent's model, rethrows a refusal instead of
@@ -53,7 +55,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     the provider preflight (card #802);
   - `ashlar workflow optimize` exits 1 but reports "Provider unavailable." rather than the refusal (card #802);
   - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
-  - IDE health and onboarding status report a refused provider as unavailable.
+  - IDE health and onboarding status report a refused provider as unavailable;
+  - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
 
 ### Changed — a refusal at a brick or cluster node ends a workflow run under `FailurePolicy.Continue` (SPEC-007 4.8, disclosed in 4.8b)
 
