@@ -50,9 +50,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
       `ValidateAirGappedMeshLabWorkerOptions` and `ValidateAshlarInboundListeners`.
     - `Ashlar.Manifest`, inside the `Ashlar.CLI` tool package: `SkillComposition.Decide`.
     - `Ashlar.CLI`, a tool package: the `MeshServeService` constructor.
-  - **These do not, but are part of the same work:** `AddAshlarEgressGuard`, `EgressGuardOptions`,
-    `EgressDecisionLoggerSubscription` and `EgressHttpClientBuilderExtensions` in `Ashlar.Infrastructure`;
-    `AshlarHostingOptions.EgressMode` and `.Clearance` in `Ashlar.Hosting`; `PolicyClearances` in `Ashlar.Manifest`.
+  - **These name no surface type, and are part of the same work.** Not exhaustive: these come from a lexical scan of
+    SPEC-007's implementation commits since `v0.2.0` for public declarations they added to published assemblies, and a
+    scan of that kind does not see an existing signature that changed. For example:
+    - `Ashlar.Infrastructure`: `AddAshlarEgressGuard`; `EgressGuardOptions`; `EgressDecisionLoggerSubscription`;
+      `EgressHttpClientBuilderExtensions.NeverFollowRedirects`; `AshlarInboundListenerOptions`;
+      `AshlarInboundListenerPolicy.IsLoopbackEndpoint` and `.CollectEndpoints`; `AddAshlarInboundListenerValidation`;
+      `Dispose` on `CompositeBrickRegistry`, `HttpRemoteBrickCatalog`, `MeshLabWorkerExecutorBackgroundService` and
+      `ModelArtifactCatalogService`.
+    - `Ashlar.Hosting`: `AshlarHostingOptions.EgressMode` and `.Clearance`.
+    - `Ashlar.BackgroundAgents`: `AgentCycleResult.EgressRefusals`.
+    - `Ashlar.Runtime`: `CapabilityRegistry.Find`; `EndpointHealthMonitor.Dispose`.
+    - `Ashlar.Manifest`, inside the `Ashlar.CLI` tool package: `AshlarPolicy.Clearances`; `PolicyClearances`;
+      `ExtensionPackage.HighestLevel`.
   - The same list is in `docs/SdkCompatibilityPolicy.md#ashlarexp002`.
 - The id and its help link are defined once, in the internal, non-experimental
   `Ashlar.Abstractions.Security.SecurityExperimental` (integrator decision: a public holder would put a stable line in
