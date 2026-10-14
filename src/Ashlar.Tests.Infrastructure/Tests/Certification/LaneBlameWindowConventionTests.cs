@@ -239,11 +239,6 @@ public sealed class LaneBlameWindowConventionTests
     private static readonly Regex FrameworkArgument =
         new(@"(?:--framework|-f)\s+[""']?(net[0-9]+\.[0-9]+)[""']?", RegexOptions.Compiled);
 
-    /// <summary>
-    /// A lane pinned to a framework this run is not executing selects a different set of tests, so
-    /// it is left to the run of this convention that happens under that framework rather than
-    /// measured against the wrong inventory.
-    /// </summary>
     [Fact]
     public void Ci_verify_runs_ProdStyle_on_both_frameworks_including_the_real_api_host()
     {
@@ -265,6 +260,11 @@ public sealed class LaneBlameWindowConventionTests
                 "the net10 lane must select both default-enforcement twins, not merely exist");
     }
 
+    /// <summary>
+    /// A lane pinned to a framework this run is not executing selects a different set of tests, so
+    /// it is left to the run of this convention that happens under that framework rather than
+    /// measured against the wrong inventory.
+    /// </summary>
     private static bool MeasurableHere(LaneInvocation lane) =>
         lane.Framework is null
         || string.Equals(lane.Framework, RunningFramework, StringComparison.Ordinal);
