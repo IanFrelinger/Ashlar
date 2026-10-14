@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Bricks;
 using Ashlar.Core.Application.Common.Ports;
 using Ashlar.Core.Application.Execution.Models;
@@ -167,11 +168,19 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     var brickInput = MapInputs(step.InputMapping, context);
                     BrickInputDefaults.Apply(brick, brickInput);
 
-                    // Determine implementation chain (preference + fallback), filtering for availability.
-                    var chain = ResolveImplementationChain(step, brick, behavior, options, context);
+                    // Determine implementation chain (preference + fallback), filtering for availability. A refused
+                    // availability probe is kept on this scope: when it leaves nothing to run, the refusal is the
+                    // step's error, not "No available implementation" (SPEC-007 D23, 4.8b).
+                    IReadOnlyList<ImplementationType> chain;
+                    EgressRefusedException? probeRefusal;
+                    using (var refusals = new ProviderRefusalScope())
+                    {
+                        chain = ResolveImplementationChain(step, brick, behavior, options, context);
+                        probeRefusal = refusals.Refusal;
+                    }
                     if (chain.Count == 0)
                     {
-                        await writer.WriteAsync(new StepErrorEvent(step.Id, "No available implementation"), ct);
+                        await writer.WriteAsync(new StepErrorEvent(step.Id, probeRefusal?.Message ?? "No available implementation"), ct);
                         stepFailures++;
                         return behavior.OnStepFailure == FailurePolicy.Abort ? LoopAction.Break : LoopAction.Continue;
                     }
