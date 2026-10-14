@@ -23,7 +23,7 @@ public sealed class InboundHostLoopbackProdStyleTests
     public static IEnumerable<object[]> Cases()
     {
         foreach (var host in new[] { "grpc", "fleet" })
-        foreach (var profile in new[] { "airgapped", "secure-workstation" })
+        foreach (var profile in new[] { "air-gapped", "airgapped", "secure-workstation" })
         foreach (var binding in new[] { "urls", "endpoint", "code", "loopback" })
             yield return new object[] { host, profile, binding };
         foreach (var host in new[] { "grpc", "fleet" })
