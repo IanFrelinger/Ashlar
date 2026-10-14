@@ -162,7 +162,7 @@
     {
       "id": "r14-startup-claims-records-only",
       "file": "src/Ashlar.Abstractions/Security/Egress/EgressEnforcement.cs",
-      "old": "HTTP and governed model routes honor enforcement; explicit sites are not yet enforced (SPEC-007 PR 4.7).",
+      "old": "HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.",
       "new": "Records only: the guard refuses nothing yet (SPEC-007 PR 4).",
       "filter": "FullyQualifiedName~The_hosted_activator_logs_one_line_with_mode_basis_profile_and_whether_it_was_defaulted",
       "framework": "net8.0",

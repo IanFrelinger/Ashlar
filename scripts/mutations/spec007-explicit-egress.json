@@ -437,8 +437,8 @@
     {
       "id": "operator-mode-fault-stays-enforcing",
       "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuard.cs",
-      "old": "fault is null && modeBasis != EgressEnforcement.FaultBasis",
-      "new": "fault is null",
+      "old": "fault is null && modeBasis != EgressEnforcement.FaultBasis\n            && request?.Initiator == EgressInitiator.OperatorFileExport",
+      "new": "fault is null\n            && request?.Initiator == EgressInitiator.OperatorFileExport",
       "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",

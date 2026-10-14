@@ -90,8 +90,8 @@
     {
       "id": "m8-post-send-check-dropped-async",
       "file": "src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs",
-      "old": "        var response = await send.ConfigureAwait(false);\n        FinishSend(request, response);",
-      "new": "        var response = await send.ConfigureAwait(false);",
+      "old": "private async Task<HttpResponseMessage> FinishAsync(HttpRequestMessage request, Task<HttpResponseMessage> send)\n    {\n        var response = await send.ConfigureAwait(false);\n        FinishSend(request, response);",
+      "new": "private static async Task<HttpResponseMessage> FinishAsync(HttpRequestMessage request, Task<HttpResponseMessage> send)\n    {\n        var response = await send.ConfigureAwait(false);",
       "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -222,8 +222,8 @@
     {
       "id": "m20-hop-decided-by-process-default",
       "file": "src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs",
-      "old": "_ = (_guard ?? EgressGuard.ProcessDefault).Evaluate(egress);",
-      "new": "_ = EgressGuard.ProcessDefault.Evaluate(egress);",
+      "old": "EgressGuard.EvaluateForRoute(_guard ?? EgressGuard.ProcessDefault, egress).ThrowIfRefused();",
+      "new": "EgressGuard.EvaluateForRoute(EgressGuard.ProcessDefault, egress).ThrowIfRefused();",
       "filter": "FullyQualifiedName~EgressRedirect|FullyQualifiedName~EgressHttpNetstandard20TwinTests|FullyQualifiedName~EgressHttpHandlerTwinTests|FullyQualifiedName~EgressFactoryDefaultsTwinTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
