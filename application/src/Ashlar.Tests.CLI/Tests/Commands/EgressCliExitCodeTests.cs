@@ -43,11 +43,11 @@ public sealed class EgressCliExitCodeTests
         clean.SetHandler(async (InvocationContext context) =>
         {
             entered.SetResult();
-            await release.Task;
+            await release.Task.WaitAsync(TimeSpan.FromSeconds(30));
             context.ExitCode = 0;
         });
         var cleanRun = Ashlar.CLI.EgressCliInvocation.InvokeAsync(clean, []);
-        await entered.Task;
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(30));
         try
         {
             var refused = new RootCommand();

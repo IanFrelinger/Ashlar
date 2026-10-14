@@ -37,7 +37,7 @@ This inventory began at master `f1f2cff` (2026-10-04) and is maintained with the
     - **Known limit (2026-10-13, PR 4.8b #800; card #802), `workflow stress` and `workflow optimize`.**
       - The provider preflight answers a refused probe with "Provider unavailable." (`application/src/Ashlar.CLI/Commands/WorkflowCommand.cs:615-618`).
       - `ashlar workflow stress` marks every run of that provider Skipped (`Workflow/StressHandler.cs:153-163`), counts skipped runs as passed (`:287`) and returns 0 internally (`:304`). Since PR 4.9b (#765), the real CLI exits 77 when its invocation observed the local refusal, but the stress result still mislabels the run.
-      - `ashlar workflow optimize` fails closed (`Workflow/OptimizeHandler.cs:560`, exit 1 at `:599`) but reports "Provider unavailable." instead of the refusal.
+      - `ashlar workflow optimize` returns an internal failure (`Workflow/OptimizeHandler.cs:560`, return 1 at `:599`) but reports "Provider unavailable." instead of the refusal. The real CLI exits 77 when it observes the local refusal.
       - application/ code cannot open the internal `ProviderRefusalScope`.
     - **Known limit (2026-10-13, PR 4.8b #800; card #803), workflow agent nodes.**
       - A behaviour step's final error can now carry the refusal, but a workflow loses it again at an agent node. `WorkflowExecutor.ExecuteAgentNodeAsync` (`src/Ashlar.Core.Application/Workflows/WorkflowExecutor.cs:246-262`) reads only `BehaviorCompletedEvent.Outputs` and returns `Success = true`, ignoring `StepErrorEvent` and `completed.Success`. `StepErrorEvent` carries only a `string Error`.
