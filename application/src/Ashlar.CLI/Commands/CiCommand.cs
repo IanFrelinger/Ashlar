@@ -112,6 +112,19 @@ public sealed class CiCommand : Command
             return prodStyleExit;
         }
 
+        // The real API host targets net10.0. Its VirtualProduction twins are excluded from
+        // net8.0, so the preceding suite alone cannot evidence default egress enforcement.
+        Console.WriteLine("=== CI Verify: Production-like API-host tests (ProdStyle, net10.0) ===");
+        var apiProdStyleExit = await RunProcessAsync(
+            "dotnet",
+            $"test \"{infraTestsProject}\" -f net10.0 --no-build --blame-hang-timeout 900s --blame-hang-dump-type none --filter \"Category=ProdStyle&FullyQualifiedName!~ForgeEndpointsTests&FullyQualifiedName!~FrameworkVirtualProdDemosTests\" --verbosity minimal",
+            repoRoot);
+        if (apiProdStyleExit != 0)
+        {
+            Console.Error.WriteLine($"ci verify: API-host Production-like tests failed (exit {apiProdStyleExit})");
+            return apiProdStyleExit;
+        }
+
         // Step 3: Smoke tests (BaseFrameworkSmokeTests)
         Console.WriteLine("=== CI Verify: Smoke Tests ===");
         var testExit = await RunProcessAsync(

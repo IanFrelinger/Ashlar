@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 807,
-    "declared_facts": 5188,
+    "declared_facts": 5191,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -1395,7 +1395,8 @@
       "name": "ASHLAR_EPHEMERAL",
       "declared_in": [
         "Ashlar.CLI",
-        "Ashlar.Hosting"
+        "Ashlar.Hosting",
+        "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -1414,7 +1415,8 @@
       "name": "ASHLAR_EPHEMERAL_MODELS",
       "declared_in": [
         "Ashlar.CLI",
-        "Ashlar.Hosting"
+        "Ashlar.Hosting",
+        "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -5543,7 +5545,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/LaneBlameWindowConventionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 4,
+      "declared_facts": 5,
       "in_cert_gate_filter": true
     },
     {
@@ -7412,7 +7414,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/VirtualProduction/EgressExplicitApiProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.VirtualProduction",
-      "declared_facts": 3,
+      "declared_facts": 5,
       "in_cert_gate_filter": false
     },
     {

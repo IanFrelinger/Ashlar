@@ -162,7 +162,7 @@ public sealed class TimeoutConventionTests
 
         var expected = new (string RelativePath, string[] Windows)[]
         {
-            ("application/src/Ashlar.CLI/Commands/CiCommand.cs", [window, "30s"]),
+            ("application/src/Ashlar.CLI/Commands/CiCommand.cs", [window, window, "30s"]),
         };
 
         foreach (var (relativePath, windows) in expected)

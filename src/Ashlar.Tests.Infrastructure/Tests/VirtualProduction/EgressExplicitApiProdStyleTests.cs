@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Common.Ports;
+using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Ide;
 using Ashlar.Infrastructure.Metrics;
 using Ashlar.Tests.Infrastructure.Helpers;
@@ -81,6 +82,75 @@ public sealed class EgressExplicitApiProdStyleTests
         var run = IdeRunTracker.Instance.Get(data.GetProperty("runId").GetString()!);
         run!.Status.Should().Be("failed");
         run.Error.Should().Be(message, "the remotely readable run record must be redacted too");
+    }
+
+    [Theory(Timeout = TestTimeouts.HostTouching)]
+    [InlineData("airgapped", true)]
+    [InlineData("secure-workstation", true)]
+    [InlineData("full", false)]
+    public async Task Profile_default_decides_otlp_without_a_mode_override(string profile, bool refuses)
+    {
+        using var deployment = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", profile);
+        using var mode = EnvironmentVariableScope.Unset("ASHLAR_EGRESS_MODE");
+        using var state = new EgressProcessStateScope(reset: true);
+        using var logs = new WarningProvider();
+        using var stderr = new StringWriter();
+        var previous = Console.Error;
+        Console.SetError(stderr);
+        try
+        {
+            using var factory = new AshlarApiWebApplicationFactory().WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("urls", "http://localhost:5000");
+                builder.UseSetting("OTEL_EXPORTER_OTLP_ENDPOINT", "https://private-collector.invalid:4318/secret?token=hidden");
+                builder.ConfigureLogging(logging => logging.AddProvider(logs));
+            });
+            using var client = factory.CreateClient();
+            (await client.GetAsync("/health")).StatusCode.Should().Be(HttpStatusCode.OK);
+            var refused = stderr.ToString().Split('\n').Where(x => x.StartsWith("OTLP export refused:")).ToList();
+            if (refuses)
+            {
+                var line = refused.Should().ContainSingle().Which;
+                line.Should().Contain("Egress refused by policy").And.Contain("ref=").And.NotContain("private-collector").And.NotContain("hidden");
+                factory.Services.GetService<TracerProvider>().Should().BeNull();
+                factory.Services.GetService<MeterProvider>().Should().BeNull();
+                logs.Messages.Where(x => x.StartsWith("OTLP export refused:")).Should().ContainSingle()
+                    .Which.Trim().Should().Be(line.Trim());
+            }
+            else
+            {
+                refused.Should().BeEmpty();
+                factory.Services.GetService<TracerProvider>().Should().NotBeNull();
+                factory.Services.GetService<MeterProvider>().Should().NotBeNull();
+            }
+        }
+        finally { Console.SetError(previous); }
+    }
+
+    [Fact(Timeout = TestTimeouts.HostTouching)]
+    public async Task Airgapped_host_preserves_an_ollama_refusal_through_the_adaptive_factory()
+    {
+        using var deployment = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "airgapped");
+        using var mode = EnvironmentVariableScope.Unset("ASHLAR_EGRESS_MODE");
+        using var ollama = new EnvironmentVariableScope("ASHLAR_OLLAMA_BASE_URL", "https://private-model.invalid");
+        using var preference = new EnvironmentVariableScope("ASHLAR_LOAD_PREFERENCE", "edge");
+        using var timeout = new EnvironmentVariableScope("OLLAMA_TIMEOUT_SECONDS", "2");
+        using var localModel = EnvironmentVariableScope.Unset("ASHLAR_LOCAL_MODEL_PATH");
+        using var openAi = EnvironmentVariableScope.Unset("OPENAI_API_KEY");
+        using var azure = EnvironmentVariableScope.Unset("AZURE_OPENAI_ENDPOINT");
+        using var ephemeral = EnvironmentVariableScope.Unset("ASHLAR_EPHEMERAL");
+        using var ephemeralModels = EnvironmentVariableScope.Unset("ASHLAR_EPHEMERAL_MODELS");
+        using var state = new EgressProcessStateScope(reset: true);
+        using var factory = new AshlarApiWebApplicationFactory().WithWebHostBuilder(builder =>
+            builder.UseSetting("urls", "http://localhost:5000"));
+        using var client = factory.CreateClient();
+        var providers = factory.Services.GetRequiredService<IProviderFactory>();
+        providers.Should().BeOfType<AdaptiveProviderFactory>();
+        var error = await Record.ExceptionAsync(() => providers.ExecuteLLMAsync("ignored", "system", "user", new object()));
+        var refusal = error.Should().BeOfType<EgressRefusedException>().Which;
+        refusal.Message.Should().NotContain("private-model");
+        refusal.Site.Should().Be("EG-MDL-07");
+        refusal.Decision.Mode.Should().Be("enforce");
     }
 
     [Fact(Timeout = TestTimeouts.HostTouching)]

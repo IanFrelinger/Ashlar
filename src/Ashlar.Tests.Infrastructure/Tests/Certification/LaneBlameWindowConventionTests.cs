@@ -239,6 +239,27 @@ public sealed class LaneBlameWindowConventionTests
     private static readonly Regex FrameworkArgument =
         new(@"(?:--framework|-f)\s+[""']?(net[0-9]+\.[0-9]+)[""']?", RegexOptions.Compiled);
 
+    [Fact]
+    public void Ci_verify_runs_ProdStyle_on_both_frameworks_including_the_real_api_host()
+    {
+        var prodStyle = LanesThatRunThisSuite()
+            .Where(lane => Path.GetFileName(lane.File) == "CiCommand.cs"
+                && lane.Filter is not null && lane.Filter.StartsWith("Category=ProdStyle", StringComparison.Ordinal))
+            .ToArray();
+        prodStyle.Select(lane => lane.Framework).Should().Contain(new[] { "net8.0", "net10.0" },
+            "the API-host default-enforcement twins are compiled out on net8.0; readiness must run net10.0 too");
+        // Model the two real net10-only methods even when this convention runs on net8.
+        const string prefix = "Ashlar.Tests.Infrastructure.Tests.VirtualProduction.EgressExplicitApiProdStyleTests.";
+        TestCase[] twins =
+        [
+            new(prefix + "Profile_default_decides_otlp_without_a_mode_override", ["ProdStyle"], 480_000, false),
+            new(prefix + "Airgapped_host_preserves_an_ollama_refusal_through_the_adaptive_factory", ["ProdStyle"], 480_000, false),
+        ];
+        prodStyle.Where(lane => lane.Framework == "net10.0").Should()
+            .Contain(lane => Select(twins, lane.Filter).Count == twins.Length,
+                "the net10 lane must select both default-enforcement twins, not merely exist");
+    }
+
     /// <summary>
     /// A lane pinned to a framework this run is not executing selects a different set of tests, so
     /// it is left to the run of this convention that happens under that framework rather than
