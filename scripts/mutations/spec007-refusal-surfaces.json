@@ -687,8 +687,8 @@
     {
       "id": "s74-behavior-in-chain-refusal-not-kept",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "finalRefusal ??= refused;",
-      "new": "GC.KeepAlive(refused);",
+      "old": "finalRefusal ??= attemptRefusal;",
+      "new": "GC.KeepAlive(attemptRefusal);",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -734,15 +734,15 @@
       ]
     },
     {
-      "id": "s78-behavior-refusal-reported-twice",
+      "id": "s78-behavior-refusal-flag-sticks",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "if (finalRefusal is not null && !ReferenceEquals(reportedRefusal, finalRefusal))",
-      "new": "if (finalRefusal is not null)",
+      "old": "lastErrorCarriedRefusal = attemptRefusal is not null",
+      "new": "lastErrorCarriedRefusal |= attemptRefusal is not null",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
-        "Unwrapped_refused_attempt_then_failing_fallback_reports_the_refusal_once"
+        "Refused_attempt_whose_event_carried_the_refusal_then_failing_fallback_still_ends_with_the_refusal"
       ]
     },
     {
@@ -755,6 +755,32 @@
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
         "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s80-behavior-refusal-flag-ignores-identity",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "attemptRefusal is not null && ReferenceEquals(attemptRefusal, finalRefusal)\n                            && errorText.Contains(attemptRefusal.Message, StringComparison.Ordinal);",
+      "new": "attemptRefusal is null || attemptRefusal is not null;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_attempt_whose_event_carried_the_refusal_then_failing_fallback_still_ends_with_the_refusal",
+        "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error",
+        "In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s81-behavior-refusal-duplicated-when-last",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "if (finalRefusal is not null && !lastErrorCarriedRefusal)",
+      "new": "if (finalRefusal is not null && (lastErrorCarriedRefusal || !lastErrorCarriedRefusal))",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_attempt_as_the_last_alternative_reports_the_refusal_once"
       ]
     }
   ]

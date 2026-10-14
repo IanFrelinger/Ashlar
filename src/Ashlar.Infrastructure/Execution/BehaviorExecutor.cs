@@ -189,13 +189,14 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     BrickOutput? output = null;
                     string? error = null;
                     var usedFallback = false;
-                    // The first refusal among the alternatives, skipped (refused probe) or attempted (D23), and that
-                    // same refusal once an attempt's own error event has carried its message, so it is reported once.
+                    // The first refusal among the alternatives, skipped (refused probe) or attempted (D23), and
+                    // whether the LAST error event the chain wrote already carried it (reset on every error event).
                     var finalRefusal = probeRefusal;
-                    EgressRefusedException? reportedRefusal = null;
+                    var lastErrorCarriedRefusal = false;
 
                     await _loops.ForEachAsync(chain, async (implementation, _, ct2) =>
                     {
+                        EgressRefusedException? attemptRefusal = null;
                         await writer.WriteAsync(new StepStartedEvent(
                             step.Id,
                             brick.Id,
@@ -284,13 +285,8 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                             {
                                 output = null;
                                 error = ex.Message;
-                                var refused = EgressRefusal.Find(ex);
-                                finalRefusal ??= refused;
-                                if (refused is not null && ReferenceEquals(refused, finalRefusal)
-                                    && ex.Message.Contains(refused.Message, StringComparison.Ordinal))
-                                {
-                                    reportedRefusal = refused;
-                                }
+                                attemptRefusal = EgressRefusal.Find(ex);
+                                finalRefusal ??= attemptRefusal;
                                 _logger.LogError(ex, "Error executing step {StepId} with {Implementation}", step.Id, implementation);
                                 if (resolution is not null && _agenticBrickEngine is not null)
                                 {
@@ -325,7 +321,11 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                             return LoopAction.Break;
                         }
 
-                        await writer.WriteAsync(new StepErrorEvent(step.Id, error ?? "Step failed", stopwatch.ElapsedMilliseconds), ct2);
+                        var errorText = error ?? "Step failed";
+                        await writer.WriteAsync(new StepErrorEvent(step.Id, errorText, stopwatch.ElapsedMilliseconds), ct2);
+                        // Overwritten on every error event: did THIS one carry the step's first refusal?
+                        lastErrorCarriedRefusal = attemptRefusal is not null && ReferenceEquals(attemptRefusal, finalRefusal)
+                            && errorText.Contains(attemptRefusal.Message, StringComparison.Ordinal);
                         _metricsCollector?.IncrementCounter("ncr.execution.step.error");
 
                         if (!options.SwapOnFailure)
@@ -341,9 +341,10 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     if (error != null && output == null)
                     {
                         // D23: every alternative failed or was skipped, so a refusal among them is the step's final
-                        // error, also when a later fallback failed for a reason of its own. A refusal an attempt's
-                        // own error event already carried is not reported a second time.
-                        if (finalRefusal is not null && !ReferenceEquals(reportedRefusal, finalRefusal))
+                        // error, also when a later fallback failed for a reason of its own. It is appended unless the
+                        // last error event already carried it, so a refused last attempt is not reported twice; a
+                        // refused attempt followed by a failing fallback is listed at the attempt and again here.
+                        if (finalRefusal is not null && !lastErrorCarriedRefusal)
                         {
                             await writer.WriteAsync(new StepErrorEvent(step.Id, finalRefusal.Message), ct);
                         }
