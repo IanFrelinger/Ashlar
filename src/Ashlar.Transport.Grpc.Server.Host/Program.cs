@@ -32,3 +32,6 @@ app.MapAshlarGrpcServer();
 app.MapGet("/", () => "Ashlar.Transport.Grpc.Server is running.");
 
 app.Run();
+
+/// <summary>Entry point for integration tests and hosting.</summary>
+public partial class GrpcHostProgram;

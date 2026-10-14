@@ -1051,6 +1051,7 @@
     {
       "name": "ASHLAR_ALLOW_MOCK",
       "declared_in": [
+        "(unowned)",
         "Ashlar.CLI",
         "Ashlar.Infrastructure",
         "Ashlar.Orchestration",
@@ -1320,6 +1321,7 @@
     {
       "name": "ASHLAR_DEPLOYMENT_PROFILE",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Abstractions",
         "Ashlar.Hosting",
         "Ashlar.Mcp.Client",

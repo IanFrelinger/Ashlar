@@ -13,7 +13,7 @@
     <PackageReference Include="FluentAssertions" />
     <!-- TestHost 8.0 ResponseBodyPipeWriter does not override PipeWriter.UnflushedBytes,
          which System.Text.Json 10 requires; the 10.0 TestHost adds it. Without this every
-         endpoint that writes JSON — including /health — returns 500, which reads like a host
+         endpoint that writes JSON â€” including /health â€” returns 500, which reads like a host
          that failed to start and is not one. Same override pattern as
          Ashlar.Tests.Infrastructure (Mvc.Testing) and Ashlar.Transport.A2A.Server.Tests
          (TestHost); this project is net10.0-only, so the override needs no condition. -->
@@ -27,4 +27,9 @@
     <ProjectReference Include="../../src/Ashlar.Commercial.Fleet.Host/Ashlar.Commercial.Fleet.Host.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Ashlar.Transport.Grpc.Server.Host/Ashlar.Transport.Grpc.Server.Host.csproj" />
+    <Compile Include="../../../src/Ashlar.Tests.Infrastructure/Helpers/EgressProcessStateScope.cs" Link="Helpers/EgressProcessStateScope.cs" />
+    <Compile Include="../../../src/Ashlar.Tests.Infrastructure/Helpers/EnvironmentVariableScope.cs" Link="Helpers/EnvironmentVariableScope.cs" />
+  </ItemGroup>
 </Project>
