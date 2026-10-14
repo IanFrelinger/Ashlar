@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Common.Ports;
 using Ashlar.Orchestration.Coordination.Conflicts;
 using Ashlar.Orchestration.Negotiation.Models;
@@ -15,7 +16,7 @@ namespace Ashlar.Orchestration.Negotiation;
 /// - Synthesizes creative resolutions using LLM (IModel)
 /// - Caches synthesis results for similar conflicts
 /// - Generates proposed resolutions that satisfy all parties
-/// - Provides fallback synthesis when LLM unavailable
+/// - Provides fallback synthesis when LLM unavailable (never for an egress refusal, which is rethrown)
 /// 
 /// Used by NegotiationProtocol to resolve philosophy conflicts between agents.
 /// </summary>
@@ -84,6 +85,8 @@ public sealed class SynthesisEngine
         }
         catch (Exception ex)
         {
+            // A refusal is the final error, never a reason for the fallback resolution (SPEC-007 D23, 4.8b).
+            EgressRefusal.ThrowIfPresent(ex);
             _logger.LogError(ex, "Synthesis failed");
             return TryFallbackSynthesis(positions, conflict);
         }

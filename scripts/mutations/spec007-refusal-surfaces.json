@@ -659,6 +659,55 @@
       "expected_failures": [
         "Refused_Ollama_probes_share_one_warning_window_flushed_on_factory_disposal"
       ]
+    },
+    {
+      "id": "s72-planning-agent-canned-recommendation-answers-refusal",
+      "file": "src/Ashlar.Orchestration/Agents/Planning/PlanningAgent.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "_ = ex;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Planning_agent_never_answers_a_refusal_with_its_canned_recommendation"
+      ]
+    },
+    {
+      "id": "s73-synthesis-fallback-answers-refusal",
+      "file": "src/Ashlar.Orchestration/Negotiation/SynthesisEngine.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "_ = ex;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Synthesis_engine_never_answers_a_refusal_with_its_phased_fallback"
+      ]
+    },
+    {
+      "id": "s74-behavior-in-chain-refusal-not-kept",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "finalRefusal ??= EgressRefusal.Find(ex);",
+      "new": "_ = ex;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s75-behavior-fallback-error-outranks-refusal",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "await writer.WriteAsync(new StepErrorEvent(step.Id, finalRefusal.Message), ct);",
+      "new": "await Task.CompletedTask;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error",
+        "In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
     }
   ]
 }
