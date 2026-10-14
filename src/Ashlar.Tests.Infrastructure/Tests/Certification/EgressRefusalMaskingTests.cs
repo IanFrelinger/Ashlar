@@ -4,12 +4,14 @@ using Ashlar.Abstractions;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Agents.TestKit;
 using Ashlar.Core.Application.Common.Services;
+using Ashlar.Core.Application.Environments;
 using Ashlar.Core.Application.Ephemeral.Ports;
 using Ashlar.Core.Domain.Agents;
 using Ashlar.Core.Domain.Behaviors;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 using Ashlar.Core.Domain.Execution.Events;
+using Ashlar.Infrastructure.Environments;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.LoadPolicy;
 using Ashlar.Infrastructure.Execution.Models;
@@ -259,6 +261,64 @@ public sealed class EgressRefusalMaskingTests
         errors[^1].Should().Contain(refusal.Ref,
             "the refused attempt, not the fallback's own failure, is the final error (D23)");
         events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Unwrapped_refused_attempt_then_failing_fallback_reports_the_refusal_once()
+    {
+        // The attempt's own error event already carries the refusal's message; the step must not report it twice
+        // (IBehaviorExecutor.ExecuteAsync puts every StepErrorEvent into Errors).
+        var refusal = Refusal();
+        var brick = new ScriptedBrick(agentic: () => throw refusal,
+            deterministic: () => throw new IOException("deterministic-broke"));
+
+        var events = await RunStepAsync(AvailableProviders(), brick);
+
+        brick.AgenticCalls.Should().Be(1);
+        brick.DeterministicCalls.Should().Be(1);
+        var errors = StepErrors(events);
+        errors.Count(e => e.Contains(refusal.Ref, StringComparison.Ordinal)).Should().Be(1,
+            "the refusal is reported exactly once in the step");
+        errors.Should().HaveCount(2, "the refused attempt and the failing fallback, nothing appended");
+        events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Material_intelligence_never_answers_a_refusal_with_heuristic_materials(bool wrapped)
+    {
+        var refusal = Refusal();
+        var model = new CountingModel(() => wrapped ? new IOException("private-canary", refusal) : refusal);
+        var service = new ModelBackedMaterialIntelligenceService(model);
+
+        MaterialIntelligenceResult? result = null;
+        var error = await Record.ExceptionAsync(async () => result = await service.SuggestMaterialsAsync(
+            new MaterialIntelligenceRequest("coastal", new Dictionary<string, string> { ["highway"] = "primary" },
+                new MapDataRequestContext("session-1"))));
+
+        result.Should().BeNull("a refused model must not become heuristic materials");
+        error.Should().BeSameAs(refusal);
+        model.Calls.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Vector_map_intelligence_never_answers_a_refusal_with_the_input_passed_through(bool wrapped)
+    {
+        var refusal = Refusal();
+        var model = new CountingModel(() => wrapped ? new IOException("private-canary", refusal) : refusal);
+        var service = new ModelBackedVectorMapIntelligenceService(model);
+        var raw = System.Text.Encoding.UTF8.GetBytes("""{"type":"FeatureCollection","features":[]}""");
+
+        VectorMapIntelligenceResult? result = null;
+        var error = await Record.ExceptionAsync(async () => result = await service.RefineAsync(
+            new VectorMapIntelligenceRequest(raw, "geojson", new MapDataRequestContext("session-1"))));
+
+        result.Should().BeNull("a refused model must not become the input passed through as a result");
+        error.Should().BeSameAs(refusal);
+        model.Calls.Should().Be(1);
     }
 
     [Fact]
