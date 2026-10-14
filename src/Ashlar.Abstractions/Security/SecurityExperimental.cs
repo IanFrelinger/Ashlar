@@ -14,8 +14,9 @@ namespace Ashlar.Abstractions.Security;
 /// <para>Deliberately <c>internal</c>, unlike that holder. The attribute's arguments are constants, compiled into
 /// each attribute's metadata, so no consumer ever needs this type. A public holder would add a non-experimental
 /// line to <c>PublicAPI.Unshipped.txt</c> that the release promotion ships as stable: a promise of two constant
-/// names that nobody outside this assembly uses. The friend assemblies listed in the project file can still apply
-/// the same id through it.</para>
+/// names that nobody outside this assembly uses. The friend assemblies listed in the project file can see it, but
+/// the id names this assembly's surface and nothing else: <c>DiagnosticSuppressionConventionTests</c> (cert-gate)
+/// fails an <c>ASHLAREXP002</c> declaration anywhere outside <c>src/Ashlar.Abstractions/</c>.</para>
 /// </remarks>
 internal static class SecurityExperimental
 {

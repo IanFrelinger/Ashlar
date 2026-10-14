@@ -47,9 +47,12 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// with THAT id (<see cref="ExperimentalIds"/>: an ASHLAREXP001 symbol does not license an ASHLAREXP002
 /// disable, nor the reverse); at least one symbol it names must occur in the code the pragma governs
 /// (from the pragma to a matching restore, else to the end of the file) OUTSIDE a declaration that
-/// carries the same attribute - the compiler reports neither diagnostic inside an obsolete or
+/// carries the same kind of attribute - the compiler reports neither diagnostic inside an obsolete or
 /// experimental context, which is exactly why the two <c>Ashlar.Sdk/Legacy</c> pragmas below are
-/// dead; and the comment must carry a reason of at least <see cref="MinimumReasonWords"/> words
+/// dead. The experimental context is not id-specific: a use inside a declaration marked with EITHER experimental
+/// id is not reported (measured when ASHLAREXP002 was applied: an ASHLAREXP001 type used inside ASHLAREXP002
+/// declarations compiles with no opt-in), so such a use does not keep an experimental disable alive. And the
+/// comment must carry a reason of at least <see cref="MinimumReasonWords"/> words
 /// besides the names. A disable that cannot carry such a comment is not allowed to stand in for one:
 /// a <c>[SuppressMessage]</c>/<c>[UnconditionalSuppressMessage]</c> naming any of the ids, a
 /// <c>NoWarn</c> or <c>WarningsNotAsErrors</c> (element or attribute) listing one in any MSBuild
@@ -59,7 +62,13 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <see cref="ReviewedProjectWideDisables"/>, which records why; that list fails in both directions
 /// too. And a reviewed project-wide disable of an experimental id in a project file must still be live, the
 /// project-wide form of a dead pragma: some C# file under that project's directory names a symbol of that id
-/// outside the symbol's own declaration.</para>
+/// outside every experimental declaration.</para>
+///
+/// <para><b>Where ASHLAREXP002 may be declared.</b> Only under <c>src/Ashlar.Abstractions/</c>. The id names
+/// the security and deployment-profile surface of that assembly and nothing else (SPEC-007 decisions log,
+/// 2026-10-13). Its holder is internal, so the friend assemblies of <c>Ashlar.Abstractions</c> can see it; this
+/// rule, not the holder's accessibility, keeps them from applying the id. <c>ExperimentalSecurityApiConventionTests</c>
+/// checks the same thing inside the assembly by reflection.</para>
 ///
 /// <para><b>Grandfathered, and why it is a ratchet rather than an exemption.</b> Eight existing disables
 /// fail Rule 2 and live in files this change does not own; <see cref="Grandfathered"/> lists each by
@@ -88,7 +97,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// over-approximating costs a red test, never a silent pass. The liveness of a project-wide disable is
 /// lexical too, and reads a project as its directory: a file of a project nested inside it counts as a use,
 /// a file linked in from elsewhere does not, and the shared <c>Directory.Build.targets</c> opt-ins are not
-/// checked for liveness at all.</para>
+/// checked for liveness at all. The ASHLAREXP002 placement rule reads declarations that name the holder's
+/// constant or spell the id as a literal; an id routed through another constant is not seen.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class DiagnosticSuppressionConventionTests
@@ -96,6 +106,7 @@ public sealed class DiagnosticSuppressionConventionTests
     private const string ObsoleteId = "CS0618";
     private const string ExperimentalId = "ASHLAREXP001";
     private const string SecurityExperimentalId = "ASHLAREXP002";
+    private const string SecurityExperimentalHome = "src/Ashlar.Abstractions/";
     private const string ApiAnalyzerPackage = "Microsoft.CodeAnalysis.PublicApiAnalyzers";
 
     /// <summary>
@@ -227,8 +238,11 @@ public sealed class DiagnosticSuppressionConventionTests
     /// warning: 28 projects reported it, 12 test projects (covered by the Directory.Build.targets entry) and the
     /// 16 project files below. The diagnostic exists for EXTERNAL consumers; these assemblies ship beside the
     /// surface and change with it. A project file's entry must stay live (see the class summary), so the list
-    /// is also the inventory of the shipped assemblies that depend on the surface, which the release notes
-    /// disclose.</para>
+    /// is also the inventory of the shipped assemblies that NAME the surface, and so need the opt-in to build.
+    /// It is not every assembly that depends on the surface: Ashlar.Runtime, Ashlar.Mcp.Server,
+    /// Ashlar.Transport.A2A.Server and Ashlar.Transport.Grpc.Server use it only through internal helpers of
+    /// Ashlar.Abstractions they see as friends (EgressRefusal, EgressRefusalWarnings), name no surface type,
+    /// reported no ASHLAREXP002 in that build, and need no opt-in.</para>
     /// </summary>
     private static readonly (string Path, string Setting, string Why)[] ReviewedProjectWideDisables =
     [
@@ -508,6 +522,31 @@ public sealed class DiagnosticSuppressionConventionTests
             _output.WriteLine($"  {v.Message}");
     }
 
+    [Fact]
+    public void Every_ASHLAREXP002_declaration_is_in_Ashlar_Abstractions()
+    {
+        var tree = Tree.Value;
+        var declarations = tree.Sources
+            .SelectMany(s => s.Declarations.Where(d => d.Id == SecurityExperimentalId).Select(d => (s.Path, d.Name)))
+            .ToList();
+        declarations.Count.Should().BeGreaterThanOrEqualTo(SecurityExperimentalSymbolsFloor,
+            "found {0} [Experimental({1})] declarations; below the stated floor of {2} the declaration parser is broken "
+            + "and the check below passes on nothing", declarations.Count, SecurityExperimentalId, SecurityExperimentalSymbolsFloor);
+
+        var outside = declarations.Where(d => !d.Path.StartsWith(SecurityExperimentalHome, StringComparison.Ordinal))
+            .Select(d => $"{d.Path}: {d.Name ?? "(unnamed declaration)"} is declared [Experimental({SecurityExperimentalId})]")
+            .ToList();
+
+        outside.Should().BeEmpty(
+            "{0} names the security and deployment-profile surface of Ashlar.Abstractions and nothing else (SPEC-007 "
+            + "decisions log, 2026-10-13). Its holder is internal, so a friend assembly can see it; this rule is what "
+            + "keeps one from applying the id. A new experimental surface gets its own id, constant and policy row "
+            + "(docs/SdkCompatibilityPolicy.md). {1} found:\n{2}",
+            SecurityExperimentalId, outside.Count, string.Join("\n", outside));
+
+        _output.WriteLine($"security-experimental-declarations={declarations.Count} outside-abstractions={outside.Count}");
+    }
+
     // ------------------------------------------------------------------------------------------------
     // Controls: the matchers over in-memory text. Negative controls must be caught; positive ones not.
     // ------------------------------------------------------------------------------------------------
@@ -750,6 +789,12 @@ public sealed class DiagnosticSuppressionConventionTests
     // A disable naming both experimental ids must satisfy each with its own symbol.
     [InlineData("#pragma warning disable ASHLAREXP001, ASHLAREXP002 // TouchSet, SecurityLabel: the gate stamps both experimental contracts\nvar t = new TouchSet(paths);\nvar l = SecurityLabel.Public;\n", null)]
     [InlineData("#pragma warning disable ASHLAREXP001, ASHLAREXP002 // TouchSet: the gate enforces the experimental contract by design\nvar t = new TouchSet(paths);\n", "ASHLAREXP002: names no")]
+    // The experimental context is not id-specific: the only use sits inside a declaration of the OTHER id, where
+    // the compiler reports nothing, so the disable is dead.
+    [InlineData("#pragma warning disable ASHLAREXP002 // SecurityLabel: the bridge stamps the experimental label by design\n[Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]\npublic sealed class Stamp\n{\n    public object Label => SecurityLabel.Public;\n}\n", "dead")]
+    [InlineData("#pragma warning disable ASHLAREXP001 // TouchSet: the bridge reads the experimental contract by design\n[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]\npublic sealed class Reader\n{\n    public object Paths => new TouchSet(paths);\n}\n", "dead")]
+    // ...and the same use outside that declaration is live.
+    [InlineData("#pragma warning disable ASHLAREXP002 // SecurityLabel: the bridge stamps the experimental label by design\n[Experimental(AutonomyExperimental.DiagnosticId, UrlFormat = AutonomyExperimental.UrlFormat)]\npublic sealed class Stamp { }\n\npublic static class Bridge\n{\n    public static object Label => SecurityLabel.Public;\n}\n", null)]
     public void A_deprecation_disable_is_judged_on_name_liveness_and_reason(string source, string? expected)
     {
         var violations = Rule2(source, ForwarderAsShipped, ExperimentalDeclarations, SecurityExperimentalDeclarations);
@@ -819,7 +864,7 @@ public sealed class DiagnosticSuppressionConventionTests
     }
 
     [Theory]
-    // A use under the project's directory, outside the symbol's own declaration: live.
+    // A use under the project's directory, outside every experimental declaration: live.
     [InlineData("fixture/P/Uses.cs", "var l = SecurityLabel.Public;\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", false)]
     // The only mention is in a comment or a string: dead.
     [InlineData("fixture/P/Mentions.cs", "// SecurityLabel\nvar s = \"SecurityLabel\";\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", true)]
@@ -827,6 +872,8 @@ public sealed class DiagnosticSuppressionConventionTests
     [InlineData("fixture/Q/Uses.cs", "var l = SecurityLabel.Public;\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", true)]
     // The only use is of the OTHER experimental id's symbol: dead for this id.
     [InlineData("fixture/P/Uses.cs", "var t = new TouchSet(paths);\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", true)]
+    // The only use sits inside a declaration marked with the other experimental id: not reported, so dead.
+    [InlineData("fixture/P/Uses.cs", "[Experimental(AutonomyExperimental.DiagnosticId)]\npublic sealed class Stamp\n{\n    public object Label => SecurityLabel.Public;\n}\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", true)]
     // Each id a setting lists must be live on its own.
     [InlineData("fixture/P/Uses.cs", "var l = SecurityLabel.Public;\n", "<NoWarn>$(NoWarn);ASHLAREXP001;ASHLAREXP002</NoWarn>", true)]
     // CS0618 has no project-wide liveness rule (its symbols may be declared outside the tree).
@@ -986,9 +1033,9 @@ public sealed class DiagnosticSuppressionConventionTests
                     continue;
                 }
 
-                var spans = file.SpansFor(id);
+                var spans = obsolete ? file.SpansFor(ObsoleteId) : file.ExperimentalSpans;
                 if (!named.Any(symbol => IsUsed(file, symbol, pragma.RegionStart, RegionEnd(file, pragma, id), spans)))
-                    problems.Add($"{id}: is dead - {string.Join(", ", named)} is not used outside its own {attribute} context "
+                    problems.Add($"{id}: is dead - {string.Join(", ", named)} is not used outside {(obsolete ? "its own [Obsolete] context" : "every [Experimental] declaration")} "
                         + "between this line and its restore (or the end of the file)");
 
                 var reason = ReasonWord.Matches(pragma.Comment).Select(m => m.Value)
@@ -1089,7 +1136,7 @@ public sealed class DiagnosticSuppressionConventionTests
 
     /// <summary>
     /// A reviewed project-wide disable of an experimental id, in a project file, that governs no use: no C# file
-    /// under the project's directory names a symbol of that id outside the symbol's own declaration. It is the
+    /// under the project's directory names a symbol of that id outside every experimental declaration. It is the
     /// project-wide form of a dead pragma. A shared <c>Directory.Build.*</c> file is not judged (it governs every
     /// project below it, which a directory scan cannot tell apart), and CS0618 is not judged (an obsolete API a
     /// project uses may be declared outside this tree).
@@ -1105,9 +1152,9 @@ public sealed class DiagnosticSuppressionConventionTests
         foreach (var id in DeprecationIdsInList(SettingValue(setting)).Where(id => id != ObsoleteId))
         {
             var declared = symbols.Experimental[id];
-            if (!files.Any(f => declared.Any(symbol => IsUsed(f, symbol, 0, f.Bare.Length, f.SpansFor(id)))))
+            if (!files.Any(f => declared.Any(symbol => IsUsed(f, symbol, 0, f.Bare.Length, f.ExperimentalSpans))))
                 yield return $"{path}: '{setting}' disables {id}, but no C# file under {dir}/ uses an [Experimental({id})] "
-                    + "symbol outside its own declaration; delete the setting and its ReviewedProjectWideDisables entry";
+                    + "symbol outside every experimental declaration; delete the setting and its ReviewedProjectWideDisables entry";
         }
     }
 
@@ -1267,6 +1314,13 @@ public sealed class DiagnosticSuppressionConventionTests
         /// <summary>The extents of this file's declarations attributed with <paramref name="id"/>: its obsolete or experimental context.</summary>
         public IReadOnlyList<(int Start, int End)> SpansFor(string id) =>
             Declarations.Where(d => d.Id == id).Select(d => (d.Start, d.End)).ToList();
+
+        /// <summary>
+        /// The extents of every experimental declaration in this file, whatever its id: the compiler reports no
+        /// experimental diagnostic inside any of them, so a use there keeps no experimental disable alive.
+        /// </summary>
+        public IReadOnlyList<(int Start, int End)> ExperimentalSpans =>
+            Declarations.Where(d => d.Id != ObsoleteId).Select(d => (d.Start, d.End)).ToList();
 
         public static SourceFile Parse(string path, string raw)
         {

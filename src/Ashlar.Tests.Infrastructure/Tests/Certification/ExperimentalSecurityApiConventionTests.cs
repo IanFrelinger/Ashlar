@@ -46,8 +46,14 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <c>netstandard2.0</c> asset compiles the same declarations against the polyfilled attribute that
 /// <c>Directory.Build.targets</c> links (no <c>#if</c> guards any of them), but nothing here reads that asset.
 /// It checks declarations, not the compiler: whether a given use reports <c>ASHLAREXP002</c> is the compiler's
-/// rule. Members a type inherits from outside the assembly are not its surface and are not read. How Ashlar's own
-/// projects opt in is governed by <c>DiagnosticSuppressionConventionTests</c>, not here.</para>
+/// rule, and the attribute is on types: a use that reaches a surface type without naming it (a member called on an
+/// instance a non-experimental member returned) reports nothing, and nothing here can change that. Members a type
+/// inherits from outside the assembly are not its surface and are not read. The exposure check (4) reads member
+/// signatures, base types and interfaces; it does not read generic constraints or attribute arguments. It and (3)
+/// read <c>Ashlar.Abstractions</c> only; that no other assembly declares the id is
+/// <c>DiagnosticSuppressionConventionTests</c>' placement rule, and the Substrate members that expose the surface
+/// are disclosed (docs/SdkCompatibilityPolicy.md#ashlarexp002), not checked. How Ashlar's own projects opt in is
+/// governed by <c>DiagnosticSuppressionConventionTests</c>, not here.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class ExperimentalSecurityApiConventionTests
