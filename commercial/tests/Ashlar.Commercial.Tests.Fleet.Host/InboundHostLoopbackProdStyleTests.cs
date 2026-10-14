@@ -129,7 +129,7 @@ public sealed class InboundHostLoopbackProdStyleTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureServices(services => services.AddSingleton<ILoggerProvider>(_ => startup));
-            builder.ConfigureLogging(logging => logging.AddFilter<StartupFailureRecorder>(LogLevel.Debug));
+            builder.ConfigureLogging(logging => logging.AddFilter<StartupFailureRecorder>(level => level >= LogLevel.Debug));
         }
 
         protected override IHost CreateHost(IHostBuilder builder)
