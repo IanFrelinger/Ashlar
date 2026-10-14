@@ -74,7 +74,8 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
    — so the sweep is manual from this point and nothing will flag a miss:
    `consumer-template/CONSUMING.md`, `docs/AuthoringBricks.md`, `docs/DistributionModels.md`,
    `docs/certification-evidence.md`, `docs/TesterQuickstart.md`, `README.md` (which is packed into
-   every package, so a stale pin there ships), `assets/brand/BRAND.md`, and **`SECURITY.md`'s
+   every package, so a stale pin there ships), `assets/brand/BRAND.md`,
+   `docs/SdkCompatibilityPolicy.md`'s version-scoped stability promise, and **`SECURITY.md`'s
    supported release line**. Leave statements scoped to a past release ("on `0.1.2` and earlier")
    alone — they stay true.
 
