@@ -191,18 +191,27 @@ has tests observed red on the unfixed code and hand mutations killed.
   fake adapter. No live model call; the suite runs in `shell-lint` through
   `tests/scripts/autonomy-controller.test.sh`.
 
-### Added — agent clearances and skill composition (SPEC-007 PR 5)
+### Added — agent clearances and skill composition (SPEC-007 PR 5 first slice, #748)
 
-- An agent's clearance comes from `ashlar.policy.yaml` (`clearances.default` and `clearances.agents`). A missing clearance is `Public`. A non-canonical clearance rejects the policy.
+- An agent's clearance comes from `ashlar.policy.yaml` (`clearances.default` and `clearances.agents`). A missing clearance is `Public`. A non-canonical clearance rejects the policy. `docs/Configuration.md` ("Agent clearances") documents the block.
 - A host may only tighten that ceiling. `AshlarHostingOptions.Clearance` is met with the policy clearance; an unparseable host value fails closed to `Public`.
 - A sealed skill declares its highest level on the package (`HighestLevel`). The seal covers it. The signed gate record does not. A missing level is `SystemHigh`.
-- Composing an agent with a skill above its clearance is refused (`SkillComposition.Decide`). Inbound response bodies are not mediated by this change.
+- `SkillComposition.Decide` refuses composing a skill above the agent's clearance; no production composition path calls it yet, so a valid clearance changes no running behaviour. Inbound response bodies are not mediated by this change.
 
-### Changed — default egress enforcement (SPEC-007 4.11)
+### Changed — default egress enforcement (SPEC-007 4.11, #746)
 
 - AirGapped and SecureWorkstation enforce by default. Full, Server, Edge and System remain report mode unless
-  opted into enforcement. SecureWorkstation's environment-only report break-glass is read once and logged at
-  Warning; AirGapped ignores lowering overrides and host guard modes cannot bypass its process floor.
+  opted into enforcement. SecureWorkstation's environment-only report break-glass (`ASHLAR_EGRESS_MODE=report`) is
+  read once and logged at Warning; a host that registers its own `IEgressGuard` with another profile or `report`
+  mode still lowers SecureWorkstation's HTTP and MEAI routes, without the latch or the Warning. AirGapped ignores
+  lowering overrides and host guard modes cannot bypass its process floor.
+- A refused factory-client send reaches the host as `EgressRefusedException`, which the host's outer generic catch
+  sees. For the first hop, resilience handlers on that client (retry, circuit breaker) never see the send, because
+  the guard handler sits outside them. A refused redirect hop is decided by the follower directly above the primary,
+  so its `EgressRefusedException` passes back out through those handlers; it derives from `Exception`, not
+  `HttpRequestException`.
+- The other SPEC-007 entries under `[Unreleased]` describe each PR as it merged: where they say report-only,
+  report-only by default held until this change; opt-in refusal arrived in 4.7 (#742).
 - Hosts can configure named factory client exceptions through `EgressGuardOptions.ReportOnlyClients`, including
   after `AddAshlar`. Decisions record `host-opt-out`; every name logs at startup. Ashlar-owned names fail boot,
   AirGapped ignores exceptions, and faults remain fail-closed.
@@ -210,12 +219,15 @@ has tests observed red on the unfixed code and hand mutations killed.
   refused sends, redacted observations, unknown labels, open reads, nested frames, host faults and child processes.
   Read-side clearance wiring and declassification remain later SPEC-007 work.
 
-### Fixed — explicit egress and operator exports (SPEC-007 4.9)
+### Changed — explicit egress and operator exports (SPEC-007 4.9, #744)
 
 - Explicit egress sites refuse before sending, writing or launching a child when policy enforces. Working-tree
   builds/tests remain network exports with `--no-build` or `--no-restore`; local Docker alone is not isolation.
 - Named CLI file exports record `operator-verb` report mode through an internal initiator. Publish/share and
-  runtime publishing still enforce; CLI policy refusals return 77 with a redacted reason and reference.
+  runtime publishing still enforce; a policy refusal in `export`, `mesh export` or `pkg export`/`publish`/`share`
+  returns 77 with a redacted reason and reference. Other verbs keep their own exit codes: an EG-PROC-09
+  child-process refusal that no handler catches exits 1, `validate` reports a refused test process as a failed
+  validation (2), and commands whose catch-all returns `UnexpectedError` exit 10.
   Refused native/cloud exports preserve an existing bundle; allowed replacements remove stale files.
 - Refused mesh serving returns 404, discovery continues listening, and OTLP registers neither exporter.
   Auto-share keeps local admission, and refused promotion broadcast no longer audits a successful promotion.
@@ -223,7 +235,7 @@ has tests observed red on the unfixed code and hand mutations killed.
 - Docker SDK references now match Testcontainers' existing Enhanced dependency, avoiding two incompatible
   assemblies with the same name; the test build no longer overwrites that assembly with the legacy fallback.
 
-### Fixed — refusal propagation and remote surfaces (SPEC-007 4.8)
+### Fixed — refusal propagation and remote surfaces (SPEC-007 4.8, #743)
 
 - Policy refusals survive nested exceptions, provider probes and fallback chains. A successful independent
   fallback still wins; otherwise the first refusal reaches the caller. Refusals do not trigger transport
@@ -233,9 +245,9 @@ has tests observed red on the unfixed code and hand mutations killed.
   completed results and records missing evidence without inventing failed tests.
 - A2A, gRPC and MCP server errors expose only fixed refusal text and a random reference. Catalogs, health
   probes and hosted loops retain their degraded behavior with Warning diagnostics, five-minute suppression
-  windows and counted summaries on expiry or disposal. Profile defaults remain report-only.
+  windows and counted summaries on expiry or disposal. Profile defaults remained report-only (until PR 4.11, #746).
 
-### Added — opt-in egress refusal routes (SPEC-007 4.7)
+### Added — opt-in egress refusal routes (SPEC-007 4.7, #742)
 
 - HTTP sends, redirect hops and governed MEAI calls stop before the inner transport when their decision
   refuses under enforcement. A typed `EgressRefusedException` preserves the operator decision with a redacted
@@ -244,8 +256,8 @@ has tests observed red on the unfixed code and hand mutations killed.
   invocation audit. DI fallback diagnostics distinguish failed resolution from a missing registration.
   Logging and audit faults cannot bypass refusal. Opaque redirects are diagnosed after the response and
   cannot undo a send already made by the transport.
-- All profiles still default to report. Catch-all/remote refusal handling, explicit sites and the profile
-  switch remain SPEC-007 4.8, 4.9 and 4.11.
+- All profiles still defaulted to report (until PR 4.11, #746). Catch-all/remote refusal handling, explicit sites
+  and the profile switch were left to SPEC-007 4.8, 4.9 and 4.11 (#743, #744, #746).
 
 ### Fixed — integrated security records and local repository checks
 
@@ -467,10 +479,10 @@ has tests observed red on the unfixed code and hand mutations killed.
   followers. Factory binding restores a removed guard (7303), leaves normal logging scopes quiet, and warns
   once per unknown client/type on AG/SW (7304). Explicit no-follow policy follows the named client's request through shared primaries and existing followers without changing another client's policy. SNS clients use the configure-existing `NeverFollowRedirects`
   helper; Bedrock's `RuntimeConfig` disables SDK redirects. Real Kestrel, API and Fleet twins cover these paths.
-  Decisions remain report-only by default; recording an enforcing guard's refusal does not stop a send until
-  PR 4.7. See EgressInventory for custom-header, DNS, transport-ownership and post-send limits.
+  Decisions stayed report-only by default (until PR 4.11, #746); recording an enforcing guard's refusal did not
+  stop a send until PR 4.7 (#742). See EgressInventory for custom-header, DNS, transport-ownership and post-send limits.
 - **AirGapped stays on local execution, and AirGapped and SecureWorkstation inbound listeners must bind loopback (SPEC-007 PR 4.10).**
-  The egress guard is still report-only. Responses on inbound connections are not mediated until PR 5's CanRead
+  The egress guard was still report-only (by default until PR 4.11, #746). Responses on inbound connections are not mediated until PR 5's CanRead
   at the server seams. What this release enforces at boot and at routing:
   - On AirGapped, a remote routing reason (overnight, VRAM, compute class, queue depth) runs locally, with the
     reason `AirGapped: remote execution unavailable; running locally (<reason>)`. An explicit peer-network-only
@@ -489,7 +501,9 @@ has tests observed red on the unfixed code and hand mutations killed.
     Bare `::1` was refused by URI parsing in PR 4.10; PR 4.10b adds support.
     PR 4.10 allowed an empty configured URL list. PR 4.10b also checks port-only configuration and verifies
     actual bound addresses; missing or empty published addresses fail closed on AG/SW. Mesh serve reads `ASHLAR_MESH_SERVE_BIND`;
-    unset on these profiles is any-interface and fails boot rather than being rewritten.
+    unset on these profiles is any-interface and fails boot rather than being rewritten. The gRPC server host and
+    `Ashlar.Commercial.Fleet.Host` are outside this rule: not yet wired; decided to wire before 0.3.0 (SPEC-007
+    decisions log, 2026-10-13).
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes
@@ -554,10 +568,10 @@ has tests observed red on the unfixed code and hand mutations killed.
     `MeshDirectorJsonOutputCharacterizationTests`, committed before the reference, shows both
     byte-identical.
 
-- **The egress guard resolves a mode (SPEC-007 PR 4.6). Every profile still reports, and the guard
-  refuses nothing.** Mode plumbing only: no route acts on the mode until PR 4.7, and AirGapped and
-  SecureWorkstation keep reporting until the switch (PR 4.11), so an `enforce` record says what would
-  have been refused, not that a send stopped. The netstandard2.0 asset's refusal of a synchronous
+- **The egress guard resolves a mode (SPEC-007 PR 4.6). Every profile still reported, and the guard
+  refused nothing (until PR 4.7, #742, and PR 4.11, #746).** Mode plumbing only: no route acted on the mode
+  until PR 4.7, and AirGapped and SecureWorkstation kept reporting until the switch (PR 4.11, #746), so until
+  then an `enforce` record said what would have been refused, not that a send stopped. The netstandard2.0 asset's refusal of a synchronous
   `Send` (PR 4.2, in the `Ashlar.Abstractions.Security.Egress` entry under Added) is the runtime's,
   not the guard's, and holds in every mode.
   - `EgressDecision` gains `ModeBasis` (what decided `Mode`: `profile:<profile>`, `override`,
@@ -567,8 +581,8 @@ has tests observed red on the unfixed code and hand mutations killed.
     `fault`, and its version goes from 0 to 1; no field is renamed or reordered.
   - `EgressGuard`'s constructor takes a second optional parameter, `egressMode`, and
     `AshlarHostingOptions` gains `EgressMode`, which can only raise the mode and is never bound from
-    configuration. A mode setting exists, but it is not supported yet. Every profile defaults to
-    `report`; an unreadable mode value, a profile that is none of the six, and a fault while resolving
+    configuration. The mode setting existed but no route acted on it until PR 4.7 (#742), and every
+    profile defaulted to `report` until PR 4.11 (#746); an unreadable mode value, a profile that is none of the six, and a fault while resolving
     the mode fail closed to `enforce`. A guard built with a profile never reads the environment.
     `EgressGuard.ProcessDefault` reads the deployment profile once per decision and records the value
     it resolved the mode from.

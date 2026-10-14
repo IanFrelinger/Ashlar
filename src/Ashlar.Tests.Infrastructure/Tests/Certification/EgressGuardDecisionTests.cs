@@ -806,7 +806,7 @@ public sealed class EgressGuardDecisionTests
     [InlineData("system", false, "report")]
     [InlineData("", false, "report")]
     [InlineData("air-gapped-ish", false, "enforce")]
-    public void An_explicit_profile_is_reported_and_does_not_change_the_decision(string profile, bool enforcesByDefault, string mode)
+    public void An_explicit_profile_sets_the_mode_and_does_not_change_the_access_decision(string profile, bool enforcesByDefault, string mode)
     {
         var request = new EgressRequest(EgressFamilies.ModelMeai, NewSite(), new Uri(Remote));
 

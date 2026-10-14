@@ -120,9 +120,9 @@ public sealed class EgressDecision
     public string Profile { get; }
 
     /// <summary>
-    /// <see langword="true"/> when the profile is one that will enforce egress decisions by default once SPEC-007
-    /// PR 4.11 switches it on (AirGapped, SecureWorkstation): the same predicate that today keeps remote MCP and A2A
-    /// off those profiles. It does not set the mode; <see cref="Mode"/> does.
+    /// <see langword="true"/> when the profile enforces egress decisions by default (AirGapped, SecureWorkstation,
+    /// since SPEC-007 PR 4.11): the same predicate that keeps remote MCP and A2A off those profiles. It does not set
+    /// the mode; <see cref="Mode"/> does.
     /// </summary>
     public bool ProfileEnforcesByDefault { get; }
 

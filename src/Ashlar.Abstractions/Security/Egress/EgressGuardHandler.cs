@@ -7,7 +7,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <remarks>
 /// <para>Under enforcement a refusal faults <c>SendAsync</c> or throws from <c>Send</c> before the inner
 /// handler runs. Host guard faults are recorded as NoDecision and use the process mode.</para>
-/// <para><b>Report-only guarantees.</b> It evaluates every <c>SendAsync</c> (and, on net8.0 and later, every
+/// <para><b>Report-mode guarantees.</b> It evaluates every <c>SendAsync</c> (and, on net8.0 and later, every
 /// <c>Send</c>) before handing the request on. A redirect hop, or a URI rewritten before the primary sends, is
 /// evaluated again. It never reads or buffers
 /// <see cref="HttpRequestMessage.Content"/>, never reads, adds or changes a header, and returns the inner handler's

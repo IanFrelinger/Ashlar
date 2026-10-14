@@ -65,6 +65,7 @@ and fixed real bugs at every step):
 | Mesh slice 1 | #392 | **Certified packages** (`.ashpkg`): `pkg export/import/show` — admitted extension + course evidence + signed verdict travel as one sealed file; receiver verifies intrinsically (no keys, no network) and admits through **its own gate** |
 | Mesh slice 2 | #393 | **Mesh share**: `pkg publish/pull` over a filesystem store; idempotent re-pulls; shared `PackageImport` service |
 | Mesh slice 3 | #394 | **Agentic exe**: `ashlar export native` — portable self-proving bundle (app + verify-then-run launcher); provenance course now **binds the ledger head's Subject to the current documents**, so a tampered app fails verify (exit 65) even for a keyless downloader |
+| SPEC-007 security labels (row added 2026-10-13) | #706, #707, #709, #711; PR 4 as 4.1–4.10, then 4.11 #746 `7cb132897`; PR 5 first slice #748 `ac264559f` | **PR 4 merged:** AirGapped and SecureWorkstation refuse disallowed egress by default; SecureWorkstation break-glass `ASHLAR_EGRESS_MODE=report`; host opt-out for named factory clients. **PR 5 first slice:** the clearance API (`clearances` in `ashlar.policy.yaml`, `SkillComposition.Decide`), not yet wired into any production composition path. Status and open questions: `docs/specs/SPEC-007-security-labels-and-reference-monitor.md` |
 
 Key security invariants now enforced (each pinned by tests):
 - A package seal must be signed by the **same key** that signed the admission (`SealSigner == Record.Signer`) — blocks genuine-record + swapped-files forgery.

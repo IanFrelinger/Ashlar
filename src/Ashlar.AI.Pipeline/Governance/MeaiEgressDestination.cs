@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace Ashlar.AI.Pipeline.Governance;
 
 /// <summary>
-/// Where a governed MEAI target sends its requests, as the report-only <see cref="EgressGuardChatClient"/> records it
+/// Where a governed MEAI target sends its requests, as <see cref="EgressGuardChatClient"/> records it
 /// (SPEC-007 PR 3; read from the inner client since PR 4.1).
 /// </summary>
 /// <remarks>

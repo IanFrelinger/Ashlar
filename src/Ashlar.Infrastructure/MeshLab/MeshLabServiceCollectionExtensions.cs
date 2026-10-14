@@ -16,7 +16,7 @@ public static class MeshLabServiceCollectionExtensions
     /// </summary>
     /// <remarks>
     /// When the worker is enabled, calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after
-    /// the worker client (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an
+    /// the worker client (SPEC-007), so the collection also gets <c>AddLogging</c>, an
     /// <c>IEgressGuard</c> (TryAdd), <see cref="EgressDecisionLoggerSubscription"/> and the
     /// <c>EgressDecisionLoggerActivator</c> hosted service, unless an earlier <c>AddAshlarEgressGuard</c> call on this
     /// collection already added them. When it is disabled, none of them is added.
@@ -38,7 +38,7 @@ public static class MeshLabServiceCollectionExtensions
             return services;
 
         services.AddHttpClient(MeshLabWorkerExecutorClient.HttpClientName);
-        // SPEC-007: report-only guard handler on the worker client; after the early return, so the disabled path is unchanged.
+        // SPEC-007: egress guard handler on the worker client; after the early return, so the disabled path is unchanged.
         services.AddAshlarEgressGuard();
         services.TryAddSingleton<MeshLabWorkerExecutorClient>();
         services.AddHostedService<MeshLabWorkerExecutorBackgroundService>();

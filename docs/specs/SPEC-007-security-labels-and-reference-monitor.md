@@ -8,7 +8,7 @@ in §8 rather than guessing.
 
 Master at the time of writing: `0960774` (#704 and #705 merged).
 
-## Status (2026-10-10)
+## Status (2026-10-13)
 
 *Added when the spec was committed. Everything else is the owner's text of 2026-10-03, with these additions, each
 marked: test names next to the §2 MUSTs (labelled **Enforced by**, as §7 asks), a status column in §5, the sections
@@ -21,7 +21,7 @@ The status line above and the starting prompt are the owner's, as written; the s
 | 2: bridge the existing labels | Merged | #707, `f1f2cff48` |
 | 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #711, `8ec674d2a` |
 | 4: the guard enforces | Merged. 4.1–4.10 earlier; 4.11 is #746. The owner answered its eight questions on 2026-10-05 (decisions log). | #746, `7cb132897` |
-| 5: clearances on subjects | Implemented in #748. Policy ceiling, host may only tighten, skill level on the sealed package. Inbound response bodies are not mediated here. Merge pending. | #748 |
+| 5: clearances on subjects | First slice merged: #748 (policy ceiling, host may only tighten, skill level on the sealed package). The composition check is a library API with no production caller yet; inbound response bodies are not mediated; receiver-side CanRead is still open. | #748, `ac264559f` |
 
 - **PR 1** added `Ashlar.Abstractions.Security` in `src/Ashlar.Abstractions/Security/`, with 367 cert-gate tests. The
   four §4.4 mutations went red (16, 19, 11 and 49 of 367) and back to green. The §4.6 checklist is left as written;
@@ -41,7 +41,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   adds one row, so the TSV pins 85. HTTP clients go through `EgressHttp` or the factory handler, which `AddAshlar` and
   every other Ashlar member that registers a factory client install (the consumer SDK's `AddAshlarClient` is exempt,
   and Fleet.Host covers the commercial Fleet registration); MEAI targets go through `EgressGuardChatClient`, the
-  outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It is still report-only.
+  outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It was still report-only
+  (by default until PR 4.11, #746; opt-in refusal arrived in PR 4.7, #742).
 - **Gaps carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`). The `netstandard2.0` asset of
   `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
   unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record
@@ -83,8 +84,10 @@ The status line above and the starting prompt are the owner's, as written; the s
     `AirGapped`), and `AirGapped` still registers network paths, such as RunPod as the default remote execution
     target;
   - 4.11 the switch, which carries the §5 leak test. Of the "never refuses" twins it flips,
-    `EgressGuardDecisionTests.An_explicit_profile_is_reported_and_does_not_change_the_decision` already has an
-    `enforce` row from 4.6 (an unrecognised profile fails closed); 4.11 flips its AirGapped and SecureWorkstation rows.
+    `EgressGuardDecisionTests.An_explicit_profile_sets_the_mode_and_does_not_change_the_access_decision` (named
+    `An_explicit_profile_is_reported_and_does_not_change_the_decision` until #799 renamed it after the flip) already
+    has an `enforce` row from 4.6 (an unrecognised profile fails closed); 4.11 flips its AirGapped and
+    SecureWorkstation rows.
 
   The owner's answers are in the decisions log. Open questions C and D are answered there.
 - **PR 4.1** (#717, `bbc5d71`) closes the third gap above, still report-only: mesh serve records `mesh-peer:<ip>`, never Host;
@@ -109,24 +112,25 @@ The status line above and the starting prompt are the owner's, as written; the s
   mediates composite primaries and avoids duplicate followers; unknown-type warning 7304 is AG/SW-only,
   once per client/type, and a normal logging scope emits no relocation warning. The SNS clients use the
   configure-existing `NeverFollowRedirects` helper, whose named-client request flag also stops an already-shared follower without changing other clients. Bedrock's `RuntimeConfig` disables SDK redirects.
-  Decisions remain report-only by default; an explicit enforcing guard can record `Refused`, but the route
-  acts on it in PR 4.7 before sending the refused hop. The netstandard2.0 synchronous-send hop still refuses before the follower runs.
+  Decisions stayed report-only by default until PR 4.11 (#746); an explicit enforcing guard could record
+  `Refused`, and since PR 4.7 (#742) the route acts on it before sending the refused hop. The netstandard2.0 synchronous-send hop still refuses before the follower runs.
 - **PR 4.6** (#718, `3196ba1`), mode plumbing: one resolver gives every decision a mode (`report` or `enforce`), its basis,
   `Refused` and a random `Ref`. `enforce` is an opt-in on every profile through `ASHLAR_EGRESS_MODE` (read once per
   process), `AshlarHostingOptions.EgressMode` (raise-only) or an explicit guard's constructor, and every profile
-  still defaults to `report`. The strictest profile noted in the process wins, for `ProcessDefault`, the
+  still defaulted to `report` (until PR 4.11, #746). The strictest profile noted in the process wins, for `ProcessDefault`, the
   remote-protocol validators and the guard `AddAshlar` binds in place of `ProcessDefault` (or of the guard an
   earlier `AddAshlar` bound in the same collection); tests restore that state through a reset seam, whose callers a
-  convention fact pins. The guard refuses nothing yet; the netstandard2.0 asset's synchronous-`Send` refusal
+  convention fact pins. The guard refused nothing then (routes act on a refusal from PR 4.7, #742); the netstandard2.0 asset's synchronous-`Send` refusal
   (PR 4.2) is the runtime's and holds in every mode.
-- **PR 4.7** implements opt-in refusal at HTTP and governed MEAI routes. `EgressRefusedException` carries the
+- **PR 4.7** (#742, `50efd7019`) implements opt-in refusal at HTTP and governed MEAI routes. `EgressRefusedException` carries the
   operator decision and a redacted message; `Refuses` and `ThrowIfRefused` expose the route contract. HTTP async
   returns a faulted task, synchronous HTTP throws before sending, and MEAI throws before obtaining a task or
   stream. Host guard faults produce `NoDecision` under process policy. DI fallbacks are counted and visible
   (Warning for a throw, Debug for an absent registration). Refusals log at Warning, with five-minute counted
   summaries, EventSource event 2, and the MEAI audit record. Sink failures and re-entrant logging cannot bypass
-  refusal. The netstandard2.0 asynchronous route also enforces. Every profile still defaults to report.
-- **PR 4.8** preserves refusals through catch-all, availability, fallback and transport paths, including nested
+  refusal. The netstandard2.0 asynchronous route also enforces. Every profile still defaulted to report (until
+  PR 4.11, #746).
+- **PR 4.8** (#743, `6d64ad508`) preserves refusals through catch-all, availability, fallback and transport paths, including nested
   aggregate exceptions and gRPC debug exceptions. Independent fallbacks may succeed; otherwise the first
   refusal remains the final error. Agent cycles distinguish refused attempts from ordinary policy denials,
   record `egress.refused`, and cap refused tool attempts at three without advancing the world. Catalog,
@@ -137,7 +141,9 @@ The status line above and the starting prompt are the owner's, as written; the s
 - **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
-  local admission, local promotion and existing export bundles while suppressing the refused export. CLI exits 77, IDE SSE uses fixed remote
+  local admission, local promotion and existing export bundles while suppressing the refused export. The `export`, `mesh export` and
+  `pkg export`/`publish`/`share` verbs exit 77 on a refusal (other verbs exit with their own codes, an unhandled EG-PROC-09 refusal 1: Known limit in
+  `docs/EgressInventory.md`), IDE SSE uses fixed remote
   text and a random reference, and optional discovery/pull paths log redacted refusals. Working-tree execution
   is NetworkExport even with --no-build/--no-restore; Docker Host classification requires a local daemon and
   recognized network-off/no-pull run arguments. Docker API build/run/start is separately guarded. F10 requires
@@ -146,8 +152,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   the three open-mesh CLI bridge tests and all 28 repository gates, with zero test skips in these selections.
   All 77 cases in `scripts/mutations/spec007-explicit-egress.json` have an intended assertion failure, exact source
   restoration, clean checkout and green rerun; their mutation targets and intended test sources match the candidate.
-  PR CI passed and the change merged. Exact-master readiness exposed a Windows Docker fixture response failure. The isolated repair merged in #745 (`d4dfbf379`) after fresh Windows and cross-platform PR readiness passed; readiness for the repaired master is pending.
-- **PR 4.11 (#746, `7cb132897`)** switches AirGapped and SecureWorkstation to default enforcement. The SecureWorkstation report break-glass is environment-only, latched and logged at Warning; AirGapped ignores lowering overrides and routes apply its process floor even to host guards. Named factory exceptions use `Configure<EgressGuardOptions>` after `AddAshlar`, warn per name, and cannot name Ashlar-owned clients. The registry is checked against production registrations including commercial code. `EgressEnforcementLeakTests` covers A/B/C and C0–C12. All 28 mode, route, client-exception, leak and registry mutations have intended assertion failures, exact source restoration, clean checkouts and passing restored runs, reconciled against the candidate. Local validation passes 3,240 canonical certification tests, 1,091 net8 Egress tests, 1,099 net10 Egress tests, all 28 repository gates and the core build; these test selections have zero skips.
+  PR CI passed and the change merged. Exact-master readiness exposed a Windows Docker fixture response failure. The isolated repair merged in #745 (`d4dfbf379`) after fresh Windows and cross-platform PR readiness passed; the repaired master `d4dfbf379` reads `verified` (readiness run 38069920911, 2026-10-10T17:24:12Z).
+- **PR 4.11 (#746, `7cb132897`)** switches AirGapped and SecureWorkstation to default enforcement. The SecureWorkstation report break-glass variable, `ASHLAR_EGRESS_MODE=report`, is environment-only, latched and logged at Warning. A host that registers its own `IEgressGuard` built with another profile or `report` mode still lowers SecureWorkstation's HTTP and MEAI routes, with no latch and no Warning (design D6 applies the process floor on AirGapped only; `docs/EgressInventory.md`, "AirGapped route floor"); explicit sites decide through `ProcessDefault` and keep enforcing. AirGapped ignores lowering overrides and routes apply its process floor even to host guards. Named factory exceptions use `Configure<EgressGuardOptions>` after `AddAshlar`, warn per name, and cannot name Ashlar-owned clients. The registry is checked against production registrations including commercial code. `EgressEnforcementLeakTests` covers A/B/C and C0–C12. All 28 mode, route, client-exception, leak and registry mutations have intended assertion failures, exact source restoration, clean checkouts and passing restored runs, reconciled against the candidate. Local validation passes 3,240 canonical certification tests, 1,091 net8 Egress tests, 1,099 net10 Egress tests, all 28 repository gates and the core build; these test selections have zero skips.
 - **PR 4.4** (#716, `de41a8ac`) gives `EgressSubject` frames their semantics. A decision joins every frame the flow is inside,
   live or disposed, at each mark as it is then (fail closed: a parent that ends first never declassifies a task it started),
   and a disposed frame's mark reaches the frames around it; a flow leaves a frame only by disposing its own head
@@ -182,7 +188,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   is treated as agent-backed: completion, faults, synchronous policy denials and each streamed update observe
   `SystemHigh`. Model responses are not reads. Producer convention facts pin `Enter`/`BeginRead`, their floors,
   enclosing methods, in-order `using` shape, absence of iterators, and the labelled-tool implementer list.
-- **PR 4.10** (#720) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
+- **PR 4.10** (#720, `02fa27f1d`) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
   `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
   an explicit peer-network-only request fails with an explained error and is not sent to a peer or to RunPod.
@@ -197,7 +203,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   connections are not mediated until PR 5's
   CanRead at the server seams.
 
-- **PR 4.10b** (#738) hardens the live AirGapped/SecureWorkstation inbound rule. Port-only `http_ports` and
+- **PR 4.10b** (#738, `bceb1ba21`) hardens the live AirGapped/SecureWorkstation inbound rule. Port-only `http_ports` and
   `https_ports` settings expand to wildcard listeners when `urls` is absent and fail pre-bind validation.
   The API also checks `IServerAddressesFeature` after Kestrel starts, including listeners configured in code; missing/empty published addresses fail closed on AG/SW.
   Bare `::1`, bracketed `[::1]`, and IPv4-mapped loopback are accepted; non-HTTP listener schemes are refused.
@@ -210,7 +216,10 @@ The status line above and the starting prompt are the owner's, as written; the s
   a container composed before a stricter process profile was noted keeps its captured profile. These options
   remain mutable objects, and host code that replaces the options service or installs a later `PostConfigure`
   can override them. Bedrock still refuses at `ValidateOnStart` or first options/keyed-client resolution,
-  rather than during `AddAshlar`/`BuildServiceProvider`. Responses on inbound connections await PR 5.
+  rather than during `AddAshlar`/`BuildServiceProvider`. Responses on inbound connections await PR 5. The rule
+  covers the API and mesh serve only: the gRPC server host (`src/Ashlar.Transport.Grpc.Server.Host/Program.cs:14-17`
+  defaults to loopback only when no URL is set) and `Ashlar.Commercial.Fleet.Host` bind any URL on AirGapped and
+  SecureWorkstation. Not yet wired; decided to wire before 0.3.0 (SPEC-007 decisions log, 2026-10-13).
 
 ---
 
@@ -299,7 +308,7 @@ A **security label** is a triple `(Level, Compartments, Caveats)`.
   `ExplainedFailure` outcome (`IterationOutcome.ExplainedFailure`) and receipts.
 
 - **Enforced by** (egress, cert-gate): `EgressEnforcementLeakTests` exercises the real RAG/model path (A), Bing tool path (B), factory send and loopback redirect (C). Its positive controls allow Public/Internal sends and Full-profile reporting. C0–C12 cover unknown labels, open/unreported/thrown reads, no subject, nested frames, ignored AirGapped overrides, classification/host faults and process exports. Refusals stop the transport and expose only redacted local observations; operator records retain the explained decision. C12 checks a subsequent send in the same runner frame after the actual agent cycle ends with `error`.
-- **Composition is the read this change wires.** An agent's clearance comes from `ashlar.policy.yaml` and a host may only tighten it. A sealed skill's highest level is on the package, and composing the skill is `CanRead`. These egress tests still supply a test clearance to the RAG filter. Responses on inbound connections are not mediated here.
+- **Composition is a library check, not yet wired (PR 5 first slice, #748, `ac264559f`).** `SkillComposition.Decide` takes an agent's clearance from `ashlar.policy.yaml`, which a host may only tighten, and the sealed skill's highest level from the package, and decides composing the skill as `CanRead` (`SubjectClearanceCompositionTests`). No production composition path calls it yet, so no running agent is refused on its clearance. These egress tests still supply a test clearance to the RAG filter. Responses on inbound connections are not mediated here.
 
 ### 2.4 Canonical text form
 
@@ -444,7 +453,7 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
 | 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #711, `8ec674d2a` (routes every listed non-exempt site, report-only) |
 | 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Merged. 4.11: #746, `7cb132897` (see the status) |
-| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | #748. Clearances live in `ashlar.policy.yaml`; a host may only tighten them; a missing clearance is `Public`. The skill's highest level is `ExtensionPackage.HighestLevel`, covered by the seal and not by the gate-record signature. Inbound response bodies stay unmediated. Merge pending |
+| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | #748, `ac264559f` (first slice; not wired). Clearances live in `ashlar.policy.yaml`; a host may only tighten them; a missing clearance is `Public`. The skill's highest level is `ExtensionPackage.HighestLevel`, covered by the seal and not by the gate-record signature. `SkillComposition.Decide` refuses a skill above the clearance, but no production composition path calls it yet. Inbound response bodies stay unmediated |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
 | 7 | **Provisioned resources inherit labels.** Databases, containers and local models an agent spins up carry its label and compartments, register themselves, and are torn down with the compartment. Teardown gets a receipt. | Tearing down a compartment leaves no resource behind and records the wipe | Not started |
 | 8 | **Container execution host.** A real `INativeExecutionHost` built on the Docker sandbox, so a sealed skill can run out-of-process in its compartment. | The same skill gives identical results in-process and in a container | Not started |
@@ -528,8 +537,9 @@ choices that merged with those PRs but were not the owner's are in the next sect
 
 ## Design as merged (added 2026-10-04)
 
-These are not owner decisions. They are design choices that merged with PR 2 (#707) and PR 3a (#709), and they
-stand until a later PR or the owner changes them.
+These are not owner decisions. They are design choices that merged with PR 2 (#707) and PR 3a (#709), and, below
+them, the integrator defaults of later PRs: the three rows struck from the decisions log on 2026-10-13 and four
+defaults of PR 4.10 and 4.10b. They stand until a later PR or the owner changes them.
 
 - **Where a decision is published** (#709). The guard itself publishes each decision to `EgressDecisionLog`, which
   writes it to the `Ashlar-Egress` EventSource and to every subscribed `IEgressDecisionSink`. The Debug log line is
@@ -563,8 +573,34 @@ Struck from the decisions log on 2026-10-13, because the owner did not make them
   `ExtensionPackage.HighestLevel` is covered by the package seal, not by the gate-record signature, and a missing
   level is `SystemHigh`. §8 Q4 stays open until the owner decides whether a label enters the signed certification
   record (PR 6 downgrade receipts).
+
+The four bullets below were added on 2026-10-13 too, by #799. Each is an integrator default that PR 4.10 or 4.10b
+took where the code needed a choice; none is an owner decision, and each awaits the owner.
+
+- **Mesh serve fails boot without a loopback bind (PR 4.10, #720 `02fa27f1d`; PR 4.10b, #738 `bceb1ba21`; integrator
+  default, 2026-10-08 review question 1 open).** On AirGapped and SecureWorkstation, an unset or non-loopback
+  `ASHLAR_MESH_SERVE_BIND` throws before mesh serve listens rather than being rewritten to loopback
+  (`application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs:157-166`), the literal reading of the
+  2026-10-05 Q6 row.
+- **AirGapped multi-frame vision refuses a non-local resolved provider (PR 4.10b, #738 `bceb1ba21`; integrator default,
+  2026-10-08 review question 4 open).** `AdaptiveProviderFactory.ExecuteVisionMultiFrameAsync` throws before the inner
+  factory receives a frame when the resolved provider is not local
+  (`src/Ashlar.Infrastructure/Execution/AdaptiveProviderFactory.cs:141`).
+- **The resolved profile is reasserted after every `Configure` (PR 4.10b, #738 `bceb1ba21`; integrator default,
+  2026-10-08 review question 5 open).** `AddAshlar` sets `AshlarResolvedDeploymentProfileOptions.Profile` in both a
+  `Configure` and a `PostConfigure`, so a host's later `Configure` cannot lower it
+  (`src/Ashlar.Hosting/AshlarServiceCollectionExtensions.cs:139-141`); replacing the options service or a later
+  `PostConfigure` still can (4.10b Known limits).
+- **Bedrock on AirGapped is refused at options validation, not at composition (PR 4.10, #720 `02fa27f1d`; recorded by
+  PR 4.10b, #738 `bceb1ba21`; integrator default, awaiting the owner).** `ValidateAirGappedMeaiBedrockOptions`
+  refuses `Ashlar:Meai:Bedrock:Enabled=true` at `ValidateOnStart` or the first options or keyed-client resolution,
+  rather than during `AddAshlar`/`BuildServiceProvider` (`src/Ashlar.AI.Pipeline/ValidateAirGappedMeaiBedrockOptions.cs:22`);
+  the 4.10 lane's composition-time refusal did not merge.
+
 Report-only is not listed here or in the decisions log, because it is neither: it is this spec's own wording, in the
-PR 3 row of §5. `EgressGuard.Evaluate` records each decision and never refuses, throws or blocks.
+PR 3 row of §5; report-only by default held until PR 4.11 (#746), and opt-in refusal existed from PR 4.7 (#742). `EgressGuard.Evaluate` records each decision and never throws or
+blocks: it returns the decision, and the routes act on a refused one before they send (`ThrowIfRefused`): HTTP and
+governed MEAI routes since PR 4.7 (#742), explicit sites since PR 4.9 (#744).
 
 ## Where PR 1 departs from §4 (added 2026-10-04)
 
@@ -603,7 +639,10 @@ answered on 2026-10-05 for PR 4; A, B and E are still open, and none blocked a m
   - (c) leave it as it is and decide in PR 3.
 
   Both API reviewers on #706 called this the one hard-to-change item. PR 3a did not need it, because the guard
-  classifies a destination by a fixed table instead of parsing it, so the question is still open.
+  classifies a destination by a fixed table instead of parsing it, so the question is still open. Option (a) landed
+  in #748 as `SecurityLabel.ParseOrPublic` (a design choice, not an owner answer), which `SubjectClearance.Resolve`
+  uses for the policy clearance (`SubjectClearance.cs:30`, its only production call). Wiring a production composition
+  path, and `CanRead` at the server seams, is PR 5's remaining work.
 
 - **B. `SystemHigh` versus today's `TopSecret` visibility.** Through the bridges, unlabelled data is `SystemHigh`,
   so only a `SystemHigh` clearance can read it, whereas today a `TopSecret` caller can. The bridges never give a
