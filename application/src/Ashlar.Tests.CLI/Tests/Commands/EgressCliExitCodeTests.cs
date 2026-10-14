@@ -3,14 +3,18 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.CLI.Commands;
+using Ashlar.Tests.Infrastructure.Helpers;
 using FluentAssertions;
 using Xunit;
 
 namespace Ashlar.Tests.CLI.Tests.Commands;
 
 [Collection("MeshIntegration")]
-public sealed class EgressCliExitCodeTests
+public sealed class EgressCliExitCodeTests : IDisposable
 {
+    private readonly EgressProcessStateScope _state = new(reset: true);
+    public void Dispose() => _state.Dispose();
+
     [Theory]
     [InlineData(0)]
     [InlineData(2)]
