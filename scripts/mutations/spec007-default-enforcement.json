@@ -155,8 +155,12 @@
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
-        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export"
-      ]
+        "Scenario_A_and_C0_through_C3_pin_the_real_labelled_model_export",
+        "Scenario_B_real_web_search_is_refused_before_transport_and_the_local_model_receives_a_redacted_observation",
+        "Scenario_C_factory_refuses_a_Secret_export_before_the_primary_handler",
+        "Scenario_C_real_loopback_redirect_refuses_the_remote_hop_before_connecting"
+      ],
+      "note": "Same source mutation as mode-sw-default, deliberately selecting the real leak scenarios A, B and C instead of the mode-resolution suite."
     },
     {
       "id": "leak-m04-always-refuse",
