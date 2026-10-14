@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Hosting;
 using Ashlar.Infrastructure;
 using Ashlar.Abstractions;
 using Microsoft.Extensions.Options;
@@ -7,11 +8,13 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 namespace Ashlar.API.Security;
 
 /// <summary>
-/// Fails the API's start when, on AirGapped or SecureWorkstation, Kestrel bound a non-loopback address (SPEC-007 PR
+/// Fails the web host's start when, on AirGapped or SecureWorkstation, Kestrel bound a non-loopback address (SPEC-007 PR
 /// 4.10, owner decision Q6). It checks the server's published addresses after start, including Kestrel listeners
 /// added in code, and fails closed if a restricted host publishes no addresses. The configuration check in
 /// <c>Program.cs</c> refuses configured non-loopback listeners before anything binds.
 /// </summary>
+// The shared web-host verifier consumes AshlarResolvedDeploymentProfileOptions by design.
+#pragma warning disable ASHLAREXP002 // AshlarResolvedDeploymentProfileOptions is the resolved deployment policy.
 internal sealed class LoopbackListenerVerifier : IHostedLifecycleService
 {
     private readonly IServer _server;
@@ -51,3 +54,5 @@ internal sealed class LoopbackListenerVerifier : IHostedLifecycleService
     /// <inheritdoc />
     public Task StoppedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
+
+#pragma warning restore ASHLAREXP002

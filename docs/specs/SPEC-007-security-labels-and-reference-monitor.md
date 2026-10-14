@@ -253,9 +253,9 @@ The status line above and the starting prompt are the owner's, as written; the s
   remain mutable objects, and host code that replaces the options service or installs a later `PostConfigure`
   can override them. Bedrock still refuses at `ValidateOnStart` or first options/keyed-client resolution,
   rather than during `AddAshlar`/`BuildServiceProvider`. Responses on inbound connections await PR 5. The rule
-  covers the API and mesh serve only: the gRPC server host (`src/Ashlar.Transport.Grpc.Server.Host/Program.cs:14-17`
-  defaults to loopback only when no URL is set) and `Ashlar.Commercial.Fleet.Host` bind any URL on AirGapped and
-  SecureWorkstation. Not yet wired; decided to wire before 0.3.0 (SPEC-007 decisions log, 2026-10-13).
+  covers the API, mesh serve, gRPC server host and `Ashlar.Commercial.Fleet.Host` (the latter two wired
+  2026-10-14 for card #766, per the owner's 2026-10-13 Q6 scope decision). The web hosts validate configured
+  endpoints before bind and compile the same internal post-bind verifier from `src/Shared/LoopbackListenerVerifier.cs`.
 
 ---
 

@@ -58,7 +58,10 @@ public sealed class InboundHostLoopbackProdStyleTests
         Action start = () => _ = factory.Services;
         if (!starts)
         {
-            start.Should().Throw<Exception>().Which.ToString().Should().Contain("loopback");
+            var failure = start.Should().Throw<Exception>().Which.ToString();
+            failure.Should().Contain("loopback");
+            if (binding is "urls" or "endpoint")
+                failure.Should().Contain("OptionsValidationException", "configured endpoints must fail before bind");
             return;
         }
         start.Should().NotThrow();
