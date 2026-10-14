@@ -1,0 +1,9 @@
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-resume-unconfigured started for template gate-demo.
+warn: Ashlar.Infrastructure.Pipelines.DefaultDeterministicStageExecutionAdapter[0]
+      Deterministic pipeline adapter 'default' is the default placeholder and performs no work; stage ingest is reported as failed. Register a concrete deterministic adapter (e.g. via ASHLAR_PIPELINE_DETERMINISTIC_ADAPTER) to execute stages.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage ingest completed with state Failed on worker Deterministic.
+warn: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-resume-unconfigured stalled with no ready stages.
+{"ok":false,"correlationId":"f3f7989993af4759bad984a2da0249e0","data":{"runId":"gate-resume-unconfigured","templateId":"gate-demo","state":"Failed","startedAt":"2026-10-14T00:41:12.619+00:00","completedAt":"2026-10-14T00:41:12.665+00:00","stages":[{"stageId":"hybrid","state":"Pending","attempt":0},{"stageId":"ingest","state":"Failed","attempt":4,"workerType":"Deterministic","workerId":"deterministic-default","error":"No deterministic pipeline adapter is configured; the default placeholder performs no work."}]}}

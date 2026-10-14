@@ -7,6 +7,7 @@ on:
     paths:
       - 'scripts/compat-gate*.sh'
       - 'scripts/kernel-gate-tier-b.sh'
+      - 'scripts/lib/pipeline_gate_assertions.py'
 
 jobs:
   compat-gate:

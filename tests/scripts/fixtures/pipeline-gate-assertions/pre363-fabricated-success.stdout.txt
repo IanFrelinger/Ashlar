@@ -1,0 +1,13 @@
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-success started for template gate-demo.
+info: Ashlar.Infrastructure.Pipelines.DefaultDeterministicStageExecutionAdapter[0]
+      Deterministic adapter 'default' executed stage ingest.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage ingest completed with state Completed on worker Deterministic.
+info: Ashlar.Infrastructure.Pipelines.DefaultDeterministicStageExecutionAdapter[0]
+      Deterministic adapter 'default' executed stage hybrid.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage hybrid completed with state Completed on worker Deterministic.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-success completed successfully.
+{"ok":true,"correlationId":"a6b67a39a2974c029fd3b026bbb1794e","data":{"runId":"gate-run-success","templateId":"gate-demo","state":"Completed","startedAt":"2026-08-23T02:22:50.6751054+00:00","completedAt":"2026-08-23T02:22:50.6951348+00:00","stages":[{"stageId":"hybrid","state":"Completed","attempt":1,"workerType":"Deterministic","workerId":"deterministic-default","output":"deterministic:hybrid:ok"},{"stageId":"ingest","state":"Completed","attempt":1,"workerType":"Deterministic","workerId":"deterministic-default","output":"deterministic:ingest:ok"}]}}
