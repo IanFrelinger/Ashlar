@@ -17,6 +17,36 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Changed — the security and deployment-profile API ships `[Experimental]` (`ASHLAREXP002`)
+
+- **Breaking for consumers, in effect.** The 23 public types SPEC-007 added to `Ashlar.Abstractions` after
+  `v0.2.0` are now `[Experimental("ASHLAREXP002")]`: every public type in `Ashlar.Abstractions.Security` and
+  `Ashlar.Abstractions.Security.Egress`, and `AshlarResolvedDeploymentProfileOptions`. Code that names one of them
+  no longer compiles until it opts in, with `<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>` in the project or
+  `#pragma warning disable ASHLAREXP002` around the use. No published release contained these types (`v0.2.0`
+  shipped none of them), so only code built against an unreleased tree breaks. The owner decided this on
+  2026-10-13 (SPEC-007 decisions log). What the id covers, and why: `docs/SdkCompatibilityPolicy.md#ashlarexp002`.
+- The surface may change in any release, a patch included, without a deprecation window. `ASHLAREXP001` does not
+  cover it: a project that uses both experimental surfaces opts in to both ids.
+- **Not experimental (integrator decision):** the SPEC-007 public members of the Substrate packages stay Substrate
+  tier, and are disclosed here: `AddAshlarEgressGuard`, `EgressGuardOptions`, `LoggerEgressDecisionSink`,
+  `EgressDecisionLoggerSubscription` and `EgressHttpClientBuilderExtensions` in `Ashlar.Infrastructure`;
+  `AshlarHostingOptions.EgressMode` and `.Clearance` in `Ashlar.Hosting`; `DataSensitivityLabelBridge` in
+  `Ashlar.BackgroundAgents`; `TrustTierOrder.RecordLabel` and `.CallerLabel` in `Ashlar.AI.Pipeline`;
+  `PolicyClearances` and `SkillComposition.Decide` in `Ashlar.Manifest`. Several of them take or return the
+  experimental types.
+- The id and its help link are defined once, in the internal, non-experimental
+  `Ashlar.Abstractions.Security.SecurityExperimental` (integrator decision: a public holder would put a stable line in
+  `PublicAPI.Unshipped.txt`). The repo's test projects opt in in `Directory.Build.targets`; the 16 shipped assemblies
+  that use the surface opt in in their own project files.
+- cert-gate: `ExperimentalSecurityApiConventionTests` holds the decision. Every type of the surface carries the id
+  and the link, every line of the API files that names the surface is owned by such a type, no other
+  `Ashlar.Abstractions` type or member carries the id, and no member outside the surface hands out one of its
+  types. `DiagnosticSuppressionConventionTests` now governs `ASHLAREXP002` suppressions as it does
+  `ASHLAREXP001`'s, each id against its own symbols, and fails a reviewed project-wide opt-in that no file of its
+  project still needs.
+- `consumer-template/` and `samples/` need no change: none of them names these types.
+
 ### Fixed — refusal masking (SPEC-007 4.8b)
 
 - A refused Ollama availability probe no longer becomes echo output or "provider not available".
