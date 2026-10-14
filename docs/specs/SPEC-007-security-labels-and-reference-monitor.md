@@ -426,7 +426,7 @@ Follow the patterns already in the project (records and `init` are already used 
 promised", so whether this ships as stable or `[Experimental]` is decided before the next tag. If it
 becomes experimental, `docs/SdkCompatibilityPolicy.md` requires a **new** diagnostic id
 (`ASHLAREXP002`) with its own row and constant, not a reuse of `ASHLAREXP001`. **Decided 2026-10-13:** it ships in
-0.3.0 as `[Experimental]` under `ASHLAREXP002` (decisions log).
+0.3.0 as `[Experimental]` under `ASHLAREXP002` (decisions log). Applied in #801.
 
 ### 4.3 Tests
 
