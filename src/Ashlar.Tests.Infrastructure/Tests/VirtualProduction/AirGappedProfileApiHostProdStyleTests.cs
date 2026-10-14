@@ -266,12 +266,14 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             ? validation : null;
     }
 
-    [Theory]
+    // In-memory negative control. It sits in this ProdStyle class, so the timeout convention
+    // applies, and xunit only honours Timeout on a Task-returning test. It does not boot a host.
+    [Theory(Timeout = TestTimeouts.Quick)]
     [InlineData("missing")]
     [InlineData("wrong-type")]
     [InlineData("wrong-options")]
     [InlineData("unrelated-observed")]
-    public void Api_disposal_without_authentic_options_failure_is_not_a_refusal(string invalid)
+    public Task Api_disposal_without_authentic_options_failure_is_not_a_refusal(string invalid)
     {
         Exception observed = invalid == "unrelated-observed" ? new IOException("unrelated") : new ObjectDisposedException("IServiceProvider");
         Exception? recorded = invalid switch
@@ -282,6 +284,7 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             _ => new OptionsValidationException(Options.DefaultName, typeof(AshlarInboundListenerOptions), ["loopback"]),
         };
         AuthenticOptionsFailure(observed, recorded, typeof(AshlarInboundListenerOptions)).Should().BeNull();
+        return Task.CompletedTask;
     }
     private sealed class ObservedFactory<T>(StartupFailureRecorder startup, bool forceDisposalRace)
         : WebApplicationFactory<T> where T : class
