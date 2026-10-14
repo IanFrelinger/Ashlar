@@ -289,6 +289,23 @@ public sealed class EgressRefusalMaskingTests
     }
 
     [Fact]
+    public async Task Fallback_returning_no_output_after_a_refusal_does_not_append_the_refusal_again()
+    {
+        // The fallback returns null without throwing, so the chain writes the previous attempt's text (the refusal)
+        // again. That event already carries the refusal, so the step must not append it a third time.
+        var refusal = Refusal();
+        var brick = new ScriptedBrick(agentic: () => throw refusal, deterministic: () => null!);
+
+        var events = await RunStepAsync(AvailableProviders(), brick);
+
+        brick.AgenticCalls.Should().Be(1);
+        brick.DeterministicCalls.Should().Be(1);
+        var errors = StepErrors(events);
+        errors.Should().HaveCount(2, "one event per attempt; the last one written already carried the refusal");
+        errors[^1].Should().Contain(refusal.Ref, "the refusal is still the step's final error (D23)");
+    }
+
+    [Fact]
     public async Task Refused_attempt_as_the_last_alternative_reports_the_refusal_once()
     {
         // The refused attempt is itself the last alternative, so its own event is already the final error.
