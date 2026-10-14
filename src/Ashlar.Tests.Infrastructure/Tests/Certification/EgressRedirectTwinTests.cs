@@ -325,7 +325,21 @@ public sealed class EgressRedirectTwinTests
     {
         var server = Server.Value;
         server.Reset();
-        using var ours = GuardedClient(server, allowRedirects: true, maxRedirects: 50);
+        // P2's same-origin restriction also blocks a scheme change, masking a broken downgrade
+        // check. Use the real P1 factory path, which otherwise permits cross-origin redirects.
+        var services = new ServiceCollection();
+        services.AddSingleton<IEgressGuard>(Guard);
+        services.AddAshlarEgressGuard();
+        services.AddHttpClient("downgrade").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = true,
+            UseCookies = false,
+            UseProxy = false,
+            ServerCertificateCustomValidationCallback = (_, certificate, _, _) =>
+                certificate is not null && string.Equals(certificate.Thumbprint, server.Certificate.Thumbprint, StringComparison.OrdinalIgnoreCase),
+        });
+        using var provider = services.BuildServiceProvider();
+        using var ours = provider.GetRequiredService<IHttpClientFactory>().CreateClient("downgrade");
         using var reference = ReferenceClient(server, maxRedirects: 50);
 
         using var ourResponse = await ours.SendAsync(Marked(HttpMethod.Get, server.DowngradeUri, "ours"));
