@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.CLI.Commands;
 using FluentAssertions;
 using Xunit;
@@ -8,6 +11,29 @@ namespace Ashlar.Tests.CLI.Tests.Commands;
 [Collection("MeshIntegration")]
 public sealed class EgressCliExitCodeTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    [InlineData(10)]
+    public async Task A_caught_refusal_cannot_be_converted_into_another_exit_code(int exitCode)
+    {
+        var root = new RootCommand();
+        root.SetHandler((InvocationContext context) =>
+        {
+            try
+            {
+                new EgressGuard("secure-workstation", "enforce")
+                    .Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
+            }
+            catch (EgressRefusedException) { context.ExitCode = exitCode; }
+        });
+        (await Ashlar.CLI.EgressCliInvocation.InvokeAsync(root, [])).Should().Be(77);
+        var control = new RootCommand();
+        control.SetHandler((InvocationContext context) => context.ExitCode = exitCode);
+        (await Ashlar.CLI.EgressCliInvocation.InvokeAsync(control, [])).Should().Be(exitCode,
+            "a refusal belongs only to its invocation, never to the next command");
+    }
+
     [Theory]
     [InlineData("air-gapped")]
     [InlineData("secure-workstation")]

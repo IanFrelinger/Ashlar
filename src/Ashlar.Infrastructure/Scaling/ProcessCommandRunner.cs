@@ -91,8 +91,13 @@ public sealed class ProcessCommandRunner : IProcessCommandRunner
                 pullNever = true;
                 continue;
             }
+            // Bind mounts can expose the daemon or host filesystem despite network=none.
+            // No production SandboxSpec requires a bind mount; fail closed on all volume forms.
+            if (arg is "-v" or "--volume" or "--mount" || arg.StartsWith("-v", StringComparison.Ordinal)
+                || arg.StartsWith("--volume=", StringComparison.Ordinal) || arg.StartsWith("--mount=", StringComparison.Ordinal))
+                return false;
             if (arg is "--name" or "--label" or "--cap-drop" or "--security-opt"
-                or "--tmpfs" or "--memory" or "--cpus" or "--pids-limit" or "-v" or "--entrypoint")
+                or "--tmpfs" or "--memory" or "--cpus" or "--pids-limit" or "--entrypoint")
             {
                 if (++i >= arguments.Count || string.IsNullOrWhiteSpace(arguments[i]) || arguments[i].StartsWith('-')) return false;
                 continue;

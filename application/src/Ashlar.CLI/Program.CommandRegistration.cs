@@ -54,7 +54,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<AnalyzeCommand>();
                 var exitCode = await cmd.ExecuteAsync(path, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             analyzeCmd.Options[0] as Option<DirectoryInfo> ?? throw new InvalidOperationException(),
             jsonOpt,
@@ -75,7 +75,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<ValidateCommand>();
                 var exitCode = await cmd.ExecuteAsync(filter, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             validateCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
             jsonOpt,
@@ -97,7 +97,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<AgentCommand>();
                 var exitCode = await cmd.ExecuteAsync(name, input, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             agentCmd.Options[0] as Option<string> ?? throw new InvalidOperationException(),
             agentCmd.Options[1] as Option<FileInfo?> ?? throw new InvalidOperationException(),
@@ -114,7 +114,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<ListAgentsCommand>();
                 var exitCode = await cmd.ExecuteAsync(json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             verboseOpt);
@@ -131,7 +131,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<ConfigCommand>();
                 var exitCode = await cmd.ExecuteAsync(json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             verboseOpt);
@@ -145,7 +145,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<ConfigCommand>();
                 var exitCode = await cmd.ValidateAsync(json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             verboseOpt);
@@ -161,7 +161,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<ConfigCommand>();
                 var exitCode = await cmd.ExportAsync(path.FullName, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             configExportPathOpt,
             jsonOpt,
@@ -178,7 +178,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<ConfigCommand>();
                 var exitCode = await cmd.ImportAsync(path.FullName, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             configImportPathOpt,
             jsonOpt,
@@ -201,7 +201,7 @@ static partial class Program
                 };
                 var cmd = ServiceProvider.GetRequiredService<ConfigCommand>();
                 var exitCode = await cmd.SetModeAsync(stepId, mode);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             configSetModeStepArg,
             configSetModeModeArg);
@@ -214,7 +214,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<ConfigCommand>();
                 var exitCode = await cmd.ExecuteAsync(json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             verboseOpt);
@@ -271,7 +271,7 @@ static partial class Program
             
             var exitCode = await MultiPlatformTestCommand.ExecuteAsync(
                 platforms, project, filter, dotnetVersion, executionPlatform, outputDir, coverage, stress, visual, ephemeral, json, verbose, ServiceProvider);
-            Environment.Exit(exitCode);
+            EgressCliInvocation.Exit(exitCode);
         });
         // ashlar test local - Run tests locally (replaces test-local.sh)
         var testLocalCmd = new Command("local", "Run tests locally using framework test runner")
@@ -287,7 +287,7 @@ static partial class Program
             {
                 var testCommand = ServiceProvider.GetRequiredService<TestCommand>();
                 var exitCode = await testCommand.ExecuteAsync(filter, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             testLocalCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
             jsonOpt,
@@ -374,7 +374,7 @@ static partial class Program
                 verbose,
                 jwt,
                 headers);
-            Environment.Exit(exitCode);
+            EgressCliInvocation.Exit(exitCode);
         });
         root.AddCommand(orchestrateCmd);
 
@@ -389,7 +389,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<PipelineCommand>();
                 var exitCode = cmd.Validate(template.FullName, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             pipelineValidateTemplateOpt,
             jsonOpt,
@@ -432,7 +432,7 @@ static partial class Program
                     resumeFailedStages: resumeFailedStages,
                     inputs: inputs,
                     cancellationToken: CancellationToken.None);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             pipelineRunTemplateOpt,
             pipelineRunIdOpt,
@@ -449,7 +449,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<PipelineCommand>();
                 var exitCode = cmd.Diagnostics(json);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt);
         pipelineCmd.AddCommand(pipelineDiagnosticsCmd);
@@ -468,7 +468,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<EscalateCommand>();
                 var exitCode = await cmd.ListAsync(json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             verboseOpt);
@@ -486,7 +486,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<EscalateCommand>();
                 var exitCode = await cmd.ShowAsync(id, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             escalateShowCmd.Arguments[0] as Argument<string> ?? throw new InvalidOperationException(),
             jsonOpt,
@@ -507,7 +507,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<EscalateCommand>();
                 var exitCode = await cmd.ResolveAsync(id, resolution, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             escalateResolveCmd.Arguments[0] as Argument<string> ?? throw new InvalidOperationException(),
             escalateResolveCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
@@ -529,7 +529,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<EscalateCommand>();
                 var exitCode = await cmd.DismissAsync(id, reason, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             escalateDismissCmd.Arguments[0] as Argument<string> ?? throw new InvalidOperationException(),
             escalateDismissCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
@@ -549,7 +549,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<EscalateCommand>();
                 var exitCode = await cmd.ListBySeverityAsync(severity, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             escalateListBySeverityCmd.Arguments[0] as Argument<string> ?? throw new InvalidOperationException(),
             jsonOpt,
@@ -579,7 +579,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<MaintenanceCommand>();
                 var exitCode = await cmd.ExecuteAsync(strategy, repo, json);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             strategyOpt,
             repoOpt,

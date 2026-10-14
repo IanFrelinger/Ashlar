@@ -25,7 +25,7 @@ public sealed class ReleaseCommand : Command
             async (string version, bool triggerGate, string gateRef) =>
             {
                 var code = await RunPreflightAsync(version, triggerGate, gateRef).ConfigureAwait(false);
-                Environment.Exit(code);
+                EgressCliInvocation.Exit(code);
             },
             versionArg,
             triggerGateOpt,
@@ -39,7 +39,7 @@ public sealed class ReleaseCommand : Command
             async (string @ref) =>
             {
                 var code = await RunGhWorkflowAsync("Runtime Release Gate", @ref).ConfigureAwait(false);
-                Environment.Exit(code);
+                EgressCliInvocation.Exit(code);
             },
             gateRefOnly);
         AddCommand(gateCmd);
@@ -62,7 +62,7 @@ public sealed class ReleaseCommand : Command
                     .ConfigureAwait(false);
                 if (code != 0)
                     Console.Error.WriteLine("release dispatch: ensure gh is installed and authenticated (gh auth login).");
-                Environment.Exit(code);
+                EgressCliInvocation.Exit(code);
             },
             versionArg,
             refOpt,

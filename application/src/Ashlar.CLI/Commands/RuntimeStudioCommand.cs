@@ -42,7 +42,7 @@ public sealed class RuntimeStudioCommand : Command
         applyTuneCmd.SetHandler(
             (bool json, string spec, string agentSet, bool dryRun) =>
             {
-                Environment.Exit(ExecuteApplyTune(json, spec, agentSet, dryRun));
+                EgressCliInvocation.Exit(ExecuteApplyTune(json, spec, agentSet, dryRun));
             },
             jsonOpt,
             specOpt,
@@ -63,7 +63,7 @@ public sealed class RuntimeStudioCommand : Command
         statusCmd.SetHandler(
             (bool json, string agentSet, bool withMetrics) =>
             {
-                Environment.Exit(ExecuteStatus(json, agentSet, withMetrics));
+                EgressCliInvocation.Exit(ExecuteStatus(json, agentSet, withMetrics));
             },
             jsonOpt,
             agentSetOpt,
@@ -74,7 +74,7 @@ public sealed class RuntimeStudioCommand : Command
             "Print runtime-studio backlog metrics (aligned with GET /api/runtime-studio/metrics).");
         metricsCmd.AddOption(jsonOpt);
         metricsCmd.SetHandler(
-            (bool json) => { Environment.Exit(ExecuteMetrics(json)); },
+            (bool json) => { EgressCliInvocation.Exit(ExecuteMetrics(json)); },
             jsonOpt);
 
         var strictDoctorOpt = new Option<bool>(
@@ -89,7 +89,7 @@ public sealed class RuntimeStudioCommand : Command
         doctorCmd.AddOption(agentSetOpt);
         doctorCmd.AddOption(strictDoctorOpt);
         doctorCmd.SetHandler(
-            (bool json, string agentSet, bool strict) => { Environment.Exit(ExecuteDoctor(json, agentSet, strict)); },
+            (bool json, string agentSet, bool strict) => { EgressCliInvocation.Exit(ExecuteDoctor(json, agentSet, strict)); },
             jsonOpt,
             agentSetOpt,
             strictDoctorOpt);

@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 806,
-    "declared_facts": 5184,
+    "test_files_declaring_facts": 807,
+    "declared_facts": 5187,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2729,7 +2729,7 @@
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/EgressCliExitCodeTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 1,
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
@@ -5229,6 +5229,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 1,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressGuardConventionTests.Initiators.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 2,
       "in_cert_gate_filter": true
     },
     {

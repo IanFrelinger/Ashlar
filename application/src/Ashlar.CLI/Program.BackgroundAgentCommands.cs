@@ -27,7 +27,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<BackgroundAgentCommand>();
                 var exitCode = await cmd.ListAsync(formatJson, status, role, sensitivity);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             listBgCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
@@ -45,7 +45,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<BackgroundAgentCommand>();
                 var exitCode = await cmd.ShowAsync(id, formatJson);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             showBgIdOpt,
             jsonOpt);
@@ -61,7 +61,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<BackgroundAgentCommand>();
                 var exitCode = await cmd.StartAsync(id, formatJson);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             startBgIdOpt,
             jsonOpt);
@@ -77,7 +77,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<BackgroundAgentCommand>();
                 var exitCode = await cmd.StopAsync(id, formatJson);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             stopBgIdOpt,
             jsonOpt);
@@ -93,7 +93,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<BackgroundAgentCommand>();
                 var exitCode = await cmd.RestartAsync(id, formatJson);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             restartBgIdOpt,
             jsonOpt);
@@ -128,7 +128,7 @@ static partial class Program
             async (string role, int demand, int minAgents, int maxAgents, int unitsPerAgent, int idleSeconds, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<BackgroundAgentCommand>();
-                Environment.Exit(await cmd.AutoScaleAsync(role, demand, minAgents, maxAgents, unitsPerAgent, idleSeconds, formatJson));
+                EgressCliInvocation.Exit(await cmd.AutoScaleAsync(role, demand, minAgents, maxAgents, unitsPerAgent, idleSeconds, formatJson));
             },
             autoscaleApplyRoleOpt,
             autoscaleApplyDemandOpt,
@@ -152,7 +152,7 @@ static partial class Program
             async (string id, bool runAsync, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ExecuteBackgroundAgentCommand>();
-                Environment.Exit(await cmd.ExecuteAsync(id, runAsync, formatJson));
+                EgressCliInvocation.Exit(await cmd.ExecuteAsync(id, runAsync, formatJson));
             },
             executeBgIdOpt, executeBgAsyncOpt, jsonOpt);
         backgroundAgentCmd.AddCommand(executeBgCmd);
@@ -177,7 +177,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.LogsBackgroundAgentCommand>();
                 TimeSpan? sinceTs = ParseSince(since);
-                Environment.Exit(await cmd.ExecuteAsync(id, tail, level, sinceTs, formatJson));
+                EgressCliInvocation.Exit(await cmd.ExecuteAsync(id, tail, level, sinceTs, formatJson));
             },
             logsBgIdOpt,
             logsBgCmd.Options[1] as Option<int> ?? throw new InvalidOperationException(),
@@ -196,7 +196,7 @@ static partial class Program
             async (string id, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.MetricsBackgroundAgentCommand>();
-                Environment.Exit(await cmd.ExecuteAsync(id, formatJson));
+                EgressCliInvocation.Exit(await cmd.ExecuteAsync(id, formatJson));
             },
             metricsBgIdOpt, jsonOpt);
         backgroundAgentCmd.AddCommand(metricsBgCmd);
@@ -220,7 +220,7 @@ static partial class Program
             async (string? agent, string? role, double? since, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.StatsBackgroundAgentCommand>();
-                Environment.Exit(await cmd.ExecuteAsync(agent, role, since, formatJson));
+                EgressCliInvocation.Exit(await cmd.ExecuteAsync(agent, role, since, formatJson));
             },
             statsAgentOpt, statsRoleOpt, statsSinceOpt, jsonOpt);
         backgroundAgentCmd.AddCommand(statsBgCmd);
@@ -239,7 +239,7 @@ static partial class Program
             async (double? since, string? project, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ReportBackgroundAgentCommand>();
-                Environment.Exit(await cmd.ExecuteAsync(since, project, formatJson));
+                EgressCliInvocation.Exit(await cmd.ExecuteAsync(since, project, formatJson));
             },
             reportSinceOpt, reportProjectOpt, jsonOpt);
         backgroundAgentCmd.AddCommand(reportBgCmd);
@@ -269,7 +269,7 @@ static partial class Program
             async (string? source, string? kind, double? since, int? tail, bool summary, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObservationsBackgroundAgentCommand>();
-                Environment.Exit(await cmd.ExecuteAsync(source, kind, since, tail, summary, formatJson));
+                EgressCliInvocation.Exit(await cmd.ExecuteAsync(source, kind, since, tail, summary, formatJson));
             },
             obsSourceOpt, obsKindOpt, obsSinceOpt, obsTailOpt, obsSummaryOpt, jsonOpt);
         backgroundAgentCmd.AddCommand(observationsBgCmd);
@@ -290,7 +290,7 @@ static partial class Program
         objListCmd.SetHandler(async (string? status, string? tag, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.ListAsync(status, tag, formatJson));
+            EgressCliInvocation.Exit(await cmd.ListAsync(status, tag, formatJson));
         }, objListStatusOpt, objListTagOpt, jsonOpt);
         objectivesBgCmd.AddCommand(objListCmd);
 
@@ -299,7 +299,7 @@ static partial class Program
         objShowCmd.SetHandler(async (string id, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.ShowAsync(id, formatJson));
+            EgressCliInvocation.Exit(await cmd.ShowAsync(id, formatJson));
         }, objShowIdArg, jsonOpt);
         objectivesBgCmd.AddCommand(objShowCmd);
 
@@ -316,7 +316,7 @@ static partial class Program
         objAddCmd.SetHandler(async (string id, string title, int priority, string[] tags, string? body, string? bodyFile, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.AddAsync(id, title, priority, tags, body, bodyFile, formatJson));
+            EgressCliInvocation.Exit(await cmd.AddAsync(id, title, priority, tags, body, bodyFile, formatJson));
         }, objAddIdOpt, objAddTitleOpt, objAddPriorityOpt, objAddTagsOpt, objAddBodyOpt, objAddBodyFileOpt, jsonOpt);
         objectivesBgCmd.AddCommand(objAddCmd);
 
@@ -329,7 +329,7 @@ static partial class Program
         objCompleteCmd.SetHandler(async (string id, string? note, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.CompleteAsync(id, note, formatJson));
+            EgressCliInvocation.Exit(await cmd.CompleteAsync(id, note, formatJson));
         }, objCompleteIdArg, objCompleteNoteOpt, jsonOpt);
         objectivesBgCmd.AddCommand(objCompleteCmd);
 
@@ -342,7 +342,7 @@ static partial class Program
         objBlockCmd.SetHandler(async (string id, string reason, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.BlockAsync(id, reason, formatJson));
+            EgressCliInvocation.Exit(await cmd.BlockAsync(id, reason, formatJson));
         }, objBlockIdArg, objBlockReasonOpt, jsonOpt);
         objectivesBgCmd.AddCommand(objBlockCmd);
 
@@ -351,7 +351,7 @@ static partial class Program
         objUnblockCmd.SetHandler(async (string id, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.UnblockAsync(id, formatJson));
+            EgressCliInvocation.Exit(await cmd.UnblockAsync(id, formatJson));
         }, objUnblockIdArg, jsonOpt);
         objectivesBgCmd.AddCommand(objUnblockCmd);
 
@@ -365,7 +365,7 @@ static partial class Program
         objReportCmd.SetHandler(async (string? id, string? status, double? since, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.ReportAsync(id, status, since, formatJson));
+            EgressCliInvocation.Exit(await cmd.ReportAsync(id, status, since, formatJson));
         }, objReportIdOpt, objReportStatusOpt, objReportSinceOpt, jsonOpt);
         objectivesBgCmd.AddCommand(objReportCmd);
 
@@ -373,7 +373,7 @@ static partial class Program
         objStatsCmd.SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
-            Environment.Exit(await cmd.StatsAsync(formatJson));
+            EgressCliInvocation.Exit(await cmd.StatsAsync(formatJson));
         }, jsonOpt);
         objectivesBgCmd.AddCommand(objStatsCmd);
 
@@ -393,7 +393,7 @@ static partial class Program
         propListCmd.SetHandler(async (string? status, string? targetPrefix, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.ListAsync(status, targetPrefix, formatJson));
+            EgressCliInvocation.Exit(await cmd.ListAsync(status, targetPrefix, formatJson));
         }, propListStatusOpt, propListTargetOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propListCmd);
 
@@ -406,7 +406,7 @@ static partial class Program
         propShowCmd.SetHandler(async (string id, bool showDiff, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.ShowAsync(id, showDiff, formatJson));
+            EgressCliInvocation.Exit(await cmd.ShowAsync(id, showDiff, formatJson));
         }, propShowIdArg, propShowDiffOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propShowCmd);
 
@@ -420,7 +420,7 @@ static partial class Program
         propApproveCmd.SetHandler(async (string id, string? approver, string? note, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.ApproveAsync(id, approver, note, formatJson));
+            EgressCliInvocation.Exit(await cmd.ApproveAsync(id, approver, note, formatJson));
         }, propApproveIdArg, propApproveByOpt, propApproveNoteOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propApproveCmd);
 
@@ -434,7 +434,7 @@ static partial class Program
         propRejectCmd.SetHandler(async (string id, string? reviewer, string? note, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.RejectAsync(id, reviewer, note, formatJson));
+            EgressCliInvocation.Exit(await cmd.RejectAsync(id, reviewer, note, formatJson));
         }, propRejectIdArg, propRejectByOpt, propRejectNoteOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propRejectCmd);
 
@@ -450,7 +450,7 @@ static partial class Program
         propApplyCmd.SetHandler(async (string id, string root, bool force, bool verifyBuild, bool verifyTest, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.ApplyAsync(id, root, force, formatJson, verifyBuild, verifyTest));
+            EgressCliInvocation.Exit(await cmd.ApplyAsync(id, root, force, formatJson, verifyBuild, verifyTest));
         }, propApplyIdArg, propApplyRootOpt, propApplyForceOpt, propApplyVerifyBuildOpt, propApplyVerifyTestOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propApplyCmd);
 
@@ -462,7 +462,7 @@ static partial class Program
         propBuildCmd.SetHandler(async (string root, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.BuildAsync(root, formatJson));
+            EgressCliInvocation.Exit(await cmd.BuildAsync(root, formatJson));
         }, propBuildRootOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propBuildCmd);
 
@@ -474,7 +474,7 @@ static partial class Program
         propTestCmd.SetHandler(async (string root, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.TestAsync(root, formatJson));
+            EgressCliInvocation.Exit(await cmd.TestAsync(root, formatJson));
         }, propTestRootOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propTestCmd);
 
@@ -487,7 +487,7 @@ static partial class Program
         propJanitorCmd.SetHandler(async (double? proposedTtl, double? approvedTtl, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.JanitorAsync(proposedTtl, approvedTtl, formatJson));
+            EgressCliInvocation.Exit(await cmd.JanitorAsync(proposedTtl, approvedTtl, formatJson));
         }, propJanProposedOpt, propJanApprovedOpt, jsonOpt);
         proposalsBgCmd.AddCommand(propJanitorCmd);
 
@@ -495,7 +495,7 @@ static partial class Program
         propStatsCmd.SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
-            Environment.Exit(await cmd.StatsAsync(formatJson));
+            EgressCliInvocation.Exit(await cmd.StatsAsync(formatJson));
         }, jsonOpt);
         proposalsBgCmd.AddCommand(propStatsCmd);
 
@@ -510,7 +510,7 @@ static partial class Program
             async (bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ModeBackgroundAgentCommand>();
-                Environment.Exit(await cmd.GetAsync(formatJson));
+                EgressCliInvocation.Exit(await cmd.GetAsync(formatJson));
             },
             jsonOpt);
         modeCmd.AddCommand(modeGetCmd);
@@ -523,7 +523,7 @@ static partial class Program
             async (string value, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ModeBackgroundAgentCommand>();
-                Environment.Exit(await cmd.SetAsync(value, formatJson));
+                EgressCliInvocation.Exit(await cmd.SetAsync(value, formatJson));
             },
             modeSetValueOpt, jsonOpt);
         modeCmd.AddCommand(modeSetCmd);
@@ -542,7 +542,7 @@ static partial class Program
             async (string? reason, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ModeBackgroundAgentCommand>();
-                Environment.Exit(await cmd.DisarmAsync(reason, formatJson));
+                EgressCliInvocation.Exit(await cmd.DisarmAsync(reason, formatJson));
             },
             disarmReasonOpt, jsonOpt);
         backgroundAgentCmd.AddCommand(disarmCmd);
@@ -553,7 +553,7 @@ static partial class Program
         sensListCmd.SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
-            Environment.Exit(await cmd.ListAsync(formatJson));
+            EgressCliInvocation.Exit(await cmd.ListAsync(formatJson));
         }, jsonOpt);
         sensitivityCmd.AddCommand(sensListCmd);
         var sensShowNameOpt = new Option<string>("--name", "Sensitivity level name") { IsRequired = true };
@@ -561,7 +561,7 @@ static partial class Program
         sensShowCmd.SetHandler(async (string name, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
-            Environment.Exit(await cmd.ShowAsync(name, formatJson));
+            EgressCliInvocation.Exit(await cmd.ShowAsync(name, formatJson));
         }, sensShowNameOpt, jsonOpt);
         sensitivityCmd.AddCommand(sensShowCmd);
         var sensAddNameOpt = new Option<string>("--name", "Level name") { IsRequired = true };
@@ -589,7 +589,7 @@ static partial class Program
             async (string name, int value, bool allowsExternalLLM, bool allowsWebSearch, bool requiresLocalOnly, bool allowsNetworkExports, string? description, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
-                Environment.Exit(await cmd.AddAsync(name, value, allowsExternalLLM, allowsWebSearch, requiresLocalOnly, allowsNetworkExports, description ?? "", formatJson));
+                EgressCliInvocation.Exit(await cmd.AddAsync(name, value, allowsExternalLLM, allowsWebSearch, requiresLocalOnly, allowsNetworkExports, description ?? "", formatJson));
             },
             sensAddNameOpt, sensAddValueOpt,
             sensAddCmd.Options[2] as Option<bool> ?? throw new InvalidOperationException(),
@@ -621,7 +621,7 @@ static partial class Program
             async (string name, int value, bool allowsExternalLLM, bool allowsWebSearch, bool requiresLocalOnly, bool allowsNetworkExports, string? description, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
-                Environment.Exit(await cmd.UpdateAsync(name, value, allowsExternalLLM, allowsWebSearch, requiresLocalOnly, allowsNetworkExports, description ?? "", formatJson));
+                EgressCliInvocation.Exit(await cmd.UpdateAsync(name, value, allowsExternalLLM, allowsWebSearch, requiresLocalOnly, allowsNetworkExports, description ?? "", formatJson));
             },
             sensUpdateNameOpt, sensUpdateCmd.Options[1] as Option<int> ?? throw new InvalidOperationException(),
             sensUpdateCmd.Options[2] as Option<bool> ?? throw new InvalidOperationException(),
@@ -636,7 +636,7 @@ static partial class Program
         sensRemoveCmd.SetHandler(async (string name, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
-            Environment.Exit(await cmd.RemoveAsync(name, formatJson));
+            EgressCliInvocation.Exit(await cmd.RemoveAsync(name, formatJson));
         }, sensRemoveNameOpt, jsonOpt);
         sensitivityCmd.AddCommand(sensRemoveCmd);
         backgroundAgentCmd.AddCommand(sensitivityCmd);
@@ -654,7 +654,7 @@ static partial class Program
             async (string[] paths, string? sensitivity, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.RAGCommand>();
-                Environment.Exit(await cmd.IndexAsync(paths ?? Array.Empty<string>(), sensitivity, formatJson));
+                EgressCliInvocation.Exit(await cmd.IndexAsync(paths ?? Array.Empty<string>(), sensitivity, formatJson));
             },
             ragIndexPathsOpt, ragIndexSensOpt, jsonOpt);
         ragCmd.AddCommand(ragIndexCmd);
@@ -676,7 +676,7 @@ static partial class Program
             async (string query, int maxResults, double minScore, string? maxSensitivity, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.RAGCommand>();
-                Environment.Exit(await cmd.SearchAsync(query, maxResults, minScore, maxSensitivity, formatJson));
+                EgressCliInvocation.Exit(await cmd.SearchAsync(query, maxResults, minScore, maxSensitivity, formatJson));
             },
             ragSearchQueryOpt,
             ragSearchCmd.Options[1] as Option<int> ?? throw new InvalidOperationException(),
@@ -688,14 +688,14 @@ static partial class Program
         ragStatsCmd.SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.RAGCommand>();
-            Environment.Exit(await cmd.StatsAsync(formatJson));
+            EgressCliInvocation.Exit(await cmd.StatsAsync(formatJson));
         }, jsonOpt);
         ragCmd.AddCommand(ragStatsCmd);
         var ragClearCmd = new Command("clear", "Clear RAG store");
         ragClearCmd.SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.RAGCommand>();
-            Environment.Exit(await cmd.ClearAsync(formatJson));
+            EgressCliInvocation.Exit(await cmd.ClearAsync(formatJson));
         }, jsonOpt);
         ragCmd.AddCommand(ragClearCmd);
         backgroundAgentCmd.AddCommand(ragCmd);
@@ -706,7 +706,7 @@ static partial class Program
         webSearchConfigureCmd.SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.WebSearchCommand>();
-            Environment.Exit(await cmd.ConfigureAsync(formatJson));
+            EgressCliInvocation.Exit(await cmd.ConfigureAsync(formatJson));
         }, jsonOpt);
         webSearchCmd.AddCommand(webSearchConfigureCmd);
         var webSearchTestCmd = new Command("test", "Run a test search")
@@ -722,7 +722,7 @@ static partial class Program
             async (string query, int maxResults, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.WebSearchCommand>();
-                Environment.Exit(await cmd.TestAsync(query, maxResults, formatJson));
+                EgressCliInvocation.Exit(await cmd.TestAsync(query, maxResults, formatJson));
             },
             webSearchTestCmd.Options[0] as Option<string> ?? throw new InvalidOperationException(),
             webSearchTestCmd.Options[1] as Option<int> ?? throw new InvalidOperationException(),
@@ -758,7 +758,7 @@ static partial class Program
                     patternStorePath,
                     disableObservation,
                     formatJson);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             daemonConfigOpt,
             daemonDurationOpt,
@@ -785,7 +785,7 @@ static partial class Program
             async (int port, bool open, string? authToken) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.OperatorDashboardBackgroundAgentCommand>();
-                Environment.Exit(await cmd.RunAsync(port, open, authToken, CancellationToken.None));
+                EgressCliInvocation.Exit(await cmd.RunAsync(port, open, authToken, CancellationToken.None));
             },
             dashboardPortOpt,
             dashboardOpenOpt,
