@@ -57,7 +57,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
       `EgressHttpClientBuilderExtensions.NeverFollowRedirects`; `AshlarInboundListenerOptions`;
       `AshlarInboundListenerPolicy.IsLoopbackEndpoint` and `.CollectEndpoints`; `AddAshlarInboundListenerValidation`;
       `Dispose` on `CompositeBrickRegistry`, `HttpRemoteBrickCatalog`, `MeshLabWorkerExecutorBackgroundService` and
-      `ModelArtifactCatalogService`.
+      `ModelArtifactCatalogService` (4.8, #743), and on `ProviderFactory` (4.8b, #800).
     - `Ashlar.Hosting`: `AshlarHostingOptions.EgressMode` and `.Clearance`.
     - `Ashlar.BackgroundAgents`: `AgentCycleResult.EgressRefusals`.
     - `Ashlar.Runtime`: `CapabilityRegistry.Find`; `EndpointHealthMonitor.Dispose`.

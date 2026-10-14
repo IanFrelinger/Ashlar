@@ -84,10 +84,10 @@ away, can see what they would be turning off.
 | **Saved Workflow scripts run the way the Workflow tool runs them.** Every `.claude/workflows/*.js` parses as the body of an async function after a pure-literal `meta` (only literals: no variable, call, operator or template interpolation); every `phase()` title and agent `phase:` option matches a `meta.phases` entry; no `Date.now()`, `Math.random()` or argless `new Date()`; no control character other than tab and newline (the tool refuses one, so a CRLF checkout cannot be run by name); and every `.claude/workflows/*.js` is pinned `text eol=lf` in `.gitattributes` (`git check-attr eol`). | `tests/scripts/claude-workflows.test.sh` (required `shell-lint`, through `scripts/ci/run-repo-gates.sh`), which runs `scripts/phase-end/check_workflows.js` | `/handoff` runs `project-audit.js` at the end of every phase; a broken script would fail only then, in the middle of ending a phase. The test also proves the checker refuses six broken fixtures for their own reasons, a CRLF script among them. It is a static check: it does not run a workflow's agents. Not a cert-gate test: it blocks through the required `shell-lint`, which runs every discovered repo gate, so Rule 1's namespace does not apply to it. |
 
 The gate also carries the certification gate's own teeth, the hot-swap host, the adversarial
-campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 154 `.cs` files in
-`src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-13, with PR #800 (157 entries in all; the
+campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 155 `.cs` files in
+`src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-14, with #801 (158 entries in all; the
 other three are golden JSON fixtures). This figure read 31, then 68, then 82, then 111, then 113,
-then 120, then 125, then 127, then 128, then 131, then 132, then 135, then 136, then 137, then 139, then 142, then 144, then 152, then 153, before it read 154; count it
+then 120, then 125, then 127, then 128, then 131, then 132, then 135, then 136, then 137, then 139, then 142, then 144, then 152, then 153, then 154, before it read 155; count it
 rather than quoting it. The
 table above is only the *conventions*: assertions about how the repository is allowed to be shaped,
 which have no other home and which nothing else would catch.
