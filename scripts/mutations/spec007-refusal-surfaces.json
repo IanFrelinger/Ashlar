@@ -586,6 +586,203 @@
       "filter": "FullyQualifiedName~Local_transport_refusals",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj"
+    },
+    {
+      "id": "s66-orchestration-echo-answers-refusal",
+      "file": "src/Ashlar.Orchestration/Models/OrchestrationHotSwappableModel.cs",
+      "old": "            EgressRefusal.ThrowIfPresent(ex);\n            if (!AllowMock())",
+      "new": "            _ = ex;\n            if (!AllowMock())",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Orchestration_echo_fallback_never_answers_a_refusal"
+      ]
+    },
+    {
+      "id": "s67-provider-backed-model-drops-probe-refusal",
+      "file": "src/Ashlar.Infrastructure/Execution/Models/ProviderBackedModel.cs",
+      "old": "refusals.ThrowIfRefused();",
+      "new": "_ = refusals;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_Ollama_probe_reaches_the_HotSwappableModel_caller_through_ProviderBackedModel"
+      ]
+    },
+    {
+      "id": "s68-factory-probe-refusal-not-retained-outside-adaptive",
+      "file": "src/Ashlar.Infrastructure/Execution/ProviderFactory.cs",
+      "old": "ProviderRefusalScope.Record(refusal);",
+      "new": "_ = refusal;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_Ollama_probe_reaches_the_HotSwappableModel_caller_through_ProviderBackedModel",
+        "Refused_probe_that_leaves_no_implementation_is_the_behavior_step_error"
+      ]
+    },
+    {
+      "id": "s69-behavior-step-drops-probe-refusal",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "probeRefusal?.Message ?? \"No available implementation\"",
+      "new": "\"No available implementation\"",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_probe_that_leaves_no_implementation_is_the_behavior_step_error"
+      ]
+    },
+    {
+      "id": "s70-ollama-probe-warning-not-windowed",
+      "file": "src/Ashlar.Infrastructure/Execution/ProviderFactory.cs",
+      "old": "_refusalWarnings.Report(refusal);",
+      "new": "_logger.LogWarning(\"Ollama health check refused by egress policy (ref {Ref})\", refusal.Ref);",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_Ollama_probes_share_one_warning_window_flushed_on_factory_disposal"
+      ]
+    },
+    {
+      "id": "s71-factory-dispose-does-not-flush-window",
+      "file": "src/Ashlar.Infrastructure/Execution/ProviderFactory.cs",
+      "old": "        _refusalWarnings.Dispose();\n        GC.SuppressFinalize(this);",
+      "new": "        GC.SuppressFinalize(this);",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_Ollama_probes_share_one_warning_window_flushed_on_factory_disposal"
+      ]
+    },
+    {
+      "id": "s72-planning-agent-canned-recommendation-answers-refusal",
+      "file": "src/Ashlar.Orchestration/Agents/Planning/PlanningAgent.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "_ = ex;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Planning_agent_never_answers_a_refusal_with_its_canned_recommendation"
+      ]
+    },
+    {
+      "id": "s73-synthesis-fallback-answers-refusal",
+      "file": "src/Ashlar.Orchestration/Negotiation/SynthesisEngine.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "_ = ex;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Synthesis_engine_never_answers_a_refusal_with_its_phased_fallback"
+      ]
+    },
+    {
+      "id": "s74-behavior-in-chain-refusal-not-kept",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "finalRefusal ??= EgressRefusal.Find(ex);",
+      "new": "GC.KeepAlive(ex);",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s75-behavior-fallback-error-outranks-refusal",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "await writer.WriteAsync(new StepErrorEvent(step.Id, finalRefusal.Message), ct);",
+      "new": "await Task.CompletedTask;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error",
+        "In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s76-material-heuristics-answer-refusal",
+      "file": "src/Ashlar.Infrastructure/Environments/ModelBackedMaterialIntelligenceService.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "GC.KeepAlive(ex);",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Material_intelligence_never_answers_a_refusal_with_heuristic_materials"
+      ]
+    },
+    {
+      "id": "s77-vector-map-pass-through-answers-refusal",
+      "file": "src/Ashlar.Infrastructure/Environments/ModelBackedVectorMapIntelligenceService.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "GC.KeepAlive(ex);",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Vector_map_intelligence_never_answers_a_refusal_with_the_input_passed_through"
+      ]
+    },
+    {
+      "id": "s78-behavior-refusal-flag-sticks",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "lastErrorCarriedRefusal = finalRefusal is not null",
+      "new": "lastErrorCarriedRefusal |= finalRefusal is not null",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_attempt_whose_event_carried_the_refusal_then_failing_fallback_still_ends_with_the_refusal"
+      ]
+    },
+    {
+      "id": "s79-behavior-probe-refusal-not-seeded",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "var finalRefusal = probeRefusal;",
+      "new": "EgressRefusedException? finalRefusal = null;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s80-behavior-refusal-flag-ignores-written-text",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "finalRefusal is not null\n                            && errorText.Contains(finalRefusal.Message, StringComparison.Ordinal);",
+      "new": "finalRefusal is not null;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_attempt_whose_event_carried_the_refusal_then_failing_fallback_still_ends_with_the_refusal",
+        "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error",
+        "In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s81-behavior-refusal-duplicated-when-last",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "if (finalRefusal is not null && !lastErrorCarriedRefusal)",
+      "new": "if (finalRefusal is not null && (lastErrorCarriedRefusal || !lastErrorCarriedRefusal))",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_attempt_as_the_last_alternative_reports_the_refusal_once",
+        "Fallback_returning_no_output_after_a_refusal_does_not_append_the_refusal_again"
+      ]
     }
   ]
 }

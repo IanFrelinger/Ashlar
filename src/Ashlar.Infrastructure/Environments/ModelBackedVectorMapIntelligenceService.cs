@@ -1,5 +1,6 @@
 using System.Text;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Environments;
 using Ashlar.Core.Application.Environments.Ports;
 
@@ -7,7 +8,7 @@ namespace Ashlar.Infrastructure.Environments;
 
 /// <summary>
 /// Uses <see cref="IModel"/> to normalize messy OSM/GeoJSON text when payload size is within limits.
-/// Falls back to pass-through on failure or oversized input.
+/// Falls back to pass-through on failure or oversized input; an egress refusal is rethrown instead (SPEC-007 4.8b).
 /// </summary>
 public sealed class ModelBackedVectorMapIntelligenceService : IVectorMapIntelligenceService
 {
@@ -70,6 +71,8 @@ public sealed class ModelBackedVectorMapIntelligenceService : IVectorMapIntellig
         }
         catch (Exception ex)
         {
+            // A refusal is the final error, never a reason to pass the input through (SPEC-007 D23, 4.8b).
+            EgressRefusal.ThrowIfPresent(ex);
             return new VectorMapIntelligenceResult(raw, request.FormatHint,
                 Notes: "model_error:" + ex.Message, WasModified: false);
         }

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Bricks;
 using Ashlar.Core.Application.Common.Ports;
 using Ashlar.Core.Application.Execution.Models;
@@ -167,11 +168,20 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     var brickInput = MapInputs(step.InputMapping, context);
                     BrickInputDefaults.Apply(brick, brickInput);
 
-                    // Determine implementation chain (preference + fallback), filtering for availability.
-                    var chain = ResolveImplementationChain(step, brick, behavior, options, context);
+                    // Determine implementation chain (preference + fallback), filtering for availability. A refused
+                    // availability probe is kept on this scope and counts as a skipped alternative (SPEC-007 D23,
+                    // 4.8b): when it leaves nothing to run, the refusal is the step's error, not "No available
+                    // implementation".
+                    IReadOnlyList<ImplementationType> chain;
+                    EgressRefusedException? probeRefusal;
+                    using (var refusals = new ProviderRefusalScope())
+                    {
+                        chain = ResolveImplementationChain(step, brick, behavior, options, context);
+                        probeRefusal = refusals.Refusal;
+                    }
                     if (chain.Count == 0)
                     {
-                        await writer.WriteAsync(new StepErrorEvent(step.Id, "No available implementation"), ct);
+                        await writer.WriteAsync(new StepErrorEvent(step.Id, probeRefusal?.Message ?? "No available implementation"), ct);
                         stepFailures++;
                         return behavior.OnStepFailure == FailurePolicy.Abort ? LoopAction.Break : LoopAction.Continue;
                     }
@@ -179,6 +189,10 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     BrickOutput? output = null;
                     string? error = null;
                     var usedFallback = false;
+                    // The first refusal among the alternatives, skipped (refused probe) or attempted (D23), and
+                    // whether the LAST error event the chain wrote already carried it (reset on every error event).
+                    var finalRefusal = probeRefusal;
+                    var lastErrorCarriedRefusal = false;
 
                     await _loops.ForEachAsync(chain, async (implementation, _, ct2) =>
                     {
@@ -270,6 +284,7 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                             {
                                 output = null;
                                 error = ex.Message;
+                                finalRefusal ??= EgressRefusal.Find(ex);
                                 _logger.LogError(ex, "Error executing step {StepId} with {Implementation}", step.Id, implementation);
                                 if (resolution is not null && _agenticBrickEngine is not null)
                                 {
@@ -304,7 +319,13 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                             return LoopAction.Break;
                         }
 
-                        await writer.WriteAsync(new StepErrorEvent(step.Id, error ?? "Step failed", stopwatch.ElapsedMilliseconds), ct2);
+                        var errorText = error ?? "Step failed";
+                        await writer.WriteAsync(new StepErrorEvent(step.Id, errorText, stopwatch.ElapsedMilliseconds), ct2);
+                        // Overwritten on every error event, from the text actually written: did THIS event carry the
+                        // step's first refusal? (A later alternative that returns no output without throwing writes
+                        // the previous attempt's text again.)
+                        lastErrorCarriedRefusal = finalRefusal is not null
+                            && errorText.Contains(finalRefusal.Message, StringComparison.Ordinal);
                         _metricsCollector?.IncrementCounter("ncr.execution.step.error");
 
                         if (!options.SwapOnFailure)
@@ -319,6 +340,14 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     // The step failed if no implementation in the chain produced output.
                     if (error != null && output == null)
                     {
+                        // D23: every alternative failed or was skipped, so a refusal among them is the step's final
+                        // error, also when a later fallback failed for a reason of its own. It is appended unless the
+                        // last error event already carried it, so a refused last attempt is not reported twice; a
+                        // refused attempt followed by a failing fallback is listed at the attempt and again here.
+                        if (finalRefusal is not null && !lastErrorCarriedRefusal)
+                        {
+                            await writer.WriteAsync(new StepErrorEvent(step.Id, finalRefusal.Message), ct);
+                        }
                         stepFailures++;
                         if (behavior.OnStepFailure == FailurePolicy.Abort)
                         {

@@ -48,7 +48,7 @@ namespace Ashlar.Infrastructure.Execution;
 /// The Ollama provider instance is lazily cached behind <c>_ollamaProviderLock</c>
 /// and re-created only when the base URL changes (e.g. ephemeral container restart).</para>
 /// </summary>
-public class ProviderFactory : IProviderFactory
+public class ProviderFactory : IProviderFactory, IDisposable
 {
     private readonly ILogger<ProviderFactory> _logger;
     private readonly IEphemeralModelLifecycle? _ephemeralLifecycle;
@@ -59,6 +59,7 @@ public class ProviderFactory : IProviderFactory
     private string? _ollamaProviderBaseUrl;
     private HttpClient? _ollamaHttpClient;
     private static readonly HttpClient Http = EgressHttp.CreateClient(EgressFamilies.ModelLegacy, "EG-MDL-03");
+    private readonly EgressRefusalWarnings _refusalWarnings;
 
     // --- Provider catalogue ---
 
@@ -104,6 +105,10 @@ public class ProviderFactory : IProviderFactory
         _ephemeralLifecycle = ephemeralLifecycle;
         _resilientExecutor = resilientExecutor ?? new ResilientExecutor();
         _scratchSpace = scratchSpace ?? new FileScratchSpace();
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Egress operation refused. Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
 
         // Warm the Ollama manifest in the BACKGROUND, never on this thread.
         //
@@ -793,8 +798,9 @@ public class ProviderFactory : IProviderFactory
         {
             if (EgressRefusal.Find(ex) is { } refusal)
             {
+                // The caller's ProviderRefusalScope keeps the refusal (D23 row 24); the Warning is windowed (D28).
                 ProviderRefusalScope.Record(refusal);
-                _logger.LogWarning("Ollama health check refused by egress policy (ref {Ref})", refusal.Ref);
+                _refusalWarnings.Report(refusal);
                 return false;
             }
             _logger.LogWarning(ex, "Unable to run Ollama health check.");
@@ -870,5 +876,15 @@ public class ProviderFactory : IProviderFactory
                 throw new InvalidOperationException(
                     $"No vision model found at {baseUrl}. Available: {string.Join(", ", models)}. Pull one: ollama pull richardyoung/smolvlm2-2.2b-instruct (or llava:7b)");
         }
+    }
+
+    /// <summary>
+    /// Closes the refused-probe Warning window (SPEC-007 D28): a suppressed count is logged as one event 7307
+    /// summary and the window timer is released. The container that owns the singleton disposes it.
+    /// </summary>
+    public void Dispose()
+    {
+        _refusalWarnings.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

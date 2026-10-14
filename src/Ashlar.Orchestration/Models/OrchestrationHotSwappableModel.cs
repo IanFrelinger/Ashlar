@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Execution.Ports;
 
 namespace Ashlar.Orchestration.Models;
@@ -7,7 +8,8 @@ namespace Ashlar.Orchestration.Models;
 /// <summary>
 /// Orchestration-layer model wrapper that standardizes "hot swap" behavior:
 /// - honors "ashlar.model.prefer=deterministic" directive in system messages
-/// - attempts the primary model first (if present), and falls back to deterministic if it throws
+/// - attempts the primary model first (if present), and falls back to deterministic if it throws, except that an
+///   egress refusal anywhere in the exception chain is rethrown itself, never answered by the echo model
 /// - if no primary model is registered, behaves deterministically
 /// </summary>
 public sealed class OrchestrationHotSwappableModel : IModel
@@ -55,6 +57,8 @@ public sealed class OrchestrationHotSwappableModel : IModel
         }
         catch (Exception ex)
         {
+            // A refusal is the final error, never a reason for the echo model (SPEC-007 D23, 4.8b).
+            EgressRefusal.ThrowIfPresent(ex);
             if (!AllowMock())
             {
                 throw new ModelUnavailableException(

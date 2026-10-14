@@ -17,6 +17,59 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — refusal masking (SPEC-007 4.8b)
+
+- A refused Ollama availability probe no longer becomes echo output or "provider not available".
+  `ProviderBackedModel` throws the refusal itself, so `HotSwappableModel`'s caller receives it under
+  `ashlar.model.prefer=deterministic`, under `ASHLAR_ALLOW_MOCK=1` and with neither. Until now the 4.8 sentence
+  "unavailable-model fallbacks cannot turn them into echo success" held only for refusals thrown by the model call.
+- Behaviour steps follow D23, per step. A refused probe counts as a skipped alternative. When no implementation
+  produced output, the first refusal is the step's last error event: instead of "No available implementation",
+  and also after a deterministic fallback failed for its own reason. It is appended unless the last error event
+  written already carried it (judged from the written text), so a refused last attempt, or a no-output fallback
+  that re-wrote its text, is not listed again. A refused attempt followed by a failing fallback lists it at the
+  attempt and again at the end, and `IBehaviorExecutor.ExecuteAsync`'s `Errors` then names it twice. Under
+  `FailurePolicy.Continue` later steps' errors follow, and `BehaviorExecutor`'s outer catch (a throwing outcome
+  recorder or semantic cache, or cancellation, which wins by design) still ends the stream with its own event. A deterministic fallback that succeeds after a refusal completes the step at the event
+  level (`StepCompletedEvent`, `BehaviorCompletedEvent.Success`). `IBehaviorExecutor.ExecuteAsync` still returns
+  `Success = false` whenever any `StepErrorEvent` was emitted; that predates 4.8b.
+- `OrchestrationHotSwappableModel`, which wraps every orchestration agent's model, rethrows a refusal instead of
+  answering with its echo model under `ASHLAR_ALLOW_MOCK=1`. Without the flag it throws the refusal itself rather
+  than a `ModelUnavailableException` around it.
+- `PlanningAgent` (the planning, guide, assistant and wizard agents) rethrows a refusal instead of returning its
+  canned recommendation. In an orchestration run that refusal becomes the generic `AgentExecution` escalation
+  (`Orchestrator.cs:472-479`), not the `EGRESS_REFUSED` code. This fails closed.
+- `SynthesisEngine` rethrows a refusal instead of returning its "Phased approach" fallback resolution. A refused
+  synthesis now leaves `NegotiationProtocol.NegotiateAsync` (`NegotiationProtocol.cs:331`, called at
+  `Orchestrator.cs:254`) and ends the whole `OrchestrateAsync` run before any agent executes
+  (`Orchestrator.cs:520-531` rethrows). This fails closed.
+- `ModelBackedMaterialIntelligenceService` and `ModelBackedVectorMapIntelligenceService` (opt-in through
+  `ReplaceMapIntelligenceWithModelBackedDefaults`) rethrow a refusal instead of returning heuristic materials or the
+  input passed through.
+- `ProviderFactory` logs refused availability probes once per site and reason per five-minute window (event 7307),
+  and flushes the suppressed count when it is disposed. It now implements `IDisposable`, and the kernel's DI
+  container disposes the singleton. The `adapt` and `improve` CLI verbs never dispose their service providers, so
+  there the first Warning is logged and the summary is not.
+- Still open (Known limits in `docs/EgressInventory.md`):
+  - `ashlar workflow stress` reports success and exits 0 when every run was skipped because a refused probe failed
+    the provider preflight (card #802);
+  - `ashlar workflow optimize` exits 1 but reports "Provider unavailable." rather than the refusal (card #802);
+  - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
+  - IDE health and onboarding status report a refused provider as unavailable;
+  - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
+
+### Changed — a refusal at a brick or cluster node ends a workflow run under `FailurePolicy.Continue` (SPEC-007 4.8, disclosed in 4.8b)
+
+- Since 4.8 (#743), when every implementation of a workflow cluster step failed and one of them was refused, the
+  refusal ends the whole workflow run, even when the cluster's `FailurePolicy` is `Continue`. `WorkflowExecutor`
+  rethrows it from the cluster (`WorkflowExecutor.cs:391`), the node loop has no per-node catch (`:102-118`), and
+  the run raises `WorkflowFailedEvent` and rethrows (`:136-140`). A brick node throws the refusal the same way
+  (`:309`). This fails closed, and 4.8 did not record it. Whether `Continue` should continue past a refused brick
+  is an open question for the owner.
+- That holds for brick and cluster nodes only. An agent node reports success: `ExecuteAgentNodeAsync`
+  (`WorkflowExecutor.cs:246-262`) reads only the behaviour's outputs, so a refusal in a behaviour step's error does
+  not fail the workflow (card #803).
+
 ### Fixed — compat-gate Tier B expected an unconfigured pipeline run to succeed (#797)
 
 - `compat-gate` had been red since #363. Its Tier B runs `scripts/kernel-gate-tier-b.sh`, which ran

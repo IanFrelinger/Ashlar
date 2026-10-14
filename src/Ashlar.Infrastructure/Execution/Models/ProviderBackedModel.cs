@@ -25,9 +25,15 @@ public sealed class ProviderBackedModel : IModel
         var (provider, model, systemPrompt, userPrompt) = Parse(input);
         if (string.IsNullOrWhiteSpace(provider)) provider = "offline";
 
-        if (!_providerFactory.IsProviderAvailable(provider))
+        // The factory records a refused availability probe on this scope. That refusal is the answer, never
+        // "not available": HotSwappableModel rethrows it instead of falling back to echo (SPEC-007 D23, row 24).
+        using (var refusals = new ProviderRefusalScope())
         {
-            throw new InvalidOperationException($"Provider '{provider}' not available");
+            if (!_providerFactory.IsProviderAvailable(provider))
+            {
+                refusals.ThrowIfRefused();
+                throw new InvalidOperationException($"Provider '{provider}' not available");
+            }
         }
 
         var text = await _providerFactory.ExecuteLLMAsync(

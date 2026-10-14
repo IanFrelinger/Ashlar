@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Orchestration.Architect.Models;
 using System.Text.Json;
 using ModelInput = Ashlar.Abstractions.ModelInput;
@@ -236,6 +237,8 @@ Format as JSON:
             }
             catch (Exception ex)
             {
+                // A refusal is the final error, never a reason for the canned recommendation (SPEC-007 D23, 4.8b).
+                EgressRefusal.ThrowIfPresent(ex);
                 Logger.LogWarning(ex, "Failed to generate recommendation with LLM");
             }
         }
