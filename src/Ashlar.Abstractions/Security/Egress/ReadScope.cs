@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -39,6 +41,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// twice does nothing. <see cref="Report"/>, <see cref="Complete"/> and <see cref="Dispose"/> may be called from any
 /// thread.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class ReadScope : IDisposable
 {
     private readonly EgressSubject.Frame? _chain;

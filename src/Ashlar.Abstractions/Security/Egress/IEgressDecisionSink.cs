@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -7,6 +9,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <see cref="Record"/> runs synchronously on the thread that made the decision, so it must be quick. An
 /// exception it throws is swallowed and counted; it never reaches the caller that made the decision.
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public interface IEgressDecisionSink
 {
     /// <summary>Records one decision.</summary>

@@ -17,6 +17,67 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Changed — the security and deployment-profile API ships `[Experimental]` (`ASHLAREXP002`)
+
+- **Breaking for consumers, in effect.** The 23 public types SPEC-007 added to `Ashlar.Abstractions` after
+  `v0.2.0` are now `[Experimental("ASHLAREXP002")]`: every public type in `Ashlar.Abstractions.Security` and
+  `Ashlar.Abstractions.Security.Egress`, and `AshlarResolvedDeploymentProfileOptions`. Code that names one of them
+  no longer compiles until it opts in, with `<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>` in the project or
+  `#pragma warning disable ASHLAREXP002` around the use. No published release contained these types (`v0.2.0`
+  shipped none of them), so only code built against an unreleased tree breaks. The owner decided this on
+  2026-10-13 (SPEC-007 decisions log). What the id covers, and why: `docs/SdkCompatibilityPolicy.md#ashlarexp002`.
+- The surface may change in any release, a patch included, without a deprecation window. `ASHLAREXP001` does not
+  cover it: a project that uses both experimental surfaces opts in to both ids.
+- **The opt-in covers code that names a type, not every path to the surface.** The attribute is on the types, so a
+  member called on an instance that a non-experimental member handed out reports nothing:
+  `record.EgressDecision?.Refused` on a `ChatInvocationAuditRecord`, or
+  `TrustTierOrder.RecordLabel(a).Dominates(TrustTierOrder.CallerLabel(b))`, compiles with no opt-in. Code that
+  depends on the members listed next depends on the experimental surface whether or not the compiler says so.
+- **Not experimental (integrator decision):** the SPEC-007 public members of the Substrate packages stay Substrate
+  tier, and are disclosed here.
+  - **These name an `ASHLAREXP002` type in their signature or implement one of its interfaces.** This is the complete
+    set: 21 entries in 5 assemblies, found by reflecting over every non-test assembly a build of `Ashlar.sln`
+    produces. The scan read signatures, base types, interfaces and generic constraints; the other assemblies have
+    none.
+    - `Ashlar.AI.Pipeline`: `ChatInvocationAuditRecord.EgressDecision`; `EgressGuardChatClient`'s constructors and
+      its `Request` property; `TrustTierOrder.RecordLabel` and `.CallerLabel`; the
+      `ValidateAirGappedMeaiBedrockOptions` constructor.
+    - `Ashlar.BackgroundAgents`: `DataSensitivityLabelBridge.ToDataLabel` and `.TryToClearance`; `RAGTool`, which
+      implements `IEgressLabelledTool`, and its `ReportRead`.
+    - `Ashlar.Infrastructure`: `AshlarInboundListenerPolicy.Refusal`; `LoggerEgressDecisionSink`, which implements
+      `IEgressDecisionSink`, and its `Record`; the constructors of `AdaptiveProviderFactory`, `NcrCapabilityRouter`,
+      `ValidateAirGappedRunPodOptions`, `ValidateAirGappedBrickHostOptions`,
+      `ValidateAirGappedMeshLabWorkerOptions` and `ValidateAshlarInboundListeners`.
+    - `Ashlar.Manifest`, inside the `Ashlar.CLI` tool package: `SkillComposition.Decide`.
+    - `Ashlar.CLI`, a tool package: the `MeshServeService` constructor.
+  - **These name no surface type, and are part of the same work.** Not exhaustive: these come from a lexical scan of
+    SPEC-007's implementation commits since `v0.2.0` for public declarations they added to published assemblies, and a
+    scan of that kind does not see an existing signature that changed. For example:
+    - `Ashlar.Infrastructure`: `AddAshlarEgressGuard`; `EgressGuardOptions`; `EgressDecisionLoggerSubscription`;
+      `EgressHttpClientBuilderExtensions.NeverFollowRedirects`; `AshlarInboundListenerOptions`;
+      `AshlarInboundListenerPolicy.IsLoopbackEndpoint` and `.CollectEndpoints`; `AddAshlarInboundListenerValidation`;
+      `Dispose` on `CompositeBrickRegistry`, `HttpRemoteBrickCatalog`, `MeshLabWorkerExecutorBackgroundService` and
+      `ModelArtifactCatalogService` (4.8, #743), and on `ProviderFactory` (4.8b, #800).
+    - `Ashlar.Hosting`: `AshlarHostingOptions.EgressMode` and `.Clearance`.
+    - `Ashlar.BackgroundAgents`: `AgentCycleResult.EgressRefusals`.
+    - `Ashlar.Runtime`: `CapabilityRegistry.Find`; `EndpointHealthMonitor.Dispose`.
+    - `Ashlar.Manifest`, inside the `Ashlar.CLI` tool package: `AshlarPolicy.Clearances`; `PolicyClearances`;
+      `ExtensionPackage.HighestLevel`.
+  - The same list is in `docs/SdkCompatibilityPolicy.md#ashlarexp002`.
+- The id and its help link are defined once, in the internal, non-experimental
+  `Ashlar.Abstractions.Security.SecurityExperimental` (integrator decision: a public holder would put a stable line in
+  `PublicAPI.Unshipped.txt`). The repo's test projects opt in in `Directory.Build.targets`. The 16 shipped assemblies
+  that name a type of the surface, and so need the opt-in to build, opt in in their own project files. Four more,
+  `Ashlar.Runtime`, `Ashlar.Mcp.Server`, `Ashlar.Transport.A2A.Server` and `Ashlar.Transport.Grpc.Server`, depend
+  on the surface only through internal helpers of `Ashlar.Abstractions` and need none.
+- cert-gate: `ExperimentalSecurityApiConventionTests` holds the decision. Every type of the surface carries the id
+  and the link, every line of the API files that names the surface is owned by such a type, no other
+  `Ashlar.Abstractions` type or member carries the id, and no member outside the surface hands out one of its
+  types. `DiagnosticSuppressionConventionTests` now governs `ASHLAREXP002` suppressions as it does
+  `ASHLAREXP001`'s, each id against its own symbols. It fails a reviewed project-file opt-in that no file of its
+  project still needs, and an `ASHLAREXP002` declaration outside `src/Ashlar.Abstractions/`.
+- `consumer-template/` and `samples/` need no change: none of them names these types.
+
 ### Fixed — refusal masking (SPEC-007 4.8b)
 
 - A refused Ollama availability probe no longer becomes echo output or "provider not available".

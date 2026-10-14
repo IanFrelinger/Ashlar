@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -12,6 +14,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// (<c>scheme://…</c>) is read as a URI and redacted the same way; when its authority cannot be read without guessing,
 /// it is recorded as <c>scheme://&lt;unparsed&gt;</c>.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class EgressRequest
 {
     // Only trusted in-process CLI composition can mark the three operator file-export verbs.

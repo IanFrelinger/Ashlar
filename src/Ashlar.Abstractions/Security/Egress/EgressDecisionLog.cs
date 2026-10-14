@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -13,6 +15,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// listener itself caused) is returned to its caller but not published again, so a sink cannot recurse into itself;
 /// it is counted instead.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public static class EgressDecisionLog
 {
     private static Subscription[] _subscriptions = Array.Empty<Subscription>();

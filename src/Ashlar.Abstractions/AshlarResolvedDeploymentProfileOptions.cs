@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using Ashlar.Abstractions.Security;
+
 namespace Ashlar.Abstractions;
 
 /// <summary>
@@ -5,6 +8,7 @@ namespace Ashlar.Abstractions;
 /// Those assemblies never read <c>ASHLAR_DEPLOYMENT_PROFILE</c> or the process-wide effective profile.
 /// An unconfigured value is <see cref="Full"/>, which is not air-gapped and does not require loopback.
 /// </summary>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class AshlarResolvedDeploymentProfileOptions
 {
     /// <summary>Canonical name of the full profile, and the value when hosting has not registered one.</summary>

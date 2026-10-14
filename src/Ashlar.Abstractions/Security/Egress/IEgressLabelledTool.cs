@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -10,6 +12,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <see cref="ReadReporter"/>, which cannot complete or dispose the scope. In PR 4 the only labelled
 /// production tool is <c>RAGTool</c>; host implementations are part of the host's trusted base.
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public interface IEgressLabelledTool
 {
     /// <summary>

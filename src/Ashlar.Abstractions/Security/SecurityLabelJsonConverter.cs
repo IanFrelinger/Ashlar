@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -15,6 +16,7 @@ namespace Ashlar.Abstractions.Security;
 /// is written as <c>"SystemHigh"</c>, never as <c>null</c>.</para>
 /// <para>It is public so that System.Text.Json source generation in other assemblies can instantiate it.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class SecurityLabelJsonConverter : JsonConverter<SecurityLabel>
 {
     /// <summary>

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>
@@ -12,6 +14,7 @@ namespace Ashlar.Abstractions.Security;
 /// judges the mark as it stands when called, so a session must observe every read a write depends on before it
 /// asks whether it may write.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class HighWaterMark
 {
     private SecurityLabel _current;
