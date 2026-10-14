@@ -4,6 +4,10 @@ Read automatically by Claude Code at the start of every session in this reposito
 
 ## Working in this repository
 
+- **Orient with `python scripts/ctx.py`, not grep and whole-file reads.** `ctx sym <Type>` gives the
+  definition, project, smallest solution filter, prod and test references and governing docs;
+  `ctx doc <path> [heading]` gives a long doc's outline or one section; `ctx decisions <terms>` gives the
+  matching decisions-log rows. Usage: `.agents/skills/ashlar-ctx/SKILL.md`.
 - **Never run `dotnet` on the host.** Build and test only in the Linux devtest container, through
   `scripts/test-in-container.sh`. It needs a clone, not a worktree (`.git` is a file in a worktree).
 - **Five required checks**, with `strict` and `enforce_admins` on master: `cert-gate`, `build-core`,
