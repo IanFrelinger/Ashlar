@@ -211,7 +211,10 @@ public sealed partial class EgressGuardConventionTests
     /// 2,148 files, 149 occurrences. The repairs add three production files; #739 consolidates the
     /// Bedrock client constructions, reducing sdk.client from 9 to 8. F8 still parses 67 documentation rows.
     /// PR 4.7 adds EgressRefusedException.cs, with no outbound path. Measured at 78529025:
-    /// 2,149 files, 149 occurrences and 67 documentation rows.
+    /// 2,149 files, 149 occurrences and 67 documentation rows. Later PRs added production files, and PR 4.9
+    /// added six documentation rows (EG-PROC-06 to 11), without re-measuring. Re-measured in the devtest
+    /// container on 2026-10-13, on R3a's first commit over master 60689412e (comment edits only, no file
+    /// added): 2,155 files, 149 occurrences and 73 documentation rows.
     /// Set far enough below to survive ordinary deletions; a scan that stops reading the tree
     /// falls through them. Re-measure and restate when a PR moves them.
     /// </summary>
