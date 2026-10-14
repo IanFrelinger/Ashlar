@@ -687,8 +687,8 @@
     {
       "id": "s74-behavior-in-chain-refusal-not-kept",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "finalRefusal ??= EgressRefusal.Find(ex);",
-      "new": "GC.KeepAlive(ex);",
+      "old": "finalRefusal ??= refused;",
+      "new": "GC.KeepAlive(refused);",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -707,6 +707,54 @@
       "expected_failures": [
         "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error",
         "In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error"
+      ]
+    },
+    {
+      "id": "s76-material-heuristics-answer-refusal",
+      "file": "src/Ashlar.Infrastructure/Environments/ModelBackedMaterialIntelligenceService.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "GC.KeepAlive(ex);",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Material_intelligence_never_answers_a_refusal_with_heuristic_materials"
+      ]
+    },
+    {
+      "id": "s77-vector-map-pass-through-answers-refusal",
+      "file": "src/Ashlar.Infrastructure/Environments/ModelBackedVectorMapIntelligenceService.cs",
+      "old": "EgressRefusal.ThrowIfPresent(ex);",
+      "new": "GC.KeepAlive(ex);",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Vector_map_intelligence_never_answers_a_refusal_with_the_input_passed_through"
+      ]
+    },
+    {
+      "id": "s78-behavior-refusal-reported-twice",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "if (finalRefusal is not null && !ReferenceEquals(reportedRefusal, finalRefusal))",
+      "new": "if (finalRefusal is not null)",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Unwrapped_refused_attempt_then_failing_fallback_reports_the_refusal_once"
+      ]
+    },
+    {
+      "id": "s79-behavior-probe-refusal-not-seeded",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "var finalRefusal = probeRefusal;",
+      "new": "EgressRefusedException? finalRefusal = null;",
+      "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error"
       ]
     }
   ]

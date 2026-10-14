@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Environments;
 using Ashlar.Core.Application.Environments.Ports;
 
@@ -9,7 +10,8 @@ namespace Ashlar.Infrastructure.Environments;
 
 /// <summary>
 /// Uses <see cref="IModel"/> to propose materials and texture-slot prompts from a style preset and tags.
-/// Parses strict JSON from the model; on failure falls back to heuristic materials derived from tags.
+/// Parses strict JSON from the model; on failure falls back to heuristic materials derived from tags. An egress
+/// refusal is rethrown instead (SPEC-007 4.8b).
 /// </summary>
 public sealed class ModelBackedMaterialIntelligenceService : IMaterialIntelligenceService
 {
@@ -79,6 +81,8 @@ public sealed class ModelBackedMaterialIntelligenceService : IMaterialIntelligen
         }
         catch (Exception ex)
         {
+            // A refusal is the final error, never a reason for the heuristic materials (SPEC-007 D23, 4.8b).
+            EgressRefusal.ThrowIfPresent(ex);
             return HeuristicResult(heuristic, "model_error_fallback_heuristic:" + ex.Message);
         }
     }

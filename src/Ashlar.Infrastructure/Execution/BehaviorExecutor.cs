@@ -189,8 +189,10 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     BrickOutput? output = null;
                     string? error = null;
                     var usedFallback = false;
-                    // The first refusal among the alternatives, skipped (refused probe) or attempted (D23).
+                    // The first refusal among the alternatives, skipped (refused probe) or attempted (D23), and that
+                    // same refusal once an attempt's own error event has carried its message, so it is reported once.
                     var finalRefusal = probeRefusal;
+                    EgressRefusedException? reportedRefusal = null;
 
                     await _loops.ForEachAsync(chain, async (implementation, _, ct2) =>
                     {
@@ -282,7 +284,13 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                             {
                                 output = null;
                                 error = ex.Message;
-                                finalRefusal ??= EgressRefusal.Find(ex);
+                                var refused = EgressRefusal.Find(ex);
+                                finalRefusal ??= refused;
+                                if (refused is not null && ReferenceEquals(refused, finalRefusal)
+                                    && ex.Message.Contains(refused.Message, StringComparison.Ordinal))
+                                {
+                                    reportedRefusal = refused;
+                                }
                                 _logger.LogError(ex, "Error executing step {StepId} with {Implementation}", step.Id, implementation);
                                 if (resolution is not null && _agenticBrickEngine is not null)
                                 {
@@ -333,8 +341,9 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     if (error != null && output == null)
                     {
                         // D23: every alternative failed or was skipped, so a refusal among them is the step's final
-                        // error, also when a later fallback failed for a reason of its own.
-                        if (finalRefusal is not null && !string.Equals(error, finalRefusal.Message, StringComparison.Ordinal))
+                        // error, also when a later fallback failed for a reason of its own. A refusal an attempt's
+                        // own error event already carried is not reported a second time.
+                        if (finalRefusal is not null && !ReferenceEquals(reportedRefusal, finalRefusal))
                         {
                             await writer.WriteAsync(new StepErrorEvent(step.Id, finalRefusal.Message), ct);
                         }
