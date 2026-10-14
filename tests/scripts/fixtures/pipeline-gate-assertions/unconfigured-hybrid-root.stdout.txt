@@ -1,0 +1,13 @@
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-hybrid-root started for template gate-hybrid-root.
+warn: Ashlar.Infrastructure.Pipelines.DefaultDeterministicStageExecutionAdapter[0]
+      Deterministic pipeline adapter 'default' is the default placeholder and performs no work; stage hybrid is reported as failed. Register a concrete deterministic adapter (e.g. via ASHLAR_PIPELINE_DETERMINISTIC_ADAPTER) to execute stages.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Stage hybrid failed on Deterministic; falling back to Agentic.
+warn: Ashlar.Infrastructure.Pipelines.DefaultAgenticStageExecutionAdapter[0]
+      Agentic pipeline adapter 'default' is the default placeholder and performs no work; stage hybrid is reported as failed. Register a concrete agentic adapter to execute stages.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline stage hybrid completed with state Failed on worker Agentic.
+info: Ashlar.Infrastructure.Pipelines.PipelineOrchestrator[0]
+      Pipeline run gate-run-hybrid-root reached terminal state Failed.
+{"ok":false,"correlationId":"4f17ac69c2a04c90a8ee3d28842bb78a","data":{"runId":"gate-run-hybrid-root","templateId":"gate-hybrid-root","state":"Failed","startedAt":"2026-10-14T01:53:45.0904093+00:00","completedAt":"2026-10-14T01:53:45.105121+00:00","stages":[{"stageId":"hybrid","state":"Failed","attempt":2,"workerType":"Agentic","workerId":"agentic-default","error":"No agentic pipeline adapter is configured; the default placeholder performs no work."}]}}

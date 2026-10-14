@@ -11,12 +11,19 @@
 #   unconfigured, test-hooks, configured-success, configured-fallback, resume-source,
 #   resume-unconfigured, resume-target    the devtest container's compat-gate run at 08168352e
 #                                         (#797), each run's log lines and its JSON payload
+#   unconfigured-hybrid-root              the same gate's run at 275cce844: a Hybrid root stage falling
+#                                         back from the deterministic placeholder to the agentic one
 #   pre363-fabricated-success, pre363-fabricated-fallback
 #                                         compat-gate CI run 32612595835 (2026-08-23, 29049b116): the
 #                                         placeholder adapters BEFORE #363, reporting ok=true and
 #                                         Completed for stages they never ran. The one edit: the GitHub
 #                                         log prefix (job, step, timestamp) was cut from each line.
 # The remaining cases change one field of a real fixture with sed, so each check fires on its own.
+#
+# COVERAGE. Every require() in the helper has a case below that is refused by that check and by no
+# earlier one, so making any single check vacuous turns at least one case red. That was measured, not
+# assumed: PR #798 ran scripts/mutation-check.sh once per require(), each replaced by `require(True or ...`.
+# A new require() needs a new case here, and the same measurement.
 #
 # Run:  bash tests/scripts/pipeline-gate-assertions.test.sh
 # Needs python (3.8+). No network, no dotnet, no container.
@@ -28,7 +35,7 @@ HELPER="${ROOT}/scripts/lib/pipeline_gate_assertions.py"
 FX="${ROOT}/tests/scripts/fixtures/pipeline-gate-assertions"
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=30
+EXPECTED_ASSERTIONS=45
 
 PASS=0
 FAIL=0
@@ -53,8 +60,8 @@ if [[ ! -f "${HELPER}" ]]; then
   echo "FAIL - ${HELPER} does not exist; nothing here can be tested."
   exit 1
 fi
-FIXTURES=(unconfigured test-hooks configured-success configured-fallback resume-source resume-unconfigured
-          resume-target pre363-fabricated-success pre363-fabricated-fallback)
+FIXTURES=(unconfigured test-hooks unconfigured-hybrid-root configured-success configured-fallback resume-source
+          resume-unconfigured resume-target pre363-fabricated-success pre363-fabricated-fallback)
 for f in "${FIXTURES[@]}"; do
   if [[ ! -s "${FX}/${f}.stdout.txt" ]]; then
     echo "FAIL - fixture ${FX}/${f}.stdout.txt is missing or empty; the cases that use it would test nothing."
@@ -114,13 +121,41 @@ expect "state Completed with ok=false is refused" 1 \
   "state='Completed', expected 'Failed'" \
   "$(run fail-closed "$(derive state-completed unconfigured 's/"state":"Failed","startedAt"/"state":"Completed","startedAt"/')" 2 x)"
 expect "an ingest error that does not name the placeholder is refused" 1 \
-  "does not name the unconfigured placeholder" \
+  "ingest error does not name the unconfigured deterministic placeholder" \
   "$(run fail-closed "$(derive other-error unconfigured 's/No deterministic pipeline adapter is configured/Disk full/')" 2 x)"
 expect "a stage reported Completed with no adapter configured is refused" 1 \
   "stages reported Completed with no adapter configured: ['hybrid']" \
   "$(run fail-closed "$(derive hybrid-ran unconfigured 's/{"stageId":"hybrid","state":"Pending","attempt":0}/{"stageId":"hybrid","state":"Completed","attempt":1}/')" 2 x)"
 expect "a log with no JSON payload is refused" 1 \
   "no JSON payload" "$(run fail-closed "$(derive no-json unconfigured '/^{/d')" 2 x)"
+expect "an ingest stage that did not fail is refused, though its error names the placeholder" 1 \
+  "ingest state='Skipped', expected 'Failed'" \
+  "$(run fail-closed "$(derive ingest-skipped unconfigured 's/"stageId":"ingest","state":"Failed"/"stageId":"ingest","state":"Skipped"/')" 2 x)"
+expect "an ingest failure on the wrong worker type is refused" 1 \
+  "ingest workerType='Agentic', expected 'Deterministic'" \
+  "$(run fail-closed "$(derive ingest-agentic unconfigured 's/"workerType":"Deterministic"/"workerType":"Agentic"/')" 2 x)"
+expect "a payload listing the ingest stage twice is refused" 1 \
+  "expected exactly one 'ingest' stage, found 2" \
+  "$(run fail-closed "$(derive ingest-twice unconfigured 's/"stages":\[/"stages":[{"stageId":"ingest","state":"Failed","attempt":1,"workerType":"Deterministic","workerId":"deterministic-default","error":"No deterministic pipeline adapter is configured; the default placeholder performs no work."},/')" 2 x)"
+expect "a payload with an empty stage list is refused" 1 \
+  "payload lists no stages" \
+  "$(run fail-closed "$(derive no-stages unconfigured 's/"stages":\[.*\]}}/"stages":[]}}/')" 2 x)"
+expect "a payload whose data is null is refused" 1 \
+  "payload has no data object" \
+  "$(run fail-closed "$(derive null-data unconfigured 's/"data":{.*}}/"data":null}/')" 2 x)"
+
+echo "== fail-closed-agentic: a Hybrid root must fall back to the agentic placeholder, and it must fail =="
+expect "the real unconfigured Hybrid-root run is accepted" 0 \
+  "PASS fail-closed-agentic [unconfigured-hybrid-root]" \
+  "$(run fail-closed-agentic "$(fx unconfigured-hybrid-root)" 2 unconfigured-hybrid-root)"
+expect "the gate-demo run, whose Hybrid stage never ran, is refused" 1 \
+  "hybrid state='Pending', expected 'Failed'" "$(run fail-closed-agentic "$(fx unconfigured)" 2 x)"
+expect "a Hybrid failure that stopped on the deterministic worker is refused" 1 \
+  "hybrid workerType='Deterministic', expected 'Agentic'" \
+  "$(run fail-closed-agentic "$(derive hybrid-deterministic unconfigured-hybrid-root 's/"workerType":"Agentic"/"workerType":"Deterministic"/')" 2 x)"
+expect "a Hybrid error that does not name the agentic placeholder is refused" 1 \
+  "hybrid error does not name the unconfigured agentic placeholder" \
+  "$(run fail-closed-agentic "$(derive agentic-other-error unconfigured-hybrid-root 's/No agentic pipeline adapter is configured/No deterministic pipeline adapter is configured/')" 2 x)"
 
 echo "== configured-success: the configured stub must complete, on the stub's worker =="
 expect "the real configured run is accepted" 0 \
@@ -134,6 +169,9 @@ expect "an unconfigured run is not a configured success" 1 \
 expect "a stage left Pending is refused" 1 \
   "stages not Completed: ['hybrid']" \
   "$(run configured-success "$(derive hybrid-pending configured-success 's/"stageId":"hybrid","state":"Completed"/"stageId":"hybrid","state":"Pending"/')" 0 x)"
+expect "a run whose own state is Failed is refused, though every stage Completed" 1 \
+  "state='Failed', expected 'Completed'" \
+  "$(run configured-success "$(derive run-failed configured-success 's/"state":"Completed","startedAt"/"state":"Failed","startedAt"/')" 0 x)"
 
 echo "== fallback: the Hybrid stage must fall back to the Agentic stub =="
 expect "the real configured fallback run is accepted" 0 \
@@ -144,6 +182,17 @@ expect "the pre-#363 fallback, done by the placeholder and not the stub, is refu
   "hybrid workerId='agentic-default'" "$(run fallback "$(fx pre363-fabricated-fallback)" 0 x)"
 expect "a fallback run that exits non-zero is refused" 1 \
   "exit code 2, expected 0" "$(run fallback "$(fx configured-fallback)" 2 x)"
+# AllowNonCriticalStageFailures (which this run uses) lets a Hybrid stage that failed outright still leave
+# ok=true, Completed and exit 0, so only the stage's own state says whether the fallback worked.
+expect "a Hybrid stage that failed on its Agentic fallback is refused, though the run reads ok" 1 \
+  "hybrid state='Failed', expected 'Completed'" \
+  "$(run fallback "$(derive hybrid-failed configured-fallback 's/"stageId":"hybrid","state":"Completed"/"stageId":"hybrid","state":"Failed"/')" 0 x)"
+expect "a fallback run whose own state is Failed is refused" 1 \
+  "state='Failed', expected 'Completed'" \
+  "$(run fallback "$(derive fallback-run-failed configured-fallback 's/"state":"Completed","startedAt"/"state":"Failed","startedAt"/')" 0 x)"
+expect "a fallback run with ok=false is refused" 1 \
+  "ok=False, expected true" \
+  "$(run fallback "$(derive fallback-not-ok configured-fallback 's/"ok":true/"ok":false/')" 0 x)"
 
 echo "== resume: the target must come from the persisted source =="
 expect "an unconfigured resume that stays Failed is accepted" 0 \
@@ -170,6 +219,12 @@ expect "a source that exited 0 is refused" 1 \
 expect "a source that did not fail is refused" 1 \
   "source state='Completed', expected 'Failed'" \
   "$(run resume "$(fx configured-success)" 2 "$(fx resume-target)" 0 completed x)"
+expect "a source whose ingest stage did not fail is refused, though the run Failed" 1 \
+  "source ingest stage did not fail" \
+  "$(run resume "$(derive source-ingest-ok resume-source 's/"stageId":"ingest","state":"Failed"/"stageId":"ingest","state":"Completed"/')" 2 "$(fx resume-target)" 0 completed x)"
+expect "a source whose ingest never ran (attempt 0) is refused" 1 \
+  "source ingest attempt=0, expected an integer >= 1" \
+  "$(run resume "$(derive source-attempt-0 resume-source 's/"stageId":"ingest","state":"Failed","attempt":3/"stageId":"ingest","state":"Failed","attempt":0/')" 2 "$(fx resume-target)" 0 completed x)"
 
 echo "== usage =="
 expect "no arguments is a usage error, not a pass" 2 "pipeline_gate_assertions.py fail-closed" "$(run)"
