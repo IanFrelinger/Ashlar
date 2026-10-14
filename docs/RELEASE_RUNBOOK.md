@@ -94,11 +94,13 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
    release notes, drafted from `CHANGELOG.md`, must say so, name SecureWorkstation's
    `ASHLAR_EGRESS_MODE=report` break-glass, and say that AirGapped ignores it. The ProdStyle suite
    under default enforcement is already part of the readiness verdict: every native lane of the
-   readiness gate runs `ashlar ci verify`, whose ProdStyle step runs the net8.0
-   `Category=ProdStyle` filter that `make test-prod-style` also runs (`CiCommand.cs:104-107`), and no
-   workflow sets `ASHLAR_EGRESS_MODE`. So the `verified` verdict of step 10 for the release SHA
-   includes it. Quote that lane's ProdStyle summary line (the `Passed!` line after
-   `=== CI Verify: Production-like tests` in the verified run's log) in the release issue.
+   readiness gate runs `ashlar ci verify`, whose ProdStyle steps run on both net8.0 and net10.0,
+   and no workflow sets `ASHLAR_EGRESS_MODE`. The API-host twins in `Tests/VirtualProduction`
+   compile only on net10.0; the net8.0 result alone does not evidence their default enforcement.
+   The `verified` verdict of step 10 for the release SHA includes both steps. Quote the net10.0
+   ProdStyle summary line (the `Passed!` line after
+   `=== CI Verify: Production-like API-host tests (ProdStyle, net10.0)` in the verified run's log)
+   in the release issue.
 10. **Confirm the readiness gate verified the exact commit you are tagging — read the verdict, not
     the tick.** `Readiness summary` is required, so it has to pass when its platform lanes are
     skipped, and its green tick cannot tell "every platform passed" from "no platform ran". This is
