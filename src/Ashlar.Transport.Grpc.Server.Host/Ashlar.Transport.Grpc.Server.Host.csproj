@@ -23,4 +23,8 @@
          consumer-template/CONSUMING.md. -->
     <PackageReference Include="LLamaSharp.Backend.Cpu" />
   </ItemGroup>
+  <!-- Shared source keeps the verifier internal without adding ASP.NET to library consumers. -->
+  <ItemGroup>
+    <Compile Include="../Shared/LoopbackListenerVerifier.cs" Link="Security/LoopbackListenerVerifier.cs" />
+  </ItemGroup>
 </Project>

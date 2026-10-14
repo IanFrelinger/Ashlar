@@ -1,3 +1,4 @@
+using Ashlar.Infrastructure;
 using System.Threading.RateLimiting;
 using MediatR;
 using Microsoft.AspNetCore.RateLimiting;
@@ -137,6 +138,13 @@ builder.Services.AddAshlarCommercialFleetDirector(
 
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(RecordSmsYesApprovalCommand).Assembly));
+
+// SPEC-007 Q6: validate configured listeners before bind, then verify Kestrel's actual addresses.
+builder.Services.AddAshlarInboundListenerValidation(
+    AshlarInboundListenerPolicy.CollectEndpoints(
+        builder.Configuration,
+        builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey)));
+builder.Services.AddHostedService<Ashlar.API.Security.LoopbackListenerVerifier>();
 
 var app = builder.Build();
 

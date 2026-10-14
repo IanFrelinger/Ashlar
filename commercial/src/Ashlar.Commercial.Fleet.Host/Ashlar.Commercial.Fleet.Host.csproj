@@ -28,4 +28,8 @@
     <ProjectReference Include="..\..\..\src\Ashlar.Hosting\Ashlar.Hosting.csproj" />
   </ItemGroup>
 
+  <!-- Shared source keeps the verifier internal without adding ASP.NET to library consumers. -->
+  <ItemGroup>
+    <Compile Include="../../../src/Shared/LoopbackListenerVerifier.cs" Link="Security/LoopbackListenerVerifier.cs" />
+  </ItemGroup>
 </Project>

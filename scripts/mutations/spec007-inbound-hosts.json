@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "note": "Card #766: both shipped inbound hosts must reject configured listeners before bind and code-added listeners after bind. These plans are not evidence until the runner records assertion failures, byte restoration, clean status and a fresh green rebuild.",
+  "mutations": [
+    {
+      "id": "inbound-prebind",
+      "file": "src/Ashlar.Infrastructure/AshlarInboundListenerPolicy.cs",
+      "old": ".ValidateOnStart();",
+      "new": ";",
+      "filter": "FullyQualifiedName~InboundHostLoopbackProdStyleTests",
+      "framework": "net10.0",
+      "project": "commercial/tests/Ashlar.Commercial.Tests.Fleet.Host/Ashlar.Commercial.Tests.Fleet.Host.csproj",
+      "expected_failures": [
+        "host: \"grpc\", profile: \"air-gapped\", binding: \"urls\"",
+        "host: \"fleet\", profile: \"secure-workstation\", binding: \"endpoint\""
+      ]
+    },
+    {
+      "id": "inbound-postbind",
+      "file": "src/Shared/LoopbackListenerVerifier.cs",
+      "old": "return violation is null ? Task.CompletedTask : throw new InvalidOperationException(violation);",
+      "new": "return Task.CompletedTask;",
+      "filter": "FullyQualifiedName~InboundHostLoopbackProdStyleTests",
+      "framework": "net10.0",
+      "project": "commercial/tests/Ashlar.Commercial.Tests.Fleet.Host/Ashlar.Commercial.Tests.Fleet.Host.csproj",
+      "expected_failures": [
+        "host: \"grpc\", profile: \"air-gapped\", binding: \"code\"",
+        "host: \"fleet\", profile: \"secure-workstation\", binding: \"code\""
+      ]
+    }
+  ]
+}

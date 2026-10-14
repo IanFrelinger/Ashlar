@@ -11,10 +11,12 @@ dotnet run --project src/Ashlar.Transport.Grpc.Server.Host
 
 | Knob | Where | Default | Notes |
 |------|-------|---------|-------|
-| `ASPNETCORE_URLS` / `--urls` | env / command line | `http://127.0.0.1:5001` (code default in `Program.cs`, applied only when no URL is configured) | Loopback by default, like every other Ashlar host. Widen deliberately: `ASPNETCORE_URLS=http://0.0.0.0:5001` inside a container. Do not put `Urls` in `appsettings.json` — it loads after the host configuration and would silently override `ASPNETCORE_URLS`. |
+| `ASPNETCORE_URLS` / `--urls` | env / command line | `http://127.0.0.1:5001` (code default in `Program.cs`, applied only when no URL is configured) | Loopback by default, like every other Ashlar host. On AirGapped and SecureWorkstation, non-loopback URLs fail boot. On other profiles, widen deliberately: `ASPNETCORE_URLS=http://0.0.0.0:5001` inside a container. Do not put `Urls` in `appsettings.json` — it loads after the host configuration and would silently override `ASPNETCORE_URLS`. |
 | HTTP/2 | `Program.cs` (`ConfigureEndpointDefaults(... Http2)`) and `Kestrel:EndpointDefaults:Protocols` | `Http2` on every endpoint | gRPC needs HTTP/2. On a plain `http://` URL that is **h2c** (prior-knowledge HTTP/2, no TLS): fine on loopback or inside a private compose/k8s network, not on a shared network. Browsers and `curl` without `--http2-prior-knowledge` will not get the banner. |
 | TLS | `Kestrel:Certificates:Default:Path` + `KeyPath` (PEM) or `Path` + `Password` (PFX) | none | Give the URL an `https://` scheme and point Kestrel at the server certificate, e.g. `ASPNETCORE_URLS=https://0.0.0.0:5001 Kestrel__Certificates__Default__Path=/run/secrets/server.crt Kestrel__Certificates__Default__KeyPath=/run/secrets/server.key`. Kestrel then negotiates HTTP/2 over ALPN. |
 | Client-cert requirement (mTLS) | `Kestrel:Endpoints:<name>:ClientCertificateMode` | not required | Set `RequireCertificate` on an explicit endpoint entry to demand the client certificate that `Ashlar:GrpcTransport:ClientCertPath` presents (see below). |
+
+On AirGapped and SecureWorkstation, configured URLs and Kestrel endpoints are validated before binding. Actual published listener addresses are verified after Kestrel starts, including listeners added in code; an empty address list fails closed. Code-added listeners have a brief bind-to-refusal window. Inbound response bodies are not yet mediated.
 
 Health: this host has no `/health` or `/ready` route; a TCP probe on the listen port (or a gRPC health service you add) is the check to use.
 

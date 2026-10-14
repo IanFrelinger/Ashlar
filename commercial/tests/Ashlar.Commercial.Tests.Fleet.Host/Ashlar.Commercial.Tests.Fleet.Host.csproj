@@ -27,4 +27,9 @@
     <ProjectReference Include="../../src/Ashlar.Commercial.Fleet.Host/Ashlar.Commercial.Fleet.Host.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Ashlar.Transport.Grpc.Server.Host/Ashlar.Transport.Grpc.Server.Host.csproj" />
+    <Compile Include="../../../src/Ashlar.Tests.Infrastructure/Helpers/EgressProcessStateScope.cs" Link="Helpers/EgressProcessStateScope.cs" />
+    <Compile Include="../../../src/Ashlar.Tests.Infrastructure/Helpers/EnvironmentVariableScope.cs" Link="Helpers/EnvironmentVariableScope.cs" />
+  </ItemGroup>
 </Project>
