@@ -144,24 +144,30 @@ The status line above and the starting prompt are the owner's, as written; the s
   `ProviderRefusalScope`, and the scope holds it. Besides `AdaptiveProviderFactory`, `ProviderBackedModel` (which
   throws it) and `BehaviorExecutor` (which reports it) now open one. `BehaviorExecutor` follows D23: a refused
   probe counts as a skipped alternative, and when every alternative failed or was skipped, the first refusal is
-  the step's final error, also after a failing deterministic fallback. A deterministic implementation that
-  succeeds after a refusal still completes the step, because it is not the echo model.
-  Three orchestration sites rethrow a refusal instead of answering with canned output; the design's rows 1–29
-  missed all three:
+  the step's final error, also after a failing deterministic fallback, and a step reports a refusal once. A
+  deterministic implementation that succeeds after a refusal still completes the step at the event level,
+  because it is not the echo model. `IBehaviorExecutor.ExecuteAsync` still returns `Success = false` once any
+  step error was emitted; that predates 4.8b.
+  Five sites rethrow a refusal instead of answering with canned or pass-through output; the design's rows 1–29
+  missed all five:
   - `OrchestrationHotSwappableModel` (`src/Ashlar.Orchestration/Models/`), the wrapper around every orchestration
     agent's model, before its `ASHLAR_ALLOW_MOCK=1` echo fallback;
   - `PlanningAgent`'s canned recommendation, used by the planning, guide, assistant and wizard agents;
-  - `SynthesisEngine`'s "Phased approach" fallback resolution.
+  - `SynthesisEngine`'s "Phased approach" fallback resolution;
+  - `ModelBackedMaterialIntelligenceService`'s heuristic materials and `ModelBackedVectorMapIntelligenceService`'s
+    pass-through, both opt-in (`ReplaceMapIntelligenceWithModelBackedDefaults`).
   The factory's row-24 Warning is windowed (event 7307, flushed when the factory is disposed).
-  No echo model answers a refusal; residuals remain and are listed as dated Known limits in
+  No echo model and no canned or pass-through output answers a refusal; every model or chat catch-all in `src/`
+  was read on 2026-10-13. Residuals remain and are listed as dated Known limits in
   `docs/EgressInventory.md` ("Catch-alls and availability probes"):
   - status callers report a refused probe as "unavailable";
   - `workflow stress` reports success over refused probes, and `workflow optimize` fails without naming the
     refusal (card #802);
+  - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
   - the `adapt` and `improve` verbs never flush the window.
   Every 4.8b site reaches the internal `EgressRefusal` through the existing `InternalsVisibleTo` list of
   `Ashlar.Abstractions` (`Ashlar.Abstractions.csproj:33-47`, 15 friends, unchanged by 4.8b; Orchestration and
-  Infrastructure were already on it).
+  Infrastructure were already on it). What each friend uses is recorded in `docs/EgressInventory.md`.
 - **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
