@@ -24,12 +24,13 @@ body:
   - type: checkboxes
     id: before_tag
     attributes:
-      label: Before you tag (docs/RELEASE_RUNBOOK.md steps 4-9)
+      label: Before you tag (docs/RELEASE_RUNBOOK.md steps 4-10)
       options:
         - label: "Step 4: VERSION, ci/published-version and consumer-template's AshlarConsumerPackageVersion bumped together on the release commit"
         - label: "Steps 5-7: consumer trust rows rewritten, published-version docs bumped, PublicAPI Unshipped promoted to Shipped"
         - label: "Step 8: rehearsed with a prerelease (release-nuget.yml, X.Y.Z-rc1) and the whole post-push chain went green"
-        - label: "Step 9: bash scripts/release/readiness-verdict-for-sha.sh <sha> printed VERIFIED and exited 0 for the exact commit being tagged"
+        - label: "Step 9: release notes state the AirGapped/SecureWorkstation default enforcement and the SecureWorkstation break-glass, and the ProdStyle suite was observed green on the release commit with ASHLAR_EGRESS_MODE unset"
+        - label: "Step 10: bash scripts/release/readiness-verdict-for-sha.sh <sha> printed VERIFIED and exited 0 for the exact commit being tagged"
   - type: checkboxes
     id: ship
     attributes:

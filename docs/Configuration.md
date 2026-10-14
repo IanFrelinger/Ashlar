@@ -22,7 +22,7 @@ The tables below list keys in `Ashlar:A:B` form with the `Ashlar__A__B` environm
 | SecureWorkstation | enforce | break-glass; Warning and `break-glass` | enforce |
 | Full, Server, Edge, System | report | report | enforce |
 
-Unknown values fail closed to enforcement and produce a Warning. `AshlarHostingOptions.EgressMode` can only raise enforcement. Once AirGapped has been resolved in a process it cannot be lowered; SecureWorkstation can only be replaced by AirGapped.
+Unknown values fail closed to enforcement and produce a Warning. `AshlarHostingOptions.EgressMode` can only raise enforcement. Once AirGapped has been resolved in a process it cannot be lowered; SecureWorkstation can only be replaced by AirGapped. The break-glass is the variable alone: a host that registers its own `IEgressGuard` decides its HTTP and MEAI routes on SecureWorkstation with that guard's profile and mode, with no latch and no Warning, while AirGapped's process floor holds even under a host guard (see the egress inventory, "AirGapped route floor").
 
 A host may opt its own named factory client into report mode, including after `AddAshlar`:
 
@@ -32,7 +32,25 @@ services.Configure<EgressGuardOptions>(options => options.ReportOnlyClients.Add(
 
 This uses `Ashlar.Infrastructure.Egress.EgressGuardOptions`. Each configured name logs a startup Warning and decisions record `host-opt-out`. AirGapped ignores the exception. Naming an Ashlar-owned client, including the unnamed default client, fails host startup. The exception applies only to that factory client and its redirects; faults still fail closed.
 
-Enforced refusals stop before the remote send and log an operator decision at Warning. The local refusal contains a reason, site and random reference; CLI refusals exit 77. Without a subject frame, data is SystemHigh, so only Host destinations are allowed. Named operator file exports retain their recorded `operator-verb` exception; publish/share remain enforced. See [the egress inventory](EgressInventory.md) for routes and known limits, including unmediated inbound responses and Host relays.
+Enforced refusals stop before the remote send and log an operator decision at Warning. The local refusal contains a reason, site and random reference; a refusal in `export`, `mesh export` or `pkg export`/`publish`/`share` exits 77, and a refused child process in other CLI verbs exits 1 (a known limit). Without a subject frame, data is SystemHigh, so only Host destinations are allowed. Named operator file exports retain their recorded `operator-verb` exception; publish/share remain enforced. See [the egress inventory](EgressInventory.md) for routes and known limits, including unmediated inbound responses and Host relays.
+
+## Agent clearances (`ashlar.policy.yaml`)
+
+SPEC-007 PR 5's first slice (#748) adds a `clearances` block to the project's `ashlar.policy.yaml`: the ceiling on what each agent the project composes may read.
+
+```yaml
+clearances:
+  default: Internal            # an agent that agents: does not name
+  agents:
+    analyst: Secret//C:ALPHA   # keyed by the agent name, compared ordinally
+```
+
+- Each value is canonical security-label text: a level (`Public`, `Internal`, `Confidential`, `Secret`, `TopSecret`) with optional `//C:` compartments and `//K:` caveats, or `SystemHigh` (SPEC-007 §2.4). Anything else, a lowercase level included, rejects the whole policy when it loads (`PolicyLoader.TryLoad`), and so do an empty value and a blank name under `agents`.
+- `//` does not start a YAML comment (a comment starts with `#` after whitespace), so these values need no quotes; quoted values work too.
+- With no `clearances` block, or no entry for the agent and no `default`, the agent's clearance is `Public`.
+- `AshlarHostingOptions.Clearance` is an optional host ceiling in the same text form. The effective clearance is the meet of the two, so a host can only tighten the policy. Null or empty leaves the policy clearance; any other value that does not parse fails closed to `Public`. Ashlar never binds it from `IConfiguration`.
+- A sealed skill declares its highest level on its package (`HighestLevel`), covered by the package seal and not by the signed gate record; a missing or unparseable level is `SystemHigh`. `SkillComposition.Decide` refuses a skill whose level the agent's clearance does not dominate.
+- **Nothing consumes this in production yet.** `SkillComposition.Decide` is a library API with no production caller, and no shipped host reads `clearances` or `AshlarHostingOptions.Clearance` when it composes an agent. A valid clearance therefore changes no running behaviour; an invalid one still rejects the policy. Responses on inbound connections are not mediated.
 
 ## Core
 

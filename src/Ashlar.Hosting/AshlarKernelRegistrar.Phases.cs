@@ -778,7 +778,7 @@ internal static partial class AshlarKernelRegistrar
             {
                 string baseUrl = executionRemoteUrl.TrimEnd('/') + "/";
                 services.AddHttpClient("AshlarExecution", c => c.BaseAddress = new Uri(baseUrl));
-                // SPEC-007: report-only guard handler on this client (a no-op after AddAshlar, which already installed it).
+                // SPEC-007: egress guard handler on this client (a no-op after AddAshlar, which already installed it).
                 services.AddAshlarEgressGuard();
                 services.AddSingleton<Ashlar.Infrastructure.Testing.ExecutionPlatform.IExecutionPlatform>(sp =>
                 {

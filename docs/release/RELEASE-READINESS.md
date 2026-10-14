@@ -266,6 +266,7 @@ Binary decision framework for **v0.x public release** vs **design-partner privat
       carried a version string that has never existed; corrected to match the repository.
 - [ ] **GitHub social preview current:** `ashlar-og-flat-1200x630.png` uploaded (CEO action)
 - [ ] **Contact channel live:** GitHub Discussions enabled OR `hello@ashlar.dev` with monitoring
+- [ ] **Default egress enforcement disclosed and observed (from `0.3.0`, SPEC-007 4.11, #746):** the release notes say AirGapped and SecureWorkstation refuse disallowed egress by default, name SecureWorkstation's `ASHLAR_EGRESS_MODE=report` break-glass and say AirGapped ignores it, and the ProdStyle suite was observed green on the release commit under default enforcement (`docs/RELEASE_RUNBOOK.md`, "Before you tag", step 9)
 
 **No-go criteria (ANY one blocks public release):**
 

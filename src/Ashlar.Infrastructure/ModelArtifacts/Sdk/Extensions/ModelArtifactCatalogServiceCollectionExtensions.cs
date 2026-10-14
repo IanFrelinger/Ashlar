@@ -19,7 +19,7 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
     /// </summary>
     /// <remarks>
     /// Calls <see cref="EgressServiceCollectionExtensions.AddAshlarEgressGuard"/> after the three catalog clients
-    /// (SPEC-007, report-only), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
+    /// (SPEC-007), so the collection also gets <c>AddLogging</c>, an <c>IEgressGuard</c> (TryAdd),
     /// <see cref="EgressDecisionLoggerSubscription"/> and the <c>EgressDecisionLoggerActivator</c> hosted service,
     /// unless an earlier <c>AddAshlarEgressGuard</c> call on this collection already added them.
     /// </remarks>
@@ -63,7 +63,7 @@ public static class ModelArtifactCatalogServiceCollectionExtensions
             client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/", global::System.UriKind.Absolute);
             client.Timeout = opts.RequestTimeout <= TimeSpan.Zero ? TimeSpan.FromSeconds(60) : opts.RequestTimeout;
         });
-        // SPEC-007: report-only guard handler on the three catalog clients above (idempotent).
+        // SPEC-007: egress guard handler on the three catalog clients above (idempotent).
         services.AddAshlarEgressGuard();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IModelArtifactCatalogSource, OllamaTagsModelArtifactCatalogSource>());

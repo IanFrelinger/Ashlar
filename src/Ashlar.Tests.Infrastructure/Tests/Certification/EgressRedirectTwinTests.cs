@@ -129,7 +129,7 @@ public sealed class EgressRedirectTwinTests
             .Should().Be(0, "report mode still does not send hop 2 to a different host on an EgressHttp client");
         var decision = sink.Seen.Should().ContainSingle().Which;
         decision.Mode.Should().Be("report");
-        decision.Refused.Should().BeFalse("Refused stays false until SPEC-007 PR 4.11");
+        decision.Refused.Should().BeFalse("a Full-profile guard reports by default, so Refused stays false");
         decision.Destination.Should().Be($"https://{host}");
     }
 

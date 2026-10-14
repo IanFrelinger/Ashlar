@@ -38,8 +38,8 @@ public sealed record AshlarPolicy
 
 /// <summary>
 /// Agent clearances. Each value is canonical security-label text (<c>Secret</c>,
-/// <c>Secret//C:ALPHA</c>, <c>SystemHigh</c>). Quote a value that contains <c>//</c>, or YAML reads the
-/// rest of the line as a comment. An absent default is <c>Public</c> at composition time.
+/// <c>Secret//C:ALPHA</c>, <c>SystemHigh</c>). <c>//</c> does not start a YAML comment (a comment starts
+/// with <c>#</c> after whitespace), so a value needs no quotes. An absent default is <c>Public</c> at composition time.
 /// A host may only tighten a clearance; it cannot raise one above this ceiling.
 /// </summary>
 public sealed record PolicyClearances

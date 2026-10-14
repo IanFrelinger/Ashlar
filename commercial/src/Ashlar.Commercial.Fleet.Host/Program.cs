@@ -126,7 +126,7 @@ builder.Services.AddAshlar(options =>
         builder.Configuration.GetValue("Ashlar:RegisterBackgroundAgentHostedService", defaultValue: true);
     options.DisableObservationPipeline = disableObservationPipeline;
 });
-// SPEC-007: AddAshlar has already installed the report-only egress guard on every IHttpClientFactory client in this
+// SPEC-007: AddAshlar has already installed the egress guard on every IHttpClientFactory client in this
 // host, including the Fleet.Infrastructure clients registered below, whose project cannot reach Ashlar.Infrastructure.
 // This call is idempotent and adds nothing; it states the coverage here.
 builder.Services.AddAshlarEgressGuard();

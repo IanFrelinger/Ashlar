@@ -47,7 +47,7 @@ internal static class EgressEnforcement
     /// <summary>An override that asked for a lower mode was ignored.</summary>
     internal const string OverrideIgnoredBasis = "override-ignored";
 
-    /// <summary>A host listed the client as report-only (PR 4.11). Not produced yet.</summary>
+    /// <summary>A host listed the client as report-only (PR 4.11): stamped on that named factory client's decisions.</summary>
     internal const string HostOptOutBasis = "host-opt-out";
 
     /// <summary>A named operator file-export verb ran in report mode (PR 4.9).</summary>
