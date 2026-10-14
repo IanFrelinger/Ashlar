@@ -196,7 +196,6 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
 
                     await _loops.ForEachAsync(chain, async (implementation, _, ct2) =>
                     {
-                        EgressRefusedException? attemptRefusal = null;
                         await writer.WriteAsync(new StepStartedEvent(
                             step.Id,
                             brick.Id,
@@ -285,8 +284,7 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                             {
                                 output = null;
                                 error = ex.Message;
-                                attemptRefusal = EgressRefusal.Find(ex);
-                                finalRefusal ??= attemptRefusal;
+                                finalRefusal ??= EgressRefusal.Find(ex);
                                 _logger.LogError(ex, "Error executing step {StepId} with {Implementation}", step.Id, implementation);
                                 if (resolution is not null && _agenticBrickEngine is not null)
                                 {
@@ -323,9 +321,11 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
 
                         var errorText = error ?? "Step failed";
                         await writer.WriteAsync(new StepErrorEvent(step.Id, errorText, stopwatch.ElapsedMilliseconds), ct2);
-                        // Overwritten on every error event: did THIS one carry the step's first refusal?
-                        lastErrorCarriedRefusal = attemptRefusal is not null && ReferenceEquals(attemptRefusal, finalRefusal)
-                            && errorText.Contains(attemptRefusal.Message, StringComparison.Ordinal);
+                        // Overwritten on every error event, from the text actually written: did THIS event carry the
+                        // step's first refusal? (A later alternative that returns no output without throwing writes
+                        // the previous attempt's text again.)
+                        lastErrorCarriedRefusal = finalRefusal is not null
+                            && errorText.Contains(finalRefusal.Message, StringComparison.Ordinal);
                         _metricsCollector?.IncrementCounter("ncr.execution.step.error");
 
                         if (!options.SwapOnFailure)

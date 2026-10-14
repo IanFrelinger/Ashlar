@@ -687,8 +687,8 @@
     {
       "id": "s74-behavior-in-chain-refusal-not-kept",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "finalRefusal ??= attemptRefusal;",
-      "new": "GC.KeepAlive(attemptRefusal);",
+      "old": "finalRefusal ??= EgressRefusal.Find(ex);",
+      "new": "GC.KeepAlive(ex);",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -736,8 +736,8 @@
     {
       "id": "s78-behavior-refusal-flag-sticks",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "lastErrorCarriedRefusal = attemptRefusal is not null",
-      "new": "lastErrorCarriedRefusal |= attemptRefusal is not null",
+      "old": "lastErrorCarriedRefusal = finalRefusal is not null",
+      "new": "lastErrorCarriedRefusal |= finalRefusal is not null",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -758,10 +758,10 @@
       ]
     },
     {
-      "id": "s80-behavior-refusal-flag-ignores-identity",
+      "id": "s80-behavior-refusal-flag-ignores-written-text",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "attemptRefusal is not null && ReferenceEquals(attemptRefusal, finalRefusal)\n                            && errorText.Contains(attemptRefusal.Message, StringComparison.Ordinal);",
-      "new": "attemptRefusal is null || attemptRefusal is not null;",
+      "old": "finalRefusal is not null\n                            && errorText.Contains(finalRefusal.Message, StringComparison.Ordinal);",
+      "new": "finalRefusal is not null;",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -780,7 +780,8 @@
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
-        "Refused_attempt_as_the_last_alternative_reports_the_refusal_once"
+        "Refused_attempt_as_the_last_alternative_reports_the_refusal_once",
+        "Fallback_returning_no_output_after_a_refusal_does_not_append_the_refusal_again"
       ]
     }
   ]
