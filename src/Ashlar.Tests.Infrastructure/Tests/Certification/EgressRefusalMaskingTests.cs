@@ -263,13 +263,17 @@ public sealed class EgressRefusalMaskingTests
         events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeFalse();
     }
 
-    [Fact]
-    public async Task Unwrapped_refused_attempt_then_failing_fallback_reports_the_refusal_once()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Refused_attempt_whose_event_carried_the_refusal_then_failing_fallback_still_ends_with_the_refusal(
+        bool wrapperRepeatsTheMessage)
     {
-        // The attempt's own error event already carries the refusal's message; the step must not report it twice
-        // (IBehaviorExecutor.ExecuteAsync puts every StepErrorEvent into Errors).
+        // The refused attempt's own error event already shows the refusal (unwrapped, or a wrapper whose message
+        // repeats it). A fallback then fails for its own reason. D23: the refusal is still the step's final error.
         var refusal = Refusal();
-        var brick = new ScriptedBrick(agentic: () => throw refusal,
+        var brick = new ScriptedBrick(
+            agentic: () => throw (wrapperRepeatsTheMessage ? new HttpRequestException(refusal.Message, refusal) : refusal),
             deterministic: () => throw new IOException("deterministic-broke"));
 
         var events = await RunStepAsync(AvailableProviders(), brick);
@@ -277,9 +281,28 @@ public sealed class EgressRefusalMaskingTests
         brick.AgenticCalls.Should().Be(1);
         brick.DeterministicCalls.Should().Be(1);
         var errors = StepErrors(events);
-        errors.Count(e => e.Contains(refusal.Ref, StringComparison.Ordinal)).Should().Be(1,
-            "the refusal is reported exactly once in the step");
-        errors.Should().HaveCount(2, "the refused attempt and the failing fallback, nothing appended");
+        errors.Should().NotBeEmpty();
+        errors[0].Should().Contain(refusal.Ref, "the refused attempt's own event shows the refusal as it happens");
+        errors[^1].Should().Contain(refusal.Ref,
+            "every alternative failed, so the refusal, not the fallback's own failure, is the final error (D23)");
+        events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Refused_attempt_as_the_last_alternative_reports_the_refusal_once()
+    {
+        // The refused attempt is itself the last alternative, so its own event is already the final error.
+        var refusal = Refusal();
+        var brick = new ScriptedBrick(agentic: () => throw refusal,
+            deterministic: () => throw new InvalidOperationException("no deterministic implementation"),
+            withDeterministic: false);
+
+        var events = await RunStepAsync(AvailableProviders(), brick);
+
+        brick.AgenticCalls.Should().Be(1);
+        brick.DeterministicCalls.Should().Be(0);
+        StepErrors(events).Should().ContainSingle("the refused attempt was the last alternative; nothing is appended")
+            .Which.Should().Contain(refusal.Ref);
         events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeFalse();
     }
 
@@ -498,7 +521,7 @@ public sealed class EgressRefusalMaskingTests
         private int _agenticCalls;
         private int _deterministicCalls;
 
-        public ScriptedBrick(Func<BrickOutput> agentic, Func<BrickOutput> deterministic)
+        public ScriptedBrick(Func<BrickOutput> agentic, Func<BrickOutput> deterministic, bool withDeterministic = true)
         {
             _agentic = agentic;
             _deterministic = deterministic;
@@ -508,11 +531,15 @@ public sealed class EgressRefusalMaskingTests
             Category = BrickCategory.Analysis;
             Implementations = new BrickImplementations
             {
-                Deterministic = new DeterministicImplementation { Id = "d", Name = "d", Description = "d", Executor = "x" },
+                Deterministic = withDeterministic
+                    ? new DeterministicImplementation { Id = "d", Name = "d", Description = "d", Executor = "x" }
+                    : null,
                 Agentic = new AgenticImplementation { Id = "a", Name = "a", Description = "a" }
             };
             DefaultImplementation = ImplementationType.Agentic;
-            FallbackChain = new[] { ImplementationType.Agentic, ImplementationType.Deterministic };
+            FallbackChain = withDeterministic
+                ? new[] { ImplementationType.Agentic, ImplementationType.Deterministic }
+                : new[] { ImplementationType.Agentic };
         }
 
         internal int AgenticCalls => Volatile.Read(ref _agenticCalls);
