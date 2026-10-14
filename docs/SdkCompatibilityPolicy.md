@@ -56,7 +56,7 @@ So `Shipped.txt` is now a **promise already made**, not an empty file waiting fo
 When tagging `v0.1.0` (and every release after it), as part of "Before you tag" in `docs/RELEASE_RUNBOOK.md`:
 
 1. Review `PublicAPI.Unshipped.txt` in every project that carries PublicAPI files (the stable tier plus `Ashlar.Abstractions`). Anything that should not be promised gets made `internal` (or `[Experimental]`) **before** the tag.
-2. Move every line except the `#nullable enable` header from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`; leave `Unshipped.txt` with the header only.
+2. Move every line except the `#nullable enable` header and the lines of `[Experimental]` symbols from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`. `[Experimental]` lines stay in `Unshipped.txt` across the tag, so a `Shipped.txt` line is always a promise (owner decision of 2026-10-13, SPEC-007 decisions log). Without experimental lines, `Unshipped.txt` is left with the header only.
 3. Commit as `chore(api): promote unshipped public API to shipped for vX.Y.Z` on the release commit.
 
 From that point on, a change to a `Shipped.txt` line is a breaking change under this policy.

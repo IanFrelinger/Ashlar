@@ -493,11 +493,11 @@ vision, split the cert-gate tests into their own project, and move the commercia
 ## Decisions log (added 2026-10-04)
 
 The owner's decisions only, each with the PR it applied to: the ones #707, #709 and 3b list under "Owner decisions
-applied", the eight PR 4 answers of 2026-10-05, the PR 4.2 and phase C answers of 2026-10-06, the PR 5 answers
-of 2026-10-10 (§8 questions 3 and 4), and the release answers of 2026-10-13: the next version, and the tier of the
-public API this workstream added to `Ashlar.Abstractions` (its `PublicAPI.Unshipped.txt`). The tier of the public
-members it added to other packages is not decided. The other §8 questions stand as written. Design choices that merged with
-those PRs but were not the owner's are in the next section.
+applied", the eight PR 4 answers of 2026-10-05, the PR 4.2 and phase C answers of 2026-10-06, and the answers of
+2026-10-13. Those are the next version, the tier of the public API this workstream added to `Ashlar.Abstractions`
+(its `PublicAPI.Unshipped.txt`), and three answers to the 2026-10-11 review. The owner did not decide the tier of the
+public members it added to other packages. None of these rows answers a §8 question; §8 stands as written. Design
+choices that merged with those PRs but were not the owner's are in the next section.
 
 | Date | Applies to | Decision |
 |---|---|---|
@@ -519,12 +519,12 @@ those PRs but were not the owner's are in the next section.
 | 2026-10-06 | PR 4 (4.5) | **While a read scope is open and unreported, every egress decided on the flows inside it is decided at `SystemHigh`, for every tool, `RAGTool` included (no labelled-tool exemption).** This answers the read-scope question the PR 4.4 phase carried to PR 4.5: a scope observes its result only when it ends, so without this a tool that reads and then egresses within one call was decided at the mark from before the read. Once the scope ends, the frames it was begun in hold what it observed: the reported label if it completed and reported, else `SystemHigh`, as PR 4.4 already does. The accepted cost: under a runner floor below `SystemHigh`, a tool's own egress during its call is refused once the guard enforces. In the PR 4 design's §5 leak test, Scenario B's expected reason changes from `LevelTooLow` to `SystemHighData`; control C4's inner send during a tool call is decided at `SystemHigh` too. Scenario B and control C5 then share a reason and differ by site and family, which the leak test must assert. **Implemented in:** PR 4.5b (#740, `bc1777dfc`; #721 left the 4.4 observe-on-dispose rule and pinned it). |
 | 2026-10-06 | PR 4 (Q8 clarified) | **In PR 4, RAG maps a custom `IDataSensitivityLevel` to `SystemHigh` (D15 stands); Q8's C3 normalisation ("the lowest built-in level whose flags are no more permissive") is deferred** to the first producer that labels data from a custom level on purpose. **Implemented in:** #721 (`RAGTool.MapHitLabel`: non-canonical levels → `SystemHigh`). |
 | 2026-10-06 | PR 4 (4.3, O2) | **A redirect hop from outside the host boundary into it is never followed.** When the redirect follower holds a 3xx whose `Location` names the host boundary (loopback, `localhost` and `*.localhost`, `unix`, `npipe`, as a decision classifies Host, plus a link-local address) and the request came from an authority outside it, the hop is not followed, for factory (P1) clients as much as for `EgressHttp` (P2): the hop is decided and the 3xx is returned. Reason: a remote peer must not bounce a request, body included, to a local service. Cost: a host client behind a remote that legitimately redirects to a local service gets the 3xx. The rest of P1 stands. **Implemented in:** #739 (`9c56ecc1`). |
-| 2026-10-08 | PR 4 (4.5b, D16) | **Governed responses from every non-model target are unlabelled reads until PR 5.** The owner accepted the review recommendation to include every key other than `local:` and `cloud:` (trimmed, case-insensitive), including unknown or null keys. Observe `SystemHigh` on completion, fault, synchronous throw, before each streamed update and at stream end. Host clients registered under `local:` or `cloud:` remain a trusted host boundary; the legacy three-argument targetless `EgressGuardChatClient` overload retains its existing non-reader behavior. This does not settle the separate §8 policy questions. |
-| 2026-10-10 | PR 5 (§8 Q3) | **Clearances are configured in `ashlar.policy.yaml`.** A per-agent map overrides a default. A missing clearance is `Public`. Host options may only tighten that ceiling (the meet of the two). An unparseable host ceiling fails closed to `Public`. **Implemented in:** #748 (`SubjectClearance.Resolve`, `PolicyClearances`). Merge pending. |
-| 2026-10-10 | PR 5 (§8 Q4) | **A skill's highest level stays in the sealed package manifest, not in the signed certification record.** `ExtensionPackage.HighestLevel` is covered by the package seal. Moving the label into the gate record waits for PR 6, when a downgrade receipt has to bind the old label, the new label and the human sign-off. **Implemented in:** #748. Merge pending. |
 | 2026-10-13 | Next release | **The next release is 0.3.0.** It is the first tag that carries the `AirGapped` and `SecureWorkstation` enforce switch (#746). |
 | 2026-10-13 | PR 1, PR 3a to PR 5 (public API, §4.2) | **The unshipped `Ashlar.Abstractions.Security` and `Ashlar.Abstractions.Security.Egress` surface ships in 0.3.0 as `[Experimental]`**, under a new diagnostic id, `ASHLAREXP002`. That is 150 lines of `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt` at `4287a18a1`. As §4.2 and `docs/SdkCompatibilityPolicy.md` require, the id gets its own constant and its own policy row; it is not a reuse of `ASHLAREXP001`. It is applied before the 0.3.0 tag. |
 | 2026-10-13 | PR 4.10 (#720, public API) | **`AshlarResolvedDeploymentProfileOptions` ships in 0.3.0 as `[Experimental]` under `ASHLAREXP002` too.** It is the deployment-profile type that PR 4.10 added to `Ashlar.Abstractions`: the other 10 unshipped lines (the profile name, the `full`, `air-gapped` and `secure-workstation` constants, `IsAirGapped`, `IsSecureWorkstation` and `RequiresLoopback`). It is applied before the 0.3.0 tag. |
+| 2026-10-13 | Records (review Q-A) | **The 2026-10-08 D16 row and the 2026-10-10 §8 Q3 and Q4 rows were not the owner's decisions.** #740 and #748 wrote them into this log as owner decisions, citing no owner answer (`REVIEW-2026-10-11.md` §3, BL1 and BL2, on the storage branch `claude/spec-007-pr4-workspace`). They are struck from this log and kept under "Design as merged" as integrator defaults, with their merge SHAs. §8 Q3 and Q4 stay open. The code they describe is unchanged. |
+| 2026-10-13 | PR 4 (Q6 scope; review Q-C, card #766) | **The loopback-or-fail-boot rule on `AirGapped` and `SecureWorkstation` also covers the gRPC server host (`Ashlar.Transport.Grpc.Server.Host`) and `Ashlar.Commercial.Fleet.Host`.** The 2026-10-05 Q6 row named the API and mesh serve only. Both hosts are wired before the 0.3.0 tag. |
+| 2026-10-13 | Release (public API) | **`[Experimental]` symbols stay in `PublicAPI.Unshipped.txt` across the 0.3.0 tag.** The promotion moves only non-experimental lines into `PublicAPI.Shipped.txt`, so a Shipped line stays a promise. A symbol promoted to stable later loses its attribute and moves at the next tag. |
 
 ## Design as merged (added 2026-10-04)
 
@@ -546,6 +546,23 @@ stand until a later PR or the owner changes them.
   `TryToClearance` maps no level to `Public`, and `TrustTierOrder.CallerLabel` maps a blank or unknown caller to
   `Public`. Data with no level is `SystemHigh`, as §2.1 and the PR 2 row of §5 require.
 
+Struck from the decisions log on 2026-10-13, because the owner did not make them (decisions log, "Records"):
+
+- **D16 scope (PR 4.5b, #740 `bc1777dfc`; integrator default, 2026-10-08).** Every governed target other than
+  `local:` and `cloud:` (trimmed, case-insensitive; unknown and null keys included) is treated as agent-backed and
+  observes `SystemHigh` on completion, fault, synchronous throw, before each streamed update and at stream end, until
+  PR 5 carries labels on responses. Host clients registered under `local:` or `cloud:` stay a trusted host boundary,
+  and the legacy three-argument targetless `EgressGuardChatClient` overload keeps its non-reader behaviour. The
+  integrating agent took this fail-closed, on the 2026-10-08 review's recommendation; the review's Q6 stays open.
+- **Where clearances live (PR 5 first slice, #748 `ac264559f`; integrator default, 2026-10-10).** Clearances are
+  read from `ashlar.policy.yaml` (`clearances.default`, `clearances.agents`; `SubjectClearance.Resolve`,
+  `PolicyClearances`); the per-agent map overrides the default. A missing clearance is `Public`, `AshlarHostingOptions.Clearance` may only tighten it (the
+  meet), and an unparseable host value fails closed to `Public`. No production path reads them yet. §8 Q3 ("a policy
+  pack, host options, or both?") stays open.
+- **Skill level on the sealed package (PR 5 first slice, #748 `ac264559f`; integrator default, 2026-10-10).**
+  `ExtensionPackage.HighestLevel` is covered by the package seal, not by the gate-record signature, and a missing
+  level is `SystemHigh`. §8 Q4 stays open until the owner decides whether a label enters the signed certification
+  record (PR 6 downgrade receipts).
 Report-only is not listed here or in the decisions log, because it is neither: it is this spec's own wording, in the
 PR 3 row of §5. `EgressGuard.Evaluate` records each decision and never refuses, throws or blocks.
 
