@@ -136,14 +136,22 @@ public sealed class InboundHostLoopbackProdStyleTests
         {
             if (!forceDisposalRace) return base.CreateHost(builder);
             var host = builder.Build();
-            // Force the real RunAsync failure/disposal to win before WAF observes startup.
-            // This deterministically reproduces the macOS DeferredHost.StartAsync race.
-            // A broken guard can instead start successfully; observe that too so the assertion
-            // fails promptly and the factory still owns and disposes the running host.
-            Task.WhenAny(startup.Disposed.Task, startup.Started.Task)
-                .WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
-            host.Start();
-            return host;
+            try
+            {
+                // Force the real RunAsync failure/disposal to win before WAF observes startup.
+                // This deterministically reproduces the macOS DeferredHost.StartAsync race.
+                // A broken guard can instead start successfully; observe that too so the assertion
+                // fails promptly and the factory still owns and disposes the running host.
+                Task.WhenAny(startup.Disposed.Task, startup.Started.Task)
+                    .WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
+                host.Start();
+                return host;
+            }
+            catch
+            {
+                host.Dispose(); // WAF cannot own a host that CreateHost did not return.
+                throw;
+            }
         }
     }
 
