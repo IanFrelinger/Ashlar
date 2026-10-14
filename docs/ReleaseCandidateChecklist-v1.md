@@ -26,8 +26,8 @@ Use this checklist to move from "locally passing" to "release-ready with evidenc
 - [ ] Confirm uploaded artifacts include:
   - [ ] test TRX files
   - [ ] `gate-validate.log`
-  - [ ] `gate-run-success.log`
-  - [ ] `gate-run-fallback.log`
+  - [ ] `gate-run-unconfigured.log`
+  - [ ] `gate-run-hooks.log`
   - [ ] `gate-diagnostics.log`
   - [ ] `gate-resume-source.log`
   - [ ] `gate-resume-target.log`
@@ -43,9 +43,9 @@ Use this checklist to move from "locally passing" to "release-ready with evidenc
 
 ## 2) Runtime correctness review
 
-- [ ] Verify `gate-run-fallback.log` shows `hybrid` stage worker type as `Agentic`.
+- [ ] Verify `gate-run-unconfigured.log` and `gate-run-hooks.log` both report `ok=false`, run state `Failed`, and an ingest-stage error stating "No deterministic pipeline adapter is configured". Enabling test hooks must not restore success for an unconfigured adapter.
 - [ ] Verify `gate-resume-source.log` has run state `Failed` (intentional source failure).
-- [ ] Verify `gate-resume-target.log` has run state `Completed`.
+- [ ] Verify `gate-resume-target.log` reports `ok=false` and run state `Failed` with the unconfigured adapter, and does not report "no prior run was found"; the persisted source run must be found.
 - [ ] Verify `gate-diagnostics.log` reports known persistence provider and resolved adapter keys.
 
 ## 3) Exceptions policy (mandatory)
