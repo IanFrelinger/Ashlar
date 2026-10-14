@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Ashlar.Commercial.Tests.Fleet.Host;
@@ -70,10 +71,11 @@ public sealed class InboundHostLoopbackProdStyleTests
         Action start = () => _ = factory.Services;
         if (!starts)
         {
-            var failure = start.Should().Throw<Exception>().Which.ToString();
-            failure.Should().Contain("loopback");
-            if (binding is "urls" or "endpoint")
-                failure.Should().Contain("OptionsValidationException", "configured endpoints must fail before bind");
+            var observed = start.Should().Throw<Exception>().Which;
+            if (forceDisposalRace) observed.Should().BeOfType<ObjectDisposedException>();
+            var recorded = startup.Failure.Task.IsCompletedSuccessfully ? startup.Failure.Task.Result : null;
+            PolicyFailure(observed, recorded, binding).Should().NotBeNull(
+                "startup must fail with the genuine typed loopback refusal; observed: {0}; recorded: {1}", observed, recorded);
             return;
         }
         start.Should().NotThrow();
@@ -84,6 +86,41 @@ public sealed class InboundHostLoopbackProdStyleTests
         using var socket = new TcpClient();
         await socket.ConnectAsync(IPAddress.Loopback, port);
         socket.Connected.Should().BeTrue("Kestrel must really accept connections");
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("wrong-type")]
+    [InlineData("wrong-options")]
+    [InlineData("wrong-message")]
+    [InlineData("unrelated-observed")]
+    [InlineData("postbind-for-prebind")]
+    public void Disposal_without_authentic_policy_evidence_is_not_a_refusal(string invalid)
+    {
+        const string message = "AirGapped: inbound listeners must bind loopback until PR 5 mediates responses on inbound connections.";
+        Exception observed = invalid == "unrelated-observed" ? new IOException("unrelated failure") : new ObjectDisposedException("IServiceProvider");
+        Exception? recorded = invalid switch
+        {
+            "missing" => null,
+            "wrong-type" => new IOException(message),
+            "wrong-options" => new OptionsValidationException(Options.DefaultName, typeof(string), [message]),
+            "wrong-message" => new OptionsValidationException(Options.DefaultName, typeof(AshlarInboundListenerOptions), ["unrelated validation"]),
+            "postbind-for-prebind" => new InvalidOperationException(message),
+            _ => new OptionsValidationException(Options.DefaultName, typeof(AshlarInboundListenerOptions), [message]),
+        };
+        PolicyFailure(observed, recorded, "endpoint").Should().BeNull();
+    }
+
+    private static Exception? PolicyFailure(Exception observed, Exception? recorded, string binding)
+    {
+        // RunAsync can dispose the root provider before WAF's deferred observer registers.
+        // Recover only that masking exception, only from this host's startup-fault event.
+        var candidate = observed is ObjectDisposedException ? recorded : observed;
+        var expectedType = binding is "urls" or "endpoint"
+            ? candidate is OptionsValidationException validation && validation.OptionsType == typeof(AshlarInboundListenerOptions)
+            : candidate?.GetType() == typeof(InvalidOperationException);
+        return expectedType && candidate!.Message.Contains(": inbound listeners must bind loopback", StringComparison.Ordinal)
+            ? candidate : null;
     }
 
     private sealed class ObservedFactory<T>(StartupFailureRecorder startup, bool forceDisposalRace)
