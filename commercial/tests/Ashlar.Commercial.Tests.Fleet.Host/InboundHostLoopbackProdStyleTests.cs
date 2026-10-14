@@ -127,7 +127,10 @@ public sealed class InboundHostLoopbackProdStyleTests
         : WebApplicationFactory<T> where T : class
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
-            => builder.ConfigureServices(services => services.AddSingleton<ILoggerProvider>(_ => startup));
+        {
+            builder.ConfigureServices(services => services.AddSingleton<ILoggerProvider>(_ => startup));
+            builder.ConfigureLogging(logging => logging.AddFilter<StartupFailureRecorder>(LogLevel.Debug));
+        }
 
         protected override IHost CreateHost(IHostBuilder builder)
         {
@@ -135,7 +138,10 @@ public sealed class InboundHostLoopbackProdStyleTests
             var host = builder.Build();
             // Force the real RunAsync failure/disposal to win before WAF observes startup.
             // This deterministically reproduces the macOS DeferredHost.StartAsync race.
-            startup.Disposed.Task.WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
+            // A broken guard can instead start successfully; observe that too so the assertion
+            // fails promptly and the factory still owns and disposes the running host.
+            Task.WhenAny(startup.Disposed.Task, startup.Started.Task)
+                .WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
             host.Start();
             return host;
         }
@@ -143,6 +149,7 @@ public sealed class InboundHostLoopbackProdStyleTests
 
     private sealed class StartupFailureRecorder : ILoggerProvider
     {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Disposed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<Exception> Failure { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public ILogger CreateLogger(string categoryName) => new RecorderLogger(this, categoryName);
@@ -151,13 +158,16 @@ public sealed class InboundHostLoopbackProdStyleTests
         private sealed class RecorderLogger(StartupFailureRecorder owner, string category) : ILogger
         {
             public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-            public bool IsEnabled(LogLevel logLevel) => logLevel == LogLevel.Error;
+            public bool IsEnabled(LogLevel logLevel) => logLevel is LogLevel.Debug or LogLevel.Error;
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
                 Exception? exception, Func<TState, Exception?, string> formatter)
             {
                 if (category == "Microsoft.Extensions.Hosting.Internal.Host" && logLevel == LogLevel.Error
                     && eventId.Id == 11 && eventId.Name == "HostedServiceStartupFaulted" && exception is not null)
                     owner.Failure.TrySetResult(exception);
+                if (category == "Microsoft.Extensions.Hosting.Internal.Host" && logLevel == LogLevel.Debug
+                    && eventId.Id == 2 && eventId.Name == "Started")
+                    owner.Started.TrySetResult();
             }
         }
     }
