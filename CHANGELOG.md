@@ -21,17 +21,21 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 - `compat-gate` had been red since #363. Its Tier B runs `scripts/kernel-gate-tier-b.sh`, which ran
   `ashlar pipeline run` with no adapter configured and expected `ok=true` and state `Completed`. Since #363 the
-  default placeholder adapters fail closed, as `docs/ProductionReadinessGate-v1.md` §3.C.2 requires. The script
-  passed only if its caller exported `ASHLAR_ALLOW_MOCK=1`: `kernel-gate.yml` does, `compat-gate.yml` does not.
-  Runs 34687917953 (2026-09-12) and 36775242670 (2026-09-30) failed on it.
-- `kernel-gate-tier-b.sh` and `scripts/ship-gate-tier-a.sh` now set the adapter configuration of every CLI run
-  themselves. Without `ASHLAR_ALLOW_MOCK`, the run must fail closed, also with test hooks on, and a LiteDB resume
-  must find its persisted source and stay `Failed`. With `ASHLAR_ALLOW_MOCK=1`, the CI stub mode from #522, the
-  run, the Hybrid fallback and a LiteDB resume must complete, on the stub's worker ids.
-  `ship-gate-tier-a.sh` was not red, because it set the stub on every run. It never checked §3.C.2, though.
+  default placeholder adapters fail closed, which `docs/ProductionReadinessGate-v1.md` §3.C.2 (written in #494)
+  requires. From #363 until #522 (2026-09-05) that assertion could not hold under any caller. #522 added
+  `ASHLAR_ALLOW_MOCK=1`, a CI stub mode in which the placeholders succeed, and from then on the script passed only if
+  its caller exported it: `kernel-gate.yml` does, `compat-gate.yml` does not. Runs 34687917953 (2026-09-12) and
+  36775242670 (2026-09-30) failed on it.
+- `kernel-gate-tier-b.sh` and `scripts/ship-gate-tier-a.sh` now set `ASHLAR_ALLOW_MOCK` for every CLI run
+  themselves. Without it, the run must fail closed, also with test hooks on, and a LiteDB resume must find its
+  persisted source and stay `Failed`. A template whose root is a Hybrid stage must fail closed on the agentic
+  placeholder too; before this, no leg reached it. With `ASHLAR_ALLOW_MOCK=1`, the run, the Hybrid fallback and a
+  LiteDB resume must complete, on the stub's worker ids. `ship-gate-tier-a.sh` was not red, because it set the
+  stub on every run. It never checked §3.C.2, though.
 - The assertions live in `scripts/lib/pipeline_gate_assertions.py`. `tests/scripts/pipeline-gate-assertions.test.sh`
-  runs in the required `shell-lint` and drives them with real CLI output. That output includes the pre-#363
-  fabricated success, which they must refuse. `compat-gate.yml` now also triggers on the helper.
+  runs in the required `shell-lint`. It drives the assertions with real CLI output, including the pre-#363
+  fabricated success, and with one-field variants of that output, so that every check in the helper has an input
+  it must refuse. `compat-gate.yml` now also triggers on the helper.
 
 ### Fixed — saved Claude workflows on a CRLF checkout
 

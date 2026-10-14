@@ -153,7 +153,7 @@ All of these also accept `workflow_dispatch`. Branch filters are `master`, `main
 
 | Workflow file | Name | Notes |
 | --- | --- | --- |
-| `compat-gate.yml` | compat-gate | `master` only; `scripts/compat-gate*.sh`, `scripts/kernel-gate-tier-b.sh` |
+| `compat-gate.yml` | compat-gate | `master` only; `scripts/compat-gate*.sh`, `scripts/kernel-gate-tier-b.sh`, `scripts/lib/pipeline_gate_assertions.py` |
 | `compose-gate.yml` | Compose Gate | compose test stacks, `.docker/Dockerfile.test-caching*`, CLI, README |
 | `container-image-gate.yml` | Container Image Gate | `.docker/Dockerfile.cli`, CLI + spine sources |
 | `container-image-publish.yml` | Container Image Publish | `master`/`main`; `.docker/**`, hosts, spine sources — publishes GHCR images |
