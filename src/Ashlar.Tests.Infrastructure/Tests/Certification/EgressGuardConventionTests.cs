@@ -213,8 +213,8 @@ public sealed partial class EgressGuardConventionTests
     /// PR 4.7 adds EgressRefusedException.cs, with no outbound path. Measured at 78529025:
     /// 2,149 files, 149 occurrences and 67 documentation rows. Later PRs added production files, and PR 4.9
     /// added six documentation rows (EG-PROC-06 to 11), without re-measuring. Re-measured in the devtest
-    /// container on 2026-10-13, on R3a's first commit over master 60689412e (comment edits only, no file
-    /// added): 2,155 files, 149 occurrences and 73 documentation rows.
+    /// container on 2026-10-13, on #799 over master f96ee0720 (comment edits only, no file added):
+    /// 2,155 files, 149 occurrences and 73 documentation rows.
     /// Set far enough below to survive ordinary deletions; a scan that stops reading the tree
     /// falls through them. Re-measure and restate when a PR moves them.
     /// </summary>

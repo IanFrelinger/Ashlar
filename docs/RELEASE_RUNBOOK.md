@@ -91,12 +91,13 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
 9. **Confirm what the release changes by default is in the notes, and was observed.** From `0.3.0`
    (SPEC-007 4.11, #746), AirGapped and SecureWorkstation refuse disallowed egress by default. The
    release notes, drafted from `CHANGELOG.md`, must say so, name SecureWorkstation's
-   `ASHLAR_EGRESS_MODE=report` break-glass, and say that AirGapped ignores it. Then run the ProdStyle
-   suite on the release commit with `ASHLAR_EGRESS_MODE` unset, so the AirGapped and SecureWorkstation
-   hosts in it run under their default enforcement:
-   `bash scripts/test-in-container.sh -- 'make test-prod-style'`, or dispatch `kernel-gate.yml` with
-   tier `c`. No pull-request workflow runs `Category=ProdStyle` in `Ashlar.Tests.Infrastructure`, so
-   this is the only place it is observed; quote its summary line in the release issue.
+   `ASHLAR_EGRESS_MODE=report` break-glass, and say that AirGapped ignores it. The ProdStyle suite
+   under default enforcement is already part of the readiness verdict: every native lane of the
+   readiness gate runs `ashlar ci verify`, whose ProdStyle step runs the net8.0
+   `Category=ProdStyle` filter that `make test-prod-style` also runs (`CiCommand.cs:104-107`), and no
+   workflow sets `ASHLAR_EGRESS_MODE`. So the `verified` verdict of step 10 for the release SHA
+   includes it. Quote that lane's ProdStyle summary line (the `Passed!` line after
+   `=== CI Verify: Production-like tests` in the verified run's log) in the release issue.
 10. **Confirm the readiness gate verified the exact commit you are tagging — read the verdict, not
     the tick.** `Readiness summary` is required, so it has to pass when its platform lanes are
     skipped, and its green tick cannot tell "every platform passed" from "no platform ran". This is

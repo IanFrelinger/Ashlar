@@ -22,7 +22,7 @@ The tables below list keys in `Ashlar:A:B` form with the `Ashlar__A__B` environm
 | SecureWorkstation | enforce | break-glass; Warning and `break-glass` | enforce |
 | Full, Server, Edge, System | report | report | enforce |
 
-Unknown values fail closed to enforcement and produce a Warning. `AshlarHostingOptions.EgressMode` can only raise enforcement. Once AirGapped has been resolved in a process it cannot be lowered; SecureWorkstation can only be replaced by AirGapped. The break-glass is the variable alone: a host that registers its own `IEgressGuard` decides its HTTP and MEAI routes on SecureWorkstation with that guard's profile and mode, with no latch and no Warning, while AirGapped's process floor holds even under a host guard (see the egress inventory, "AirGapped route floor").
+Unknown values fail closed to enforcement and produce a Warning. `AshlarHostingOptions.EgressMode` can only raise enforcement. Once AirGapped has been resolved in a process it cannot be lowered; SecureWorkstation can only be replaced by AirGapped. The variable is the only break-glass Ashlar latches and announces: a host that registers its own `IEgressGuard` decides its HTTP and MEAI routes on SecureWorkstation with that guard's profile and mode, with no latch and no Warning (a host guard built as `new EgressGuard("secure-workstation", "report")` even records basis `break-glass`), while AirGapped's process floor holds even under a host guard (see the egress inventory, "AirGapped route floor").
 
 A host may opt its own named factory client into report mode, including after `AddAshlar`:
 
@@ -32,7 +32,7 @@ services.Configure<EgressGuardOptions>(options => options.ReportOnlyClients.Add(
 
 This uses `Ashlar.Infrastructure.Egress.EgressGuardOptions`. Each configured name logs a startup Warning and decisions record `host-opt-out`. AirGapped ignores the exception. Naming an Ashlar-owned client, including the unnamed default client, fails host startup. The exception applies only to that factory client and its redirects; faults still fail closed.
 
-Enforced refusals stop before the remote send and log an operator decision at Warning. The local refusal contains a reason, site and random reference; a refusal in `export`, `mesh export` or `pkg export`/`publish`/`share` exits 77, and a refused child process in other CLI verbs exits 1 (a known limit). Without a subject frame, data is SystemHigh, so only Host destinations are allowed. Named operator file exports retain their recorded `operator-verb` exception; publish/share remain enforced. See [the egress inventory](EgressInventory.md) for routes and known limits, including unmediated inbound responses and Host relays.
+Enforced refusals stop before the remote send and log an operator decision at Warning. The local refusal contains a reason, site and random reference; a refusal in `export`, `mesh export` or `pkg export`/`publish`/`share` exits 77. Other verbs exit with their own codes: an EG-PROC-09 child-process refusal that reaches no handler exits 1, `validate` reports a refused test process as a failed validation (2), and commands whose catch-all returns `UnexpectedError` exit 10 (a known limit). Without a subject frame, data is SystemHigh, so only Host destinations are allowed. Named operator file exports retain their recorded `operator-verb` exception; publish/share remain enforced. See [the egress inventory](EgressInventory.md) for routes and known limits, including unmediated inbound responses and Host relays.
 
 ## Agent clearances (`ashlar.policy.yaml`)
 

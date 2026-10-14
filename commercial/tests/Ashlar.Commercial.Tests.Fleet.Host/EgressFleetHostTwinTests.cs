@@ -17,7 +17,7 @@ namespace Ashlar.Commercial.Tests.Fleet.Host;
 
 /// <summary>
 /// SPEC-007 PR 3b, the behavioural twin of the Fleet registration's route: Fleet.Host's own
-/// <see cref="IHttpClientFactory"/> puts the report-only guard handler on the <c>mesh-lab-worker-executor</c> client
+/// <see cref="IHttpClientFactory"/> puts the guard handler on the <c>mesh-lab-worker-executor</c> client
 /// that <c>Ashlar.Commercial.Fleet.Infrastructure</c> names, once.
 /// </summary>
 /// <remarks>

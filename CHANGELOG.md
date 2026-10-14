@@ -205,11 +205,13 @@ has tests observed red on the unfixed code and hand mutations killed.
   read once and logged at Warning; a host that registers its own `IEgressGuard` with another profile or `report`
   mode still lowers SecureWorkstation's HTTP and MEAI routes, without the latch or the Warning. AirGapped ignores
   lowering overrides and host guard modes cannot bypass its process floor.
-- A refused factory-client send reaches the host as `EgressRefusedException`: the host's outer generic catch sees
-  it, and resilience handlers on that client (retry, circuit breaker) never see the send, because the guard handler
-  sits outside them.
+- A refused factory-client send reaches the host as `EgressRefusedException`, which the host's outer generic catch
+  sees. For the first hop, resilience handlers on that client (retry, circuit breaker) never see the send, because
+  the guard handler sits outside them. A refused redirect hop is decided by the follower directly above the primary,
+  so its `EgressRefusedException` passes back out through those handlers; it derives from `Exception`, not
+  `HttpRequestException`.
 - The other SPEC-007 entries under `[Unreleased]` describe each PR as it merged: where they say report-only,
-  that held until this change.
+  report-only by default held until this change; opt-in refusal arrived in 4.7 (#742).
 - Hosts can configure named factory client exceptions through `EgressGuardOptions.ReportOnlyClients`, including
   after `AddAshlar`. Decisions record `host-opt-out`; every name logs at startup. Ashlar-owned names fail boot,
   AirGapped ignores exceptions, and faults remain fail-closed.
@@ -223,7 +225,9 @@ has tests observed red on the unfixed code and hand mutations killed.
   builds/tests remain network exports with `--no-build` or `--no-restore`; local Docker alone is not isolation.
 - Named CLI file exports record `operator-verb` report mode through an internal initiator. Publish/share and
   runtime publishing still enforce; a policy refusal in `export`, `mesh export` or `pkg export`/`publish`/`share`
-  returns 77 with a redacted reason and reference. A refused child process in other CLI verbs (EG-PROC-09) exits 1.
+  returns 77 with a redacted reason and reference. Other verbs keep their own exit codes: an EG-PROC-09
+  child-process refusal that no handler catches exits 1, `validate` reports a refused test process as a failed
+  validation (2), and commands whose catch-all returns `UnexpectedError` exit 10.
   Refused native/cloud exports preserve an existing bundle; allowed replacements remove stale files.
 - Refused mesh serving returns 404, discovery continues listening, and OTLP registers neither exporter.
   Auto-share keeps local admission, and refused promotion broadcast no longer audits a successful promotion.
@@ -478,7 +482,7 @@ has tests observed red on the unfixed code and hand mutations killed.
   Decisions stayed report-only by default (until PR 4.11, #746); recording an enforcing guard's refusal did not
   stop a send until PR 4.7 (#742). See EgressInventory for custom-header, DNS, transport-ownership and post-send limits.
 - **AirGapped stays on local execution, and AirGapped and SecureWorkstation inbound listeners must bind loopback (SPEC-007 PR 4.10).**
-  The egress guard was still report-only (until PR 4.11, #746). Responses on inbound connections are not mediated until PR 5's CanRead
+  The egress guard was still report-only (by default until PR 4.11, #746). Responses on inbound connections are not mediated until PR 5's CanRead
   at the server seams. What this release enforces at boot and at routing:
   - On AirGapped, a remote routing reason (overnight, VRAM, compute class, queue depth) runs locally, with the
     reason `AirGapped: remote execution unavailable; running locally (<reason>)`. An explicit peer-network-only
@@ -497,7 +501,9 @@ has tests observed red on the unfixed code and hand mutations killed.
     Bare `::1` was refused by URI parsing in PR 4.10; PR 4.10b adds support.
     PR 4.10 allowed an empty configured URL list. PR 4.10b also checks port-only configuration and verifies
     actual bound addresses; missing or empty published addresses fail closed on AG/SW. Mesh serve reads `ASHLAR_MESH_SERVE_BIND`;
-    unset on these profiles is any-interface and fails boot rather than being rewritten.
+    unset on these profiles is any-interface and fails boot rather than being rewritten. The gRPC server host and
+    `Ashlar.Commercial.Fleet.Host` are outside this rule: not yet wired; decided to wire before 0.3.0 (SPEC-007
+    decisions log, 2026-10-13).
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes

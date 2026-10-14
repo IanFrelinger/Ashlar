@@ -12,7 +12,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
 /// SPEC-007 PR 3a, the behavioural twin of the factory-defaults binding: <c>AddAshlarEgressGuard</c> puts the
-/// report-only guard handler on every <see cref="IHttpClientFactory"/> client in the container, once, and writes
+/// guard handler on every <see cref="IHttpClientFactory"/> client in the container, once, and writes
 /// each decision to the <c>Ashlar.Egress</c> logger at Debug.
 /// </summary>
 /// <remarks>

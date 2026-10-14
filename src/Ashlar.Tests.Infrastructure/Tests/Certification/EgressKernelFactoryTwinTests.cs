@@ -16,7 +16,7 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
 /// SPEC-007 PR 3b, the behavioural twin of the factory route in the kernel: a provider built by
-/// <c>AddAshlar</c> puts the report-only guard handler on its <see cref="IHttpClientFactory"/> clients, once, with
+/// <c>AddAshlar</c> puts the guard handler on its <see cref="IHttpClientFactory"/> clients, once, with
 /// no extra call from the host.
 /// </summary>
 /// <remarks>

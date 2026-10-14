@@ -8,7 +8,7 @@ in §8 rather than guessing.
 
 Master at the time of writing: `0960774` (#704 and #705 merged).
 
-## Status (2026-10-10)
+## Status (2026-10-13)
 
 *Added when the spec was committed. Everything else is the owner's text of 2026-10-03, with these additions, each
 marked: test names next to the §2 MUSTs (labelled **Enforced by**, as §7 asks), a status column in §5, the sections
@@ -42,7 +42,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   every other Ashlar member that registers a factory client install (the consumer SDK's `AddAshlarClient` is exempt,
   and Fleet.Host covers the commercial Fleet registration); MEAI targets go through `EgressGuardChatClient`, the
   outermost layer of `UseAshlarGovernance`; and the rest through explicit `Evaluate` calls. It was still report-only
-  (until PR 4.11, #746).
+  (by default until PR 4.11, #746; opt-in refusal arrived in PR 4.7, #742).
 - **Gaps carried to PR 4** (recorded in #709 and `docs/EgressInventory.md`). The `netstandard2.0` asset of
   `Ashlar.Abstractions` cannot evaluate a synchronous `Send`, so on .NET 5 to 7 a synchronous `Send` went out
   unevaluated. PR 4.2 (below) closes that gap: such a `Send` is refused before anything is sent, with no record
@@ -85,7 +85,7 @@ The status line above and the starting prompt are the owner's, as written; the s
     target;
   - 4.11 the switch, which carries the §5 leak test. Of the "never refuses" twins it flips,
     `EgressGuardDecisionTests.An_explicit_profile_sets_the_mode_and_does_not_change_the_access_decision` (named
-    `An_explicit_profile_is_reported_and_does_not_change_the_decision` until R3a renamed it after the flip) already
+    `An_explicit_profile_is_reported_and_does_not_change_the_decision` until #799 renamed it after the flip) already
     has an `enforce` row from 4.6 (an unrecognised profile fails closed); 4.11 flips its AirGapped and
     SecureWorkstation rows.
 
@@ -142,7 +142,7 @@ The status line above and the starting prompt are the owner's, as written; the s
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
   local admission, local promotion and existing export bundles while suppressing the refused export. The `export`, `mesh export` and
-  `pkg export`/`publish`/`share` verbs exit 77 on a refusal (a refused child process in other CLI verbs, EG-PROC-09, exits 1: Known limit in
+  `pkg export`/`publish`/`share` verbs exit 77 on a refusal (other verbs exit with their own codes, an unhandled EG-PROC-09 refusal 1: Known limit in
   `docs/EgressInventory.md`), IDE SSE uses fixed remote
   text and a random reference, and optional discovery/pull paths log redacted refusals. Working-tree execution
   is NetworkExport even with --no-build/--no-restore; Docker Host classification requires a local daemon and
@@ -537,8 +537,9 @@ choices that merged with those PRs but were not the owner's are in the next sect
 
 ## Design as merged (added 2026-10-04)
 
-These are not owner decisions. They are design choices that merged with PR 2 (#707) and PR 3a (#709), and they
-stand until a later PR or the owner changes them.
+These are not owner decisions. They are design choices that merged with PR 2 (#707) and PR 3a (#709), and, below
+them, the integrator defaults of later PRs: the three rows struck from the decisions log on 2026-10-13 and four
+defaults of PR 4.10 and 4.10b. They stand until a later PR or the owner changes them.
 
 - **Where a decision is published** (#709). The guard itself publishes each decision to `EgressDecisionLog`, which
   writes it to the `Ashlar-Egress` EventSource and to every subscribed `IEgressDecisionSink`. The Debug log line is
@@ -573,8 +574,8 @@ Struck from the decisions log on 2026-10-13, because the owner did not make them
   level is `SystemHigh`. §8 Q4 stays open until the owner decides whether a label enters the signed certification
   record (PR 6 downgrade receipts).
 
-The four bullets below were added on 2026-10-13 too, by the R3a records PR. Each is an integrator default that PR
-4.10 or 4.10b took where the code needed a choice; none is an owner decision, and each awaits the owner.
+The four bullets below were added on 2026-10-13 too, by #799. Each is an integrator default that PR 4.10 or 4.10b
+took where the code needed a choice; none is an owner decision, and each awaits the owner.
 
 - **Mesh serve fails boot without a loopback bind (PR 4.10, #720 `02fa27f1d`; PR 4.10b, #738 `bceb1ba21`; integrator
   default, 2026-10-08 review question 1 open).** On AirGapped and SecureWorkstation, an unset or non-loopback
@@ -597,7 +598,7 @@ The four bullets below were added on 2026-10-13 too, by the R3a records PR. Each
   the 4.10 lane's composition-time refusal did not merge.
 
 Report-only is not listed here or in the decisions log, because it is neither: it is this spec's own wording, in the
-PR 3 row of §5, and it held until PR 4.11 (#746). `EgressGuard.Evaluate` records each decision and never throws or
+PR 3 row of §5; report-only by default held until PR 4.11 (#746), and opt-in refusal existed from PR 4.7 (#742). `EgressGuard.Evaluate` records each decision and never throws or
 blocks: it returns the decision, and the routes act on a refused one before they send (`ThrowIfRefused`): HTTP and
 governed MEAI routes since PR 4.7 (#742), explicit sites since PR 4.9 (#744).
 
@@ -639,8 +640,9 @@ answered on 2026-10-05 for PR 4; A, B and E are still open, and none blocked a m
 
   Both API reviewers on #706 called this the one hard-to-change item. PR 3a did not need it, because the guard
   classifies a destination by a fixed table instead of parsing it, so the question is still open. Option (a) landed
-  in #748 as `SecurityLabel.ParseOrPublic` (a design choice, not an owner answer); its receiver-side use is PR 5's
-  remaining work.
+  in #748 as `SecurityLabel.ParseOrPublic` (a design choice, not an owner answer), which `SubjectClearance.Resolve`
+  uses for the policy clearance (`SubjectClearance.cs:30`, its only production call). Wiring a production composition
+  path, and `CanRead` at the server seams, is PR 5's remaining work.
 
 - **B. `SystemHigh` versus today's `TopSecret` visibility.** Through the bridges, unlabelled data is `SystemHigh`,
   so only a `SystemHigh` clearance can read it, whereas today a `TopSecret` caller can. The bridges never give a
