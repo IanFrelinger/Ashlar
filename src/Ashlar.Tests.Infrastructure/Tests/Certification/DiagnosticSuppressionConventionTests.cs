@@ -38,25 +38,28 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// compiled into those projects from outside their directories too (the <c>Ashlar.Compat</c> polyfills
 /// linked by <c>Directory.Build.targets</c>), while an RS0016 pragma anywhere else is dead by definition.</para>
 ///
-/// <para><b>Rule 2 - a CS0618 or ASHLAREXP001 disable names what it is for, and that thing is still
-/// there.</b> A <c>#pragma warning disable</c> of either id - in any spelling the compiler accepts:
-/// any case, and for CS0618 the bare number too (<c>618</c>, <c>0618</c>), which Roslyn maps to
+/// <para><b>Rule 2 - a CS0618, ASHLAREXP001 or ASHLAREXP002 disable names what it is for, and that thing
+/// is still there.</b> A <c>#pragma warning disable</c> of any of these ids - in any spelling the compiler
+/// accepts: any case, and for CS0618 the bare number too (<c>618</c>, <c>0618</c>), which Roslyn maps to
 /// <c>CS0618</c> exactly as it does on <c>/nowarn</c> - must carry a trailing comment that names, as
 /// an exact identifier, a symbol this tree declares <c>[Obsolete]</c> (without <c>error: true</c>,
 /// which is CS0619, and without a <c>DiagnosticId</c>, which replaces CS0618) or <c>[Experimental]</c>
-/// with the ASHLAREXP001 id; at least one symbol it names must occur in the code the pragma governs
+/// with THAT id (<see cref="ExperimentalIds"/>: an ASHLAREXP001 symbol does not license an ASHLAREXP002
+/// disable, nor the reverse); at least one symbol it names must occur in the code the pragma governs
 /// (from the pragma to a matching restore, else to the end of the file) OUTSIDE a declaration that
 /// carries the same attribute - the compiler reports neither diagnostic inside an obsolete or
 /// experimental context, which is exactly why the two <c>Ashlar.Sdk/Legacy</c> pragmas below are
 /// dead; and the comment must carry a reason of at least <see cref="MinimumReasonWords"/> words
 /// besides the names. A disable that cannot carry such a comment is not allowed to stand in for one:
-/// a <c>[SuppressMessage]</c>/<c>[UnconditionalSuppressMessage]</c> naming either id, a
-/// <c>NoWarn</c> or <c>WarningsNotAsErrors</c> (element or attribute) listing either id in any MSBuild
+/// a <c>[SuppressMessage]</c>/<c>[UnconditionalSuppressMessage]</c> naming any of the ids, a
+/// <c>NoWarn</c> or <c>WarningsNotAsErrors</c> (element or attribute) listing one in any MSBuild
 /// file, and a <c>dotnet_diagnostic.&lt;id&gt;.severity</c> of none, silent or suggestion in any
 /// <c>.editorconfig</c>/<c>.globalconfig</c> are all Rule 2 violations. A project-wide disable names
 /// no symbol by construction, so each one that exists must be on
 /// <see cref="ReviewedProjectWideDisables"/>, which records why; that list fails in both directions
-/// too.</para>
+/// too. And a reviewed project-wide disable of an experimental id in a project file must still be live, the
+/// project-wide form of a dead pragma: some C# file under that project's directory names a symbol of that id
+/// outside the symbol's own declaration.</para>
 ///
 /// <para><b>Grandfathered, and why it is a ratchet rather than an exemption.</b> Eight existing disables
 /// fail Rule 2 and live in files this change does not own; <see cref="Grandfathered"/> lists each by
@@ -82,14 +85,29 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// bulk <c>dotnet_analyzer_diagnostic.*</c> settings for Rule 2. Rule 1 follows no imports beyond the
 /// <c>Directory.Build.*</c> chain, and an <c>// &lt;auto-generated/&gt;</c> header is out of scope.
 /// Code inside <c>#if</c> branches is scanned whether or not any build defines the symbol -
-/// over-approximating costs a red test, never a silent pass.</para>
+/// over-approximating costs a red test, never a silent pass. The liveness of a project-wide disable is
+/// lexical too, and reads a project as its directory: a file of a project nested inside it counts as a use,
+/// a file linked in from elsewhere does not, and the shared <c>Directory.Build.targets</c> opt-ins are not
+/// checked for liveness at all.</para>
 /// </summary>
 [Trait("Category", "Certification")]
 public sealed class DiagnosticSuppressionConventionTests
 {
     private const string ObsoleteId = "CS0618";
     private const string ExperimentalId = "ASHLAREXP001";
+    private const string SecurityExperimentalId = "ASHLAREXP002";
     private const string ApiAnalyzerPackage = "Microsoft.CodeAnalysis.PublicApiAnalyzers";
+
+    /// <summary>
+    /// Every <c>[Experimental]</c> id this convention governs, and the holder constant its declarations name it
+    /// by (a declaration that spells the id as a string literal counts as well). A new id gets a row here in the
+    /// change that introduces it, or its suppressions are not policed (docs/SdkCompatibilityPolicy.md).
+    /// </summary>
+    private static readonly (string Id, string Holder)[] ExperimentalIds =
+    [
+        (ExperimentalId, "AutonomyExperimental.DiagnosticId"),
+        (SecurityExperimentalId, "SecurityExperimental.DiagnosticId"),
+    ];
     private const string BrickContractsProject = "src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj";
 
     /// <summary>A comment must say why, not only what: this many words besides the names.</summary>
@@ -105,17 +123,20 @@ public sealed class DiagnosticSuppressionConventionTests
     // two forwarders is the normal end of a deprecation (docs/SdkCompatibilityPolicy.md) and must not
     // read as a broken parser. Removing the LAST [Obsolete] symbol in the tree legitimately yields 0;
     // lower this floor to 0 in that diff (the in-memory controls below still pin the parser).
+    // The ASHLAREXP002 floor was set when that id was applied (SPEC-007 decisions log, 2026-10-13): 23 type
+    // declarations carry it. An experimental type may be removed in any release, so it sits under that.
     private const int SourceFilesFloor = 2500;
     private const int MsBuildFilesFloor = 100;
     private const int ApiProjectsFloor = 6;
     private const int ExperimentalSymbolsFloor = 40;
+    private const int SecurityExperimentalSymbolsFloor = 20;
     private const int ObsoleteSymbolsFloor = 1;
     private const int DisablePragmasFloor = 10;
 
     private static readonly Regex ApiTrackingId = new(@"(?<![A-Za-z0-9])RS00(?:16|17|26|27)(?![0-9])",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    private static readonly Regex DeprecationIdInText = new(@"(?<![A-Za-z0-9])(?:CS0618|ASHLAREXP001)(?![A-Za-z0-9])",
+    private static readonly Regex DeprecationIdInText = new(@"(?<![A-Za-z0-9])(?:CS0618|ASHLAREXP00[12])(?![A-Za-z0-9])",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static readonly Regex PragmaLine = new(@"^\s*#\s*pragma\s+warning\s+(disable|restore)\b(.*)$",
@@ -193,12 +214,21 @@ public sealed class DiagnosticSuppressionConventionTests
     ];
 
     /// <summary>
-    /// Every project-wide disable of CS0618 or ASHLAREXP001 in the tree, keyed by file and exact setting
-    /// text. A project-wide disable covers every file its project compiles, so it cannot name a symbol;
+    /// Every project-wide disable of CS0618, ASHLAREXP001 or ASHLAREXP002 in the tree, keyed by file and exact
+    /// setting text. A project-wide disable covers every file its project compiles, so it cannot name a symbol;
     /// the reason lives here instead, and a new one needs a reviewed entry. Fails in both directions,
     /// like <see cref="Grandfathered"/>: an unlisted disable fails, and so does an entry whose setting
-    /// has been edited or deleted. Both below were measured on f0fd3fde and each carries its own comment
+    /// has been edited or deleted. The first two were measured on f0fd3fde and each carries its own comment
     /// in the file saying the same thing.
+    ///
+    /// <para>The ASHLAREXP002 entries are Ashlar's own consumers of the experimental security and
+    /// deployment-profile surface (docs/SdkCompatibilityPolicy.md#ashlarexp002). Measured when the id was
+    /// applied, by building Ashlar.sln and the commercial Fleet host tests with the diagnostic lowered to a
+    /// warning: 28 projects reported it, 12 test projects (covered by the Directory.Build.targets entry) and the
+    /// 16 project files below. The diagnostic exists for EXTERNAL consumers; these assemblies ship beside the
+    /// surface and change with it. A project file's entry must stay live (see the class summary), so the list
+    /// is also the inventory of the shipped assemblies that depend on the surface, which the release notes
+    /// disclose.</para>
     /// </summary>
     private static readonly (string Path, string Setting, string Why)[] ReviewedProjectWideDisables =
     [
@@ -211,6 +241,69 @@ public sealed class DiagnosticSuppressionConventionTests
             "<NoWarn>$(NoWarn);ASHLAREXP001</NoWarn>",
             "The spike IS a consumer of the experimental autonomy surface; it is outside Ashlar.sln and "
             + "every CI gate, and its output is a recorded run, not a shipped artifact."),
+        ("Directory.Build.targets",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Conditioned on IsTestProject, like the ASHLAREXP001 opt-in: the repo's own test projects exercise "
+            + "the experimental security and deployment-profile surface by design (12 did when it was applied)."),
+        ("src/Ashlar.Abstractions/Ashlar.Abstractions.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "The declaring assembly. Its internal enforcement types (EgressGuardHandler, EgressRedirectHandler, "
+            + "EgressEnforcement and the rest) implement the surface, and the compiler reports a use outside an "
+            + "experimental declaration in the declaring assembly too (measured: 84 sites in 8 files)."),
+        ("src/Ashlar.Core.Application/Ashlar.Core.Application.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "WorkflowExecutor keeps the first EgressRefusedException across a fallback chain, so a policy "
+            + "refusal is rethrown rather than lost to a later failure."),
+        ("src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Wires the egress guard into the outbound sites it owns (EgressHttp, EgressGuard, the decision log "
+            + "and its sinks) and reads AshlarResolvedDeploymentProfileOptions."),
+        ("src/Ashlar.Hosting/Ashlar.Hosting.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "AddAshlar registers the process guard (IEgressGuard, EgressGuard) and the resolved deployment profile "
+            + "(AshlarResolvedDeploymentProfileOptions)."),
+        ("src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Guards the model calls and labels what they read (EgressGuard, EgressSubject, SecurityLabel, "
+            + "AshlarResolvedDeploymentProfileOptions)."),
+        ("src/Ashlar.BackgroundAgents/Ashlar.BackgroundAgents.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Reports the labels its tools read and guards their egress (IEgressLabelledTool, ReadReporter, "
+            + "EgressSubject, SecurityLabel)."),
+        ("src/Ashlar.BackgroundAgents.HostRunners/Ashlar.BackgroundAgents.HostRunners.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Enters the subject's high-water mark around a self-extend run and guards its admission egress "
+            + "(EgressSubject, HighWaterMark, EgressGuard)."),
+        ("src/Ashlar.Manifest/Ashlar.Manifest.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Parses policy clearances and decides skill composition against them (SecurityLabel, "
+            + "SubjectClearance, AccessDecision)."),
+        ("src/Ashlar.Orchestration/Ashlar.Orchestration.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "AgentBus delivers a message outside the publisher's egress subject (EgressSubject.RunDetached)."),
+        ("src/Ashlar.Mcp.Client/Ashlar.Mcp.Client.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Builds its HTTP transport through the guard (EgressHttp, EgressFamilies)."),
+        ("src/Ashlar.Transport.A2A/Ashlar.Transport.A2A.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Builds its HTTP client through the guard (EgressHttp, EgressFamilies)."),
+        ("src/Ashlar.Transport.Grpc/Ashlar.Transport.Grpc.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Builds its channel's HTTP handler through the guard (EgressHttp, EgressFamilies)."),
+        ("src/Ashlar.Tools.Dev/Ashlar.Tools.Dev.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "DotnetRunner evaluates the process it launches (EgressGuard, EgressRequest, EgressFamilies)."),
+        ("application/src/Ashlar.API/Ashlar.API.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Guards the API host's outbound calls and enforces the profile's loopback rule (EgressHttp, "
+            + "EgressGuard, AshlarResolvedDeploymentProfileOptions)."),
+        ("application/src/Ashlar.CLI/Ashlar.CLI.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Guards the CLI's outbound and process sites and its mesh services (EgressGuard, EgressRequest, "
+            + "EgressHttp, AshlarResolvedDeploymentProfileOptions)."),
+        ("commercial/src/Ashlar.Commercial.MeshDirector/Ashlar.Commercial.MeshDirector.csproj",
+            "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>",
+            "Builds its HTTP client through the guard (EgressHttp, EgressFamilies)."),
     ];
 
     private static readonly Lazy<RepoTree> Tree = new(() => RepoTree.Load(RepoPathResolver.FindRepoRoot()));
@@ -301,9 +394,19 @@ public sealed class DiagnosticSuppressionConventionTests
     {
         var tree = Tree.Value;
         var symbols = tree.Symbols;
-        symbols.Experimental.Count.Should().BeGreaterThanOrEqualTo(ExperimentalSymbolsFloor,
+        var autonomy = symbols.Experimental[ExperimentalId];
+        var security = symbols.Experimental[SecurityExperimentalId];
+        autonomy.Count.Should().BeGreaterThanOrEqualTo(ExperimentalSymbolsFloor,
             "found {0} [Experimental({1})] names; below the stated floor of {2} the declaration parser is broken "
-            + "and every pragma would read as naming nothing", symbols.Experimental.Count, ExperimentalId, ExperimentalSymbolsFloor);
+            + "and every pragma would read as naming nothing", autonomy.Count, ExperimentalId, ExperimentalSymbolsFloor);
+        security.Count.Should().BeGreaterThanOrEqualTo(SecurityExperimentalSymbolsFloor,
+            "found {0} [Experimental({1})] names; below the stated floor of {2} the declaration parser is broken, or "
+            + "the surface the owner decided on 2026-10-13 is no longer marked (ExperimentalSecurityApiConventionTests)",
+            security.Count, SecurityExperimentalId, SecurityExperimentalSymbolsFloor);
+        security.Should().Contain(new[] { "SecurityLabel", "EgressGuard", "AshlarResolvedDeploymentProfileOptions" },
+            "these were declared [Experimental({0})] when it was applied. If they still are, the declaration parser "
+            + "does not read the SecurityExperimental holder", SecurityExperimentalId);
+        autonomy.Should().NotContain("SecurityLabel", "an ASHLAREXP002 declaration must not be read as ASHLAREXP001");
         symbols.Obsolete.Count.Should().BeGreaterThanOrEqualTo(ObsoleteSymbolsFloor,
             "found {0} CS0618 [Obsolete] names against a stated floor of {1}. If the tree still declares an "
             + "[Obsolete] symbol (without error: true or a DiagnosticId), the declaration parser is broken. If "
@@ -316,7 +419,7 @@ public sealed class DiagnosticSuppressionConventionTests
             + "another in-tree [Obsolete] symbol, or delete it together with the floor above");
         symbols.Obsolete.Should().NotContain("Mutate",
             "LiteDbAtomic.Mutate is [Obsolete(..., error: true)]: a use is CS0619, which a CS0618 disable cannot silence");
-        symbols.Experimental.Should().Contain(new[] { "TouchSet", "GenerationLineage", "Source", "Touch" },
+        autonomy.Should().Contain(new[] { "TouchSet", "GenerationLineage", "Source", "Touch" },
             "these were declared [Experimental(ASHLAREXP001)] when this anchor was written. If they still are, "
             + "the declaration parser is broken. If one graduated or was removed, point the anchor (and the "
             + "ObjectiveDocument.cs anchor below) at another experimental symbol in that diff");
@@ -346,14 +449,16 @@ public sealed class DiagnosticSuppressionConventionTests
             .ToList();
 
         unexpected.Should().BeEmpty(
-            "a CS0618/ASHLAREXP001 disable must name, as an exact identifier, an in-tree [Obsolete] or "
-            + "[Experimental({0})] symbol that the code it governs still uses outside that symbol's own "
-            + "context, and say why in at least {1} words. A dead disable silences the next use written "
-            + "into its file. {2} found:\n{3}", ExperimentalId, MinimumReasonWords, unexpected.Count, string.Join("\n", unexpected));
+            "a CS0618/ASHLAREXP001/ASHLAREXP002 disable must name, as an exact identifier, an in-tree [Obsolete] "
+            + "symbol or an [Experimental] symbol of the same id ({0}) that the code it governs still uses outside "
+            + "that symbol's own context, and say why in at least {1} words. A dead disable silences the next use "
+            + "written into its file. {2} found:\n{3}",
+            string.Join(", ", ExperimentalIds.Select(e => e.Id)), MinimumReasonWords, unexpected.Count, string.Join("\n", unexpected));
         stale.Should().BeEmpty("the grandfather list only shrinks, and each shrink is a reviewed diff:\n{0}",
             string.Join("\n", stale));
 
-        _output.WriteLine($"experimental-names={symbols.Experimental.Count} obsolete-names={symbols.Obsolete.Count} "
+        _output.WriteLine($"experimental-names={autonomy.Count} security-experimental-names={security.Count} "
+            + $"obsolete-names={symbols.Obsolete.Count} "
             + $"disable-pragmas={pragmas.Count} violations={found.Count} grandfathered={Grandfathered.Length}");
         foreach (var p in pragmas)
             _output.WriteLine($"  {p.Path}:{p.Line} disable {string.Join(",", p.Ids)}");
@@ -374,24 +479,31 @@ public sealed class DiagnosticSuppressionConventionTests
             .Concat(tree.AnalyzerConfigs.SelectMany(c => DeprecationAnalyzerConfigDisables(c.Path, c.Text)))
             .ToList();
 
-        // Non-vacuity is the stale direction: the two reviewed entries exist today, so a scan that stopped
-        // finding anything turns both of them stale and fails below.
+        // Non-vacuity is the stale direction: the reviewed entries exist today, so a scan that stopped
+        // finding anything turns all of them stale and fails below.
         var reviewed = ReviewedProjectWideDisables.Select(r => (r.Path, r.Setting)).ToHashSet();
         var unexpected = found.Where(v => !reviewed.Contains((v.Path, v.Pragma))).Select(v => v.Message).ToList();
         var seen = found.Select(v => (v.Path, v.Pragma)).ToHashSet();
         var stale = ReviewedProjectWideDisables.Where(r => !seen.Contains((r.Path, r.Setting)))
             .Select(r => $"{r.Path}: '{r.Setting}' is on the reviewed list but no longer found; delete its entry")
             .ToList();
+        var dead = ReviewedProjectWideDisables
+            .SelectMany(r => DeadProjectWideDisables(r.Path, r.Setting, tree.Sources, tree.Symbols))
+            .ToList();
 
         unexpected.Should().BeEmpty(
-            "a project-wide disable of {0} or {1} silences every use in every file the project compiles, so it "
+            "a project-wide disable of {0}, {1} silences every use in every file the project compiles, so it "
             + "cannot name the symbol it is for or say why. Use a scoped '#pragma warning disable' that names "
             + "the symbol and gives a reason (Rule 2), or, if the whole project genuinely consumes the surface, "
             + "add a ReviewedProjectWideDisables entry that says why. {2} found:\n{3}",
-            ObsoleteId, ExperimentalId, unexpected.Count, string.Join("\n", unexpected));
+            ObsoleteId, string.Join(" or ", ExperimentalIds.Select(e => e.Id)), unexpected.Count, string.Join("\n", unexpected));
         stale.Should().BeEmpty("the reviewed list must match the tree exactly:\n{0}", string.Join("\n", stale));
+        dead.Should().BeEmpty(
+            "a reviewed project-wide disable that governs no use is the project-wide form of a dead pragma: it "
+            + "silences the next use written into the project on arrival. {0} found:\n{1}",
+            dead.Count, string.Join("\n", dead));
 
-        _output.WriteLine($"project-wide-disables={found.Count} reviewed={ReviewedProjectWideDisables.Length}");
+        _output.WriteLine($"project-wide-disables={found.Count} reviewed={ReviewedProjectWideDisables.Length} dead={dead.Count}");
         foreach (var v in found)
             _output.WriteLine($"  {v.Message}");
     }
@@ -550,6 +662,23 @@ public sealed class DiagnosticSuppressionConventionTests
         }
         """;
 
+    /// <summary>The ASHLAREXP002 holder spelling, and a declaration that spells the id as a literal.</summary>
+    private const string SecurityExperimentalDeclarations = """
+        namespace Ashlar.Abstractions.Security;
+
+        [Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
+        public sealed class SecurityLabel
+        {
+            public static SecurityLabel Public { get; } = new();
+        }
+
+        [Experimental("ASHLAREXP002")]
+        public static class ReferenceMonitor
+        {
+            public static bool CanRead(SecurityLabel clearance, SecurityLabel data) => true;
+        }
+        """;
+
     /// <summary>
     /// The shipped pragma as written, and in the bare-number spellings the compiler reads as the same id
     /// (Roslyn turns a numeric pragma id into "CS" + the number padded to four digits).
@@ -609,9 +738,21 @@ public sealed class DiagnosticSuppressionConventionTests
     [InlineData("#pragma warning disable CS0618 // AshlarSdkBuilder: pins the forwarding constructor\n#pragma warning restore 0618\nvar b = new AshlarSdkBuilder(options);\n", "dead")]
     // Other numbers are other ids: CS8618 and CS6180 are not CS0618, so Rule 2 has nothing to say.
     [InlineData("#pragma warning disable 8618, 6180\nvar b = new AshlarSdkBuilder(options);\n", null)]
+    // ASHLAREXP002 is judged like ASHLAREXP001, against its own symbols: through the holder or a literal id.
+    [InlineData("#pragma warning disable ASHLAREXP002 // SecurityLabel: the bridge stamps the experimental label by design\nvar l = SecurityLabel.Public;\n", null)]
+    [InlineData("#pragma warning disable ashlarexp002 // ReferenceMonitor: the gate asks the experimental monitor by design\nvar ok = ReferenceMonitor.CanRead(a, b);\n", null)]
+    [InlineData("#pragma warning disable ASHLAREXP002\nvar l = SecurityLabel.Public;\n", "no comment")]
+    [InlineData("#pragma warning disable ASHLAREXP002 // SecurityLabel\nvar l = SecurityLabel.Public;\n", "reason")]
+    [InlineData("#pragma warning disable ASHLAREXP002 // SecurityLabel: the bridge stamps the experimental label by design\n#pragma warning restore ASHLAREXP002\nvar l = SecurityLabel.Public;\n", "dead")]
+    // One id's symbol does not license the other id's disable, in either direction.
+    [InlineData("#pragma warning disable ASHLAREXP002 // TouchSet: the gate enforces the experimental contract by design\nvar t = new TouchSet(paths);\n", "names no")]
+    [InlineData("#pragma warning disable ASHLAREXP001 // SecurityLabel: the bridge stamps the experimental label by design\nvar l = SecurityLabel.Public;\n", "names no")]
+    // A disable naming both experimental ids must satisfy each with its own symbol.
+    [InlineData("#pragma warning disable ASHLAREXP001, ASHLAREXP002 // TouchSet, SecurityLabel: the gate stamps both experimental contracts\nvar t = new TouchSet(paths);\nvar l = SecurityLabel.Public;\n", null)]
+    [InlineData("#pragma warning disable ASHLAREXP001, ASHLAREXP002 // TouchSet: the gate enforces the experimental contract by design\nvar t = new TouchSet(paths);\n", "ASHLAREXP002: names no")]
     public void A_deprecation_disable_is_judged_on_name_liveness_and_reason(string source, string? expected)
     {
-        var violations = Rule2(source, ForwarderAsShipped, ExperimentalDeclarations);
+        var violations = Rule2(source, ForwarderAsShipped, ExperimentalDeclarations, SecurityExperimentalDeclarations);
 
         if (expected is null)
             violations.Should().BeEmpty("this disable names a live symbol and says why:\n{0}", source);
@@ -625,6 +766,9 @@ public sealed class DiagnosticSuppressionConventionTests
     [InlineData("[UnconditionalSuppressMessage(\"Usage\",\n    \"cs0618\")]\npublic void M() { }", true)]
     [InlineData("[SuppressMessage(\"Usage\", \"CS8618:Non-nullable field\")]\npublic void M() { }", false)]
     [InlineData("[SuppressMessage(\"Usage\", \"ASHLAREXP0010\")]\npublic void M() { }", false)]
+    [InlineData("[assembly: SuppressMessage(\"Usage\", \"ashlarexp002:experimental\")]", true)]
+    [InlineData("[SuppressMessage(\"Usage\", \"ASHLAREXP0020\")]\npublic void M() { }", false)]
+    [InlineData("[SuppressMessage(\"Usage\", \"ASHLAREXP003\")]\npublic void M() { }", false)]
     [InlineData("// [SuppressMessage(\"Usage\", \"CS0618\")]\npublic void M() { }", false)]
     [InlineData("var s = \"[SuppressMessage(\\\"Usage\\\", \\\"CS0618\\\")]\";", false)]
     public void A_suppress_attribute_naming_a_deprecation_id_is_caught_and_only_then(string source, bool caught)
@@ -642,9 +786,14 @@ public sealed class DiagnosticSuppressionConventionTests
     [InlineData("<Project><PropertyGroup Condition=\"'$(IsTestProject)' == 'true'\"><NoWarn>$(NoWarn);ashlarexp001</NoWarn></PropertyGroup></Project>", true)]
     [InlineData("<Project><PropertyGroup><WarningsNotAsErrors>$(WarningsNotAsErrors);CS0618</WarningsNotAsErrors></PropertyGroup></Project>", true)]
     [InlineData("<Project><ItemGroup><PackageReference Include=\"X\" NoWarn=\"618\" /></ItemGroup></Project>", true)]
+    [InlineData("<Project><PropertyGroup><NoWarn>$(NoWarn);ASHLAREXP002</NoWarn></PropertyGroup></Project>", true)]
+    [InlineData("<Project><PropertyGroup><NoWarn>1591, ashlarexp002</NoWarn></PropertyGroup></Project>", true)]
+    [InlineData("<Project><PropertyGroup><WarningsNotAsErrors>ASHLAREXP002</WarningsNotAsErrors></PropertyGroup></Project>", true)]
+    [InlineData("<Project><ItemGroup><ProjectReference Include=\"X.csproj\" NoWarn=\"ASHLAREXP002\" /></ItemGroup></Project>", true)]
     // Other ids, and settings that strengthen rather than disable.
     [InlineData("<Project><PropertyGroup><NoWarn>$(NoWarn);1591;CS8618;RS0036;RS0037</NoWarn></PropertyGroup></Project>", false)]
     [InlineData("<Project><PropertyGroup><NoWarn>$(NoWarn);6180;ASHLAREXP0010;CS06180</NoWarn></PropertyGroup></Project>", false)]
+    [InlineData("<Project><PropertyGroup><NoWarn>$(NoWarn);ASHLAREXP0020;ASHLAREXP003</NoWarn></PropertyGroup></Project>", false)]
     [InlineData("<Project><PropertyGroup><WarningsAsErrors>CS0618;ASHLAREXP001</WarningsAsErrors></PropertyGroup></Project>", false)]
     [InlineData("<Project><!-- <NoWarn>$(NoWarn);CS0618</NoWarn> --></Project>", false)]
     public void An_msbuild_disable_of_a_deprecation_id_is_caught_and_only_then(string xml, bool caught)
@@ -660,10 +809,48 @@ public sealed class DiagnosticSuppressionConventionTests
     [InlineData("[*.cs]\ndotnet_diagnostic.CS0618.severity = error", false)]
     [InlineData("[*.cs]\n# dotnet_diagnostic.CS0618.severity = none", false)]
     [InlineData("[*.cs]\ndotnet_diagnostic.CS8618.severity = none", false)]
+    [InlineData("[*.cs]\ndotnet_diagnostic.ASHLAREXP002.severity = none", true)]
+    [InlineData("[src/**.cs]\ndotnet_diagnostic.ashlarexp002.severity = silent", true)]
+    [InlineData("[*.cs]\ndotnet_diagnostic.ASHLAREXP002.severity = error", false)]
     public void An_analyzer_config_disable_of_a_deprecation_id_is_caught_and_only_then(string text, bool caught)
     {
         var problems = DeprecationAnalyzerConfigDisables("fixture/.editorconfig", text).ToList();
         (problems.Count > 0).Should().Be(caught, "config:\n{0}\nproblems: {1}", text, string.Join("; ", problems.Select(p => p.Message)));
+    }
+
+    [Theory]
+    // A use under the project's directory, outside the symbol's own declaration: live.
+    [InlineData("fixture/P/Uses.cs", "var l = SecurityLabel.Public;\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", false)]
+    // The only mention is in a comment or a string: dead.
+    [InlineData("fixture/P/Mentions.cs", "// SecurityLabel\nvar s = \"SecurityLabel\";\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", true)]
+    // The only use is in a sibling project's directory: dead for this one.
+    [InlineData("fixture/Q/Uses.cs", "var l = SecurityLabel.Public;\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", true)]
+    // The only use is of the OTHER experimental id's symbol: dead for this id.
+    [InlineData("fixture/P/Uses.cs", "var t = new TouchSet(paths);\n", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", true)]
+    // Each id a setting lists must be live on its own.
+    [InlineData("fixture/P/Uses.cs", "var l = SecurityLabel.Public;\n", "<NoWarn>$(NoWarn);ASHLAREXP001;ASHLAREXP002</NoWarn>", true)]
+    // CS0618 has no project-wide liveness rule (its symbols may be declared outside the tree).
+    [InlineData("fixture/P/Uses.cs", "var x = 1;\n", "<NoWarn>$(NoWarn);CS0618</NoWarn>", false)]
+    public void A_project_wide_experimental_disable_that_governs_no_use_is_dead(string file, string source, string setting, bool dead)
+    {
+        var files = new List<SourceFile>
+        {
+            SourceFile.Parse(file, source),
+            SourceFile.Parse("fixture/Decl/Autonomy.cs", ExperimentalDeclarations),
+            SourceFile.Parse("fixture/Decl/Security.cs", SecurityExperimentalDeclarations),
+        };
+        var problems = DeadProjectWideDisables("fixture/P/P.csproj", setting, files, DeclaredSymbols.Collect(files)).ToList();
+
+        (problems.Count > 0).Should().Be(dead, "file {0}:\n{1}\nsetting {2}\nproblems: {3}", file, source, setting,
+            string.Join("; ", problems));
+    }
+
+    [Fact]
+    public void A_shared_msbuild_file_is_not_judged_for_liveness()
+    {
+        var files = new List<SourceFile> { SourceFile.Parse("fixture/Decl/Security.cs", SecurityExperimentalDeclarations) };
+        DeadProjectWideDisables("Directory.Build.targets", "<NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>", files,
+            DeclaredSymbols.Collect(files)).Should().BeEmpty("it governs every project below it, which a directory scan cannot tell apart");
     }
 
     [Fact]
@@ -699,7 +886,7 @@ public sealed class DiagnosticSuppressionConventionTests
             if (pragma.Ids.Count == 0)
             {
                 yield return $"{file.Path}:{pragma.Line}: a bare '#pragma warning disable' switches off every diagnostic "
-                    + "in the file, public-API tracking and CS0618/ASHLAREXP001 included; name the ids";
+                    + "in the file, public-API tracking and CS0618/ASHLAREXP001/ASHLAREXP002 included; name the ids";
                 continue;
             }
 
@@ -780,11 +967,11 @@ public sealed class DiagnosticSuppressionConventionTests
         foreach (var pragma in Pragmas(file).Where(p => p.Disable))
         {
             var problems = new List<string>();
-            foreach (var id in pragma.Ids.Where(id => id is ObsoleteId or ExperimentalId).Distinct())
+            foreach (var id in pragma.Ids.Where(IsGovernedId).Distinct())
             {
                 var obsolete = id == ObsoleteId;
-                var declared = obsolete ? symbols.Obsolete : symbols.Experimental;
-                var attribute = obsolete ? "[Obsolete]" : $"[Experimental({ExperimentalId})]";
+                var declared = obsolete ? symbols.Obsolete : symbols.Experimental[id];
+                var attribute = obsolete ? "[Obsolete]" : $"[Experimental({id})]";
                 if (pragma.Comment.Length == 0)
                 {
                     problems.Add($"{id}: carries no comment; name the {attribute} symbol it is for and say why");
@@ -799,7 +986,7 @@ public sealed class DiagnosticSuppressionConventionTests
                     continue;
                 }
 
-                var spans = obsolete ? file.ObsoleteSpans : file.ExperimentalSpans;
+                var spans = file.SpansFor(id);
                 if (!named.Any(symbol => IsUsed(file, symbol, pragma.RegionStart, RegionEnd(file, pragma, id), spans)))
                     problems.Add($"{id}: is dead - {string.Join(", ", named)} is not used outside its own {attribute} context "
                         + "between this line and its restore (or the end of the file)");
@@ -817,7 +1004,7 @@ public sealed class DiagnosticSuppressionConventionTests
     }
 
     /// <summary>
-    /// A [SuppressMessage]/[UnconditionalSuppressMessage] naming CS0618 or ASHLAREXP001. It has no place
+    /// A [SuppressMessage]/[UnconditionalSuppressMessage] naming CS0618, ASHLAREXP001 or ASHLAREXP002. It has no place
     /// for the named symbol and reason Rule 2 requires, so it is refused whether or not a given compiler
     /// honours it for a compiler diagnostic: a scoped pragma says the same thing and can be checked.
     /// </summary>
@@ -841,8 +1028,8 @@ public sealed class DiagnosticSuppressionConventionTests
 
     /// <summary>
     /// NoWarn / WarningsNotAsErrors, as an element or an attribute, listing CS0618 (any spelling the
-    /// compiler accepts: <c>CS0618</c>, <c>618</c>, <c>0618</c>, any case) or ASHLAREXP001. The key is the
-    /// exact setting text, so a reviewed entry survives a line move but not an edit.
+    /// compiler accepts: <c>CS0618</c>, <c>618</c>, <c>0618</c>, any case), ASHLAREXP001 or ASHLAREXP002. The
+    /// key is the exact setting text, so a reviewed entry survives a line move but not an edit.
     /// </summary>
     private static IEnumerable<Violation> DeprecationMsBuildDisables(string path, XDocument doc)
     {
@@ -882,7 +1069,7 @@ public sealed class DiagnosticSuppressionConventionTests
         }
     }
 
-    /// <summary>A dotnet_diagnostic.&lt;id&gt;.severity of none, silent or suggestion for CS0618 or ASHLAREXP001.</summary>
+    /// <summary>A dotnet_diagnostic.&lt;id&gt;.severity of none, silent or suggestion for CS0618, ASHLAREXP001 or ASHLAREXP002.</summary>
     private static IEnumerable<Violation> DeprecationAnalyzerConfigDisables(string path, string text)
     {
         var lines = text.Replace("\r\n", "\n").Split('\n');
@@ -893,17 +1080,54 @@ public sealed class DiagnosticSuppressionConventionTests
                 continue;
 
             var diagnostic = DiagnosticSeverity.Match(line);
-            if (diagnostic.Success && NormalizeId(diagnostic.Groups["id"].Value) is ObsoleteId or ExperimentalId
+            if (diagnostic.Success && IsGovernedId(NormalizeId(diagnostic.Groups["id"].Value))
                 && WeakSeverity.IsMatch(diagnostic.Groups["sev"].Value))
                 yield return new Violation(path, line, $"{path}:{i + 1}: '{line}' disables {NormalizeId(diagnostic.Groups["id"].Value)} "
                     + "for every file the config applies to");
         }
     }
 
+    /// <summary>
+    /// A reviewed project-wide disable of an experimental id, in a project file, that governs no use: no C# file
+    /// under the project's directory names a symbol of that id outside the symbol's own declaration. It is the
+    /// project-wide form of a dead pragma. A shared <c>Directory.Build.*</c> file is not judged (it governs every
+    /// project below it, which a directory scan cannot tell apart), and CS0618 is not judged (an obsolete API a
+    /// project uses may be declared outside this tree).
+    /// </summary>
+    private static IEnumerable<string> DeadProjectWideDisables(string path, string setting, IReadOnlyList<SourceFile> sources,
+        DeclaredSymbols symbols)
+    {
+        if (!path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            yield break;
+
+        var dir = DirectoryOf(path);
+        var files = sources.Where(s => dir.Length == 0 || s.Path.StartsWith(dir + "/", StringComparison.Ordinal)).ToList();
+        foreach (var id in DeprecationIdsInList(SettingValue(setting)).Where(id => id != ObsoleteId))
+        {
+            var declared = symbols.Experimental[id];
+            if (!files.Any(f => declared.Any(symbol => IsUsed(f, symbol, 0, f.Bare.Length, f.SpansFor(id)))))
+                yield return $"{path}: '{setting}' disables {id}, but no C# file under {dir}/ uses an [Experimental({id})] "
+                    + "symbol outside its own declaration; delete the setting and its ReviewedProjectWideDisables entry";
+        }
+    }
+
+    /// <summary>The id list inside a setting as <see cref="DeprecationMsBuildDisables"/> keys it: an element's text or an attribute's value.</summary>
+    private static string SettingValue(string setting)
+    {
+        var element = Regex.Match(setting, @"^<(?<name>\w+)>(?<value>.*)</\k<name>>$", RegexOptions.Singleline | RegexOptions.CultureInvariant);
+        if (element.Success)
+            return element.Groups["value"].Value;
+        var attribute = Regex.Match(setting, "=\"(?<value>[^\"]*)\"$", RegexOptions.CultureInvariant);
+        return attribute.Success ? attribute.Groups["value"].Value : "";
+    }
+
+    private static bool IsGovernedId(string id) =>
+        id == ObsoleteId || ExperimentalIds.Any(e => string.Equals(e.Id, id, StringComparison.Ordinal));
+
     private static List<string> DeprecationIdsInList(string list) =>
         list.Split([';', ',', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Select(NormalizeId)
-            .Where(id => id is ObsoleteId or ExperimentalId)
+            .Where(IsGovernedId)
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
@@ -980,7 +1204,10 @@ public sealed class DiagnosticSuppressionConventionTests
     private sealed class DeclaredSymbols
     {
         public HashSet<string> Obsolete { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> Experimental { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>The names declared <c>[Experimental]</c>, per id in <see cref="ExperimentalIds"/>.</summary>
+        public Dictionary<string, HashSet<string>> Experimental { get; } =
+            ExperimentalIds.ToDictionary(e => e.Id, _ => new HashSet<string>(StringComparer.Ordinal), StringComparer.Ordinal);
 
         public static DeclaredSymbols Collect(IEnumerable<SourceFile> files)
         {
@@ -991,7 +1218,7 @@ public sealed class DiagnosticSuppressionConventionTests
                 {
                     if (declaration.Name is null)
                         continue;
-                    (declaration.Obsolete ? symbols.Obsolete : symbols.Experimental).Add(declaration.Name);
+                    (declaration.Id == ObsoleteId ? symbols.Obsolete : symbols.Experimental[declaration.Id]).Add(declaration.Name);
                 }
             }
 
@@ -999,7 +1226,8 @@ public sealed class DiagnosticSuppressionConventionTests
         }
     }
 
-    private sealed record Declaration(string? Name, bool Obsolete, int Start, int End);
+    /// <summary>A declaration carrying a CS0618 [Obsolete] (<see cref="Id"/> is CS0618) or an [Experimental] of a governed id.</summary>
+    private sealed record Declaration(string? Name, string Id, int Start, int End);
 
     private sealed class SourceFile
     {
@@ -1018,8 +1246,6 @@ public sealed class DiagnosticSuppressionConventionTests
 
             LineStarts = starts.ToArray();
             Declarations = ReadDeclarations(this).ToList();
-            ObsoleteSpans = Declarations.Where(d => d.Obsolete).Select(d => (d.Start, d.End)).ToList();
-            ExperimentalSpans = Declarations.Where(d => !d.Obsolete).Select(d => (d.Start, d.End)).ToList();
         }
 
         public string Path { get; }
@@ -1035,12 +1261,12 @@ public sealed class DiagnosticSuppressionConventionTests
 
         public int[] LineStarts { get; }
 
-        /// <summary>Declarations carrying a CS0618 [Obsolete] or an ASHLAREXP001 [Experimental].</summary>
+        /// <summary>Declarations carrying a CS0618 [Obsolete] or an [Experimental] of an id in <see cref="ExperimentalIds"/>.</summary>
         public IReadOnlyList<Declaration> Declarations { get; }
 
-        public IReadOnlyList<(int Start, int End)> ObsoleteSpans { get; }
-
-        public IReadOnlyList<(int Start, int End)> ExperimentalSpans { get; }
+        /// <summary>The extents of this file's declarations attributed with <paramref name="id"/>: its obsolete or experimental context.</summary>
+        public IReadOnlyList<(int Start, int End)> SpansFor(string id) =>
+            Declarations.Where(d => d.Id == id).Select(d => (d.Start, d.End)).ToList();
 
         public static SourceFile Parse(string path, string raw)
         {
@@ -1077,25 +1303,27 @@ public sealed class DiagnosticSuppressionConventionTests
                 }
             }
 
-            bool obsolete;
+            string id;
             if (m.Groups["kind"].Value == "Obsolete")
             {
                 // error: true makes it CS0619; a DiagnosticId replaces CS0618. Read on the blanked text so
                 // a message containing the word "true" cannot flip it.
                 if (Regex.IsMatch(argsBare, @"\btrue\b") || Regex.IsMatch(argsBare, @"\bDiagnosticId\s*="))
                     continue;
-                obsolete = true;
+                id = ObsoleteId;
             }
             else
             {
-                if (!argsCode.Contains("AutonomyExperimental.DiagnosticId", StringComparison.Ordinal)
-                    && !argsCode.Contains("\"" + ExperimentalId + "\"", StringComparison.Ordinal))
+                var governed = ExperimentalIds.FirstOrDefault(e =>
+                    argsCode.Contains(e.Holder, StringComparison.Ordinal)
+                    || argsCode.Contains("\"" + e.Id + "\"", StringComparison.Ordinal));
+                if (governed.Id is null)
                     continue;
-                obsolete = false;
+                id = governed.Id;
             }
 
             var (name, end) = ReadDeclaration(bare, sectionClose + 1);
-            yield return new Declaration(name, obsolete, sectionOpen, end);
+            yield return new Declaration(name, id, sectionOpen, end);
         }
     }
 
