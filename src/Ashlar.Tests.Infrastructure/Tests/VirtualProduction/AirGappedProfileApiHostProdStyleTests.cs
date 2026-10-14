@@ -1,4 +1,6 @@
 using System.Net;
+using Ashlar.Infrastructure;
+using Ashlar.Mcp.Server;
 using Microsoft.Extensions.Logging;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
@@ -64,7 +66,7 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             }
         });
 
-    private static async Task<Exception> BootFailureAsync(WebApplicationFactory<Program> factory)
+    private static async Task<Exception> BootFailureAsync(WebApplicationFactory<Program> factory, StartupFailureRecorder startup, Type optionsType, bool forceDisposalRace = false)
     {
         var act = () =>
         {
@@ -72,7 +74,12 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             return Task.CompletedTask;
         };
 
-        return (await act.Should().ThrowAsync<Exception>("the host must not boot")).Which;
+        var observed = (await act.Should().ThrowAsync<Exception>("the host must not boot")).Which;
+        if (forceDisposalRace) observed.Should().BeOfType<ObjectDisposedException>();
+        var recorded = startup.Failure.Task.IsCompletedSuccessfully ? startup.Failure.Task.Result : null;
+        var failure = AuthenticOptionsFailure(observed, recorded, optionsType);
+        failure.Should().NotBeNull("this host must supply its genuine typed startup validation failure; observed: {0}; recorded: {1}", observed, recorded);
+        return failure!;
     }
 
     [Fact(Timeout = TestTimeouts.HostTouching)]
@@ -101,23 +108,16 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
     public async Task Airgapped_profile_refuses_protocol_enablement_at_boot()
     {
         using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "airgapped");
+        var startup = new StartupFailureRecorder();
         using var factory = CreateFactory(new Dictionary<string, string?>
         {
             ["Ashlar:Mcp:Server:Enabled"] = "true",
-        });
+        }, startup);
 
-        var act = () =>
-        {
-            using var client = factory.CreateClient();
-            return Task.CompletedTask;
-        };
-
-        // The MCP validator's text, not only "AirGapped": a listener refusal also names the profile, and this twin must
-        // not pass for that reason (its urls are loopback, so none is expected).
-        (await act.Should().ThrowAsync<Exception>("ValidateOnStart must stop the host"))
-            .Which.ToString().Should().Contain("is not permitted under the AirGapped deployment profile");
+        // Match MCP's own validator, so an unrelated listener refusal cannot pass this test.
+        var failure = await BootFailureAsync(factory, startup, typeof(AshlarMcpServerOptions));
+        failure.ToString().Should().Contain("is not permitted under the AirGapped deployment profile");
     }
-
     [Theory(Timeout = TestTimeouts.HostTouching)]
     [InlineData("airgapped", "urls", "http://0.0.0.0:5000", "AirGapped")]
     [InlineData("airgapped", "urls", "http://+:80", "AirGapped")]
@@ -126,9 +126,10 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
     public async Task A_non_loopback_listener_fails_boot(string profileValue, string key, string value, string display)
     {
         using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", profileValue);
-        using var factory = CreateFactory(new Dictionary<string, string?> { [key] = value });
+        var startup = new StartupFailureRecorder();
+        using var factory = CreateFactory(new Dictionary<string, string?> { [key] = value }, startup);
 
-        var failure = await BootFailureAsync(factory);
+        var failure = await BootFailureAsync(factory, startup, typeof(AshlarInboundListenerOptions));
 
         failure.ToString().Should().Contain("loopback").And.Contain(display).And.Contain(value);
     }
@@ -139,9 +140,10 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
         using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "airgapped");
         // http_ports applies only while urls is unset, and binds every interface. A port the devtest image's
         // ASPNETCORE_HTTP_PORTS=8080 cannot supply, so the refusal is this setting's, not the environment's.
-        using var factory = CreateFactory(new Dictionary<string, string?> { ["urls"] = null, ["http_ports"] = "18080" });
+        var startup = new StartupFailureRecorder();
+        using var factory = CreateFactory(new Dictionary<string, string?> { ["urls"] = null, ["http_ports"] = "18080" }, startup);
 
-        var failure = await BootFailureAsync(factory);
+        var failure = await BootFailureAsync(factory, startup, typeof(AshlarInboundListenerOptions));
 
         failure.ToString().Should().Contain("http://*:18080").And.Contain("AirGapped");
     }
@@ -162,12 +164,13 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
     public async Task SecureWorkstation_refuses_MCP_over_HTTP_at_boot()
     {
         using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        var startup = new StartupFailureRecorder();
         using var factory = CreateFactory(new Dictionary<string, string?>
         {
             ["Ashlar:Mcp:Server:Enabled"] = "true",
-        });
+        }, startup);
 
-        var failure = await BootFailureAsync(factory);
+        var failure = await BootFailureAsync(factory, startup, typeof(AshlarMcpServerOptions));
 
         failure.ToString().Should().Contain("MCP over HTTP").And.Contain("SecureWorkstation");
     }
@@ -242,8 +245,6 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
 
     [Theory(Timeout = TestTimeouts.HostTouching)]
     [InlineData("airgapped", "ports", "http://*:18080")]
-    [InlineData("airgapped", "mcp", "is not permitted under the AirGapped deployment profile")]
-    [InlineData("secure-workstation", "mcp", "MCP over HTTP")]
     public async Task Api_startup_refusal_survives_deferred_observer_disposal(string profileValue, string kind, string expected)
     {
         using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", profileValue);
@@ -252,11 +253,36 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             ? new Dictionary<string, string?> { ["urls"] = null, ["http_ports"] = "18080" }
             : new Dictionary<string, string?> { ["Ashlar:Mcp:Server:Enabled"] = "true" };
         using var factory = CreateFactory(settings, startup, forceDisposalRace: true);
-        var failure = await BootFailureAsync(factory);
+        var failure = await BootFailureAsync(factory, startup, kind == "ports" ? typeof(AshlarInboundListenerOptions) : typeof(AshlarMcpServerOptions), forceDisposalRace: true);
         failure.Should().BeOfType<OptionsValidationException>();
         failure.ToString().Should().Contain(expected);
     }
 
+    private static OptionsValidationException? AuthenticOptionsFailure(Exception observed, Exception? recorded, Type optionsType)
+    {
+        // Recover only WAF's disposal mask, using this host's actual startup-fault event.
+        var candidate = observed is ObjectDisposedException ? recorded : observed;
+        return candidate is OptionsValidationException validation && validation.OptionsType == optionsType
+            ? validation : null;
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("wrong-type")]
+    [InlineData("wrong-options")]
+    [InlineData("unrelated-observed")]
+    public void Api_disposal_without_authentic_options_failure_is_not_a_refusal(string invalid)
+    {
+        Exception observed = invalid == "unrelated-observed" ? new IOException("unrelated") : new ObjectDisposedException("IServiceProvider");
+        Exception? recorded = invalid switch
+        {
+            "missing" => null,
+            "wrong-type" => new IOException("loopback"),
+            "wrong-options" => new OptionsValidationException(Options.DefaultName, typeof(string), ["loopback"]),
+            _ => new OptionsValidationException(Options.DefaultName, typeof(AshlarInboundListenerOptions), ["loopback"]),
+        };
+        AuthenticOptionsFailure(observed, recorded, typeof(AshlarInboundListenerOptions)).Should().BeNull();
+    }
     private sealed class ObservedFactory<T>(StartupFailureRecorder startup, bool forceDisposalRace)
         : WebApplicationFactory<T> where T : class
     {
