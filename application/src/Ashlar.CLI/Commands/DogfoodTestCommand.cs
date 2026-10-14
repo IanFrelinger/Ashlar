@@ -27,7 +27,7 @@ internal static class DogfoodTestCommand
         {
             var json = ctx.ParseResult.GetValueForOption(jsonOpt);
             var verbose = ctx.ParseResult.GetValueForOption(verboseOpt);
-            Environment.Exit(await ExecuteAsync(name, filter, json, verbose));
+            EgressCliInvocation.Exit(await ExecuteAsync(name, filter, json, verbose));
         });
         return cmd;
     }

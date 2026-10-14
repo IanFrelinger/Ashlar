@@ -26,7 +26,7 @@ public sealed class DogfoodCommand : Command
         block1Cmd.SetHandler(async (InvocationContext ctx) =>
         {
             var json = ctx.ParseResult.GetValueForOption(jsonOpt);
-            Environment.Exit(await DogfoodBlock1Command.ExecuteAsync(json));
+            EgressCliInvocation.Exit(await DogfoodBlock1Command.ExecuteAsync(json));
         });
         AddCommand(block1Cmd);
 
@@ -49,7 +49,7 @@ public sealed class DogfoodCommand : Command
         {
             var json = ctx.ParseResult.GetValueForOption(jsonOpt);
             var verbose = ctx.ParseResult.GetValueForOption(verboseOpt);
-            Environment.Exit(await DogfoodAllCommand.ExecuteAsync(json, verbose));
+            EgressCliInvocation.Exit(await DogfoodAllCommand.ExecuteAsync(json, verbose));
         });
         AddCommand(allCmd);
     }

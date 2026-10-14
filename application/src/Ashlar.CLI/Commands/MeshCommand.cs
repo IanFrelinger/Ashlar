@@ -129,7 +129,7 @@ public sealed class MeshCommand : Command
         // ashlar mesh lan — who's at the party. Reads the peer table the daemon's F3 multicast
         // discovery persists (mesh-peers.json under the state dir); read-only, safe beside a live node.
         var lanCmd = new Command("lan", "List peers discovered on the local network (F3 multicast beacon)");
-        lanCmd.SetHandler(() => Environment.Exit(ExecuteLan(Console.Out)));
+        lanCmd.SetHandler(() => EgressCliInvocation.Exit(ExecuteLan(Console.Out)));
         AddCommand(lanCmd);
 
         this.SetHandler(async (InvocationContext ctx) =>

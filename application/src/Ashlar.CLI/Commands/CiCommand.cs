@@ -21,7 +21,7 @@ public sealed class CiCommand : Command
         verifyCmd.SetHandler(async (InvocationContext ctx) =>
         {
             var exitCode = await ExecuteVerifyAsync();
-            Environment.Exit(exitCode);
+            EgressCliInvocation.Exit(exitCode);
         });
         AddCommand(verifyCmd);
 
@@ -29,7 +29,7 @@ public sealed class CiCommand : Command
         runtimeGateCmd.SetHandler(async (InvocationContext ctx) =>
         {
             var exitCode = await ExecuteRuntimeGateAsync();
-            Environment.Exit(exitCode);
+            EgressCliInvocation.Exit(exitCode);
         });
         AddCommand(runtimeGateCmd);
 
@@ -37,7 +37,7 @@ public sealed class CiCommand : Command
         runtimePromotionCmd.SetHandler(async (InvocationContext ctx) =>
         {
             var exitCode = await ExecuteRuntimePromotionAsync();
-            Environment.Exit(exitCode);
+            EgressCliInvocation.Exit(exitCode);
         });
         AddCommand(runtimePromotionCmd);
 
@@ -51,7 +51,7 @@ public sealed class CiCommand : Command
             var profile = ctx.ParseResult.GetValueForOption(profileOpt) ?? "default";
             var outputDir = ctx.ParseResult.GetValueForOption(outputDirOpt);
             var exitCode = await ExecuteReleaseBundleAsync(profile, outputDir);
-            Environment.Exit(exitCode);
+            EgressCliInvocation.Exit(exitCode);
         });
         AddCommand(releaseBundleCmd);
     }

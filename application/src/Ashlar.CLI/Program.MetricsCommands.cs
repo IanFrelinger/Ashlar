@@ -23,7 +23,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<MetricsCommand>();
                 var exitCode = await cmd.ShowReportAsync(json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             verboseOpt);
@@ -41,7 +41,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<MetricsCommand>();
                 var exitCode = await cmd.ShowAgentAsync(id, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             metricsAgentCmd.Arguments[0] as Argument<string> ?? throw new InvalidOperationException(),
             jsonOpt,
@@ -62,7 +62,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<MetricsCommand>();
                 var exitCode = await cmd.ShowTracesAsync(correlationId, operation, json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             metricsTracesCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
             metricsTracesCmd.Options[1] as Option<string?> ?? throw new InvalidOperationException(),
@@ -80,7 +80,7 @@ static partial class Program
             {
                 var cmd = ServiceProvider.GetRequiredService<MetricsCommand>();
                 var exitCode = await cmd.ClearAsync(json, verbose);
-                Environment.Exit(exitCode);
+                EgressCliInvocation.Exit(exitCode);
             },
             jsonOpt,
             verboseOpt);

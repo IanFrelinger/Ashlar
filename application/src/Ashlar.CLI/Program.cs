@@ -84,7 +84,7 @@ static partial class Program
         // reads this). A global option, so it can appear anywhere in the token stream.
         JsonOutputMode = args.Contains("--format-json");
         var root = BuildRootCommand();
-        return await root.InvokeAsync(args);
+        return await EgressCliInvocation.InvokeAsync(root, args);
     }
 
     /// <summary>

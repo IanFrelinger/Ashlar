@@ -33,7 +33,7 @@ static partial class Program
             async (int count, string? since, string? until, string? type, bool json, bool md, bool csv) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.AuditAsync(count, since, until, type, json, md, csv));
+                EgressCliInvocation.Exit(await cmd.AuditAsync(count, since, until, type, json, md, csv));
             },
             trustAuditCmd.Options[0] as Option<int> ?? throw new InvalidOperationException(),
             trustAuditCmd.Options[1] as Option<string?> ?? throw new InvalidOperationException(),
@@ -51,7 +51,7 @@ static partial class Program
             async (bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.PauseAsync(formatJson));
+                EgressCliInvocation.Exit(await cmd.PauseAsync(formatJson));
             },
             jsonOpt);
         trustCmd.AddCommand(trustPauseCmd);
@@ -63,7 +63,7 @@ static partial class Program
             async (bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.ResumeAsync(formatJson));
+                EgressCliInvocation.Exit(await cmd.ResumeAsync(formatJson));
             },
             jsonOpt);
         trustCmd.AddCommand(trustResumeCmd);
@@ -81,7 +81,7 @@ static partial class Program
             async (string? category, string? source, string? project, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.AllowAsync(category, source, project, formatJson));
+                EgressCliInvocation.Exit(await cmd.AllowAsync(category, source, project, formatJson));
             },
             trustAllowCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
             trustAllowCmd.Options[1] as Option<string?> ?? throw new InvalidOperationException(),
@@ -102,7 +102,7 @@ static partial class Program
             async (string? category, string? source, string? project, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.DenyAsync(category, source, project, formatJson));
+                EgressCliInvocation.Exit(await cmd.DenyAsync(category, source, project, formatJson));
             },
             trustDenyCmd.Options[0] as Option<string?> ?? throw new InvalidOperationException(),
             trustDenyCmd.Options[1] as Option<string?> ?? throw new InvalidOperationException(),
@@ -116,7 +116,7 @@ static partial class Program
             async (bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.BoundaryAsync(formatJson));
+                EgressCliInvocation.Exit(await cmd.BoundaryAsync(formatJson));
             },
             jsonOpt);
         trustCmd.AddCommand(trustBoundaryCmd);
@@ -130,7 +130,7 @@ static partial class Program
             async (int count, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.DashboardAsync(count, formatJson));
+                EgressCliInvocation.Exit(await cmd.DashboardAsync(count, formatJson));
             },
             trustDashboardCmd.Options[0] as Option<int> ?? throw new InvalidOperationException(),
             trustDashboardCmd.Options[1] as Option<bool> ?? throw new InvalidOperationException());
@@ -145,7 +145,7 @@ static partial class Program
             async (bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.ListPolicyPacksAsync(formatJson));
+                EgressCliInvocation.Exit(await cmd.ListPolicyPacksAsync(formatJson));
             },
             jsonOpt);
         trustPackCmd.AddCommand(trustPackListCmd);
@@ -161,7 +161,7 @@ static partial class Program
             async (string packId, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.DescribePolicyPackAsync(packId, formatJson));
+                EgressCliInvocation.Exit(await cmd.DescribePolicyPackAsync(packId, formatJson));
             },
             trustPackDescribeIdArg,
             jsonOpt);
@@ -179,7 +179,7 @@ static partial class Program
             async (string id, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<TrustCommand>();
-                Environment.Exit(await cmd.ApplyPolicyPackAsync(id, formatJson));
+                EgressCliInvocation.Exit(await cmd.ApplyPolicyPackAsync(id, formatJson));
             },
             trustPackIdOpt,
             jsonOpt);
