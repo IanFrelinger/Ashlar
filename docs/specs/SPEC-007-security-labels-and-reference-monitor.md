@@ -138,6 +138,16 @@ The status line above and the starting prompt are the owner's, as written; the s
   timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
   work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
   The default switch is implemented in 4.11 (#746, `7cb132897`), whose verification status is recorded below.
+  **PR 4.8b** closes three masks 4.8 left. A refused Ollama availability probe outside `AdaptiveProviderFactory`
+  was dropped, so `ProviderBackedModel` reported "not available" and `HotSwappableModel` answered with the echo
+  model. The factory's retention is now read by every caller that turns an unavailable provider into an error:
+  `ProviderFactory` records the refused probe on the caller's `ProviderRefusalScope`, and `ProviderBackedModel`
+  throws it and `BehaviorExecutor` reports it as the step's error, as `AdaptiveProviderFactory` already did.
+  `OrchestrationHotSwappableModel` (`src/Ashlar.Orchestration/Models/`, the wrapper around every orchestration
+  agent's model, a site the design's rows 1–29 missed) rethrows a refusal before its `ASHLAR_ALLOW_MOCK=1` echo
+  fallback. The factory's row-24 Warning is windowed (event 7307, flushed when the factory is disposed). Callers
+  that only ask whether a provider is usable (IDE health, onboarding status, `workflow` preflight) still report it
+  unavailable.
 - **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,

@@ -17,6 +17,23 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — refusal masking (SPEC-007 4.8b)
+
+- A refused Ollama availability probe no longer becomes echo output or "provider not available".
+  `ProviderBackedModel` throws the refusal itself, so `HotSwappableModel`'s caller receives it under
+  `ashlar.model.prefer=deterministic`, under `ASHLAR_ALLOW_MOCK=1` and with neither. Until now the 4.8 sentence
+  "unavailable-model fallbacks cannot turn them into echo success" held only for refusals thrown by the model call.
+  A behaviour step whose only implementation was skipped by a refused probe reports the refusal instead of
+  "No available implementation".
+- `OrchestrationHotSwappableModel`, which wraps every orchestration agent's model, rethrows a refusal instead of
+  answering with its echo model under `ASHLAR_ALLOW_MOCK=1`; without the flag it throws the refusal itself rather
+  than a `ModelUnavailableException` around it.
+- `ProviderFactory` logs refused availability probes once per site and reason per five-minute window (event 7307)
+  and flushes the suppressed count when it is disposed. It now implements `IDisposable`; the DI container disposes
+  the singleton.
+- Not recorded by 4.8 (#743): a refusal aborts a workflow cluster step even when the cluster's `FailurePolicy` is
+  `Continue` (`WorkflowExecutor`). This fails closed and is unchanged here.
+
 ### Fixed — compat-gate Tier B expected an unconfigured pipeline run to succeed (#797)
 
 - `compat-gate` had been red since #363. Its Tier B runs `scripts/kernel-gate-tier-b.sh`, which ran
