@@ -52,7 +52,7 @@
   </ItemGroup>
   <!-- Assembly Analysis and Decompilation -->
   <ItemGroup>
-    <PackageVersion Include="ICSharpCode.Decompiler" Version="8.0.0.7345" />
+    <PackageVersion Include="ICSharpCode.Decompiler" Version="11.1.0.9782" />
     <PackageVersion Include="Mono.Cecil" Version="0.11.5" />
     <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" />
     <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="8.0.0" />
