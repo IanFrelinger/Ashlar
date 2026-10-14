@@ -138,16 +138,30 @@ The status line above and the starting prompt are the owner's, as written; the s
   timers and flushes suppressed counts. Validation keeps completed evidence and does not count prevented
   work as failed tests. A2A, gRPC and MCP server responses carry only fixed text and the random reference.
   The default switch is implemented in 4.11 (#746, `7cb132897`), whose verification status is recorded below.
-  **PR 4.8b** closes three masks 4.8 left. A refused Ollama availability probe outside `AdaptiveProviderFactory`
+  **PR 4.8b (#800)** closes masks 4.8 left. A refused Ollama availability probe outside `AdaptiveProviderFactory`
   was dropped, so `ProviderBackedModel` reported "not available" and `HotSwappableModel` answered with the echo
-  model. The factory's retention is now read by every caller that turns an unavailable provider into an error:
-  `ProviderFactory` records the refused probe on the caller's `ProviderRefusalScope`, and `ProviderBackedModel`
-  throws it and `BehaviorExecutor` reports it as the step's error, as `AdaptiveProviderFactory` already did.
-  `OrchestrationHotSwappableModel` (`src/Ashlar.Orchestration/Models/`, the wrapper around every orchestration
-  agent's model, a site the design's rows 1–29 missed) rethrows a refusal before its `ASHLAR_ALLOW_MOCK=1` echo
-  fallback. The factory's row-24 Warning is windowed (event 7307, flushed when the factory is disposed). Callers
-  that only ask whether a provider is usable (IDE health, onboarding status, `workflow` preflight) still report it
-  unavailable.
+  model. `ProviderFactory` keeps nothing itself: it records the refused probe on the caller's
+  `ProviderRefusalScope`, and the scope holds it. Besides `AdaptiveProviderFactory`, `ProviderBackedModel` (which
+  throws it) and `BehaviorExecutor` (which reports it) now open one. `BehaviorExecutor` follows D23: a refused
+  probe counts as a skipped alternative, and when every alternative failed or was skipped, the first refusal is
+  the step's final error, also after a failing deterministic fallback. A deterministic implementation that
+  succeeds after a refusal still completes the step, because it is not the echo model.
+  Three orchestration sites rethrow a refusal instead of answering with canned output; the design's rows 1–29
+  missed all three:
+  - `OrchestrationHotSwappableModel` (`src/Ashlar.Orchestration/Models/`), the wrapper around every orchestration
+    agent's model, before its `ASHLAR_ALLOW_MOCK=1` echo fallback;
+  - `PlanningAgent`'s canned recommendation, used by the planning, guide, assistant and wizard agents;
+  - `SynthesisEngine`'s "Phased approach" fallback resolution.
+  The factory's row-24 Warning is windowed (event 7307, flushed when the factory is disposed).
+  No echo model answers a refusal; residuals remain and are listed as dated Known limits in
+  `docs/EgressInventory.md` ("Catch-alls and availability probes"):
+  - status callers report a refused probe as "unavailable";
+  - `workflow stress` reports success over refused probes, and `workflow optimize` fails without naming the
+    refusal (card #802);
+  - the `adapt` and `improve` verbs never flush the window.
+  Every 4.8b site reaches the internal `EgressRefusal` through the existing `InternalsVisibleTo` list of
+  `Ashlar.Abstractions` (`Ashlar.Abstractions.csproj:33-47`, 15 friends, unchanged by 4.8b; Orchestration and
+  Infrastructure were already on it).
 - **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
