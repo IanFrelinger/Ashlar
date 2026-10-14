@@ -1,0 +1,472 @@
+{
+  "headline": "The governance core is built and green on master. Phase A of release-0-3-0 is merged (#796, #799, #798, #800, #801, #804), and 03b5a569e now reads VERIFIED. The v0.3.0 tag is partway off: the owner-required gRPC and Fleet.Host loopback wiring (#766) is not built, the step-9 ProdStyle evidence needs #752, and no release commit, rc1 or release notes exist yet. The wider roadmap and the autonomy unlock are far off: 6 of 41 roadmap exit criteria and 1 of 5 unlock criteria are met, and the unlanded dogfood evidence starts expiring on 2026-10-28.",
+  "areas": [
+    {
+      "key": "roadmap",
+      "name": "Product roadmap",
+      "distance": "far",
+      "done_means": "No single repo-wide end state exists; five documents define different ones. This row scores against the 41 milestone exit criteria (M0.1-M7.8) in docs/audits/2026-09-completion-roadmap.md, the only countable end state. The product-fleet phase tables and the done-when lines of epics #539, #540 and #541 serve as secondary measures.",
+      "status": "Built and green on master:\n- the governance core: certification gate (cert-gate green on all 82 master runs since 2026-09-30), signed verdicts and instance ledger;\n- .ashpkg packages, mesh share, and export to aws, azure and native;\n- the hold-mode self-extend path;\n- Federation F1-F4.\n\nOf the roadmap's 46 boxes, 4 are ticked. Checked against the code: 6 criteria are met, 10 partly and 25 are open. The doc understates M1.3, M1.4 and M2: those behaviours already run inside cert-gate (AutonomyAdversarialCampaignTests.cs, CertifiedBrickHotSwapAutonomyTests.cs). It still targets a launch at 0.2.0 (roadmap:622).\n\nM3-M6 have not started: IanFrelinger/Ashlar.Forge is empty, and there is no public ledger, no Cursor adapter and no launch. M7 is design only.\n\nProduct fleet:\n- Phase 0 has 5 of 6 steps built, but the usage and org stores are in-memory only (Program.cs:130-131).\n- Phases 3-5 have 0 of 17 steps.\n\nEpics #539, #540 and #541 are open. No dated dogfood row covers mesh or share, and the three manual mesh-lab workflows end red.",
+      "estimate": "6 of 41 exit criteria met, 10 partial, 25 open",
+      "basis": "Each exit criterion in docs/audits/2026-09-completion-roadmap.md was checked against src/, application/, the workflows and GitHub. The critic confirmed the 4-of-46 tick count and the cert-gate behaviours but did not re-derive the per-criterion scores.",
+      "blocker": "Owner decisions: whether Forge continues, the public-ledger scope, SKU sequencing and the GUI epic #541. Owner and external actions for M6.",
+      "change_since_previous": "first audit",
+      "units": {
+        "done": 6,
+        "partial": 10,
+        "open": 25,
+        "unit": "completion-roadmap milestone exit criteria"
+      }
+    },
+    {
+      "key": "release",
+      "name": "Next release",
+      "distance": "partway",
+      "done_means": "v0.3.0 is tagged after:\n- docs/RELEASE_RUNBOOK.md 'Before you tag' steps 1-10 on the release commit, including step 9 (AG/SW default-enforcement notes plus the ProdStyle Passed! line) and step 10 (readiness-verdict-for-sha.sh prints VERIFIED for the exact SHA);\n- the SPEC-007 owner rows (SPEC-007:567-572): ASHLAREXP002 applied, gRPC and Fleet.Host wired before the tag, [Experimental] lines kept in Unshipped;\n- the ProductionReadinessGate-v1 section 6 exit checklist.\nAfter the tag, deploy/node.yml is re-pinned.",
+      "status": "Phase A release content is on master.\n- ASHLAREXP002 covers all 160 non-header Abstractions Unshipped lines (#801), so step 7 moves zero lines. The stable-tier packages and consumer-template are byte-unchanged since v0.2.0.\n- 03b5a569e now reads VERIFIED (readiness-verdict-for-sha.sh, run at synthesis). Production Readiness Gate v1 is green on ubuntu, windows and macos.\n\nStill open:\n- #766 is not built.\n- #752 is not landed. On master the only ProdStyle egress-refusal test sets ASHLAR_EGRESS_MODE=enforce itself (EgressExplicitApiProdStyleTests.cs:33), so the step-9 ProdStyle quote would not evidence default enforcement (critic correction).\n- 4.8b is partial: four 7307 sites are unwindowed.\n- VERSION, ci/published-version and the consumer pin are still 0.2.0. There is no release issue, no rc1 and no release notes.\n\nExit checklist:\n- The rollback drill was last run 2026-05-22, restore-in-place only.\n- docs/exceptions.yaml is empty but untriaged.\n- ReleaseSignOff-v1.md has no row for any tagged release.",
+      "estimate": "5 of 23 prerequisites done, 2 partial, 16 open; 0 of 10 runbook pre-tag steps done on a release commit",
+      "basis": "The 23 items are:\n- 11 content prerequisites, from the SPEC-007 decisions log, the phase plan on the bus and the 2026-10-11 review;\n- the 10 runbook steps;\n- the post-tag re-pin;\n- the sign-off row.\nThe release reader counted 6 done. The critic moved 4.8b (#800) from done to partial. ProdStyle stays partial.",
+      "blocker": "#766 needs no owner input but is unclaimed and crosses the src/ and application/ layer boundary. #752 is unclaimed, BEHIND, and its shell-lint is red on a stale head.",
+      "change_since_previous": "first audit",
+      "units": {
+        "done": 5,
+        "partial": 2,
+        "open": 16,
+        "unit": "release prerequisites"
+      }
+    },
+    {
+      "key": "security",
+      "name": "Security specs",
+      "distance": "partway",
+      "done_means": "SPEC-007: PRs 1-8 each meet their section 5 'Done when' (SPEC-007:487-495), and every section 2 MUST names a test.\n\nSPEC-006: the four-item implementation order is complete, and the unmet obligations are closed: S-4 dev-HMAC retirement, S-5, and the certification half of S-1.\n\nRelease gates on the specs: ASHLAREXP002 applied, and the gRPC and Fleet.Host loopback rule wired before the tag.",
+      "status": "SPEC-007:\n- PRs 1-4 are merged and wired. AirGapped and SecureWorkstation enforce by default (EgressEnforcement.cs:11-14), and there are 42 production ThrowIfRefused sites.\n- 4.8b (#800) is partial. ASHLAREXP002 (#801) is done.\n- PR 5 is library-only: SkillComposition.Decide has no production caller, and no packer writes HighestLevel.\n- PRs 6-8 are not started.\n- #766 is not built. LoopbackListenerVerifier is internal to application/src/Ashlar.API.\n- The status line still reads PROPOSED. Section 8 Q1-Q6 and open questions A, B and E are with the owner.\n\nSPEC-006:\n- Items 1, 2 and 4 are on master; item 3 is partial (#389 records verification entries only).\n- S-4 has been overdue since v0.1.1: CertificationRecordSigning.cs:586-590 still falls back to the committed dev-HMAC key, and there are four production signer constructions, not the three the spec lists.\n\nRepository posture:\n- There is no CodeQL.\n- Secret scanning, push protection and private vulnerability reporting are off, yet SECURITY.md:11 sends reporters to the private-reporting channel.",
+      "estimate": "SPEC-007: 4 of 8 PRs done, PR 5 partial, 3 not started. SPEC-006: 3 of 4 items done, 1 partial, S-4 open and overdue. 0.3.0 spec gates: 1 of 2 done.",
+      "basis": "SPEC-007 is scored against its section 5 PR table, with production callers checked by git grep outside tests. SPEC-006 is scored against its section 6 order and unmet-obligation list. The critic confirmed the PR 5 slice, S-4 and #766.",
+      "blocker": "Owner answers gate SPEC-007 PR 5 (section 8 Q3, open question B) and PR 6 (Q4). #766 and S-4 have no owner blocker, though S-4's scope touches 31 test sites.",
+      "change_since_previous": "first audit",
+      "units": {
+        "done": 4,
+        "partial": 1,
+        "open": 3,
+        "unit": "SPEC-007 planned PRs"
+      }
+    },
+    {
+      "key": "autonomy",
+      "name": "Autonomy unlock",
+      "distance": "far",
+      "done_means": "All of docs/dogfood-scorecard.md:63-76 hold on rows landed in docs/dogfood-ledger.md, not on CI artifacts:\n1. four thresholds, held for at least 7 consecutive days;\n2. Strict plus Ed25519 on master;\n3a. at least 7 dated rows with a persisted, re-read, Strict-verified record;\n3b. one attended pass with an operator key, pinned;\n4. a real hygiene PR made through the loop and merged.",
+      "status": "On landed evidence, 1 of 5 criteria is met (criterion 2, #523).\n\nCriterion 1 is partly met:\n- thresholds 1 and 2 are met on the nine landed rows of 2026-09-15 to 09-25;\n- threshold 3 has never been measured;\n- the threshold-4 review has not been done.\n\nCriterion 3a:\n- The mechanics are on master (#665, #661), and 13 CI runs on 11 dates carry record citations.\n- 0 rows are landed. The ledger's newest row is 2026-09-25 and 16 successful runs are unlanded, because the workflow has contents: read.\n\nCriterion 3b has no attended run, and the identity bridge (OperatorCertificationIdentity) is absent.\n\nCriterion 4 has no PR-producing path.\n\nEvery CI run replays the recorded qwen3.8-27b proposal, so the thresholds do not measure proposer behaviour. The canary harness lives under spikes/, which no gate compiles.\n\nMarketing HOLD is correct. The scorecard's ticks on criteria 1 and 4 are false.",
+      "estimate": "1 of 5 unlock criteria met, 1 partial, 3 open. Criterion 3a: 0 of 7 landed rows (11 qualifying dates exist in CI only).",
+      "basis": "Each criterion in docs/dogfood-scorecard.md:63-76 was scored against rows landed on master, as docs/marketing/claims-cheat-sheet.md:75 requires. The critic confirmed the run counts and the replayed proposer.",
+      "blocker": "Owner decisions:\n- whether the record files are committed with landed rows (due before 2026-10-28);\n- the attended 3b run;\n- how threshold 3 is measured;\n- the hygiene objective for criterion 4.",
+      "change_since_previous": "first audit",
+      "units": {
+        "done": 1,
+        "partial": 1,
+        "open": 3,
+        "unit": "unlock criteria"
+      }
+    },
+    {
+      "key": "bugs",
+      "name": "Bug backlog",
+      "distance": "partway",
+      "done_means": "No repo end state exists. This row scores against the following: every open defect is fixed on master and closed, has an open PR, or has a dated docs/exceptions.yaml row with owner, expiry, mitigation and sign_off. #766 is done before the 0.3.0 tag.",
+      "status": "34 bug-labelled issues are open:\n- 11 are fixed on master but still open: #488, #487, #465, #464, #463, #462, #461, #460, #459, #455 and #493.\n- 6 are partly fixed.\n- 17 are not fixed. Two of these have PRs, #750 and #751, both DIRTY and unowned.\n\nOf 9 further defect reports, #252 and #761 are fixed but open.\n\nThese security defects are open with no exceptions row: #474, #480, #478, #483, #481, #492, #468, #766 and #790.\n\nThere is also an unfiled path escape in `bg proposals apply` (ProposalsBackgroundAgentCommand.cs:193). Its fix is stranded on the local branch bx/WS-Ia/I2.\n\nThe premise of #568 is false: kernel-coverage runs the Stress-tagged tests. The real gap is that they have no lane of their own.",
+      "estimate": "11 of 34 fixed (all still open), 6 partial, 17 not fixed",
+      "basis": "Each bug-labelled issue was checked against code on 03b5a569e and against the fix commits on origin/master. The critic sampled 4 of the 11 fixes plus #761 and confirmed them; the other 7 were not re-verified.",
+      "blocker": "Most items have no blocker. Owner decisions are needed for #481, #468, #467, #457 and #759, and the owner's sign_off is needed for exception rows.",
+      "change_since_previous": "first audit",
+      "units": {
+        "done": 11,
+        "partial": 6,
+        "open": 17,
+        "unit": "bug-labelled issues"
+      }
+    },
+    {
+      "key": "ci",
+      "name": "CI health",
+      "distance": "partway",
+      "done_means": "No repo-wide end state exists. The nearest stated goals:\n- the five required checks are enforced and green (docs/CiGateInventory.md Policy);\n- non-required gates are watched on master (docs/HowGatesGoQuiet.md section 2);\n- readiness is VERIFIED on the release SHA;\n- dormant workflows are restored as their own headers say;\n- every open PR has a claim on the bus.",
+      "status": "The required path is healthy:\n- branch protection matches the docs;\n- cert-gate passed 82 of 82 master runs since 2026-09-30;\n- 03b5a569e reads VERIFIED;\n- compat-gate is green again (#798).\n\nOf the 47 workflows with a master run, about 33 are green and current, 8 are green but stale (May to August), and 6 are red. All 6 red ones are dormant, and their recorded causes are wrong:\n- mesh-lab gate and stress died on a script typo, fixed in 0c894e20f;\n- TLS most likely has a cert-directory path bug;\n- the cause of cross-platform's #252 failure was fixed by #318.\n\nPull requests and branches:\n- 12 PRs are open and none can be merged. #750 and #751 are DIRTY, #752 and #753 are BEHIND, and none of the four is claimed. The 8 Dependabot PRs (#730-#737) are superseded by #753, and their rebases starve runners: 68 runs were queued at 07:08Z.\n- 63 local branches are truly unlanded, 53 of them bx/WS-* backlog commits.\n\nThe net8.0 test hosts run on the image's .NET 8.0.31. The repository's security and merge settings are off.",
+      "estimate": "About 33 of 47 workflows green and current, 8 green but stale, 6 red (all dormant); 0 of 12 open PRs mergeable",
+      "basis": "Ran gh run list --branch master --limit 1 over all 61 workflow files. The critic corrected the reader's '41 of 47 green' by setting aside 8 newest-green runs dated May to August.",
+      "blocker": "Owner decisions on the stranded bx/* commits, on who owns #750-#753, and on the repository settings.",
+      "change_since_previous": "first audit",
+      "units": {
+        "done": 33,
+        "partial": 8,
+        "open": 6,
+        "unit": "workflows with a master run (green-current / green-stale / red)"
+      }
+    },
+    {
+      "key": "workstream",
+      "name": "Workstream release-0-3-0",
+      "distance": "partway",
+      "done_means": "The repo stores no phase map; there is no storage branch claude/release-0-3-0-workspace. Assembled from the bus claim and the decisions log:\n- phase A: R3b, R3a, compat-gate, 4.8b and ASHLAREXP002, plus #804;\n- phase B: #766;\n- end state: v0.3.0 tagged per SPEC-007:567-572 and runbook steps 1-10.",
+      "status": "Phase A merged six PRs: #796, #799, #798, #800, #801 and #804. Each had all five required checks green and no Grok block.\n- #800 is partial against its own 'D28 windowing' claim. IdeEndpoints.cs:214, MeshAutoPullService.cs:366, ImproveCommand.cs:549 and SelfExtendAdmissionBridge.cs:292 still log bare 7307 Warnings, and nothing on master tracks them.\n- 03b5a569e now reads VERIFIED.\n\nPhase B (#766) has not started and has no claim. The card body still says it is blocked on the owner, which is stale.\n\nOther gaps:\n- #752 is a de facto tag prerequisite, but it is Grok-built, unclaimed and excluded from Claude's claim.\n- Card #761 was delivered by #799 but is still open.\n- Grok has not drift-audited #796-#804.\n- #804 had a claim and a done post but no handoff post.",
+      "estimate": "Phase A: 5.5 of 6 PRs' scope. Path to the tag: 4 of 10 steps done, 1 partial, 5 open.",
+      "basis": "Phase A is counted from the six PRs named in the #804 done post, with #800 partial. The path to the tag has 10 steps, from the 2026-10-13 decisions to the post-tag re-pin.",
+      "blocker": "Nothing blocks phase B. Open owner answers (#759, the Substrate tier, the exit-77 scope) shape the release notes.",
+      "change_since_previous": "first audit",
+      "units": {
+        "done": 4,
+        "partial": 1,
+        "open": 5,
+        "unit": "release-path steps"
+      }
+    }
+  ],
+  "resolved_since_previous": [
+    "First audit, so there is no previous status. These items were resolved during phase A:",
+    "#796 (R3b, f96ee0720): the owner's 2026-10-13 answers landed as decisions-log rows (SPEC-007:570-572)",
+    "#799 (R3a, bb195b665): records drift after 4.7-4.11 and PR 5 fixed; drift-746 and drift-748 answered",
+    "#798 (b297c98e0): compat-gate green on master for the first time since 2026-09-12 (run 38503821959); #797 closed",
+    "#800 (1f45a9e5b): 4.8b BL4 and BL5 refusal-masking repair; D28 windowing only partly done",
+    "#801 (03b5a569e): ASHLAREXP002 on 23 types and 160 Unshipped lines; runbook step 7 now moves zero lines",
+    "#804 (aa07e6d91): Q5 decisions-log row marked implemented in #746",
+    "Readiness verdict for 03b5a569e: VERIFIED (readiness-verdict-for-sha.sh at synthesis; it was in progress at validation)",
+    "Card #761's content delivered by #799 (the card is still open)",
+    "Dependabot closed #728 and #729 (2026-10-14 06:22-06:24Z)"
+  ],
+  "new_since_previous": [
+    "First audit, so there is no previous status. These findings surfaced at the end of phase A:",
+    "#752 (ProdStyle twins) is a de facto prerequisite for the tag. On master, no ProdStyle test observes AG/SW default enforcement (EgressExplicitApiProdStyleTests.cs:33 sets enforce itself)",
+    "4.8b D28 windowing is missing at four sites (IdeEndpoints.cs:214, MeshAutoPullService.cs:366, ImproveCommand.cs:549, SelfExtendAdmissionBridge.cs:292), and no card tracks it",
+    "#766 crosses the layer boundary: LoopbackListenerVerifier is internal to application/src/Ashlar.API, and the gRPC host references only src/",
+    "Unfiled path escape in `ashlar bg proposals apply` (ProposalsBackgroundAgentCommand.cs:193). Its fix 00544cc7a is stranded on local bx/WS-Ia/I2, and the verb also bypasses MediatedWritePath",
+    "Dependabot rebase churn starves runners: 68 runs were queued at 07:08Z, and master's Readiness summary waited more than 33 minutes",
+    "No CodeQL or code scanning. SECURITY.md:11 sends reporters to private vulnerability reporting, which is disabled",
+    "The net8.0 test hosts in the readiness lanes run on the image's .NET 8.0.31, not on 10.x (run 38516140003 log)",
+    "The red mesh-lab gate and stress runs died on a script typo fixed in 0c894e20f; mesh-lab-tls most likely has a cert-dir path bug since 312bb47dd",
+    "16 dogfood runs are unlanded. Every CI canary replays the recorded proposal, and the harness under spikes/ is compiled by no gate",
+    "13 issues are fixed on master but still open: 11 bug-labelled ones plus #252 and #761",
+    "Card #767 is stale now that Dependabot has closed #728",
+    "SdkCompatibilityPolicy.md:11 still promises stability 'within 0.1.x'"
+  ],
+  "critical_path": [
+    {
+      "step": "Claim and build card #766: the AG/SW loopback-or-fail-boot rule in Ashlar.Transport.Grpc.Server.Host and Ashlar.Commercial.Fleet.Host, with ProdStyle twins and mutations. LoopbackListenerVerifier is internal to application/, so expect either two PRs (move it into src/, then wire it) or one [coordinated-integration] PR.",
+      "owner_only": false
+    },
+    {
+      "step": "Claim, rebase and land #752 (ProdStyle twins for default enforcement and refusal preservation), including its net10.0 container run, so the step-9 ProdStyle line exercises the switch.",
+      "owner_only": false
+    },
+    {
+      "step": "Close or retire the superseded Dependabot PRs #730-#737 (and update card #767) so the release SHA's readiness run is not starved of runners.",
+      "owner_only": false
+    },
+    {
+      "step": "You: answer #759 (FailurePolicy.Continue past a refused brick), confirm or override #801's Substrate-tier integrator decision, and set the exit-77 scope (#765), or accept each as disclosed in the 0.3.0 notes.",
+      "owner_only": true
+    },
+    {
+      "step": "Release commit:\n- bump VERSION, ci/published-version and AshlarConsumerPackageVersion to 0.3.0;\n- rewrite the CONSUMING.md trust rows;\n- sweep the docs, adding SdkCompatibilityPolicy.md:11 and SECURITY.md:5;\n- review Unshipped (zero lines move);\n- fold CHANGELOG [Unreleased] into 0.3.0;\n- fix the four unwindowed 7307 sites or record them as a Known limit.",
+      "owner_only": false
+    },
+    {
+      "step": "Dispatch release-nuget.yml with 0.3.0-rc1 from the exact release commit and see the post-push chain green.",
+      "owner_only": false
+    },
+    {
+      "step": "Open 'Release: v0.3.0' from the checklist template. Write the notes: the AG/SW switch, the break-glass, ASHLAREXP002 and the 21 Substrate members, FailurePolicy.Continue, and exit 77 limited to the export and package verbs. Quote the ProdStyle Passed! line. Get VERIFIED on the exact SHA.",
+      "owner_only": false
+    },
+    {
+      "step": "You:\n- decide whether a version-downgrade rollback drill is required;\n- sign the Product row in ReleaseSignOff-v1.md;\n- sign docs/exceptions.yaml rows for the security defects that ship open (#474, #480, #478, #483, #481, #492, #468, #790), or require their fixes first.",
+      "owner_only": true
+    },
+    {
+      "step": "Tag v0.3.0, let release.yml run, then re-pin deploy/node.yml to the new nexo-cli digest.",
+      "owner_only": false
+    }
+  ],
+  "next_completion_point": "v0.3.0 tag (release-0-3-0 phase B: #766, then the release commit, the rc1 rehearsal and the tag)",
+  "owner_decisions": [
+    "FailurePolicy.Continue past a refused brick or cluster node: card #759, review question (c), CHANGELOG.md:122-133",
+    "Tier of SPEC-007 public members in Substrate packages, kept Substrate by #801 as an integrator default: AddAshlarEgressGuard, EgressGuardOptions, AshlarHostingOptions.EgressMode/.Clearance, DataSensitivityLabelBridge, TrustTierOrder, PolicyClearances, SkillComposition",
+    "Exit-77 scope, and whether `docker exec` into a --network=none session counts as Host: card #765, review questions (a) and (b)",
+    "Whether a version-downgrade rollback drill is required before tagging, and signing the 0.3.0 Product row in ReleaseSignOff-v1.md",
+    "docs/exceptions.yaml rows with sign_off for each security defect that ships open in 0.3.0, or a requirement to fix them first",
+    "Repository settings:\n- secret scanning, push protection, Dependabot security updates and private vulnerability reporting (SECURITY.md:11 depends on the last);\n- CodeQL;\n- a tag ruleset or merge queue;\n- a protected environment for the publish jobs;\n- allow_merge_commit",
+    "What happens to the 53 local bx/WS-* commits and salvage/wf_d00a753d-0ae-1 (integrate, re-cut or abandon). At minimum, file the `bg proposals apply` path escape",
+    "Who owns PRs #750 and #751 (Cursor-built) and #752 and #753 (Grok-built), or close them",
+    "Dogfood:\n- whether record files are committed beside landed rows (before 2026-10-28);\n- ratify or revise the 'Proposed' thresholds and how threshold 3 is measured;\n- the attended 3b run with the operator key;\n- the hygiene objective for criterion 4",
+    "SPEC-007: change the status line from PROPOSED; answer section 8 Q1-Q6, open questions A, B and E, and the PR 5 shape (Q-B); accept the C12 adaptation (#763)",
+    "SPEC-006: the scope of S-4's dev-HMAC retirement, the closure for S-7's inheritance, and whether numbered specs (SPEC-003, SPEC-004, SPEC-009) get written",
+    "Plan for .NET 8 end of support before 2026-11-10 (90 projects target net8.0)",
+    "Forge (populate or retire the empty IanFrelinger/Ashlar.Forge), public-ledger scope, SKU sequencing, GUI epic #541, and v2 trust scope",
+    "#481 breaking-change timing, the #468 option (a, b or c), whether #467's 404-for-405 is intended, and whether held records persist (#457)",
+    "Leftovers from budgeted-autonomy: the cloud-cost review, promoting the phase A-E integrator defaults to owner rows, and the pre-rewrite commits that keep the owner's email reachable",
+    "Whether the untracked AGENTS.md, .agents/ and pilot-* files in the local clone are committed (Codex agents in other checkouts cannot see AGENTS.md)"
+  ],
+  "hard_dates": [
+    {
+      "date": "2026-10-14",
+      "what": "The 14-day sweep-log artifact of dogfood run 36708583529 and dogfood-ledger-34889059104 expire today. The remaining 14-day sweep logs expire daily through 2026-10-27."
+    },
+    {
+      "date": "2026-10-19",
+      "what": "GitHub starts moving ubuntu-latest to Ubuntu 26.04 (actions/runner-images#14748). 55 workflow files, including release.yml, production-readiness-gate-v1 and environment-setup-gate-v1, use -latest labels. The weekly Full Platform Readiness run on master fires at 06:00 UTC and shares a cancel-in-progress group."
+    },
+    {
+      "date": "2026-10-28",
+      "what": "The TRX and evidence artifacts of the last VERIFIED readiness run 38516140003 (1f45a9e5b) expire. The first unlanded dogfood-ledger artifacts (36368358113, 36368981207, 36419782419) expire too."
+    },
+    {
+      "date": "2026-10-29",
+      "what": "The first 3a dogfood records expire (36520721770, 36563102856), then daily until 2026-11-12. Unless rows land with their records, fewer than 7 distinct dated records remain after about 2026-11-04."
+    },
+    {
+      "date": "2026-11-01",
+      "what": "Next monthly scheduled rc-gate run."
+    },
+    {
+      "date": "2026-11-08 to 2026-11-09 (approx.)",
+      "what": "The 90-day retention removes the logs of the red mesh-lab-stress, mesh-lab-gate and cross-platform-tests runs, which are the only evidence of why those workflows are dormant."
+    },
+    {
+      "date": "2026-11-10",
+      "what": ".NET 8 end of support (Microsoft lifecycle; not stated in the repo). 90 projects target net8.0, cert-gate runs -f net8.0, and the ProdStyle evidence runs on the image's .NET 8.0.31."
+    },
+    {
+      "date": "2026-12-07 (approx.)",
+      "what": "Logs of the red mesh-lab-tls run 34223640833 expire."
+    },
+    {
+      "date": "2026-12-13 (approx.)",
+      "what": "The logs behind the landed dogfood rows' Repro links start to expire (computed as run date plus 90 days)."
+    },
+    {
+      "date": "before the v0.3.0 tag (no calendar date)",
+      "what": "#766: the gRPC server host and Fleet.Host are wired to loopback-or-fail-boot (SPEC-007:571). [Experimental] lines stay in Unshipped across the promotion (SPEC-007:572)."
+    },
+    {
+      "date": "2026-09-01 (passed)",
+      "what": "SPEC-006 S-4: the dev-HMAC fallback was due for removal in the release after keys shipped (v0.1.1). It is still in v0.2.0 and on master."
+    },
+    {
+      "date": "2026-10-01 (passed)",
+      "what": "The completion roadmap's M6 launch target, 'next major release (0.2.0)'. v0.2.0 shipped without M1-M6."
+    }
+  ],
+  "stale_docs": [
+    {
+      "path": "docs/RELEASE_RUNBOOK.md step 9; docs/release/RELEASE-READINESS.md:269",
+      "claim": "Quoting the ProdStyle summary line from the readiness run shows that the AG/SW default switch was observed.",
+      "reality": "No ProdStyle test on master asserts a default refusal. The only egress-refusal ProdStyle test sets ASHLAR_EGRESS_MODE=enforce itself (EgressExplicitApiProdStyleTests.cs:33). The default twins exist only in #752."
+    },
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:136-137; docs/EgressInventory.md:26; commit 1f45a9e5b subject",
+      "claim": "Degradation emits windowed 7307 Warnings, as the other degrading components do ('D28 windowing').",
+      "reality": "IdeEndpoints.cs:214, MeshAutoPullService.cs:366, ImproveCommand.cs:549 and SelfExtendAdmissionBridge.cs:292 log a bare 7307 Warning on every refusal."
+    },
+    {
+      "path": "GitHub issue #766 body",
+      "claim": "Blocked on the owner.",
+      "reality": "The owner answered 'wire both' on 2026-10-13 (SPEC-007:571). The card is unblocked, required before the tag, and unclaimed."
+    },
+    {
+      "path": "GitHub issue #761",
+      "claim": "Open card: the pre-switch wording and the theory rename are still to do.",
+      "reality": "#799 (bb195b665) delivered both (EgressEnforcement.cs:49; EgressGuardDecisionTests.cs:809)."
+    },
+    {
+      "path": "GitHub issues #488, #487, #465, #464, #463, #462, #461, #460, #459, #455, #493, #252",
+      "claim": "Open defects.",
+      "reality": "Fixed on master by 220af97bb, 9faefe46c, 45bdda48b, 70b9121ae/71a01701f, 9a5e580ae, 7135ae518, d4b3cb767 and c38a6a305 respectively. #465's redaction ask and #493's corpus fixtures remain."
+    },
+    {
+      "path": "GitHub issue #568",
+      "claim": "No CI lane runs Category=Stress tests.",
+      "reality": "scripts/ci/kernel-coverage-gate.sh:57-68 runs them (docs/HowGatesGoQuiet.md:479-484). Only a separate, attributable lane is missing."
+    },
+    {
+      "path": "GitHub issue #767",
+      "claim": "Done when #728 is merged or closed with a reason.",
+      "reality": "Dependabot closed #728 at 2026-10-14T06:24:44Z. The card is still open and unassigned."
+    },
+    {
+      "path": "docs/dogfood-scorecard.md:67,76",
+      "claim": "Criteria 1 and 4 are ticked as met.",
+      "reality": "Threshold 3 was never measured and no threshold-4 review exists. The same doc says criterion 4 is NOT met."
+    },
+    {
+      "path": "docs/dogfood-scorecard.md:75,82,86",
+      "claim": "Nothing assigns TrustedEd25519PublicKeys, and the sweep discards its record.",
+      "reality": "#661 (CertificationTrustPolicy.cs:92) made pinning configurable. #665 (CertificationEvidenceArchive.cs:151,199) persists, re-reads and Strict-verifies the record."
+    },
+    {
+      "path": "docs/dogfood-ledger.md:40; docs/DocsIndex.md:28; .github/workflows/dogfood-continuous-proof.yml:4",
+      "claim": "CI appends rows automatically, and the run goes extend, certify, admit.",
+      "reality": "The workflow has contents: read and uploads an artifact; rows are landed by hand (#654). The sweep holds admission (SweepMode.cs:85)."
+    },
+    {
+      "path": "docs/marketing/claims-cheat-sheet.md:81-84; docs/LearningHarness.md:312-332",
+      "claim": "The dogfood unlock is three items, or adds M1-M6 and 16/16.",
+      "reality": "This is pre-split wording. The scorecard now has criteria 1, 2, 3a, 3b and 4, and both docs omit 3b."
+    },
+    {
+      "path": "README.md:108,150",
+      "claim": "'self-improvement'; the engine 'learns repeatable patterns'.",
+      "reality": "This conflicts with claims-cheat-sheet.md:65 and :79 (no Learn before the unlock), and the unlock has not happened."
+    },
+    {
+      "path": "docs/audits/2026-09-completion-roadmap.md:179-181,244,622,789,1027,1035-1047",
+      "claim": "M1.3, M1.4 and M2.1 are unbuilt; M7.7 is unticked; launch is at 0.2.0; Forge is in products/; 57 workflows; dependency-boundary-gate.yml.",
+      "reality": "The behaviours run in cert-gate (AutonomyAdversarialCampaignTests.cs). DocsIndex.md:40 links LearningHarness.md. v0.2.0 shipped without a launch. products/ is parked and Ashlar.Forge is empty. There are 61 workflows, and the gate is dependency-boundary.yml."
+    },
+    {
+      "path": "CONTINUITY.md:124-126,171,172-173 and section 2",
+      "claim": "Test-project decoupling is pending; Dependabot #359-#361 are unreviewed; the renames are pending; section 2 is the 'what is done' record.",
+      "reality": "#704 did the decoupling. #359 is closed and #360 and #361 are merged. Only the GHCR image rename remains. Section 2 stops at August."
+    },
+    {
+      "path": "docs/marketing/positioning.md:42",
+      "claim": "'Live': shared automations plus multi-node mesh.",
+      "reality": "Epic #539 says to sell these as 'in progress' until dated dogfood rows exist. None exists, and the mesh-lab workflows are red."
+    },
+    {
+      "path": "docs/ProductFleetImplementationRoadmap.md:22",
+      "claim": "0.3 Usage counters: Done.",
+      "reality": "Only in-memory stores exist (application/src/Ashlar.API/Program.cs:130-131), so the data is lost on restart."
+    },
+    {
+      "path": "README.md:114",
+      "claim": "Release Manager and Runtime Studio are scheduled for extraction (apps/).",
+      "reality": "apps/ holds only runtime-studio. Release Manager was extracted on 2026-09-01 (LICENSING.md:182)."
+    },
+    {
+      "path": "docs/release/RELEASE-READINESS.md:51,125,184,191,255-256,268,279,292,585",
+      "claim": "0.1.2 is the published pin; Pages and Discussions are not enabled; the dogfood ledger has no E2E pass; last updated 2026-09-13.",
+      "reality": "v0.2.0 shipped 2026-10-01 and deploy/node.yml pins its digest. Pages is live and has_discussions=true. Nine E2E PASS rows landed on 2026-09-27."
+    },
+    {
+      "path": "docs/production-readiness/ReleaseSignOff-v1.md:89-93",
+      "claim": "v0.1.0-v0.1.2 shipped without a row.",
+      "reality": "v0.2.0 also shipped without a row and is not mentioned. The behind-count is stale."
+    },
+    {
+      "path": "docs/ReleaseCandidateChecklist-v1.md:29-30 (sections 1-2)",
+      "claim": "The artifacts are gate-run-success.log and gate-run-fallback.log, the resume target is Completed, and runtime-release-promotion is mandatory.",
+      "reality": "The workflow uploads gate-run-unconfigured.log and gate-run-hooks.log (:234-235) and asserts that the resumed target stays Failed. runtime-release-promotion is dormant."
+    },
+    {
+      "path": "docs/SdkCompatibilityPolicy.md:11,40",
+      "claim": "'Stable tier: no breaking changes within 0.1.x'; the cross-platform-tests build catches public-API changes.",
+      "reality": "0.2.0 shipped and 0.3.0 is next. cross-platform-tests has been dormant since 2026-08-11."
+    },
+    {
+      "path": "SECURITY.md:5,9-12",
+      "claim": "The supported line is 0.2.x, and reporters should use GitHub Security Advisories.",
+      "reality": "Private vulnerability reporting is disabled (gh api .../private-vulnerability-reporting returns enabled:false), and 0.3.0 will change the supported line."
+    },
+    {
+      "path": "docs/specs/SPEC-006-keys-and-signing.md:101,102,117-120,121/596,247-248,562-563,574-577,625-632",
+      "claim": "Items 3-4 are outstanding; the verdict prints VERIFIED; there are three production signer constructions; 33 Kernel KG entries; S-4 removal is due the release after keys; the S-1 certification half is unmet; S-5 is defined once.",
+      "reality": "Item 4 landed in #390 and item 3 is partial. The verdict prints CERTIFIED. There are four constructions (CertificationEvidenceArchive.cs:146 is new) and 34 entries. S-4 is overdue since v0.1.1. certification-evidence.md:788-795 says limitations 7-8 are closed. S-5 names two different rules."
+    },
+    {
+      "path": "docs/specs/SPEC-007-security-labels-and-reference-monitor.md:3,29-31,50-51,175,695-696",
+      "claim": "The status is PROPOSED; nothing calls the bridges; O2 is outstanding; InternalsVisibleTo sits at csproj:33-47.",
+      "reality": "PRs 1-4 ship in 0.3.0. RAGTool.cs:167 calls ToDataLabel. O2 was implemented in #739 (SPEC-007:566). After #801 the lines are :42-56."
+    },
+    {
+      "path": ".github/workflows/cross-platform-tests.yml header; docs/CiGateInventory.md:222",
+      "claim": "The workflow is muted because of a real product failure (#252), and there is no Windows or macOS coverage.",
+      "reality": "#318 / c38a6a305 fixed the test, and full-platform-readiness-gate.yml:467-477 runs it on all three operating systems."
+    },
+    {
+      "path": ".github/workflows/mesh-lab-gate.yml and mesh-lab-stress-gate.yml headers",
+      "claim": "They are red because of the compose environment, not repository code.",
+      "reality": "Both failed on a repository script typo, `restore_verify_pee`, which 0c894e20f fixed. Neither has been re-run since."
+    },
+    {
+      "path": ".github/workflows/mesh-lab-tls-gate.yml header; docs/CiGateInventory.md:225",
+      "claim": "Demoted because of the same compose environment.",
+      "reality": "Caddy cannot open /certs/cert.pem. The likely cause is that the cert-dir default in docker-compose.mesh-lab-tls.override.yml:17 broke when 312bb47dd relocated the files. This is not confirmed by a dispatch."
+    },
+    {
+      "path": ".github/workflows/test-air-gapped-no-network.yml:1-4; docs/CiGateInventory.md:227",
+      "claim": "The last failure is MSB1011 in the multi-env step.",
+      "reality": "Run 26344391373 failed at Restore, and the multi-env step was skipped. Its logs are gone (HTTP 410)."
+    },
+    {
+      "path": "docs/CiGateInventory.md:231",
+      "claim": "compat-gate is red because of #797.",
+      "reality": "#798 fixed it, run 38503821959 is green, and #797 is closed."
+    },
+    {
+      "path": ".github/workflows/full-platform-readiness-gate.yml:352-355",
+      "claim": "The net8.0 hosts roll forward to the 10.x runtime.",
+      "reality": "The log of run 38516140003 shows .NET 8.0.31 22 times and 10.0.13 3 times, so the hosts run on the image's .NET 8."
+    },
+    {
+      "path": "src/Ashlar.Hosting/AshlarKernelRegistrar.Phases.cs:781; RunPodCapabilityRoutingServiceCollectionExtensions.cs:25,62",
+      "claim": "The guard handler on these clients is 'report-only'.",
+      "reality": "Since #746, AG/SW enforce by default."
+    },
+    {
+      "path": "samples/autonomy-objectives/README.md:9-10,51,65,84-96",
+      "claim": "A file table, the PhysicalAtom codecs, and sdk:9.0.",
+      "reality": "The table is empty, the codecs do not exist, and the loop uses sdk:10.0."
+    },
+    {
+      "path": "#695 comment 2026-10-11T03:07:58Z (Grok release-ag-sw draft)",
+      "claim": "CLI policy refusals return 77.",
+      "reality": "Only the export and package verbs exit 77; other refusals exit 1 (docs/EgressInventory.md:66)."
+    },
+    {
+      "path": "docs/exceptions.yaml",
+      "claim": "exceptions: [] (no High/Critical exceptions).",
+      "reality": "At least nine security defects are open with no row. No workflow runs the validator (scripts/rc-gate-tier-e.sh)."
+    },
+    {
+      "path": "CLAUDE.md (Ownership)",
+      "claim": "Claude does all development and Grok does admin and audits.",
+      "reality": "#752 and #753 are Grok-built code PRs with no developing-agent claim."
+    },
+    {
+      "path": "scripts/phase-end/validate.py output (Required checks; Readiness verdict)",
+      "claim": "Readiness summary is 'not reported on the push' for 03b5a569e.",
+      "reality": "Push run 38520088537 existed and its summary was queued. 03b5a569e now reads VERIFIED."
+    },
+    {
+      "path": "scripts/check-docs-phantom-paths.sh (validation 'Paths referenced in the docs exist')",
+      "claim": "0 missing paths.",
+      "reality": "The check is correct within its scope, but it cannot see unbackticked or extension-less paths such as products/Ashlar.Forge (roadmap:1027) or apps/release-manager/."
+    }
+  ],
+  "workstream_findings": [
+    "release-0-3-0 has no storage branch, claude/release-0-3-0-workspace: handoff-fetch.sh says no such branch. The lane rules exist only on the host, in work/g-refs/release-A/LANE-RULES.md. This handoff is the first durable record of the phase plan.",
+    "Phase A merged all six named PRs (#796, #799, #798, #800, #801, #804), each with the five required checks green and no Grok block. 03b5a569e reads VERIFIED. aa07e6d91 (#804) is docs-only and gets no readiness push run, so the release commit needs its own verified run.",
+    "#800 overstates 'D28 windowing'. Four sites still log a bare 7307 Warning: IdeEndpoints.cs:214, MeshAutoPullService.cs:366 (a hosted loop), ImproveCommand.cs:549 and SelfExtendAdmissionBridge.cs:292. Only #800's PR body lists them. Open a card, or record a Known limit before the notes.",
+    "Phase B (#766) has no claim, and its card body still says 'Blocked on the owner'. LoopbackListenerVerifier is `internal sealed` in application/src/Ashlar.API/Security/LoopbackListenerVerifier.cs:15, and the gRPC host references only src/. Plan for a move into src/ (Ashlar.Infrastructure, next to AshlarInboundListenerPolicy) and then the wiring, or one [coordinated-integration] PR.",
+    "#752 is a de facto tag prerequisite: without it, the step-9 ProdStyle quote does not evidence default enforcement. It is Grok-built, BEHIND, with a red shell-lint (stale KG) and an unticked net10.0 box, and Claude's release claim excludes it. Take it over with a claim, or re-cut it.",
+    "Grok's 2026-10-11 draft of the release notes (release-ag-sw) is stale on exit 77. The 0.3.0 notes must also list the 21 Substrate members from #801 (SdkCompatibilityPolicy.md:102).",
+    "Add SdkCompatibilityPolicy.md:11 ('within 0.1.x') and SECURITY.md:5 ('0.2.x') to the step-6 docs sweep. Neither is on the reader's list.",
+    "Close card #761, which #799 delivered. Ask Grok for the drift audits of #796-#804; none has been posted since 2026-10-13T22:22Z.",
+    "#804 had a claim and a done post but no handoff post, although the workstream claim says each PR gets its own handoff and done.",
+    "Dependabot rebase churn queued 68 runs, and master's Readiness summary waited more than 33 minutes for a runner. Retire #730-#737, which #753 supersedes, before the release window.",
+    "The ProdStyle net8.0 evidence runs on the runner image's preinstalled .NET 8.0.31. The ubuntu-latest move on 2026-10-19 and .NET 8 end of support on 2026-11-10 both bear on it. The readiness lanes are pinned to ubuntu-24.04, but production-readiness-gate-v1 and environment-setup-gate-v1 are not.",
+    "The spec-007-pr4 phase H work has no owner, because no phase H handoff exists: the mutation-manifest hygiene (r14 at spec007-enforcement-routes.json:165 is stale), #753, cards #757-#767 and PR 5. Decide whether release-0-3-0 takes any of it."
+  ],
+  "unverified": [
+    "The roadmap's per-criterion scores (6 met, 10 partial, 25 open) were not re-derived by the critic.",
+    "7 of the 11 bug issues reported as fixed but open were not individually re-verified. #465's redaction audit, #492's chardev 500 and #760's duplicate audit record were not run.",
+    "The cause of the mesh-lab-tls failure (cert-dir path) has not been confirmed by a dispatch. The test-air-gapped and runtime-release-promotion failures cannot be read because the logs are gone (HTTP 410).",
+    "The .NET 8 end-of-support date comes from Microsoft's lifecycle, not from the repo.",
+    "Whether the `bg proposals apply` path escape is reachable from a remote .ashpkg.",
+    "The 4.8b mutation results (s66-s81 KILLED) are as claimed on the bus and were not re-run. c363aae33's '10 failed, 167 passed' on net8.0 was not re-measured.",
+    "Whether extensions/ashlar-vscode (0.5.3) is published anywhere, and whether the nuget.org trusted-publishing policy is still current.",
+    "Log-expiry dates past 2026-10-29 are computed as run date plus 90 days, not read from GitHub.",
+    "Roadmap M0.3 and M0.4 (board briefing, external publication) cannot be verified from the repo.",
+    "The VERIFIED verdict for 03b5a569e comes from readiness-verdict-for-sha.sh, run at synthesis time after the readers finished. The readers saw it in progress."
+  ],
+  "markdown": "The governance core is built and green on master. Phase A of release-0-3-0 is merged (#796, #799, #798, #800, #801, #804), and 03b5a569e now reads VERIFIED. The v0.3.0 tag is partway off: the owner-required gRPC and Fleet.Host loopback wiring (#766) is not built, the step-9 ProdStyle evidence needs #752, and no release commit, rc1 or release notes exist yet. The wider roadmap and the autonomy unlock are far off: 6 of 41 roadmap exit criteria and 1 of 5 unlock criteria are met, and the unlanded dogfood evidence starts expiring on 2026-10-28.\n\nValidation on 03b5a569e: 2 pass, 6 warn, 0 fail, 0 error.\n- Required checks, 2 of 5 green: cert-gate passed later (run 38520088531). Readiness summary was queued, not absent.\n- Red master workflows, 6: all dormant. mesh-lab gate and stress died on a script typo fixed in 0c894e20f and were never re-run.\n- Readiness verdict, in progress: 03b5a569e now reads VERIFIED. aa07e6d91 (#804, docs-only) gets no readiness run.\n- Open PRs, 15: now 12, and none can be merged. #750-#753 are unclaimed. The 8 Dependabot PRs are superseded by #753, and their rebases starve runners.\n- Security settings: secret scanning, push protection, Dependabot updates and private vulnerability reporting are off. SECURITY.md:11 sends reporters to that last, disabled channel. There is no CodeQL.\n- Branches on no remote, 65: 63 are truly unlanded, including a fix for a `bg proposals apply` path escape that has no issue.\n\n| Area | Distance | Estimate (basis) | Since last phase | Blocks the rest |\n|---|---|---|---|---|\n| Product roadmap | far | 6 of 41 exit criteria met, 10 partial (checked against code) | First audit | Owner calls on Forge, public ledger, SKUs |\n| Next release 0.3.0 | partway | 5 of 23 prerequisites done, 2 partial; 0 of 10 runbook steps on a release commit | First audit | #766, #752 |\n| Security specs | partway | SPEC-007: 4 of 8 PRs, PR 5 library-only; SPEC-006 S-4 overdue | First audit | Owner answers gate SPEC-007 PRs 5-6 |\n| Autonomy unlock | far | 1 of 5 criteria; 3a has 0 of 7 landed rows (landed rows only) | First audit | Owner: record-commit call, 3b run |\n| Bug backlog | partway | 11 of 34 fixed but still open, 6 partial, 17 not fixed (checked against code) | First audit | 9 open security defects, no exception rows |\n| CI health | partway | About 33 of 47 workflows green and current, 8 stale, 6 red (newest master run) | First audit | Unowned PRs, stranded branches |\n| release-0-3-0 | partway | Phase A 5.5 of 6 PRs; 4 of 10 steps to the tag, 1 partial | First audit | #766 unclaimed |\n\n#### Moved since the last phase\n\nFirst audit. Phase A landed six PRs and turned compat-gate green (#797 closed). #800's D28 windowing is only partial: four 7307 sites still log unwindowed, and nothing on master tracks them.\n\n#### Critical path to the v0.3.0 tag\n\n1. Claim and build #766. The verifier is internal to application/, so expect two PRs or one [coordinated-integration] PR.\n2. Claim, rebase and land #752, so the quoted ProdStyle line exercises default enforcement.\n3. Retire Dependabot #730-#737 so the release run is not starved of runners.\n4. You: answer #759, the Substrate tier from #801 and the exit-77 scope (#765), or accept each as disclosed in the notes.\n5. Release commit: version bumps, CONSUMING.md, the docs sweep (plus SdkCompatibilityPolicy.md:11 and SECURITY.md:5), the Unshipped review, the CHANGELOG fold, and a Known limit for the four unwindowed sites.\n6. Dispatch release-nuget.yml with 0.3.0-rc1 from that commit.\n7. Open the release issue, write the notes, quote the ProdStyle Passed! line, and get VERIFIED on the exact SHA.\n8. You: rule on a downgrade rollback drill, sign the ReleaseSignOff row, and sign exception rows or require fixes.\n9. Tag, let release.yml run, and re-pin deploy/node.yml.\n\n#### Hard dates\n\n- 2026-10-19: ubuntu-latest starts moving to 26.04, and the weekly readiness run fires.\n- 2026-10-28: the artifacts of VERIFIED run 38516140003 and the first unlanded dogfood rows expire.\n- 2026-10-29: the first 3a dogfood records expire.\n- 2026-11-01: the monthly rc-gate run.\n- 2026-11-10: .NET 8 end of support (external). 90 projects target net8.0.\n- Already passed: S-4's dev-HMAC removal (due 2026-09-01) and the roadmap's 0.2.0 launch target (2026-10-01).\n\n#### Not verified\n\n- The roadmap's per-criterion scores, and 7 of the 11 fixed-but-open bugs.\n- The mesh-lab-tls cause, and the air-gapped and promotion failures (their logs are gone).\n- Whether the proposals-apply path escape is reachable from a remote package."
+}
