@@ -688,7 +688,7 @@
       "id": "s74-behavior-in-chain-refusal-not-kept",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
       "old": "finalRefusal ??= EgressRefusal.Find(ex);",
-      "new": "_ = ex;",
+      "new": "GC.KeepAlive(ex);",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
