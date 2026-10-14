@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Ship Tier A: Production Readiness Gate v1 (build + pipeline CLI + LiteDB resume).
-# Runs the CLI checks of docs/ProductionReadinessGate-v1.md section 3.C and 3.D, the contract
-# .github/workflows/production-readiness-gate-v1.yml also checks: the unconfigured default adapter fails
-# closed, also under test hooks, and a resumed run finds its persisted source. On top of that it runs the
-# same template with ASHLAR_ALLOW_MOCK=1 (the CI stub mode of the default adapters), which the workflow
-# does not: a configured run, the Hybrid fallback and a LiteDB resume must then complete. Each CLI run
-# names its own adapter configuration, so the verdict does not depend on the caller's environment.
-# The assertions are scripts/lib/pipeline_gate_assertions.py; kernel-gate-tier-b.sh runs the same legs.
+# Asserts docs/ProductionReadinessGate-v1.md sections 3.C.1-3 and 3.D, which
+# .github/workflows/production-readiness-gate-v1.yml also checks: validate succeeds, the unconfigured
+# default adapters fail closed (the deterministic one, also under test hooks, and the agentic one on a
+# Hybrid-root template), and a resumed run finds its persisted source. Section 3.C.4 is not asserted:
+# `pipeline diagnostics` is run, and its output discarded. On top of that it runs the template with
+# ASHLAR_ALLOW_MOCK=1 (the CI stub mode of the default adapters), which the workflow does not: a configured
+# run, the Hybrid fallback and a LiteDB resume must then complete. Each CLI run sets ASHLAR_ALLOW_MOCK
+# itself, so that variable in the caller's environment cannot change the verdict; other ASHLAR_PIPELINE_*
+# variables a caller exports still reach the runs. The assertions are scripts/lib/pipeline_gate_assertions.py;
+# kernel-gate-tier-b.sh runs the same legs.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -53,6 +56,20 @@ cat > "$TEMPLATE_PATH" <<'JSON'
 }
 JSON
 
+# A Hybrid stage as the root: unconfigured, the deterministic placeholder fails (not retryable), the chain
+# falls back, and the agentic placeholder must fail too. gate-demo never gets that far: ingest fails first.
+HYBRID_ROOT_TEMPLATE_PATH="$TMP/pipeline_gate_hybrid_root.json"
+cat > "$HYBRID_ROOT_TEMPLATE_PATH" <<'JSON'
+{
+  "templateId": "gate-hybrid-root",
+  "version": "1.0",
+  "stages": [
+    { "id": "hybrid", "name": "Hybrid", "mode": "Hybrid", "fallbackChain": ["Deterministic", "Agentic"] }
+  ],
+  "edges": []
+}
+JSON
+
 unconfigured() { env -u ASHLAR_ALLOW_MOCK "$@"; }
 configured() { env ASHLAR_ALLOW_MOCK=1 "$@"; }
 
@@ -74,6 +91,7 @@ ASHLAR_ALLOW_MOCK=1 dotnet run --project "$CLI" --no-build -- \
 
 UNCONFIGURED_LOG="$TMP/gate-run-unconfigured.log"
 HOOKS_LOG="$TMP/gate-run-hooks.log"
+AGENTIC_LOG="$TMP/gate-run-hybrid-root.log"
 SUCCESS_LOG="$TMP/gate-run-success.log"
 FALLBACK_LOG="$TMP/gate-run-fallback.log"
 
@@ -81,11 +99,17 @@ run_cli "$UNCONFIGURED_LOG" unconfigured dotnet run --project "$CLI" --no-build 
   pipeline run --template "$TEMPLATE_PATH" --run-id gate-run-unconfigured --format-json
 "${ASSERT[@]}" fail-closed "$UNCONFIGURED_LOG" "$CLI_RC" unconfigured
 
-# Test hooks inject extra failures; they must not restore fabricated success (section 3.C.3).
+# Turning test hooks and the lenient completion policy on must not turn the unconfigured run into a
+# success (section 3.C.3). The hook it passes, a failure on hybrid's deterministic worker, never fires:
+# ingest fails first and hybrid stays Pending. What this leg proves is the switches, not the hook.
 ASHLAR_PIPELINE_ENABLE_TEST_HOOKS=1 ASHLAR_PIPELINE_COMPLETION_POLICY=AllowNonCriticalStageFailures \
   run_cli "$HOOKS_LOG" unconfigured dotnet run --project "$CLI" --no-build -- \
   pipeline run --template "$TEMPLATE_PATH" --run-id gate-run-hooks --input "fail:hybrid:deterministic=true" --format-json
 "${ASSERT[@]}" fail-closed "$HOOKS_LOG" "$CLI_RC" test-hooks
+
+run_cli "$AGENTIC_LOG" unconfigured dotnet run --project "$CLI" --no-build -- \
+  pipeline run --template "$HYBRID_ROOT_TEMPLATE_PATH" --run-id gate-run-hybrid-root --format-json
+"${ASSERT[@]}" fail-closed-agentic "$AGENTIC_LOG" "$CLI_RC" unconfigured-hybrid-root
 
 run_cli "$SUCCESS_LOG" configured dotnet run --project "$CLI" --no-build -- \
   pipeline run --template "$TEMPLATE_PATH" --run-id gate-run-success --format-json

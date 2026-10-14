@@ -4,9 +4,12 @@
 #
 # Every CLI run below names its own adapter configuration, so the verdict does not depend on whether
 # the caller exported ASHLAR_ALLOW_MOCK (kernel-gate.yml does, compat-gate.yml does not):
-#   unconfigured  ASHLAR_ALLOW_MOCK removed: the default placeholder must fail closed (section 3.C.2-3).
+#   unconfigured  ASHLAR_ALLOW_MOCK removed: the default placeholders must fail closed (section 3.C.2-3),
+#                 the deterministic one on the gate-demo template and the agentic one on a template
+#                 whose root is a Hybrid stage.
 #   configured    ASHLAR_ALLOW_MOCK=1, the CI stub mode of the same adapters: the run, the Hybrid
 #                 fallback and the LiteDB resume must complete.
+# Other ASHLAR_PIPELINE_* variables a caller exports still reach every run; only ASHLAR_ALLOW_MOCK is pinned.
 # The assertions are scripts/lib/pipeline_gate_assertions.py, which says why both are needed.
 set -euo pipefail
 
@@ -52,6 +55,20 @@ cat > "$TEMPLATE_PATH" <<'JSON'
 }
 JSON
 
+# A Hybrid stage as the root: unconfigured, the deterministic placeholder fails (not retryable), the chain
+# falls back, and the agentic placeholder must fail too. gate-demo never gets that far: ingest fails first.
+HYBRID_ROOT_TEMPLATE_PATH="$TMP_ROOT/pipeline_gate_hybrid_root.json"
+cat > "$HYBRID_ROOT_TEMPLATE_PATH" <<'JSON'
+{
+  "templateId": "gate-hybrid-root",
+  "version": "1.0",
+  "stages": [
+    { "id": "hybrid", "name": "Hybrid", "mode": "Hybrid", "fallbackChain": ["Deterministic", "Agentic"] }
+  ],
+  "edges": []
+}
+JSON
+
 unconfigured() { env -u ASHLAR_ALLOW_MOCK "$@"; }
 configured() { env ASHLAR_ALLOW_MOCK=1 "$@"; }
 
@@ -71,6 +88,7 @@ echo "== Tier B: CLI validate / fail-closed run / configured run / fallback / di
 VALIDATE_LOG="$TMP_ROOT/gate-validate.log"
 UNCONFIGURED_LOG="$TMP_ROOT/gate-run-unconfigured.log"
 HOOKS_LOG="$TMP_ROOT/gate-run-hooks.log"
+AGENTIC_LOG="$TMP_ROOT/gate-run-hybrid-root.log"
 SUCCESS_LOG="$TMP_ROOT/gate-run-success.log"
 FALLBACK_LOG="$TMP_ROOT/gate-run-fallback.log"
 DIAGNOSTICS_LOG="$TMP_ROOT/gate-diagnostics.log"
@@ -81,12 +99,18 @@ run_cli "$UNCONFIGURED_LOG" unconfigured \
   dotnet run --project "$CLI_PROJECT" -- pipeline run --template "$TEMPLATE_PATH" --run-id gate-run-unconfigured --format-json
 "${ASSERT[@]}" fail-closed "$UNCONFIGURED_LOG" "$CLI_RC" unconfigured
 
-# Test hooks inject extra failures; they must not restore fabricated success (section 3.C.3).
+# Turning test hooks and the lenient completion policy on must not turn the unconfigured run into a
+# success (section 3.C.3). The hook it passes, a failure on hybrid's deterministic worker, never fires:
+# ingest fails first and hybrid stays Pending. What this leg proves is the switches, not the hook.
 ASHLAR_PIPELINE_ENABLE_TEST_HOOKS=1 ASHLAR_PIPELINE_COMPLETION_POLICY=AllowNonCriticalStageFailures \
   run_cli "$HOOKS_LOG" unconfigured \
   dotnet run --project "$CLI_PROJECT" -- pipeline run --template "$TEMPLATE_PATH" --run-id gate-run-hooks \
   --input "fail:hybrid:deterministic=true" --format-json
 "${ASSERT[@]}" fail-closed "$HOOKS_LOG" "$CLI_RC" test-hooks
+
+run_cli "$AGENTIC_LOG" unconfigured \
+  dotnet run --project "$CLI_PROJECT" -- pipeline run --template "$HYBRID_ROOT_TEMPLATE_PATH" --run-id gate-run-hybrid-root --format-json
+"${ASSERT[@]}" fail-closed-agentic "$AGENTIC_LOG" "$CLI_RC" unconfigured-hybrid-root
 
 run_cli "$SUCCESS_LOG" configured \
   dotnet run --project "$CLI_PROJECT" -- pipeline run --template "$TEMPLATE_PATH" --run-id gate-run-success --format-json

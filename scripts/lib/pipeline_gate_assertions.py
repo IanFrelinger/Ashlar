@@ -9,20 +9,27 @@ stage instead of reporting success for work they never did. So a gate has two di
 and a run proves only one of them:
 
   unconfigured  ASHLAR_ALLOW_MOCK unset. The run must fail closed: ok=false, state Failed, and the
-                ingest stage's error naming the placeholder. This is the safety property.
+                failed stage's error naming the placeholder. This is the safety property. Both
+                placeholders are covered: `fail-closed` reads the deterministic one off the gate-demo
+                template's ingest stage, and `fail-closed-agentic` the agentic one off a template whose
+                root is a Hybrid stage, which reaches the agentic adapter after the deterministic one
+                fails (it is not retryable, so the chain falls back at once).
   configured    ASHLAR_ALLOW_MOCK=1, the CI-only stub mode of the same adapters (#522). The run must
                 complete, and the work must be attributed to the stub's worker id. This proves the
                 orchestration: scheduling, the Hybrid fallback chain, and LiteDB resume to completion.
                 It does not prove a real engine; none is registered.
 
 Before this helper, kernel-gate-tier-b.sh asserted the configured outcome on a run it never configured.
-It passed only when its caller exported ASHLAR_ALLOW_MOCK=1 (kernel-gate.yml does, compat-gate.yml does
-not), so compat-gate was red from 2026-09-12 on a check that tested its caller's environment.
+From #363 (2026-08-23) until #522 (2026-09-05) that assertion could not hold under any caller, because
+the adapters had no stub mode yet. From #522 it held only when the caller exported ASHLAR_ALLOW_MOCK=1:
+kernel-gate.yml does, compat-gate.yml does not. compat-gate's first run after #363 (2026-09-12) was red,
+and so was every run after it.
 
 USAGE (exit 0 and one "pipeline-gate: PASS" line, or exit 1 and one "pipeline-gate: FAIL" line)
-  pipeline_gate_assertions.py fail-closed        <log> <exit-code> <label>
-  pipeline_gate_assertions.py configured-success <log> <exit-code> <label>
-  pipeline_gate_assertions.py fallback           <log> <exit-code> <label>
+  pipeline_gate_assertions.py fail-closed         <log> <exit-code> <label>
+  pipeline_gate_assertions.py fail-closed-agentic <log> <exit-code> <label>
+  pipeline_gate_assertions.py configured-success  <log> <exit-code> <label>
+  pipeline_gate_assertions.py fallback            <log> <exit-code> <label>
   pipeline_gate_assertions.py resume <source-log> <source-exit> <target-log> <target-exit> <completed|failed> <label>
 
 <log> is the CLI's captured stdout; the payload is its last line that is a JSON object.
@@ -31,6 +38,7 @@ import json
 import sys
 
 PLACEHOLDER_ERROR = "No deterministic pipeline adapter is configured"
+AGENTIC_PLACEHOLDER_ERROR = "No agentic pipeline adapter is configured"
 MOCK_DETERMINISTIC_WORKER = "deterministic-default-mock"
 MOCK_AGENTIC_WORKER = "agentic-default-mock"
 MISSING_RESUME_SOURCE = "no prior run was found"
@@ -58,11 +66,10 @@ def payload_of(path):
     candidates = [line for line in lines if line.startswith("{") and line.endswith("}")]
     require(candidates, f"no JSON payload in {path}")
     try:
-        payload = json.loads(candidates[-1])
+        # A line that starts with "{" either parses as an object or raises, so no type check follows.
+        return json.loads(candidates[-1])
     except ValueError as exc:
         raise GateFailure(f"last JSON line of {path} does not parse: {exc}")
-    require(isinstance(payload, dict), f"payload of {path} is not an object")
-    return payload
 
 
 def exit_code(text):
@@ -86,20 +93,24 @@ def stage(stages, stage_id):
     return found[0]
 
 
-def check_fail_closed(path, rc):
+def check_fail_closed(path, rc, stage_id="ingest", placeholder=PLACEHOLDER_ERROR, worker_type="Deterministic"):
     require(rc != 0, f"exit code 0: a run that did no work exited as a success ({path})")
     payload = payload_of(path)
     require(payload.get("ok") is False, f"ok={payload.get('ok')!r}, expected false")
     data, stages = stages_of(payload)
     require(data.get("state") == "Failed", f"state={data.get('state')!r}, expected 'Failed'")
-    ingest = stage(stages, "ingest")
-    require(ingest.get("state") == "Failed", f"ingest state={ingest.get('state')!r}, expected 'Failed'")
-    error = ingest.get("error") or ""
-    require(PLACEHOLDER_ERROR in error,
-            f"ingest error does not name the unconfigured placeholder: {error!r}")
+    failed = stage(stages, stage_id)
+    require(failed.get("state") == "Failed",
+            f"{stage_id} state={failed.get('state')!r}, expected 'Failed'")
+    require(failed.get("workerType") == worker_type,
+            f"{stage_id} workerType={failed.get('workerType')!r}, expected {worker_type!r}")
+    error = failed.get("error") or ""
+    require(placeholder in error,
+            f"{stage_id} error does not name the unconfigured {worker_type.lower()} placeholder: {error!r}")
     ran = [s.get("stageId") for s in stages if s.get("state") == "Completed"]
     require(not ran, f"stages reported Completed with no adapter configured: {ran}")
-    return f"exit={rc} ok=false state=Failed ingest.error names the placeholder; no stage Completed"
+    return (f"exit={rc} ok=false state=Failed {stage_id}.error names the {worker_type.lower()} placeholder; "
+            "no stage Completed")
 
 
 def check_configured_success(path, rc):
@@ -169,7 +180,7 @@ def main(argv):
         print(__doc__, file=sys.stderr)
         return 2
     command, args = argv[1], argv[2:]
-    arity = {"fail-closed": 3, "configured-success": 3, "fallback": 3, "resume": 6}
+    arity = {"fail-closed": 3, "fail-closed-agentic": 3, "configured-success": 3, "fallback": 3, "resume": 6}
     if command not in arity or len(args) != arity[command]:
         print(f"pipeline-gate: usage error: {command} {args}", file=sys.stderr)
         print(__doc__, file=sys.stderr)
@@ -178,6 +189,9 @@ def main(argv):
     try:
         if command == "fail-closed":
             detail = check_fail_closed(args[0], exit_code(args[1]))
+        elif command == "fail-closed-agentic":
+            detail = check_fail_closed(args[0], exit_code(args[1]), stage_id="hybrid",
+                                       placeholder=AGENTIC_PLACEHOLDER_ERROR, worker_type="Agentic")
         elif command == "configured-success":
             detail = check_configured_success(args[0], exit_code(args[1]))
         elif command == "fallback":
