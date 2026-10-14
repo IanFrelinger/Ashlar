@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -81,6 +83,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// of the marks on the chain, and never inside a read that has not ended; a producer must therefore observe every
 /// read before the egress it governs.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public static class EgressSubject
 {
     internal const string NoSubjectBasis = "no-subject";

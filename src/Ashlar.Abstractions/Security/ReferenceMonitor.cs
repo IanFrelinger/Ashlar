@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>
@@ -15,6 +17,7 @@ namespace Ashlar.Abstractions.Security;
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited cross-domain
 /// solution.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public static class ReferenceMonitor
 {
     /// <summary>

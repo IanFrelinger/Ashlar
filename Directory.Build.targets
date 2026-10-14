@@ -32,6 +32,15 @@
     <NoWarn>$(NoWarn);ASHLAREXP001</NoWarn>
   </PropertyGroup>
 
+  <!-- ASHLAREXP002 is the [Experimental] diagnostic on the security and deployment-profile surface of
+       Ashlar.Abstractions (docs/SdkCompatibilityPolicy.md#ashlarexp002); it too exists for EXTERNAL
+       consumers. The repo's own test projects exercise that surface by design, so they opt in once here,
+       like ASHLAREXP001 above. Ashlar's own shipped assemblies opt in per project, each one reviewed in
+       DiagnosticSuppressionConventionTests (ReviewedProjectWideDisables). -->
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>
+  </PropertyGroup>
+
   <!-- NetStandard compatibility shims (Unity 2019+): required members, init-only, etc.
        Evaluated statically (not inside a <Target>) so IDE/language-server design-time builds
        also see the polyfills; a Target-added <Compile> item is invisible to design-time builds,

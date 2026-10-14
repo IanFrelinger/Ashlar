@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -11,6 +13,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited cross-domain
 /// solution.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public interface IEgressGuard
 {
     /// <summary>

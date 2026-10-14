@@ -5,6 +5,15 @@
     <PackageTags>ashlar abstractions agents interfaces contracts</PackageTags>
   </PropertyGroup>
 
+  <!-- ASHLAREXP002: this is the assembly that declares the experimental security and deployment-profile
+       surface (docs/SdkCompatibilityPolicy.md#ashlarexp002). Its internal enforcement types use the surface
+       they implement, and the compiler reports such a use in the declaring assembly too. NoWarn is a
+       compile option of this project only: it does not reach a consumer, who still sees the diagnostic.
+       Reviewed in DiagnosticSuppressionConventionTests (ReviewedProjectWideDisables). -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <LangVersion>12.0</LangVersion>

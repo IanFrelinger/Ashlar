@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>
@@ -13,6 +15,7 @@ namespace Ashlar.Abstractions.Security;
 /// <para>Decisions are constructed only inside Ashlar.Abstractions (and the assemblies it grants internals to),
 /// and every refusal must name a reason and a detail.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public readonly struct AccessDecision : IEquatable<AccessDecision>
 {
     private const string NoDecisionDetail = "no decision was made (default AccessDecision), so access is refused";

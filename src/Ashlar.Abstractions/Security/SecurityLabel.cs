@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -37,6 +38,7 @@ namespace Ashlar.Abstractions.Security;
 /// <para>This provides classification-style controls inside the runtime. It is not an accredited
 /// cross-domain solution.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 [JsonConverter(typeof(SecurityLabelJsonConverter))]
 [TypeConverter(typeof(SecurityLabelTypeConverter))]
 public sealed class SecurityLabel : IEquatable<SecurityLabel>

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -10,6 +12,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// have its reports counted, where SPEC-007 requires <see cref="SecurityLabel.SystemHigh"/>. This type has no public
 /// constructor and exposes no way to reach the scope; the scope hands one out as <see cref="ReadScope.Reporter"/>.
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class ReadReporter
 {
     private readonly ReadScope _scope;

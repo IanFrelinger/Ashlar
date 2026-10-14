@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>
@@ -10,6 +12,7 @@ namespace Ashlar.Abstractions.Security;
 /// <para>The numeric values are stable and new reasons are only appended, so a stored value keeps its
 /// meaning.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public enum AccessDenialReason
 {
     /// <summary>

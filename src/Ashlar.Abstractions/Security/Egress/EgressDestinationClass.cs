@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -7,6 +9,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// The numeric values are stable and new classes are only appended, so a stored value keeps its meaning.
 /// The zero value is <see cref="Unknown"/>, which fails closed to the bottom label.
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public enum EgressDestinationClass
 {
     /// <summary>

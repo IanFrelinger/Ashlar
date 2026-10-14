@@ -1,8 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>An egress stopped by policy, rather than a transient transport failure.</summary>
 /// <remarks>The message is safe for the local subject. The full decision is for operators only.</remarks>
 #pragma warning disable CA1032 // A refusal must carry its decision; arbitrary messages and inner exceptions can expose classified data.
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class EgressRefusedException : Exception
 #pragma warning restore CA1032
 {

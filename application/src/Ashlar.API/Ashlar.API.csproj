@@ -25,6 +25,14 @@
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
+  <!-- ASHLAREXP002: this assembly consumes the experimental security and deployment-profile surface of
+       Ashlar.Abstractions by design (docs/SdkCompatibilityPolicy.md#ashlarexp002). Reviewed in
+       DiagnosticSuppressionConventionTests (ReviewedProjectWideDisables), which also fails this opt-in
+       once no file of this project uses that surface. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
   </ItemGroup>

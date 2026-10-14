@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -15,6 +17,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// it to the refused subject.</para>
 /// <para>Records are built only by <see cref="EgressGuard"/>; they are immutable.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public sealed class EgressDecision
 {
     internal EgressDecision(

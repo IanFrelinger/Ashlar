@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -12,6 +14,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// <para>The values are matched ordinally and are part of the decision records operators read, so they do not
 /// change.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public static class EgressFamilies
 {
     /// <summary>A model called through the Microsoft.Extensions.AI pipeline.</summary>

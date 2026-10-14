@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security.Egress;
 
 /// <summary>
@@ -30,6 +32,7 @@ namespace Ashlar.Abstractions.Security.Egress;
 /// the public-API analyzer requires; <c>CreateClient(family, site)</c> and <c>CreateClient(family, site, guard)</c>
 /// cover the shorter calls.</para>
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public static class EgressHttp
 {
     /// <summary>

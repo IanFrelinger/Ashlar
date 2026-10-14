@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Ashlar.Abstractions.Security;
 
 /// <summary>
@@ -10,6 +12,7 @@ namespace Ashlar.Abstractions.Security;
 /// which this model generalises; a cert-gate parity test holds the two together. The zero value is
 /// <see cref="Public"/>, the bottom of the order.
 /// </remarks>
+[Experimental(SecurityExperimental.DiagnosticId, UrlFormat = SecurityExperimental.UrlFormat)]
 public enum SecurityLevel
 {
     /// <summary>Public data: the lowest level.</summary>
