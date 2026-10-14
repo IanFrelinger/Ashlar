@@ -177,9 +177,9 @@ The status line above and the starting prompt are the owner's, as written; the s
 - **PR 4.9 (#744, `3023ef1ea`)** acts on all 17 original explicit decisions and the additional
   audited process paths. Named CLI file exports alone carry an internal operator initiator (report/operator-verb);
   public export APIs, publish/share and child execution continue to enforce. Refusal preserves mesh listening,
-  local admission, local promotion and existing export bundles while suppressing the refused export. The `export`, `mesh export` and
-  `pkg export`/`publish`/`share` verbs exit 77 on a refusal (other verbs exit with their own codes, an unhandled EG-PROC-09 refusal 1: Known limit in
-  `docs/EgressInventory.md`), IDE SSE uses fixed remote
+  local admission, local promotion and existing export bundles while suppressing the refused export. At that merge,
+  only the export/package verbs exited 77. PR 4.9b (#765) extends exit 77 to every CLI invocation that observes
+  a local refusal or propagates a typed refusal (`docs/EgressInventory.md`). IDE SSE uses fixed remote
   text and a random reference, and optional discovery/pull paths log redacted refusals. Working-tree execution
   is NetworkExport even with --no-build/--no-restore; Docker Host classification requires a local daemon and
   recognized network-off/no-pull run arguments. Docker API build/run/start is separately guarded. F10 requires
@@ -570,7 +570,7 @@ choices that merged with those PRs but were not the owner's are in the next sect
 | 2026-10-13 | Records (review Q-A) | **The 2026-10-08 D16 row and the 2026-10-10 §8 Q3 and Q4 rows were not the owner's decisions.** #740 and #748 wrote them into this log as owner decisions, citing no owner answer (`REVIEW-2026-10-11.md` §3, BL1 and BL2, on the storage branch `claude/spec-007-pr4-workspace`). They are struck from this log and kept under "Design as merged" as integrator defaults, with their merge SHAs. §8 Q3 and Q4 stay open. The code they describe is unchanged. |
 | 2026-10-13 | PR 4 (Q6 scope; review Q-C, card #766) | **The loopback-or-fail-boot rule on `AirGapped` and `SecureWorkstation` also covers the gRPC server host (`Ashlar.Transport.Grpc.Server.Host`) and `Ashlar.Commercial.Fleet.Host`.** The 2026-10-05 Q6 row named the API and mesh serve only. Both hosts are wired before the 0.3.0 tag. |
 | 2026-10-13 | Release (public API) | **`[Experimental]` symbols stay in `PublicAPI.Unshipped.txt` across the 0.3.0 tag.** The promotion moves only non-experimental lines into `PublicAPI.Shipped.txt`, so a Shipped line stays a promise. A symbol promoted to stable later loses its attribute and moves at the next tag. |
-| 2026-10-14 | PR 4.9b (#765, review question (b)) | **Every CLI egress refusal exits 77**, not only the export and package verbs. The redacted refusal message is preserved. The owner selected this scope in the phase B chat on 2026-10-14; implementation is pending in #765. This gives scripts one refusal exit code across commands; callers relying on another refusal code must update. |
+| 2026-10-14 | PR 4.9b (#765, review question (b)) | **Every CLI egress refusal exits 77**, not only the export and package verbs. The redacted refusal message is preserved. The owner selected this scope in the phase B chat on 2026-10-14; implemented by PR 4.9b (#765). This gives scripts one refusal exit code across commands; callers relying on another refusal code must update. |
 | 2026-10-14 | PR 4.9b (#765, review question (a)) | **`docker exec` into an Ashlar-started `--network=none` session remains a documented limitation.** The owner selected this in the phase B chat on 2026-10-14. It is not recognised as Host without a verifiable chain; the existing fail-closed classification remains. Cost: under enforcement, self-extend cannot build a candidate through `exec` in its own sandbox. |
 
 ## Design as merged (added 2026-10-04)

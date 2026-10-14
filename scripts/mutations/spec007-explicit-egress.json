@@ -761,8 +761,8 @@
     {
       "id": "cli-pkg-refusal-exit-1",
       "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
-      "old": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"\u2192 {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
-      "new": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"\u2192 {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "old": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"→ {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"→ {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
       "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
       "framework": "net10.0",
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
@@ -924,6 +924,66 @@
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "expected_failures": [
         "Refused_operator_export_preserves_existing_bundle_and_allowed_export_replaces_it"
+      ]
+    },
+    {
+      "id": "cli-all-refusal-exit",
+      "file": "application/src/Ashlar.CLI/Program.cs",
+      "old": "return await EgressCliInvocation.InvokeAsync(root, args);",
+      "new": "return await root.InvokeAsync(args);",
+      "filter": "FullyQualifiedName~EgressCliExitCodeTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "A_real_process_refusal_exits_77_with_only_the_redacted_message"
+      ]
+    },
+    {
+      "id": "cli-caught-refusal-retention",
+      "file": "application/src/Ashlar.CLI/EgressCliInvocation.cs",
+      "old": "ReferenceEquals(Current.Value, this) && decision.Refused",
+      "new": "ReferenceEquals(Current.Value, this) && !decision.Refused",
+      "filter": "FullyQualifiedName~EgressCliExitCodeTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "A_caught_refusal_cannot_be_converted_into_another_exit_code"
+      ]
+    },
+    {
+      "id": "cli-invocation-isolation",
+      "file": "application/src/Ashlar.CLI/EgressCliInvocation.cs",
+      "old": "ReferenceEquals(Current.Value, this) && decision.Refused",
+      "new": "decision.Refused",
+      "filter": "FullyQualifiedName~Concurrent_invocations_do_not_inherit_each_others_refusals",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Concurrent_invocations_do_not_inherit_each_others_refusals"
+      ]
+    },
+    {
+      "id": "docker-bind-mounts-remain-network-export",
+      "file": "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs",
+      "old": "            // Bind mounts can expose the daemon or host filesystem despite network=none.\n            // No production SandboxSpec requires a bind mount; fail closed on all volume forms.\n            if (arg is \"-v\" or \"--volume\" or \"--mount\" || arg.StartsWith(\"-v\", StringComparison.Ordinal)\n                || arg.StartsWith(\"--volume=\", StringComparison.Ordinal) || arg.StartsWith(\"--mount=\", StringComparison.Ordinal))\n                return false;\n            if (arg is \"--name\" or \"--label\" or \"--cap-drop\" or \"--security-opt\"\n                or \"--tmpfs\" or \"--memory\" or \"--cpus\" or \"--pids-limit\" or \"--entrypoint\")",
+      "new": "            if (arg is \"--name\" or \"--label\" or \"--cap-drop\" or \"--security-opt\"\n                or \"--tmpfs\" or \"--memory\" or \"--cpus\" or \"--pids-limit\" or \"-v\" or \"--entrypoint\")",
+      "filter": "FullyQualifiedName~Docker_host_classification_requires_real_network_off_argv_and_no_image_pull",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Docker_host_classification_requires_real_network_off_argv_and_no_image_pull"
+      ]
+    },
+    {
+      "id": "initiator-writer-removed",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "{ Initiator = EgressInitiator.OperatorFileExport }",
+      "new": "{ }",
+      "filter": "FullyQualifiedName~F12_operator_initiator_writers_are_confined_to_the_three_export_files",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "F12_operator_initiator_writers_are_confined_to_the_three_export_files"
       ]
     }
   ]

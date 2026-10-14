@@ -20,7 +20,7 @@ remembered to update — staleness here is a red build.
 | missing from `docs/Configuration.md` | 17 |
 | **mentioned in no document at all** | **0** |
 | test files declaring xUnit facts | 807 |
-| declared facts | 5187 |
+| declared facts | 5188 |
 | workflows | 61 |
 
 ## Namespaces cert-gate selects

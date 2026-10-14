@@ -17,6 +17,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — CLI refusal exit codes and Docker sandbox classification (SPEC-007 PR 4.9b, #765)
+
+- The CLI exits 77 for a propagated egress refusal and for a local refused decision a command catches or degrades. The invocation retains the refusal across its async work, prints its redacted message, and applies the same rule to direct process-exit handlers. Concurrent and later invocations do not inherit it. This includes optional refused probes; scripts that treated those commands as success must handle 77.
+- Docker `run --network=none` with any volume or mount option remains a process export, preventing a socket, pipe or host-root mount from being treated as a Host sandbox. Named volumes are conservatively refused too; current production sandbox arguments need none.
+- Operator initiator assignments are pinned to the three export files by a Roslyn certification convention. `docker exec` remains a documented fail-closed limitation, per the owner's 2026-10-14 answer. Remote refusals already erased into untyped result data remain tracked in #802/#803.
+
 ### Changed — the security and deployment-profile API ships `[Experimental]` (`ASHLAREXP002`)
 
 - **Breaking for consumers, in effect.** The 23 public types SPEC-007 added to `Ashlar.Abstractions` after

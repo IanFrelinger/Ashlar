@@ -34,10 +34,36 @@ public sealed class EgressCliExitCodeTests
             "a refusal belongs only to its invocation, never to the next command");
     }
 
+    [Fact]
+    public async Task Concurrent_invocations_do_not_inherit_each_others_refusals()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var clean = new RootCommand();
+        clean.SetHandler(async (InvocationContext context) =>
+        {
+            entered.SetResult();
+            await release.Task;
+            context.ExitCode = 0;
+        });
+        var cleanRun = Ashlar.CLI.EgressCliInvocation.InvokeAsync(clean, []);
+        await entered.Task;
+        try
+        {
+            var refused = new RootCommand();
+            refused.SetHandler(() => new EgressGuard("secure-workstation", "enforce")
+                .Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused());
+            (await Ashlar.CLI.EgressCliInvocation.InvokeAsync(refused, [])).Should().Be(77);
+        }
+        finally { release.SetResult(); }
+        (await cleanRun).Should().Be(0);
+    }
+
     [Theory]
-    [InlineData("air-gapped")]
-    [InlineData("secure-workstation")]
-    public async Task A_real_process_refusal_exits_77_with_only_the_redacted_message(string profile)
+    [InlineData("air-gapped", "portable")]
+    [InlineData("secure-workstation", "portable")]
+    [InlineData("secure-workstation", "validate")]
+    public async Task A_real_process_refusal_exits_77_with_only_the_redacted_message(string profile, string command)
     {
         var directory = Path.Combine(Path.GetTempPath(), "egress-private-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(directory, "src", "Ashlar.Tests.Infrastructure"));
@@ -52,7 +78,9 @@ public sealed class EgressCliExitCodeTests
             }};
             var testBase = Path.Combine(AppContext.BaseDirectory, "Ashlar.Tests.CLI");
             foreach (var arg in new[] { "exec", "--runtimeconfig", testBase + ".runtimeconfig.json", "--depsfile", testBase + ".deps.json",
-                typeof(ExportCommand).Assembly.Location, "test", "portable", "--scope", "smoke" })
+                typeof(ExportCommand).Assembly.Location })
+                process.StartInfo.ArgumentList.Add(arg);
+            foreach (var arg in command == "portable" ? new[] { "test", "portable", "--scope", "smoke" } : new[] { "validate" })
                 process.StartInfo.ArgumentList.Add(arg);
             process.StartInfo.Environment["ASHLAR_DEPLOYMENT_PROFILE"] = profile;
             process.StartInfo.Environment.Remove("ASHLAR_EGRESS_MODE");
