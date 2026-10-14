@@ -92,7 +92,7 @@ public sealed class EgressCliExitCodeTests
             finally { if (!process.HasExited) process.Kill(entireProcessTree: true); }
             var output = await stdout + await stderr;
             process.ExitCode.Should().Be(77, output);
-            output.Should().Contain("Egress refused by policy").And.Contain("site=EG-PROC-09").And.Contain("ref=")
+            output.Should().Contain("Egress refused by policy").And.Contain(command == "portable" ? "site=EG-PROC-09" : "site=EG-PROC-02").And.Contain("ref=")
                 .And.NotContain(directory).And.NotContain(" at Ashlar.");
         }
         finally { Directory.Delete(directory, recursive: true); }
