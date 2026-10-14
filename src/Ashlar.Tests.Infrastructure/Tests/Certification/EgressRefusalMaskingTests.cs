@@ -9,11 +9,17 @@ using Ashlar.Core.Domain.Agents;
 using Ashlar.Core.Domain.Behaviors;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
+using Ashlar.Core.Domain.Execution.Events;
 using Ashlar.Infrastructure.Execution;
 using Ashlar.Infrastructure.Execution.LoadPolicy;
 using Ashlar.Infrastructure.Execution.Models;
 using Ashlar.Infrastructure.Execution.Ollama;
+using Ashlar.Orchestration.Agents.Planning;
+using Ashlar.Orchestration.Architect.Models;
+using Ashlar.Orchestration.Coordination.Conflicts;
 using Ashlar.Orchestration.Models;
+using Ashlar.Orchestration.Negotiation;
+using Ashlar.Orchestration.Negotiation.Models;
 using Ashlar.Tests.Infrastructure.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -167,6 +173,145 @@ public sealed class EgressRefusalMaskingTests
         ollama.Sends.Should().BeGreaterThan(0, "the agentic availability probe was the refused send");
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Planning_agent_never_answers_a_refusal_with_its_canned_recommendation(bool allowMock, bool wrapped)
+    {
+        // The production composition: AgentFactory.WrapModel puts AgentScopedModel(OrchestrationHotSwappableModel(..))
+        // around the DI model of every planning, guide, assistant and wizard agent.
+        var refusal = Refusal();
+        var primary = new CountingModel(() => wrapped ? new IOException("private-canary", refusal) : refusal);
+        var spec = new AgentSpawnSpec { AgentId = "planner", Domain = "planning", Goal = "plan" };
+        var model = new AgentScopedModel(
+            new OrchestrationHotSwappableModel(primary, NullLogger<OrchestrationHotSwappableModel>.Instance),
+            spec.AgentId, spec.Domain, new ModelRuntimeSpec());
+        var agent = new RecommendingPlanningAgent(spec, model);
+        await agent.InitializeAsync();
+        agent.AnswerEveryQuestion();
+        using var mockEnv = new EnvironmentVariableScope("ASHLAR_ALLOW_MOCK", allowMock ? "1" : null);
+
+        object? output = null;
+        var error = await Record.ExceptionAsync(async () => output = await agent.ExecuteAsync());
+
+        output.Should().BeNull("a refused recommendation must not become the canned one");
+        error.Should().BeSameAs(refusal);
+        primary.Calls.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Synthesis_engine_never_answers_a_refusal_with_its_phased_fallback(bool wrapped)
+    {
+        var refusal = Refusal();
+        var model = new CountingModel(() => wrapped ? new IOException("private-canary", refusal) : refusal);
+        var engine = new SynthesisEngine(NullLogger<SynthesisEngine>.Instance, model);
+        var positions = new[]
+        {
+            new NegotiationPosition { AgentId = "a1", Domain = "combat", PrimaryGoal = "action" },
+            new NegotiationPosition { AgentId = "a2", Domain = "economy", PrimaryGoal = "depth" },
+        };
+        var conflict = new Conflict { ConflictType = ConflictType.Philosophy, AgentIds = new[] { "a1", "a2" }, Description = "pacing" };
+
+        ProposedResolution? resolution = null;
+        var error = await Record.ExceptionAsync(async () => resolution = await engine.SynthesizeAsync(positions, conflict));
+
+        resolution.Should().BeNull("two positions would otherwise get the 'Phased approach' fallback at confidence 0.4");
+        error.Should().BeSameAs(refusal);
+        model.Calls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Refused_probe_then_failing_fallback_reports_the_refusal_as_the_step_error()
+    {
+        var refusal = Refusal();
+        using var ollama = await RefusingOllama.CreateAsync(() => refusal);
+        var brick = new ScriptedBrick(agentic: () => throw new InvalidOperationException("agentic must not run"),
+            deterministic: () => throw new IOException("deterministic-broke"));
+
+        var events = await RunStepAsync(ollama.Factory, brick);
+
+        brick.AgenticCalls.Should().Be(0, "the refused probe skipped the agentic implementation");
+        brick.DeterministicCalls.Should().Be(1);
+        var errors = StepErrors(events);
+        errors.Should().NotBeEmpty();
+        errors[^1].Should().Contain(refusal.Ref,
+            "every alternative failed or was skipped and one was refused, so the refusal is the final error (D23)");
+        events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task In_chain_refusal_then_failing_fallback_reports_the_refusal_as_the_step_error()
+    {
+        var refusal = Refusal();
+        var brick = new ScriptedBrick(agentic: () => throw new IOException("private-canary", refusal),
+            deterministic: () => throw new IOException("deterministic-broke"));
+
+        var events = await RunStepAsync(AvailableProviders(), brick);
+
+        brick.AgenticCalls.Should().Be(1);
+        brick.DeterministicCalls.Should().Be(1);
+        var errors = StepErrors(events);
+        errors.Should().NotBeEmpty();
+        errors[^1].Should().Contain(refusal.Ref,
+            "the refused attempt, not the fallback's own failure, is the final error (D23)");
+        events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Refused_attempt_then_succeeding_fallback_completes_the_step()
+    {
+        // Control: a brick's deterministic implementation is not the echo model, so D23 lets it answer.
+        var refusal = Refusal();
+        var brick = new ScriptedBrick(agentic: () => throw new IOException("private-canary", refusal),
+            deterministic: () => new BrickOutput { Summary = "deterministic-ran" });
+
+        var events = await RunStepAsync(AvailableProviders(), brick);
+
+        brick.AgenticCalls.Should().Be(1);
+        brick.DeterministicCalls.Should().Be(1);
+        events.OfType<StepCompletedEvent>().Should().ContainSingle().Which.Implementation.Should().Be(ImplementationType.Deterministic);
+        StepErrors(events).Should().ContainSingle("only the refused attempt reported an error; the fallback's success stands");
+        events.OfType<BehaviorCompletedEvent>().Should().ContainSingle().Which.Success.Should().BeTrue();
+    }
+
+    private static IProviderFactory AvailableProviders()
+    {
+        var providers = new Mock<IProviderFactory>();
+        providers.Setup(x => x.IsProviderAvailable(It.IsAny<string>())).Returns(true);
+        return providers.Object;
+    }
+
+    private static async Task<List<ExecutionEvent>> RunStepAsync(IProviderFactory providers, DomainBrick brick)
+    {
+        var executor = new BehaviorExecutor(
+            new SingleBrickRegistry(brick),
+            providers,
+            new SemanticCache(NullLogger<SemanticCache>.Instance),
+            new SequentialLoopKernel(),
+            NullLogger<BehaviorExecutor>.Instance);
+        var behavior = new Behavior
+        {
+            Id = "fallback-behavior",
+            Name = "fallback-behavior",
+            Description = "one step, agentic then deterministic",
+            Steps = new[] { new BehaviorStep { Id = "s1", BrickId = brick.Id } },
+            OnStepFailure = FailurePolicy.Abort
+        };
+        var agent = new AgentCard { Id = "agent", Name = "agent", Description = "agent", Behaviors = new[] { behavior.Id } };
+        var events = new List<ExecutionEvent>();
+        await foreach (var evt in executor.ExecuteWithEventsAsync(agent, behavior, new BehaviorInput(),
+            new ExecutionOptions { Provider = "ollama", IsAirGapped = false, SwapOnFailure = true }))
+            events.Add(evt);
+        return events;
+    }
+
+    private static List<string> StepErrors(IEnumerable<ExecutionEvent> events) =>
+        events.OfType<StepErrorEvent>().Where(e => e.StepId == "s1").Select(e => e.Error).ToList();
+
     private static IModel WithFallback(OrchestrationHotSwappableModel model, IModel fallback)
     {
         var field = typeof(OrchestrationHotSwappableModel).GetField("_fallback", BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -269,6 +414,62 @@ public sealed class EgressRefusalMaskingTests
         public DomainBrick? GetBrick(string id) => id == brick.Id ? brick : null;
 
         public IReadOnlyList<DomainBrick> GetAllBricks() => new[] { brick };
+    }
+
+    /// <summary>A planning agent whose questions are all answered, so the next execution asks the model.</summary>
+    private sealed class RecommendingPlanningAgent(AgentSpawnSpec spec, IModel model)
+        : PlanningAgent(spec, NullLogger<Ashlar.Orchestration.Agents.BaseAgent>.Instance, model)
+    {
+        internal void AnswerEveryQuestion()
+        {
+            var questions = (System.Collections.ICollection)typeof(PlanningAgent)
+                .GetField("_questions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(this)!;
+            questions.Count.Should().BeGreaterThan(0, "arrange: the agent has questions to answer");
+            typeof(PlanningAgent).GetField("_currentQuestionIndex", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(this, questions.Count);
+        }
+    }
+
+    /// <summary>A brick with both implementations, each scripted, counting its calls.</summary>
+    private sealed class ScriptedBrick : DomainBrick
+    {
+        private readonly Func<BrickOutput> _agentic;
+        private readonly Func<BrickOutput> _deterministic;
+        private int _agenticCalls;
+        private int _deterministicCalls;
+
+        public ScriptedBrick(Func<BrickOutput> agentic, Func<BrickOutput> deterministic)
+        {
+            _agentic = agentic;
+            _deterministic = deterministic;
+            Id = "test.scripted";
+            Name = "scripted";
+            Description = "Agentic first, deterministic fallback.";
+            Category = BrickCategory.Analysis;
+            Implementations = new BrickImplementations
+            {
+                Deterministic = new DeterministicImplementation { Id = "d", Name = "d", Description = "d", Executor = "x" },
+                Agentic = new AgenticImplementation { Id = "a", Name = "a", Description = "a" }
+            };
+            DefaultImplementation = ImplementationType.Agentic;
+            FallbackChain = new[] { ImplementationType.Agentic, ImplementationType.Deterministic };
+        }
+
+        internal int AgenticCalls => Volatile.Read(ref _agenticCalls);
+
+        internal int DeterministicCalls => Volatile.Read(ref _deterministicCalls);
+
+        public override Task<BrickOutput> ExecuteAsync(BrickInput input, ImplementationType implementation,
+            IExecutionContext context, CancellationToken cancellationToken = default)
+        {
+            if (implementation == ImplementationType.Agentic)
+            {
+                Interlocked.Increment(ref _agenticCalls);
+                return Task.FromResult(_agentic());
+            }
+            Interlocked.Increment(ref _deterministicCalls);
+            return Task.FromResult(_deterministic());
+        }
     }
 
     private sealed class AgenticOnlyBrick : DomainBrick
