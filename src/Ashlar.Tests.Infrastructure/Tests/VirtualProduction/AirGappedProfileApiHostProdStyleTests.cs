@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -48,8 +49,8 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
 
     private const string LoopbackUrls = "http://localhost:5000";
 
-    private static WebApplicationFactory<Program> CreateFactory(IDictionary<string, string?>? settings = null)
-        => new AshlarApiWebApplicationFactory().WithWebHostBuilder(builder =>
+    private static WebApplicationFactory<Program> CreateFactory(IDictionary<string, string?>? settings = null, StartupFailureRecorder? startup = null, bool forceDisposalRace = false)
+        => (startup is null ? new AshlarApiWebApplicationFactory() : (WebApplicationFactory<Program>)new ObservedFactory<Program>(startup, forceDisposalRace)).WithWebHostBuilder(builder =>
         {
             var all = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["urls"] = LoopbackUrls };
             foreach (var pair in settings ?? new Dictionary<string, string?>())
@@ -237,6 +238,81 @@ public sealed class AirGappedProfileApiHostProdStyleTests : IDisposable
             => Task.CompletedTask;
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
         public void Dispose() { }
+    }
+
+    [Theory(Timeout = TestTimeouts.HostTouching)]
+    [InlineData("airgapped", "ports", "http://*:18080")]
+    [InlineData("airgapped", "mcp", "is not permitted under the AirGapped deployment profile")]
+    [InlineData("secure-workstation", "mcp", "MCP over HTTP")]
+    public async Task Api_startup_refusal_survives_deferred_observer_disposal(string profileValue, string kind, string expected)
+    {
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", profileValue);
+        var startup = new StartupFailureRecorder();
+        var settings = kind == "ports"
+            ? new Dictionary<string, string?> { ["urls"] = null, ["http_ports"] = "18080" }
+            : new Dictionary<string, string?> { ["Ashlar:Mcp:Server:Enabled"] = "true" };
+        using var factory = CreateFactory(settings, startup, forceDisposalRace: true);
+        var failure = await BootFailureAsync(factory);
+        failure.Should().BeOfType<OptionsValidationException>();
+        failure.ToString().Should().Contain(expected);
+    }
+
+    private sealed class ObservedFactory<T>(StartupFailureRecorder startup, bool forceDisposalRace)
+        : WebApplicationFactory<T> where T : class
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("Testing");
+            builder.ConfigureServices(services => services.AddSingleton<ILoggerProvider>(_ => startup));
+            builder.ConfigureLogging(logging => logging.AddFilter<StartupFailureRecorder>(level => level >= LogLevel.Debug));
+        }
+
+        protected override IHost CreateHost(IHostBuilder builder)
+        {
+            if (!forceDisposalRace) return base.CreateHost(builder);
+            var host = builder.Build();
+            try
+            {
+                // Force the real RunAsync failure/disposal to win before WAF observes startup.
+                // This deterministically reproduces the macOS DeferredHost.StartAsync race.
+                // A broken guard can instead start successfully; observe that too so the assertion
+                // fails promptly and the factory still owns and disposes the running host.
+                Task.WhenAny(startup.Disposed.Task, startup.Started.Task)
+                    .WaitAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
+                host.Start();
+                return host;
+            }
+            catch
+            {
+                host.Dispose(); // WAF cannot own a host that CreateHost did not return.
+                throw;
+            }
+        }
+    }
+
+    private sealed class StartupFailureRecorder : ILoggerProvider
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Disposed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<Exception> Failure { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public ILogger CreateLogger(string categoryName) => new RecorderLogger(this, categoryName);
+        public void Dispose() => Disposed.TrySetResult();
+
+        private sealed class RecorderLogger(StartupFailureRecorder owner, string category) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            public bool IsEnabled(LogLevel logLevel) => logLevel is LogLevel.Debug or LogLevel.Error;
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+                Exception? exception, Func<TState, Exception?, string> formatter)
+            {
+                if (category == "Microsoft.Extensions.Hosting.Internal.Host" && logLevel == LogLevel.Error
+                    && eventId.Id == 11 && eventId.Name == "HostedServiceStartupFaulted" && exception is not null)
+                    owner.Failure.TrySetResult(exception);
+                if (category == "Microsoft.Extensions.Hosting.Internal.Host" && logLevel == LogLevel.Debug
+                    && eventId.Id == 2 && eventId.Name == "Started")
+                    owner.Started.TrySetResult();
+            }
+        }
     }
 
 }
