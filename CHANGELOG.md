@@ -25,10 +25,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   "unavailable-model fallbacks cannot turn them into echo success" held only for refusals thrown by the model call.
 - Behaviour steps follow D23. A refused probe counts as a skipped alternative. When no implementation produced
   output, the first refusal is the step's final error: instead of "No available implementation", and also after
-  a deterministic fallback failed for its own reason. A refusal that an attempt's own error event already carried
-  is not reported a second time. A deterministic fallback that succeeds after a refusal completes the step at the
-  event level (`StepCompletedEvent`, `BehaviorCompletedEvent.Success`). `IBehaviorExecutor.ExecuteAsync` still
-  returns `Success = false` whenever any `StepErrorEvent` was emitted; that predates 4.8b.
+  a deterministic fallback failed for its own reason. It is appended as the step's last error event unless the
+  last error event already carried it, so a refused last attempt is not listed twice; a refused attempt followed by
+  a failing fallback lists it at the attempt and again at the end, and `IBehaviorExecutor.ExecuteAsync`'s `Errors`
+  then names it twice. A deterministic fallback that succeeds after a refusal completes the step at the event
+  level (`StepCompletedEvent`, `BehaviorCompletedEvent.Success`). `IBehaviorExecutor.ExecuteAsync` still returns
+  `Success = false` whenever any `StepErrorEvent` was emitted; that predates 4.8b.
 - `OrchestrationHotSwappableModel`, which wraps every orchestration agent's model, rethrows a refusal instead of
   answering with its echo model under `ASHLAR_ALLOW_MOCK=1`. Without the flag it throws the refusal itself rather
   than a `ModelUnavailableException` around it.

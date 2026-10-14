@@ -144,7 +144,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   `ProviderRefusalScope`, and the scope holds it. Besides `AdaptiveProviderFactory`, `ProviderBackedModel` (which
   throws it) and `BehaviorExecutor` (which reports it) now open one. `BehaviorExecutor` follows D23: a refused
   probe counts as a skipped alternative, and when every alternative failed or was skipped, the first refusal is
-  the step's final error, also after a failing deterministic fallback, and a step reports a refusal once. A
+  the step's last error event, also after a failing deterministic fallback; it is not appended again when the
+  refused attempt was itself the last error (and is listed twice when a fallback failed after it). A
   deterministic implementation that succeeds after a refusal still completes the step at the event level,
   because it is not the echo model. `IBehaviorExecutor.ExecuteAsync` still returns `Success = false` once any
   step error was emitted; that predates 4.8b.
