@@ -61,7 +61,7 @@
   </ItemGroup>
   <!-- Third-party Libraries -->
   <ItemGroup>
-    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.0" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageVersion Include="LlamaSharp" Version="0.25.0" />
     <PackageVersion Include="LLamaSharp.Backend.Cpu" Version="0.25.0" />
     <!-- MEAI >= 10.8.3 is required by ModelContextProtocol 2.x (MCP protocol adapters);
