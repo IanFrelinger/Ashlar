@@ -16,18 +16,18 @@ public sealed class AdaptImproveProviderDisposalTests
     [Fact]
     public void Adapt_and_Improve_BuildServiceProvider_calls_are_using_disposed()
     {
-        static void AssertUsing(string relativePath)
-        {
-            var root = FindRepoRoot();
-            var text = File.ReadAllText(Path.Combine(root, relativePath));
-            text.Should().Contain("using var services",
-                $"{relativePath} must dispose its ServiceProvider so ProviderFactory flushes event 7307");
-            text.Should().Contain("BuildServiceProvider()",
-                $"{relativePath} still builds a ServiceProvider");
-        }
+        var root = FindRepoRoot();
+        var adapt = File.ReadAllText(Path.Combine(root, "application/src/Ashlar.CLI/Commands/AdaptCommand.cs"));
+        var improve = File.ReadAllText(Path.Combine(root, "application/src/Ashlar.CLI/Commands/ImproveCommand.cs"));
 
-        AssertUsing("application/src/Ashlar.CLI/Commands/AdaptCommand.cs");
-        AssertUsing("application/src/Ashlar.CLI/Commands/ImproveCommand.cs");
+        // Exact statements: a bare "using var services" elsewhere must not mask a dropped dispose.
+        adapt.Should().Contain("using var services = new ServiceCollection()",
+            "adapt must using-dispose the ServiceCollection it builds");
+        improve.Should().Contain("using var services = serviceCollection.BuildServiceProvider();",
+            "improve ExecuteAsync must using-dispose the provider that owns ProviderFactory");
+        improve.Should().Contain("using var services = new ServiceCollection()",
+            "improve observation phase must using-dispose its ServiceProvider too");
+
         typeof(ImproveCommand).GetMethod("RegisterProviderFactories",
                 BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
             .Should().NotBeNull();
