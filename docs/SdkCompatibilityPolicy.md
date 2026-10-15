@@ -147,6 +147,10 @@ optional `EgressRefusedException`). There is no default interface body (netstand
 `ProviderRefusalScope` so a refused Ollama health probe is retained. Callers that only need a boolean
 keep using `IsProviderAvailable`.
 
+**Recorded additive surface (card #803, 2026-10-15).** `Ashlar.Core.Domain.Execution.Events.StepErrorEvent`
+gains optional `Cause`, `RefusalErrorCode`, and `RefusalRef` (and `WasRefused`). Existing constructors remain;
+new optional parameters are additive. Callers that only read `Error` are unchanged.
+
 #### What enforces it today, and what does not
 
 Stating this exactly, because a policy that claims enforcement it does not have is worse than one

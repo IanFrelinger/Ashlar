@@ -181,7 +181,12 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     }
                     if (chain.Count == 0)
                     {
-                        await writer.WriteAsync(new StepErrorEvent(step.Id, probeRefusal?.Message ?? "No available implementation"), ct);
+                        await writer.WriteAsync(new StepErrorEvent(
+                            step.Id,
+                            probeRefusal?.Message ?? "No available implementation",
+                            cause: probeRefusal,
+                            refusalErrorCode: probeRefusal?.ErrorCode,
+                            refusalRef: probeRefusal?.Ref), ct);
                         stepFailures++;
                         return behavior.OnStepFailure == FailurePolicy.Abort ? LoopAction.Break : LoopAction.Continue;
                     }
@@ -320,12 +325,19 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                         }
 
                         var errorText = error ?? "Step failed";
-                        await writer.WriteAsync(new StepErrorEvent(step.Id, errorText, stopwatch.ElapsedMilliseconds), ct2);
+                        var errorCarriesRefusal = finalRefusal is not null
+                            && errorText.Contains(finalRefusal.Message, StringComparison.Ordinal);
+                        await writer.WriteAsync(new StepErrorEvent(
+                            step.Id,
+                            errorText,
+                            stopwatch.ElapsedMilliseconds,
+                            cause: errorCarriesRefusal ? finalRefusal : null,
+                            refusalErrorCode: errorCarriesRefusal ? finalRefusal!.ErrorCode : null,
+                            refusalRef: errorCarriesRefusal ? finalRefusal!.Ref : null), ct2);
                         // Overwritten on every error event, from the text actually written: did THIS event carry the
                         // step's first refusal? (A later alternative that returns no output without throwing writes
                         // the previous attempt's text again.)
-                        lastErrorCarriedRefusal = finalRefusal is not null
-                            && errorText.Contains(finalRefusal.Message, StringComparison.Ordinal);
+                        lastErrorCarriedRefusal = errorCarriesRefusal;
                         _metricsCollector?.IncrementCounter("ncr.execution.step.error");
 
                         if (!options.SwapOnFailure)
@@ -346,7 +358,12 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                         // refused attempt followed by a failing fallback is listed at the attempt and again here.
                         if (finalRefusal is not null && !lastErrorCarriedRefusal)
                         {
-                            await writer.WriteAsync(new StepErrorEvent(step.Id, finalRefusal.Message), ct);
+                            await writer.WriteAsync(new StepErrorEvent(
+                                step.Id,
+                                finalRefusal.Message,
+                                cause: finalRefusal,
+                                refusalErrorCode: finalRefusal.ErrorCode,
+                                refusalRef: finalRefusal.Ref), ct);
                         }
                         stepFailures++;
                         if (behavior.OnStepFailure == FailurePolicy.Abort)

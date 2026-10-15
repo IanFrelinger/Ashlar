@@ -241,24 +241,40 @@ public class WorkflowExecutor
         
         // Stream brick-level events
         var behaviorInput = new BehaviorInput(new Dictionary<string, object>(inputs));
-        
+
         var outputs = new Dictionary<string, object>();
+        BehaviorCompletedEvent? completed = null;
+        EgressRefusedException? firstRefusal = null;
         await foreach (var evt in _behaviorExecutor.ExecuteWithEventsAsync(
             agent, behavior, behaviorInput, options, ct))
         {
             // Forward events to workflow events
             _events.OnNext(new NodeBrickEvent(context.CorrelationId, node.Id, evt));
-            
-            if (evt is BehaviorCompletedEvent completed)
+
+            if (evt is StepErrorEvent stepError)
             {
-                outputs = ToMutableDictionary(completed.Outputs);
+                // Cause carries the typed refusal (and wrappers); Find walks the chain.
+                firstRefusal ??= EgressRefusal.Find(stepError.Cause) ?? stepError.Cause as EgressRefusedException;
+            }
+
+            if (evt is BehaviorCompletedEvent behaviorCompleted)
+            {
+                completed = behaviorCompleted;
+                outputs = ToMutableDictionary(behaviorCompleted.Outputs);
             }
         }
-        
+
+        // Match brick and cluster nodes: a refused behaviour step ends the agent node (card #803).
+        if (firstRefusal is not null)
+            ExceptionDispatchInfo.Capture(firstRefusal).Throw();
+
+        // Without a refusal, honour BehaviorCompletedEvent.Success rather than reporting success
+        // whenever any events were forwarded.
+        var success = completed?.Success ?? false;
         return new NodeResult
         {
             NodeId = node.Id,
-            Success = true,
+            Success = success,
             Outputs = outputs
         };
     }
