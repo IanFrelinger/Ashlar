@@ -470,6 +470,19 @@ public sealed class DomainRemainingCoverageTests
         new StepCompletedEvent("s1", "brick", ImplementationType.Agentic, 12, "done").LatencyMs.Should().Be(12);
         new StepSkippedEvent("s1", "condition false").Reason.Should().Contain("condition");
         new StepErrorEvent("s1", "boom", 5).LatencyMs.Should().Be(5);
+        var cause = new InvalidOperationException("refused");
+        var refused = new StepErrorEvent(
+            "s1",
+            "EGRESS_REFUSED",
+            latencyMs: 9,
+            cause: cause,
+            refusalErrorCode: "EGRESS_REFUSED",
+            refusalRef: "ref-1");
+        refused.Cause.Should().BeSameAs(cause);
+        refused.RefusalErrorCode.Should().Be("EGRESS_REFUSED");
+        refused.RefusalRef.Should().Be("ref-1");
+        refused.WasRefused.Should().BeTrue();
+        new StepErrorEvent("s2", "plain").WasRefused.Should().BeFalse();
         new CacheHitEvent("s1", "key").CacheKey.Should().Be("key");
         new ProviderSwitchedEvent("openai", "ollama").ToProvider.Should().Be("ollama");
         new OfflineModeActivatedEvent().Type.Should().Be("offline_mode_activated");
