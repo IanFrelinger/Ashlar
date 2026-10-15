@@ -1,6 +1,8 @@
 # SPEC-007 PR 4: design, final (after three critiques)
 
 > **Amended 2026-10-06 (phase C, PR 4.5):** §5 Scenario B's reason, control C4 and control C5 follow the owner's open-read-scope decision; see `design-4.5-amendment.md` on this branch for the diff. Phase B's amendments (D9 gains `Ashlar.Orchestration`; D31 amended; `Detach()` is `RunDetached(Action)`) and the phase C owner decisions (O1: custom tiers are SystemHigh in PR 4; O2: a redirect from a non-Host authority into Host is never followed) are recorded in SPEC-007's decisions log and the phase handoffs, not in the body below.
+>
+> **Amended 2026-10-15 (card #763):** §2.7 multi-frame vision on AirGapped refuses a cloud resolve (matches master / #738). §5 C12 records the owner-accepted adaptation (REVIEW §10 new (d)): the runner ends an ordinary tool exception with `error`; the test checks the next send in the same frame.
 
 This revises `DESIGN-4.md` with three critiques: code-truth, security and scope. Every finding was checked against the
 read-only clone at `8ec674d2a` (PR 3b merged) before it was accepted. Nothing was built or run. §7 lists each finding
@@ -602,7 +604,11 @@ off-host.
 - LLM: `providersToTry` (`AdaptiveProviderFactory.cs:47-49`) becomes `{ resolved }` when `resolved` is local.
 - **Single-image vision:** `providersToTry` (`:85`) is unconditionally `{ resolved, "ollama", "openai", "azure" }`.
   On AG it drops `openai` and `azure`. An AG twin covers each path.
-- The multi-frame path (`:118-125`) already uses `resolved` only; it is catch-all row 25.
+- **Multi-frame vision:** on AirGapped, a cloud (non-local) resolve is refused with `ModelUnavailableException`
+  before the inner factory receives any frames (`AdaptiveProviderFactory.ExecuteVisionMultiFrameAsync` `:141-144`,
+  PR 4.10b / #738). Local resolves (`ollama` / `local`) still run. Twins
+  `Multi_frame_vision_on_AirGapped_refuses_a_cloud_resolve` / `keeps_local_resolution`. (The prior design sentence
+  that this path "already uses `resolved` only; it is catch-all row 25" was wrong: a cloud resolve was sent.)
 
 **AG boot validators.** They bind to the options types, not to literal strings, on the `ValidateOnStart` pattern
 (`src/Ashlar.Mcp.Server/ValidateAshlarMcpServerOptions.cs:29-36`). Each refuses under AG:
@@ -973,7 +979,7 @@ whose mark has observed Secret.
 | C9 | a host `IEgressGuard` that throws, and one that returns `null`, on the factory route | refused, with a synthetic `NoDecision` | a broken host guard fails closed |
 | C10 | (if Q3 picks off-host) `dotnet.test` inside the Secret frame, in an empty directory | refused before `Process.Start` | child processes are mediated |
 | C11 | a tool that reads, calls `Observe(Public)` on a side value, and returns unlabelled text | call 2 refused, `SystemHighData` | `Observe` cannot launder a tool result |
-| C12 | a tool that reads and then throws | call 2 refused, `SystemHighData` | a thrown tool counts as a read |
+| C12 | a tool that reads and then throws an ordinary exception | the agent cycle ends with `error`; a subsequent send in the same runner frame is refused with `SystemHighData` | a thrown tool still observes SystemHigh into the runner's frame. Owner accept 2026-10-15 of the C12 adaptation (REVIEW §10 new (d)): the runner does not continue the cycle after an ordinary tool exception; the leak test proves the open-read rule via the next send instead. Already on master since #746 (`EgressEnforcementLeakTests`, SPEC-007 §2.3). |
 
 **Mutations: each must go red with counts.**
 
