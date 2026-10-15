@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — host opt-out startup Warning uses EventId 7308 (#758)
+
+- `EgressHostClientPolicyActivator` logs each configured `ReportOnlyClients` name at event 7308
+  `EgressHostClientOptOut` instead of reusing 7307. Operators filtering on 7307 no longer mix host
+  opt-out announcements with refused-probe and health degrade Warnings. Documented in
+  `docs/Configuration.md`, `docs/EgressInventory.md` and SPEC-007 PR 4.11 status.
+
 ### Added — SPEC-007 disposition index for routed-enforcement and 4.10b Known limits (#812)
 
 - `docs/specs/SPEC-007-disposition-index.md` maps every inherited "Known limits of routed enforcement" bullet and
@@ -25,11 +32,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   the SPEC-007 status Known-limits paragraph, and `docs/DocsIndex.md` point at the index. #765 / #766 repairs stay
   cited as closed; bind-window and inbound-body residuals remain open/awaiting PR 5.
 
+
 ### Fixed — testing-strategy gate ignores comment-only ProdStyle-path diffs (#757)
 
 - `scripts/ci/pr-testing-strategy-gate.sh` no longer demands a ProdStyle test delta when every
   change under a trigger path is a C# `//` / `///` / block-comment line. `[skip-prod-style]`
   remains for real code exceptions. Twin: `tests/scripts/pr-testing-strategy-gate.test.sh`.
+
 
 ### Changed — readiness runs API-host ProdStyle on net10.0 (#752)
 

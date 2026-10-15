@@ -242,8 +242,9 @@ public sealed class EgressHostClientOptOutTests
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            if (eventId.Id == 7307)
+            if (eventId.Id == 7308)
             {
+                eventId.Name.Should().Be("EgressHostClientOptOut");
                 logLevel.Should().Be(LogLevel.Warning);
                 Messages.Add(formatter(state, exception));
             }
