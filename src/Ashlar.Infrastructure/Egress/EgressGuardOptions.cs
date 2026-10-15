@@ -66,7 +66,7 @@ internal sealed class EgressHostClientPolicyActivator : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         foreach (var client in _options.Value.ReportOnlyClients.OrderBy(name => name, StringComparer.Ordinal))
-            _logger.LogWarning(new EventId(7307, "EgressHostClientOptOut"),
+            _logger.LogWarning(new EventId(7308, "EgressHostClientOptOut"),
                 "Factory client {Client} is configured for report-only egress; AirGapped ignores this exception.", client);
         return Task.CompletedTask;
     }
