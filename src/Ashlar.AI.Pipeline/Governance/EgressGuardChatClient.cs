@@ -211,14 +211,19 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
         {
             try
             {
-                _auditor?.Record(new ChatInvocationAuditRecord
+                // The outer router AuditingChatClient also catches EgressRefusedException; record once
+                // per EgressDecision instance (card #760).
+                if (_auditor is not null && EgressRefusalAuditDeduper.ShouldRecord(decision))
                 {
-                    TargetKey = _targetKey ?? string.Empty,
-                    ModelId = model,
-                    Outcome = "denied",
-                    ReasonCode = "egress_refused",
-                    EgressDecision = decision,
-                });
+                    _auditor.Record(new ChatInvocationAuditRecord
+                    {
+                        TargetKey = _targetKey ?? string.Empty,
+                        ModelId = model,
+                        Outcome = "denied",
+                        ReasonCode = "egress_refused",
+                        EgressDecision = decision,
+                    });
+                }
             }
             catch (Exception)
             {
