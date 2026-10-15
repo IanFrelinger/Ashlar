@@ -142,9 +142,10 @@ than discovered during.
 
 **Recorded additive surface (card #802, 2026-10-15).** `Ashlar.Core.Application.Execution.Ports.IProviderFactory`
 gains `ProbeProviderAvailability(string)` returning `ProviderAvailabilityResult` (availability plus an
-optional `EgressRefusedException`). Default interface implementation delegates to `IsProviderAvailable`
-with no refusal. `ProviderFactory` opens a `ProviderRefusalScope` so a refused Ollama health probe is
-retained. Callers that only need a boolean keep using `IsProviderAvailable`.
+optional `EgressRefusedException`). There is no default interface body (netstandard2.0); stubs return
+`new ProviderAvailabilityResult(IsProviderAvailable(provider))`. `ProviderFactory` opens a
+`ProviderRefusalScope` so a refused Ollama health probe is retained. Callers that only need a boolean
+keep using `IsProviderAvailable`.
 
 #### What enforces it today, and what does not
 

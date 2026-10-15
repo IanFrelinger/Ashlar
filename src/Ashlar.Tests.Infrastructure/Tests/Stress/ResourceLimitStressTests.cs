@@ -156,6 +156,9 @@ public class ResourceLimitStressTests
     {
         public bool IsProviderAvailable(string provider) => false;
 
+        public Ashlar.Core.Application.Execution.Ports.ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+            new(IsProviderAvailable(provider));
+
         public Task<string> ExecuteLLMAsync(
             string provider,
             string systemPrompt,

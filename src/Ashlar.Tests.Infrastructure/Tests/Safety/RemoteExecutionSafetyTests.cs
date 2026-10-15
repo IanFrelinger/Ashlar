@@ -108,6 +108,9 @@ public sealed class RemoteExecutionSafetyTests
 
         public bool IsProviderAvailable(string provider) => true;
 
+        public ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+            new(IsProviderAvailable(provider));
+
         public Task<string> ExecuteLLMAsync(string provider, string systemPrompt, string userPrompt, object config, CancellationToken cancellationToken = default)
         {
             if (_getCallCount() > 0)
@@ -131,6 +134,9 @@ public sealed class RemoteExecutionSafetyTests
     private sealed class FailingProviderFactory : Ashlar.Infrastructure.Execution.IProviderFactory
     {
         public bool IsProviderAvailable(string provider) => false;
+
+        public ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+            new(IsProviderAvailable(provider));
 
         public Task<string> ExecuteLLMAsync(string provider, string systemPrompt, string userPrompt, object config, CancellationToken cancellationToken = default) =>
             throw new ModelUnavailableException("No model available.");

@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 807,
-    "declared_facts": 5194,
+    "test_files_declaring_facts": 808,
+    "declared_facts": 5197,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -3329,6 +3329,13 @@
       "project": "Ashlar.Tests.Application",
       "namespace": "Ashlar.Tests.Application.Tests.Execution",
       "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Application/Tests/Execution/ProviderAvailabilityResultTests.cs",
+      "project": "Ashlar.Tests.Application",
+      "namespace": "Ashlar.Tests.Application.Tests.Execution",
+      "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {

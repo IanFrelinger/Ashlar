@@ -85,6 +85,10 @@ public sealed class FakeProviderFactory : IProviderFactory
     public bool IsProviderAvailable(string provider) => Available;
 
     /// <inheritdoc />
+    public Ashlar.Core.Application.Execution.Ports.ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+        new(IsProviderAvailable(provider));
+
+    /// <inheritdoc />
     public Task<string> ExecuteLLMAsync(
         string provider,
         string systemPrompt,

@@ -34,15 +34,16 @@ public interface IProviderFactory
     /// <param name="provider">Provider name (e.g., "ollama", "openai", "anthropic").</param>
     /// <returns>
     /// Availability plus the first refusal observed during the probe, when any.
-    /// The default implementation returns <see cref="IsProviderAvailable"/> with no refusal.
+    /// Implementations that cannot observe a typed refusal may return
+    /// <c>new ProviderAvailabilityResult(IsProviderAvailable(provider))</c>.
     /// </returns>
     /// <remarks>
     /// Substrate additive surface (<c>docs/SdkCompatibilityPolicy.md</c>): callers that only need a
     /// boolean continue to use <see cref="IsProviderAvailable"/>. Workflow preflight and other result
-    /// paths that must name a refusal use this probe.
+    /// paths that must name a refusal use this probe. No default interface body: this assembly targets
+    /// netstandard2.0, which does not support default interface implementations.
     /// </remarks>
-    ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
-        new(IsProviderAvailable(provider));
+    ProviderAvailabilityResult ProbeProviderAvailability(string provider);
 
     /// <summary>
     /// Executes an LLM text request and returns the model response as a string.

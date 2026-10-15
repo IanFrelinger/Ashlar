@@ -84,6 +84,9 @@ public sealed class ProviderBackedModelDirectiveTests : UnitTestBase
         /// <param name="provider">Provider.</param>
         public bool IsProviderAvailable(string provider) => true;
 
+        public Ashlar.Core.Application.Execution.Ports.ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+            new(IsProviderAvailable(provider));
+
         public Task<string> ExecuteLLMAsync(
             string provider,
             string systemPrompt,
