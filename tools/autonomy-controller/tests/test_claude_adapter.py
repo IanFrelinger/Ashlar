@@ -149,6 +149,8 @@ class Argv(ClaudeAdapterCase):
         self.assertIn("--no-chrome", argv)
         self.assertIn("--verbose", argv)             # stream-json needs it
         self.assertIn("--strict-mcp-config", argv)   # the operator's connectors never enter a run
+        self.assertIn("--safe-mode", argv)           # operator user hooks/skills/agents/memory stay out
+        self.assertNotIn("--bare", argv)             # --bare drops OAuth; funding route is claude.ai
         self.assertNotIn("--resume", argv)
         self.assertNotIn("--agent", argv)
         self.assertNotIn("--tools", argv)
@@ -168,6 +170,8 @@ class Argv(ClaudeAdapterCase):
         argv = self.recorded()["argv"]
         self.assertEqual(argv[argv.index("--resume") + 1], "aaaaaaaa-0000-0000-0000-000000000001")
         self.assertNotIn("--session-id", argv)
+        self.assertIn("--safe-mode", argv)           # isolation on resume too (probe-claude-isolation-report.json)
+        self.assertNotIn("--bare", argv)
         manifest = json.loads((self.runs_dir / "run-1" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["resume_of"], "aaaaaaaa-0000-0000-0000-000000000001")
 
@@ -639,6 +643,7 @@ class CancelAndReconcile(ClaudeAdapterCase):
             self.assertTrue(getattr(caps, name), name)
         self.assertIn("2.1.263", caps.evidence)
         self.assertIn("probe-report-2.json", caps.evidence)
+        self.assertIn("probe-claude-isolation-report.json", caps.evidence)
 
     def test_cancelled_run_keeps_the_allowance_it_streamed_and_names_the_session_to_resume(self):
         info = {"isUsingOverage": False, "unifiedWindows": {"five_hour": {"utilization": 0.4, "resetsAt": 1}}}

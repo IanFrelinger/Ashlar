@@ -26,8 +26,19 @@ records the shapes verbatim. Observed, and therefore declared in `capabilities`:
     assistant message; nothing here depends on the order;
   * `--strict-mcp-config` (no `--mcp-config`) keeps the operator's claude.ai connectors out of the
     run: `mcp_servers:[]`, and the first-call cache creation drops from ~70k to ~9k tokens. Every
-    launch passes it. It covers MCP servers only: the live run's workers still loaded the operator's
-    user-level hooks, skills, agents, slash commands and auto-memory (isolating them is card #790).
+    launch passes it.
+  * `--safe-mode` (card #790; probe `probe-claude-isolation-report.json`, Claude Code 2.1.263
+    linux-x64, 2026-10-15, no model called) keeps the operator's user-level configuration out of the
+    worker. Against fixtures under `CLAUDE_CONFIG_DIR` (a SessionStart hook that writes a marker,
+    skill `fake-skill`, command `fake`, agent `operator-spy`), the baseline argv ran the hook and
+    listed those entries plus `memory_paths.auto`; with `--safe-mode` the marker was not written,
+    no `hook_*` events appeared, the user slash/agent entries were absent, and `memory_paths` was
+    null — on a fresh `--session-id` and on `--resume`. Bundled skills/agents remain. `--bare` was
+    rejected: its help text says Anthropic auth is strictly `ANTHROPIC_API_KEY` / `apiKeyHelper`
+    (OAuth and keychain are never read), which would break the `claude.ai` funding route.
+    `--setting-sources ''` cleared hooks and user slash entries but left `memory_paths` set;
+    `--disable-slash-commands` cleared skills/slash but still ran SessionStart hooks. Every launch
+    passes `--safe-mode`.
 
 `total_cost_usd` is `costBasis:"list"`: an estimate of API value, never a charge on a subscription.
 It is recorded as an ESTIMATED_API_VALUE observation and is never summed with the allowance.
@@ -188,7 +199,8 @@ class ClaudeAdapter:
         transcript_retention=True,  # observed: <projectsDirectory>/<slug or truncated slug>/<session_id>.jsonl
         turn_limit=True,            # observed: --max-turns 1 -> subtype error_max_turns, terminal_reason max_turns
         funding_route_check=True,   # observed: `claude auth status --json` reports authMethod/loggedIn
-        evidence="live probe of claude 2.1.263 on 2026-10-11, probe/probe-report-2.json; see README 'Claude adapter'")
+        evidence="live probe of claude 2.1.263 on 2026-10-11, probe/probe-report-2.json; "
+                 "isolation probe-claude-isolation-report.json (2026-10-15); see README 'Claude adapter'")
 
     def __init__(self, runs_dir: str, cli: Optional[Union[str, Sequence[str]]] = None,
                  expected_route: str = "claude.ai", env: Optional[Dict[str, str]] = None, clock=None,
@@ -284,8 +296,11 @@ class ClaudeAdapter:
 
     def _argv(self, prefix: List[str], request: LaunchRequest, session_id: str) -> List[str]:
         # stream-json so the rate_limit_event (the allowance source) is on stdout beside the result;
-        # --strict-mcp-config so the operator's claude.ai connectors never enter a controller run.
+        # --strict-mcp-config so the operator's claude.ai connectors never enter a controller run;
+        # --safe-mode so the operator's user-level hooks, skills, agents, slash commands and
+        # auto-memory never enter either (probe-claude-isolation-report.json; not --bare: that drops OAuth).
         argv = prefix + ["-p", request.prompt, "--output-format", "stream-json", "--verbose", "--strict-mcp-config",
+                         "--safe-mode",
                          "--model", request.model, "--effort", request.effort,
                          "--max-turns", str(int(request.invocation_ceiling)),
                          "--permission-prompts", "none", "--permission-mode", self.permission_mode, "--no-chrome"]
