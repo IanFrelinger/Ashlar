@@ -17,6 +17,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Changed — readiness runs API-host ProdStyle on net10.0 (#752)
+
+- `ashlar ci verify` keeps the net8.0 `Category=ProdStyle` step and adds the net10.0 step whose filter includes the real API-host twins. Those twins compile only on net10.0, so a net8.0-only pass does not evidence AirGapped and SecureWorkstation refusing by default on that host. The release notes quote the net10.0 `Passed!` line from the verified run. No workflow sets `ASHLAR_EGRESS_MODE`.
+
 ### Fixed — CLI refusal exit codes and Docker sandbox classification (SPEC-007 PR 4.9b, #765)
 
 - The CLI exits 77 for a propagated egress refusal and for a local refused decision a command catches or degrades. The invocation retains the refusal across its async work, prints its redacted message, and applies the same rule to direct process-exit handlers. Concurrent and later invocations do not inherit it. This includes optional refused probes; scripts that treated those commands as success must handle 77.
