@@ -17,6 +17,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — SPEC-007 disposition index for routed-enforcement and 4.10b Known limits (#812)
+
+- `docs/specs/SPEC-007-disposition-index.md` maps every inherited "Known limits of routed enforcement" bullet and
+  each PR 4.10b Known-limits residual to a follow-up card, owner decision, or explicit retained/open disposition,
+  with current-source evidence. It does not repair behaviour or accept release risk. `docs/EgressInventory.md`,
+  the SPEC-007 status Known-limits paragraph, and `docs/DocsIndex.md` point at the index. #765 / #766 repairs stay
+  cited as closed; bind-window and inbound-body residuals remain open/awaiting PR 5.
+
 ### Fixed — testing-strategy gate ignores comment-only ProdStyle-path diffs (#757)
 
 - `scripts/ci/pr-testing-strategy-gate.sh` no longer demands a ProdStyle test delta when every
