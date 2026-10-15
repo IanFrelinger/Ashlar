@@ -602,7 +602,11 @@ off-host.
 - LLM: `providersToTry` (`AdaptiveProviderFactory.cs:47-49`) becomes `{ resolved }` when `resolved` is local.
 - **Single-image vision:** `providersToTry` (`:85`) is unconditionally `{ resolved, "ollama", "openai", "azure" }`.
   On AG it drops `openai` and `azure`. An AG twin covers each path.
-- The multi-frame path (`:118-125`) already uses `resolved` only; it is catch-all row 25.
+- **Multi-frame vision:** on AirGapped, a cloud (non-local) resolve is refused with `ModelUnavailableException`
+  before the inner factory receives any frames (`AdaptiveProviderFactory.ExecuteVisionMultiFrameAsync` `:141-144`,
+  PR 4.10b / #738). Local resolves (`ollama` / `local`) still run. Twins
+  `Multi_frame_vision_on_AirGapped_refuses_a_cloud_resolve` / `keeps_local_resolution`. (The prior design sentence
+  that this path "already uses `resolved` only; it is catch-all row 25" was wrong: a cloud resolve was sent.)
 
 **AG boot validators.** They bind to the options types, not to literal strings, on the `ValidateOnStart` pattern
 (`src/Ashlar.Mcp.Server/ValidateAshlarMcpServerOptions.cs:29-36`). Each refuses under AG:
