@@ -52,7 +52,8 @@ public sealed class AdaptCommand : Command
             ? Path.Combine(Path.GetFullPath(storePathOverride), "ashlar-patterns.db")
             : Path.Combine(RepoPathResolver.ResolveStateDirectory(repoRoot), "ashlar-patterns.db");
 
-        var services = new ServiceCollection()
+        // Dispose the provider so ProviderFactory flushes its refused-probe Warning window (card #809).
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole())
             .AddSingleton<Ashlar.Infrastructure.Execution.IProviderFactory, Ashlar.Infrastructure.Execution.ProviderFactory>()
             .AddAdaptationInfrastructure(storePath)

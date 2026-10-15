@@ -156,11 +156,24 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   input passed through.
 - `ProviderFactory` logs refused availability probes once per site and reason per five-minute window (event 7307),
   and flushes the suppressed count when it is disposed. It now implements `IDisposable`, and the kernel's DI
-  container disposes the singleton. The `adapt` and `improve` CLI verbs never dispose their service providers, so
-  there the first Warning is logged and the summary is not.
+  container disposes the singleton. The `adapt` and `improve` CLI verbs dispose the service providers they build
+  (card #809), so a verb finish flushes the suppressed-count summary; first-warning behaviour is unchanged.
+- Card #809 (4.8b refusal/warning-lifecycle limits):
+  - **Repaired:** `ProviderFactoryLocalExecutor` returns `EGRESS_REFUSED` with the redacted refusal message/ref
+    for wrapped and unwrapped refusals (ordinary failures keep `local.execution_failed`).
+  - **Repaired:** `adapt` / `improve` dispose their service providers so the probe Warning window flushes.
+  - **Retained:** IDE health and onboarding status still report a refused probe as unavailable (needs the typed
+    probe API from card #802); `BehaviorExecutor` outer-catch cases (cancellation wins by design); a refusal
+    listed twice in `Errors` after a failing fallback (D23 per-step ordering tradeoff, not #760).
 - Still open (Known limits in `docs/EgressInventory.md`):
+<<<<<<< HEAD
   - IDE health and onboarding status report a refused provider as unavailable;
   - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
+=======
+  - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
+  - IDE health and onboarding status report a refused provider as unavailable (retained, card #809; depends on #802);
+  - `BehaviorExecutor` outer-catch / double-listed refusal in `Errors` (retained, card #809).
+>>>>>>> 174025071 (fix(egress): dispose adapt/improve SPs; preserve local refusal identity (#809))
 
 ### Fixed — workflow stress/optimize surface typed refusal results (card #802)
 

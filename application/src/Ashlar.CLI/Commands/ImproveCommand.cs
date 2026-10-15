@@ -182,7 +182,8 @@ public sealed class ImproveCommand : Command
                 _ => new Ashlar.Infrastructure.Observation.LiteDbPatternStore(storePath));
         }
 
-        var services = serviceCollection.BuildServiceProvider();
+        // Dispose so ProviderFactory flushes its refused-probe Warning window (card #809).
+        using var services = serviceCollection.BuildServiceProvider();
 
         if (fromObservation && string.IsNullOrWhiteSpace(path))
         {
@@ -632,7 +633,7 @@ public sealed class ImproveCommand : Command
 
     private static async Task RunObservationPhaseAsync(string repoRoot, string storePath, TimeSpan duration, CancellationToken ct)
     {
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole())
             .AddOptions()
             .AddAdaptationInfrastructure(storePath)
