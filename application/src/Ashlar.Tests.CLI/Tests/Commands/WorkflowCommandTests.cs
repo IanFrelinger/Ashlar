@@ -1,3 +1,4 @@
+using Ashlar.Abstractions.Security.Egress;
 using Ashlar.CLI.Commands;
 using Ashlar.CLI.Runtime;
 using Ashlar.Core.Application.Testing.Abstractions;
@@ -32,6 +33,9 @@ public sealed class WorkflowCommandTests : UnitTestBase
             await TestOptimizeAdaptiveAllocationAndConfidenceGatingAsync(cancellationToken).ConfigureAwait(false);
             await TestOptimizeHonorsBudgetAndEarlyStopAsync(cancellationToken).ConfigureAwait(false);
             await TestGateIgnoresSkippedRunsInSuccessRateAsync().ConfigureAwait(false);
+            await TestStressTreatsRefusedPreflightAsFailureNotSkippedSuccessAsync(cancellationToken).ConfigureAwait(false);
+            await TestOptimizeSurfacesRefusalReferenceInResultAsync(cancellationToken).ConfigureAwait(false);
+            await TestStressNonRefusalPreflightSkipStillCountsAsPassedAsync(cancellationToken).ConfigureAwait(false);
             return new TestResult
             {
                 Name = nameof(WorkflowCommandTests),
@@ -89,6 +93,21 @@ public sealed class WorkflowCommandTests : UnitTestBase
                 : (provider, ct) => providerPreflight(provider, ct),
             modelPuller);
     }
+
+    private static WorkflowCommand CreateCommandWithTypedPreflight(
+        Func<string, string, string?, bool, bool, CancellationToken, Task<WorkflowCommand.ScenarioExecutionResult>>? scenarioExecutor,
+        Func<string, CancellationToken, Task<WorkflowCommand.PreflightResult>> providerPreflight,
+        Func<IReadOnlyList<string>, CancellationToken, Task<WorkflowCommand.ModelPullResult>>? modelPuller = null)
+    {
+        WorkflowCommand.ScenarioExecutor executor = scenarioExecutor is null
+            ? StubScenarioExecutorAsync
+            : new WorkflowCommand.ScenarioExecutor(scenarioExecutor);
+        return new WorkflowCommand(executor, providerPreflight, modelPuller);
+    }
+
+    private static EgressRefusedException CreateTestRefusal() =>
+        new(new EgressGuard("secure-workstation", "enforce")
+            .Evaluate(new EgressRequest(EgressFamilies.ModelLegacy, "EG-MDL-07", "http://127.0.0.1:11434")));
 
     private static WorkflowCommand CreateCommandWithPreflightAndPuller(
         Func<string, string, string?, bool, bool, CancellationToken, Task<WorkflowCommand.ScenarioExecutionResult>>? scenarioExecutor,
@@ -1670,6 +1689,199 @@ public sealed class WorkflowCommandTests : UnitTestBase
             var report = await File.ReadAllTextAsync(reportPath, cancellationToken).ConfigureAwait(false);
             AssertTrue(report.Contains("\"winnerConfidence\":", StringComparison.OrdinalIgnoreCase));
             AssertTrue(report.Contains("\"allocation\":", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            Environment.CurrentDirectory = previousCurrent;
+            if (Directory.Exists(repoRoot))
+                Directory.Delete(repoRoot, recursive: true);
+        }
+    }
+
+    private async Task TestStressTreatsRefusedPreflightAsFailureNotSkippedSuccessAsync(CancellationToken cancellationToken)
+    {
+        var repoRoot = CreateTempRepoRoot();
+        var previousCurrent = Environment.CurrentDirectory;
+        try
+        {
+            Environment.CurrentDirectory = repoRoot;
+            const string runtimeSpecJson = """
+{
+  "execution": { "iterations": 1, "persistHistory": false, "benchmarkSet": "workflow-lab" },
+  "requests": [ { "id": "request", "prompt": "Do thing" } ],
+  "compositions": [ { "id": "comp", "roles": [ { "agentId": "a1", "role": "builder", "goal": "do thing" } ] } ],
+  "modelProfiles": [ { "id": "profile", "default": { "prefer": "agentic", "provider": "ollama", "model": "llama3.1" } } ]
+}
+""";
+            var refusal = CreateTestRefusal();
+            var executorCalls = 0;
+            var command = CreateCommandWithTypedPreflight(
+                (_, _, _, _, _, _) =>
+                {
+                    executorCalls++;
+                    return Task.FromResult(new WorkflowCommand.ScenarioExecutionResult(true, "should-not-run", 0, 0));
+                },
+                (provider, _) => Task.FromResult(new WorkflowCommand.PreflightResult(
+                    Ok: false,
+                    Provider: provider,
+                    Detail: refusal.Message,
+                    Refusal: refusal)));
+
+            var (exitCode, output) = await CaptureConsoleAsync(
+                () => command.ExecuteStressAsync(
+                    requestOverride: null,
+                    specPath: null,
+                    specJson: runtimeSpecJson,
+                    providerOverride: null,
+                    preferOverride: null,
+                    iterationsOverride: null,
+                    benchmarkSetOverride: null,
+                    persistHistoryOverride: false,
+                    warmupRunsOverride: 0,
+                    shuffleScenariosOverride: false,
+                    randomSeedOverride: null,
+                    cooldownMsOverride: 0,
+                    includeMeshPeers: false,
+                    meshCapability: "ashlar-cli",
+                    json: true,
+                    verbose: false,
+                    ct: cancellationToken)).ConfigureAwait(false);
+
+            AssertEqual(1, exitCode);
+            AssertEqual(0, executorCalls);
+            AssertTrue(output.Contains("\"ok\": false", StringComparison.OrdinalIgnoreCase), output);
+            AssertTrue(output.Contains("egress_refused", StringComparison.OrdinalIgnoreCase), output);
+            AssertTrue(output.Contains(refusal.Ref, StringComparison.Ordinal), output);
+            AssertTrue(output.Contains("Refused by egress policy", StringComparison.OrdinalIgnoreCase), output);
+            AssertTrue(!output.Contains("\"skipped\": true", StringComparison.OrdinalIgnoreCase)
+                || output.Contains("\"skipped\": false", StringComparison.OrdinalIgnoreCase), output);
+        }
+        finally
+        {
+            Environment.CurrentDirectory = previousCurrent;
+            if (Directory.Exists(repoRoot))
+                Directory.Delete(repoRoot, recursive: true);
+        }
+    }
+
+    private async Task TestOptimizeSurfacesRefusalReferenceInResultAsync(CancellationToken cancellationToken)
+    {
+        var repoRoot = CreateTempRepoRoot();
+        var previousCurrent = Environment.CurrentDirectory;
+        try
+        {
+            Environment.CurrentDirectory = repoRoot;
+            const string runtimeSpecJson = """
+{
+  "execution": { "iterations": 1, "persistHistory": false, "benchmarkSet": "workflow-lab" },
+  "requests": [ { "id": "req-a", "prompt": "Deliver feature A." } ],
+  "compositions": [ { "id": "comp-a", "roles": [ { "agentId": "builder-1", "role": "builder", "goal": "Build" } ] } ],
+  "modelProfiles": [ { "id": "profile-a", "default": { "prefer": "agentic", "provider": "ollama", "model": "llama3.1" } } ]
+}
+""";
+            var refusal = CreateTestRefusal();
+            var command = CreateCommandWithTypedPreflight(
+                (_, _, _, _, _, _) => Task.FromResult(new WorkflowCommand.ScenarioExecutionResult(true, "should-not-run", 0, 0)),
+                (provider, _) => Task.FromResult(new WorkflowCommand.PreflightResult(
+                    Ok: false,
+                    Provider: provider,
+                    Detail: refusal.Message,
+                    Refusal: refusal)));
+
+            var reportPath = Path.Combine(repoRoot, "workflow_optimize_refusal_report.md");
+            var (exitCode, output) = await CaptureConsoleAsync(
+                () => command.ExecuteOptimizeAsync(
+                    requestOverride: null,
+                    objective: null,
+                    objectiveFile: null,
+                    specPath: null,
+                    specJson: runtimeSpecJson,
+                    providerOverride: null,
+                    preferOverride: null,
+                    iterationsOverride: 1,
+                    benchmarkSetOverride: "workflow-lab",
+                    persistHistoryOverride: false,
+                    warmupRunsOverride: 0,
+                    shuffleScenariosOverride: false,
+                    randomSeedOverride: null,
+                    cooldownMsOverride: 0,
+                    maxCandidates: 2,
+                    budgetRuns: 2,
+                    searchStrategy: null,
+                    earlyStopMinRuns: null,
+                    earlyStopMinSuccessRate: null,
+                    includeMeshPeers: false,
+                    meshCapability: "ashlar-cli",
+                    autoPullModels: false,
+                    promoteWinner: false,
+                    policyFile: null,
+                    reportOutputPath: reportPath,
+                    json: true,
+                    verbose: false,
+                    ct: cancellationToken)).ConfigureAwait(false);
+
+            AssertEqual(1, exitCode);
+            AssertTrue(output.Contains("\"ok\": false", StringComparison.OrdinalIgnoreCase), output);
+            AssertTrue(output.Contains(refusal.Ref, StringComparison.Ordinal), output);
+            AssertTrue(output.Contains("EGRESS_REFUSED", StringComparison.Ordinal) ||
+                        output.Contains("ref=", StringComparison.OrdinalIgnoreCase), output);
+            AssertTrue(!output.Contains("Provider unavailable.", StringComparison.Ordinal), output);
+        }
+        finally
+        {
+            Environment.CurrentDirectory = previousCurrent;
+            if (Directory.Exists(repoRoot))
+                Directory.Delete(repoRoot, recursive: true);
+        }
+    }
+
+    private async Task TestStressNonRefusalPreflightSkipStillCountsAsPassedAsync(CancellationToken cancellationToken)
+    {
+        var repoRoot = CreateTempRepoRoot();
+        var previousCurrent = Environment.CurrentDirectory;
+        try
+        {
+            Environment.CurrentDirectory = repoRoot;
+            const string runtimeSpecJson = """
+{
+  "execution": { "iterations": 1, "persistHistory": false, "benchmarkSet": "workflow-lab" },
+  "requests": [ { "id": "request", "prompt": "Do thing" } ],
+  "compositions": [ { "id": "comp", "roles": [ { "agentId": "a1", "role": "builder", "goal": "do thing" } ] } ],
+  "modelProfiles": [ { "id": "profile", "default": { "prefer": "agentic", "provider": "ollama", "model": "llama3.1" } } ]
+}
+""";
+            var command = CreateCommandWithTypedPreflight(
+                (_, _, _, _, _, _) => Task.FromResult(new WorkflowCommand.ScenarioExecutionResult(true, "should-not-run", 0, 0)),
+                (provider, _) => Task.FromResult(new WorkflowCommand.PreflightResult(
+                    Ok: false,
+                    Provider: provider,
+                    Detail: "Provider unavailable.")));
+
+            var (exitCode, output) = await CaptureConsoleAsync(
+                () => command.ExecuteStressAsync(
+                    requestOverride: null,
+                    specPath: null,
+                    specJson: runtimeSpecJson,
+                    providerOverride: null,
+                    preferOverride: null,
+                    iterationsOverride: null,
+                    benchmarkSetOverride: null,
+                    persistHistoryOverride: false,
+                    warmupRunsOverride: 0,
+                    shuffleScenariosOverride: false,
+                    randomSeedOverride: null,
+                    cooldownMsOverride: 0,
+                    includeMeshPeers: false,
+                    meshCapability: "ashlar-cli",
+                    json: true,
+                    verbose: false,
+                    ct: cancellationToken)).ConfigureAwait(false);
+
+            // Non-refusal preflight skips still count as passed (card #802: do not broaden).
+            AssertEqual(0, exitCode);
+            AssertTrue(output.Contains("\"ok\": true", StringComparison.OrdinalIgnoreCase), output);
+            AssertTrue(output.Contains("skipped_infra", StringComparison.OrdinalIgnoreCase), output);
+            AssertTrue(output.Contains("Provider unavailable.", StringComparison.Ordinal), output);
         }
         finally
         {

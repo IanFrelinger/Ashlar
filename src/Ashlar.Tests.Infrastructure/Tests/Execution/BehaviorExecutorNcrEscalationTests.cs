@@ -223,6 +223,8 @@ public sealed class BehaviorExecutorNcrEscalationTests : UnitTestBase
         /// <summary>Returns whether  provider available.</summary>
         /// <param name="provider">Provider.</param>
         public bool IsProviderAvailable(string provider) => true;
+        public ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+            new(IsProviderAvailable(provider));
         public Task<string> ExecuteLLMAsync(string provider, string systemPrompt, string userPrompt, object config, CancellationToken cancellationToken = default)
             => Task.FromResult("{}");
         public Task<string> ExecuteVisionAsync(string provider, string systemPrompt, string userPrompt, byte[] imageBytes, object config, CancellationToken cancellationToken = default)

@@ -167,7 +167,8 @@ public sealed partial class WorkflowCommand : Command
     {
     }
 
-    private WorkflowCommand(
+    /// <summary>Test and DI constructor that injects a typed provider preflight result.</summary>
+    internal WorkflowCommand(
         ScenarioExecutor scenarioExecutor,
         Func<string, CancellationToken, Task<PreflightResult>> providerPreflight,
         Func<IReadOnlyList<string>, CancellationToken, Task<ModelPullResult>>? ollamaModelPuller = null,
@@ -612,13 +613,17 @@ public sealed partial class WorkflowCommand : Command
 
         try
         {
-            var available = providerFactory.IsProviderAvailable(normalized);
-            return Task.FromResult(available
-                ? new PreflightResult(true, normalized, "Provider available.")
-                : new PreflightResult(false, normalized, "Provider unavailable."));
+            var probe = providerFactory.ProbeProviderAvailability(normalized);
+            if (probe.Available)
+                return Task.FromResult(new PreflightResult(true, normalized, "Provider available."));
+            if (probe.Refusal is { } refusal)
+                return Task.FromResult(new PreflightResult(false, normalized, refusal.Message, refusal));
+            return Task.FromResult(new PreflightResult(false, normalized, "Provider unavailable."));
         }
         catch (Exception ex)
         {
+            if (EgressRefusal.Find(ex) is { } refusal)
+                return Task.FromResult(new PreflightResult(false, normalized, refusal.Message, refusal));
             return Task.FromResult(new PreflightResult(false, normalized, ex.Message));
         }
     }
@@ -644,5 +649,10 @@ public sealed partial class WorkflowCommand : Command
     internal sealed record PreflightResult(
         bool Ok,
         string Provider,
-        string Detail);
+        string Detail,
+        EgressRefusedException? Refusal = null)
+    {
+        /// <summary>True when the preflight failed because egress policy refused the probe.</summary>
+        public bool WasRefused => Refusal is not null;
+    }
 }

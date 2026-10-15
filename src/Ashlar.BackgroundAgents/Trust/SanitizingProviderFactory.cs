@@ -36,6 +36,10 @@ public sealed class SanitizingProviderFactory :
     public bool IsProviderAvailable(string provider) => _inner.IsProviderAvailable(provider);
 
     /// <inheritdoc />
+    public ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+        _inner.ProbeProviderAvailability(provider);
+
+    /// <inheritdoc />
     public async Task<string> ExecuteLLMAsync(
         string provider,
         string systemPrompt,

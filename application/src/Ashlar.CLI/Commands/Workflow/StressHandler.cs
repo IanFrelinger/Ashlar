@@ -154,13 +154,23 @@ internal sealed class StressHandler(
                 preflightByProvider.TryGetValue(profileProvider, out var preflight) &&
                 !preflight.Ok)
             {
-                scenario = new WorkflowCommand.ScenarioExecutionResult(
-                    Ok: false,
-                    Summary: $"Skipped due to provider preflight failure ({profileProvider}): {preflight.Detail}",
-                    ConflictCount: 0,
-                    EscalationCount: 0,
-                    FailureCategory: "skipped_infra",
-                    Skipped: true);
+                // A refused probe is a failure, not a successful skip (card #802). Other preflight
+                // failures remain skipped_infra and still count as passed in allPassed below.
+                scenario = preflight.WasRefused
+                    ? new WorkflowCommand.ScenarioExecutionResult(
+                        Ok: false,
+                        Summary: $"Refused by egress policy ({profileProvider}): {preflight.Detail}",
+                        ConflictCount: 0,
+                        EscalationCount: 0,
+                        FailureCategory: "egress_refused",
+                        Skipped: false)
+                    : new WorkflowCommand.ScenarioExecutionResult(
+                        Ok: false,
+                        Summary: $"Skipped due to provider preflight failure ({profileProvider}): {preflight.Detail}",
+                        ConflictCount: 0,
+                        EscalationCount: 0,
+                        FailureCategory: "skipped_infra",
+                        Skipped: true);
             }
             else
             {

@@ -164,8 +164,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   Known limits in
   `docs/EgressInventory.md` ("Catch-alls and availability probes"):
   - status callers report a refused probe as "unavailable";
-  - `workflow stress` reports success over refused probes, and `workflow optimize` fails without naming the
-    refusal (card #802);
+  - `workflow stress` / `workflow optimize` typed refusal results were repaired by card #802
+    (`IProviderFactory.ProbeProviderAvailability`; stress fails refused runs; optimize names the refusal);
   - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
   - `BehaviorExecutor`'s outer catch (a throwing outcome recorder or semantic cache, or cancellation, which wins
     by design) ends a step's stream with its own event, not the refusal;

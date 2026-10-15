@@ -152,12 +152,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   container disposes the singleton. The `adapt` and `improve` CLI verbs never dispose their service providers, so
   there the first Warning is logged and the summary is not.
 - Still open (Known limits in `docs/EgressInventory.md`):
-  - `ashlar workflow stress` reports success and exits 0 when every run was skipped because a refused probe failed
-    the provider preflight (card #802);
-  - `ashlar workflow optimize` exits 1 but reports "Provider unavailable." rather than the refusal (card #802);
   - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
   - IDE health and onboarding status report a refused provider as unavailable;
   - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
+
+### Fixed — workflow stress/optimize surface typed refusal results (card #802)
+
+- Additive Substrate API: `IProviderFactory.ProbeProviderAvailability` returns availability plus an
+  `EgressRefusedException` when the probe was refused (`ProviderAvailabilityResult`). `IsProviderAvailable`
+  is unchanged. Recorded under `docs/SdkCompatibilityPolicy.md` (Substrate).
+- `ashlar workflow stress` no longer reports success when every run was skipped because a refused probe failed
+  preflight: refused runs are `egress_refused` failures. Other all-skipped preflight failures remain passed.
+- `ashlar workflow optimize` names the refusal (including `ref=`) in its result path instead of
+  "Provider unavailable."
 
 ### Changed — a refusal at a brick or cluster node ends a workflow run under `FailurePolicy.Continue` (SPEC-007 4.8, disclosed in 4.8b)
 

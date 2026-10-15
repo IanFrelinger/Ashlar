@@ -454,6 +454,9 @@ public sealed class AirGappedSecureWorkstationHygieneCertificationTests : IDispo
 
         public bool IsProviderAvailable(string provider) => true;
 
+        public ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+            new(IsProviderAvailable(provider));
+
         public Task<string> ExecuteLLMAsync(
             string provider, string systemPrompt, string userPrompt, object config, CancellationToken cancellationToken = default)
         {

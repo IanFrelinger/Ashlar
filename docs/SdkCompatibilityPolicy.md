@@ -140,6 +140,13 @@ upgrade costs.
 a minor release enumerates what moved, so the cost of upgrading can be read before it is paid rather
 than discovered during.
 
+**Recorded additive surface (card #802, 2026-10-15).** `Ashlar.Core.Application.Execution.Ports.IProviderFactory`
+gains `ProbeProviderAvailability(string)` returning `ProviderAvailabilityResult` (availability plus an
+optional `EgressRefusedException`). There is no default interface body (netstandard2.0); stubs return
+`new ProviderAvailabilityResult(IsProviderAvailable(provider))`. `ProviderFactory` opens a
+`ProviderRefusalScope` so a refused Ollama health probe is retained. Callers that only need a boolean
+keep using `IsProviderAvailable`.
+
 #### What enforces it today, and what does not
 
 Stating this exactly, because a policy that claims enforcement it does not have is worse than one

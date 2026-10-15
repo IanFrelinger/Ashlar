@@ -226,13 +226,23 @@ internal sealed partial class OptimizeHandler(
                      preflightByProvider.TryGetValue(candidateState.ProfileProvider, out var preflight) &&
                      !preflight.Ok)
             {
-                scenario = new WorkflowCommand.ScenarioExecutionResult(
-                    Ok: false,
-                    Summary: $"Skipped due to provider preflight failure ({candidateState.ProfileProvider}): {preflight.Detail}",
-                    ConflictCount: 0,
-                    EscalationCount: 0,
-                    FailureCategory: "skipped_infra",
-                    Skipped: true);
+                // A refused probe is a failure, not a successful skip (card #802). Other preflight
+                // failures remain skipped_infra.
+                scenario = preflight.WasRefused
+                    ? new WorkflowCommand.ScenarioExecutionResult(
+                        Ok: false,
+                        Summary: $"Refused by egress policy ({candidateState.ProfileProvider}): {preflight.Detail}",
+                        ConflictCount: 0,
+                        EscalationCount: 0,
+                        FailureCategory: "egress_refused",
+                        Skipped: false)
+                    : new WorkflowCommand.ScenarioExecutionResult(
+                        Ok: false,
+                        Summary: $"Skipped due to provider preflight failure ({candidateState.ProfileProvider}): {preflight.Detail}",
+                        ConflictCount: 0,
+                        EscalationCount: 0,
+                        FailureCategory: "skipped_infra",
+                        Skipped: true);
             }
             else
             {
@@ -567,11 +577,19 @@ internal sealed partial class OptimizeHandler(
             });
 
         var hasSuccess = ranked.Any(x => x.Successes > 0);
+        var refusedPreflights = preflightByProvider.Values
+            .Where(x => x.WasRefused)
+            .Select(x => x.Detail)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var failureSummary = refusedPreflights.Length > 0
+            ? $"Workflow optimize completed with no successful candidates across {ranked.Length} evaluated candidate(s); refused: {string.Join("; ", refusedPreflights)}."
+            : $"Workflow optimize completed with no successful candidates across {ranked.Length} evaluated candidate(s).";
         var result = new WorkflowOptimizeResult(
             Ok: hasSuccess,
             Summary: hasSuccess
                 ? $"Workflow optimize completed: evaluated {ranked.Length} candidate(s); winner={winner.CandidateId}."
-                : $"Workflow optimize completed with no successful candidates across {ranked.Length} evaluated candidate(s).",
+                : failureSummary,
             SessionRunId: optimizeRunId,
             BenchmarkSet: benchmarkSet,
             RecommendationReportPath: reportPath,
