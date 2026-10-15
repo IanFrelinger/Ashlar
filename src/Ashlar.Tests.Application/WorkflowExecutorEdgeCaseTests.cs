@@ -109,6 +109,94 @@ public sealed class WorkflowExecutorEdgeCaseTests
     }
 
     [Fact]
+    public async Task Agent_node_throws_refusal_from_step_error_event()
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("full", "enforce").Evaluate(
+            new EgressRequest(EgressFamilies.Http, "workflow", new Uri("https://remote.example"))));
+        var agent = new AgentCard { Id = "agent-1", Name = "Agent", Behaviors = new List<string> { "behavior-1" } };
+        var behavior = new Behavior { Id = "behavior-1", Name = "Behavior", Steps = new List<BehaviorStep>() };
+        var agents = new Mock<IAgentRegistry>();
+        agents.Setup(a => a.GetAgent("agent-1")).Returns(agent);
+        var behaviors = new Mock<IBehaviorRegistry>();
+        behaviors.Setup(b => b.GetBehavior("behavior-1")).Returns(behavior);
+        var executor = new Mock<IBehaviorExecutor>();
+        executor.Setup(e => e.ExecuteWithEventsAsync(
+                agent, behavior, It.IsAny<BehaviorInput>(), It.IsAny<ExecutionOptions>(), It.IsAny<CancellationToken>()))
+            .Returns(ToAsyncEnumerable(new ExecutionEvent[]
+            {
+                new StepErrorEvent(
+                    "s1",
+                    refusal.Message,
+                    cause: refusal,
+                    refusalErrorCode: refusal.ErrorCode,
+                    refusalRef: refusal.Ref),
+                new BehaviorCompletedEvent("behavior-1", false, new Dictionary<string, object>()),
+            }));
+
+        var workflow = new WorkflowExecutor(
+            agents.Object,
+            Mock.Of<IBrickRegistry>(),
+            behaviors.Object,
+            executor.Object,
+            new SequentialLoopKernel(),
+            Mock.Of<ITextFileSystem>(),
+            NullLogger<WorkflowExecutor>.Instance);
+        var definition = new WorkflowDefinition
+        {
+            Id = "wf-agent-refuse",
+            Name = "Agent refusal",
+            Nodes = new List<WorkflowNode>
+            {
+                new AgentNode { Id = "agent-node", AgentId = "agent-1" },
+            },
+        };
+
+        (await Record.ExceptionAsync(() => workflow.ExecuteAsync(definition, new WorkflowInput())))
+            .Should().BeSameAs(refusal);
+    }
+
+    [Fact]
+    public async Task Agent_node_honours_behavior_completed_success_without_refusal()
+    {
+        var agent = new AgentCard { Id = "agent-1", Name = "Agent", Behaviors = new List<string> { "behavior-1" } };
+        var behavior = new Behavior { Id = "behavior-1", Name = "Behavior", Steps = new List<BehaviorStep>() };
+        var agents = new Mock<IAgentRegistry>();
+        agents.Setup(a => a.GetAgent("agent-1")).Returns(agent);
+        var behaviors = new Mock<IBehaviorRegistry>();
+        behaviors.Setup(b => b.GetBehavior("behavior-1")).Returns(behavior);
+        var executor = new Mock<IBehaviorExecutor>();
+        executor.Setup(e => e.ExecuteWithEventsAsync(
+                agent, behavior, It.IsAny<BehaviorInput>(), It.IsAny<ExecutionOptions>(), It.IsAny<CancellationToken>()))
+            .Returns(ToAsyncEnumerable(new ExecutionEvent[]
+            {
+                new StepErrorEvent("s1", "plain failure"),
+                new BehaviorCompletedEvent("behavior-1", false, new Dictionary<string, object>()),
+            }));
+
+        var workflow = new WorkflowExecutor(
+            agents.Object,
+            Mock.Of<IBrickRegistry>(),
+            behaviors.Object,
+            executor.Object,
+            new SequentialLoopKernel(),
+            Mock.Of<ITextFileSystem>(),
+            NullLogger<WorkflowExecutor>.Instance);
+        var definition = new WorkflowDefinition
+        {
+            Id = "wf-agent-fail",
+            Name = "Agent fail",
+            Nodes = new List<WorkflowNode>
+            {
+                new AgentNode { Id = "agent-node", AgentId = "agent-1" },
+            },
+        };
+
+        var result = await workflow.ExecuteAsync(definition, new WorkflowInput());
+        result.Success.Should().BeTrue("workflow Success stays true unless a node throws");
+        result.NodeResults["agent-node"].Success.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task ExecuteAsync_reads_file_input_and_webhook_input()
     {
         var fs = new Mock<ITextFileSystem>();

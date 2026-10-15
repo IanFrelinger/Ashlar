@@ -699,7 +699,7 @@
     {
       "id": "s75-behavior-fallback-error-outranks-refusal",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "await writer.WriteAsync(new StepErrorEvent(step.Id, finalRefusal.Message), ct);",
+      "old": "await writer.WriteAsync(new StepErrorEvent(\n                                step.Id,\n                                finalRefusal.Message,\n                                cause: finalRefusal,\n                                refusalErrorCode: finalRefusal.ErrorCode,\n                                refusalRef: finalRefusal.Ref), ct);",
       "new": "await Task.CompletedTask;",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
@@ -736,8 +736,8 @@
     {
       "id": "s78-behavior-refusal-flag-sticks",
       "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
-      "old": "lastErrorCarriedRefusal = finalRefusal is not null",
-      "new": "lastErrorCarriedRefusal |= finalRefusal is not null",
+      "old": "lastErrorCarriedRefusal = errorCarriesRefusal",
+      "new": "lastErrorCarriedRefusal |= errorCarriesRefusal",
       "filter": "FullyQualifiedName~EgressRefusalMaskingTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",

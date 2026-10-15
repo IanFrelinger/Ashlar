@@ -166,7 +166,8 @@ The status line above and the starting prompt are the owner's, as written; the s
   - status callers report a refused probe as "unavailable";
   - `workflow stress` / `workflow optimize` typed refusal results were repaired by card #802
     (`IProviderFactory.ProbeProviderAvailability`; stress fails refused runs; optimize names the refusal);
-  - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
+  - workflow agent-node refusal propagation was repaired by card #803 (`StepErrorEvent` carries cause/code/ref;
+    `ExecuteAgentNodeAsync` throws the refusal and honours `BehaviorCompletedEvent.Success`);
   - `BehaviorExecutor`'s outer catch (a throwing outcome recorder or semantic cache, or cancellation, which wins
     by design) ends a step's stream with its own event, not the refusal;
   - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed`;

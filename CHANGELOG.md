@@ -159,7 +159,6 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   container disposes the singleton. The `adapt` and `improve` CLI verbs never dispose their service providers, so
   there the first Warning is logged and the summary is not.
 - Still open (Known limits in `docs/EgressInventory.md`):
-  - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
   - IDE health and onboarding status report a refused provider as unavailable;
   - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
 
@@ -173,6 +172,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 - `ashlar workflow optimize` names the refusal (including `ref=`) in its result path instead of
   "Provider unavailable."
 
+### Fixed — workflow agent nodes throw a refused behaviour step (card #803)
+
+- Additive Substrate API on `StepErrorEvent`: optional `Cause`, `RefusalErrorCode`, and `RefusalRef`.
+- `BehaviorExecutor` attaches the typed refusal to step error events.
+- `WorkflowExecutor.ExecuteAgentNodeAsync` throws that refusal (consistent with brick and cluster nodes) and
+  otherwise honours `BehaviorCompletedEvent.Success` instead of always reporting success.
+- Owner question (c) (`FailurePolicy.Continue` past a refused brick) is untouched; agent nodes now match the
+  existing brick/cluster throw behaviour under Continue.
+
 ### Changed — a refusal at a brick or cluster node ends a workflow run under `FailurePolicy.Continue` (SPEC-007 4.8, disclosed in 4.8b)
 
 - Since 4.8 (#743), when every implementation of a workflow cluster step failed and one of them was refused, the
@@ -181,9 +189,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   the run raises `WorkflowFailedEvent` and rethrows (`:136-140`). A brick node throws the refusal the same way
   (`:309`). This fails closed, and 4.8 did not record it. Whether `Continue` should continue past a refused brick
   is an open question for the owner.
-- That holds for brick and cluster nodes only. An agent node reports success: `ExecuteAgentNodeAsync`
-  (`WorkflowExecutor.cs:246-262`) reads only the behaviour's outputs, so a refusal in a behaviour step's error does
-  not fail the workflow (card #803).
+- That held for brick and cluster nodes only until card #803: an agent node now throws a refused behaviour step
+  the same way, and otherwise honours `BehaviorCompletedEvent.Success`.
 
 ### Fixed — compat-gate Tier B expected an unconfigured pipeline run to succeed (#797)
 
