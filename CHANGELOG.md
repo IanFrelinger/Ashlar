@@ -17,12 +17,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — one MEAI refusal audit through the unkeyed router (#760)
+
+- A governed MEAI refusal under the default unkeyed router produces a single
+  `denied`/`egress_refused` invocation audit. `EgressGuardChatClient` and an outer
+  `AuditingChatClient` no longer both record the same refusal reference.
+
 ### Fixed — host opt-out startup Warning uses EventId 7308 (#758)
 
 - `EgressHostClientPolicyActivator` logs each configured `ReportOnlyClients` name at event 7308
   `EgressHostClientOptOut` instead of reusing 7307. Operators filtering on 7307 no longer mix host
   opt-out announcements with refused-probe and health degrade Warnings. Documented in
   `docs/Configuration.md`, `docs/EgressInventory.md` and SPEC-007 PR 4.11 status.
+
 
 ### Added — SPEC-007 disposition index for routed-enforcement and 4.10b Known limits (#812)
 

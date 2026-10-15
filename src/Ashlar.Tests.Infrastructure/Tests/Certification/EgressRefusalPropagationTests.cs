@@ -47,11 +47,47 @@ public sealed class EgressRefusalPropagationTests
             else await foreach (var unused in client.GetStreamingResponseAsync(Array.Empty<ChatMessage>())) { }
         });
         error.Should().BeSameAs(refusal);
-        var record = audit.Records.Where(r => r.TargetKey == RoutingChatClient.RouterTargetKey && r.Outcome != "routed")
-            .Should().ContainSingle().Subject;
-        record.Outcome.Should().Be("denied");
-        record.ReasonCode.Should().Be("egress_refused");
+        var refused = audit.Records.Where(r => r.Outcome == "denied" && r.ReasonCode == "egress_refused").ToList();
+        refused.Should().ContainSingle("card #760: one denied/egress_refused record through the unkeyed router");
+        var record = refused.Single();
         record.EgressDecision.Should().BeSameAs(refusal.Decision);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task Unkeyed_DI_router_records_one_audit_when_the_egress_guard_refuses(int stage)
+    {
+        // Guard refuse path: EgressGuardChatClient audits, then the outer router AuditingChatClient
+        // catches the same exception — must not emit a second denied/egress_refused record (#760).
+        var audit = new Audit(false);
+        var router = new Mock<IChatRouter>();
+        router.Setup(x => x.Select(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<RouteCapabilityTier>(), It.IsAny<string>()))
+            .Returns(new RouteDecision { ChosenTargetKey = MeaiTargetKeys.LocalOllama,
+                ReasonCode = RouteReasonCodes.PreferredLocal, CandidatesConsidered = [] });
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IChatRouter>(router.Object);
+        services.AddSingleton<IChatInvocationAuditor>(audit);
+        services.AddSingleton<IEgressGuard>(new EgressGuard("full", "enforce"));
+        services.AddAshlarMeaiPipeline(
+            ollamaInnerFactory: _ => new NeverCalledClient(),
+            onnxInnerFactory: _ => new NeverCalledClient());
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IChatClient>();
+        var options = new ChatOptions { ModelId = "llama-cloud" };
+        var error = await Record.ExceptionAsync(async () =>
+        {
+            if (stage == 0) await client.GetResponseAsync(Array.Empty<ChatMessage>(), options);
+            else await foreach (var unused in client.GetStreamingResponseAsync(Array.Empty<ChatMessage>(), options)) { }
+        });
+        error.Should().BeOfType<EgressRefusedException>();
+        audit.Records.Where(r => r.Outcome == "denied" && r.ReasonCode == "egress_refused")
+            .Should().ContainSingle("guard + outer auditor must not double-record the same refusal");
+        var record = audit.Records.Single(r => r.Outcome == "denied" && r.ReasonCode == "egress_refused");
+        record.TargetKey.Should().Be(MeaiTargetKeys.LocalOllama);
+        record.EgressDecision.Should().NotBeNull();
+        record.EgressDecision!.Refused.Should().BeTrue();
     }
 
     [Theory]
@@ -171,6 +207,18 @@ public sealed class EgressRefusalPropagationTests
             // Must not mask the iteration refusal, even when disposal also fails.
             throw new InvalidOperationException("dispose-canary");
         }
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+        public void Dispose() { }
+    }
+
+    private sealed class NeverCalledClient : IChatClient
+    {
+        public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("inner must not run after an egress refusal");
+        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("inner must not run after an egress refusal");
         public object? GetService(Type serviceType, object? serviceKey = null) => null;
         public void Dispose() { }
     }

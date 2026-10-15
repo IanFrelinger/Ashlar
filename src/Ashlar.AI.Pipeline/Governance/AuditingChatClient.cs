@@ -186,6 +186,10 @@ public sealed class AuditingChatClient : DelegatingChatClient
     {
         try
         {
+            // Skip when EgressGuardChatClient (or an inner AuditingChatClient) already recorded this Ref.
+            if (!EgressRefusalAuditDeduper.ShouldRecord(refusal.Ref))
+                return;
+
             Emit("denied", modelId, latencyMs, usage, "egress_refused", refusal.Decision);
         }
         catch (Exception)
