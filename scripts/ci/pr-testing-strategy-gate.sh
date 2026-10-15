@@ -39,14 +39,46 @@ for f in "${ADDED[@]}"; do
   fi
 done
 
+# True when every +/- line under a .cs file is blank or a // / /// / block-comment line.
+# A one-line code change returns false so the ProdStyle demand still fires (card #757).
+is_csharp_comment_only_diff() {
+  local file="$1"
+  local line content
+  local saw_hunk=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      'diff '*|'index '*|'+++ '*|'--- '*) continue ;;
+      '@@'*) saw_hunk=1; continue ;;
+      +*|-\*)
+        content="${line:1}"
+        content="${content#"${content%%[![:space:]]*}"}"
+        [[ -z "$content" ]] && continue
+        case "$content" in
+          //*) continue ;;   # // and /// XML docs
+          /\**) continue ;;  # /* … opening (or whole-line) block comment
+          \**) continue ;;   # * … continuation / closing of a block comment
+          *) return 1 ;;
+        esac
+        ;;
+    esac
+  done < <(git diff -U0 "$BASE_REF"...HEAD -- "$file" 2>/dev/null || git diff -U0 "$BASE_REF" HEAD -- "$file")
+  [[ "$saw_hunk" -eq 1 ]]
+}
+
 # --- Phase 2: ProdStyle paths need wiring tests or explicit skip ---
+# Comment-only (and XML-doc) edits under trigger paths do not demand a ProdStyle delta;
+# [skip-prod-style] remains for real exceptions that change code.
 needs_prod_style=0
 for f in "${ALL_CHANGED[@]}"; do
   case "$f" in
-    src/Ashlar.Hosting/*|application/src/Ashlar.API/*|src/Ashlar.Runtime/Barriers/*|src/Ashlar.Runtime/Identity/*)
-      needs_prod_style=1 ;;
+    src/Ashlar.Hosting/*|application/src/Ashlar.API/*|src/Ashlar.Runtime/Barriers/*|src/Ashlar.Runtime/Identity/*|\
     src/Ashlar.Infrastructure/Execution/Routing/*|src/Ashlar.Infrastructure/Barriers/*|src/Ashlar.Infrastructure/Pipelines/*)
-      needs_prod_style=1 ;;
+      if [[ "$f" == *.cs ]] && is_csharp_comment_only_diff "$f"; then
+        note "Comment-only change under ProdStyle path (no wiring-test delta required): $f"
+      else
+        needs_prod_style=1
+      fi
+      ;;
     src/Ashlar.Infrastructure/Tests/VirtualProduction/*|src/Ashlar.Infrastructure/Tests/Hosting/*)
       : ;;
   esac
