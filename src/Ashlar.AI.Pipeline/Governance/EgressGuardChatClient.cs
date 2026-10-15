@@ -212,8 +212,8 @@ public sealed class EgressGuardChatClient : DelegatingChatClient
             try
             {
                 // The outer router AuditingChatClient also catches EgressRefusedException; record once
-                // per refusal Ref (card #760).
-                if (_auditor is not null && EgressRefusalAuditDeduper.ShouldRecord(decision.Ref))
+                // per EgressDecision instance (card #760).
+                if (_auditor is not null && EgressRefusalAuditDeduper.ShouldRecord(decision))
                 {
                     _auditor.Record(new ChatInvocationAuditRecord
                     {

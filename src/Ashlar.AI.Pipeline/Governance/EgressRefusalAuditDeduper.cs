@@ -1,32 +1,37 @@
-using System.Threading;
+using System.Runtime.CompilerServices;
+using Ashlar.Abstractions.Security.Egress;
 
 namespace Ashlar.AI.Pipeline.Governance;
 
 /// <summary>
-/// Ensures one <c>denied</c>/<c>egress_refused</c> invocation audit per refusal reference when both
-/// <see cref="EgressGuardChatClient"/> and an outer <see cref="AuditingChatClient"/> (router or target)
-/// would otherwise record the same refusal.
+/// Ensures one <c>denied</c>/<c>egress_refused</c> invocation audit per <see cref="EgressDecision"/>
+/// when both <see cref="EgressGuardChatClient"/> and an outer <see cref="AuditingChatClient"/> (router
+/// or target) would otherwise record the same refusal. Keyed by decision instance so it survives
+/// nested <c>await</c> (AsyncLocal would restore the caller's pre-await context).
 /// </summary>
 internal static class EgressRefusalAuditDeduper
 {
-    private static readonly AsyncLocal<string?> LastAuditedRef = new();
+    private static readonly ConditionalWeakTable<EgressDecision, object> Audited = new();
+    private static readonly object Marker = new();
 
     /// <summary>
-    /// Returns <see langword="true"/> the first time <paramref name="refusalRef"/> is seen on this async
-    /// flow; later observations of the same reference return <see langword="false"/>.
+    /// Returns <see langword="true"/> the first time <paramref name="decision"/> is claimed for an
+    /// invocation audit; later calls with the same instance return <see langword="false"/>.
     /// </summary>
-    internal static bool ShouldRecord(string refusalRef)
+    internal static bool ShouldRecord(EgressDecision decision)
     {
-        if (string.IsNullOrEmpty(refusalRef))
-            return true;
-
-        if (string.Equals(LastAuditedRef.Value, refusalRef, StringComparison.Ordinal))
+        ArgumentNullException.ThrowIfNull(decision);
+        if (Audited.TryGetValue(decision, out _))
             return false;
 
-        LastAuditedRef.Value = refusalRef;
-        return true;
+        try
+        {
+            Audited.Add(decision, Marker);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
-
-    /// <summary>Test seam: clears the last-seen reference on this async flow.</summary>
-    internal static void Reset() => LastAuditedRef.Value = null;
 }
