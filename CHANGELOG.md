@@ -17,6 +17,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — testing-strategy gate ignores comment-only ProdStyle-path diffs (#757)
+
+- `scripts/ci/pr-testing-strategy-gate.sh` no longer demands a ProdStyle test delta when every
+  change under a trigger path is a C# `//` / `///` / block-comment line. `[skip-prod-style]`
+  remains for real code exceptions. Twin: `tests/scripts/pr-testing-strategy-gate.test.sh`.
+
 ### Changed — readiness runs API-host ProdStyle on net10.0 (#752)
 
 - `ashlar ci verify` keeps the net8.0 `Category=ProdStyle` step and adds the net10.0 step whose filter includes the real API-host twins. Those twins compile only on net10.0, so a net8.0-only pass does not evidence AirGapped and SecureWorkstation refusing by default on that host. The release notes quote the net10.0 `Passed!` line from the verified run. No workflow sets `ASHLAR_EGRESS_MODE`.

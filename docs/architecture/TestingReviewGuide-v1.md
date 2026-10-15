@@ -30,7 +30,8 @@ For reviewers enforcing [Testing strategy pivot v1](TestingStrategyPivot-v1.md).
 
 | Token / env | Effect |
 |-------------|--------|
-| `[skip-prod-style]` in PR description | Skips ProdStyle delta check in `testing-strategy-gate` |
+| `[skip-prod-style]` in PR description | Skips ProdStyle delta check in `testing-strategy-gate` for real code changes that need an exception |
+| (automatic) comment-only / XML-doc diffs under ProdStyle trigger paths | Do not demand a ProdStyle test delta; `[skip-prod-style]` is unnecessary for those |
 | `gap-coverage-justify: reason` in PR description | Allows new `*GapCoverageTests.cs` file |
 | `ALLOW_NEW_GAP_COVERAGE=1` | Local/script only — not for routine PRs |
 
