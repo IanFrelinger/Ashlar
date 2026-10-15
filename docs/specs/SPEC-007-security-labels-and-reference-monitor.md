@@ -248,14 +248,16 @@ The status line above and the starting prompt are the owner's, as written; the s
   `PostConfigure` reasserts the strictest profile captured by `AddAshlar`, so later `Configure` callbacks cannot
   lower it. MCP validation detects the SDK's HTTP handler as well as the Ashlar wrapper marker. Certification
   conventions pin the profile-reader boundary and production HTTP MCP callers.
-  **Known limits:** a listener added in code has a window between socket binding and the post-start refusal;
-  a container composed before a stricter process profile was noted keeps its captured profile. These options
-  remain mutable objects, and host code that replaces the options service or installs a later `PostConfigure`
-  can override them. Bedrock still refuses at `ValidateOnStart` or first options/keyed-client resolution,
-  rather than during `AddAshlar`/`BuildServiceProvider`. Responses on inbound connections await PR 5. The rule
-  covers the API, mesh serve, gRPC server host and `Ashlar.Commercial.Fleet.Host` (the latter two wired
-  2026-10-14 for card #766, per the owner's 2026-10-13 Q6 scope decision). The web hosts validate configured
-  endpoints before bind and compile the same internal post-bind verifier from `src/Shared/LoopbackListenerVerifier.cs`.
+  **Known limits** (durable dispositions in
+  [`SPEC-007-disposition-index.md`](SPEC-007-disposition-index.md), card #812): a listener added in code has a window
+  between socket binding and the post-start refusal (H10-01); a container composed before a stricter process profile
+  was noted keeps its captured profile (H10-02). These options remain mutable objects, and host code that replaces the
+  options service or installs a later `PostConfigure` can override them (H10-03). Bedrock still refuses at
+  `ValidateOnStart` or first options/keyed-client resolution, rather than during `AddAshlar`/`BuildServiceProvider`
+  (H10-04). Responses on inbound connections await PR 5 (H10-05). The rule covers the API, mesh serve, gRPC server
+  host and `Ashlar.Commercial.Fleet.Host` (the latter two wired 2026-10-14 for card #766, per the owner's 2026-10-13
+  Q6 scope decision). The web hosts validate configured endpoints before bind and compile the same internal post-bind
+  verifier from `src/Shared/LoopbackListenerVerifier.cs`.
 
 ---
 
