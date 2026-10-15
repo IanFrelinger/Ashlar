@@ -183,12 +183,21 @@ public sealed class EgressRefusalMaskingTests
         };
         var agent = new AgentCard { Id = "agent", Name = "agent", Description = "agent", Behaviors = new[] { behavior.Id } };
 
-        var result = await executor.ExecuteAsync(agent, behavior, new BehaviorInput(),
-            new ExecutionOptions { Provider = "ollama", IsAirGapped = false });
+        var options = new ExecutionOptions { Provider = "ollama", IsAirGapped = false };
+        var events = new List<ExecutionEvent>();
+        await foreach (var evt in executor.ExecuteWithEventsAsync(agent, behavior, new BehaviorInput(), options))
+            events.Add(evt);
+
+        var result = await executor.ExecuteAsync(agent, behavior, new BehaviorInput(), options);
 
         result.Success.Should().BeFalse();
         result.Errors.Should().ContainSingle().Which.Should().Contain(refusal.Ref)
             .And.NotContain("No available implementation");
+        var stepError = events.OfType<StepErrorEvent>().Should().ContainSingle(e => e.StepId == "s1").Subject;
+        stepError.WasRefused.Should().BeTrue();
+        stepError.RefusalErrorCode.Should().Be("EGRESS_REFUSED");
+        stepError.RefusalRef.Should().Be(refusal.Ref);
+        stepError.Cause.Should().BeSameAs(refusal);
         brick.Calls.Should().Be(0, "no implementation could run");
         ollama.Sends.Should().BeGreaterThan(0, "the agentic availability probe was the refused send");
     }
