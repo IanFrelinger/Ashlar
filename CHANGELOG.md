@@ -167,14 +167,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
     cases (cancellation wins by design); a refusal listed twice in `Errors` after a failing fallback
     (D23 per-step ordering tradeoff, not #760).
 - Still open (Known limits in `docs/EgressInventory.md`):
-<<<<<<< HEAD
-  - IDE health and onboarding status report a refused provider as unavailable;
-  - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
-=======
-  - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
   - IDE health and onboarding status report a refused provider as unavailable (retained, card #809; Probe unused);
   - `BehaviorExecutor` outer-catch / double-listed refusal in `Errors` (retained, card #809).
->>>>>>> 174025071 (fix(egress): dispose adapt/improve SPs; preserve local refusal identity (#809))
 
 ### Fixed — workflow stress/optimize surface typed refusal results (card #802)
 
