@@ -28,6 +28,23 @@ public interface IProviderFactory
     bool IsProviderAvailable(string provider);
 
     /// <summary>
+    /// Probes whether the provider is configured and available, retaining a typed refusal
+    /// when the availability check is stopped by egress policy.
+    /// </summary>
+    /// <param name="provider">Provider name (e.g., "ollama", "openai", "anthropic").</param>
+    /// <returns>
+    /// Availability plus the first refusal observed during the probe, when any.
+    /// The default implementation returns <see cref="IsProviderAvailable"/> with no refusal.
+    /// </returns>
+    /// <remarks>
+    /// Substrate additive surface (<c>docs/SdkCompatibilityPolicy.md</c>): callers that only need a
+    /// boolean continue to use <see cref="IsProviderAvailable"/>. Workflow preflight and other result
+    /// paths that must name a refusal use this probe.
+    /// </remarks>
+    ProviderAvailabilityResult ProbeProviderAvailability(string provider) =>
+        new(IsProviderAvailable(provider));
+
+    /// <summary>
     /// Executes an LLM text request and returns the model response as a string.
     /// </summary>
     /// <param name="provider">Provider name.</param>

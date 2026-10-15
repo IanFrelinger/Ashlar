@@ -230,6 +230,14 @@ public class ProviderFactory : IProviderFactory, IDisposable
             _ => false
         };
     }
+
+    /// <inheritdoc />
+    public ProviderAvailabilityResult ProbeProviderAvailability(string provider)
+    {
+        using var refusals = new ProviderRefusalScope();
+        var available = IsProviderAvailable(provider);
+        return new ProviderAvailabilityResult(available, refusals.Refusal);
+    }
     
     /// <inheritdoc />
     public async Task<string> ExecuteLLMAsync(

@@ -144,6 +144,24 @@ public sealed class EgressRefusalMaskingTests
     }
 
     [Fact]
+    public async Task ProbeProviderAvailability_returns_the_typed_refusal_IsProviderAvailable_drops()
+    {
+        var refusal = Refusal();
+        using var ollama = await RefusingOllama.CreateAsync(() => refusal);
+
+        ollama.Factory.IsProviderAvailable("ollama").Should().BeFalse(
+            "the boolean status check still reports unavailable without naming the refusal");
+        var probe = ollama.Factory.ProbeProviderAvailability("ollama");
+
+        probe.Available.Should().BeFalse();
+        probe.WasRefused.Should().BeTrue();
+        probe.Refusal.Should().BeSameAs(refusal);
+        probe.Refusal!.Ref.Should().Be(refusal.Ref);
+        probe.Refusal.ErrorCode.Should().Be("EGRESS_REFUSED");
+        ollama.Sends.Should().Be(2, "one send for IsProviderAvailable, one for ProbeProviderAvailability");
+    }
+
+    [Fact]
     public async Task Refused_probe_that_leaves_no_implementation_is_the_behavior_step_error()
     {
         var refusal = Refusal();

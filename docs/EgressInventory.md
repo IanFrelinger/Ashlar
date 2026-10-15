@@ -34,11 +34,12 @@ This inventory began at master `f1f2cff` (2026-10-04) and is maintained with the
 
       A third-party host matches `EgressRefusedException` or its `ErrorCode` itself.
     - **Known limit (2026-10-13, PR 4.8b #800), status callers.** Callers that only ask whether a provider is usable report a refused probe as unavailable: IDE health (`application/src/Ashlar.API/Endpoints/IdeEndpoints.cs:144`) and onboarding status (`AshlarEndpoints.cs:1687`). The factory's 7307 Warning carries the reference.
-    - **Known limit (2026-10-13, PR 4.8b #800; card #802), `workflow stress` and `workflow optimize`.**
-      - The provider preflight answers a refused probe with "Provider unavailable." (`application/src/Ashlar.CLI/Commands/WorkflowCommand.cs:615-618`).
-      - `ashlar workflow stress` marks every run of that provider Skipped (`Workflow/StressHandler.cs:153-163`), counts skipped runs as passed (`:287`) and returns 0 internally (`:304`). Since PR 4.9b (#765), the real CLI exits 77 when its invocation observed the local refusal, but the stress result still mislabels the run.
-      - `ashlar workflow optimize` returns an internal failure (`Workflow/OptimizeHandler.cs:560`, return 1 at `:599`) but reports "Provider unavailable." instead of the refusal. The real CLI exits 77 when it observes the local refusal.
-      - application/ code cannot open the internal `ProviderRefusalScope`.
+    - **Repaired (2026-10-15, card #802), `workflow stress` and `workflow optimize`.**
+      - `IProviderFactory.ProbeProviderAvailability` opens a `ProviderRefusalScope` around the probe and returns the typed refusal beside availability (`src/Ashlar.Core.Application/Execution/Ports/IProviderFactory.cs`; `ProviderFactory` implements it). `IsProviderAvailable` remains the boolean status check.
+      - Workflow preflight uses that probe (`WorkflowCommand.PreflightProviderAsync`): a refused probe carries the redacted refusal message and `EgressRefusedException` on `PreflightResult`.
+      - `ashlar workflow stress` treats a refused preflight as `FailureCategory=egress_refused` with `Skipped=false`, so `allPassed` fails; non-refusal preflight skips remain `skipped_infra` and still count as passed.
+      - `ashlar workflow optimize` names the refusal (including `ref=`) in the result summary and per-run summaries instead of "Provider unavailable."
+      - application/ still cannot open the internal `ProviderRefusalScope`; the probe is the supported API.
     - **Known limit (2026-10-13, PR 4.8b #800; card #803), workflow agent nodes.**
       - A behaviour step's final error can now carry the refusal, but a workflow loses it again at an agent node. `WorkflowExecutor.ExecuteAgentNodeAsync` (`src/Ashlar.Core.Application/Workflows/WorkflowExecutor.cs:246-262`) reads only `BehaviorCompletedEvent.Outputs` and returns `Success = true`, ignoring `StepErrorEvent` and `completed.Success`. `StepErrorEvent` carries only a `string Error`.
       - Brick and cluster nodes throw the refusal (`:309`, `:391`); agent nodes report success.

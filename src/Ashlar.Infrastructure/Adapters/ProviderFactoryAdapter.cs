@@ -33,6 +33,10 @@ public sealed class ProviderFactoryAdapter : Core.Application.Execution.Ports.IP
         => _inner.IsProviderAvailable(provider);
 
     /// <inheritdoc />
+    public ProviderAvailabilityResult ProbeProviderAvailability(string provider)
+        => _inner.ProbeProviderAvailability(provider);
+
+    /// <inheritdoc />
     public Task<string> ExecuteLLMAsync(
         string provider,
         string systemPrompt,
