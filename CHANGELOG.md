@@ -162,16 +162,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   - **Repaired:** `ProviderFactoryLocalExecutor` returns `EGRESS_REFUSED` with the redacted refusal message/ref
     for wrapped and unwrapped refusals (ordinary failures keep `local.execution_failed`).
   - **Repaired:** `adapt` / `improve` dispose their service providers so the probe Warning window flushes.
-  - **Retained:** IDE health and onboarding status still report a refused probe as unavailable (needs the typed
-    probe API from card #802); `BehaviorExecutor` outer-catch cases (cancellation wins by design); a refusal
-    listed twice in `Errors` after a failing fallback (D23 per-step ordering tradeoff, not #760).
+  - **Retained:** IDE health and onboarding status still report a refused probe as unavailable (`ProbeProviderAvailability`
+    exists via #802/#815, but those endpoints still use `IsProviderAvailable`); `BehaviorExecutor` outer-catch
+    cases (cancellation wins by design); a refusal listed twice in `Errors` after a failing fallback
+    (D23 per-step ordering tradeoff, not #760).
 - Still open (Known limits in `docs/EgressInventory.md`):
 <<<<<<< HEAD
   - IDE health and onboarding status report a refused provider as unavailable;
   - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
 =======
   - a workflow agent node reports success over a behaviour step that failed with a refusal (card #803);
-  - IDE health and onboarding status report a refused provider as unavailable (retained, card #809; depends on #802);
+  - IDE health and onboarding status report a refused provider as unavailable (retained, card #809; Probe unused);
   - `BehaviorExecutor` outer-catch / double-listed refusal in `Errors` (retained, card #809).
 >>>>>>> 174025071 (fix(egress): dispose adapt/improve SPs; preserve local refusal identity (#809))
 
