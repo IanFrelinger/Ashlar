@@ -1,0 +1,192 @@
+{
+  "probe": "claude-isolation",
+  "date": "2026-10-15",
+  "cli": "claude-code 2.1.263 (linux-x64 binary; same version as the 2026-10-11 Windows live probes)",
+  "method": "One `claude -p` per variant with --output-format stream-json --verbose. No model call succeeds (not logged in); system/init and SessionStart hook events are still emitted. Operator fixtures under CLAUDE_CONFIG_DIR: settings.json SessionStart hook writing a marker file, skills/fake-skill/SKILL.md, commands/fake.md, agents/operator-spy.md.",
+  "fixtures": {
+    "SessionStart_hook": "echo HOOK_FIRED > hook.out",
+    "user_skill": "fake-skill",
+    "user_command": "fake",
+    "user_agent": "operator-spy"
+  },
+  "variants": {
+    "baseline": {
+      "exit": 1,
+      "hook_file_written": true,
+      "hook_events": [
+        "hook_started",
+        "hook_response"
+      ],
+      "has_init": true,
+      "claude_code_version": "2.1.263",
+      "user_slash": [
+        "fake-skill",
+        "fake"
+      ],
+      "user_agents": [
+        "operator-spy"
+      ],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "operator-spy",
+        "Plan",
+        "statusline-setup"
+      ],
+      "skills_count": 16,
+      "slash_count": 47,
+      "memory_paths": {
+        "auto": "/tmp/claude-iso-probe/home/.claude/projects/-tmp-claude-iso-probe-cwd/memory/"
+      },
+      "apiKeySource": "none",
+      "stderr_tail": ""
+    },
+    "safe-mode": {
+      "exit": 1,
+      "hook_file_written": false,
+      "hook_events": [],
+      "has_init": true,
+      "claude_code_version": "2.1.263",
+      "user_slash": [],
+      "user_agents": [],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan"
+      ],
+      "skills_count": 16,
+      "slash_count": 45,
+      "memory_paths": null,
+      "apiKeySource": "none",
+      "stderr_tail": ""
+    },
+    "bare": {
+      "exit": 1,
+      "hook_file_written": false,
+      "hook_events": [],
+      "has_init": true,
+      "claude_code_version": "2.1.263",
+      "user_slash": [],
+      "user_agents": [],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan",
+        "statusline-setup"
+      ],
+      "skills_count": 16,
+      "slash_count": 45,
+      "memory_paths": null,
+      "apiKeySource": "none",
+      "stderr_tail": ""
+    },
+    "setting-sources-empty": {
+      "exit": 1,
+      "hook_file_written": false,
+      "hook_events": [],
+      "has_init": true,
+      "claude_code_version": "2.1.263",
+      "user_slash": [],
+      "user_agents": [],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan",
+        "statusline-setup"
+      ],
+      "skills_count": 16,
+      "slash_count": 45,
+      "memory_paths": {
+        "auto": "/tmp/claude-iso-probe/home/.claude/projects/-tmp-claude-iso-probe-cwd/memory/"
+      },
+      "apiKeySource": "none",
+      "stderr_tail": ""
+    },
+    "disable-slash-commands": {
+      "exit": 1,
+      "hook_file_written": true,
+      "hook_events": [
+        "hook_started",
+        "hook_response"
+      ],
+      "has_init": true,
+      "claude_code_version": "2.1.263",
+      "user_slash": [],
+      "user_agents": [
+        "operator-spy"
+      ],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "operator-spy",
+        "Plan",
+        "statusline-setup"
+      ],
+      "skills_count": 0,
+      "slash_count": 0,
+      "memory_paths": {
+        "auto": "/tmp/claude-iso-probe/home/.claude/projects/-tmp-claude-iso-probe-cwd/memory/"
+      },
+      "apiKeySource": "none",
+      "stderr_tail": ""
+    },
+    "safe-mode-fresh-session": {
+      "exit": 1,
+      "hook_file_written": false,
+      "hook_events": [],
+      "has_init": true,
+      "claude_code_version": "2.1.263",
+      "user_slash": [],
+      "user_agents": [],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan"
+      ],
+      "skills_count": 16,
+      "slash_count": 45,
+      "memory_paths": null,
+      "apiKeySource": "none",
+      "stderr_tail": ""
+    },
+    "safe-mode-resume": {
+      "exit": 1,
+      "hook_file_written": false,
+      "hook_events": [],
+      "has_init": true,
+      "claude_code_version": "2.1.263",
+      "user_slash": [],
+      "user_agents": [],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan"
+      ],
+      "skills_count": 16,
+      "slash_count": 45,
+      "memory_paths": null,
+      "apiKeySource": "none",
+      "stderr_tail": ""
+    }
+  },
+  "help_notes": {
+    "bare_auth": false,
+    "safe_mode_auth": false
+  },
+  "chosen": {
+    "flag": "--safe-mode",
+    "why": "Removes operator SessionStart hooks, user skills/commands (fake-skill, fake), user agents (operator-spy), and auto-memory (memory_paths null) on fresh and resume. Help text says auth works normally (unlike --bare, which refuses OAuth). Bundled skills/agents remain.",
+    "rejected": {
+      "--bare": "Help text: OAuth and keychain are never read; subscription funding route would break.",
+      "--setting-sources ''": "Clears user hooks and user slash entries but leaves memory_paths set.",
+      "--disable-slash-commands": "Clears skills/slash but still runs SessionStart hooks and leaves memory_paths."
+    }
+  }
+}

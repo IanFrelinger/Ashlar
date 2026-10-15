@@ -46,6 +46,7 @@ and nothing here runs outside the host the operator starts it on.
 | `ashlar_controller/evidence.py` | `backup` and `restore` through the SQLite backup API; per-run evidence archives |
 | `policy.example.json` | The operator policy example (copy it outside every checkout) |
 | `tests/` | The unit suite (`tests/fake_claude_cli.py`, `fake_codex_cli.py` and `fake_cursor_cli.py` stand in for the CLIs); `tests/scripts/autonomy-controller.test.sh` runs it in the required `shell-lint` check |
+| `probe-claude-isolation-report.json` | Card #790 probe: `--safe-mode` vs `--bare` / `--setting-sources` / `--disable-slash-commands` (2026-10-15) |
 | `mutation-runner.sh` | `ASHLAR_MUTATION_RUNNER` for `scripts/mutation-check.sh` |
 
 ## Operator setup
@@ -287,10 +288,20 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
 - MCP: with `--strict-mcp-config` and no `--mcp-config`, `mcp_servers` is `[]` and the first call's
   cache creation dropped from 70k tokens to 9k (cost 0.28 to 0.043). Without it, the operator's
   claude.ai connectors (Gmail, Drive, Slack, Docs) load into every worker and their tools are exposed
-  to it. **Every controller launch passes `--strict-mcp-config`.** It covers MCP servers only: each worker
-  of the PR 5 live run ran the operator's user-level `SessionStart` hook, and its `system/init` listed 19
-  skills, 9 agents and 58 slash commands, the operator's user-level ones among them, and the auto-memory
-  paths (`memory_paths`). Isolating workers from these is card #790 (decisions log, 2026-10-13).
+  to it. **Every controller launch passes `--strict-mcp-config`.**
+- **User-level isolation (`--safe-mode`, card #790).** The PR 5 live run's Claude workers still ran
+  the operator's `SessionStart` hook and listed the operator's skills, agents, slash commands and
+  auto-memory (`memory_paths`) in `system/init`. Probe `probe-claude-isolation-report.json`
+  (Claude Code 2.1.263, 2026-10-15, no model called) compared flags against fixtures under
+  `CLAUDE_CONFIG_DIR`: a SessionStart hook, skill `fake-skill`, command `fake`, agent `operator-spy`.
+  With `--safe-mode`, the hook did not fire, those user entries were absent from `system/init`, and
+  `memory_paths` was null — on a fresh session and on `--resume`. Bundled skills and agents remain.
+  **Every controller launch passes `--safe-mode`.** `--bare` was not used: its help text says
+  Anthropic auth is strictly `ANTHROPIC_API_KEY` or `apiKeyHelper` (OAuth and keychain are never
+  read), which would break the `claude.ai` funding route. `--setting-sources ''` cleared hooks and
+  user slash entries but left `memory_paths`; `--disable-slash-commands` cleared skills/slash but
+  still ran SessionStart hooks. What is not isolated: the operator's login (funding route), bundled
+  skills/agents, admin-managed policy settings, and the host `PATH`.
 - `--effort low|medium|high|xhigh|max` is accepted. There is no speed flag; `usage.speed` is always
   `"standard"` and `fast_mode_state` is `"off"`.
 - Auth: `claude auth status --json` prints `{loggedIn, authMethod:"claude.ai", apiProvider:"firstParty",
@@ -334,10 +345,11 @@ The shapes below are what the CLI printed; the adapter parses these and nothing 
 - Environment: `CLAUDECODE` and every `CLAUDE_CODE_*` variable are stripped from the child environment
   (a nested session changes the CLI's behaviour). `ANTHROPIC_*` variables are kept, so the route check
   can see a key rather than silently launching past it.
-- Argv: `-p <prompt> --output-format stream-json --verbose --strict-mcp-config --model <M> --effort <E>
-  --max-turns <ceiling> --permission-prompts none --permission-mode acceptEdits --no-chrome`, plus
-  `--session-id <S>` for a new session or `--resume <S>` when the task's previous run stopped at the
-  turn ceiling, plus `--agent <name>` and `--tools <list>` when the request carries them.
+- Argv: `-p <prompt> --output-format stream-json --verbose --strict-mcp-config --safe-mode --model <M>
+  --effort <E> --max-turns <ceiling> --permission-prompts none --permission-mode acceptEdits
+  --no-chrome`, plus `--session-id <S>` for a new session or `--resume <S>` when the task's previous
+  run stopped at the turn ceiling, plus `--agent <name>` and `--tools <list>` when the request carries
+  them. `--safe-mode` is the probed isolation flag (see "What was observed"); `--bare` is never passed.
 - Run directory `<runs_dir>/<run_id>/`: `manifest.json` is written before the spawn (run id, task id,
   session id, resume_of, argv, cwd, started time, pid, the projects directory and the expected transcript
   path, which is only a hint: the live run of 2026-10-11 showed the CLI truncates a long project slug to
@@ -809,7 +821,8 @@ at most two PR repair rounds; at most one premium escalation and one provider tr
 wait on an exhausted allowance; `claude.model` is `claude-sonnet-5`, an id the installed CLI
 recognises and the API accepted in the live probe (`modelUsage.canonicalModel` `claude-sonnet-5`;
 `claude-sonnet-5-5`, the PR 1 candidate, is refused before any request); the Claude adapter's
-permission mode is `acceptEdits` with prompts disabled and `--strict-mcp-config` on every launch; the
+permission mode is `acceptEdits` with prompts disabled and `--strict-mcp-config` plus `--safe-mode` on
+every launch; the
 expected funding route is `claude.ai` and an `ANTHROPIC_API_KEY` in the environment refuses the
 launch rather than paying for it; a `percent` allowance (the CLI's window utilization) permits a
 launch iff `(100 - value) / 100 - interactive_reserve_fraction > 0`, because the invocation ceiling is
@@ -852,6 +865,7 @@ integrator decision until the owner promotes it here.
 | 2026-10-13 | Codex adapter | **The owner's Codex `service_tier = "priority"` stays in the owner's configuration.** The controller keeps refusing a Codex launch while it is set (`operator-config-refused`), so the operator removes it for a controller sitting. A per-run override is built only if controller Codex runs become routine. (Accepted recommendation.) |
 | 2026-10-13 | Workstream | **Budgeted-autonomy closes after one cleanup PR.** The PR covers the line endings of `.claude/workflows/*.js`, stale README lines and the throwaway `PILOT-PR4.md`. The PR 5 run sheet `live-run-pr5.md` on the storage branch is marked historical and is not reused. No phase G is planned, and a live exercise of merge and a repair round is not scheduled. The brief's items that no PR delivered get no cards now; among them are posts from the tick, card intake, container validation in a tick, the verifier role, the `phases` table and premium escalation. (Accepted recommendation.) |
 | 2026-10-13 | Claude workers (#790) | **Card #790 is a precondition of the next live controller run that launches Claude workers.** It is not built now. It is built, and merged, before such a run is launched. (Accepted recommendation; it refines the 2026-10-13 Claude workers row, "a card for later".) |
+| 2026-10-15 | Claude workers (#790) | **Built:** every Claude launch and resume passes `--safe-mode` (probe `probe-claude-isolation-report.json`). Operator user-level hooks, skills, agents, slash commands and auto-memory stay out; `--bare` is not used (it drops OAuth). |
 
 ## Verification
 
