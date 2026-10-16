@@ -30,6 +30,10 @@ namespace Ashlar.CLI.Commands;
 /// </summary>
 public sealed class ImproveCommand : Command
 {
+    private static readonly object BroadcastWarningGate = new();
+    private static EgressRefusalWarnings? BroadcastWarnings;
+    private static ILogger? BroadcastWarningLogger;
+
     /// <summary>Creates a new ImproveCommand instance.</summary>
     public ImproveCommand() : base("improve", "Analyze brick code, then run adaptation for each violation (Block 4 closed-loop).")
     {
@@ -547,7 +551,7 @@ public sealed class ImproveCommand : Command
             catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
             {
                 broadcastRefusal = EgressRefusal.Find(ex)!;
-                logger.LogWarning(new EventId(7307, "EgressRefused"), "Shared adaptation broadcast refused: {Refusal}", broadcastRefusal.Message);
+                ReportBroadcastRefusal(logger, broadcastRefusal);
             }
             catch (Exception ex) { logger.LogWarning(ex, "Shared adaptation broadcast failed for {Id}", record.Id); }
         }
@@ -564,6 +568,23 @@ public sealed class ImproveCommand : Command
             Promoted = broadcastRefusal is null,
             Message = broadcastRefusal is null ? record.Message : "Locally applied; broadcast refused: " + broadcastRefusal.Message,
         }).ConfigureAwait(false);
+    }
+
+    /// <summary>SPEC-007 D28: process-scoped window for shared-adaptation broadcast refusals.</summary>
+    private static void ReportBroadcastRefusal(ILogger logger, EgressRefusedException refusal)
+    {
+        lock (BroadcastWarningGate)
+        {
+            if (BroadcastWarnings is null)
+            {
+                BroadcastWarningLogger = logger;
+                BroadcastWarnings = new EgressRefusalWarnings((r, suppressed, summary) =>
+                    BroadcastWarningLogger!.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                        "Shared adaptation broadcast refused: {Refusal} Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                        r.Message, r.Site, r.Reason, r.Ref, suppressed, summary));
+            }
+            BroadcastWarnings.Report(refusal);
+        }
     }
 
     private static async Task ExecuteContinuousAsync(
