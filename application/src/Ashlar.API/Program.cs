@@ -278,6 +278,7 @@ if (!string.IsNullOrWhiteSpace(otlpEndpoint))
 }
 
 var app = builder.Build();
+// SPEC-007 D28 Known limit (card #805): startup-only, one Evaluate before Build — not a windowed loop site.
 if (refusedOtlpMessage is not null)
     app.Logger.LogWarning(new EventId(7307, "EgressRefused"), "OTLP export refused: {Refusal}", refusedOtlpMessage);
 

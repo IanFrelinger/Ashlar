@@ -629,25 +629,39 @@
     {
       "id": "mesh-package-refusal-count",
       "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs",
-      "old": "LogRefusal(logger, EgressRefusal.Find(ex)!);\n                refused++;",
-      "new": "LogRefusal(logger, EgressRefusal.Find(ex)!);\n                errors++;",
+      "old": "ReportRefusal(warnings, EgressRefusal.Find(ex)!);\n                refused++;",
+      "new": "ReportRefusal(warnings, EgressRefusal.Find(ex)!);\n                errors++;",
       "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
       "framework": "net10.0",
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "expected_failures": [
-        "Mesh_pull_counts_wrapped_refusals"
+        "Mesh_pull_counts_wrapped_refusals",
+        "Mesh_pull_repeated_refusals_share_one_warning_window"
       ]
     },
     {
-      "id": "mesh-refusal-warning",
+      "id": "mesh-refusal-warning-not-windowed",
       "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs",
-      "old": "logger.LogWarning(new EventId(7307, \"EgressRefused\"), \"Mesh pull egress refused: {Refusal}\", refusal.Message);",
-      "new": "logger.LogDebug(new EventId(7307, \"EgressRefused\"), \"Mesh pull egress refused: {Refusal}\", refusal.Message);",
+      "old": "ReportRefusal(warnings, EgressRefusal.Find(ex)!);\n                refused++;",
+      "new": "Console.Error.WriteLine($\"Mesh pull egress refused: {EgressRefusal.Find(ex)!.Message}\");\n                refused++;",
       "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
       "framework": "net10.0",
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "expected_failures": [
-        "Mesh_pull_counts_wrapped_refusals"
+        "Mesh_pull_counts_wrapped_refusals",
+        "Mesh_pull_repeated_refusals_share_one_warning_window"
+      ]
+    },
+    {
+      "id": "mesh-discovery-refusal-warning-not-windowed",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshDiscoveryService.cs",
+      "old": "_refusalWarnings.Report(new EgressRefusedException(decision));",
+      "new": "_logger.LogWarning(new EventId(7307, \"EgressRefused\"), \"Mesh discovery egress refused: {Refusal}; continuing listen-only\", new EgressRefusedException(decision).Message);",
+      "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Refused_discovery_restarts_share_one_warning_window"
       ]
     },
     {
@@ -665,8 +679,8 @@
     {
       "id": "ide-model-discovery-warning",
       "file": "application/src/Ashlar.API/Endpoints/IdeEndpoints.cs",
-      "old": "logger.LogWarning(new EventId(7307, \"EgressRefused\"), \"IDE model discovery egress refused: {Refusal}\", refusal.Message);",
-      "new": "logger.LogDebug(new EventId(7307, \"EgressRefused\"), \"IDE model discovery egress refused: {Refusal}\", refusal.Message);",
+      "old": "ReportModelDiscoveryRefusal(logger, refusal);",
+      "new": "Console.Error.WriteLine($\"IDE model discovery egress refused: {refusal.Message}\");",
       "filter": "FullyQualifiedName~EgressExplicitApiProdStyleTests",
       "framework": "net10.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",

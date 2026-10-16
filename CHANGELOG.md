@@ -17,6 +17,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — D28 windowing for five unwindowed 7307 refusal Warnings (#805)
+
+- `MeshAutoPullService`, `MeshDiscoveryService`, IDE model discovery (`IdeEndpoints`),
+  `ImproveCommand` shared-adaptation broadcast, and `SelfExtendAdmissionBridge` auto-share now
+  log refused egress through `EgressRefusalWarnings` (one event 7307 per site and reason per
+  five-minute window, with a counted summary on dispose/expiry). `Ashlar.BackgroundAgents.HostRunners`
+  is an `InternalsVisibleTo` friend of `Ashlar.Abstractions` for that window. API OTLP startup
+  refusal remains one-shot by construction (Known limit). Twins cover the mesh pull and discovery
+  loops. Documents: `docs/EgressInventory.md`.
+
 ### Fixed — one MEAI refusal audit through the unkeyed router (#760)
 
 - A governed MEAI refusal under the default unkeyed router produces a single

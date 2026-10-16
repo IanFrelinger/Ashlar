@@ -29,6 +29,10 @@ namespace Ashlar.BackgroundAgents.HostRunners;
 /// </summary>
 public static class SelfExtendAdmissionBridge
 {
+    private static readonly object AutoShareWarningGate = new();
+    private static EgressRefusalWarnings? AutoShareWarnings;
+    private static ILogger? AutoShareWarningLogger;
+
     /// <summary>
     /// Records the cycle as a proposal when running inside an ashlar project.
     /// </summary>
@@ -288,9 +292,9 @@ public static class SelfExtendAdmissionBridge
             var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.MeshPublish, "EG-MESH-01", "file:" + storeDir));
             if (decision.Refuses)
             {
-                var message = new EgressRefusedException(decision).Message;
-                logger.LogWarning(new EventId(7307, "EgressRefused"), "Self-extend gate: auto-share refused: {Refusal}", message);
-                return $"; auto-share refused: {message}";
+                var refusal = new EgressRefusedException(decision);
+                ReportAutoShareRefusal(logger, refusal);
+                return $"; auto-share refused: {refusal.Message}";
             }
             var json = ExtensionPackaging.Pack(record, files, signer);
             var dest = MeshStore.Publish(storeDir, json);
@@ -303,6 +307,23 @@ public static class SelfExtendAdmissionBridge
             // successful cycle — an escape would replace the whole run result with a failure.
             logger.LogWarning(ex, "Self-extend gate: auto-share failed — the admission stands, the share did not happen");
             return $"; auto-share failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>SPEC-007 D28: process-scoped window for self-extend auto-share refusals.</summary>
+    private static void ReportAutoShareRefusal(ILogger logger, EgressRefusedException refusal)
+    {
+        lock (AutoShareWarningGate)
+        {
+            if (AutoShareWarnings is null)
+            {
+                AutoShareWarningLogger = logger;
+                AutoShareWarnings = new EgressRefusalWarnings((r, suppressed, summary) =>
+                    AutoShareWarningLogger!.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                        "Self-extend gate: auto-share refused: {Refusal} Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                        r.Message, r.Site, r.Reason, r.Ref, suppressed, summary));
+            }
+            AutoShareWarnings.Report(refusal);
         }
     }
 

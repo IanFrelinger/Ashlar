@@ -25,6 +25,9 @@ namespace Ashlar.API.Endpoints;
 public static class IdeEndpoints
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly object ModelDiscoveryWarningGate = new();
+    private static EgressRefusalWarnings? ModelDiscoveryWarnings;
+    private static ILogger? ModelDiscoveryWarningLogger;
 
     /// <summary>Maps <c>/api/ide/*</c> onto the Ashlar API group.</summary>
     public static RouteGroupBuilder MapIdeEndpoints(this RouteGroupBuilder group)
@@ -210,10 +213,7 @@ public static class IdeEndpoints
         {
             var refusal = EgressRefusal.Find(ex)!;
             var logger = services.GetService<ILoggerFactory>()?.CreateLogger("Ashlar.API.Endpoints.IdeEndpoints");
-            if (logger is not null)
-                logger.LogWarning(new EventId(7307, "EgressRefused"), "IDE model discovery egress refused: {Refusal}", refusal.Message);
-            else
-                Console.Error.WriteLine($"IDE model discovery egress refused: {refusal.Message}");
+            ReportModelDiscoveryRefusal(logger, refusal);
         }
         catch
         {
@@ -225,6 +225,29 @@ public static class IdeEndpoints
             ?? models.FirstOrDefault()?.Id;
 
         return Results.Ok(new IdeModelsResponse(models, defaultModel));
+    }
+
+    /// <summary>SPEC-007 D28: process-scoped window for optional IDE model-discovery refusals.</summary>
+    private static void ReportModelDiscoveryRefusal(ILogger? logger, EgressRefusedException refusal)
+    {
+        if (logger is null)
+        {
+            Console.Error.WriteLine($"IDE model discovery egress refused: {refusal.Message}");
+            return;
+        }
+
+        lock (ModelDiscoveryWarningGate)
+        {
+            if (ModelDiscoveryWarnings is null)
+            {
+                ModelDiscoveryWarningLogger = logger;
+                ModelDiscoveryWarnings = new EgressRefusalWarnings((r, suppressed, summary) =>
+                    ModelDiscoveryWarningLogger!.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                        "IDE model discovery egress refused: {Refusal} Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                        r.Message, r.Site, r.Reason, r.Ref, suppressed, summary));
+            }
+            ModelDiscoveryWarnings.Report(refusal);
+        }
     }
 
     private static async Task<IResult> GetIdeAgentsAsync(
