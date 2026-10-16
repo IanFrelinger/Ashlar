@@ -91,19 +91,17 @@ public sealed class EgressCliSiteTwinTests : IDisposable
         using var handler = new AlwaysRefusingPackagesHandler(refusal);
         using var client = new HttpClient(handler);
         var log = new RefusalLogger<MeshAutoPullService>();
-        using var warnings = MeshAutoPullService.CreateRefusalWarnings(log);
 
+        // Logger overload owns a short-lived D28 window and flushes on return.
         var summary = await MeshAutoPullService.PullPeerOnceAsync(client, "https://peer.example", _dir,
-            CancellationToken.None, warnings);
+            CancellationToken.None, log);
 
         summary.Refused.Should().Be(3);
         summary.Scanned.Should().Be(3);
         handler.Calls.Should().Be(4, "index plus three package fetches");
-        log.Warnings.Should().ContainSingle().Which
-            .Should().Contain(refusal.Message).And.Contain("Suppressed=0").And.Contain("Summary=False")
+        log.Warnings.Should().HaveCount(2, "one Warning plus suppressed-count summary on window dispose (D28)");
+        log.Warnings[0].Should().Contain(refusal.Message).And.Contain("Suppressed=0").And.Contain("Summary=False")
             .And.NotContain("private-peer");
-        warnings.Dispose();
-        log.Warnings.Should().HaveCount(2, "disposal flushes the suppressed count as one summary (D28)");
         log.Warnings[1].Should().Contain("Suppressed=2").And.Contain("Summary=True").And.Contain(refusal.Ref);
     }
 
@@ -773,7 +771,7 @@ public sealed class EgressCliSiteTwinTests : IDisposable
         for (var i = 0; i < 3; i++)
         {
             using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(40));
-            await ((Task)loop.Invoke(service, [true, cancel.Token])!).ConfigureAwait(false);
+            await (Task)loop.Invoke(service, [true, cancel.Token])!;
         }
         log.Warnings.Should().ContainSingle().Which
             .Should().Contain("Egress refused by policy").And.Contain("listen-only")
