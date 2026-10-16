@@ -1,4 +1,5 @@
 using System.Text;
+using Ashlar.Abstractions.Security.Egress;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Application.Execution.Routing;
 using Ashlar.Core.Domain.Execution;
@@ -56,6 +57,16 @@ internal sealed class ProviderFactoryLocalExecutor : ILocalExecutor
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Local generation execution failed for model={ModelId}", payload.ModelId);
+            // Preserve EGRESS_REFUSED and the redacted message/ref even when the refusal is wrapped
+            // (card #809 / 4.8b Known limit). Ordinary failures keep local.execution_failed.
+            if (EgressRefusal.Find(ex) is { } refusal)
+            {
+                return Result<GenerationExecutionResult>.Failure(
+                    refusal.ErrorCode,
+                    "Local execution refused by egress policy.",
+                    refusal.Message);
+            }
+
             return Result<GenerationExecutionResult>.Failure(
                 "local.execution_failed",
                 "Local execution failed.",

@@ -160,18 +160,21 @@ The status line above and the starting prompt are the owner's, as written; the s
     pass-through, both opt-in (`ReplaceMapIntelligenceWithModelBackedDefaults`).
   The factory's row-24 Warning is windowed (event 7307, flushed when the factory is disposed).
   No echo model and no canned or pass-through output answers a refusal; every model or chat catch-all in `src/`
-  was read on 2026-10-13 (17 unfiltered catch-alls, 5 refusal-filtered). Residuals remain and are listed as dated
+  was read on 2026-10-13 (17 unfiltered catch-alls, 5 refusal-filtered).   Residuals remain and are listed as dated
   Known limits in
   `docs/EgressInventory.md` ("Catch-alls and availability probes"):
-  - status callers report a refused probe as "unavailable";
+  - status callers report a refused probe as "unavailable" (retained, card #809; Probe API exists via #802,
+    but health/onboarding still use `IsProviderAvailable`);
   - `workflow stress` / `workflow optimize` typed refusal results were repaired by card #802
     (`IProviderFactory.ProbeProviderAvailability`; stress fails refused runs; optimize names the refusal);
   - workflow agent-node refusal propagation was repaired by card #803 (`StepErrorEvent` carries cause/code/ref;
     `ExecuteAgentNodeAsync` throws the refusal and honours `BehaviorCompletedEvent.Success`);
   - `BehaviorExecutor`'s outer catch (a throwing outcome recorder or semantic cache, or cancellation, which wins
-    by design) ends a step's stream with its own event, not the refusal;
-  - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed`;
-  - the `adapt` and `improve` verbs never flush the window.
+    by design) ends a step's stream with its own event, not the refusal (retained, card #809);
+  - a refusal may still appear twice in `IBehaviorExecutor.ExecuteAsync`'s `Errors` after a failing fallback
+    (retained D23 ordering tradeoff, card #809; not #760).
+  Card #809 repaired: `ProviderFactoryLocalExecutor` preserves `EGRESS_REFUSED` for wrapped refusals, and
+  `adapt`/`improve` dispose their service providers so the probe Warning window flushes.
   Every 4.8b site reaches the internal `EgressRefusal` through the existing `InternalsVisibleTo` list of
   `Ashlar.Abstractions` (`Ashlar.Abstractions.csproj:33-47`, 15 friends, unchanged by 4.8b; Orchestration and
   Infrastructure were already on it). What each friend uses is recorded in `docs/EgressInventory.md`.

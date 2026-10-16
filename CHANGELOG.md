@@ -156,11 +156,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   input passed through.
 - `ProviderFactory` logs refused availability probes once per site and reason per five-minute window (event 7307),
   and flushes the suppressed count when it is disposed. It now implements `IDisposable`, and the kernel's DI
-  container disposes the singleton. The `adapt` and `improve` CLI verbs never dispose their service providers, so
-  there the first Warning is logged and the summary is not.
+  container disposes the singleton. The `adapt` and `improve` CLI verbs dispose the service providers they build
+  (card #809), so a verb finish flushes the suppressed-count summary; first-warning behaviour is unchanged.
+- Card #809 (4.8b refusal/warning-lifecycle limits):
+  - **Repaired:** `ProviderFactoryLocalExecutor` returns `EGRESS_REFUSED` with the redacted refusal message/ref
+    for wrapped and unwrapped refusals (ordinary failures keep `local.execution_failed`).
+  - **Repaired:** `adapt` / `improve` dispose their service providers so the probe Warning window flushes.
+  - **Retained:** IDE health and onboarding status still report a refused probe as unavailable (`ProbeProviderAvailability`
+    exists via #802/#815, but those endpoints still use `IsProviderAvailable`); `BehaviorExecutor` outer-catch
+    cases (cancellation wins by design); a refusal listed twice in `Errors` after a failing fallback
+    (D23 per-step ordering tradeoff, not #760).
 - Still open (Known limits in `docs/EgressInventory.md`):
-  - IDE health and onboarding status report a refused provider as unavailable;
-  - `ProviderFactoryLocalExecutor` reports a wrapped refusal as `local.execution_failed` with the wrapper's message.
+  - IDE health and onboarding status report a refused provider as unavailable (retained, card #809; Probe unused);
+  - `BehaviorExecutor` outer-catch / double-listed refusal in `Errors` (retained, card #809).
 
 ### Fixed — workflow stress/optimize surface typed refusal results (card #802)
 

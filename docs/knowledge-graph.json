@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 808,
-    "declared_facts": 5200,
+    "test_files_declaring_facts": 811,
+    "declared_facts": 5204,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2684,6 +2684,13 @@
       "file": "application/src/Ashlar.Tests.CLI/Framework/UnitTestBridgeTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Framework",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/AdaptImproveProviderDisposalTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
       "declared_facts": 1,
       "in_cert_gate_filter": false
     },
@@ -6125,6 +6132,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/AdaptImproveProviderDisposalTwinTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/AshlarPeerBrickExecutorGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
@@ -6255,6 +6269,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
       "declared_facts": 12,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/ProviderFactoryLocalExecutorTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
