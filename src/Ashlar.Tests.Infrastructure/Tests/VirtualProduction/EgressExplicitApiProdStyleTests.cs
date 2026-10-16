@@ -170,8 +170,17 @@ public sealed class EgressExplicitApiProdStyleTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("models").And.NotContain("wrapper-secret").And.NotContain(refusal.Ref);
+        // SPEC-007 D28 (#805): first refusal opens the process-scoped window (Summary=False).
+        var first = logs.Messages.Where(x => x.StartsWith("IDE model discovery egress refused:"))
+            .Should().ContainSingle().Which;
+        first.Should().Contain(refusal.Message).And.Contain("Suppressed=0").And.Contain("Summary=False")
+            .And.NotContain("wrapper-secret");
+
+        // A second refused probe in the same window does not emit another Warning.
+        using var again = await client.GetAsync("/api/ide/models");
+        again.StatusCode.Should().Be(HttpStatusCode.OK);
         logs.Messages.Where(x => x.StartsWith("IDE model discovery egress refused:"))
-            .Should().ContainSingle().Which.Should().Contain(refusal.Message).And.NotContain("wrapper-secret");
+            .Should().ContainSingle("repeated IDE model-discovery refusals share one 7307 window");
     }
 
     private static EgressRefusedException Refusal() => new(new EgressGuard("secure-workstation", "enforce")
