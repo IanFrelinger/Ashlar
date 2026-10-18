@@ -36,7 +36,11 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <c>SecurityExperimental</c>, which is internal and not experimental itself (integrator decision: a public
 /// holder would add a stable line to the API file for two constants no consumer uses). (6) None of the surface's
 /// lines is in <c>PublicAPI.Shipped.txt</c>: the owner decided on 2026-10-13 that <c>[Experimental]</c> lines stay
-/// in <c>PublicAPI.Unshipped.txt</c> across the 0.3.0 tag, so the promotion cannot turn one into a promise.</para>
+/// in <c>PublicAPI.Unshipped.txt</c> across the 0.3.0 tag, so the promotion cannot turn one into a promise.
+/// (7) Every non-header line of the six <c>src/*/PublicAPI.Unshipped.txt</c> files is a symbol of that surface,
+/// and the surface-line count stays at or above 140. A line in one of the other five files is not proved to carry
+/// the attribute; this fact only refuses a non-surface line. A <c>*REMOVED*</c> line fails it too, because none
+/// exist today and a removal marker is a review.</para>
 ///
 /// <para>Where a type-level attribute is impossible - a surface type exposed by a member of a type that is not
 /// experimental - (3) and (4) both fail today rather than accept a member-level one, so the first such member is
