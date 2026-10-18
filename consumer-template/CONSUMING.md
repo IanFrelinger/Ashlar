@@ -30,7 +30,7 @@ Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host 
 
 With **central package management**, use `Directory.Packages.props` in this folder instead.
 
-> **Note:** the `0.3.0` graph pins `Microsoft.Extensions.*` at `10.0.12` (unchanged from `0.2.0`). If your project explicitly references any `Microsoft.Extensions.*` package below that version, restore fails with `NU1605` (package downgrade) — align your pins to `>= 10.0.12`.
+> **Note:** the `0.3.0` graph pins the `Microsoft.Extensions` hosting packages (`DependencyInjection`, `Hosting`, `Configuration`, `Logging`, `Http`, `Options`, and their abstractions) at `10.0.12`, unchanged from `0.2.0`. `Microsoft.Extensions.Diagnostics.HealthChecks` stays at `8.0.0`, and the `Microsoft.Extensions.AI` and vector packages stay at `10.10.x`. If your project explicitly references one of those hosting packages below `10.0.12`, restore fails with `NU1605` (package downgrade) — align those pins to `>= 10.0.12`.
 
 ## Target frameworks
 

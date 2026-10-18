@@ -317,11 +317,12 @@ Run these from the repo root. Stacks that bind-mount the repository (agent serve
 
 The self-extending agent in these stacks is **Passive by default** (observe only): it is armed by the aggressiveness mode file (`ashlar background-agent mode set --value active`; path `ASHLAR_AGENT_MODE_PATH`), and a missing file or an unrecognised value reads as Passive. See [`docs/SelfHostedAgentServer.md`](docs/SelfHostedAgentServer.md).
 
-Validate a pipeline template from a mounted workspace with the published CLI image:
+Validate a pipeline template from a mounted workspace with the CLI image that exists today (`:0.2.0`).
+The release-commit pin `ghcr.io/ianfrelinger/nexo-cli:0.3.0` does not exist until `v0.3.0` publishes:
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/ianfrelinger/nexo-cli:0.3.0 \
+  ghcr.io/ianfrelinger/nexo-cli:0.2.0 \
   pipeline validate --template /work/path/to/template.json
 ```
 
