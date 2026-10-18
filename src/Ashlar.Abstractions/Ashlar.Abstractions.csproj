@@ -43,6 +43,7 @@
     <InternalsVisibleTo Include="Ashlar.CLI" />
     <InternalsVisibleTo Include="Ashlar.AI.Pipeline" />
     <InternalsVisibleTo Include="Ashlar.BackgroundAgents" />
+    <InternalsVisibleTo Include="Ashlar.BackgroundAgents.HostRunners" />
     <InternalsVisibleTo Include="Ashlar.Core.Application" />
     <InternalsVisibleTo Include="Ashlar.Runtime" />
     <InternalsVisibleTo Include="Ashlar.Transport.Grpc" />

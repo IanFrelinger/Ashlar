@@ -44,6 +44,7 @@ public sealed class MeshAutoPullService : BackgroundService
 {
     private readonly MeshAutoPullSettings _settings;
     private readonly ILogger<MeshAutoPullService> _logger;
+    private readonly EgressRefusalWarnings _refusalWarnings;
 
     /// <summary>One shared client for peer pulls. A slow peer times out instead of stalling the tick,
     /// and auto-redirect is OFF: an untrusted peer must not be able to bounce this node's request to an
@@ -87,8 +88,16 @@ public sealed class MeshAutoPullService : BackgroundService
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _refusalWarnings = CreateRefusalWarnings(_logger);
         _peerSources = (peerSources ?? []).ToList();
     }
+
+    /// <summary>SPEC-007 D28: one event 7307 per site and reason per five-minute window, with a counted summary.</summary>
+    internal static EgressRefusalWarnings CreateRefusalWarnings(ILogger logger) =>
+        new((refusal, suppressed, summary) =>
+            logger.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Mesh pull egress refused: {Refusal} Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Message, refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
 
     private readonly IReadOnlyList<IPeerSource> _peerSources;
 
@@ -163,7 +172,7 @@ public sealed class MeshAutoPullService : BackgroundService
             foreach (var peer in MergePeerUrls(_settings.Peers, _peerSources))
             {
                 ct.ThrowIfCancellationRequested();
-                s += await PullPeerOnceAsync(Http, peer, _settings.ProjectDir, ct, _logger).ConfigureAwait(false);
+                s += await PullPeerOnceAsync(Http, peer, _settings.ProjectDir, ct, _refusalWarnings).ConfigureAwait(false);
             }
             if (s.Scanned > 0 || s.Errors > 0)
             {
@@ -256,10 +265,18 @@ public sealed class MeshAutoPullService : BackgroundService
     /// </summary>
     public static async Task<MeshPullSummary> PullPeerOnceAsync(
         HttpClient http, string peerBaseUrl, string projectDir, CancellationToken ct = default)
-        => await PullPeerOnceAsync(http, peerBaseUrl, projectDir, ct, null).ConfigureAwait(false);
+        => await PullPeerOnceAsync(http, peerBaseUrl, projectDir, ct, warnings: null).ConfigureAwait(false);
 
+    /// <summary>Test seam: owns a short-lived D28 window for the duration of one pull when only a logger is supplied.</summary>
     internal static async Task<MeshPullSummary> PullPeerOnceAsync(
         HttpClient http, string peerBaseUrl, string projectDir, CancellationToken ct, ILogger? logger)
+    {
+        using var owned = logger is null ? null : CreateRefusalWarnings(logger);
+        return await PullPeerOnceAsync(http, peerBaseUrl, projectDir, ct, owned).ConfigureAwait(false);
+    }
+
+    internal static async Task<MeshPullSummary> PullPeerOnceAsync(
+        HttpClient http, string peerBaseUrl, string projectDir, CancellationToken ct, EgressRefusalWarnings? warnings)
     {
         if (!Uri.TryCreate(peerBaseUrl?.Trim(), UriKind.Absolute, out var baseUri)
             || (baseUri.Scheme != Uri.UriSchemeHttp && baseUri.Scheme != Uri.UriSchemeHttps))
@@ -293,7 +310,7 @@ public sealed class MeshAutoPullService : BackgroundService
         }
         catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
         {
-            LogRefusal(logger, EgressRefusal.Find(ex)!);
+            ReportRefusal(warnings, EgressRefusal.Find(ex)!);
             return MeshPullSummary.Empty with { Refused = 1 };
         }
         catch (Exception)
@@ -348,7 +365,7 @@ public sealed class MeshAutoPullService : BackgroundService
             }
             catch (Exception ex) when (EgressRefusal.Find(ex) is not null)
             {
-                LogRefusal(logger, EgressRefusal.Find(ex)!);
+                ReportRefusal(warnings, EgressRefusal.Find(ex)!);
                 refused++;
             }
             catch (Exception)
@@ -360,11 +377,18 @@ public sealed class MeshAutoPullService : BackgroundService
         return new MeshPullSummary(Math.Min(entries.Count, MaxPackagesPerPeer), admitted, held, rejected, refused, already, errors);
     }
 
-    private static void LogRefusal(ILogger? logger, EgressRefusedException refusal)
+    private static void ReportRefusal(EgressRefusalWarnings? warnings, EgressRefusedException refusal)
     {
-        if (logger is not null)
-            logger.LogWarning(new EventId(7307, "EgressRefused"), "Mesh pull egress refused: {Refusal}", refusal.Message);
+        if (warnings is not null)
+            warnings.Report(refusal);
         else
             Console.Error.WriteLine($"Mesh pull egress refused: {refusal.Message}");
+    }
+
+    /// <summary>Closes the refused-pull Warning window (SPEC-007 D28).</summary>
+    public override void Dispose()
+    {
+        _refusalWarnings.Dispose();
+        base.Dispose();
     }
 }

@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 811,
-    "declared_facts": 5204,
+    "declared_facts": 5206,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -2775,7 +2775,7 @@
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/EgressCliSiteTwinTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 18,
+      "declared_facts": 20,
       "in_cert_gate_filter": false
     },
     {

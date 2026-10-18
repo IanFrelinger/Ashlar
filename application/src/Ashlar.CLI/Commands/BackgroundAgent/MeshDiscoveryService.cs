@@ -172,6 +172,7 @@ public sealed class MeshDiscoveryService : BackgroundService
     private readonly MeshDiscoverySettings _settings;
     private readonly MeshDiscoveryRegistry _registry;
     private readonly ILogger<MeshDiscoveryService> _logger;
+    private readonly EgressRefusalWarnings _refusalWarnings;
     private readonly Func<byte[], IPEndPoint, CancellationToken, ValueTask<int>>? _sendBeacon;
 
     /// <summary>Creates the discovery service.</summary>
@@ -190,6 +191,10 @@ public sealed class MeshDiscoveryService : BackgroundService
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _refusalWarnings = new EgressRefusalWarnings((refusal, suppressed, summary) =>
+            _logger.LogWarning(new EventId(7307, "EgressRefusalHandled"),
+                "Mesh discovery egress refused: {Refusal}; continuing listen-only Site={Site} Reason={Reason} Ref={Ref} Suppressed={Suppressed} Summary={Summary}",
+                refusal.Message, refusal.Site, refusal.Reason, refusal.Ref, suppressed, summary));
         _sendBeacon = sendBeacon;
     }
 
@@ -263,9 +268,8 @@ public sealed class MeshDiscoveryService : BackgroundService
             announcing ? $"udp://{MeshBeacon.Group}:{_settings.DiscoveryPort}" : "host:listen-only"));
         if (decision.Refuses)
         {
-            _logger.LogWarning(new EventId(7307, "EgressRefused"),
-                "Mesh discovery egress refused: {Refusal}; continuing listen-only",
-                new EgressRefusedException(decision).Message);
+            // SPEC-007 D28: windowed — a restarted announce loop under the same site/reason shares one Warning.
+            _refusalWarnings.Report(new EgressRefusedException(decision));
             announcing = false;
         }
         using var sender = new UdpClient();
@@ -326,5 +330,12 @@ public sealed class MeshDiscoveryService : BackgroundService
         {
             _logger.LogDebug(ex, "Mesh discovery could not persist mesh-peers.json");
         }
+    }
+
+    /// <summary>Closes the refused-discovery Warning window (SPEC-007 D28).</summary>
+    public override void Dispose()
+    {
+        _refusalWarnings.Dispose();
+        base.Dispose();
     }
 }

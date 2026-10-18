@@ -83,6 +83,28 @@ public sealed class EgressCliSiteTwinTests : IDisposable
             .And.NotContain("wrapper-secret").And.NotContain("hidden").And.NotContain("private-peer");
     }
 
+    [Fact]
+    public async Task Mesh_pull_repeated_refusals_share_one_warning_window_flushed_on_dispose()
+    {
+        var refusal = new EgressRefusedException(new EgressGuard("secure-workstation", "enforce")
+            .Evaluate(new EgressRequest(EgressFamilies.MeshPull, "EG-MESH-04", "https://private-peer.example/secret")));
+        using var handler = new AlwaysRefusingPackagesHandler(refusal);
+        using var client = new HttpClient(handler);
+        var log = new RefusalLogger<MeshAutoPullService>();
+
+        // Logger overload owns a short-lived D28 window and flushes on return.
+        var summary = await MeshAutoPullService.PullPeerOnceAsync(client, "https://peer.example", _dir,
+            CancellationToken.None, log);
+
+        summary.Refused.Should().Be(3);
+        summary.Scanned.Should().Be(3);
+        handler.Calls.Should().Be(4, "index plus three package fetches");
+        log.Warnings.Should().HaveCount(2, "one Warning plus suppressed-count summary on window dispose (D28)");
+        log.Warnings[0].Should().Contain(refusal.Message).And.Contain("Suppressed=0").And.Contain("Summary=False")
+            .And.NotContain("private-peer");
+        log.Warnings[1].Should().Contain("Suppressed=2").And.Contain("Summary=True").And.Contain(refusal.Ref);
+    }
+
     public EgressCliSiteTwinTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "egress-cli-" + Guid.NewGuid().ToString("N"));
@@ -680,6 +702,24 @@ public sealed class EgressCliSiteTwinTests : IDisposable
             });
         }
     }
+
+    private sealed class AlwaysRefusingPackagesHandler(EgressRefusedException refusal) : HttpMessageHandler
+    {
+        public int Calls { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Calls++;
+            if (Calls == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        "[{\"file\":\"a.ashpkg\",\"size\":1},{\"file\":\"b.ashpkg\",\"size\":1},{\"file\":\"c.ashpkg\",\"size\":1}]")
+                });
+            }
+            throw new AggregateException("wrapper-secret", new InvalidOperationException("wrapper-secret", refusal));
+        }
+    }
     [Fact]
     public async Task Refused_package_returns_empty_404_and_releases_the_open_file()
     {
@@ -706,6 +746,40 @@ public sealed class EgressCliSiteTwinTests : IDisposable
             exclusive.Length.Should().BeGreaterThan(0, "the refused handle was released without deleting the package");
         }
         finally { await service.StopAsync(CancellationToken.None); }
+    }
+
+    [Fact]
+    public async Task Refused_discovery_restarts_share_one_warning_window_flushed_on_dispose()
+    {
+        using var mode = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "enforce");
+        using var profile = new EnvironmentVariableScope("ASHLAR_DEPLOYMENT_PROFILE", "secure-workstation");
+        using var state = new EgressProcessStateScope(reset: true);
+        int port;
+        using (var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0)))
+            port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
+        var sends = 0;
+        ValueTask<int> SendBeacon(byte[] payload, IPEndPoint destination, CancellationToken ct)
+        {
+            Interlocked.Increment(ref sends);
+            return ValueTask.FromResult(payload.Length);
+        }
+        var log = new RefusalLogger<MeshDiscoveryService>();
+        var settings = new MeshDiscoverySettings("private-node", "ed25519:aaaa1111bbbb2222", 17001,
+            Path.Combine(_dir, "refused-discovery-window"), port);
+        using var service = new MeshDiscoveryService(settings, new MeshDiscoveryRegistry(), log, SendBeacon);
+        var loop = typeof(MeshDiscoveryService).GetMethod("AnnounceLoopAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        for (var i = 0; i < 3; i++)
+        {
+            using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(40));
+            await (Task)loop.Invoke(service, [true, cancel.Token])!;
+        }
+        log.Warnings.Should().ContainSingle().Which
+            .Should().Contain("Egress refused by policy").And.Contain("listen-only")
+            .And.Contain("Suppressed=0").And.Contain("Summary=False");
+        Volatile.Read(ref sends).Should().Be(0);
+        service.Dispose();
+        log.Warnings.Should().HaveCount(2, "disposal flushes the suppressed count as one summary (D28)");
+        log.Warnings[1].Should().Contain("Suppressed=2").And.Contain("Summary=True");
     }
 
     [Fact]
