@@ -321,7 +321,7 @@ Validate a pipeline template from a mounted workspace with the published CLI ima
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/ianfrelinger/nexo-cli:0.2.0 \
+  ghcr.io/ianfrelinger/nexo-cli:0.3.0 \
   pipeline validate --template /work/path/to/template.json
 ```
 
@@ -361,8 +361,8 @@ Ship Ashlar from published container images and compose files. Host-native scrip
 
 | Image | Use |
 |-------|-----|
-| `ghcr.io/ianfrelinger/nexo-cli:0.2.0` | **Recommended for operators** — the immutable, smoke-tested, multi-arch release tag. Automation, agents, validation, and mounted-workspace commands. (`deploy/node.yml` pins a digest, re-pinned to this tag's after it publishes.) |
-| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.2.0` (or a digest) for anything durable. |
+| `ghcr.io/ianfrelinger/nexo-cli:0.3.0` | **Operator tag for this release commit.** The immutable multi-arch tag appears when `v0.3.0` publishes. Until then the image that exists is `:0.2.0`. `deploy/node.yml` stays on the `0.2.0` digest until the post-release re-pin (`docs/RELEASE_RUNBOOK.md`). |
+| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.3.0` after it publishes (or a digest) for anything durable. |
 | Build from `.docker/Dockerfile.quickstart` | Single-container API + portal smoke path with mock-friendly defaults. |
 | Build from `.docker/Dockerfile.api` | API image used by compose stacks. |
 

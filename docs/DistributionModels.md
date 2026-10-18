@@ -22,14 +22,13 @@ Release automation is summarized in **`docs/RELEASE.md`** (NuGet + GHCR from one
 | **NuGet host embed** | `Ashlar.Hosting` graph, **`Ashlar.Hosting.Bundle`** | Package version on a feed | Build and run **`docs/samples/StableSdkHostSample/`** (see **`docs/SdkIntegrationGuide.md`**) |
 | **NuGet client** | **`Ashlar.Client`** / **`Ashlar.Sdk`** | Package version | **`docs/sdk.md`** (client quick start) |
 | **HTTP-only** | Running **`Ashlar.API`** | Base URL + TLS + API key policy | **`curl`** `GET /health`, `GET /api/status` (see **`docs/SelfHostedAgentServer.md`**) |
-| **CLI** | **`Ashlar.CLI`** .NET tool (`PackAsTool`; nuget.org pin is **`ci/published-version`**, currently **0.2.0** — or install from a local feed, see **`docs/AuthoringBricks.md`**) or **GHCR `nexo-cli`** image | Image tag or digest; CLI `--version` / package | **`docs/GettingStarted.md`** (`doctor`, `pipeline`) |
+| **CLI** | **`Ashlar.CLI`** .NET tool (`PackAsTool`; release-commit pin is **`ci/published-version`** = **0.3.0**. nuget.org still lists **0.2.0** until `v0.3.0` is published — or install from a local feed, see **`docs/AuthoringBricks.md`**) or **GHCR `nexo-cli`** image | Image tag or digest; CLI `--version` / package | **`docs/GettingStarted.md`** (`doctor`, `pipeline`) |
 | **Compose / operators** | **`deploy/compose/docker-compose*.yml`** + operator docs | Compose file revision + image digests | **`docs/DEPLOYMENT.md`**, stack-specific guides |
 | **Source / monorepo** | `ProjectReference` into **`src/`** | Git commit / branch | **`docs/IntegratorGuide.md`** (project reference example) |
 | **Mesh / federation (open peers)** | Peer config, local mesh primitives, worker executor | `instances.json`, env vars | **`docs/IntegratorGuide.md`**, **`docs/FriendMeshPrefab.md`**, **`docs/MeshVirtualLab.md`** |
 | **Mesh fleet director (commercial)** | `Ashlar.Commercial.Fleet.Host`, `/api/mesh/*` director APIs | Image tag + API key + peer registration key | **`.docker/Dockerfile.fleet-host`**, **`scripts/commercial-fleet-host-smoke.sh`**, mesh-lab peer-a |
 
-**Publication status:** **0.2.0** is on nuget.org (`ci/published-version`).
-Repo `VERSION` may already read ahead of that pin for an unpublished cut — do not treat the repo file as the public pin. GHCR `nexo-cli:0.2.0` is the operator image. Until the next tag, NuGet rows that name a newer version are proven against **local folder feeds** (`nuget-local-pack-consumer`, `scripts/verify-standalone-brick-authoring.sh`) plus `ProjectReference` into `src/` (`samples/hello-brick/` is the smallest example).
+**Publication status:** **0.2.0** is the newest version on nuget.org. This release commit sets `ci/published-version` and repo `VERSION` to **0.3.0** together; that version is not on the feed until `v0.3.0` is published. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin. GHCR `nexo-cli:0.2.0` is the operator image that exists today; `:0.3.0` is the tag `release.yml` will publish. Until that tag, NuGet rows that name `0.3.0` are proven against **local folder feeds** (`nuget-local-pack-consumer`, `scripts/verify-standalone-brick-authoring.sh`) plus `ProjectReference` into `src/` (`samples/hello-brick/` is the smallest example).
 
 ## Golden reference pins (copy/paste)
 

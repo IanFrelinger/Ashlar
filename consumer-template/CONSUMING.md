@@ -2,11 +2,11 @@
 
 Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host + HTTP client. Copy `nuget.config` and `Directory.Packages.props` from this folder into your solution root.
 
-**Package version:** `0.2.0` — the current nuget.org release (`ci/published-version`). Repo `VERSION` may already read ahead of a release that has not been published; do not treat it as the public pin.
+**Package version:** `0.3.0` — the release-commit pin (`ci/published-version`, equal to repo `VERSION` on this commit). nuget.org still serves `0.2.0` until `v0.3.0` is published. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
 
-**On nuget.org since v0.1.1 (2026-09-01); current pin is v0.2.0 (2026-10-01).** The full `Ashlar.*` graph (including `Ashlar.CLI`, `Ashlar.Authoring`, `Ashlar.Hosting.Bundle`) restores from plain nuget.org — no staging feed needed. The living proof is [github.com/IanFrelinger/ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager), whose CI restores from nuget.org and nothing else. A staging feed (below) remains an option for pre-release testing; inside a checkout, a `ProjectReference` into `src/` (as in `samples/hello-brick/`) needs no feed at all.
+**On nuget.org since v0.1.1 (2026-09-01); newest feed version is v0.2.0 (2026-10-01).** This document's pin is v0.3.0 (release commit 2026-10-18) and will not restore from nuget.org until that tag publishes. The full `Ashlar.*` graph (including `Ashlar.CLI`, `Ashlar.Authoring`, `Ashlar.Hosting.Bundle`) restores from plain nuget.org at the newest published version — no staging feed needed. The living proof is [github.com/IanFrelinger/ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager), whose CI restores from nuget.org and nothing else. A staging feed (below) remains an option for pre-release testing; inside a checkout, a `ProjectReference` into `src/` (as in `samples/hello-brick/`) needs no feed at all.
 
-## Package pins (`0.2.0`)
+## Package pins (`0.3.0`)
 
 | Package | Role |
 |---------|------|
@@ -20,17 +20,17 @@ Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host 
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Ashlar.Brick.Contracts" Version="0.2.0" />
-  <PackageReference Include="Ashlar.Authoring" Version="0.2.0" />
-  <PackageReference Include="Ashlar.Hosting.Bundle" Version="0.2.0" />
-  <PackageReference Include="Ashlar.Sdk" Version="0.2.0" />
-  <PackageReference Include="Ashlar.Client" Version="0.2.0" />
+  <PackageReference Include="Ashlar.Brick.Contracts" Version="0.3.0" />
+  <PackageReference Include="Ashlar.Authoring" Version="0.3.0" />
+  <PackageReference Include="Ashlar.Hosting.Bundle" Version="0.3.0" />
+  <PackageReference Include="Ashlar.Sdk" Version="0.3.0" />
+  <PackageReference Include="Ashlar.Client" Version="0.3.0" />
 </ItemGroup>
 ```
 
 With **central package management**, use `Directory.Packages.props` in this folder instead.
 
-> **Note:** the `0.2.0` graph pins `Microsoft.Extensions.*` at `10.0.12`. If your project explicitly references any `Microsoft.Extensions.*` package below that version, restore fails with `NU1605` (package downgrade) — align your pins to `>= 10.0.12`.
+> **Note:** the `0.3.0` graph pins `Microsoft.Extensions.*` at `10.0.12` (unchanged from `0.2.0`). If your project explicitly references any `Microsoft.Extensions.*` package below that version, restore fails with `NU1605` (package downgrade) — align your pins to `>= 10.0.12`.
 
 ## Target frameworks
 
@@ -42,7 +42,7 @@ refuses nothing. See "Certification: what this template binds, and what it does 
 
 | Your TFM | What the packaged verifier can do, if you call it | What does not, and why |
 |----------|--------------------------------------------------|------------------------|
-| `net8.0`, `net10.0` | Everything is *reachable*: brick authoring and hosting, SDK/client, HMAC **and** Ed25519 signing/verification, `CertificationVerifyOptions.Default` / `.Strict` / pinned verdicts. | — `net8.0` is the **floor for trust**: Ed25519 lives in `CertificationRecordEd25519`, which is compiled only under `NET8_0_OR_GREATER` because `NSec.Cryptography` 25.4.0 ships `net8.0`-family assets only (no `netstandard2.0`). Which options *require* that signature is a per-release fact, not a property of the TFM, **and it changed in `0.2.0`**: on `0.1.2` both presets left `RequireEd25519Signature` false and you had to set it yourself. On the `0.2.0` pin this document gives, **`Default` and `Strict` both set it `true`** along with a `MinimumSchemaVersion` floor, and `Strict` additionally requires a gate-emitted artifact and a certifier identity. Two consequences: a record your 0.1.x deployment produced HMAC-only, or under schema v1, is now **refused** rather than trusted — `Legacy` is the named opt-out and is insecure by design; and requiring a signature is not the same as trusting one, so **pin `TrustedEd25519PublicKeys`** or any valid Ed25519 signature passes, including one an attacker minted. See the certification section below. |
+| `net8.0`, `net10.0` | Everything is *reachable*: brick authoring and hosting, SDK/client, HMAC **and** Ed25519 signing/verification, `CertificationVerifyOptions.Default` / `.Strict` / pinned verdicts. | — `net8.0` is the **floor for trust**: Ed25519 lives in `CertificationRecordEd25519`, which is compiled only under `NET8_0_OR_GREATER` because `NSec.Cryptography` 25.4.0 ships `net8.0`-family assets only (no `netstandard2.0`). Which options *require* that signature is a per-release fact, not a property of the TFM, **and it changed in `0.2.0`**: on `0.1.2` both presets left `RequireEd25519Signature` false and you had to set it yourself. On the `0.3.0` pin this document gives, the same as on `0.2.0`, **`Default` and `Strict` both set it `true`** along with a `MinimumSchemaVersion` floor, and `Strict` additionally requires a gate-emitted artifact and a certifier identity. Two consequences: a record your 0.1.x deployment produced HMAC-only, or under schema v1, is now **refused** rather than trusted — `Legacy` is the named opt-out and is insecure by design; and requiring a signature is not the same as trusting one, so **pin `TrustedEd25519PublicKeys`** or any valid Ed25519 signature passes, including one an attacker minted. See the certification section below. |
 | `net9.0` | Same as `net8.0`. There is no `net9.0` group, so NuGet binds `lib/net8.0`; on the 9.0 runtime that asset loads, mints and verifies (HMAC and Ed25519) and produces canonical signing bytes identical to net8.0/net10.0. Exercised by the advisory `Runtime Portability Gate` (`scripts/portability/net9-probe.sh`), the only 9.0.x runtime pin in CI. | .NET 9 (STS) left Microsoft support in May 2026: it works, it is not recommended. The lane executes `Ashlar.Certification.Contracts`; the other packages bind `lib/net8.0` by the same rule but are not executed on 9.0 in CI. |
 | `netstandard2.0` (.NET Framework, Mono, Unity) | **Floor for authoring and execution.** `Ashlar.Brick.Contracts` (brick and wire types) and `Ashlar.Certification.Contracts` ship a `netstandard2.0` asset. On it the canonical signing bytes are byte-identical to the other targets for every payload the golden corpus pins (measured under Mono 6.12 by `scripts/ns20-canonical-bytes-probe.sh`) — including for doubles, which the payload writes in one chosen form (17 significant digits on the invariant culture, both zeros as `0`, NaN and the infinities refused) rather than delegating to the formatter this asset happens to ship; that form fixes the width on every target but not the rounding of an exact tie at the 17th significant digit, which Mono 6.12 breaks away from zero where net8.0/net10.0 break it to even — and HMAC signing/verification is available (`CertificationRecordSigning`, which carries its own constant-time compare for pre-.NET 5 targets). | No Ed25519, so `Default` and `Strict` never return trusted on this asset: they refuse with an `ed25519-…` failure code (`ed25519-verification-unavailable` today) rather than skip the check; only options that neither require Ed25519 nor pin keys — `Legacy` (HMAC-only, insecure by design) is the named one — can trust a record. No hosting: `Ashlar.Authoring` (`AddAshlarBrick<T>()`), `Ashlar.Hosting.Bundle` (`AddAshlar()`), `Ashlar.Sdk` and `Ashlar.Client` are `net8.0;net10.0` only. The asset uses `required` and `init` members, so the consumer compiles the same polyfills the package does — see the consumer `scripts/ns20-canonical-bytes-probe.sh` writes. |
 | `net6.0`, `net7.0` | Restore of the two published contract packages (`Ashlar.Brick.Contracts`, `Ashlar.Certification.Contracts`) succeeds — and that is the trap. | **Cliff.** With no `net6.0`/`net7.0` group, NuGet silently takes the nearest compatible asset, `lib/netstandard2.0` (measured: a `net7.0` consumer of the packed `Ashlar.Certification.Contracts` resolves `lib/netstandard2.0`; restore succeeds with only `NETSDK1138`, the SDK's end-of-support warning, and the Ed25519 types are simply absent from the bound asset — `CS0103` if referenced directly, `ed25519-verification-unavailable` through the verifier). You get the `netstandard2.0` row on a modern .NET runtime, with nothing but that warning to say so: `Default`/`Strict` verification returns `ed25519-verification-unavailable`. `Ashlar.Authoring`, `Ashlar.Hosting.Bundle`, `Ashlar.Sdk` and `Ashlar.Client` have no compatible asset at all and fail restore with `NU1202`. Target `net8.0` or later. |
