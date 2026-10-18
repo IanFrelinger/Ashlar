@@ -202,6 +202,43 @@ public sealed class ExperimentalSecurityApiConventionTests
     }
 
     [Fact]
+    public void Every_unshipped_line_is_a_header_or_an_experimental_surface_symbol()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var files = Directory.GetFiles(Path.Combine(root, "src"), "PublicAPI.Unshipped.txt", SearchOption.AllDirectories);
+        files.Length.Should().Be(6,
+            "the stable tier plus Ashlar.Abstractions are the only projects with PublicAPI files; a new file is a promotion review, not a silent skip");
+
+        var leftovers = new List<string>();
+        var surface = 0;
+        foreach (var file in files.OrderBy(f => f, StringComparer.Ordinal))
+        {
+            foreach (var line in File.ReadAllLines(file))
+            {
+                var text = line.Trim();
+                if (text.Length == 0 || text.StartsWith('#'))
+                    continue;
+                if (SurfaceSymbol(line) is not null)
+                {
+                    surface++;
+                    continue;
+                }
+
+                leftovers.Add($"{Path.GetRelativePath(root, file)}: {text}");
+            }
+        }
+
+        surface.Should().BeGreaterThanOrEqualTo(SurfaceLinesFloor,
+            "{0} experimental surface lines in Unshipped; below the stated floor of {1} the walk is broken",
+            surface, SurfaceLinesFloor);
+        leftovers.Should().BeEmpty(
+            "runbook step 7 moves every non-experimental PublicAPI.Unshipped.txt line into Shipped.txt. "
+            + "[Experimental] symbols stay unshipped (owner decision 2026-10-13). "
+            + "{0} line(s) are neither a header nor that surface:\n{1}",
+            leftovers.Count, string.Join("\n", leftovers));
+    }
+
+    [Fact]
     public void No_public_type_outside_the_surface_carries_ASHLAREXP002()
     {
         var outside = Abstractions.GetExportedTypes().Where(t => !InSurface(t)).ToList();
