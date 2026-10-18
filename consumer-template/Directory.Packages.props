@@ -2,8 +2,8 @@
   <!-- Copy into your solution root as Directory.Packages.props (central package management). -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- Must match a published Ashlar release (repo root VERSION when consuming from your fork). -->
-    <AshlarConsumerPackageVersion>0.2.0</AshlarConsumerPackageVersion>
+    <!-- Must match ci/published-version. 0.3.0 is the release-commit pin; nuget.org still lists 0.2.0 until v0.3.0 publishes. -->
+    <AshlarConsumerPackageVersion>0.3.0</AshlarConsumerPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Ashlar.Brick.Contracts" Version="$(AshlarConsumerPackageVersion)" />

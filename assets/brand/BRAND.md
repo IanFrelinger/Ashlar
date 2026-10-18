@@ -29,7 +29,7 @@ Type: Baloo 2 ExtraBold (wordmark). Embedded as subsets inside the SVGs — no f
 ## GHCR Image Names
 
 **Note:** The published GHCR container images (`nexo-cli`, `nexo-api`) retain their original names until the next republish. This is intentional to avoid breaking existing deployments. When referencing images:
-- Current: `ghcr.io/ianfrelinger/nexo-cli:0.2.0`
+- Release-commit pin: `ghcr.io/ianfrelinger/nexo-cli:0.3.0` (the tag appears when `v0.3.0` publishes; `deploy/node.yml` still pins the `0.2.0` digest until the post-release re-pin)
 - Future: `ghcr.io/ianfrelinger/ashlar-cli:X.Y.Z` (post-republish)
 
 See `docs/DistributionModels.md` for image usage and pinning guidance.

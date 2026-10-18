@@ -17,6 +17,21 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Changed — release-commit pin is 0.3.0
+
+- `VERSION`, `ci/published-version` and `consumer-template/Directory.Packages.props`
+  (`AshlarConsumerPackageVersion`) move to `0.3.0` together. Docs that name the current pin
+  follow that pin. nuget.org and GHCR still serve `0.2.0` until `v0.3.0` is published; this
+  change does not tag and does not add a ReleaseSignOff row.
+- Certification trust behaviour of the pin is unchanged from `0.2.0`: `CertificationVerifyOptions.Default`
+  and `.Strict` both set `RequireEd25519Signature` and a `MinimumSchemaVersion` floor, and `Strict`
+  still requires a gate-emitted artifact and a certifier identity (`consumer-template/CONSUMING.md`).
+- `[Experimental]` lines stay in `PublicAPI.Unshipped.txt`. The promotion of any non-experimental
+  unshipped lines is a later slice of this release commit; this slice does not move API files.
+- The `[Unreleased]` fold into `[0.3.0]` is a later slice. AirGapped and SecureWorkstation still
+  enforce by default, SecureWorkstation's `ASHLAR_EGRESS_MODE=report` break-glass is unchanged, and
+  AirGapped still ignores that override (see "default egress enforcement" below).
+
 ### Fixed — D28 windowing for five unwindowed 7307 refusal Warnings (#805)
 
 - `MeshAutoPullService`, `MeshDiscoveryService`, IDE model discovery (`IdeEndpoints`),

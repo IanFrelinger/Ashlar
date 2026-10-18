@@ -28,7 +28,7 @@ Use the host surface when embedding Ashlar into your own service. Use the client
 ## Breaking-change policy
 
 - Stable SDK APIs follow semantic versioning for package changes; the full policy, the packages it covers and the mechanism that enforces it (`PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt` under `Microsoft.CodeAnalysis.PublicApiAnalyzers`, warnings-as-errors) are in `docs/SdkCompatibilityPolicy.md`.
-- `v0.1.x`: no breaking changes to stable surfaces within `0.1.x`; breaking changes only in `0.(x+1).0` after an `[Obsolete]` deprecation in the prior minor. From `1.0.0`: only in major version bumps.
+- Current minor line `0.3.x` (release commit for `0.3.0`; the tag is not cut here): no breaking changes to stable surfaces within that line; breaking changes only in `0.(x+1).0` after an `[Obsolete]` deprecation in the prior minor. The launch promise was the same rule within `0.1.x`. From `1.0.0`: only in major version bumps. Full statement: `docs/SdkCompatibilityPolicy.md`.
 - Experimental APIs may change in any release; using them is a compile-time opt-in, one per diagnostic id. `ASHLAREXP001` marks the autonomy loop. `ASHLAREXP002` marks the security labels, the egress guard and the resolved deployment profile in `Ashlar.Abstractions` (`Ashlar.Abstractions.Security`, `Ashlar.Abstractions.Security.Egress` and `AshlarResolvedDeploymentProfileOptions`). Avoid hard dependencies unless you pin package versions. The ids, their surfaces and how to opt in: `docs/SdkCompatibilityPolicy.md`, "Experimental".
 - The HTTP routes the client SDK calls have their own policy: `docs/api/versioning.md` (unversioned in `v0.x`, `/api/v1` at `1.0`, one-minor deprecation window, **Breaking** entries in `CHANGELOG.md`).
 

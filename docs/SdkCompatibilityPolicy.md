@@ -8,7 +8,7 @@ The HTTP API has its own, separate policy: [`docs/api/versioning.md`](api/versio
 
 Ashlar launches as **v0.1.0 = "production-usable core, experimental autonomy"** (decision D5; owner to confirm). Concretely:
 
-- **Stable tier: no breaking changes within `0.1.x`.** A breaking change to a stable-tier public API ships only in the next minor (`0.(x+1).0`), and only after the old shape carried an `[Obsolete]` deprecation in the prior minor. Additive changes (new types, new optional parameters, new overloads) may ship in any `0.1.x`.
+- **Stable tier: no breaking changes within the current minor line.** From the `0.3.0` release commit that line is `0.3.x`. A breaking change to a stable-tier public API ships only in the next minor (`0.(x+1).0`), and only after the old shape carried an `[Obsolete]` deprecation in the prior minor. Additive changes (new types, new optional parameters, new overloads) may ship in any patch of the current minor. The launch promise was no breaking changes within `0.1.x` (through `0.1.2`). Breaks after that line are the notes under `[0.2.0]`.
 - **Experimental tier may change at any time**, including in a patch release. Its use is a compile-time opt-in, one per diagnostic id (see [ASHLAREXP001](#ashlarexp001) and [ASHLAREXP002](#ashlarexp002)).
 - **Internal tier carries no promise.**
 
