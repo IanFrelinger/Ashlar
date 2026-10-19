@@ -25,8 +25,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   Full, Server, Edge and System stay in report mode unless opted into enforcement.
   The behaviour, including the host-registered `IEgressGuard` caveat on SecureWorkstation,
   is under "default egress enforcement" below.
-- SecureWorkstation's break-glass is `ASHLAR_EGRESS_MODE=report`. It is read once at startup
-  and logged at Warning.
+- SecureWorkstation's break-glass is `ASHLAR_EGRESS_MODE=report`. It is read once at startup,
+  logged at Warning, and stamped on every decision (`ModeBasis` `break-glass`).
 - AirGapped ignores `ASHLAR_EGRESS_MODE` and every other lowering override.
 
 ### Changed — release-commit pin is 0.3.0
@@ -54,6 +54,22 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   add a ReleaseSignOff row.
 - cert-gate: `ExperimentalSecurityApiConventionTests.Every_unshipped_line_is_a_header_or_an_experimental_surface_symbol`
   fails if a later unshipped line is neither a header nor that surface.
+
+### Changed — Claude controller launches pass `--safe-mode` (#790, #825)
+
+- Every Claude launch from `tools/autonomy-controller` passes `--safe-mode`. The probe
+  `probe-claude-isolation-report.json` (Claude Code 2.1.263) showed that flag keeps operator hooks,
+  user skills, agents, slash commands and auto-memory out of fresh and resumed launches without
+  dropping OAuth. `--bare` is not passed: it drops OAuth and would break the claude.ai funding route.
+  Bundled skills and agents remain.
+
+### Added — `scripts/ctx.py` for bounded repository queries (#814)
+
+- `scripts/ctx.py` answers one orientation question per call: where a type or member is defined, its
+  project and smallest solution filter, production and test references, a long document's outline or
+  one section, decisions-log rows, and where a config variable is read. The C# index is cached under
+  the git directory. `.agents/skills/ashlar-ctx/SKILL.md` and `CLAUDE.md` point at it.
+  `tests/scripts/ctx.test.sh` runs in `scripts/ci/run-repo-gates.sh`.
 
 ### Fixed — D28 windowing for five unwindowed 7307 refusal Warnings (#805)
 
@@ -103,7 +119,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 - The CLI exits 77 for a propagated egress refusal and for a local refused decision a command catches or degrades. The invocation retains the refusal across its async work, prints its redacted message, and applies the same rule to direct process-exit handlers. Concurrent and later invocations do not inherit it. This includes optional refused probes; scripts that treated those commands as success must handle 77.
 - Docker `run --network=none` with any volume or mount option remains a process export, preventing a socket, pipe or host-root mount from being treated as a Host sandbox. Named volumes are conservatively refused too; current production sandbox arguments need none.
-- Operator initiator assignments are pinned to the three export files by a Roslyn certification convention. `docker exec` remains a documented fail-closed limitation, per the owner's 2026-10-14 answer. Remote refusals already erased into untyped result data remain tracked in #802/#803.
+- Operator initiator assignments are pinned to the three export files by a Roslyn certification convention. `docker exec` remains a documented fail-closed limitation, per the owner's 2026-10-14 answer. Remote refusals that had been erased into untyped result data are fixed in this version (cards #802 and #803).
 
 ### Fixed — gRPC and Fleet listeners respect restricted profiles (#766)
 
@@ -453,7 +469,7 @@ has tests observed red on the unfixed code and hand mutations killed.
 
 - AirGapped and SecureWorkstation enforce by default. Full, Server, Edge and System remain report mode unless
   opted into enforcement. SecureWorkstation's environment-only report break-glass (`ASHLAR_EGRESS_MODE=report`) is
-  read once and logged at Warning; a host that registers its own `IEgressGuard` with another profile or `report`
+  read once, logged at Warning, and stamped on every decision (`ModeBasis` `break-glass`); a host that registers its own `IEgressGuard` with another profile or `report`
   mode still lowers SecureWorkstation's HTTP and MEAI routes, without the latch or the Warning. AirGapped ignores
   lowering overrides and host guard modes cannot bypass its process floor.
 - A refused factory-client send reaches the host as `EgressRefusedException`, which the host's outer generic catch
@@ -752,9 +768,10 @@ has tests observed red on the unfixed code and hand mutations killed.
     Bare `::1` was refused by URI parsing in PR 4.10; PR 4.10b adds support.
     PR 4.10 allowed an empty configured URL list. PR 4.10b also checks port-only configuration and verifies
     actual bound addresses; missing or empty published addresses fail closed on AG/SW. Mesh serve reads `ASHLAR_MESH_SERVE_BIND`;
-    unset on these profiles is any-interface and fails boot rather than being rewritten. The gRPC server host and
-    `Ashlar.Commercial.Fleet.Host` are outside this rule: not yet wired; decided to wire before 0.3.0 (SPEC-007
-    decisions log, 2026-10-13).
+    unset on these profiles is any-interface and fails boot rather than being rewritten. When PR 4.10
+    merged, the gRPC server host and `Ashlar.Commercial.Fleet.Host` were outside this rule and not yet
+    wired. Both are wired in this version (#766, #811), before the 0.3.0 tag (SPEC-007 decisions log,
+    2026-10-13).
 
 - **Egress records that could read Host for a remote peer now name where the data goes (SPEC-007 PR 4.1).**
   Still report-only: the guard refuses nothing. The records below change, and one HTTP client changes
