@@ -22,7 +22,7 @@ Use the host surface when embedding Ashlar into your own service. Use the client
 
 ### Internal (not for external contracts)
 
-- Anything under `Ashlar.Infrastructure.*`
+- Types under `Ashlar.Infrastructure.*` other than the stable interfaces listed above
 - Runtime execution internals and orchestration internals not exposed through the stable interfaces above
 
 ## Breaking-change policy
