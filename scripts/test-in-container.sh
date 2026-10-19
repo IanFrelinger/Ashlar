@@ -49,6 +49,7 @@
 #   --framework <tfm>   Default: net10.0.
 #   --filter <expr>     xUnit filter. Default: the cert-gate namespace filter.
 #   -- <command...>     Run this in /repo instead of `dotnet test`.
+#                       One shell string. Quotes in it are preserved.
 #
 # ASHLAR_DEVTEST_IMAGE overrides the image tag (default ashlar-devtest:local).
 set -euo pipefail
@@ -70,7 +71,7 @@ while [[ $# -gt 0 ]]; do
     --framework) FRAMEWORK="${2:?--framework needs a tfm}"; shift 2 ;;
     --filter) FILTER="${2:?--filter needs an expression}"; shift 2 ;;
     --) shift; CMD="$*"; break ;;
-    -h|--help) sed -n '2,55p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,56p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "test-in-container: unknown argument '$1' (try --help)" >&2; exit 2 ;;
   esac
 done
@@ -139,6 +140,12 @@ fi
 echo "== container run: ${SHA}${DIRTY_LABEL} =="
 echo "== ${CMD}"
 
+# The command is a positional parameter of the container shell, not text pasted into
+# `bash -lc "..."`. A double quote in that pasted string is reparsed (by the container
+# shell, and by Git Bash when it builds a Windows command line for docker.exe) and the
+# run dies with `bash: -c: option requires an argument` (exit 2). `$1` is the commit,
+# `$2` is the optional dirty patch, `$3` is the command.
+#
 # MSYS_NO_PATHCONV stops Git Bash rewriting the -v arguments into Windows paths mid-flight.
 MSYS_NO_PATHCONV=1 docker run --rm --user root \
   -v "${REPO_MOUNT}:/src-mirror:ro" \
@@ -147,4 +154,5 @@ MSYS_NO_PATHCONV=1 docker run --rm --user root \
   -e DOTNET_NOLOGO=1 \
   -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
   "${IMAGE}" \
-  bash -lc "set -e; git config --global safe.directory '*'; git clone -q /src-mirror /repo; cd /repo; git checkout -q ${SHA}; ${INNER_PATCH} ${CMD}"
+  bash -lc 'set -e; git config --global safe.directory "*"; git clone -q /src-mirror /repo; cd /repo; git checkout -q "$1"; eval "$2"; eval "$3"' \
+  bash "${SHA}" "${INNER_PATCH}" "${CMD}"
