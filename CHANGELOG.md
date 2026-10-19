@@ -17,6 +17,18 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-19
+
+### Changed — default egress is what 0.3.0 changes by default (runbook step 9)
+
+- AirGapped and SecureWorkstation refuse disallowed egress by default (SPEC-007 4.11, #746).
+  Full, Server, Edge and System stay in report mode unless opted into enforcement.
+  The behaviour, including the host-registered `IEgressGuard` caveat on SecureWorkstation,
+  is under "default egress enforcement" below.
+- SecureWorkstation's break-glass is `ASHLAR_EGRESS_MODE=report`. It is read once at startup
+  and logged at Warning.
+- AirGapped ignores `ASHLAR_EGRESS_MODE` and every other lowering override.
+
 ### Changed — release-commit pin is 0.3.0
 
 - `VERSION`, `ci/published-version` and `consumer-template/Directory.Packages.props`
@@ -27,10 +39,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   and `.Strict` both set `RequireEd25519Signature` and a `MinimumSchemaVersion` floor, and `Strict`
   still requires a gate-emitted artifact and a certifier identity (`consumer-template/CONSUMING.md`).
 - `[Experimental]` lines stay in `PublicAPI.Unshipped.txt`. The pin slice did not move API files.
-  The promotion review is the next `[Unreleased]` section: zero non-experimental lines moved.
-- The `[Unreleased]` fold into `[0.3.0]` is a later slice. AirGapped and SecureWorkstation still
-  enforce by default, SecureWorkstation's `ASHLAR_EGRESS_MODE=report` break-glass is unchanged, and
-  AirGapped still ignores that override (see "default egress enforcement" below).
+  The promotion review is the next section: zero non-experimental lines moved.
+- AirGapped and SecureWorkstation enforce by default. SecureWorkstation's
+  `ASHLAR_EGRESS_MODE=report` break-glass is unchanged by the version pin, and
+  AirGapped ignores that override (see "default egress enforcement" below).
 
 ### Changed — PublicAPI promotion review for 0.3.0 (runbook step 7)
 
@@ -38,8 +50,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   `Ashlar.Abstractions` has 160 lines, all symbols of the `ASHLAREXP002` surface. Those stay in
   `Unshipped.txt` (owner decision 2026-10-13). `Ashlar.Sdk`, `Ashlar.Client`, `Ashlar.Brick.Contracts`,
   `Ashlar.Authoring` and `Ashlar.Hosting.Bundle` have only the `#nullable enable` header. No
-  non-experimental line moved into `PublicAPI.Shipped.txt`. This is not the `[Unreleased]` fold,
-  not a tag, and not a ReleaseSignOff row.
+  non-experimental line moved into `PublicAPI.Shipped.txt`. The review did not tag and did not
+  add a ReleaseSignOff row.
 - cert-gate: `ExperimentalSecurityApiConventionTests.Every_unshipped_line_is_a_header_or_an_experimental_surface_symbol`
   fails if a later unshipped line is neither a header nor that surface.
 
@@ -449,7 +461,7 @@ has tests observed red on the unfixed code and hand mutations killed.
   the guard handler sits outside them. A refused redirect hop is decided by the follower directly above the primary,
   so its `EgressRefusedException` passes back out through those handlers; it derives from `Exception`, not
   `HttpRequestException`.
-- The other SPEC-007 entries under `[Unreleased]` describe each PR as it merged: where they say report-only,
+- The other SPEC-007 entries in this version describe each PR as it merged: where they say report-only,
   report-only by default held until this change; opt-in refusal arrived in 4.7 (#742).
 - Hosts can configure named factory client exceptions through `EgressGuardOptions.ReportOnlyClients`, including
   after `AddAshlar`. Decisions record `host-opt-out`; every name logs at startup. Ashlar-owned names fail boot,
