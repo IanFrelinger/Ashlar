@@ -57,7 +57,7 @@ Specific cards listed under [Precedence](#precedence-specific-cards-take-priorit
 | [#760](https://github.com/IanFrelinger/Ashlar/issues/760) | Duplicate MEAI refusal audit records | Outside this aggregate; cite #760 |
 | [#759](https://github.com/IanFrelinger/Ashlar/issues/759) | `FailurePolicy.Continue` and refused brick | Outside this aggregate; cite #759 |
 | [#802](https://github.com/IanFrelinger/Ashlar/issues/802) / [#803](https://github.com/IanFrelinger/Ashlar/issues/803) | Workflow refusal reporting | Outside this aggregate; cite those cards |
-| [#805](https://github.com/IanFrelinger/Ashlar/issues/805) | Six unwindowed 7307 Warning sites | Outside this aggregate; cite #805 |
+| [#805](https://github.com/IanFrelinger/Ashlar/issues/805) | D28 Warning windowing: five repeated sites repaired in [#827](https://github.com/IanFrelinger/Ashlar/pull/827); OTLP startup is one-shot | Outside this aggregate; implementation merged as `07293a42ad5e044f97ea5d12efa8ff1d3e5ebb54` |
 | [#809](https://github.com/IanFrelinger/Ashlar/issues/809) | Five remaining 4.8b reporting / lifecycle limits | Outside this aggregate; cite #809 |
 | [#764](https://github.com/IanFrelinger/Ashlar/issues/764) | All-current-manifest mutation evidence campaign | Evidence campaign, not resolution of behaviours catalogued here |
 
