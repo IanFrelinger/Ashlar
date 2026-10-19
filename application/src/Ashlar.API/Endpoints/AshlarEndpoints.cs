@@ -1481,7 +1481,8 @@ public static class AshlarEndpoints
             return summary;
 
         var safeToForward = IsDevelopment()
-            || string.Equals(last.IssueType, BarrierContextMissingIssueType, StringComparison.Ordinal);
+            || string.Equals(last.IssueType, BarrierContextMissingIssueType, StringComparison.Ordinal)
+            || string.Equals(last.IssueType, NoWorkPlaceholderIssueType, StringComparison.Ordinal);
         return safeToForward
             ? $"{summary}: {last.Description}"
             : $"{summary}: see escalations ({last.IssueType})";
@@ -1492,6 +1493,12 @@ public static class AshlarEndpoints
     /// and so cannot be used as a constant here.
     /// </summary>
     private const string BarrierContextMissingIssueType = "BARRIER_CONTEXT_MISSING";
+
+    /// <summary>
+    /// Mirrors the orchestrator's no-work escalation. The description is static (no exception
+    /// text), so it is safe to put on the receipt outside Development.
+    /// </summary>
+    private const string NoWorkPlaceholderIssueType = "NO_WORK";
 
     // The escalation issue type is the closest thing to a canonical code the orchestrator
     // emits (BarrierContextMissingException escalates under its own ErrorCode).

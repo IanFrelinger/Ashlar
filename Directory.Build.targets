@@ -41,6 +41,20 @@
     <NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>
   </PropertyGroup>
 
+  <!-- Directory.Build.props adds versionless System.Text.Encodings.Web and
+       System.Text.RegularExpressions references so central package management can lift the
+       vulnerable transitives. That file is imported before the project body, so it cannot see a
+       project that sets ManagePackageVersionsCentrally to false. Leaving the versionless items
+       in place is NU1015. Metadata conditions are illegal outside a target (MSB4190/MSB4191),
+       so the drop runs here, before NuGet collects references. A project that pins its own
+       Version keeps that pin. -->
+  <Target Name="AshlarDropVersionlessAuditOverrides" BeforeTargets="CollectPackageReferences">
+    <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'false'">
+      <PackageReference Remove="System.Text.Encodings.Web" Condition="'%(PackageReference.Version)' == ''" />
+      <PackageReference Remove="System.Text.RegularExpressions" Condition="'%(PackageReference.Version)' == ''" />
+    </ItemGroup>
+  </Target>
+
   <!-- NetStandard compatibility shims (Unity 2019+): required members, init-only, etc.
        Evaluated statically (not inside a <Target>) so IDE/language-server design-time builds
        also see the polyfills; a Target-added <Compile> item is invisible to design-time builds,

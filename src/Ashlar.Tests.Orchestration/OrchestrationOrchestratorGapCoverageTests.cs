@@ -559,6 +559,60 @@ public class OrchestrationOrchestratorGapCoverageTests
     }
 
     [Fact]
+    public async Task OrchestrateAsync_reports_failure_when_every_output_is_a_no_work_placeholder()
+    {
+        var transportMock = new Mock<IAgentTransport>();
+        transportMock
+            .Setup(t => t.SendAsync(It.IsAny<AgentInvocationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AgentResult(
+                Success: true,
+                Output: new { Placeholder = true, Output = "No specialized agent performed work" }));
+
+        var decomposition = new DecompositionResult
+        {
+            OriginalRequest = "what is 2 + 2",
+            Agents = [new AgentSpawnSpec { AgentId = "fallback-1", Domain = "Gameplay", Goal = "Handle request" }],
+        };
+
+        var sut = CreateOrchestrator(CreateArchitectMock(decomposition).Object, transportMock.Object);
+        var result = await sut.OrchestrateAsync("what is 2 + 2");
+
+        result.Success.Should().BeFalse();
+        result.IntegratedOutput!.AgentOutputs.Should().ContainKey("fallback-1");
+        var escalation = result.Escalations.Should().ContainSingle().Subject;
+        escalation.IssueType.Should().Be("NO_WORK");
+        escalation.Description.Should().Be("No specialized agent performed work; the result is a placeholder.");
+    }
+
+    [Fact]
+    public async Task OrchestrateAsync_stays_successful_when_a_real_output_sits_beside_a_placeholder()
+    {
+        var transportMock = new Mock<IAgentTransport>();
+        transportMock
+            .Setup(t => t.SendAsync(It.Is<AgentInvocationRequest>(r => r.AgentName == "fallback-1"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AgentResult(Success: true, Output: new { Placeholder = true, Output = "no work" }));
+        transportMock
+            .Setup(t => t.SendAsync(It.Is<AgentInvocationRequest>(r => r.AgentName == "real-1"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AgentResult(Success: true, Output: new { ok = true }));
+
+        var decomposition = new DecompositionResult
+        {
+            OriginalRequest = "mixed",
+            Agents =
+            [
+                new AgentSpawnSpec { AgentId = "fallback-1", Domain = "Gameplay", Goal = "Handle request" },
+                new AgentSpawnSpec { AgentId = "real-1", Domain = "Security", Goal = "Check" },
+            ],
+        };
+
+        var sut = CreateOrchestrator(CreateArchitectMock(decomposition).Object, transportMock.Object);
+        var result = await sut.OrchestrateAsync("mixed");
+
+        result.Success.Should().BeTrue();
+        result.Escalations.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task OrchestrateAsync_defaults_to_floor_barrier_when_context_missing_and_not_required()
     {
         // The shipped Ashlar.API default (RequireExplicitBarrier=false): no context -> floor level,

@@ -490,12 +490,27 @@ public sealed class Orchestrator
                 : null;
             var integratedOutput = _outputIntegrator.Integrate(decomposition.Agents, outputs);
 
+            // GenericAgent's transport result stays Success (the call completed). A run whose every
+            // output is that no-work placeholder did not do the task; reporting it as success is
+            // the silent green receipt. Escalate under a static code so the API summary can say
+            // why outside Development, the same way a missing barrier does.
+            var noWork = NoWorkPlaceholder.Only(outputs.Values);
+            if (noWork)
+            {
+                _escalationManager.EscalateIssue(
+                    "NO_WORK",
+                    "No specialized agent performed work; the result is a placeholder.",
+                    EscalationSeverity.High);
+            }
+
+            var success = integratedOutput.IsValid && !noWork;
+
             // Step 6: Shutdown all agents
             await _lifecycleManager.ShutdownAllAsync(cancellationToken);
 
             if (rootSpanId != null)
             {
-                _metrics?.EndSpan(rootSpanId, integratedOutput.IsValid, new Dictionary<string, string>
+                _metrics?.EndSpan(rootSpanId, success, new Dictionary<string, string>
                 {
                     ["agentCount"] = decomposition.Agents.Count.ToString(),
                     ["conflictCount"] = conflicts.Count.ToString(),
@@ -505,7 +520,7 @@ public sealed class Orchestrator
 
             return new OrchestrationResult
             {
-                Success = integratedOutput.IsValid,
+                Success = success,
                 IntegratedOutput = integratedOutput,
                 Decomposition = decomposition,
                 Conflicts = conflicts,
