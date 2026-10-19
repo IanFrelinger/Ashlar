@@ -143,3 +143,6 @@ meant remapping dependency edges, execution order, outputs and the integrator co
 
 Fixing any one of the three alone looks like success to a check that counts HTTP 200s. Tier 10 asks
 whether the **work reached the record**, which is why it kept failing until all three were gone.
+The mock fallback still performs no work, so a finished run is `success: false` with the no-work
+summary. Tier 10 counts those receipts. It still fails a body that says `cannot execute from state
+Executing`, which is the shared-agent crash and not the placeholder.

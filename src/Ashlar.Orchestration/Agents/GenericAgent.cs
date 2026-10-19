@@ -68,3 +68,35 @@ public sealed class GenericAgent : BaseAgent
     }
 }
 
+/// <summary>
+/// A no-work fallback is still a successful agent call (the transport delivered it). The
+/// orchestration result is a different flag: when every output is one of these, the run
+/// performed no work and must not report success.
+/// </summary>
+internal static class NoWorkPlaceholder
+{
+    internal static bool Is(object? output)
+    {
+        if (output is null)
+            return false;
+
+        var property = output.GetType().GetProperty("Placeholder");
+        return property is { CanRead: true, PropertyType: var type }
+            && type == typeof(bool)
+            && property.GetValue(output) is true;
+    }
+
+    internal static bool Only(IEnumerable<object> outputs)
+    {
+        var any = false;
+        foreach (var output in outputs)
+        {
+            any = true;
+            if (!Is(output))
+                return false;
+        }
+
+        return any;
+    }
+}
+

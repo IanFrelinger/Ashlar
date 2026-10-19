@@ -226,10 +226,17 @@ R=$(curl -s --max-time 300 "$API/api/copilot/task" -H "Content-Type: application
 TASK_S=$(( $(now) - t0 ))
 echo "$R" >"$OUT/task.json"
 TASK_ID=$(printf '%s' "$R" | grep -o '"taskId":"[^"]*"' | head -1 | cut -d'"' -f4)
-if [ -n "$TASK_ID" ] && printf '%s' "$R" | grep -q '"success":true'; then
-  result 1 task-submit PASS "${TASK_S}s, taskId=$TASK_ID, success=true"
+# The mock provider's reply is not decomposition JSON, so the run is the Gameplay
+# fallback and GenericAgent performs no work. success true here was the silent
+# green receipt. The receipt is a task id, success false, the static no-work
+# summary, and a Failure audit disposition.
+if [ -n "$TASK_ID" ] \
+   && printf '%s' "$R" | grep -q '"success":false' \
+   && printf '%s' "$R" | grep -q 'No specialized agent performed work' \
+   && printf '%s' "$R" | grep -q '"disposition":"Failure"'; then
+  result 1 task-submit PASS "${TASK_S}s, taskId=$TASK_ID, success=false (no-work placeholder)"
 else
-  result 1 task-submit FAIL "${TASK_S}s, no taskId/success in: $(printf '%s' "$R" | head -c 300)"
+  result 1 task-submit FAIL "${TASK_S}s, expected taskId plus success false and the no-work summary, got: $(printf '%s' "$R" | head -c 300)"
 fi
 
 say "1.4 first-task audit is immediately visible (empty-first-audit bug fixed 2026-09-20)"

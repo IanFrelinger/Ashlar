@@ -66,7 +66,16 @@ for i in $(seq 1 "$CONCURRENCY"); do
     body=$(curl -s --max-time 120 "$API/api/copilot/task" -H 'Content-Type: application/json' \
              -d "{\"task\": \"uat concurrent probe $i\", \"auditCount\": 1}")
     printf '%s\n' "$body" | grep -o '"taskId":"[^"]*"' | head -1 | cut -d'"' -f4 >>"$OUT/ids.txt"
-    printf '%s\n' "$body" | grep -oq '"success":true' && echo ok >>"$OUT/codes.txt" || echo bad >>"$OUT/codes.txt"
+    # success true is the silent placeholder receipt. A completed run reports the
+    # no-work placeholder. A shared-agent crash does not: it says the container
+    # cannot execute from state Executing, and it has no placeholder summary.
+    if printf '%s\n' "$body" | grep -q '"success":false' \
+       && printf '%s\n' "$body" | grep -q 'No specialized agent performed work' \
+       && ! printf '%s\n' "$body" | grep -q 'cannot execute from state Executing'; then
+      echo ok >>"$OUT/codes.txt"
+    else
+      echo bad >>"$OUT/codes.txt"
+    fi
   ) &
   SUBMIT_PIDS="$SUBMIT_PIDS $!"
 done
@@ -87,16 +96,20 @@ else
   result 10 concurrent-submissions-all-answered FAIL "only $SUBMITTED/$CONCURRENCY returned a taskId"
 fi
 
-say "10.1b every one of those orchestrations must succeed, not just be recorded"
+say "10.1b every one of those orchestrations must finish, not just be recorded"
 # This gates now. It did not always: concurrent runs registered different containers under the same
 # decomposition id (the parser's fallback emits "fallback-1" every time), so a run executed the other
 # run's container and failed with "cannot execute from state Executing", while ShutdownAllAsync tore
 # down both. Roughly half of every burst failed. LifecycleManager now scopes its agent map to the run
-# via BeginRunScope, and 8/8 succeed. A regression here means runs are sharing agents again.
-if [ "$OKS" -eq "$CONCURRENCY" ]; then
-  result 10 concurrent-orchestrations-succeed PASS "$OKS/$CONCURRENCY reported success"
+# via BeginRunScope. The mock fallback still performs no work, so each finished run is success false
+# with the no-work summary. That is not the shared-agent crash. A regression here is that crash, or
+# a body that is not the placeholder receipt.
+if grep -q 'cannot execute from state Executing' "$OUT/api-load.log"; then
+  result 10 concurrent-orchestrations-succeed FAIL "shared-agent regression: cannot execute from state Executing (api-load.log)"
+elif [ "$OKS" -eq "$CONCURRENCY" ]; then
+  result 10 concurrent-orchestrations-succeed PASS "$OKS/$CONCURRENCY finished as the no-work placeholder"
 else
-  result 10 concurrent-orchestrations-succeed FAIL "only $OKS/$CONCURRENCY reported success -- concurrent runs may be sharing agents again (look for 'cannot execute from state Executing' in api-load.log)"
+  result 10 concurrent-orchestrations-succeed FAIL "only $OKS/$CONCURRENCY were no-work placeholder receipts -- concurrent runs may be sharing agents again (look for 'cannot execute from state Executing' in api-load.log)"
 fi
 
 say "10.2 every id is distinct — no two concurrent tasks share an identity"

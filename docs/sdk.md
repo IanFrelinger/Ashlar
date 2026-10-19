@@ -106,7 +106,7 @@ sdk.RegisterBrick<OWASPScannerBrick>();
 sdk.RegisterBrick<MySecurityBrick>();
 ```
 
-Bricks are resolved via dependency injection when instantiated. Ensure required services (e.g. `IProviderFactory`) are registered.
+Resolve a registered brick with `IBrickRegistry.GetBrick`. `AddAshlarBrick<T>()` adds the type to that registry; it does not register `T` as its own service. Ensure required services (e.g. `IProviderFactory`) are registered.
 
 ## RegisterAgent&lt;T&gt;
 
