@@ -36,7 +36,11 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 /// <c>SecurityExperimental</c>, which is internal and not experimental itself (integrator decision: a public
 /// holder would add a stable line to the API file for two constants no consumer uses). (6) None of the surface's
 /// lines is in <c>PublicAPI.Shipped.txt</c>: the owner decided on 2026-10-13 that <c>[Experimental]</c> lines stay
-/// in <c>PublicAPI.Unshipped.txt</c> across the 0.3.0 tag, so the promotion cannot turn one into a promise.</para>
+/// in <c>PublicAPI.Unshipped.txt</c> across the 0.3.0 tag, so the promotion cannot turn one into a promise.
+/// (7) Every non-header line of the six <c>src/*/PublicAPI.Unshipped.txt</c> files is a symbol of that surface,
+/// and the surface-line count stays at or above 140. A line in one of the other five files is not proved to carry
+/// the attribute; this fact only refuses a non-surface line. A <c>*REMOVED*</c> line fails it too, because none
+/// exist today and a removal marker is a review.</para>
 ///
 /// <para>Where a type-level attribute is impossible - a surface type exposed by a member of a type that is not
 /// experimental - (3) and (4) both fail today rather than accept a member-level one, so the first such member is
@@ -199,6 +203,43 @@ public sealed class ExperimentalSecurityApiConventionTests
             + "(SPEC-007 decisions log, 'Release (public API)'). A symbol promoted to stable loses its attribute "
             + "first, which is a change to this test. Move these back to PublicAPI.Unshipped.txt. {0} found:\n{1}",
             shipped.Count, string.Join("\n", shipped));
+    }
+
+    [Fact]
+    public void Every_unshipped_line_is_a_header_or_an_experimental_surface_symbol()
+    {
+        var root = RepoPathResolver.FindRepoRoot();
+        var files = Directory.GetFiles(Path.Combine(root, "src"), "PublicAPI.Unshipped.txt", SearchOption.AllDirectories);
+        files.Length.Should().Be(6,
+            "the stable tier plus Ashlar.Abstractions are the only projects with PublicAPI files; a new file is a promotion review, not a silent skip");
+
+        var leftovers = new List<string>();
+        var surface = 0;
+        foreach (var file in files.OrderBy(f => f, StringComparer.Ordinal))
+        {
+            foreach (var line in File.ReadAllLines(file))
+            {
+                var text = line.Trim();
+                if (text.Length == 0 || text.StartsWith('#'))
+                    continue;
+                if (SurfaceSymbol(line) is not null)
+                {
+                    surface++;
+                    continue;
+                }
+
+                leftovers.Add($"{Path.GetRelativePath(root, file)}: {text}");
+            }
+        }
+
+        surface.Should().BeGreaterThanOrEqualTo(SurfaceLinesFloor,
+            "{0} experimental surface lines in Unshipped; below the stated floor of {1} the walk is broken",
+            surface, SurfaceLinesFloor);
+        leftovers.Should().BeEmpty(
+            "runbook step 7 moves every non-experimental PublicAPI.Unshipped.txt line into Shipped.txt. "
+            + "[Experimental] symbols stay unshipped (owner decision 2026-10-13). "
+            + "{0} line(s) are neither a header nor that surface:\n{1}",
+            leftovers.Count, string.Join("\n", leftovers));
     }
 
     [Fact]

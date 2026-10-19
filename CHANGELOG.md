@@ -26,11 +26,22 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 - Certification trust behaviour of the pin is unchanged from `0.2.0`: `CertificationVerifyOptions.Default`
   and `.Strict` both set `RequireEd25519Signature` and a `MinimumSchemaVersion` floor, and `Strict`
   still requires a gate-emitted artifact and a certifier identity (`consumer-template/CONSUMING.md`).
-- `[Experimental]` lines stay in `PublicAPI.Unshipped.txt`. The promotion of any non-experimental
-  unshipped lines is a later slice of this release commit; this slice does not move API files.
+- `[Experimental]` lines stay in `PublicAPI.Unshipped.txt`. The pin slice did not move API files.
+  The promotion review is the next `[Unreleased]` section: zero non-experimental lines moved.
 - The `[Unreleased]` fold into `[0.3.0]` is a later slice. AirGapped and SecureWorkstation still
   enforce by default, SecureWorkstation's `ASHLAR_EGRESS_MODE=report` break-glass is unchanged, and
   AirGapped still ignores that override (see "default egress enforcement" below).
+
+### Changed — PublicAPI promotion review for 0.3.0 (runbook step 7)
+
+- Reviewed the six `PublicAPI.Unshipped.txt` files (stable tier plus `Ashlar.Abstractions`).
+  `Ashlar.Abstractions` has 160 lines, all symbols of the `ASHLAREXP002` surface. Those stay in
+  `Unshipped.txt` (owner decision 2026-10-13). `Ashlar.Sdk`, `Ashlar.Client`, `Ashlar.Brick.Contracts`,
+  `Ashlar.Authoring` and `Ashlar.Hosting.Bundle` have only the `#nullable enable` header. No
+  non-experimental line moved into `PublicAPI.Shipped.txt`. This is not the `[Unreleased]` fold,
+  not a tag, and not a ReleaseSignOff row.
+- cert-gate: `ExperimentalSecurityApiConventionTests.Every_unshipped_line_is_a_header_or_an_experimental_surface_symbol`
+  fails if a later unshipped line is neither a header nor that surface.
 
 ### Fixed — D28 windowing for five unwindowed 7307 refusal Warnings (#805)
 
