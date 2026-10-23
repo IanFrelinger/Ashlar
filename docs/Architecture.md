@@ -64,6 +64,12 @@ the original orchestration error. This bounds the caller’s wait; it cannot sto
 that ignores cancellation. Agents must cooperate with shutdown and must not register new agents
 from a shutdown callback.
 
+Resource allocation rejects negative requirements and negative budget maxima. Zero-capacity
+utilization is reported as zero. Preemption uses the remaining deficit in each resource
+dimension and commits a complete victim plan only when it can satisfy the request; a rejected
+request leaves existing reservations intact. Preemption remains reservation bookkeeping,
+not a guarantee that agent code has stopped.
+
 ### Infrastructure
 
 - **ProviderFactory** (`IProviderFactory`): Routes LLM calls to OpenAI, Azure, Ollama, local (ONNX), video (SmolVLM2), or mock/offline/echo (with Polly retries)

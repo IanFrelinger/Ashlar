@@ -35,6 +35,7 @@ public sealed class ResourceAllocator
     /// </summary>
     /// <param name="logger">The logger instance.</param>
     /// <param name="budget">Optional resource budget. If not provided, uses default values (3600s compute, 200k tokens, 16GB memory).</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if a budget maximum is negative.</exception>
     public ResourceAllocator(ILogger<ResourceAllocator> logger, ResourceBudget? budget = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -44,6 +45,8 @@ public sealed class ResourceAllocator
             MaxContextTokens = 200000,
             MaxMemoryMB = 16384
         };
+        if (_budget.MaxComputeSeconds is < 0 || _budget.MaxContextTokens is < 0 || _budget.MaxMemoryMB is < 0)
+            throw new ArgumentOutOfRangeException(nameof(budget), "Resource budget maxima must be nonnegative or null.");
     }
 
     internal IDisposable BeginRunScope()
@@ -94,7 +97,8 @@ public sealed class ResourceAllocator
     /// <summary>
     /// Allocates resources to an agent based on priority.
     /// Higher priority agents get resources first. If resources are insufficient,
-    /// lower priority agents may be preempted.
+    /// lower priority agents may be preempted. Rejected requests preserve existing reservations.
+    /// Negative resource requirements are rejected without changing the allocation ledger.
     /// </summary>
     /// <param name="container">The agent container requesting resources.</param>
     /// <param name="allocation">Output parameter: the resource allocation if successful, null otherwise.</param>
@@ -116,6 +120,8 @@ public sealed class ResourceAllocator
         var requestedContext = requirements?.RequiredContextTokens ?? 0;
         var requestedMemory = requirements?.RequiredMemoryMB ?? 0;
         ArgumentNullException.ThrowIfNull(container.AgentId);
+        if (requestedCompute < 0 || requestedContext < 0 || requestedMemory < 0)
+            return false;
 
         // Check ownership and allocate under the same global lock, including zero-resource requests.
         lock (_allocationLock)
@@ -152,7 +158,10 @@ public sealed class ResourceAllocator
                 requestedMemory > availableMemory)
             {
                 // Try to free resources by preempting lower priority agents
-                var freed = TryPreemptLowerPriority(spec.Priority, requestedCompute, requestedContext, requestedMemory);
+                var freed = TryPreemptLowerPriority(spec.Priority,
+                    Math.Max(0, requestedCompute - availableCompute),
+                    Math.Max(0, requestedContext - availableContext),
+                    Math.Max(0, requestedMemory - availableMemory));
                 if (!freed)
                 {
                     _logger.LogWarning(
@@ -213,31 +222,38 @@ public sealed class ResourceAllocator
         var freedCompute = 0;
         var freedContext = 0;
         var freedMemory = 0;
+        var victims = new List<(RunScope? Scope, string AgentId)>();
 
+        // Plan under the allocation lock. An infeasible request must leave every reservation intact.
         foreach (var entry in lowerPriorityAllocations)
         {
             if (freedCompute >= neededCompute &&
                 freedContext >= neededContext &&
                 freedMemory >= neededMemory)
             {
-                break; // Enough resources freed
+                break;
             }
 
-            // Preemption is global, so remove the exact owner's key rather than the caller's ID.
-            var allocation = RemoveAllocation(entry.Key);
-            if (allocation is null) continue;
-            freedCompute += allocation.AllocatedComputeSeconds;
-            freedContext += allocation.AllocatedContextTokens;
-            freedMemory += allocation.AllocatedMemoryMB;
+            victims.Add(entry.Key);
+            freedCompute += entry.Value.AllocatedComputeSeconds;
+            freedContext += entry.Value.AllocatedContextTokens;
+            freedMemory += entry.Value.AllocatedMemoryMB;
+        }
 
+        if (freedCompute < neededCompute || freedContext < neededContext || freedMemory < neededMemory)
+            return false;
+
+        // The complete plan fits all dimensions: remove only the selected exact owner keys.
+        foreach (var key in victims)
+        {
+            var allocation = RemoveAllocation(key);
+            if (allocation is null) continue;
             _logger.LogInformation(
                 "Preempted agent {AgentId} (priority {Priority}) to free resources for higher priority agent",
                 allocation.AgentId, allocation.Priority);
         }
 
-        return freedCompute >= neededCompute &&
-               freedContext >= neededContext &&
-               freedMemory >= neededMemory;
+        return true;
     }
 
     /// <summary>
@@ -286,13 +302,13 @@ public sealed class ResourceAllocator
                 MaxComputeSeconds = _budget.MaxComputeSeconds,
                 MaxContextTokens = _budget.MaxContextTokens,
                 MaxMemoryMB = _budget.MaxMemoryMB,
-                UtilizationCompute = _budget.MaxComputeSeconds.HasValue
+                UtilizationCompute = _budget.MaxComputeSeconds is > 0
                     ? (double)_allocatedComputeSeconds / _budget.MaxComputeSeconds.Value
                     : 0.0,
-                UtilizationContext = _budget.MaxContextTokens.HasValue
+                UtilizationContext = _budget.MaxContextTokens is > 0
                     ? (double)_allocatedContextTokens / _budget.MaxContextTokens.Value
                     : 0.0,
-                UtilizationMemory = _budget.MaxMemoryMB.HasValue
+                UtilizationMemory = _budget.MaxMemoryMB is > 0
                     ? (double)_allocatedMemoryMB / _budget.MaxMemoryMB.Value
                     : 0.0
             };
