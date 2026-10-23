@@ -19,7 +19,10 @@ namespace Ashlar.Orchestration.Agents;
 public sealed class HealthMonitor
 {
     private readonly ILogger<HealthMonitor> _logger;
-    private readonly ConcurrentDictionary<string, AgentHealthStatus> _agentHealth = new();
+    // Keep every run in one collection so the timer and aggregate queries can see all live agents.
+    // Only ID-based operations use the ambient run identity; an unscoped caller retains root semantics.
+    private readonly ConcurrentDictionary<(object? Scope, string AgentId), AgentHealthStatus> _agentHealth = new();
+    private readonly AsyncLocal<object?> _runScope = new();
     private readonly Timer? _healthCheckTimer;
 
     /// <summary>
@@ -35,6 +38,38 @@ public sealed class HealthMonitor
         _healthCheckTimer = new Timer(PerformHealthChecks, null, interval, interval);
     }
 
+    internal IDisposable BeginRunScope()
+    {
+        var previous = _runScope.Value;
+        _runScope.Value = new object();
+        return new RunScope(this, previous);
+    }
+
+    private sealed class RunScope : IDisposable
+    {
+        private readonly HealthMonitor _owner;
+        private readonly object? _previous;
+        private int _disposed;
+
+        public RunScope(HealthMonitor owner, object? previous)
+        {
+            _owner = owner;
+            _previous = previous;
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            _owner._runScope.Value = _previous;
+        }
+    }
+
+    private (object? Scope, string AgentId) GetKey(string agentId)
+    {
+        ArgumentNullException.ThrowIfNull(agentId);
+        return (_runScope.Value, agentId);
+    }
+
     /// <summary>
     /// Registers an agent for health monitoring.
     /// 
@@ -43,7 +78,7 @@ public sealed class HealthMonitor
     /// <param name="container">The agent container to monitor.</param>
     public void RegisterAgent(AgentContainer container)
     {
-        _agentHealth[container.AgentId] = new AgentHealthStatus
+        _agentHealth[GetKey(container.AgentId)] = new AgentHealthStatus
         {
             AgentId = container.AgentId,
             Container = container,
@@ -55,6 +90,18 @@ public sealed class HealthMonitor
         _logger.LogDebug("Registered agent {AgentId} for health monitoring", container.AgentId);
     }
 
+    /// <summary>Removes this exact container's health registration from the current run.</summary>
+    /// <param name="container">The container owned by the run being cleaned up.</param>
+    internal void UnregisterAgent(AgentContainer container)
+    {
+        var key = GetKey(container.AgentId);
+        if (_agentHealth.TryGetValue(key, out var status) && ReferenceEquals(status.Container, container))
+        {
+            ((ICollection<KeyValuePair<(object? Scope, string AgentId), AgentHealthStatus>>)_agentHealth)
+                .Remove(new(key, status));
+        }
+    }
+
     /// <summary>
     /// Unregisters an agent from health monitoring.
     /// 
@@ -63,18 +110,18 @@ public sealed class HealthMonitor
     /// <param name="agentId">The ID of the agent to unregister.</param>
     public void UnregisterAgent(string agentId)
     {
-        _agentHealth.TryRemove(agentId, out _);
+        _agentHealth.TryRemove(GetKey(agentId), out _);
         _logger.LogDebug("Unregistered agent {AgentId} from health monitoring", agentId);
     }
 
     /// <summary>
-    /// Gets the health status of an agent.
+    /// Gets the health status of an agent in the current lifecycle run scope, or the root outside a scope.
     /// </summary>
     /// <param name="agentId">The ID of the agent to get health status for.</param>
     /// <returns>The agent health status, or null if the agent is not registered.</returns>
     public AgentHealthStatus? GetHealthStatus(string agentId)
     {
-        return _agentHealth.TryGetValue(agentId, out var status) ? status : null;
+        return _agentHealth.TryGetValue(GetKey(agentId), out var status) ? status : null;
     }
 
     /// <summary>
@@ -101,8 +148,9 @@ public sealed class HealthMonitor
 
     private void PerformHealthChecks(object? state)
     {
-        foreach (var (agentId, healthStatus) in _agentHealth)
+        foreach (var healthStatus in _agentHealth.Values)
         {
+            var agentId = healthStatus.AgentId;
             try
             {
                 var container = healthStatus.Container;

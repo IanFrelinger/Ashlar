@@ -47,6 +47,23 @@ Ashlar is a private AI platform built on modular, contract-based components (bri
 - **Coordination**: Dependency resolution, conflict detection, output integration
 - **Orchestrator**: End-to-end flow
 
+Each orchestration call has its own lifecycle, dependency outputs, progress history, and resource
+reservation ownership. The scope flows through asynchronous transport calls and restores an outer
+run when a nested call finishes. Reusing a decomposition agent ID in another run does not share
+outputs or release the first run’s reservations. Resource limits and preemption still operate
+across all runs, and health monitoring still reports all live containers.
+
+Result progress is captured before agent shutdown. Result escalations belong to the current call;
+the operator escalation queue retains history across calls. Output events remain observable on the
+shared bus, while the orchestrator records its own dependency outputs directly without persistent
+self-subscriptions.
+
+Run cleanup waits up to five seconds for agent shutdown, including after cancellation or another
+failure, then removes that run’s registrations and reservations. A cleanup failure does not replace
+the original orchestration error. This bounds the caller’s wait; it cannot stop arbitrary agent code
+that ignores cancellation. Agents must cooperate with shutdown and must not register new agents
+from a shutdown callback.
+
 ### Infrastructure
 
 - **ProviderFactory** (`IProviderFactory`): Routes LLM calls to OpenAI, Azure, Ollama, local (ONNX), video (SmolVLM2), or mock/offline/echo (with Polly retries)

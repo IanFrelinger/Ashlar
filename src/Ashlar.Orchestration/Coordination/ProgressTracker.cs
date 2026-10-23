@@ -20,8 +20,10 @@ namespace Ashlar.Orchestration.Coordination;
 public sealed class ProgressTracker
 {
     private readonly ILogger<ProgressTracker> _logger;
-    private readonly ConcurrentDictionary<string, AgentProgress> _agentProgress = new();
-    private readonly ConcurrentDictionary<string, List<AgentState>> _stateHistory = new();
+    private readonly RunState _rootState = new();
+    private readonly AsyncLocal<RunState?> _runState = new();
+
+    private RunState State => _runState.Value ?? _rootState;
     private readonly TimeSpan _stallThreshold = TimeSpan.FromMinutes(5);
     private readonly int _thrashingThreshold = 5;
 
@@ -32,6 +34,47 @@ public sealed class ProgressTracker
     public ProgressTracker(ILogger<ProgressTracker> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Starts isolated progress tracking for an orchestration run.
+    /// Call synchronously in the run's execution context before starting child tasks.
+    /// </summary>
+    internal IDisposable BeginRunScope()
+    {
+        var previous = _runState.Value;
+        _runState.Value = new RunState();
+        return new RunScope(_runState, previous);
+    }
+
+    private sealed class RunState
+    {
+        internal readonly ConcurrentDictionary<string, AgentProgress> AgentProgress = new();
+        internal readonly ConcurrentDictionary<string, List<AgentState>> StateHistory = new();
+    }
+
+    private sealed class RunScope : IDisposable
+    {
+        private readonly AsyncLocal<RunState?> _slot;
+        private readonly RunState? _previous;
+        private bool _disposed;
+
+        internal RunScope(AsyncLocal<RunState?> slot, RunState? previous)
+        {
+            _slot = slot;
+            _previous = previous;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _slot.Value = _previous;
+            _disposed = true;
+        }
     }
 
     /// <summary>
@@ -53,14 +96,14 @@ public sealed class ProgressTracker
         var currentState = container.State;
 
         // Track state history (thread-safe)
-        var history = _stateHistory.GetOrAdd(agentId, _ => new List<AgentState>());
+        var history = State.StateHistory.GetOrAdd(agentId, _ => new List<AgentState>());
         if (history.Count == 0 || history.Last() != currentState)
         {
             history.Add(currentState);
         }
 
         // Update progress (thread-safe)
-        var progress = _agentProgress.AddOrUpdate(
+        var progress = State.AgentProgress.AddOrUpdate(
             agentId,
             new AgentProgress
             {
@@ -121,8 +164,9 @@ public sealed class ProgressTracker
         var executing = agents.Count(a => a.State == AgentState.Executing);
         var waiting = agents.Count(a => a.State == AgentState.WaitingForDependencies);
         var ready = agents.Count(a => a.State == AgentState.Ready);
-        var stalling = GetStallingAgents().Count;
-        var thrashing = GetThrashingAgents().Count;
+        var agentIds = new HashSet<string>(agents.Select(agent => agent.AgentId), StringComparer.Ordinal);
+        var stalling = GetStallingAgents().Count(agentIds.Contains);
+        var thrashing = GetThrashingAgents().Count(agentIds.Contains);
 
         return new ProgressSummary
         {
@@ -146,7 +190,7 @@ public sealed class ProgressTracker
     /// <returns>The average execution time, or null if no agents have completed.</returns>
     private TimeSpan? CalculateAverageExecutionTime(IReadOnlyList<AgentContainer> agents)
     {
-        var completedAgents = _agentProgress.Values
+        var completedAgents = State.AgentProgress.Values
             .Where(p => agents.Any(a => a.AgentId == p.AgentId && a.State == AgentState.Completed))
             .ToList();
 
@@ -172,7 +216,7 @@ public sealed class ProgressTracker
     public IReadOnlyList<string> GetStallingAgents()
     {
         var now = DateTimeOffset.UtcNow;
-        return _agentProgress.Values
+        return State.AgentProgress.Values
             .Where(p => p.CurrentState == AgentState.Executing &&
                        (now - p.LastUpdate) > _stallThreshold)
             .Select(p => p.AgentId)
@@ -188,7 +232,7 @@ public sealed class ProgressTracker
     /// <returns>A read-only list of agent IDs that are thrashing.</returns>
     public IReadOnlyList<string> GetThrashingAgents()
     {
-        return _stateHistory
+        return State.StateHistory
             .Where(kvp => IsThrashing(kvp.Value))
             .Select(kvp => kvp.Key)
             .ToList();

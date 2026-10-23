@@ -70,25 +70,28 @@ public sealed class LifecycleManager
     {
         var previous = _runScope.Value;
         _runScope.Value = new ConcurrentDictionary<string, AgentContainer>();
-        return new RunScope(this, previous);
+        return new RunScope(this, previous, _healthMonitor.BeginRunScope());
     }
 
     private sealed class RunScope : IDisposable
     {
         private readonly LifecycleManager _owner;
         private readonly ConcurrentDictionary<string, AgentContainer>? _previous;
+        private readonly IDisposable _healthScope;
         private int _disposed;
 
-        public RunScope(LifecycleManager owner, ConcurrentDictionary<string, AgentContainer>? previous)
+        public RunScope(LifecycleManager owner, ConcurrentDictionary<string, AgentContainer>? previous, IDisposable healthScope)
         {
             _owner = owner;
             _previous = previous;
+            _healthScope = healthScope;
         }
 
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
             _owner._runScope.Value = _previous;
+            _healthScope.Dispose();
         }
     }
 
@@ -246,6 +249,49 @@ public sealed class LifecycleManager
         await Task.WhenAll(shutdownTasks);
 
         _logger.LogInformation("All agents shut down");
+    }
+
+    // Only the orchestrator uses this bounded ownership cleanup. Public ShutdownAllAsync retains
+    // its existing semantics. A timeout stops waiting and deregisters ownership; it does not kill
+    // arbitrary agent work that ignores cancellation.
+    internal async Task<Exception?> CleanupRunAsync(TimeSpan? timeout = null)
+    {
+        var budget = timeout ?? TimeSpan.FromSeconds(5);
+        if (budget <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeout));
+        var agents = ActiveAgents;
+        var snapshot = agents.ToArray();
+        if (snapshot.Length == 0) return null;
+        var cancellation = new CancellationTokenSource(budget);
+        var token = cancellation.Token;
+        // Task.Run also bounds an implementation that blocks synchronously before returning a Task.
+        var shutdown = Task.WhenAll(snapshot.Select(pair => Task.Run(
+            () => pair.Value.ShutdownAsync(token))));
+        // A timeout can return before shutdown finishes. Observe any subsequent task fault.
+        _ = shutdown.ContinueWith(task =>
+        {
+            if (task.IsFaulted) _ = task.Exception;
+            cancellation.Dispose();
+        }, CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+        try
+        {
+            await shutdown.WaitAsync(budget).ConfigureAwait(false);
+            return null;
+        }
+        catch (Exception error)
+        {
+            _logger.LogWarning(error, "Run cleanup did not finish gracefully within {Budget}", budget);
+            return error;
+        }
+        finally
+        {
+            foreach (var pair in snapshot)
+            {
+                ((ICollection<KeyValuePair<string, AgentContainer>>)agents).Remove(pair);
+                _healthMonitor.UnregisterAgent(pair.Value);
+            }
+        }
     }
 
     /// <summary>

@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Ashlar.Orchestration.Agents;
 using Ashlar.Orchestration.Architect;
@@ -16,13 +15,16 @@ namespace Ashlar.Orchestration.Coordination;
 /// - Tracks resource usage and availability
 /// - Prevents resource exhaustion
 /// 
-/// Thread-safe implementation using concurrent collections and locks.
+/// Thread-safe implementation using one lock for the global allocation ledger and counters.
 /// </summary>
 public sealed class ResourceAllocator
 {
     private readonly ILogger<ResourceAllocator> _logger;
     private readonly ResourceBudget _budget;
-    private readonly ConcurrentDictionary<string, ResourceAllocation> _allocations = new();
+    // One global budget and ledger; run identity only determines ownership of each allocation.
+    // Every ledger/counter access is protected by _allocationLock.
+    private readonly Dictionary<(RunScope? Scope, string AgentId), ResourceAllocation> _allocations = new();
+    private readonly AsyncLocal<RunScope?> _runScope = new();
     private int _allocatedComputeSeconds;
     private int _allocatedContextTokens;
     private int _allocatedMemoryMB;
@@ -42,6 +44,51 @@ public sealed class ResourceAllocator
             MaxContextTokens = 200000,
             MaxMemoryMB = 16384
         };
+    }
+
+    internal IDisposable BeginRunScope()
+    {
+        var scope = new RunScope(this, _runScope.Value);
+        _runScope.Value = scope;
+        return scope;
+    }
+
+    private sealed class RunScope : IDisposable
+    {
+        private readonly ResourceAllocator _owner;
+        private readonly RunScope? _previous;
+        // Read and written only under the owner's allocation lock.
+        internal bool IsDisposed { get; private set; }
+
+        public RunScope(ResourceAllocator owner, RunScope? previous)
+        {
+            _owner = owner;
+            _previous = previous;
+        }
+
+        public void Dispose()
+        {
+            lock (_owner._allocationLock)
+            {
+                if (IsDisposed) return;
+                IsDisposed = true;
+                foreach (var key in _owner._allocations.Keys.Where(key => ReferenceEquals(key.Scope, this)).ToArray())
+                {
+                    _owner.RemoveAllocation(key);
+                }
+            }
+            _owner._runScope.Value = _previous;
+        }
+    }
+
+    // The caller holds _allocationLock, so removal and all three counter updates are atomic.
+    private ResourceAllocation? RemoveAllocation((RunScope? Scope, string AgentId) key)
+    {
+        if (!_allocations.Remove(key, out var allocation)) return null;
+        _allocatedComputeSeconds -= allocation.AllocatedComputeSeconds;
+        _allocatedContextTokens -= allocation.AllocatedContextTokens;
+        _allocatedMemoryMB -= allocation.AllocatedMemoryMB;
+        return allocation;
     }
 
     /// <summary>
@@ -65,28 +112,36 @@ public sealed class ResourceAllocator
         var spec = container.Agent.Spec;
         var requirements = spec.ResourceRequirements;
 
-        if (requirements == null)
-        {
-            // No requirements - allocate minimal resources
-            allocation = new ResourceAllocation
-            {
-                AgentId = container.AgentId,
-                AllocatedComputeSeconds = 0,
-                AllocatedContextTokens = 0,
-                AllocatedMemoryMB = 0,
-                Priority = spec.Priority
-            };
-            _allocations[container.AgentId] = allocation;
-            return true;
-        }
+        var requestedCompute = requirements?.EstimatedComputeSeconds ?? 0;
+        var requestedContext = requirements?.RequiredContextTokens ?? 0;
+        var requestedMemory = requirements?.RequiredMemoryMB ?? 0;
+        ArgumentNullException.ThrowIfNull(container.AgentId);
 
-        var requestedCompute = requirements.EstimatedComputeSeconds ?? 0;
-        var requestedContext = requirements.RequiredContextTokens ?? 0;
-        var requestedMemory = requirements.RequiredMemoryMB ?? 0;
-
-        // Check if allocation is possible (thread-safe)
+        // Check ownership and allocate under the same global lock, including zero-resource requests.
         lock (_allocationLock)
         {
+            var scope = _runScope.Value;
+            // A child task must not recreate allocations after its owning scope has been cleaned up.
+            if (scope?.IsDisposed == true) return false;
+            var key = (scope, container.AgentId);
+            // Repeated requests for an ID within one run reuse its reservation, never charge twice.
+            // Changing requirements requires an explicit release followed by a new allocation.
+            if (_allocations.TryGetValue(key, out allocation)) return true;
+
+            if (requirements == null)
+            {
+                allocation = new ResourceAllocation
+                {
+                    AgentId = container.AgentId,
+                    AllocatedComputeSeconds = 0,
+                    AllocatedContextTokens = 0,
+                    AllocatedMemoryMB = 0,
+                    Priority = spec.Priority
+                };
+                _allocations[key] = allocation;
+                return true;
+            }
+
             var availableCompute = (_budget.MaxComputeSeconds ?? int.MaxValue) - _allocatedComputeSeconds;
             var availableContext = (_budget.MaxContextTokens ?? int.MaxValue) - _allocatedContextTokens;
             var availableMemory = (_budget.MaxMemoryMB ?? int.MaxValue) - _allocatedMemoryMB;
@@ -123,7 +178,7 @@ public sealed class ResourceAllocator
                 Priority = spec.Priority
             };
 
-            _allocations[container.AgentId] = allocation;
+            _allocations[key] = allocation;
             _allocatedComputeSeconds += requestedCompute;
             _allocatedContextTokens += requestedContext;
             _allocatedMemoryMB += requestedMemory;
@@ -150,16 +205,16 @@ public sealed class ResourceAllocator
         int neededMemory)
     {
         // Get lower priority allocations sorted by priority (lowest first)
-        var lowerPriorityAllocations = _allocations.Values
-            .Where(a => a.Priority < requestingPriority)
-            .OrderBy(a => a.Priority)
+        var lowerPriorityAllocations = _allocations
+            .Where(entry => entry.Value.Priority < requestingPriority)
+            .OrderBy(entry => entry.Value.Priority)
             .ToList();
 
         var freedCompute = 0;
         var freedContext = 0;
         var freedMemory = 0;
 
-        foreach (var allocation in lowerPriorityAllocations)
+        foreach (var entry in lowerPriorityAllocations)
         {
             if (freedCompute >= neededCompute &&
                 freedContext >= neededContext &&
@@ -168,15 +223,12 @@ public sealed class ResourceAllocator
                 break; // Enough resources freed
             }
 
-            // Preempt this allocation
-            _allocations.TryRemove(allocation.AgentId, out _);
+            // Preemption is global, so remove the exact owner's key rather than the caller's ID.
+            var allocation = RemoveAllocation(entry.Key);
+            if (allocation is null) continue;
             freedCompute += allocation.AllocatedComputeSeconds;
             freedContext += allocation.AllocatedContextTokens;
             freedMemory += allocation.AllocatedMemoryMB;
-
-            _allocatedComputeSeconds -= allocation.AllocatedComputeSeconds;
-            _allocatedContextTokens -= allocation.AllocatedContextTokens;
-            _allocatedMemoryMB -= allocation.AllocatedMemoryMB;
 
             _logger.LogInformation(
                 "Preempted agent {AgentId} (priority {Priority}) to free resources for higher priority agent",
@@ -194,20 +246,28 @@ public sealed class ResourceAllocator
     /// <param name="agentId">The ID of the agent whose resources should be released.</param>
     public void ReleaseResources(string agentId)
     {
-        if (!_allocations.TryRemove(agentId, out var allocation))
-        {
-            return;
-        }
-
+        ArgumentNullException.ThrowIfNull(agentId);
+        ResourceAllocation? allocation;
         lock (_allocationLock)
         {
-            _allocatedComputeSeconds -= allocation.AllocatedComputeSeconds;
-            _allocatedContextTokens -= allocation.AllocatedContextTokens;
-            _allocatedMemoryMB -= allocation.AllocatedMemoryMB;
+            allocation = RemoveAllocation((_runScope.Value, agentId));
+            if (allocation is null) return;
         }
 
         _logger.LogDebug("Released resources from agent {AgentId}: {Compute}s, {Context} tokens, {Memory}MB",
             agentId, allocation.AllocatedComputeSeconds, allocation.AllocatedContextTokens, allocation.AllocatedMemoryMB);
+    }
+
+    // Metrics for an agent must use the caller's reservation, not another run with the same ID.
+    internal ResourceAllocation? GetAllocation(string agentId)
+    {
+        ArgumentNullException.ThrowIfNull(agentId);
+        lock (_allocationLock)
+        {
+            return _allocations.TryGetValue((_runScope.Value, agentId), out var allocation)
+                ? allocation
+                : null;
+        }
     }
 
     /// <summary>
@@ -216,24 +276,27 @@ public sealed class ResourceAllocator
     /// <returns>A <see cref="ResourceUsageReport"/> containing current resource usage and utilization metrics.</returns>
     public ResourceUsageReport GetUsageReport()
     {
-        return new ResourceUsageReport
+        lock (_allocationLock)
         {
-            TotalAllocatedComputeSeconds = _allocatedComputeSeconds,
-            TotalAllocatedContextTokens = _allocatedContextTokens,
-            TotalAllocatedMemoryMB = _allocatedMemoryMB,
-            MaxComputeSeconds = _budget.MaxComputeSeconds,
-            MaxContextTokens = _budget.MaxContextTokens,
-            MaxMemoryMB = _budget.MaxMemoryMB,
-            UtilizationCompute = _budget.MaxComputeSeconds.HasValue
-                ? (double)_allocatedComputeSeconds / _budget.MaxComputeSeconds.Value
-                : 0.0,
-            UtilizationContext = _budget.MaxContextTokens.HasValue
-                ? (double)_allocatedContextTokens / _budget.MaxContextTokens.Value
-                : 0.0,
-            UtilizationMemory = _budget.MaxMemoryMB.HasValue
-                ? (double)_allocatedMemoryMB / _budget.MaxMemoryMB.Value
-                : 0.0
-        };
+            return new ResourceUsageReport
+            {
+                TotalAllocatedComputeSeconds = _allocatedComputeSeconds,
+                TotalAllocatedContextTokens = _allocatedContextTokens,
+                TotalAllocatedMemoryMB = _allocatedMemoryMB,
+                MaxComputeSeconds = _budget.MaxComputeSeconds,
+                MaxContextTokens = _budget.MaxContextTokens,
+                MaxMemoryMB = _budget.MaxMemoryMB,
+                UtilizationCompute = _budget.MaxComputeSeconds.HasValue
+                    ? (double)_allocatedComputeSeconds / _budget.MaxComputeSeconds.Value
+                    : 0.0,
+                UtilizationContext = _budget.MaxContextTokens.HasValue
+                    ? (double)_allocatedContextTokens / _budget.MaxContextTokens.Value
+                    : 0.0,
+                UtilizationMemory = _budget.MaxMemoryMB.HasValue
+                    ? (double)_allocatedMemoryMB / _budget.MaxMemoryMB.Value
+                    : 0.0
+            };
+        }
     }
 
     /// <summary>
@@ -242,6 +305,9 @@ public sealed class ResourceAllocator
     /// <returns>A read-only list of all current <see cref="ResourceAllocation"/> instances.</returns>
     public IReadOnlyList<ResourceAllocation> GetAllocations()
     {
-        return _allocations.Values.ToList();
+        lock (_allocationLock)
+        {
+            return _allocations.Values.ToList();
+        }
     }
 }

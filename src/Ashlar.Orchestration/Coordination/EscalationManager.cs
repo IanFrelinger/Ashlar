@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Ashlar.Orchestration.Coordination.Conflicts;
 
@@ -18,7 +19,7 @@ namespace Ashlar.Orchestration.Coordination;
 public sealed class EscalationManager
 {
     private readonly ILogger<EscalationManager> _logger;
-    private readonly List<Escalation> _escalations = new();
+    private readonly ConcurrentQueue<Escalation> _escalations = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EscalationManager"/> class.
@@ -56,7 +57,7 @@ public sealed class EscalationManager
             Status = EscalationStatus.Pending
         };
 
-        _escalations.Add(escalation);
+        _escalations.Enqueue(escalation);
 
         _logger.LogWarning("Escalated conflict {ConflictType} between agents {AgentIds}: {Description}",
             conflict.ConflictType, string.Join(", ", conflict.AgentIds), conflict.Description);
@@ -91,7 +92,7 @@ public sealed class EscalationManager
             Status = EscalationStatus.Pending
         };
 
-        _escalations.Add(escalation);
+        _escalations.Enqueue(escalation);
 
         _logger.LogWarning("Escalated issue {IssueType}: {Description}", issueType, description);
 
