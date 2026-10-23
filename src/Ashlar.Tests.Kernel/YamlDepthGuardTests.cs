@@ -40,6 +40,34 @@ public sealed class YamlDepthGuardTests
         reason.Should().Contain("nesting").And.Contain("64");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Truncated_deep_input_is_refused_before_recursive_parsing(bool policy)
+    {
+        var yaml = "payload: " + new string('[', 10000) + "leaf";
+        string reason;
+        var accepted = policy
+            ? PolicyLoader.TryLoad(yaml, out _, out reason)
+            : ManifestLoader.TryLoad(yaml, out _, out reason);
+        accepted.Should().BeFalse();
+        reason.Should().Contain("nesting").And.Contain("64");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Shallow_malformed_input_retains_parse_refusal(bool policy)
+    {
+        const string yaml = "payload: [[[leaf";
+        string reason;
+        var accepted = policy
+            ? PolicyLoader.TryLoad(yaml, out _, out reason)
+            : ManifestLoader.TryLoad(yaml, out _, out reason);
+        accepted.Should().BeFalse();
+        reason.Should().Contain("REJECTED").And.NotContain("nesting");
+    }
+
     [Fact]
     public void Many_shallow_siblings_do_not_accumulate_depth()
     {
