@@ -5,20 +5,21 @@
 # ASHLAR_NUGET_VERIFY_PACKAGE_IDS — comma-separated ids; overrides everything below
 # ASHLAR_MANIFEST_JSON — when set, poll EVERY id in the release manifest (the default in CI)
 # ASHLAR_NUGET_VERIFY_PACKAGE_ID — if set and ASHLAR_NUGET_VERIFY_PACKAGE_IDS unset, a single id (backward compat)
-# ASHLAR_NUGET_VERIFY_ATTEMPTS / ASHLAR_NUGET_VERIFY_SLEEP_SEC — optional (defaults 40 / 15)
-# v0.1.2: 12×15s timed out after every nupkg was pushed; nuget.org listed them later.
-# ASHLAR_NUGET_VERIFY_ALLOW_SHORT=1 keeps an explicit short budget (local negative tests).
+# ASHLAR_NUGET_VERIFY_ATTEMPTS / ASHLAR_NUGET_VERIFY_SLEEP_SEC — optional (defaults 80 / 15)
+# v0.1.2: 12×15s timed out after every nupkg was pushed; raised to 40.
+# 0.3.0-rc1: Ashlar.CLI (~121 MiB) still 404 after 40×15s while 21 sibling packages were live;
+# raised floor/default to 80×15s. ASHLAR_NUGET_VERIFY_ALLOW_SHORT=1 keeps a short budget (tests).
 set -euo pipefail
 VER="${ASHLAR_NUGET_VERIFY_VERSION:?set ASHLAR_NUGET_VERIFY_VERSION (semver, no v prefix)}"
 VER="${VER#v}"
-ATTEMPTS="${ASHLAR_NUGET_VERIFY_ATTEMPTS:-40}"
+ATTEMPTS="${ASHLAR_NUGET_VERIFY_ATTEMPTS:-80}"
 SLEEP_SEC="${ASHLAR_NUGET_VERIFY_SLEEP_SEC:-15}"
 # GitHub Actions may pass empty strings for unset repo variables; treat as defaults.
-[[ -z "${ATTEMPTS}" ]] && ATTEMPTS=40
+[[ -z "${ATTEMPTS}" ]] && ATTEMPTS=80
 [[ -z "${SLEEP_SEC}" ]] && SLEEP_SEC=15
-if [[ "${ASHLAR_NUGET_VERIFY_ALLOW_SHORT:-}" != "1" ]] && [[ "${ATTEMPTS}" -lt 40 ]]; then
-  echo "::notice::Raising nuget.org visibility poll ${ATTEMPTS} -> 40 (v0.1.2 index-lag timeout)"
-  ATTEMPTS=40
+if [[ "${ASHLAR_NUGET_VERIFY_ALLOW_SHORT:-}" != "1" ]] && [[ "${ATTEMPTS}" -lt 80 ]]; then
+  echo "::notice::Raising nuget.org visibility poll ${ATTEMPTS} -> 80 (0.3.0-rc1 Ashlar.CLI index-lag timeout; was 40 after v0.1.2)"
+  ATTEMPTS=80
 fi
 
 # GitHub Actions may set ASHLAR_NUGET_VERIFY_PACKAGE_IDS to empty when the repo var is unset; treat as default.

@@ -5,13 +5,13 @@
 set -euo pipefail
 VER="${ASHLAR_NUGET_VERIFY_VERSION:?set ASHLAR_NUGET_VERIFY_VERSION}"
 VER="${VER#v}"
-ATTEMPTS="${ASHLAR_NUGET_VERIFY_ATTEMPTS:-40}"
+ATTEMPTS="${ASHLAR_NUGET_VERIFY_ATTEMPTS:-80}"
 SLEEP_SEC="${ASHLAR_NUGET_VERIFY_SLEEP_SEC:-15}"
-[[ -z "${ATTEMPTS}" ]] && ATTEMPTS=40
+[[ -z "${ATTEMPTS}" ]] && ATTEMPTS=80
 [[ -z "${SLEEP_SEC}" ]] && SLEEP_SEC=15
-if [[ "${ASHLAR_NUGET_VERIFY_ALLOW_SHORT:-}" != "1" ]] && [[ "${ATTEMPTS}" -lt 40 ]]; then
-  echo "::notice::Raising nuget.org registration poll ${ATTEMPTS} -> 40 (v0.1.2 index-lag timeout)"
-  ATTEMPTS=40
+if [[ "${ASHLAR_NUGET_VERIFY_ALLOW_SHORT:-}" != "1" ]] && [[ "${ATTEMPTS}" -lt 80 ]]; then
+  echo "::notice::Raising nuget.org registration poll ${ATTEMPTS} -> 80 (0.3.0-rc1 Ashlar.CLI index-lag timeout; was 40 after v0.1.2)"
+  ATTEMPTS=80
 fi
 
 if [[ -n "${ASHLAR_NUGET_VERIFY_PACKAGE_IDS:-}" && "${ASHLAR_NUGET_VERIFY_PACKAGE_IDS}" != "" ]]; then

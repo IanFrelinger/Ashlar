@@ -17,6 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — nuget.org post-push visibility poll budget for large packages (0.3.0-rc1)
+
+- `0.3.0-rc1` pack-and-publish ([run 39885204425](https://github.com/IanFrelinger/Ashlar/actions/runs/39885204425))
+  pushed every nupkg (OIDC `"Your package was pushed."` including `Ashlar.CLI.0.3.0-rc1`, ~121 MiB),
+  then failed the flat-container visibility step after **40×15s** with only `Ashlar.CLI` still HTTP 404.
+  Twenty-one sibling packages were already listed. `v0.2.0` had needed attempt **29/40** for the same
+  CLI package. Defaults and the short-budget floor move **40 → 80** attempts (still 15s sleep) in
+  `scripts/verify-nuget-org-packages-visible.sh`, `verify-nuget-org-package-visible.sh`,
+  `verify-nuget-org-registration-versions.sh`, the sha256 post-push verifier, and
+  `reusable-release-nuget.yml`. Docs: `PUBLISHING.md`, `GitHubRepoVariables.md`, `CiSecrets.md`.
+
 ## [0.3.0] - 2026-10-19
 
 ### Added — ReleaseSignOff / rollback / exceptions for the 0.3.0 cut
