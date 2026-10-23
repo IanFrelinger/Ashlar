@@ -27,5 +27,5 @@ exceptions:
     severity: low
     owner: ashlar-release-0-3-0
     expires: "2026-12-31"
-    mitigation: "Integrator decision: keep abort-on-refusal under FailurePolicy.Continue for 0.3.0; CHANGELOG + EgressInventory Known limit. Owner may later land a decisions-log row."
-    sign_off: "2026-10-22 ReleaseSignOff-v1 v0.3.0 row; card #759 closeout"
+    mitigation: "Owner accepted on 2026-10-23: keep abort-on-refusal under FailurePolicy.Continue; SPEC-007 decisions log + CHANGELOG + EgressInventory accepted limitation. No runtime change."
+    sign_off: "2026-10-22 ReleaseSignOff-v1 v0.3.0 row; card #759 closeout; owner acceptance recorded 2026-10-23"

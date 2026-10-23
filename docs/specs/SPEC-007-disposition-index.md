@@ -55,7 +55,7 @@ Specific cards listed under [Precedence](#precedence-specific-cards-take-priorit
 | [#766](https://github.com/IanFrelinger/Ashlar/issues/766) | gRPC / Fleet loopback wiring | Remove/update any "missing wiring" claim; retain H10-01 and H10-05 |
 | [#758](https://github.com/IanFrelinger/Ashlar/issues/758) | Host-opt-out Warning EventId | Outside routed-enforcement aggregate; cite #758 |
 | [#760](https://github.com/IanFrelinger/Ashlar/issues/760) | Duplicate MEAI refusal audit records | Outside this aggregate; cite #760 |
-| [#759](https://github.com/IanFrelinger/Ashlar/issues/759) | `FailurePolicy.Continue` and refused brick | Closed for 0.3.0 as integrator decision: keep abort-on-refusal (CHANGELOG + `docs/EgressInventory.md` Known limit, 2026-10-22). No owner decisions-log row for review §10 (c). |
+| [#759](https://github.com/IanFrelinger/Ashlar/issues/759) | `FailurePolicy.Continue` and refused brick | Closed by #834 with abort-on-refusal retained; owner accepted "Stop and document current behavior" on 2026-10-23 (SPEC-007 decisions log, review §10 (c); CHANGELOG + `docs/EgressInventory.md`). |
 | [#802](https://github.com/IanFrelinger/Ashlar/issues/802) / [#803](https://github.com/IanFrelinger/Ashlar/issues/803) | Workflow refusal reporting | Outside this aggregate; cite those cards |
 | [#805](https://github.com/IanFrelinger/Ashlar/issues/805) | D28 Warning windowing: five repeated sites repaired in [#827](https://github.com/IanFrelinger/Ashlar/pull/827); OTLP startup is one-shot | Outside this aggregate; implementation merged as `07293a42ad5e044f97ea5d12efa8ff1d3e5ebb54` |
 | [#809](https://github.com/IanFrelinger/Ashlar/issues/809) | Five remaining 4.8b reporting / lifecycle limits | Outside this aggregate; cite #809 |
