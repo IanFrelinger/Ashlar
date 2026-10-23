@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "note": "All 5 cases KILLED at bc4c040c5e4dc12d716c30ec534940766494ee42 on 2026-10-23. See RESOURCE-ARITHMETIC-EVIDENCE.md for observed red/restore/green counts and archive receipt.",
+  "mutations": [
+    {
+      "id": "allocator-preemption-deficit",
+      "file": "src/Ashlar.Orchestration/Coordination/ResourceAllocator.cs",
+      "old": "var freed = TryPreemptLowerPriority(spec.Priority,\n                    Math.Max(0, requestedCompute - availableCompute),\n                    Math.Max(0, requestedContext - availableContext),\n                    Math.Max(0, requestedMemory - availableMemory));",
+      "new": "var freed = TryPreemptLowerPriority(spec.Priority, requestedCompute, requestedContext, requestedMemory);",
+      "filter": "FullyQualifiedName~Feasible_preemption_accounts_for_capacity_already_available",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Feasible_preemption_accounts_for_capacity_already_available"
+      ]
+    },
+    {
+      "id": "allocator-preemption-transaction",
+      "file": "src/Ashlar.Orchestration/Coordination/ResourceAllocator.cs",
+      "old": "        if (freedCompute < neededCompute || freedContext < neededContext || freedMemory < neededMemory)\n            return false;",
+      "new": "        if (freedCompute < neededCompute || freedContext < neededContext || freedMemory < neededMemory)\n        {\n            foreach (var key in victims) RemoveAllocation(key);\n            return false;\n        }",
+      "filter": "FullyQualifiedName~Preemption_that_cannot_satisfy_all_dimensions_preserves_every_reservation",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Preemption_that_cannot_satisfy_all_dimensions_preserves_every_reservation"
+      ]
+    },
+    {
+      "id": "allocator-negative-request",
+      "file": "src/Ashlar.Orchestration/Coordination/ResourceAllocator.cs",
+      "old": "        if (requestedCompute < 0 || requestedContext < 0 || requestedMemory < 0)\n            return false;\n",
+      "new": "",
+      "filter": "FullyQualifiedName~Negative_request_is_rejected_without_fabricating_capacity",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Negative_request_is_rejected_without_fabricating_capacity"
+      ]
+    },
+    {
+      "id": "allocator-negative-budget",
+      "file": "src/Ashlar.Orchestration/Coordination/ResourceAllocator.cs",
+      "old": "        if (_budget.MaxComputeSeconds is < 0 || _budget.MaxContextTokens is < 0 || _budget.MaxMemoryMB is < 0)\n            throw new ArgumentOutOfRangeException(nameof(budget), \"Resource budget maxima must be nonnegative or null.\");\n",
+      "new": "",
+      "filter": "FullyQualifiedName~Negative_budget_is_rejected_at_construction",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Negative_budget_is_rejected_at_construction"
+      ]
+    },
+    {
+      "id": "allocator-zero-utilization",
+      "file": "src/Ashlar.Orchestration/Coordination/ResourceAllocator.cs",
+      "old": "UtilizationCompute = _budget.MaxComputeSeconds is > 0",
+      "new": "UtilizationCompute = _budget.MaxComputeSeconds.HasValue",
+      "filter": "FullyQualifiedName~Zero_maxima_accept_zero_reject_positive_and_report_finite_zero",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Zero_maxima_accept_zero_reject_positive_and_report_finite_zero"
+      ]
+    }
+  ]
+}
