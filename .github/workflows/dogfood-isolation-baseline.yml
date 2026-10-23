@@ -18,10 +18,16 @@ jobs:
           set -o pipefail
           bash scripts/test-in-container.sh \
             --project src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj \
-            --framework net8.0 --filter 'FullyQualifiedName~RunIsolationDogfoodTests' \
+            --framework net8.0 --filter 'FullyQualifiedName~RunIsolationDogfoodTests|FullyQualifiedName~PostRegistrationCleanupTests' \
             2>&1 | tee baseline.log
+      - name: Retain public NuGet cache for local container validation
+        if: always()
+        run: docker run --rm -v ashlar-nuget-packages:/packages:ro ashlar-devtest:local tar -C /packages -czf - . > nuget-cache.tar.gz
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: isolation-baseline-evidence
-          path: baseline.log
+          compression-level: 0
+          path: |
+            baseline.log
+            nuget-cache.tar.gz

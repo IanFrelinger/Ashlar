@@ -361,8 +361,9 @@ public sealed class RunIsolationDogfoodTests
     }
 
     [Fact(Timeout = 30000)]
-    public void Empty_summary_excludes_other_agents_thrashing_history()
+    public async Task Empty_summary_excludes_other_agents_thrashing_history()
     {
+        await Task.Yield();
         var tracker = new ProgressTracker(NullLogger<ProgressTracker>.Instance);
         var agent = new MarkerAgent("unrelated");
         var container = new AgentContainer(agent, NullLogger<AgentContainer>.Instance);
