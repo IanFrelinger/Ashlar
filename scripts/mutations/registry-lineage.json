@@ -42,7 +42,7 @@
       "id": "lineage-late-parent-not-propagated",
       "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
       "old": "if (_lineageChildren.TryGetValue(update.Id, out var descendants))",
-      "new": "if (false && _lineageChildren.TryGetValue(update.Id, out var descendants))",
+      "new": "if (update.Depth < 0 && _lineageChildren.TryGetValue(update.Id, out var descendants))",
       "filter": "FullyQualifiedName~RegistryOwnedLineageTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
