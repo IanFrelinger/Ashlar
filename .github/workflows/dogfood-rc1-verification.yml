@@ -1,0 +1,70 @@
+name: Verify existing rc1 artifacts (no publication)
+
+on:
+  push:
+    branches: [codex/rc1-artifact-verification]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rc1-readonly-artifact-verification
+  cancel-in-progress: false
+
+jobs:
+  verify-existing-rc1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out original published source
+        uses: actions/checkout@v4
+        with:
+          ref: 1017c10dd6308b8aafd98817c8eb736cd8ee167b
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare nonpublishing verifier and provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/rc1-artifacts work/rc1-evidence
+          printf '%s' 'IyEvdXNyL2Jpbi9lbnYgYmFzaAojIFJ1biBvbmx5IHRocm91Z2ggc2NyaXB0cy90ZXN0LWluLWNvbnRhaW5lci5zaCBhdCB0aGUgb3JpZ2luYWwgcmMxIHNvdXJjZSBTSEEuCiMgUmVhZHMgb3JpZ2luYWwgYXJ0aWZhY3QgdGhyb3VnaCB0aGUgaGFybmVzcydzIHJlYWQtb25seSAvc3JjLW1pcnJvciBtb3VudC4Kc2V0IC1ldW8gcGlwZWZhaWwKY2QgL3JlcG8KZXhwZWN0ZWRfc291cmNlPTEwMTdjMTBkZDYzMDhiOGFhZmQ5ODgxN2M4ZWI3MzZjZDhlZTE2N2IKW1sgIiQoZ2l0IHJldi1wYXJzZSBIRUFEKSIgPT0gIiRleHBlY3RlZF9zb3VyY2UiIF1dCmV4cG9ydCBBU0hMQVJfTUFOSUZFU1RfSlNPTj0vc3JjLW1pcnJvci93b3JrL3JjMS1hcnRpZmFjdHMvbnVnZXQtcHVibGlzaC1tYW5pZmVzdC5qc29uCmV4cG9ydCBBU0hMQVJfTlVHRVRfVkVSSUZZX1ZFUlNJT049MC4zLjAtcmMxCmV4cG9ydCBBU0hMQVJfTlVHRVRfUkVTVE9SRV9WRVJJRllfVkVSU0lPTj0wLjMuMC1yYzEKZXhwb3J0IEFTSExBUl9OVUdFVF9WRVJJRllfQVRURU1QVFM9ODAKZXhwb3J0IEFTSExBUl9OVUdFVF9WRVJJRllfU0xFRVBfU0VDPTE1CiMgVmVyaWZ5IGV2ZXJ5IG9yaWdpbmFsIGFydGlmYWN0IGFuZCBzZWxlY3QgZXZlcnkgbWFuaWZlc3QgSUQsIHJhdGhlciB0aGFuIHRoZSBmb3VyLUlEIHJlZ2lzdHJhdGlvbiBkZWZhdWx0LgpleHBvcnQgQVNITEFSX05VR0VUX1ZFUklGWV9QQUNLQUdFX0lEUwpBU0hMQVJfTlVHRVRfVkVSSUZZX1BBQ0tBR0VfSURTPSQocHl0aG9uMyAtICIkQVNITEFSX01BTklGRVNUX0pTT04iIDw8J1BZJwppbXBvcnQgaGFzaGxpYixqc29uLHBhdGhsaWIsc3lzCnA9cGF0aGxpYi5QYXRoKHN5cy5hcmd2WzFdKTsgcm93cz1qc29uLmxvYWRzKHAucmVhZF90ZXh0KCkpCmFzc2VydCByb3dzIGFuZCBpc2luc3RhbmNlKHJvd3MsbGlzdCkKYXNzZXJ0IGxlbih7clsnaWQnXSBmb3IgciBpbiByb3dzfSkgPT0gbGVuKHJvd3MpCmZvciByIGluIHJvd3M6CiAgICBhc3NlcnQgclsndmVyc2lvbiddPT0nMC4zLjAtcmMxJwogICAgYXNzZXJ0IHBhdGhsaWIuUGF0aChyWydmaWxlTmFtZSddKS5uYW1lID09IHJbJ2ZpbGVOYW1lJ10KICAgIGY9cC5wYXJlbnQvclsnZmlsZU5hbWUnXQogICAgYXNzZXJ0IGhhc2hsaWIuc2hhMjU2KGYucmVhZF9ieXRlcygpKS5oZXhkaWdlc3QoKS5sb3dlcigpID09IHJbJ3NoYTI1NiddLmxvd2VyKCksIGYKICAgIGFzc2VydCByWydjb250ZW50U2hhMjU2J10KcHJpbnQoJywnLmpvaW4oclsnaWQnXSBmb3IgciBpbiByb3dzKSkKUFkKKQpwcmludGYgJ09yaWdpbmFsIHNvdXJjZTogJXNcbk9yaWdpbmFsIG1hbmlmZXN0IHBhY2thZ2UgSURzOiAlc1xuJyAiJGV4cGVjdGVkX3NvdXJjZSIgIiRBU0hMQVJfTlVHRVRfVkVSSUZZX1BBQ0tBR0VfSURTIgpiYXNoIHNjcmlwdHMvdmVyaWZ5LW51Z2V0LW9yZy1wYWNrYWdlcy12aXNpYmxlLnNoCmJhc2ggc2NyaXB0cy92ZXJpZnktbnVnZXQtb3JnLXJlZ2lzdHJhdGlvbi12ZXJzaW9ucy5zaApiYXNoIHNjcmlwdHMvdmVyaWZ5LW51Z2V0LXB1Ymxpc2hlZC1zaGEyNTYtbWF0Y2hlcy1tYW5pZmVzdC5zaApiYXNoIHNjcmlwdHMvdmVyaWZ5LW51Z2V0LW9yZy1yZXN0b3JlLXdpdGgtaXNvbGF0ZWQtY2FjaGUuc2gKQVNITEFSX0NPTkZPUk1BTkNFX1NPVVJDRT1udWdldC5vcmcgQVNITEFSX0NPTkZPUk1BTkNFX1ZFUlNJT049MC4zLjAtcmMxIGJhc2ggc2NyaXB0cy92ZXJpZnktcGFja2VkLWNlcnRpZmljYXRpb24tdHJ1c3QtYmVoYXZpb3Iuc2gKYmFzaCBzY3JpcHRzL3ZlcmlmeS1udWdldC1vcmctcmVzdG9yZS1ob3N0aW5nLW9ubHktaXNvbGF0ZWQuc2gKYmFzaCBzY3JpcHRzL3ZlcmlmeS1zdGFibGUtc2RrLWhvc3Qtc2FtcGxlLXB1Ymxpc2hlZC1mZWVkLnNoIDAuMy4wLXJjMQpwcmludGYgJ1JDMSBwb3N0LXB1c2ggdmVyaWZpY2F0aW9uIGNvbXBsZXRlIGZvciBvcmlnaW5hbCBzb3VyY2UgJXNcbicgIiRleHBlY3RlZF9zb3VyY2UiCg==' | base64 --decode > work/rc1-post-push-verify.sh
+          bash -n work/rc1-post-push-verify.sh
+          {
+            printf 'Original publish run: 39885204425\n'
+            printf 'Original package artifact: 12471414765\n'
+            printf 'Original source: '
+            git rev-parse HEAD
+            printf 'Verification run: %s/actions/runs/%s\n' "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            date -u '+Verification started: %Y-%m-%dT%H:%M:%SZ'
+          } | tee work/rc1-evidence/provenance.txt
+
+      - name: Download original package artifacts and manifest
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '12471414765'
+          run-id: '39885204425'
+          github-token: ${{ github.token }}
+          repository: IanFrelinger/Ashlar
+          path: work/rc1-artifacts
+          merge-multiple: true
+
+      - name: Verify existing published rc1 inside Linux harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f work/rc1-artifacts/nuget-publish-manifest.json
+          bash scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE" --ref 1017c10dd6308b8aafd98817c8eb736cd8ee167b -- 'bash /src-mirror/work/rc1-post-push-verify.sh' 2>&1 | tee work/rc1-evidence/post-push-verification.log
+
+      - name: Upload verification receipt even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1-existing-artifacts-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: |
+            work/rc1-evidence/
+            work/rc1-artifacts/nuget-publish-manifest.json
+            work/rc1-post-push-verify.sh
