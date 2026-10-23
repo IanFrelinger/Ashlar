@@ -19,6 +19,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [0.3.0] - 2026-10-19
 
+### Added — ReleaseSignOff / rollback / exceptions for the 0.3.0 cut
+
+- `docs/production-readiness/ReleaseSignOff-v1.md` gains a v0.3.0 row for VERIFIED tip
+  `f1e0193e1` (readiness run 39263145580). Rollback drill honesty note and non-High/Critical
+  exception rows for dogfood/#759 shipping gaps land in the same closeout.
+- Card #759 closeout: integrator decision keeps abort-on-refusal under `FailurePolicy.Continue`
+  (see Changed entry below and `docs/EgressInventory.md`).
+
 ### Changed — default egress is what 0.3.0 changes by default (runbook step 9)
 
 - AirGapped and SecureWorkstation refuse disallowed egress by default (SPEC-007 4.11, #746).
@@ -250,17 +258,21 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 - `BehaviorExecutor` attaches the typed refusal to step error events.
 - `WorkflowExecutor.ExecuteAgentNodeAsync` throws that refusal (consistent with brick and cluster nodes) and
   otherwise honours `BehaviorCompletedEvent.Success` instead of always reporting success.
-- Owner question (c) (`FailurePolicy.Continue` past a refused brick) is untouched; agent nodes now match the
-  existing brick/cluster throw behaviour under Continue.
+- Agent nodes now match the existing brick/cluster throw behaviour under Continue (card #803). Card #759's
+  product choice (continue past a refused brick vs keep abort) was not taken as an owner decisions-log row
+  before the 0.3.0 cut; see the integrator closeout under the Changed entry below.
 
-### Changed — a refusal at a brick or cluster node ends a workflow run under `FailurePolicy.Continue` (SPEC-007 4.8, disclosed in 4.8b)
+### Changed — a refusal at a brick or cluster node ends a workflow run under `FailurePolicy.Continue` (SPEC-007 4.8, disclosed in 4.8b; #759 closeout)
 
 - Since 4.8 (#743), when every implementation of a workflow cluster step failed and one of them was refused, the
   refusal ends the whole workflow run, even when the cluster's `FailurePolicy` is `Continue`. `WorkflowExecutor`
   rethrows it from the cluster (`WorkflowExecutor.cs:391`), the node loop has no per-node catch (`:102-118`), and
   the run raises `WorkflowFailedEvent` and rethrows (`:136-140`). A brick node throws the refusal the same way
-  (`:309`). This fails closed, and 4.8 did not record it. Whether `Continue` should continue past a refused brick
-  is an open question for the owner.
+  (`:309`). This fails closed, and 4.8 did not record it.
+- **Integrator decision for 0.3.0 (card #759, 2026-10-22):** ship the abort-on-refusal behaviour as intended.
+  No owner decisions-log row exists for review §10 (c); this is not an owner product flip to continue past a
+  refused brick. The owner may still turn Continue-past-refusal into a dated decisions-log row later; until
+  then the code and these records match. Known limit: `docs/EgressInventory.md`.
 - That held for brick and cluster nodes only until card #803: an agent node now throws a refused behaviour step
   the same way, and otherwise honours `BehaviorCompletedEvent.Success`.
 

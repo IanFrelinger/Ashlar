@@ -1,4 +1,31 @@
 # High/Critical vulnerability or policy exceptions.
 # Each entry MUST include: owner, expires (YYYY-MM-DD), mitigation, sign_off.
 # RC gate tier E validates this file when RC_GATE_STRICT_EXCEPTIONS=1.
-exceptions: []
+#
+# Non-High/Critical rows are informational for the 0.3.0 cut (dogfood / Known-limit
+# friction shipping open). Tier E only blocks missing fields on High/Critical.
+exceptions:
+  - id: dogfood-getbrick-docs
+    severity: low
+    owner: ashlar-release-0-3-0
+    expires: "2026-12-31"
+    mitigation: "Document GetBrick signature/using in CLI archetype and sdk.md follow-up; not a runtime defect."
+    sign_off: "2026-10-22 ReleaseSignOff-v1 v0.3.0 row; panel-round-3 known friction"
+  - id: dogfood-copilot-no-work-summary-noise
+    severity: low
+    owner: ashlar-release-0-3-0
+    expires: "2026-12-31"
+    mitigation: "POST /api/copilot/task already returns success:false + Failure disposition (#832); summary lead-in remains loud."
+    sign_off: "2026-10-22 ReleaseSignOff-v1 v0.3.0 row; panel-round-3"
+  - id: dogfood-daemon-default-profile
+    severity: low
+    owner: ashlar-release-0-3-0
+    expires: "2026-12-31"
+    mitigation: "background-agent daemon with minimal-agent.json exits 0; profile selection docs vs Server guide is friction only."
+    sign_off: "2026-10-22 ReleaseSignOff-v1 v0.3.0 row; panel-round-3"
+  - id: card-759-continue-vs-abort
+    severity: low
+    owner: ashlar-release-0-3-0
+    expires: "2026-12-31"
+    mitigation: "Integrator decision: keep abort-on-refusal under FailurePolicy.Continue for 0.3.0; CHANGELOG + EgressInventory Known limit. Owner may later land a decisions-log row."
+    sign_off: "2026-10-22 ReleaseSignOff-v1 v0.3.0 row; card #759 closeout"
