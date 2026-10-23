@@ -1,0 +1,39 @@
+name: Proposal durability baseline and validation
+on:
+  push:
+    branches: [codex/proposal-durability-validation]
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Baseline public regressions on unchanged production
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref b3d06baa2eba508072b4e42a2cd12fe771ddebe4 -- 'dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj --framework net8.0 --filter FullyQualifiedName~ChangeProposalDurabilityTests --nologo -v minimal' 2>&1 | tee baseline.log
+      - name: Full background-agent suite on candidate
+        id: suite
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref f063e24e06a08c47dc7438afeec9f8e9b05c168e -- 'dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj --framework net8.0 --nologo -v minimal' 2>&1 | tee suite.log
+      - name: Serial mutation proof
+        if: ${{ !cancelled() && steps.suite.outcome == 'success' }}
+        shell: bash
+        run: |
+          bash scripts/test-in-container.sh --ref f063e24e06a08c47dc7438afeec9f8e9b05c168e -- 'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/proposal-durability.json --archive-stdout' >mutations.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proposal-durability-evidence
+          path: |
+            baseline.log
+            suite.log
+            mutations.log
