@@ -66,6 +66,7 @@ Host applications register code bricks through the stable host SDK surface:
 ```csharp
 using Ashlar.Hosting;
 using Ashlar.Hosting.Sdk;
+using Ashlar.Hosting.Sdk.Extensions;
 
 services.AddAshlarSdk(sdk => sdk.RegisterBrick<HelloBrick>());
 services.AddAshlar();
