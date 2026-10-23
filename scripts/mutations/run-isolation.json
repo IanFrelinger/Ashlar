@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Plans only; not executed. Requires progress-run-scope-test.patch. Validate exact replacement and assertion failures, committed mutation red/restore/green per CLAUDE.md. Unbounded-wait mutation specifically expects test-level WaitAsync TimeoutException (ignoring-shutdown case), not infrastructure timeout.",
+  "note": "All 14 cases KILLED at 9273386b6680fcb6f2a8f6ac3d8e9f0736714a29 on 2026-10-23. See RUN-ISOLATION-EVIDENCE.md for per-case red/restore/green counts and archived evidence. Unbounded-wait case fails by test-level TimeoutException, not infrastructure timeout.",
   "mutations": [
     {
       "id": "run-dependency-scope",
