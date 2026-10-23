@@ -17,6 +17,9 @@ See `docs/SdkCompatibilityPolicy.md` for the full versioning policy.
 ### Registration
 
 ```csharp
+using Ashlar.Hosting;
+using Ashlar.Hosting.Sdk.Extensions;
+
 services.AddAshlarSdk(sdk => sdk
     .RegisterBrick<MyBrick>()
     .RegisterAgent<MyAgent>()

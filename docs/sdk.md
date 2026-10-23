@@ -37,6 +37,7 @@ Use the host surface when embedding Ashlar into your own service. Use the client
 ```csharp
 using Ashlar.Hosting;
 using Ashlar.Hosting.Sdk;
+using Ashlar.Hosting.Sdk.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 

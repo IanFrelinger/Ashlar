@@ -17,6 +17,11 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — SDK registration examples
+
+- Include the extension-method namespace required to compile `AddAshlarSdk` in
+  the SDK quick start, brick authoring, and integration examples.
+
 ### Fixed — isolation between orchestration runs
 
 - Isolate dependency outputs, progress history, health registrations, and resource reservation
