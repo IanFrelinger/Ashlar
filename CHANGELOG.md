@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — resource allocation arithmetic
+
+- Use available capacity when planning preemption and retain existing reservations when
+  a request cannot fit all resource dimensions.
+- Reject negative resource requests and budget maxima; report finite zero utilization
+  for zero-capacity budgets.
+
 ### Fixed — SDK registration examples
 
 - Include the extension-method namespace required to compile `AddAshlarSdk` in

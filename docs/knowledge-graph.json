@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 816,
-    "declared_facts": 5224,
+    "test_files_declaring_facts": 817,
+    "declared_facts": 5231,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -8151,6 +8151,13 @@
       "file": "src/Ashlar.Tests.Orchestration/Resilience/CircuitBreakerTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Resilience",
+      "declared_facts": 7,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Orchestration/ResourceArithmeticTests.cs",
+      "project": "Ashlar.Tests.Orchestration",
+      "namespace": "Ashlar.Tests.Orchestration",
       "declared_facts": 7,
       "in_cert_gate_filter": false
     },
