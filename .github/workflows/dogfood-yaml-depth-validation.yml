@@ -1,0 +1,33 @@
+name: YAML depth repair validation
+on:
+  push:
+    branches: [codex/yaml-depth-validation]
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Full kernel suite in Linux
+        id: suite
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref 1e97b915064cc9e5ecc078062f19ed669b55e503 -- 'dotnet test src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj --framework net8.0 --nologo -v minimal' 2>&1 | tee suite.log
+      - name: Mutation evidence in Linux
+        if: ${{ !cancelled() && steps.suite.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref 1e97b915064cc9e5ecc078062f19ed669b55e503 -- 'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/yaml-depth.json --archive-stdout' >mutations.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: yaml-depth-validation
+          path: |
+            suite.log
+            mutations.log
