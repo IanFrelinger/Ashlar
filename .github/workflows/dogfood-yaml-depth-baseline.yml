@@ -1,0 +1,24 @@
+name: YAML depth baseline
+on:
+  push:
+    branches: [codex/yaml-depth-baseline]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Unchanged production with regression assertions
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref c3e0ab0d263209394a0c66078cd0d0e831a168bb -- 'dotnet test src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj --framework net8.0 --filter FullyQualifiedName~YamlDepthGuardTests --nologo -v minimal' 2>&1 | tee baseline.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: yaml-depth-baseline
+          path: baseline.log
