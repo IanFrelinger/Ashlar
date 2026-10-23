@@ -98,6 +98,7 @@ public sealed partial class InstanceLedger
         {
             throw new ArgumentException("A state root is required.", nameof(stateRoot));
         }
+        Storage.FileLockingCapability.EnsureSupported();
         _dir = Path.Combine(stateRoot, "ledger");
     }
 

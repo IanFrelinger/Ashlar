@@ -17,6 +17,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — runtime file-lock prerequisite
+
+- Gate-store and instance-ledger construction now refuse a runtime that silently accepts conflicting exclusive file handles (#480). A shared cached temporary-file self-test detects disabled locking without rejecting Windows merely because an environment variable is present. This does not prevent deletion of live lock files or certify each store filesystem.
+
 ### Fixed — resource allocation arithmetic
 
 - Use available capacity when planning preemption and retain existing reservations when

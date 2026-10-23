@@ -1,0 +1,41 @@
+{
+  "note": "Runtime capability guard; requires observed red/restoration/green evidence.",
+  "mutations": [
+    {
+      "id": "locking-gate-unguarded",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "        Storage.FileLockingCapability.EnsureSupported();",
+      "new": "        // capability check removed by mutation",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "filter": "FullyQualifiedName~Disabled_file_locking_refuses_store_construction",
+      "expected_failures": [
+        "Disabled_file_locking_refuses_store_construction"
+      ]
+    },
+    {
+      "id": "locking-ledger-unguarded",
+      "file": "src/Ashlar.Manifest/Ledger/InstanceLedger.cs",
+      "old": "        Storage.FileLockingCapability.EnsureSupported();",
+      "new": "        // capability check removed by mutation",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "filter": "FullyQualifiedName~Disabled_file_locking_refuses_store_construction",
+      "expected_failures": [
+        "Disabled_file_locking_refuses_store_construction"
+      ]
+    },
+    {
+      "id": "locking-conflicting-open-allowed",
+      "file": "src/Ashlar.Manifest/Storage/FileLockingCapability.cs",
+      "old": "throw new InvalidOperationException(\n                \"File locking is unavailable:",
+      "new": "return true;\n#pragma warning disable CS0162\n            throw new InvalidOperationException(\n                \"File locking is unavailable:",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "filter": "FullyQualifiedName~Disabled_file_locking_refuses_store_construction",
+      "expected_failures": [
+        "Disabled_file_locking_refuses_store_construction"
+      ]
+    }
+  ]
+}

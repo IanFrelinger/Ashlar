@@ -112,6 +112,7 @@ public sealed partial class GateStore
         {
             throw new ArgumentException("A state root is required.", nameof(stateRoot));
         }
+        Storage.FileLockingCapability.EnsureSupported();
         _stateRoot = stateRoot;
         _dir = Path.Combine(stateRoot, "gates");
         _signer = signer;

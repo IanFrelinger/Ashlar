@@ -79,3 +79,19 @@ crash mid-write, a corrupt file that must fail loud rather than vanish — so th
 gate store's proven shapes: a `FileShare.None` cross-process lock the OS releases on death,
 write-to-temp-then-rename, and fail-closed reads. Same canonical-JSON and Ed25519 machinery
 (SPEC-006) signs both.
+
+## Runtime file-lock prerequisite
+
+GateStore and InstanceLedger constructors share a once-per-process runtime self-test: a
+second `FileShare.None` open of a held temporary file must be refused. If exclusion is
+disabled (for example by `DOTNET_SYSTEM_IO_DISABLEFILELOCKING=1` on Unix), construction
+fails with an explanation to remove the setting and restart. An inherited or operator-set
+environment variable does not authorize operation without this integrity prerequisite.
+Windows continues to work when its kernel still enforces sharing restrictions. A failed
+probe is cached as well as a successful one; inability to create the probe also refuses use.
+
+The cached probe establishes the process/runtime's behavior on the temporary filesystem,
+not every store filesystem's semantics. Stores still require a trusted local directory
+and cooperative lock-file lifetime: deleting/replacing `.lock` while another writer
+holds it can split lock identity. The probe does not prevent that, establish network-file-
+system safety, or defend against an actor controlling the runtime or arbitrary store files.
