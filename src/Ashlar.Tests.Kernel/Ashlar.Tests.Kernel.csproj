@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
     <ProjectReference Include="..\Ashlar.Brick.Contracts\Ashlar.Brick.Contracts.csproj" />
     <ProjectReference Include="..\Ashlar.Manifest\Ashlar.Manifest.csproj" />
+    <ProjectReference Include="../../tools/Ashlar.FileLockingProbe/Ashlar.FileLockingProbe.csproj" />
     <ProjectReference Include="..\Ashlar.Policies\Ashlar.Policies.csproj" />
     <ProjectReference Include="..\Ashlar.Policies.Dev\Ashlar.Policies.Dev.csproj" />
     <ProjectReference Include="..\Ashlar.Tools.Assembly\Ashlar.Tools.Assembly.csproj" />
