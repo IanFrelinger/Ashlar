@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Ashlar.BackgroundAgents.Forge;
 using FluentAssertions;
 using Xunit;
@@ -40,6 +39,55 @@ public sealed class ChangeProposalDurabilityTests : IDisposable
         transition.Should().Throw<IOException>();
         File.ReadAllText(PathFor("proposed")).Should().Be(before);
         File.ReadAllText(destination).Should().Be("owned by another record");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Partial_transition_write_never_changes_live_source(bool stale)
+    {
+        var original = new ChangeProposalStore(_root);
+        original.Add(Proposal());
+        var before = File.ReadAllText(PathFor("proposed"));
+        var failure = new IOException("simulated disk full during flush");
+        var store = new ChangeProposalStore(_root, (path, json) =>
+        {
+            File.WriteAllText(path, json[..8]);
+            // The public reader must still see the complete old document while staging fails.
+            File.ReadAllText(PathFor("proposed")).Should().Be(before);
+            original.Find("p")!.Status.Should().Be(ChangeProposalStatus.Proposed);
+            throw failure;
+        });
+        Action transition = () => { if (stale) store.MarkStale("p"); else store.Approve("p"); };
+        transition.Should().Throw<IOException>().Which.Should().BeSameAs(failure);
+        File.ReadAllText(PathFor("proposed")).Should().Be(before);
+        File.Exists(PathFor(stale ? "stale" : "approved")).Should().BeFalse();
+        Directory.EnumerateFiles(_root, "*.tmp", SearchOption.AllDirectories).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Failed_add_write_preserves_disk_error_and_never_publishes_partial_record()
+    {
+        var failure = new IOException("simulated disk full during flush");
+        var store = new ChangeProposalStore(_root, (path, json) =>
+        {
+            File.WriteAllText(path, json[..8]);
+            throw failure;
+        });
+        Action add = () => store.Add(Proposal());
+        add.Should().Throw<IOException>().Which.Should().BeSameAs(failure);
+        File.Exists(PathFor("proposed")).Should().BeFalse();
+        Directory.EnumerateFiles(_root, "*.tmp", SearchOption.AllDirectories).Should().BeEmpty();
+        new ChangeProposalStore(_root).Add(Proposal()).Id.Should().Be("p");
+    }
+
+    [Fact]
+    public void Find_propagates_live_path_access_failure_instead_of_reporting_missing()
+    {
+        var store = new ChangeProposalStore(_root);
+        Directory.CreateDirectory(PathFor("proposed"));
+        Action find = () => store.Find("p");
+        find.Should().Throw<UnauthorizedAccessException>();
     }
 
     [Fact]

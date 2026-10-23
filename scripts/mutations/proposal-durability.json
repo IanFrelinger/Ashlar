@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "note": "Unexecuted mutation definitions for issue #475; no verdict claimed.",
+  "mutations": [
+    {
+      "id": "proposal-live-read-errors",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "    private static ChangeProposal Load(string path)\n    {\n        // IO/access failures propagate rather than silently dropping a live proposal.\n        var json = File.ReadAllText(path);\n        try\n        {\n            return JsonSerializer.Deserialize<ChangeProposal>(json, Json)\n                ?? throw new InvalidDataException($\"Proposal record '{path}' contains JSON null.\");\n        }\n        catch (JsonException ex)\n        {\n            throw new InvalidDataException($\"Proposal record '{path}' contains invalid JSON.\", ex);\n        }\n    }",
+      "new": "    private static ChangeProposal Load(string path)\n    {\n        try { return JsonSerializer.Deserialize<ChangeProposal>(File.ReadAllText(path), Json)!; }\n        catch { return null!; }\n    }",
+      "filter": "FullyQualifiedName~Live_corrupt_record_fails_loudly_in_find_and_list",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Live_corrupt_record_fails_loudly_in_find_and_list"
+      ]
+    },
+    {
+      "id": "proposal-find-access-errors",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "if (RecordExists(path)) return Load(path);",
+      "new": "if (File.Exists(path)) return Load(path);",
+      "filter": "FullyQualifiedName~Find_propagates_live_path_access_failure_instead_of_reporting_missing",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Find_propagates_live_path_access_failure_instead_of_reporting_missing"
+      ]
+    },
+    {
+      "id": "proposal-transition-live-write",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "_writeTemporary(temporary, JsonSerializer.Serialize(updated, Json));",
+      "new": "_writeTemporary(source, JsonSerializer.Serialize(updated, Json));",
+      "filter": "FullyQualifiedName~Partial_transition_write_never_changes_live_source",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Partial_transition_write_never_changes_live_source"
+      ]
+    },
+    {
+      "id": "proposal-transition-collision",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "        if (RecordExists(destination))\n            throw new IOException($\"Proposal destination '{destination}' already exists.\");",
+      "new": "",
+      "filter": "FullyQualifiedName~Destination_collision_does_not_rewrite_source_or_clobber_destination",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Destination_collision_does_not_rewrite_source_or_clobber_destination"
+      ]
+    },
+    {
+      "id": "proposal-add-write-error",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "                _writeTemporary(temporary, JsonSerializer.Serialize(stamped, Json));",
+      "new": "                try { _writeTemporary(temporary, JsonSerializer.Serialize(stamped, Json)); }\n                catch (IOException) when (File.Exists(temporary))\n                { throw new InvalidOperationException(\"Proposal already exists \u2014 propose under a new id.\"); }",
+      "filter": "FullyQualifiedName~Failed_add_write_preserves_disk_error_and_never_publishes_partial_record",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Failed_add_write_preserves_disk_error_and_never_publishes_partial_record"
+      ]
+    },
+    {
+      "id": "proposal-add-live-write",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "_writeTemporary(temporary, JsonSerializer.Serialize(stamped, Json));",
+      "new": "_writeTemporary(path, JsonSerializer.Serialize(stamped, Json));",
+      "filter": "FullyQualifiedName~Failed_add_write_preserves_disk_error_and_never_publishes_partial_record",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Failed_add_write_preserves_disk_error_and_never_publishes_partial_record"
+      ]
+    }
+  ]
+}
