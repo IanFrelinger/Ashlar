@@ -1,0 +1,53 @@
+{
+  "note": "Depth bound repair for #476; committed cases require observed red/restoration/green evidence.",
+  "mutations": [
+    {
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "id": "yaml-depth-unbounded",
+      "old": "parser.Current is MappingStart or SequenceStart && stack.Count >= MaxNestingDepth",
+      "new": "parser.Current is MappingStart or SequenceStart && stack.Count >= int.MaxValue",
+      "filter": "FullyQualifiedName~Over_limit_containers_are_rejected_before_deserialization",
+      "expected_failures": [
+        "Over_limit_containers_are_rejected_before_deserialization"
+      ]
+    },
+    {
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "id": "yaml-depth-off-by-one",
+      "old": "parser.Current is MappingStart or SequenceStart && stack.Count >= MaxNestingDepth",
+      "new": "parser.Current is MappingStart or SequenceStart && stack.Count > MaxNestingDepth",
+      "filter": "FullyQualifiedName~Over_limit_containers_are_rejected_before_deserialization",
+      "expected_failures": [
+        "Over_limit_containers_are_rejected_before_deserialization"
+      ]
+    },
+    {
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "id": "yaml-depth-mapping-only",
+      "old": "parser.Current is MappingStart or SequenceStart && stack.Count >= MaxNestingDepth",
+      "new": "parser.Current is MappingStart && stack.Count >= MaxNestingDepth",
+      "filter": "FullyQualifiedName~Over_limit_containers_are_rejected_before_deserialization",
+      "expected_failures": [
+        "Over_limit_containers_are_rejected_before_deserialization"
+      ]
+    },
+    {
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "id": "yaml-depth-too-strict",
+      "old": "parser.Current is MappingStart or SequenceStart && stack.Count >= MaxNestingDepth",
+      "new": "parser.Current is MappingStart or SequenceStart && stack.Count >= MaxNestingDepth - 1",
+      "filter": "FullyQualifiedName~Exactly_limit_containers_remain_accepted",
+      "expected_failures": [
+        "Exactly_limit_containers_remain_accepted"
+      ]
+    }
+  ]
+}

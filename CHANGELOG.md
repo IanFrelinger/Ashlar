@@ -17,6 +17,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject YAML configurations deeper than 64 mappings/sequences before recursive deserialization; both policy and manifest loaders return a nesting-limit refusal (#476).
+
 ### Fixed — resource allocation arithmetic
 
 - Use available capacity when planning preemption and retain existing reservations when
