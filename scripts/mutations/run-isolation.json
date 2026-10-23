@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "note": "All 14 cases KILLED at 9273386b6680fcb6f2a8f6ac3d8e9f0736714a29 on 2026-10-23. See RUN-ISOLATION-EVIDENCE.md for per-case red/restore/green counts and archived evidence. Unbounded-wait case fails by test-level TimeoutException, not infrastructure timeout.",
+  "mutations": [
+    {
+      "id": "run-dependency-scope",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "using var dependencyScope = _dependencyResolver.BeginRunScope();",
+      "new": "// mutation: no dependency scope",
+      "filter": "FullyQualifiedName~Concurrent_orchestrators_do_not_read_other_runs_dependency_output",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Concurrent_orchestrators_do_not_read_other_runs_dependency_output"
+      ]
+    },
+    {
+      "id": "run-progress-scope",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "using var progressScope = _progressTracker.BeginRunScope();",
+      "new": "// mutation: no progress scope",
+      "filter": "FullyQualifiedName~Orchestration_progress_scope_excludes_matching_root_history_and_restores_it",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Orchestration_progress_scope_excludes_matching_root_history_and_restores_it"
+      ]
+    },
+    {
+      "id": "run-health-key",
+      "file": "src/Ashlar.Orchestration/Agents/HealthMonitor.cs",
+      "old": "return (_runScope.Value, agentId);",
+      "new": "return (null, agentId);",
+      "filter": "FullyQualifiedName~Nested_run_shutdown_preserves_outer_live_agent_health",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Nested_run_shutdown_preserves_outer_live_agent_health"
+      ]
+    },
+    {
+      "id": "run-allocator-ownership",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "using var allocationScope = _resourceAllocator.BeginRunScope();",
+      "new": "// mutation: no allocation scope",
+      "filter": "FullyQualifiedName~Concurrent_orchestrators_preserve_global_capacity_and_release_owned_allocations",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Concurrent_orchestrators_preserve_global_capacity_and_release_owned_allocations"
+      ]
+    },
+    {
+      "id": "run-allocator-release-other-owner",
+      "file": "src/Ashlar.Orchestration/Coordination/ResourceAllocator.cs",
+      "old": "_owner._allocations.Keys.Where(key => ReferenceEquals(key.Scope, this)).ToArray()",
+      "new": "_owner._allocations.Keys.ToArray()",
+      "filter": "FullyQualifiedName~Concurrent_orchestrators_preserve_global_capacity_and_release_owned_allocations",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Concurrent_orchestrators_preserve_global_capacity_and_release_owned_allocations"
+      ]
+    },
+    {
+      "id": "run-allocator-leak-reservation",
+      "file": "src/Ashlar.Orchestration/Coordination/ResourceAllocator.cs",
+      "old": "                    _owner.RemoveAllocation(key);",
+      "new": "                    // mutation: reservation not released",
+      "filter": "FullyQualifiedName~Throwing_run_releases_its_reservations_and_restores_root",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Throwing_run_releases_its_reservations_and_restores_root"
+      ]
+    },
+    {
+      "id": "run-bus-retains-subscription",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "                _dependencyResolver.RegisterAgent(container);",
+      "new": "                _dependencyResolver.RegisterAgent(container);\n                await _agentBus.SubscribeAsync(\"OutputEmitted\", (_, _) => Task.CompletedTask, container.AgentId, token);",
+      "filter": "FullyQualifiedName~Repeated_orchestrations_leave_no_owned_subscriptions_on_shared_bus",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Repeated_orchestrations_leave_no_owned_subscriptions_on_shared_bus"
+      ]
+    },
+    {
+      "id": "run-result-empty-progress",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "ProgressSummary = progressSummary,",
+      "new": "ProgressSummary = _progressTracker.GetSummary(_lifecycleManager.GetActiveAgents()),",
+      "filter": "FullyQualifiedName~Successful_result_reports_agents_before_cleanup_removes_them",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Successful_result_reports_agents_before_cleanup_removes_them"
+      ]
+    },
+    {
+      "id": "run-result-other-escalations",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "Escalations = runEscalations.ToArray(),",
+      "new": "Escalations = _escalationManager.GetAllEscalations(),",
+      "filter": "FullyQualifiedName~Successful_run_excludes_prior_escalations_but_preserves_operator_queue",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Successful_run_excludes_prior_escalations_but_preserves_operator_queue"
+      ]
+    },
+    {
+      "id": "run-progress-summary-membership",
+      "file": "src/Ashlar.Orchestration/Coordination/ProgressTracker.cs",
+      "old": "var thrashing = GetThrashingAgents().Count(agentIds.Contains);",
+      "new": "var thrashing = GetThrashingAgents().Count;",
+      "filter": "FullyQualifiedName~Empty_summary_excludes_other_agents_thrashing_history",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Empty_summary_excludes_other_agents_thrashing_history"
+      ]
+    },
+    {
+      "id": "run-skip-exception-cleanup",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "            if (!cleanupAttempted)\n                await _lifecycleManager.CleanupRunAsync();",
+      "new": "            if (!cleanupAttempted) { /* mutation: no exceptional cleanup */ }",
+      "filter": "FullyQualifiedName~Post_registration_failure_cleans_health_and_preserves_primary_error",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Post_registration_failure_cleans_health_and_preserves_primary_error"
+      ]
+    },
+    {
+      "id": "run-cleanup-masks-primary",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "            if (!cleanupAttempted)\n                await _lifecycleManager.CleanupRunAsync();",
+      "new": "            if (!cleanupAttempted)\n            {\n                var cleanupFailure = await _lifecycleManager.CleanupRunAsync();\n                if (cleanupFailure is not null) throw cleanupFailure;\n            }",
+      "filter": "FullyQualifiedName~Post_registration_failure_cleans_health_and_preserves_primary_error",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Post_registration_failure_cleans_health_and_preserves_primary_error"
+      ]
+    },
+    {
+      "id": "run-cleanup-health-retained",
+      "file": "src/Ashlar.Orchestration/Agents/LifecycleManager.cs",
+      "old": "                _healthMonitor.UnregisterAgent(pair.Value);",
+      "new": "                // mutation: retain health registration",
+      "filter": "FullyQualifiedName~Post_registration_failure_cleans_health_and_preserves_primary_error",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Post_registration_failure_cleans_health_and_preserves_primary_error"
+      ]
+    },
+    {
+      "id": "run-cleanup-unbounded-wait",
+      "file": "src/Ashlar.Orchestration/Agents/LifecycleManager.cs",
+      "old": "await shutdown.WaitAsync(budget).ConfigureAwait(false);",
+      "new": "await shutdown.ConfigureAwait(false);",
+      "filter": "FullyQualifiedName~Cleanup_bounds_cooperative_and_ignoring_shutdown_and_preserves_outer_scope",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Cleanup_bounds_cooperative_and_ignoring_shutdown_and_preserves_outer_scope"
+      ]
+    }
+  ]
+}

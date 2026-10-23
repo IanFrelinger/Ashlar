@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Abstractions.Barriers;
 using Microsoft.Extensions.Logging;
@@ -180,7 +181,12 @@ public sealed class Orchestrator
         // ShutdownAllAsync below tears down both. The scope flows with the async context, so the
         // transport this method awaits resolves agents from the same run.
         using var agentScope = _lifecycleManager.BeginRunScope();
+        using var dependencyScope = _dependencyResolver.BeginRunScope();
+        using var progressScope = _progressTracker.BeginRunScope();
+        using var allocationScope = _resourceAllocator.BeginRunScope();
+        var runEscalations = new ConcurrentQueue<Escalation>();
 
+        var cleanupAttempted = false;
         var rootSpanId = _metrics?.StartSpan("Orchestrate", null, new Dictionary<string, string>
         {
             ["correlationId"] = correlationId,
@@ -242,7 +248,7 @@ public sealed class Orchestrator
                     if (conflict.Severity == ConflictSeverity.Critical)
                     {
                         // Always escalate critical conflicts
-                        _escalationManager.EscalateConflict(conflict, "Critical conflict - requires human decision");
+                        runEscalations.Enqueue(_escalationManager.EscalateConflict(conflict, "Critical conflict - requires human decision"));
                         unresolvedConflicts.Add(conflict);
                         return LoopAction.Continue;
                     }
@@ -270,7 +276,7 @@ public sealed class Orchestrator
                             "Conflict {ConflictType} could not be resolved: {Reason}",
                             conflict.ConflictType, result.Reason);
 
-                        _escalationManager.EscalateConflict(conflict, result.Reason ?? "Negotiation failed");
+                        runEscalations.Enqueue(_escalationManager.EscalateConflict(conflict, result.Reason ?? "Negotiation failed"));
                         unresolvedConflicts.Add(conflict);
                     }
                     return LoopAction.Continue;
@@ -281,7 +287,7 @@ public sealed class Orchestrator
                 // No negotiation protocol - escalate all non-critical conflicts
                 foreach (var conflict in conflicts.Where(c => c.Severity == ConflictSeverity.Critical))
                 {
-                    _escalationManager.EscalateConflict(conflict, "Pre-execution conflict detection");
+                    runEscalations.Enqueue(_escalationManager.EscalateConflict(conflict, "Pre-execution conflict detection"));
                     unresolvedConflicts.Add(conflict);
                 }
             }
@@ -293,10 +299,10 @@ public sealed class Orchestrator
                 if (!_resourceAllocator.TryAllocate(container, out var _allocation))
                 {
                     _logger.LogWarning("Failed to allocate resources for agent {AgentId}", container.AgentId);
-                    var escalation = _escalationManager.EscalateIssue(
+                    runEscalations.Enqueue(_escalationManager.EscalateIssue(
                         "ResourceAllocation",
                         $"Failed to allocate resources for agent {container.AgentId}",
-                        EscalationSeverity.High);
+                        EscalationSeverity.High));
                     return LoopAction.Continue;
                 }
 
@@ -304,15 +310,6 @@ public sealed class Orchestrator
                 await _lifecycleManager.RegisterAgentAsync(container, token);
                 _dependencyResolver.RegisterAgent(container);
 
-                // Subscribe to agent messages
-                await _agentBus.SubscribeAsync("OutputEmitted", async (msg, ct) =>
-                {
-                    if (msg is OutputEmitted outputMsg && outputMsg.FromAgentId == container.AgentId)
-                    {
-                        _dependencyResolver.RecordOutput(container.AgentId, outputMsg.Output);
-                    }
-                    await Task.CompletedTask;
-                }, container.AgentId, token);
                 return LoopAction.Continue;
             }, new LoopOptions { Name = "register-agents" }, cancellationToken);
 
@@ -401,10 +398,10 @@ public sealed class Orchestrator
                             errorCode,
                             result.ErrorMessage ?? "Unknown transport error");
 
-                        _escalationManager.EscalateIssue(
+                        runEscalations.Enqueue(_escalationManager.EscalateIssue(
                             "AgentExecution",
                             $"Agent {agentId} execution failed ({errorCode}): {result.ErrorMessage ?? "Unknown transport error"}",
-                            EscalationSeverity.High);
+                            EscalationSeverity.High));
 
                         return LoopAction.Continue;
                     }
@@ -431,7 +428,7 @@ public sealed class Orchestrator
                     // Record agent metrics
                     if (_metrics != null)
                     {
-                        var allocation = _resourceAllocator.GetAllocations().FirstOrDefault(a => a.AgentId == agentId);
+                        var allocation = _resourceAllocator.GetAllocation(agentId);
                         _metrics.RecordAgentExecution(
                             agentId,
                             container.Agent.Spec.Domain,
@@ -461,22 +458,22 @@ public sealed class Orchestrator
                     // own error code (not the generic "AgentExecution" bucket) so callers can see
                     // WHY nothing ran instead of a bare "0 agent(s) executed".
                     _logger.LogError(ex, "Agent {AgentId} skipped: barrier context missing", agentId);
-                    _escalationManager.EscalateIssue(
+                    runEscalations.Enqueue(_escalationManager.EscalateIssue(
                         ex.ErrorCode,
                         $"Agent {agentId} was not executed: {ex.Message} " +
                         "Establish a barrier context before invoking agents, or set " +
                         "Ashlar:Barriers:RequireExplicitBarrier=false to default to the floor level.",
                         EscalationSeverity.High,
-                        $"correlationId={ex.CorrelationId}");
+                        $"correlationId={ex.CorrelationId}"));
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Agent {AgentId} execution failed", agentId);
-                    _escalationManager.EscalateIssue(
+                    runEscalations.Enqueue(_escalationManager.EscalateIssue(
                         "AgentExecution",
                         $"Agent {agentId} execution failed: {ex.Message}",
                         EscalationSeverity.High,
-                        ex.StackTrace);
+                        ex.StackTrace));
                 }
 
                 // Track progress
@@ -497,16 +494,22 @@ public sealed class Orchestrator
             var noWork = NoWorkPlaceholder.Only(outputs.Values);
             if (noWork)
             {
-                _escalationManager.EscalateIssue(
+                runEscalations.Enqueue(_escalationManager.EscalateIssue(
                     "NO_WORK",
                     "No specialized agent performed work; the result is a placeholder.",
-                    EscalationSeverity.High);
+                    EscalationSeverity.High));
             }
 
             var success = integratedOutput.IsValid && !noWork;
 
-            // Step 6: Shutdown all agents
-            await _lifecycleManager.ShutdownAllAsync(cancellationToken);
+            // Snapshot this run before shutdown removes its active agents.
+            var progressSummary = _progressTracker.GetSummary(_lifecycleManager.GetActiveAgents());
+
+            // Bounded normal cleanup precedes successful telemetry and the result.
+            cleanupAttempted = true;
+            var cleanupError = await _lifecycleManager.CleanupRunAsync();
+            if (cleanupError is not null)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cleanupError).Throw();
 
             if (rootSpanId != null)
             {
@@ -514,7 +517,7 @@ public sealed class Orchestrator
                 {
                     ["agentCount"] = decomposition.Agents.Count.ToString(),
                     ["conflictCount"] = conflicts.Count.ToString(),
-                    ["escalationCount"] = _escalationManager.GetAllEscalations().Count.ToString()
+                    ["escalationCount"] = runEscalations.Count.ToString()
                 });
             }
 
@@ -526,8 +529,8 @@ public sealed class Orchestrator
                 Conflicts = conflicts,
                 ResolvedConflicts = resolvedConflicts,
                 UnresolvedConflicts = unresolvedConflicts,
-                Escalations = _escalationManager.GetAllEscalations(),
-                ProgressSummary = _progressTracker.GetSummary(_lifecycleManager.GetActiveAgents()),
+                Escalations = runEscalations.ToArray(),
+                ProgressSummary = progressSummary,
                 CorrelationId = correlationId
             };
         }
@@ -542,6 +545,12 @@ public sealed class Orchestrator
             }
             _logger.LogError(ex, "Orchestration failed");
             throw;
+        }
+        finally
+        {
+            // Exceptional paths preserve their original failure; cleanup records its own error.
+            if (!cleanupAttempted)
+                await _lifecycleManager.CleanupRunAsync();
         }
     }
 

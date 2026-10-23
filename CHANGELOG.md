@@ -17,6 +17,22 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — SDK registration examples
+
+- Include the extension-method namespace required to compile `AddAshlarSdk` in
+  the SDK quick start, brick authoring, and integration examples.
+
+### Fixed — isolation between orchestration runs
+
+- Isolate dependency outputs, progress history, health registrations, and resource reservation
+  ownership when nested or concurrent calls reuse agent IDs. Keep aggregate resource budgets
+  and live health monitoring across runs.
+- Preserve progress counts before shutdown, return only the current run’s escalations, and
+  avoid accumulating output subscriptions on a shared bus. Operator escalation history remains
+  available across runs.
+- Clean up failed runs with a bounded shutdown wait while preserving their original error.
+  Agent code that ignores cancellation may continue after registration cleanup.
+
 ### Fixed — nuget.org post-push visibility poll budget for large packages (0.3.0-rc1)
 
 - `0.3.0-rc1` pack-and-publish ([run 39885204425](https://github.com/IanFrelinger/Ashlar/actions/runs/39885204425))

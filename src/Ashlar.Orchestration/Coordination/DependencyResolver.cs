@@ -21,10 +21,10 @@ namespace Ashlar.Orchestration.Coordination;
 public sealed class DependencyResolver
 {
     private readonly ILogger<DependencyResolver> _logger;
-    private readonly ConcurrentDictionary<string, AgentContainer> _agents = new();
-    private readonly ConcurrentDictionary<string, object> _outputs = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>> _dependencyGraph = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>> _reverseDependencyGraph = new();
+    private readonly RunState _rootState = new();
+    private readonly AsyncLocal<RunState?> _runState = new();
+
+    private RunState State => _runState.Value ?? _rootState;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DependencyResolver"/> class.
@@ -33,6 +33,49 @@ public sealed class DependencyResolver
     public DependencyResolver(ILogger<DependencyResolver> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Starts an isolated orchestration run while preserving standalone resolver state.
+    /// Call synchronously in the run's execution context before starting child tasks.
+    /// </summary>
+    internal IDisposable BeginRunScope()
+    {
+        var previous = _runState.Value;
+        _runState.Value = new RunState();
+        return new RunScope(_runState, previous);
+    }
+
+    private sealed class RunState
+    {
+        internal readonly ConcurrentDictionary<string, AgentContainer> Agents = new();
+        internal readonly ConcurrentDictionary<string, object> Outputs = new();
+        internal readonly ConcurrentDictionary<string, HashSet<string>> DependencyGraph = new();
+        internal readonly ConcurrentDictionary<string, HashSet<string>> ReverseDependencyGraph = new();
+    }
+
+    private sealed class RunScope : IDisposable
+    {
+        private readonly AsyncLocal<RunState?> _slot;
+        private readonly RunState? _previous;
+        private bool _disposed;
+
+        internal RunScope(AsyncLocal<RunState?> slot, RunState? previous)
+        {
+            _slot = slot;
+            _previous = previous;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _slot.Value = _previous;
+            _disposed = true;
+        }
     }
 
     /// <summary>
@@ -51,16 +94,16 @@ public sealed class DependencyResolver
         }
 
         var agentId = container.AgentId;
-        _agents[agentId] = container;
+        State.Agents[agentId] = container;
 
         // Build effective dependency graph from explicit dependencies + chain-of-command supervisor.
         var effectiveDependencies = BuildEffectiveDependencies(container.Agent.Spec);
-        _dependencyGraph[agentId] = effectiveDependencies;
+        State.DependencyGraph[agentId] = effectiveDependencies;
         
         // Build reverse dependency graph (who depends on this agent) - thread-safe
         foreach (var dep in effectiveDependencies)
         {
-            _reverseDependencyGraph.AddOrUpdate(
+            State.ReverseDependencyGraph.AddOrUpdate(
                 dep,
                 new HashSet<string> { agentId },
                 (key, existing) =>
@@ -87,7 +130,7 @@ public sealed class DependencyResolver
     /// <returns>A read-only list of agent containers that are ready to execute.</returns>
     public IReadOnlyList<AgentContainer> GetReadyAgents()
     {
-        return _agents.Values
+        return State.Agents.Values
             .Where(container =>
             {
                 var agentId = container.AgentId;
@@ -96,7 +139,7 @@ public sealed class DependencyResolver
                 // Agent is ready if:
                 // 1. All dependencies have outputs
                 // 2. Agent is in Ready or Executing state (not Failed/Completed/Terminated)
-                return dependencies.All(dep => _outputs.ContainsKey(dep)) &&
+                return dependencies.All(dep => State.Outputs.ContainsKey(dep)) &&
                        (container.State == AgentState.Ready || container.State == AgentState.Executing);
             })
             .ToList();
@@ -109,7 +152,7 @@ public sealed class DependencyResolver
     /// <returns>A read-only list of agent containers that are blocked waiting for dependencies.</returns>
     public IReadOnlyList<AgentContainer> GetBlockedAgents()
     {
-        return _agents.Values
+        return State.Agents.Values
             .Where(container =>
             {
                 // Check if all dependencies (including transitive) are resolved
@@ -126,7 +169,7 @@ public sealed class DependencyResolver
     /// <returns>A read-only list of agent IDs that are blocking this agent's execution.</returns>
     public IReadOnlyList<string> GetBlockingDependencies(string agentId)
     {
-        if (!_agents.TryGetValue(agentId, out var container))
+        if (!State.Agents.TryGetValue(agentId, out var container))
         {
             return Array.Empty<string>();
         }
@@ -157,11 +200,11 @@ public sealed class DependencyResolver
 
         foreach (var dep in dependencies)
         {
-            if (!_outputs.ContainsKey(dep))
+            if (!State.Outputs.ContainsKey(dep))
             {
                 blocking.Add(dep);
             }
-            else if (_agents.TryGetValue(dep, out var depContainer))
+            else if (State.Agents.TryGetValue(dep, out var depContainer))
             {
                 // Check transitive dependencies
                 CollectBlockingDependencies(dep, GetDependenciesForAgent(dep), blocking, visited);
@@ -184,18 +227,18 @@ public sealed class DependencyResolver
             throw new ArgumentException("Agent ID cannot be null or empty", nameof(agentId));
         }
 
-        _outputs[agentId] = output ?? throw new ArgumentNullException(nameof(output));
+        State.Outputs[agentId] = output ?? throw new ArgumentNullException(nameof(output));
 
         _logger.LogDebug("Recorded output for agent {AgentId}, unblocking dependent agents", agentId);
 
         // Notify direct dependents
-        if (_reverseDependencyGraph.TryGetValue(agentId, out var dependents))
+        if (State.ReverseDependencyGraph.TryGetValue(agentId, out var dependents))
         {
             var newlyUnblocked = new HashSet<string>();
             
             foreach (var dependentId in dependents)
             {
-                if (_agents.TryGetValue(dependentId, out var dependent))
+                if (State.Agents.TryGetValue(dependentId, out var dependent))
                 {
                     // Check if all dependencies are now resolved (including transitive)
                     if (AreAllDependenciesResolved(dependentId, new HashSet<string>()))
@@ -228,14 +271,14 @@ public sealed class DependencyResolver
         }
         visited.Add(agentId);
 
-        if (!_reverseDependencyGraph.TryGetValue(agentId, out var dependents))
+        if (!State.ReverseDependencyGraph.TryGetValue(agentId, out var dependents))
         {
             return;
         }
 
         foreach (var dependentId in dependents)
         {
-            if (_agents.TryGetValue(dependentId, out var dependent))
+            if (State.Agents.TryGetValue(dependentId, out var dependent))
             {
                 if (AreAllDependenciesResolved(dependentId, new HashSet<string>()))
                 {
@@ -261,7 +304,7 @@ public sealed class DependencyResolver
         }
         visited.Add(agentId);
 
-        if (!_agents.TryGetValue(agentId, out var container))
+        if (!State.Agents.TryGetValue(agentId, out var container))
         {
             return false;
         }
@@ -270,7 +313,7 @@ public sealed class DependencyResolver
         foreach (var dep in dependencies)
         {
             // Direct dependency must have output
-            if (!_outputs.ContainsKey(dep))
+            if (!State.Outputs.ContainsKey(dep))
             {
                 return false;
             }
@@ -295,7 +338,7 @@ public sealed class DependencyResolver
         var result = new Dictionary<string, object>();
         foreach (var dep in dependencies)
         {
-            if (_outputs.TryGetValue(dep, out var output))
+            if (State.Outputs.TryGetValue(dep, out var output))
             {
                 result[dep] = output;
             }
@@ -315,7 +358,7 @@ public sealed class DependencyResolver
             return Array.Empty<string>();
         }
 
-        if (_dependencyGraph.TryGetValue(agentId, out var dependencies))
+        if (State.DependencyGraph.TryGetValue(agentId, out var dependencies))
         {
             return dependencies.ToList();
         }
@@ -338,7 +381,7 @@ public sealed class DependencyResolver
                 continue;
             }
 
-            if (_outputs.TryGetValue(dep, out var output))
+            if (State.Outputs.TryGetValue(dep, out var output))
             {
                 result[dep] = output;
             }
@@ -375,11 +418,11 @@ public sealed class DependencyResolver
 
             inProgress.Add(agentId);
 
-            if (_dependencyGraph.TryGetValue(agentId, out var dependencies))
+            if (State.DependencyGraph.TryGetValue(agentId, out var dependencies))
             {
                 foreach (var dep in dependencies)
                 {
-                    if (_agents.ContainsKey(dep))
+                    if (State.Agents.ContainsKey(dep))
                     {
                         Visit(dep);
                     }
@@ -391,7 +434,7 @@ public sealed class DependencyResolver
             result.Add(agentId);
         }
 
-        foreach (var agentId in _agents.Keys)
+        foreach (var agentId in State.Agents.Keys)
         {
             Visit(agentId);
         }
@@ -406,12 +449,12 @@ public sealed class DependencyResolver
     /// <returns>True if all dependencies are resolved, false otherwise.</returns>
     public bool AreDependenciesResolved(string agentId)
     {
-        if (!_agents.TryGetValue(agentId, out var container))
+        if (!State.Agents.TryGetValue(agentId, out var container))
         {
             return false;
         }
 
-        return GetDependenciesForAgent(agentId).All(dep => _outputs.ContainsKey(dep));
+        return GetDependenciesForAgent(agentId).All(dep => State.Outputs.ContainsKey(dep));
     }
 
     /// <summary>
@@ -420,7 +463,7 @@ public sealed class DependencyResolver
     /// <returns>A dictionary mapping agent IDs to their outputs.</returns>
     public IReadOnlyDictionary<string, object> GetAllOutputs()
     {
-        return _outputs;
+        return State.Outputs;
     }
 
     /// <summary>
@@ -428,10 +471,10 @@ public sealed class DependencyResolver
     /// </summary>
     public void Clear()
     {
-        _agents.Clear();
-        _outputs.Clear();
-        _dependencyGraph.Clear();
-        _reverseDependencyGraph.Clear();
+        State.Agents.Clear();
+        State.Outputs.Clear();
+        State.DependencyGraph.Clear();
+        State.ReverseDependencyGraph.Clear();
     }
 
     private static HashSet<string> BuildEffectiveDependencies(AgentSpawnSpec spec)

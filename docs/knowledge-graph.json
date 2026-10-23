@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 811,
-    "declared_facts": 5209,
+    "test_files_declaring_facts": 816,
+    "declared_facts": 5224,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -7924,6 +7924,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Orchestration/BoundedRunCleanupTests.cs",
+      "project": "Ashlar.Tests.Orchestration",
+      "namespace": "Ashlar.Tests.Orchestration",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Orchestration/Communication/AgentBusTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Communication",
@@ -7997,6 +8004,13 @@
       "file": "src/Ashlar.Tests.Orchestration/Integration/EndToEndOrchestrationTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Integration",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Orchestration/LateRunCleanupTests.cs",
+      "project": "Ashlar.Tests.Orchestration",
+      "namespace": "Ashlar.Tests.Orchestration",
       "declared_facts": 2,
       "in_cert_gate_filter": false
     },
@@ -8106,6 +8120,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Orchestration/PostRegistrationCleanupTests.cs",
+      "project": "Ashlar.Tests.Orchestration",
+      "namespace": "Ashlar.Tests.Orchestration",
+      "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Orchestration/RateLimiting/RateLimiterConcurrencyTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.RateLimiting",
@@ -8134,6 +8155,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Orchestration/ResourceRunOwnershipTests.cs",
+      "project": "Ashlar.Tests.Orchestration",
+      "namespace": "Ashlar.Tests.Orchestration",
+      "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Orchestration/Resources/OrchestrationResourceScopeTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Resources",
@@ -8159,6 +8187,13 @@
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Routing",
       "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Orchestration/RunIsolationDogfoodTests.cs",
+      "project": "Ashlar.Tests.Orchestration",
+      "namespace": "Ashlar.Tests.Orchestration",
+      "declared_facts": 9,
       "in_cert_gate_filter": false
     },
     {
