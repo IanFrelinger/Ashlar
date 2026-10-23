@@ -1,0 +1,39 @@
+name: Critical locking baseline and validation
+on:
+  push:
+    branches: [codex/locking-security-validation]
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Baseline regressions on unchanged production
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref e0a3ed18691559eb1e33c39b15ad71336c4e0574 -- 'dotnet test src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj --framework net8.0 --filter FullyQualifiedName~FileLockingCapabilityTests --nologo -v minimal' 2>&1 | tee baseline.log
+      - name: Full affected suite
+        id: suite
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref c6549bfe50369308553168003a01b0d99ecca2f5 -- 'dotnet test src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj --framework net8.0 --nologo -v minimal' 2>&1 | tee suite.log
+      - name: Serial mutation proof
+        if: ${{ !cancelled() && steps.suite.outcome == 'success' }}
+        shell: bash
+        run: |
+          bash scripts/test-in-container.sh --ref c6549bfe50369308553168003a01b0d99ecca2f5 -- 'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/file-locking.json --archive-stdout' >mutations.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: locking-security-evidence
+          path: |
+            baseline.log
+            suite.log
+            mutations.log
