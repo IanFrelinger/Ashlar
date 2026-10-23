@@ -1,0 +1,24 @@
+name: Release records and pack graph preflight
+on:
+  push:
+    branches: [codex/release-records-preflight]
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify release records through Linux harness
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref aef247e8daab4b606623422dc8b34bf7ab205fd7 -- 'set -e; bash scripts/verify-docs-published-version.sh; python3 scripts/verify-pack-ashlar-hosting-graph-alignment.py' 2>&1 | tee preflight.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-records-preflight
+          path: preflight.log
