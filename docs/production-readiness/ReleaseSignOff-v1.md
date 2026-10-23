@@ -6,12 +6,15 @@ Complete before tagging a release candidate.
 
 Owner authorized Cursor closeout via chat (finish last tasking / YOLO). This row signs the
 **VERIFIED** tip that dogfood round 3 stopped on. It does **not** invent an owner product flip for
-card #759; that ships as an integrator decision (abort-on-refusal under `FailurePolicy.Continue`).
+card #759; at that sign-off, abort-on-refusal under `FailurePolicy.Continue` was an integrator decision.
+**Update 2026-10-23:** the owner selected "Stop and document current behavior"; SPEC-007
+now records acceptance of that existing behaviour. This records the later product decision only;
+it does not refresh the readiness evidence or change the signed SHA.
 
 ### Checklist (v0.3.0)
 
 - [x] Product: scope and known limitations accepted for the 0.3.0 cut (see Known limitations below;
-      card #759 integrator decision; dogfood round-3 gaps remain friction, not High/Critical
+      card #759 retained behaviour, owner acceptance recorded 2026-10-23; dogfood round-3 gaps remain friction, not High/Critical
       exceptions)
 - [x] Engineering: five required checks green on target SHA; readiness verdict **VERIFIED**
 - [x] Security: `docs/exceptions.yaml` reviewed — no High/Critical entries; shipping gaps listed
@@ -39,8 +42,8 @@ From readiness run 39263145580 (Windows / macOS lanes), after
 
 ### Known limitations accepted for this cut
 
-- Card #759: refused brick/cluster still aborts under `FailurePolicy.Continue` (integrator decision;
-  CHANGELOG + `docs/EgressInventory.md`).
+- Card #759: refused brick/cluster still aborts under `FailurePolicy.Continue` (owner accepted
+  2026-10-23; SPEC-007 decisions log, CHANGELOG + `docs/EgressInventory.md`).
 - Dogfood round 3 (checkpoint `f1e0193e1`, panel report): `GetBrick` under-documented; sdk.md vs
   consumer `ExecutionContext` wording friction; copilot no-work summary still leads with agent
   count; `background-agent daemon` default profile noise; round-1 doc mismatches retained;
