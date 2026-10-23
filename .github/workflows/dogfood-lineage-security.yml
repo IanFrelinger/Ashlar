@@ -1,0 +1,39 @@
+name: Critical lineage baseline and validation
+on:
+  push:
+    branches: [codex/lineage-security-validation]
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Baseline regressions on unchanged production
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref 1e5e912fc5aaa35c8dc8e7a5be5ce9190314735e -- 'dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj --framework net8.0 --filter FullyQualifiedName~RegistryOwnedLineageTests --nologo -v minimal' 2>&1 | tee baseline.log
+      - name: Full affected suite
+        id: suite
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh --ref 322f97c9f043df5787d975b1597e61a073f158f9 -- 'dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj --framework net8.0 --nologo -v minimal' 2>&1 | tee suite.log
+      - name: Serial mutation proof
+        if: ${{ !cancelled() && steps.suite.outcome == 'success' }}
+        shell: bash
+        run: |
+          bash scripts/test-in-container.sh --ref 322f97c9f043df5787d975b1597e61a073f158f9 -- 'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/registry-lineage.json --archive-stdout' >mutations.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lineage-security-evidence
+          path: |
+            baseline.log
+            suite.log
+            mutations.log
