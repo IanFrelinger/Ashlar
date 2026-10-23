@@ -1,0 +1,27 @@
+name: Dogfood isolation baseline
+on:
+  push:
+    branches: [codex/dogfood-isolation-baseline]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run unchanged production baseline through Linux container harness
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/test-in-container.sh \
+            --project src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj \
+            --framework net8.0 --filter 'FullyQualifiedName~RunIsolationDogfoodTests' \
+            2>&1 | tee baseline.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: isolation-baseline-evidence
+          path: baseline.log

@@ -15,9 +15,9 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 811,
-    "declared_facts": 5209,
-    "workflows": 61
+    "test_files_declaring_facts": 812,
+    "declared_facts": 5217,
+    "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -8162,6 +8162,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Orchestration/RunIsolationDogfoodTests.cs",
+      "project": "Ashlar.Tests.Orchestration",
+      "namespace": "Ashlar.Tests.Orchestration",
+      "declared_facts": 8,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Orchestration/Tests/NegotiationHelpersTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Tests",
@@ -8482,6 +8489,13 @@
         "push",
         "schedule",
         "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/dogfood-isolation-baseline.yml",
+      "name": "Dogfood isolation baseline",
+      "triggers": [
+        "push"
       ]
     },
     {
