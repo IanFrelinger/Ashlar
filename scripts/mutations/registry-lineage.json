@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "note": "Prepared exact-target mutations for issue474. Runtime red/restore/green evidence pending parent CI; no kill claim.",
+  "mutations": [
+    {
+      "id": "lineage-enforcement-removed",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "ledger.TryBeginCycle(ceiling, RegisteredLineageDepth(agentId))",
+      "new": "ledger.TryBeginCycle(ceiling, 0)",
+      "filter": "FullyQualifiedName~RegistryOwnedLineageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Mutating_published_configuration"
+      ]
+    },
+    {
+      "id": "lineage-identity-mutable",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "var agentId = instance.RegisteredId;",
+      "new": "var agentId = instance.Config.Id;",
+      "filter": "FullyQualifiedName~RegistryOwnedLineageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Mutating_published_configuration"
+      ]
+    },
+    {
+      "id": "lineage-depth-reset",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "_lineageDepths.TryAdd(agentId, 0);",
+      "new": "_lineageDepths[agentId] = 0;",
+      "filter": "FullyQualifiedName~RegistryOwnedLineageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Re_registering"
+      ]
+    },
+    {
+      "id": "lineage-late-parent-not-propagated",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "if (_lineageChildren.TryGetValue(update.Id, out var descendants))",
+      "new": "if (false && _lineageChildren.TryGetValue(update.Id, out var descendants))",
+      "filter": "FullyQualifiedName~RegistryOwnedLineageTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Registering_a_previously_unknown_parent"
+      ]
+    }
+  ]
+}

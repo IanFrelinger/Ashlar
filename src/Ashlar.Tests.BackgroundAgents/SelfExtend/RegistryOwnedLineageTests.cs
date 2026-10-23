@@ -81,6 +81,25 @@ public sealed class RegistryOwnedLineageTests
         runner.CallCount.Should().Be(0);
     }
 
+    [Fact(Timeout = 10000)]
+    public async Task Concurrent_replacements_cannot_lower_depth_and_cycles_terminate()
+    {
+        await Task.Yield();
+        var (registry, runner) = Create();
+        await Register(registry, Config("root"));
+        await Register(registry, Config("child", "root"));
+        await Task.WhenAll(
+            Task.Run(() => Register(registry, Config("descendant", "root"))),
+            Task.Run(() => Register(registry, Config("descendant", "child"))));
+        await registry.ExecuteOnceAsync("descendant");
+        runner.CallCount.Should().Be(0);
+        await Register(registry, Config("a", "b"));
+        await Register(registry, Config("b", "a"));
+        await registry.ExecuteOnceAsync("a");
+        await registry.ExecuteOnceAsync("b");
+        runner.CallCount.Should().Be(0);
+    }
+
     private static (BackgroundAgentRegistry, SelfExtendAuditTestSupport.CountingSelfExtendRunner) Create()
     {
         var runner = new SelfExtendAuditTestSupport.CountingSelfExtendRunner();

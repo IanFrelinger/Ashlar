@@ -19,8 +19,8 @@ namespace Ashlar.BackgroundAgents.Registry;
 /// <summary>
 /// Default implementation of <see cref="IBackgroundAgentRegistry"/>. Uses a
 /// <see cref="ConcurrentDictionary{TKey,TValue}"/> keyed by agent ID, so all
-/// registration and lookup operations are lock-free and safe for concurrent
-/// callers without external synchronization.
+/// lookup operations are lock-free. Registration serializes lineage publication so
+/// concurrent replacements cannot restore previously refused authority.
 ///
 /// <para><b>Dependency philosophy:</b> Most dependencies are optional (nullable)
 /// because the registry must function in minimal deployments (e.g. the
@@ -45,6 +45,13 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
     public static readonly TimeSpan DefaultShutdownGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly ConcurrentDictionary<string, BackgroundAgentInstance> _agents = new();
+    // Authority belongs to registration identity, not caller-owned mutable configuration.
+    // Retain depth and historical edges across replacement; learning more ancestry can only
+    // increase depth. Unknown parents start at zero, so their children still count one hop.
+    private const int MaxTrackedLineageDepth = 64;
+    private readonly object _lineageLock = new();
+    private readonly Dictionary<string, int> _lineageDepths = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<string>> _lineageChildren = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Task> _inFlight = new();
     private readonly IAgentScheduler _scheduler;
     private readonly ILogger<BackgroundAgentRegistry>? _logger;
@@ -172,20 +179,37 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
     /// (an unknown parent is not a reason to grant more authority). Bounded so a cyclic
     /// parent graph cannot spin.
     /// </summary>
-    internal int LineageDepth(BackgroundAgentConfig config)
-    {
-        var depth = 0;
-        var seen = new HashSet<string>(StringComparer.Ordinal) { config.Id };
-        var parentId = config.ParentId;
-        while (!string.IsNullOrWhiteSpace(parentId) && depth < 64)
-        {
-            depth++;
-            if (!seen.Add(parentId) || !_agents.TryGetValue(parentId, out var parent))
-                break;
-            parentId = parent.Config.ParentId;
-        }
+    internal int LineageDepth(BackgroundAgentConfig config) => RegisteredLineageDepth(config.Id);
 
-        return depth;
+    private int RegisteredLineageDepth(string agentId)
+    {
+        lock (_lineageLock)
+            return _lineageDepths.GetValueOrDefault(agentId);
+    }
+
+    // Called under _lineageLock, before publishing the new instance. Historical edges are
+    // retained: reparenting cannot shorten existing OR future descendants. The bounded work
+    // queue also handles authored out-of-order registrations and cyclic parent graphs.
+    private void RecordLineage(string agentId, string? parentId)
+    {
+        _lineageDepths.TryAdd(agentId, 0);
+        if (string.IsNullOrWhiteSpace(parentId))
+            return;
+        if (!_lineageChildren.TryGetValue(parentId, out var children))
+            _lineageChildren[parentId] = children = new HashSet<string>(StringComparer.Ordinal);
+        children.Add(agentId);
+        var pending = new Queue<(string Id, int Depth)>();
+        pending.Enqueue((agentId, Math.Min(MaxTrackedLineageDepth,
+            _lineageDepths.GetValueOrDefault(parentId) + 1)));
+        while (pending.TryDequeue(out var update))
+        {
+            if (update.Depth <= _lineageDepths.GetValueOrDefault(update.Id))
+                continue;
+            _lineageDepths[update.Id] = update.Depth;
+            if (_lineageChildren.TryGetValue(update.Id, out var descendants))
+                foreach (var descendant in descendants)
+                    pending.Enqueue((descendant, Math.Min(MaxTrackedLineageDepth, update.Depth + 1)));
+        }
     }
 
     /// <summary>
@@ -211,15 +235,24 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
             parentId => _agents.TryGetValue(parentId, out var parent) ? parent : null,
             _sensitivityRegistry ?? new DataSensitivityRegistry());
 
+        // Capture identity once. Config remains editable, but it cannot change the identity
+        // or ancestry used to charge and refuse extension cycles after registration.
+        var registeredId = config.Id;
+        var registeredParentId = config.ParentId;
         // Create agent instance
         var instance = new BackgroundAgentInstance
         {
             Agent = agent,
+            RegisteredId = registeredId,
             Config = config,
             State = BackgroundAgentState.Idle
         };
 
-        _agents[config.Id] = instance;
+        lock (_lineageLock)
+        {
+            RecordLineage(registeredId, registeredParentId);
+            _agents[registeredId] = instance;
+        }
         WarnIfModelConfigUnused(config);
         _logger?.LogInformation("Registered background agent: {AgentId}", config.Id);
         return Task.CompletedTask;
@@ -275,7 +308,7 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
     {
         var tasks = _agents.Values
             .Where(a => a.Config.Enabled)
-            .Select(a => StartAsync(a.Config.Id, cancellationToken));
+            .Select(a => StartAsync(a.RegisteredId, cancellationToken));
         return Task.WhenAll(tasks);
     }
 
@@ -298,7 +331,7 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
         // Stop scheduling first so no new cycles can start while we drain.
         foreach (var instance in _agents.Values)
         {
-            await StopAsync(instance.Config.Id, cancellationToken).ConfigureAwait(false);
+            await StopAsync(instance.RegisteredId, cancellationToken).ConfigureAwait(false);
         }
 
         await DrainInFlightAsync(cancellationToken).ConfigureAwait(false);
@@ -409,7 +442,7 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
     /// </summary>
     private Task TrackedExecuteAgentAsync(BackgroundAgentInstance instance, CancellationToken cancellationToken)
     {
-        var key = $"{instance.Config.Id}#{Interlocked.Increment(ref _cycleSeq)}";
+        var key = $"{instance.RegisteredId}#{Interlocked.Increment(ref _cycleSeq)}";
         var task = RemoveWhenDoneAsync(key, ExecuteAgentAsync(instance, cancellationToken));
         _inFlight[key] = task;
         return task;
@@ -432,7 +465,7 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
     private async Task ExecuteAgentAsync(BackgroundAgentInstance instance, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var agentId = instance.Config.Id;
+        var agentId = instance.RegisteredId;
         // Telemetry — populated in role branches, emitted in finally regardless of exit path.
         var cycleStart = DateTimeOffset.UtcNow;
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -571,7 +604,7 @@ public sealed class BackgroundAgentRegistry : IBackgroundAgentRegistry
                 // (see the concurrency note above), and a separate check-then-record let every
                 // racing cycle read the same unspent budget and pass. TryBeginCycle counts the
                 // cycle only when it admits, so a refusal still consumes nothing.
-                var refusal = ledger.TryBeginCycle(ceiling, LineageDepth(instance.Config));
+                var refusal = ledger.TryBeginCycle(ceiling, RegisteredLineageDepth(agentId));
                 if (refusal is not null)
                 {
                     _logStore?.Append(agentId, "Warning", $"Extension refused (invariant D): {refusal}.");
