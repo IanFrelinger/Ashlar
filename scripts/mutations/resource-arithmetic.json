@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Prepared against ResourceAllocator fix based efe85a7. Plans only; each requires actual assertion red, exact restore and green evidence. Policies are explicit integrator behavior, not owner decisions.",
+  "note": "All 5 cases KILLED at bc4c040c5e4dc12d716c30ec534940766494ee42 on 2026-10-23. See RESOURCE-ARITHMETIC-EVIDENCE.md for observed red/restore/green counts and archive receipt.",
   "mutations": [
     {
       "id": "allocator-preemption-deficit",
