@@ -97,7 +97,7 @@ r="$(in_fake_root "1.2.3" "assert_version_matches_canonical 1.2.3")"
 [[ "${r%%|*}" == "0" ]] && ok "bare version matches a v-prefixed tag" || bad "bare version matches" "exit ${r%%|*}"
 
 echo "== nuget visibility poll budget (ASHLAR_NUGET_VERIFY_ALLOW_SHORT) =="
-# The budget guard raises a short ATTEMPTS to 40 unless a caller explicitly opts out. nuget.org
+# The budget guard raises a short ATTEMPTS to 80 unless a caller explicitly opts out. nuget.org
 # indexing lags publication by minutes; a short budget silently reports "not visible" for a
 # package that published fine, which reads as a failed release.
 for s in scripts/verify-nuget-org-package-visible.sh \
@@ -105,7 +105,7 @@ for s in scripts/verify-nuget-org-package-visible.sh \
          scripts/verify-nuget-org-registration-versions.sh; do
   f="${ROOT}/${s}"
   [[ -f "${f}" ]] || { bad "${s} exists" "not found"; continue; }
-  if grep -q 'ASHLAR_NUGET_VERIFY_ALLOW_SHORT' "${f}" && grep -q 'ATTEMPTS.*-lt 40' "${f}"; then
+  if grep -q 'ASHLAR_NUGET_VERIFY_ALLOW_SHORT' "${f}" && grep -q 'ATTEMPTS.*-lt 80' "${f}"; then
     ok "$(basename "${s}") raises a short budget unless ALLOW_SHORT=1"
   else
     bad "$(basename "${s}") raises a short budget unless ALLOW_SHORT=1" "guard text not found"

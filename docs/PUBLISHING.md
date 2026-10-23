@@ -123,7 +123,7 @@ When **`NUGET_PUBLISH_MODE`** is **`oidc`** or **`apikey`** (and **`NUGET_POST_P
 |----------|---------|
 | **`NUGET_POST_PUSH_VERIFY`** | Set to **`false`** to skip steps 1–5. |
 | **`NUGET_POST_PUSH_VERIFY_PACKAGE_IDS`** | Comma-separated ids for steps 1–2 (default: `Ashlar.Hosting.Bundle,Ashlar.Hosting,Ashlar.Sdk,Ashlar.CLI`). |
-| **`NUGET_POST_PUSH_ATTEMPTS`** / **`NUGET_POST_PUSH_SLEEP_SEC`** | Poll tuning (empty uses script defaults: **40** attempts × **15**s). Values below 40 are raised unless `ASHLAR_NUGET_VERIFY_ALLOW_SHORT=1`. |
+| **`NUGET_POST_PUSH_ATTEMPTS`** / **`NUGET_POST_PUSH_SLEEP_SEC`** | Poll tuning (empty uses script defaults: **80** attempts × **15**s). Values below 80 are raised unless `ASHLAR_NUGET_VERIFY_ALLOW_SHORT=1`. |
 | **`NUGET_RELEASE_SBOM`** | Set to **`true`** to generate SPDX JSON per `.nupkg` with **Syft** and upload artifact **`nuget-sbom-<version>`**. |
 | **`NUGET_RELEASE_GRYPE`** | With **`NUGET_RELEASE_SBOM`**, run **Grype** on each SBOM (reports only; **`continue-on-error`** so vuln data does not fail the release). |
 | **`RELEASE_CROSS_VERIFY`** | Set to **`false`** to skip **`release.yml`** job that re-pulls GHCR **`sha-*`** images and runs **`scripts/release-smoke-published-docker.sh`**. |

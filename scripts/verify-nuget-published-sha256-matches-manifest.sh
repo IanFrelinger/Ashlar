@@ -40,7 +40,7 @@ os.makedirs(workdir, exist_ok=True)
 # handful of ids, not all of them, so the rest can legitimately be missing on the first request.
 # That is exactly the lag that failed v0.1.2's release. A bare urlretrieve raised HTTPError on the
 # first such 404 and ended the step with a traceback - after every package was already public.
-ATTEMPTS = int(os.environ.get("ASHLAR_NUGET_VERIFY_ATTEMPTS") or 40)
+ATTEMPTS = int(os.environ.get("ASHLAR_NUGET_VERIFY_ATTEMPTS") or 80)
 SLEEP_SEC = float(os.environ.get("ASHLAR_NUGET_VERIFY_SLEEP_SEC") or 15)
 REQUEST_TIMEOUT_SEC = 60
 # Overridable so the retry path can be exercised against a local server, and so a staging feed can
