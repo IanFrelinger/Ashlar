@@ -2,7 +2,59 @@
 
 Complete before tagging a release candidate.
 
-> **This sheet has signed off one commit, and it is not a released one.** The record below is for
+## v0.3.0 sign-off (2026-10-22)
+
+Owner authorized Cursor closeout via chat (finish last tasking / YOLO). This row signs the
+**VERIFIED** tip that dogfood round 3 stopped on. It does **not** invent an owner product flip for
+card #759; that ships as an integrator decision (abort-on-refusal under `FailurePolicy.Continue`).
+
+### Checklist (v0.3.0)
+
+- [x] Product: scope and known limitations accepted for the 0.3.0 cut (see Known limitations below;
+      card #759 integrator decision; dogfood round-3 gaps remain friction, not High/Critical
+      exceptions)
+- [x] Engineering: five required checks green on target SHA; readiness verdict **VERIFIED**
+- [x] Security: `docs/exceptions.yaml` reviewed — no High/Critical entries; shipping gaps listed
+      as non-blocking rows / Known limitations
+- [x] Operations: rollback drill record updated for this cut ([Rollback drill v1](RollbackDrill-v1.md));
+      full version-downgrade drill was not required by an owner decisions-log row; restore-in-place
+      evidence remains the DR gate path. Docker was unavailable on the closeout agent VM, so no new
+      local mesh-lab restore was observed in this sitting.
+
+### Sign-off record (v0.3.0)
+
+| Role | Name | Date | SHA |
+|------|------|------|-----|
+| Product | Ian Frelinger (via Cursor closeout authorization) | 2026-10-22 | `f1e0193e1c7abe37365260d6f5de0d14c98d5896` |
+| Engineering | Full Platform Readiness Gate — `Readiness summary` verdict **verified** (lanes_ran=4, lanes_skipped=0), run [39263145580](https://github.com/IanFrelinger/Ashlar/actions/runs/39263145580) / check run 118114066755; cert-gate / build-core / shell-lint / lychee SUCCESS on PR #832 tip | 2026-10-19 (gate) / 2026-10-22 (record) | `f1e0193e1c7abe37365260d6f5de0d14c98d5896` |
+| Security | exceptions policy + SPEC-007 Known limits disclosed; no High/Critical exception rows | 2026-10-22 | `f1e0193e1c7abe37365260d6f5de0d14c98d5896` |
+| Operations | Rollback drill record updated; see [Rollback drill v1](RollbackDrill-v1.md) Last drill (0.3.0) | 2026-10-22 | `f1e0193e1c7abe37365260d6f5de0d14c98d5896` |
+
+### Evidence quoted for release notes (runbook step 9)
+
+From readiness run 39263145580 (Windows / macOS lanes), after
+`=== CI Verify: Production-like API-host tests (ProdStyle, net10.0) ===`:
+
+`Passed!  - Failed:     0, Passed:   215, Skipped:     0, Total:   215, Duration: … - Ashlar.Tests.Infrastructure.dll (net10.0)`
+
+### Known limitations accepted for this cut
+
+- Card #759: refused brick/cluster still aborts under `FailurePolicy.Continue` (integrator decision;
+  CHANGELOG + `docs/EgressInventory.md`).
+- Dogfood round 3 (checkpoint `f1e0193e1`, panel report): `GetBrick` under-documented; sdk.md vs
+  consumer `ExecutionContext` wording friction; copilot no-work summary still leads with agent
+  count; `background-agent daemon` default profile noise; round-1 doc mismatches retained;
+  container harness mounts only the Ashlar repo for external plugins; nuget.org still serves
+  `0.2.0` until publish.
+- SPEC-007 Known limits of routed enforcement remain disclosed in `docs/EgressInventory.md` and
+  `docs/specs/SPEC-007-disposition-index.md` (not High/Critical exceptions).
+- Residual before tag: `0.3.0-rc1` must be published via `release-nuget.yml` dispatch (token for
+  this closeout agent cannot `workflow_dispatch`); then proceed to `v0.3.0` only after rc1 gates
+  pass per `docs/RELEASE_RUNBOOK.md`.
+
+---
+
+> **Historical sheet below signed off one earlier commit, and it is not a released one.** The record below is for
 > `bec2a6ed`, dated 2026-05-22. That commit is 746 behind `master` and predates every tag this
 > repository has cut — v0.1.0 (2026-08-30), v0.1.1 (2026-08-31) and v0.1.2 (2026-09-04) each
 > shipped without a row here. The four ticks are that one sign-off, not a standing state, so do
