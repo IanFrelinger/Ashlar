@@ -16,8 +16,8 @@ public static class BrickInputValidation
     /// <exception cref="BrickInputValidationException">When one or more required inputs are missing.</exception>
     public static void ValidateRequiredInputs(this BrickInput input, BrickInterface brickInterface)
     {
-        ArgumentNullException.ThrowIfNull(input);
-        ArgumentNullException.ThrowIfNull(brickInterface);
+        if (input == null) throw new ArgumentNullException(nameof(input));
+        if (brickInterface == null) throw new ArgumentNullException(nameof(brickInterface));
 
         var missingInputs = new List<string>();
         var inputDict = input.ToDictionary();
@@ -50,8 +50,8 @@ public static class BrickInputValidation
         BrickInterface brickInterface,
         out IReadOnlyList<string> missingInputs)
     {
-        ArgumentNullException.ThrowIfNull(input);
-        ArgumentNullException.ThrowIfNull(brickInterface);
+        if (input == null) throw new ArgumentNullException(nameof(input));
+        if (brickInterface == null) throw new ArgumentNullException(nameof(brickInterface));
 
         var missing = new List<string>();
         var inputDict = input.ToDictionary();
@@ -75,8 +75,8 @@ public static class BrickInputValidation
     /// <param name="brickInterface">The brick interface definition with input defaults.</param>
     public static void ApplyDefaults(this BrickInput input, BrickInterface brickInterface)
     {
-        ArgumentNullException.ThrowIfNull(input);
-        ArgumentNullException.ThrowIfNull(brickInterface);
+        if (input == null) throw new ArgumentNullException(nameof(input));
+        if (brickInterface == null) throw new ArgumentNullException(nameof(brickInterface));
 
         var inputDict = input.ToDictionary();
 
