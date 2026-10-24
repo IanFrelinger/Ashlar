@@ -17,6 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — Package version diagnostics
+
+- New `scripts/ci/verify-package-versions.sh` script to diagnose Central Package Management issues
+- Auto-discovered by CI via `run-repo-gates.sh` to run on every pull request
+- Scans all `.csproj` files for `PackageReference` entries without inline versions
+- Reports missing packages with clear diagnostics: package name, referencing projects, and resolution steps
+- Excludes packages with inline `Version` attributes (e.g., `Version="$(PackageVersion)"`)
+- Provides colored, actionable error messages to help developers quickly identify and fix version conflicts
+- Addresses Gap #7 from consumer validation: "Central Package Management errors don't suggest which packages are missing versions"
+- Test coverage via `scripts/ci/test-verify-package-versions.sh`
+
 ### Added — Runtime validation for required brick inputs
 
 - New `BrickInputValidation` extension methods in `Ashlar.Brick.Contracts`
