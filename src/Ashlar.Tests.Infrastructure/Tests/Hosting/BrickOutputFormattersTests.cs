@@ -1,10 +1,10 @@
 using Ashlar.Core.Domain.Execution;
 using Ashlar.Hosting;
-using Ashlar.Tests.Infrastructure.Testing;
+using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Hosting;
 
-public class BrickOutputFormattersTests : UnitTestBase
+public class BrickOutputFormattersTests
 {
     [Fact]
     public void ToJson_EmptyOutput_ReturnsEmptyJsonObject()
