@@ -29,7 +29,7 @@ public static class BrickOutputFormatters
         if (output.Summary != null)
             data["summary"] = output.Summary;
 
-        foreach (var key in output.Keys)
+        foreach (var key in output.ToDictionary().Keys)
         {
             data[key] = output.TryGet<object>(key, out var value) ? value! : null!;
         }
@@ -61,12 +61,12 @@ public static class BrickOutputFormatters
             sb.AppendLine();
         }
 
-        if (output.Keys.Any())
+        if (output.ToDictionary().Keys.Any())
         {
             sb.AppendLine("### Outputs");
             sb.AppendLine();
 
-            foreach (var key in output.Keys.OrderBy(k => k))
+            foreach (var key in output.ToDictionary().Keys.OrderBy(k => k))
             {
                 if (output.TryGet<object>(key, out var value))
                 {
@@ -96,11 +96,11 @@ public static class BrickOutputFormatters
             sb.AppendLine();
         }
 
-        if (output.Keys.Any())
+        if (output.ToDictionary().Keys.Any())
         {
             sb.AppendLine("Outputs:");
 
-            foreach (var key in output.Keys.OrderBy(k => k))
+            foreach (var key in output.ToDictionary().Keys.OrderBy(k => k))
             {
                 if (output.TryGet<object>(key, out var value))
                 {
@@ -132,10 +132,10 @@ public static class BrickOutputFormatters
             sb.AppendLine();
         }
 
-        if (!output.Keys.Any())
+        if (!output.ToDictionary().Keys.Any())
             return sb.ToString();
 
-        var keys = output.Keys.OrderBy(k => k).ToList();
+        var keys = output.ToDictionary().Keys.OrderBy(k => k).ToList();
         var maxKeyLength = keys.Max(k => k.Length);
         var columnWidth = Math.Max(maxKeyLength + 2, 15);
 
