@@ -31,6 +31,40 @@ var blockers = output.Get<List<string>>("blockers");
 Console.WriteLine($"Blockers: {string.Join(", ", blockers)}");
 ```
 
+### CiStatusBrick
+
+Analyzes GitHub Actions CI/CD workflow runs and check status for a commit or branch.
+
+**Inputs:**
+- `owner` (string, required): Repository owner
+- `repo` (string, required): Repository name
+- `ref` (string, required): Git reference (branch, tag, or SHA)
+- `githubToken` (string, optional): GitHub Personal Access Token for higher rate limits
+
+**Outputs:**
+- `status` (string): Overall CI status (success, failure, pending, skipped)
+- `totalRuns` (int): Total workflow runs
+- `successCount` (int): Number of successful runs
+- `failureCount` (int): Number of failed runs
+- `pendingCount` (int): Number of pending runs
+- `runs` (object[]): Detailed workflow run information
+- `checks` (object[]): Check run details
+
+**Example:**
+
+```csharp
+var input = new BrickInput();
+input.Set("owner", "IanFrelinger");
+input.Set("repo", "Ashlar");
+input.Set("ref", "master");
+
+var output = await ciStatusBrick.ExecuteAsync(input, ImplementationType.Deterministic, context);
+
+var status = output.Get<string>("status");
+var failureCount = output.Get<int>("failureCount");
+Console.WriteLine($"CI Status: {status}, Failures: {failureCount}");
+```
+
 ## Installation
 
 ```xml
@@ -66,3 +100,12 @@ if (input.TryGet<string>("githubToken", out var token) && !string.IsNullOrEmpty(
     client.Credentials = new Credentials(token);
 }
 ```
+
+## Future Additions
+
+Potential bricks for future releases:
+- `IssueAnalyzerBrick`: GitHub issue analysis and classification
+- `ReleaseCheckerBrick`: Release validation and changelog generation
+- `CodeReviewAssistantBrick`: Automated code review assistance
+- `RepoMetricsBrick`: Repository health metrics and statistics
+
