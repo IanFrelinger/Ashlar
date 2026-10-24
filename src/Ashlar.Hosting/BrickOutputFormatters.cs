@@ -29,9 +29,10 @@ public static class BrickOutputFormatters
         if (output.Summary != null)
             data["summary"] = output.Summary;
 
-        foreach (var key in output.ToDictionary().Keys)
+        var dict = output.ToDictionary();
+        foreach (var key in dict.Keys)
         {
-            data[key] = output.TryGet<object>(key, out var value) ? value! : null!;
+            data[key] = dict[key];
         }
 
         return JsonSerializer.Serialize(data, options);
@@ -68,7 +69,8 @@ public static class BrickOutputFormatters
 
             foreach (var key in output.ToDictionary().Keys.OrderBy(k => k))
             {
-                if (output.TryGet<object>(key, out var value))
+                var dict = output.ToDictionary();
+                if (dict.TryGetValue(key, out var value))
                 {
                     sb.AppendLine($"**{key}**: {FormatValueForMarkdown(value)}");
                     sb.AppendLine();
@@ -102,7 +104,8 @@ public static class BrickOutputFormatters
 
             foreach (var key in output.ToDictionary().Keys.OrderBy(k => k))
             {
-                if (output.TryGet<object>(key, out var value))
+                var dict = output.ToDictionary();
+                if (dict.TryGetValue(key, out var value))
                 {
                     var stringValue = FormatValueForPlainText(value);
                     
@@ -145,7 +148,8 @@ public static class BrickOutputFormatters
 
         foreach (var key in keys)
         {
-            if (output.TryGet<object>(key, out var value))
+            var dict = output.ToDictionary();
+            if (dict.TryGetValue(key, out var value))
             {
                 var displayValue = FormatValueForTable(value);
                 var paddedKey = key.PadRight(columnWidth - 2);
