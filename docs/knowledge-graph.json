@@ -8,7 +8,7 @@
     "AstMutationEngineTests"
   ],
   "counts": {
-    "projects": 60,
+    "projects": 61,
     "projects_shipped_to_nuget": 22,
     "projects_declaring_ispackable_true": 18,
     "config_variables": 177,
@@ -215,6 +215,22 @@
         "netstandard2.0"
       ],
       "references": []
+    },
+    {
+      "name": "Ashlar.Bricks.GitHub",
+      "path": "src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj",
+      "layer": "src",
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
+      "target_frameworks": [
+        "net10.0",
+        "net8.0"
+      ],
+      "references": [
+        "Ashlar.Analyzers",
+        "Ashlar.Core.Domain",
+        "Ashlar.Infrastructure"
+      ]
     },
     {
       "name": "Ashlar.Bricks.Owasp",
