@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — Runtime validation for required brick inputs
+
+- New `BrickInputValidation` extension methods in `Ashlar.Brick.Contracts`
+- `ValidateRequiredInputs()`: Validates all required inputs are present, throws `BrickInputValidationException` if any are missing
+- `TryValidateRequiredInputs()`: Non-throwing validation with out parameter for missing input names
+- `ApplyDefaults()`: Automatically applies default values for missing optional inputs
+- Addresses Gap #2 from consumer validation: "BrickInputDefinition has required field but no runtime enforcement"
+- Enables brick authors to validate inputs before execution, preventing runtime errors from missing required parameters
+
 ### Added — Output formatters for BrickOutput
 
 - New `BrickOutputFormatters` extension methods in `Ashlar.Hosting` for consistent output formatting
