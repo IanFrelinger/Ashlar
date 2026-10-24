@@ -63,7 +63,7 @@ public static class AshlarSimpleCli
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The brick output.</returns>
     public static async Task<BrickOutput> ExecuteAsync(
-        this Brick brick,
+        this Ashlar.Core.Domain.Bricks.Brick brick,
         Action<BrickInput> configureInputs,
         ImplementationType implementation = ImplementationType.Deterministic,
         CancellationToken cancellationToken = default)
@@ -87,7 +87,7 @@ public static class AshlarSimpleCli
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The brick output.</returns>
     public static async Task<BrickOutput> ExecuteAsync(
-        this Brick brick,
+        this Ashlar.Core.Domain.Bricks.Brick brick,
         BrickInput input,
         ImplementationType implementation = ImplementationType.Deterministic,
         CancellationToken cancellationToken = default)
