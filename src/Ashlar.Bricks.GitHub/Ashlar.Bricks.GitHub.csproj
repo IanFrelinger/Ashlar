@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        <LangVersion>12.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Description>GitHub integration bricks for Ashlar - PR status, CI checks, issue analysis</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
+        <ProjectReference Include="..\Ashlar.Infrastructure\Ashlar.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Octokit" />
+    </ItemGroup>
+
+    <!-- Brick contract drift rule (ASHLAR0001/ASHLAR0002): keeps BrickInterface and the
+         Get/Set keys a brick actually uses from silently diverging. -->
+    <ItemGroup>
+        <ProjectReference Include="..\Ashlar.Analyzers\Ashlar.Analyzers.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"
+                          UndefineProperties="TargetFramework" />
+    </ItemGroup>
+
+</Project>

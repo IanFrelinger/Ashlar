@@ -12,7 +12,7 @@ remembered to update — staleness here is a red build.
 
 | | count |
 |---|---|
-| projects | 60 |
+| projects | 61 |
 | of those, published to nuget.org by a release | 22 |
 | of those, declaring `<IsPackable>true</IsPackable>` | 18 |
 | `ASHLAR_*` variables named in code | 177 |

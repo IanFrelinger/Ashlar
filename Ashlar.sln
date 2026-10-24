@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashlar.Brick.Contracts", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashlar.Bricks.Owasp", "src\Ashlar.Bricks.Owasp\Ashlar.Bricks.Owasp.csproj", "{B1C2D3E4-F5A6-7890-ABCD-EF1234567890}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashlar.Bricks.GitHub", "src\Ashlar.Bricks.GitHub\Ashlar.Bricks.GitHub.csproj", "{C2D3E4F5-A6B7-8901-BCDE-F12345678902}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashlar.Tests.Contracts", "src\Ashlar.Tests.Contracts\Ashlar.Tests.Contracts.csproj", "{2BFBAD50-9A81-4339-9C4F-2014AB4289FF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashlar.Tests.Infrastructure", "src\Ashlar.Tests.Infrastructure\Ashlar.Tests.Infrastructure.csproj", "{1AFBAD49-9A81-4339-9C4F-2014AB4289FF}"

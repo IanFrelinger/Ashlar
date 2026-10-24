@@ -123,6 +123,7 @@
     <!-- Carries GateStore/AshlarPolicy so the self-extension budget's clock behaviour can be
          asserted inside Tests/Certification, which is the namespace cert-gate selects. -->
     <ProjectReference Include="..\Ashlar.Manifest\Ashlar.Manifest.csproj" />
+    <ProjectReference Include="..\Ashlar.Bricks.GitHub\Ashlar.Bricks.GitHub.csproj" />
     <ProjectReference Include="..\Ashlar.Bricks.Owasp\Ashlar.Bricks.Owasp.csproj" />
     <ProjectReference Include="..\Ashlar.Hosting\Ashlar.Hosting.csproj" />
     <!-- SPEC-007 PR 4.10: the cert-gate twin composes MCP HTTP vs stdio. The server multi-targets net8.0. -->

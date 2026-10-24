@@ -17,6 +17,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — GitHub integration bricks package
+
+- New `Ashlar.Bricks.GitHub` package with common GitHub operations
+- `PrStatusBrick`: Analyzes pull request status, reviews, and CI checks
+- Demonstrates consumer-driven framework improvement cycle
+- Uses new `TryGet()` pattern from 0.4.0 for optional parameters
+- Integrated with Octokit for official GitHub API access
+
 ### Added — TryGet methods for BrickInput and BrickOutput
 
 - `BrickInput.TryGet<T>(string key, out T? value)` and `BrickOutput.TryGet<T>(string key, out T? value)`
