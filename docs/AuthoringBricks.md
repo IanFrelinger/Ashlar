@@ -78,6 +78,78 @@ For CLI/adaptation scenarios, `AddAdaptationBricks(typeof(HelloBrick))` is the l
 
 `Ashlar.Authoring` adds `services.AddAshlarBrick<HelloBrick>()`, which is exactly `AddAshlarSdk(sdk => sdk.RegisterBrick<HelloBrick>())` behind a one-call name: use `AddAshlarBrick<T>()` when your project references `Ashlar.Authoring` (the `ashlar new brick` scaffold and [`consumer-template/CONSUMING.md`](../consumer-template/CONSUMING.md) do), and use `AddAshlarSdk(...RegisterBrick<T>())` directly when you only reference the `Ashlar.Hosting` graph or need to register several things in one `IAshlarSdkBuilder` callback. Both must run before `AddAshlar()`.
 
+## Input type enforcement and wire format
+
+Ashlar **strictly enforces** the `type` field in `BrickInputDefinition` when bricks are invoked over the wire (HTTP API). The type validation happens during deserialization, and mismatches are rejected with a clear error message before your brick's `ExecuteAsync` is called.
+
+### String inputs must receive string values
+
+When a brick defines an input with `type: "string"`, the wire format requires a JSON string value, **not** a JSON object or array:
+
+```csharp
+// Brick definition
+Interface = new BrickInterface
+{
+    Inputs = [
+        new BrickInputDefinition("data", "string", "JSON data", required: true)
+    ]
+};
+```
+
+**Correct wire format** — pass complex data as JSON-serialized strings:
+
+```json
+{
+  "input": {
+    "data": "{\"items\":[{\"name\":\"test\"}]}"
+  }
+}
+```
+
+**Incorrect wire format** — passing an object when string is expected:
+
+```json
+{
+  "input": {
+    "data": {"items": [{"name": "test"}]}
+  }
+}
+```
+
+This fails with: `"Input key 'data' is not of type String"`
+
+### Handling complex data in bricks
+
+To work with complex data structures:
+
+1. Define inputs as `type: "string"` in `BrickInputDefinition`
+2. Pass JSON-serialized strings in the wire format
+3. Deserialize inside your brick's `ExecuteAsync`:
+
+```csharp
+public override Task<BrickOutput> ExecuteAsync(
+    BrickInput input,
+    ImplementationType implementation,
+    IExecutionContext context,
+    CancellationToken cancellationToken = default)
+{
+    var dataJson = input.Get("data", "{}") ?? "{}";
+    var data = JsonSerializer.Deserialize<MyDataType>(dataJson);
+    
+    // Process data...
+    
+    return Task.FromResult(output);
+}
+```
+
+### Type validation for all input types
+
+This strict validation applies to all input types (`"string"`, `"number"`, `"boolean"`, `"object"`, `"array"`). The wire format must match the declared type exactly. This ensures:
+
+- Clear contract between brick authors and consumers
+- Early validation failures with specific error messages
+- Type safety across the execution pipeline
+
 ## Code bricks vs generated manifests
 
 Ashlar also has an adaptive manifest path: `INewBrickGenerator.GenerateAsync(...)` creates a `BrickManifest` from observed patterns. That path is for runtime/adaptive discovery and promotion.

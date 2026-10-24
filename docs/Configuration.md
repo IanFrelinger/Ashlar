@@ -310,6 +310,20 @@ Per-request **`config.model`** overrides the vision model when set.
 
 Three code paths reach Ollama — the default MEAI model path, the NCR serving backend, and the legacy provider factory — and each has its own key family. They all resolve in the same order, so setting the legacy pair alone is enough on a single host; inside Compose set all three (the shipped stacks do) so no path can fall back to `localhost:11434`, which is the container itself.
 
+### Ollama connectivity warnings for deterministic-only applications
+
+When hosting a brick that uses **only deterministic execution** (no model inference), the host may log warnings during startup about failing to reach the Ollama backend:
+
+```
+warn: NCR startup health check degraded: failed to reach Ollama backend
+```
+
+**These warnings are expected and non-blocking** when your application does not use model features. The host performs availability probes for all configured providers during initialization, but the brick's `ExecuteAsync` will still run successfully. These warnings do not prevent host startup or brick execution.
+
+To eliminate these warnings, either:
+- Ensure Ollama is running and accessible at the configured `OLLAMA_BASE_URL` / `Ashlar:Meai:OllamaBaseUrl`
+- Or accept them as informational when your brick is deterministic-only
+
 **Resolution order** (first non-empty value wins): `ASHLAR_OLLAMA_BASE_URL` / `ASHLAR_OLLAMA_MODEL` env → the path's own config key (`Ashlar:Meai:*` or `Ashlar:NodeCapabilityRuntime:Ollama:BaseUrl`) → legacy `OLLAMA_BASE_URL` / `OLLAMA_MODEL` env → the path's default (`http://localhost:11434` / `llama3.1:latest`; NCR uses `http://127.0.0.1:11434`). Blank values are treated as unset.
 
 | Variable / Key | Path | Description | Default |
