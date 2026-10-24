@@ -72,7 +72,7 @@ if (brick == null)
 }
 
 // Prepare input
-var input = new Ashlar.Core.Domain.Bricks.BrickInput();
+var input = new Ashlar.Core.Domain.Execution.BrickInput();
 input.Set("url", url);
 if (!string.IsNullOrWhiteSpace(token))
 {
@@ -88,7 +88,7 @@ var context = new Ashlar.Infrastructure.Execution.ExecutionContext
 
 var result = await brick.ExecuteAsync(
     input,
-    Ashlar.Core.Domain.Execution.ImplementationType.Code,
+    Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
     context,
     CancellationToken.None);
 
@@ -96,12 +96,11 @@ var result = await brick.ExecuteAsync(
 Console.WriteLine(result.Summary);
 Console.WriteLine();
 
-if (result.TryGet<bool>("ready", out var ready))
-{
-    Console.WriteLine($"Ready: {ready}");
-}
+var ready = result.Get<bool>("ready");
+Console.WriteLine($"Ready: {ready}");
 
-if (result.TryGet<List<object>>("blockers", out var blockers) && blockers.Any())
+var blockers = result.Get<List<object>>("blockers");
+if (blockers != null && blockers.Any())
 {
     Console.WriteLine();
     Console.WriteLine("Detailed blockers:");
@@ -113,7 +112,8 @@ if (result.TryGet<List<object>>("blockers", out var blockers) && blockers.Any())
 
 Console.WriteLine();
 Console.WriteLine("Evidence (JSON):");
-if (result.TryGet<object>("evidence", out var evidence))
+var evidence = result.Get<object>("evidence");
+if (evidence != null)
 {
     var json = JsonSerializer.Serialize(evidence, new JsonSerializerOptions
     {

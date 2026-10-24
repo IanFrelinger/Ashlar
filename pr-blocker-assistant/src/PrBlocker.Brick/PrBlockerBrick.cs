@@ -8,7 +8,7 @@ namespace PrBlocker.Brick;
 /// <summary>
 /// Brick that analyzes what's blocking a GitHub PR or release.
 /// </summary>
-public sealed class PrBlockerBrick : DomainBrick
+public sealed class PrBlockerBrick : Ashlar.Core.Domain.Bricks.Brick
 {
     public PrBlockerBrick()
     {
@@ -227,18 +227,18 @@ public sealed class PrBlockerBrick : DomainBrick
             }
             catch (NotFoundException)
             {
-                // Try as a tag
+                // Try as a tag - get commit for tag reference
                 try
                 {
-                    var tag = await client.Repository.GetBranch(owner, repo, $"refs/tags/{number}");
+                    var reference = await client.Git.Reference.Get(owner, repo, $"tags/{number}");
                     evidence["tag"] = new
                     {
                         Name = number,
-                        Sha = tag.Commit.Sha
+                        Sha = reference.Object.Sha
                     };
 
                     // Get status for the tag
-                    var tagStatus = await client.Repository.Status.GetCombined(owner, repo, tag.Commit.Sha);
+                    var tagStatus = await client.Repository.Status.GetCombined(owner, repo, reference.Object.Sha);
                     evidence["tagStatus"] = new
                     {
                         tagStatus.State,
