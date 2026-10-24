@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — Output formatters for BrickOutput
+
+- New `BrickOutputFormatters` extension methods in `Ashlar.Hosting` for consistent output formatting
+- `ToJson()`: JSON formatting with optional indentation
+- `ToMarkdown()`: Markdown formatting with headers and structure
+- `ToPlainText()`: Simple key-value plain text output
+- `ToTable()`: Formatted table with borders and alignment
+- Addresses consumer feedback about inconsistent output formatting patterns
+
 ### Added — GitHub integration bricks package
 
 - New `Ashlar.Bricks.GitHub` package with common GitHub operations
