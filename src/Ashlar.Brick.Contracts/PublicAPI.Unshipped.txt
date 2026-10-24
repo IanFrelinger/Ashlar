@@ -1,5 +1,2 @@
 #nullable enable
-Ashlar.Core.Domain.Execution.BrickInput.TryGet<T>(string key, out T value) -> bool
-Ashlar.Core.Domain.Execution.BrickOutput.Get<T>(string key, T defaultValue) -> T
-Ashlar.Core.Domain.Execution.BrickOutput.TryGet<T>(string key, out T value) -> bool
 
