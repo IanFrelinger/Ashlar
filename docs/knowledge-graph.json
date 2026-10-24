@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 819,
-    "declared_facts": 5261,
+    "test_files_declaring_facts": 820,
+    "declared_facts": 5281,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -6419,6 +6419,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.External",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/BrickOutputFormattersTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
+      "declared_facts": 20,
       "in_cert_gate_filter": false
     },
     {
