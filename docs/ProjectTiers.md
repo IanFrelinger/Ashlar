@@ -59,6 +59,7 @@ The CLI project also references spine-adjacent packs: **`Ashlar.Bricks.Owasp`**,
 |---------|------|
 | `src/Ashlar.Authoring/Ashlar.Authoring.csproj` | Minimal package for code-authored bricks: `Brick` base types, execution contracts, host registration helpers (see [`AuthoringBricks.md`](AuthoringBricks.md)) |
 | `src/Ashlar.Certification.State/Ashlar.Certification.State.csproj` | Attested state log binding: schema-bound mutable state with certified transition provenance |
+| `src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj` | GitHub integration brick pack (PR status, CI status, etc.) |
 | `src/Ashlar.Bricks.Owasp/Ashlar.Bricks.Owasp.csproj` | OWASP brick pack (referenced by the CLI) |
 | `src/Ashlar.Bricks.SqlProfile/Ashlar.Bricks.SqlProfile.csproj` | SQL-profile brick pack built on `Ashlar.Authoring` (exercised by `Ashlar.Tests.Application`) |
 | `src/Ashlar.Policies.Dev/Ashlar.Policies.Dev.csproj` | Development policy pack |
