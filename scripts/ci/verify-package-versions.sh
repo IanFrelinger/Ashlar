@@ -75,7 +75,7 @@ done < <(find "$ROOT" -name "*.csproj" -type f)
 
 # Report results
 MISSING_COUNT=0
-if [[ -n "${!MISSING_PACKAGES[@]:-}" ]]; then
+if [[ -n "${!MISSING_PACKAGES[*]:-}" ]]; then
   MISSING_COUNT=${#MISSING_PACKAGES[@]}
 fi
 
