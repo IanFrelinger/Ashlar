@@ -89,6 +89,7 @@ For layer-by-layer detail see [`docs/Architecture.md`](docs/Architecture.md); fo
 
 | Reader | Start here | First command or artifact |
 |--------|------------|---------------------------|
+| **External developer (authoring bricks)** | [`docs/AuthoringBricks.md`](docs/AuthoringBricks.md#external-consumers-complete-api-with-namespaces), [`consumer-template/CONSUMING.md`](consumer-template/CONSUMING.md#quick-start-complete-minimal-example) | `dotnet add package Ashlar.Authoring`, then author a brick using `Ashlar.Core.Domain.Bricks.Brick` |
 | **Tester / evaluator** | [`docs/TesterQuickstart.md`](docs/TesterQuickstart.md), then [`docs/GettingStarted.md`](docs/GettingStarted.md) for the pipeline and CLI tour | `dotnet build Ashlar.Kernel.sln`, then `dotnet run --project application/src/Ashlar.CLI -- doctor`, then the API + `POST /api/copilot/task` |
 | **Contributor** | [`docs/ProjectTiers.md`](docs/ProjectTiers.md) — canonical repo map, then [`CONTRIBUTING.md`](CONTRIBUTING.md) | `dotnet build application/src/Ashlar.CLI/Ashlar.CLI.csproj` (implicit restore; `--no-restore` only after `scripts/setup/setup.sh` or the dev container has restored) |
 | **Integrator** | [`docs/IntegratorGuide.md`](docs/IntegratorGuide.md), [`docs/DistributionModels.md`](docs/DistributionModels.md), [`docs/sdk.md`](docs/sdk.md), [`docs/SdkIntegrationGuide.md`](docs/SdkIntegrationGuide.md) | NuGet host embed, `Ashlar.Client`, HTTP API, CLI image, compose, or source integration (`consumer-template/CONSUMING.md` for the feed template) |

@@ -4,6 +4,80 @@ Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host 
 
 **Package version:** `0.3.0` — the release-commit pin (`ci/published-version`, equal to repo `VERSION` on this commit). nuget.org still serves `0.2.0` until `v0.3.0` is published. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
 
+## Quick Start: Complete Minimal Example
+
+Here's a complete, copy-pasteable brick that external consumers can use immediately:
+
+### 1. Create a brick project
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Ashlar.Authoring" Version="0.3.0" />
+  </ItemGroup>
+</Project>
+```
+
+### 2. Author your brick
+
+```csharp
+using Ashlar.Core.Domain.Bricks;
+using Ashlar.Core.Domain.Execution;
+
+namespace MyCompany.MyBricks;
+
+public sealed class HelloBrick : Brick
+{
+    public HelloBrick()
+    {
+        Id = "my-company.hello";
+        Name = "Hello Brick";
+        Version = "1.0.0";
+        Category = BrickCategory.Transform;
+        Description = "Returns a greeting.";
+        Interface = new BrickInterface
+        {
+            Inputs = [new BrickInputDefinition("name", "string", "Name to greet", required: false, defaultValue: "world")],
+            Outputs = [new BrickOutputDefinition("message", "string", "Greeting text")]
+        };
+    }
+
+    public override Task<BrickOutput> ExecuteAsync(
+        BrickInput input,
+        ImplementationType implementation,
+        IExecutionContext context,
+        CancellationToken cancellationToken = default)
+    {
+        var name = input.Get<string>("name");
+        var output = new BrickOutput { Summary = $"Greeted {name}." };
+        output.Set("message", $"Hello, {name}!");
+        return Task.FromResult(output);
+    }
+}
+```
+
+### 3. Register in a host
+
+```csharp
+using Ashlar.Authoring;
+using Ashlar.Hosting;
+
+// In your host's Startup or Program.cs
+services.AddAshlarBrick<HelloBrick>();
+services.AddAshlar();
+```
+
+That's it! The three things you need:
+1. **Package**: `Ashlar.Authoring` (brings all authoring types)
+2. **Namespaces**: `Ashlar.Core.Domain.Bricks` and `Ashlar.Core.Domain.Execution`
+3. **Base class**: `Brick` with `ExecuteAsync` override
+
+---
+
 **On nuget.org since v0.1.1 (2026-09-01); newest feed version is v0.3.0 (2026-10-18).** This document's pin is v0.3.0 (release commit 2026-10-18). The full `Ashlar.*` graph (including `Ashlar.CLI`, `Ashlar.Authoring`, `Ashlar.Hosting.Bundle`) restores from plain nuget.org at the newest published version — no staging feed needed. The living proof is [github.com/IanFrelinger/ashlar-release-manager](https://github.com/IanFrelinger/ashlar-release-manager), whose CI restores from nuget.org and nothing else. A staging feed (below) remains an option for pre-release testing; inside a checkout, a `ProjectReference` into `src/` (as in `samples/hello-brick/`) needs no feed at all.
 
 ## Package pins (`0.3.0`)
