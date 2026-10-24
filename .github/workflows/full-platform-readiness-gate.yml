@@ -89,6 +89,7 @@ on:
       - "src/Ashlar.Analyzers.Tests/**"
       - "src/Ashlar.Authoring/**"
       - "src/Ashlar.BackgroundAgents.HostRunners/**"
+      - "src/Ashlar.Bricks.GitHub/**"
       - "src/Ashlar.Bricks.Owasp/**"
       - "src/Ashlar.Bricks.SqlProfile/**"
       - "src/Ashlar.Certification.State/**"
