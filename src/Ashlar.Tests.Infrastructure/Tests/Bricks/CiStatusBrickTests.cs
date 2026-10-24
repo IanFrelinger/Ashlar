@@ -78,20 +78,20 @@ public class CiStatusBrickTests : UnitTestBase
         AssertEqual(4, brick.Interface.Inputs.Count);
         
         var ownerInput = brick.Interface.Inputs.FirstOrDefault(i => i.Name == "owner");
-        AssertNotNull(ownerInput);
-        AssertTrue(ownerInput.Required);
+        AssertNotNull(ownerInput, "owner input should be defined");
+        AssertTrue(ownerInput!.Required);
         
         var repoInput = brick.Interface.Inputs.FirstOrDefault(i => i.Name == "repo");
-        AssertNotNull(repoInput);
-        AssertTrue(repoInput.Required);
+        AssertNotNull(repoInput, "repo input should be defined");
+        AssertTrue(repoInput!.Required);
         
         var refInput = brick.Interface.Inputs.FirstOrDefault(i => i.Name == "ref");
-        AssertNotNull(refInput);
-        AssertTrue(refInput.Required);
+        AssertNotNull(refInput, "ref input should be defined");
+        AssertTrue(refInput!.Required);
         
         var tokenInput = brick.Interface.Inputs.FirstOrDefault(i => i.Name == "githubToken");
-        AssertNotNull(tokenInput);
-        AssertFalse(tokenInput.Required);
+        AssertNotNull(tokenInput, "githubToken input should be defined");
+        AssertFalse(tokenInput!.Required);
         
         // Verify outputs
         AssertNotNull(brick.Interface.Outputs);

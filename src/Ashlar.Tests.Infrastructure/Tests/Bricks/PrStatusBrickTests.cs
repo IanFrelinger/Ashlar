@@ -79,13 +79,13 @@ public class PrStatusBrickTests : UnitTestBase
         AssertEqual(2, brick.Interface.Inputs.Count);
         
         var prUrlInput = brick.Interface.Inputs.FirstOrDefault(i => i.Name == "prUrl");
-        AssertNotNull(prUrlInput);
-        AssertEqual("string", prUrlInput.Type);
+        AssertNotNull(prUrlInput, "prUrl input should be defined");
+        AssertEqual("string", prUrlInput!.Type);
         AssertTrue(prUrlInput.Required);
         
         var tokenInput = brick.Interface.Inputs.FirstOrDefault(i => i.Name == "githubToken");
-        AssertNotNull(tokenInput);
-        AssertEqual("string", tokenInput.Type);
+        AssertNotNull(tokenInput, "githubToken input should be defined");
+        AssertEqual("string", tokenInput!.Type);
         AssertFalse(tokenInput.Required); // Optional for rate limits
         
         // Verify outputs
@@ -123,7 +123,7 @@ public class PrStatusBrickTests : UnitTestBase
         try
         {
             parseMethod.Invoke(brick, new object[] { invalidUrl });
-            Fail("Should have thrown ArgumentException for invalid URL");
+            throw new AssertionException("Should have thrown ArgumentException for invalid URL");
         }
         catch (System.Reflection.TargetInvocationException ex)
         {
