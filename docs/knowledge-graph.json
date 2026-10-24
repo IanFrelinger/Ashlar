@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 820,
-    "declared_facts": 5281,
+    "test_files_declaring_facts": 821,
+    "declared_facts": 5296,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4284,6 +4284,13 @@
       "project": "Ashlar.Tests.Domain",
       "namespace": "Ashlar.Tests.Domain.Tests",
       "declared_facts": 26,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Domain/Tests/Execution/BrickInputValidationTests.cs",
+      "project": "Ashlar.Tests.Domain",
+      "namespace": "Ashlar.Tests.Domain.Tests.Execution",
+      "declared_facts": 15,
       "in_cert_gate_filter": false
     },
     {
