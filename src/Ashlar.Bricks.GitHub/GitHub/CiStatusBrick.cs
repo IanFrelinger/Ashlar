@@ -8,7 +8,7 @@ namespace Ashlar.Bricks.GitHub.GitHub;
 /// <summary>
 /// Analyzes GitHub Actions CI/CD workflow status for a repository or commit.
 /// </summary>
-public class CiStatusBrick : Brick
+public class CiStatusBrick : Ashlar.Core.Domain.Bricks.Brick
 {
     private readonly ILogger<CiStatusBrick> _logger;
 

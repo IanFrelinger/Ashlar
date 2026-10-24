@@ -8,7 +8,7 @@ namespace Ashlar.Bricks.GitHub.GitHub;
 /// <summary>
 /// Analyzes GitHub Pull Request status including reviews, checks, and merge blockers.
 /// </summary>
-public class PrStatusBrick : Brick
+public class PrStatusBrick : Ashlar.Core.Domain.Bricks.Brick
 {
     private readonly ILogger<PrStatusBrick> _logger;
 
