@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <AshlarVersion>0.3.0</AshlarVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Ashlar.Hosting.Bundle" Version="$(AshlarVersion)" />
+    <PackageVersion Include="Ashlar.Authoring" Version="$(AshlarVersion)" />
+    <PackageVersion Include="Ashlar.Brick.Contracts" Version="$(AshlarVersion)" />
+    <PackageVersion Include="Octokit" Version="13.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.12" />
+  </ItemGroup>
+</Project>
