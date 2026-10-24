@@ -61,6 +61,23 @@ public class BrickInput
         return defaultValue;
     }
 
+    /// <summary>Tries to get an input value cast to <typeparamref name="T"/>.</summary>
+    /// <typeparam name="T">Expected value type.</typeparam>
+    /// <param name="key">Input parameter name.</param>
+    /// <param name="value">The output parameter to receive the value if found and compatible.</param>
+    /// <returns>True if the key exists and the value is assignable to <typeparamref name="T"/>; otherwise false.</returns>
+    public bool TryGet<T>(string key, out T? value)
+    {
+        if (_data.TryGetValue(key, out var obj) && obj is T typedValue)
+        {
+            value = typedValue;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
     /// <summary>Returns a read-only view of all input key-value pairs.</summary>
     public IReadOnlyDictionary<string, object> ToDictionary() => _data;
 }

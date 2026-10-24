@@ -17,6 +17,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — TryGet methods for BrickInput and BrickOutput
+
+- `BrickInput.TryGet<T>(string key, out T? value)` and `BrickOutput.TryGet<T>(string key, out T? value)`
+  provide idiomatic C# pattern for optional input/output reading. Returns `true` and sets `value` when
+  the key exists and the type matches; returns `false` and sets `value` to `default(T)` otherwise.
+- `BrickOutput.Get<T>(string key, T? defaultValue)` added for consistency with `BrickInput` (previously
+  only `BrickInput` had this overload).
+- Documentation in `docs/AuthoringBricks.md` shows when to use `Get<T>()`, `Get<T>(defaultValue)`, and
+  `TryGet<T>()` for different error-handling strategies.
+
 ### Fixed — resource allocation arithmetic
 
 - Use available capacity when planning preemption and retain existing reservations when
