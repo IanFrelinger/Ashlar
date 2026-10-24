@@ -613,3 +613,10 @@ static Ashlar.Core.Domain.Bricks.Ports.DefaultAcceptanceEvaluator.Instance.get -
 static Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Fail(string? detail, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? outputs = null) -> Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult!
 static Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.NotRun.get -> Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult!
 static Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult.Pass(string? detail, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? outputs = null) -> Ashlar.Core.Domain.Bricks.Ports.DeploymentSmokeResult!
+Ashlar.Core.Domain.Execution.BrickInputValidation
+static Ashlar.Core.Domain.Execution.BrickInputValidation.ApplyDefaults(this Ashlar.Core.Domain.Execution.BrickInput! input, Ashlar.Core.Domain.Bricks.BrickInterface! brickInterface) -> void
+static Ashlar.Core.Domain.Execution.BrickInputValidation.TryValidateRequiredInputs(this Ashlar.Core.Domain.Execution.BrickInput! input, Ashlar.Core.Domain.Bricks.BrickInterface! brickInterface, out System.Collections.Generic.IReadOnlyList<string!>! missingInputs) -> bool
+static Ashlar.Core.Domain.Execution.BrickInputValidation.ValidateRequiredInputs(this Ashlar.Core.Domain.Execution.BrickInput! input, Ashlar.Core.Domain.Bricks.BrickInterface! brickInterface) -> void
+Ashlar.Core.Domain.Execution.BrickInputValidationException
+Ashlar.Core.Domain.Execution.BrickInputValidationException.BrickInputValidationException(string! message, System.Collections.Generic.IReadOnlyList<string!>! missingInputs) -> void
+Ashlar.Core.Domain.Execution.BrickInputValidationException.MissingInputs.get -> System.Collections.Generic.IReadOnlyList<string!>!
