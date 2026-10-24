@@ -1,4 +1,5 @@
 #nullable enable
+Ashlar.Core.Domain.Execution.BrickInputValidation
 static Ashlar.Core.Domain.Execution.BrickInputValidation.ApplyDefaults(this Ashlar.Core.Domain.Execution.BrickInput! input, Ashlar.Core.Domain.Bricks.BrickInterface! brickInterface) -> void
 static Ashlar.Core.Domain.Execution.BrickInputValidation.TryValidateRequiredInputs(this Ashlar.Core.Domain.Execution.BrickInput! input, Ashlar.Core.Domain.Bricks.BrickInterface! brickInterface, out System.Collections.Generic.IReadOnlyList<string!>! missingInputs) -> bool
 static Ashlar.Core.Domain.Execution.BrickInputValidation.ValidateRequiredInputs(this Ashlar.Core.Domain.Execution.BrickInput! input, Ashlar.Core.Domain.Bricks.BrickInterface! brickInterface) -> void
