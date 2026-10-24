@@ -805,6 +805,7 @@
         "Ashlar.Agents.TestKit",
         "Ashlar.BackgroundAgents",
         "Ashlar.BackgroundAgents.HostRunners",
+        "Ashlar.Bricks.GitHub",
         "Ashlar.Bricks.Owasp",
         "Ashlar.Certification.Contracts",
         "Ashlar.Certification.State",
