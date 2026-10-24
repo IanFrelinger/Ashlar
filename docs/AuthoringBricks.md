@@ -23,7 +23,81 @@ The constructor or init properties define metadata and the input/output contract
 
 `ExecuteAsync` reads typed values from `BrickInput`, returns a `BrickOutput`, and should set a human-readable `Summary`.
 
-## Minimal code brick
+## External consumers: complete API with namespaces
+
+**If you are consuming Ashlar as a published package** (the typical external developer path), here is the complete API surface with all required namespaces and a copy-pasteable minimal example:
+
+### Required using statements
+
+```csharp
+using Ashlar.Core.Domain.Bricks;
+using Ashlar.Core.Domain.Execution;
+```
+
+### Complete minimal brick
+
+```csharp
+using Ashlar.Core.Domain.Bricks;
+using Ashlar.Core.Domain.Execution;
+
+namespace MyCompany.MyBricks;
+
+public sealed class HelloBrick : Brick
+{
+    public HelloBrick()
+    {
+        Id = "my-company.hello";
+        Name = "Hello Brick";
+        Version = "1.0.0";
+        Category = BrickCategory.Transform;
+        Description = "Returns a greeting for a supplied name.";
+        Interface = new BrickInterface
+        {
+            Inputs = [new BrickInputDefinition("name", "string", "Name to greet", required: false, defaultValue: "world")],
+            Outputs = [new BrickOutputDefinition("message", "string", "Greeting text")]
+        };
+    }
+
+    public override Task<BrickOutput> ExecuteAsync(
+        BrickInput input,
+        ImplementationType implementation,
+        IExecutionContext context,
+        CancellationToken cancellationToken = default)
+    {
+        var name = input.Get<string>("name");
+        var output = new BrickOutput { Summary = $"Greeted {name}." };
+        output.Set("message", $"Hello, {name}!");
+        return Task.FromResult(output);
+    }
+}
+```
+
+### Required package
+
+Add this `PackageReference` to your `.csproj`:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Ashlar.Authoring" Version="0.3.0" />
+</ItemGroup>
+```
+
+The `Ashlar.Authoring` package brings all authoring types: `Brick`, `BrickInput`, `BrickOutput`, `BrickInterface`, `BrickInputDefinition`, `BrickOutputDefinition`, `IExecutionContext`, and the `AddAshlarBrick<T>()` registration helper.
+
+### Registering in a host
+
+```csharp
+using Ashlar.Authoring;
+using Ashlar.Hosting;
+
+// In your host's Startup or Program.cs
+services.AddAshlarBrick<HelloBrick>();
+services.AddAshlar();
+```
+
+That's the complete external consumer path. For repository-internal development with `ProjectReference`, see the sections below.
+
+## Minimal code brick (repository internal)
 
 ```csharp
 using Ashlar.Core.Domain.Bricks;
