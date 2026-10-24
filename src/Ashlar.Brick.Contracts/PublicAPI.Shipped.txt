@@ -420,15 +420,18 @@ Ashlar.Core.Domain.Execution.BrickInput.Get<T>(string key) -> T
 Ashlar.Core.Domain.Execution.BrickInput.Get<T>(string key, T defaultValue) -> T
 Ashlar.Core.Domain.Execution.BrickInput.Set(string key, object value) -> void
 Ashlar.Core.Domain.Execution.BrickInput.ToDictionary() -> System.Collections.Generic.IReadOnlyDictionary<string, object>
+Ashlar.Core.Domain.Execution.BrickInput.TryGet<T>(string key, out T value) -> bool
 Ashlar.Core.Domain.Execution.BrickOutput
 Ashlar.Core.Domain.Execution.BrickOutput.BrickOutput() -> void
 Ashlar.Core.Domain.Execution.BrickOutput.Get<T>(string key) -> T
+Ashlar.Core.Domain.Execution.BrickOutput.Get<T>(string key, T defaultValue) -> T
 Ashlar.Core.Domain.Execution.BrickOutput.Set(string key, object value) -> void
 Ashlar.Core.Domain.Execution.BrickOutput.Summary.get -> string
 Ashlar.Core.Domain.Execution.BrickOutput.Summary.set -> void
 Ashlar.Core.Domain.Execution.BrickOutput.ToDictionary() -> System.Collections.Generic.IReadOnlyDictionary<string, object>
 Ashlar.Core.Domain.Execution.BrickOutput.this[string key].get -> object
 Ashlar.Core.Domain.Execution.BrickOutput.this[string key].set -> void
+Ashlar.Core.Domain.Execution.BrickOutput.TryGet<T>(string key, out T value) -> bool
 Ashlar.Core.Domain.Execution.IExecutionContext
 Ashlar.Core.Domain.Execution.IExecutionContext.AgentId.get -> string
 Ashlar.Core.Domain.Execution.IExecutionContext.AuditMode.get -> bool

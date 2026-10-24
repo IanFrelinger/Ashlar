@@ -224,6 +224,58 @@ This strict validation applies to all input types (`"string"`, `"number"`, `"boo
 - Early validation failures with specific error messages
 - Type safety across the execution pipeline
 
+## Reading inputs safely
+
+`BrickInput` provides multiple methods for reading input values with different error-handling strategies:
+
+### Get<T>(key) — Required inputs
+
+Use `Get<T>(key)` when an input is required:
+
+```csharp
+var name = input.Get<string>("name");
+```
+
+Throws `KeyNotFoundException` if the key is missing or `InvalidCastException` if the type doesn't match.
+
+### Get<T>(key, defaultValue) — Optional inputs with defaults
+
+Use `Get<T>(key, defaultValue)` for optional inputs:
+
+```csharp
+var timeout = input.Get<int>("timeout", 30);
+var format = input.Get<string>("format", "json");
+```
+
+Returns the default value if the key is missing or the type doesn't match. Never throws.
+
+### TryGet<T>(key, out value) — Idiomatic C# pattern
+
+Use `TryGet<T>(key, out value)` when you need to distinguish between missing keys and type mismatches:
+
+```csharp
+if (input.TryGet<string>("optionalField", out var value))
+{
+    // Key exists and type matches - use value
+    ProcessField(value);
+}
+else
+{
+    // Key missing or type mismatch - handle appropriately
+}
+```
+
+Returns `true` and sets `value` if the key exists and the type matches. Returns `false` and sets `value` to `default(T)` otherwise.
+
+**When to use TryGet:**
+- You need different behavior for missing vs present keys
+- You want to avoid exception handling for control flow
+- You prefer the standard C# Try-pattern
+
+### Reading outputs safely
+
+`BrickOutput` provides the same three methods (`Get<T>`, `Get<T> with default`, and `TryGet<T>`) for reading output values when consuming other bricks or inspecting results.
+
 ## Code bricks vs generated manifests
 
 Ashlar also has an adaptive manifest path: `INewBrickGenerator.GenerateAsync(...)` creates a `BrickManifest` from observed patterns. That path is for runtime/adaptive discovery and promotion.
