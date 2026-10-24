@@ -99,7 +99,7 @@ Console.WriteLine();
 var ready = result.Get<bool>("ready");
 Console.WriteLine($"Ready: {ready}");
 
-var blockers = result.Get<List<object>>("blockers");
+var blockers = result.Get<List<string>>("blockers");
 if (blockers != null && blockers.Any())
 {
     Console.WriteLine();

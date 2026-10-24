@@ -42,7 +42,7 @@ public sealed class PrBlockerBrick : Ashlar.Core.Domain.Bricks.Brick
         CancellationToken cancellationToken = default)
     {
         var url = input.Get<string>("url");
-        var githubToken = input.Get<string?>("githubToken");
+        var githubToken = input.Get<string?>("githubToken", null);
 
         if (string.IsNullOrWhiteSpace(url))
         {
