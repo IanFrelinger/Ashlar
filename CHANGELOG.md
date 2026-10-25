@@ -28,6 +28,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   conventions. `Ashlar.Bricks.GitHub` now depends on `Ashlar.Abstractions`.
 - `github.pr-status` and `github.blockers` accept only `https://github.com` URLs; any other host was previously
   parsed and answered with data about api.github.com.
+- The MCP brick host registers `github.blockers` (MCP tool `github_blockers`, exposed when allowlisted), so
+  `dnx Ashlar.Mcp.Server.Host` answers "what is blocking this PR or release?" for any MCP client.
+  `scripts/verify-mcp-brick-host-dnx.sh` exposes it and checks its refusal of an off-github.com URL and the
+  audit record of that call.
 
 ### Fixed — `AshlarSimpleCli` could not execute a brick
 

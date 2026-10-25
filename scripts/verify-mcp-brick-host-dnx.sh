@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Packs Ashlar.Mcp.Server.Host as the tool package a release pushes, runs it with `dnx` from a temp
 # feed (nothing else on the source list, empty package cache), and drives a real MCP stdio session:
-# initialize -> tools/list -> tools/call on the built-in github.pr-status brick. Then reads the
-# audit record the call wrote.
+# initialize -> tools/list -> tools/call on the built-in github.pr-status and github.blockers bricks.
+# Then reads the audit record each call wrote.
 #
 # WHAT THIS PROVES
 # ----------------
@@ -69,6 +69,7 @@ export NUGET_PACKAGES="${WORK}/packages"
 export DOTNET_CLI_HOME="${WORK}/cli-home"
 export DOTNET_NOLOGO=1
 export Ashlar__Mcp__Bricks__ExposedBrickIds__0="github.pr-status"
+export Ashlar__Mcp__Bricks__ExposedBrickIds__1="github.blockers"
 export Ashlar__Audit__File__Directory="${AUDIT_DIR}"
 
 python3 - "${PACKAGE_ID}@${VERSION}" "${FEED}" "${AUDIT_DIR}" <<'PY'
@@ -121,9 +122,9 @@ try:
     send({"jsonrpc": "2.0", "method": "notifications/initialized"})
 
     send({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
-    names = [t["name"] for t in wait(2)["result"]["tools"]]
-    assert names == ["github_pr-status"], f"FAIL - tools/list returned {names}"
-    print("  ok   - tools/list lists exactly the allowlisted brick:", names)
+    names = sorted(t["name"] for t in wait(2)["result"]["tools"])
+    assert names == ["github_blockers", "github_pr-status"], f"FAIL - tools/list returned {names}"
+    print("  ok   - tools/list lists exactly the allowlisted bricks:", names)
 
     send({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
         "name": "github_pr-status", "arguments": {"prUrl": "https://example.invalid/not-a-pull-request"}}})
@@ -138,18 +139,21 @@ try:
 
     # The file sink drains a queue on its own task and flushes per event, so the line lands
     # moments after the response; allow it a few seconds rather than racing it.
-    deadline = time.time() + 10
-    while True:
-        records = []
-        for path in glob.glob(os.path.join(audit_dir, "*")):
-            with open(path, encoding="utf-8") as f:
-                records += [json.loads(l) for l in f if l.strip()]
-        mine = [r for r in records if r.get("correlationId") == audit_id]
-        if mine or time.time() > deadline:
-            break
-        time.sleep(0.2)
-    assert len(mine) == 1, f"FAIL - {len(mine)} audit records for {audit_id} in {audit_dir}: {records}"
-    record = mine[0]
+    def audit_record(audit_id):
+        deadline = time.time() + 10
+        while True:
+            records = []
+            for path in glob.glob(os.path.join(audit_dir, "*")):
+                with open(path, encoding="utf-8") as f:
+                    records += [json.loads(l) for l in f if l.strip()]
+            mine = [r for r in records if r.get("correlationId") == audit_id]
+            if mine or time.time() > deadline:
+                break
+            time.sleep(0.2)
+        assert len(mine) == 1, f"FAIL - {len(mine)} audit records for {audit_id} in {audit_dir}: {records}"
+        return mine[0]
+
+    record = audit_record(audit_id)
     assert record["eventType"] == "MCP_BRICK_INVOKED", record
     detail = json.loads(record["detail"])
     assert detail["outcome"] == "succeeded" and detail["brickId"] == "github.pr-status", detail
@@ -157,6 +161,19 @@ try:
     assert detail["resultSha256"] == hashlib.sha256(text.encode()).hexdigest(), "FAIL - result hash mismatch"
     assert "example.invalid" not in record["detail"], "FAIL - argument value written to the audit record"
     print("  ok   - one MCP_BRICK_INVOKED record on disk, hash matches the returned text")
+
+    # github.blockers refuses a URL off github.com before any request, so this needs no network.
+    send({"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
+        "name": "github_blockers", "arguments": {"url": "https://ghe.example.invalid/o/r/pull/1"}}})
+    result = wait(4)["result"]
+    text = result["content"][0]["text"]
+    assert result.get("isError") and "github.com" in text, f"FAIL - off-host url was not refused: {result}"
+    import re
+    match = re.search(r"auditId ([0-9a-f]{32})", text)
+    assert match, f"FAIL - refusal carries no auditId: {text}"
+    detail = json.loads(audit_record(match.group(1))["detail"])
+    assert detail["brickId"] == "github.blockers" and detail["outcome"] == "failed", detail
+    print("  ok   - github_blockers refuses an off-github.com URL as a tool error, with its audit record")
     assert "non-json" not in responses, f"FAIL - non-JSON on stdout: {responses['non-json'][:3]}"
     print("  ok   - stdout carried only JSON-RPC")
 finally:
