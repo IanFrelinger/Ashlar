@@ -2,7 +2,7 @@
 
 Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host + HTTP client. Copy `nuget.config` and `Directory.Packages.props` from this folder into your solution root.
 
-**Package version:** `0.3.0` — the release-commit pin (`ci/published-version`, equal to repo `VERSION` on this commit). nuget.org still serves `0.2.0` until `v0.3.0` is published. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
+**Package version:** `0.3.0` — the published pin (`ci/published-version`, equal to repo `VERSION` on this commit), the newest version on nuget.org. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
 
 ## Quick Start: Complete Minimal Example
 

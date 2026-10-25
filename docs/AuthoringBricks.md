@@ -284,7 +284,7 @@ Use **code-authored bricks** when you want to ship source-controlled domain logi
 
 ## Packages on nuget.org
 
-Release-commit pin is **`0.3.0`** (`ci/published-version`, equal to repo `VERSION` on this commit). nuget.org still serves those packages at **`0.2.0`** until `v0.3.0` is published — do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin. A checkout still works with `ProjectReference` (next section) if you do not want the feed.
+Published pin is **`0.3.0`** (`ci/published-version`, equal to repo `VERSION` on this commit), the newest version on nuget.org — do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin. A checkout still works with `ProjectReference` (next section) if you do not want the feed.
 
 ## Primary path: `samples/hello-brick` (ProjectReference)
 
@@ -317,7 +317,7 @@ To start your own brick, copy `samples/hello-brick/` next to it (or anywhere ins
 ashlar new brick MyThing --ashlar-version 1.2.3
 ```
 
-Because an unpublished CLI version may generate a `PackageReference` to a version that is not on the feed yet, restoring a freshly scaffolded project can fail with `NU1101` until you pin `--ashlar-version` to the version nuget.org actually lists (**`0.2.0`** until `v0.3.0` is published; the release-commit pin in `ci/published-version` is **`0.3.0`**) or use a local folder feed (next section). Inside a checkout you can run the CLI without installing it:
+Because an unpublished CLI version may generate a `PackageReference` to a version that is not on the feed yet, restoring a freshly scaffolded project can fail with `NU1101` until you pin `--ashlar-version` to the version nuget.org actually lists (**`0.3.0`**, the pin in `ci/published-version`) or use a local folder feed (next section). Inside a checkout you can run the CLI without installing it:
 
 ```bash
 dotnet run --project application/src/Ashlar.CLI -- new brick Hello --output /tmp/hello-brick --ashlar-version 9.9.9-local
