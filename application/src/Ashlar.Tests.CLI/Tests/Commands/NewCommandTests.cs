@@ -34,6 +34,12 @@ public sealed class NewCommandTests
                 .Should()
                 .Contain("public sealed class MyThingBrick")
                 .And.Contain("Id = \"my-thing\"");
+
+            var leftovers = Directory.EnumerateFiles(output, "*", SearchOption.AllDirectories)
+                .SelectMany(f => System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(f), @"__[A-Za-z][A-Za-z ]*__")
+                    .Select(m => $"{Path.GetRelativePath(output, f)}: {m.Value}"))
+                .ToList();
+            leftovers.Should().BeEmpty("every template token is replaced in the scaffold");
         }
         finally
         {

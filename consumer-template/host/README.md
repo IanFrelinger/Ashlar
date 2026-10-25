@@ -57,6 +57,32 @@ identifiers and legal MSBuild text, so both files still parse — an editor, an 
 `scripts/verify-external-product-shape.sh` substitutes them with `sed` and refuses to continue if
 any survive. Copying this host by hand means doing the same four replacements yourself.
 
+The csproj references the brick at `../../brick/<BRICK_PROJECT_NAME>/<BRICK_PROJECT_NAME>.csproj`, so the
+host directory must sit two levels below the root that holds `brick/`:
+
+```text
+<root>/brick/HelloBrick/HelloBrick.csproj
+<root>/app/host/ExternalProductHost.csproj    (copied from this directory, tokens replaced)
+```
+
+Anywhere else, the build fails with `MSB9008` (the referenced project does not exist) and `CS0246`
+(the brick class is not found).
+
+## Call it
+
+With the `HelloBrick` from [../CONSUMING.md](../CONSUMING.md) (`MyCompany.MyBricks.HelloBrick`, id `my-company.hello`):
+
+```bash
+dotnet run --project app/host --urls http://127.0.0.1:5080
+curl -s http://127.0.0.1:5080/health
+curl -s -X POST http://127.0.0.1:5080/api/bricks/my-company.hello/execute \
+  -H "Content-Type: application/json" -d '{"input":{"name":"Ashlar"}}'
+# {"wireFormatVersion":"2025-02","success":true,"summary":"Greeted Ashlar.","output":{"message":"Hello, Ashlar!","Summary":"Greeted Ashlar."},"error":null}
+```
+
+The body may also carry `brickId` (it must match the route), `implementation` (default `Deterministic`) and
+`executionContext`.
+
 Edits here change what CI verifies, so treat this directory as gate input rather than documentation:
 the workflow's path filters list `consumer-template/host/**` for exactly that reason.
 

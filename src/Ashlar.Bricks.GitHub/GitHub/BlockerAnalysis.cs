@@ -86,7 +86,8 @@ internal static class BlockerAnalysis
         else if (state == "behind")
             blockers.Add(new Blocker("The branch is behind " + pr.BaseRef + ", and the base branch requires branches to be up to date.", pr.Url));
         else if (pr.Mergeable is null || state is null or "unknown")
-            unknowns.Add(new Unknown("Mergeability", "GitHub had not finished computing it; ask again in a few seconds."));
+            unknowns.Add(new Unknown("Mergeability",
+                "GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view."));
 
         var mergeAllowed = state is not null && MergeAllowedStates.Contains(state);
         var protection = pr.Protection;
@@ -219,6 +220,14 @@ internal static class BlockerAnalysis
                 else if (state is "failure" or "error")
                     problems.Add((status.Context, $"The status {status.Context} reported {state}" + (string.IsNullOrWhiteSpace(status.Description) ? "." : $": {status.Description}"), status.Url ?? commitUrl));
             }
+        }
+
+        if (problems.Count == 0 && ci.Checks is not null && ci.Statuses is not null)
+        {
+            var sha = ci.Sha[..Math.Min(ci.Sha.Length, 12)];
+            notes.Add(ci.Checks.Count + ci.Statuses.Count == 0
+                ? new Note($"No check run or commit status has reported on the {commitLabel} {sha}.", commitUrl)
+                : new Note($"Read {ci.Checks.Count} check run(s) and {ci.Statuses.Count} commit status(es) on the {commitLabel} {sha}; none is failing or pending.", commitUrl));
         }
 
         var required = requiredChecks is null ? null : new HashSet<string>(requiredChecks, StringComparer.Ordinal);

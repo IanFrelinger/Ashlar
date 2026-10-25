@@ -325,7 +325,9 @@ dotnet run --project application/src/Ashlar.CLI -- new brick Hello --output /tmp
 
 ## Restoring Ashlar.Authoring
 
-Two options; the first is what CI verifies.
+**For a published version (`0.3.0` today), use plain nuget.org:** a `PackageReference` to `Ashlar.Authoring` at that version restores with `dotnet restore` and no feed configuration. A scaffold from an installed `Ashlar.CLI` at the same version (`dotnet tool install --global Ashlar.CLI --version 0.3.0`, then `ashlar new brick MyThing --ashlar-version 0.3.0`) restores the same way. To see the brick's output outside a test, use the console runner in [`consumer-template/CONSUMING.md`](../consumer-template/CONSUMING.md#3-run-it).
+
+The two options below are for a version that is **not** on nuget.org yet (a checkout ahead of the published pin); the first is what CI verifies.
 
 ### Option 1: local folder feed (CI-verified)
 

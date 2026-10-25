@@ -34,6 +34,21 @@ VS Code (`.vscode/mcp.json`):
 
 Pin a version with `Ashlar.Mcp.Server.Host@<version>` in `args`.
 
+### From a clone
+
+The package is not on nuget.org before the first release that ships it (0.3.0 does not). Until then `dnx`
+answers `ashlar.mcp.server.host is not found in NuGet feeds`, and you run the server from a clone:
+
+```bash
+dotnet build src/Ashlar.Mcp.Server.Host -c Release
+Ashlar__Mcp__Bricks__ExposedBrickIds__0=github.blockers \
+  dotnet src/Ashlar.Mcp.Server.Host/bin/Release/net10.0/Ashlar.Mcp.Server.Host.dll
+```
+
+In an MCP client configuration, set `"command": "dotnet"` and pass the `.dll` path as the only `args` entry.
+Build first and start the built `.dll`: a `dotnet run` that builds writes build output to stdout, which is the
+JSON-RPC channel.
+
 ## Built-in bricks
 
 | Brick id | MCP tool name | What it does |
@@ -60,8 +75,9 @@ server does not list is an MCP protocol error, not a tool result.
 ## Audit records
 
 One JSON line per brick call (refusals included) in
-`<LocalApplicationData>/ashlar/mcp-audit/mcp-brick-calls*.jsonl` (on Linux `~/.local/share/ashlar/mcp-audit`).
-Set `Ashlar__Audit__File__Directory` to move it. Each record has `eventType` `MCP_BRICK_INVOKED`,
+`<LocalApplicationData>/ashlar/mcp-audit/mcp-brick-calls-<start time>.ndjson` (on Linux
+`~/.local/share/ashlar/mcp-audit`), one file per server start. Set `Ashlar__Audit__File__Directory` to move it.
+To find the record for one call: `grep <auditId> ~/.local/share/ashlar/mcp-audit/mcp-brick-calls-*.ndjson`. Each record has `eventType` `MCP_BRICK_INVOKED`,
 `correlationId` = the `auditId` the caller saw, and a `detail` holding the brick id and version, the outcome
 (`succeeded`, `failed`, `refused`), the duration, and the SHA-256 of the arguments as received and of the text
 returned. **Argument and output values are not written**, so a token passed as `githubToken` does not land on disk.
