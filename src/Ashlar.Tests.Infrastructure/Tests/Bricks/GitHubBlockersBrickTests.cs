@@ -331,7 +331,7 @@ public sealed class GitHubBlockersBrickTests
 
         output.Get<string>("verdict").Should().Be("blocked");
         Reasons(output, "blockers", "reason").Should().Equal("0 of 1 required approving reviews.");
-        Reasons(output, "notes", "text").Should().Contain("The check coverage concluded failure. It is not required, so it does not block the merge.");
+        Reasons(output, "notes", "text").Should().Contain("The check `coverage` concluded failure. It is not required, so it does not block the merge.");
         Reasons(output, "unknowns", "what").Should().BeEmpty();
     }
 
@@ -356,9 +356,9 @@ public sealed class GitHubBlockersBrickTests
         output.Get<string>("verdict").Should().Be("blocked");
         Reasons(output, "blockers", "reason").Should().BeEquivalentTo(
             "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
-            "The required check build (macos-latest) has not reported on 6235af8fddba.",
-            "The required check build (ubuntu-latest) has not reported on 6235af8fddba.",
-            "The required check build (windows-latest) has not reported on 6235af8fddba.");
+            "The required check `build (macos-latest)` has not reported on 6235af8fddba.",
+            "The required check `build (ubuntu-latest)` has not reported on 6235af8fddba.",
+            "The required check `build (windows-latest)` has not reported on 6235af8fddba.");
         Reasons(output, "unknowns", "what").Should().BeEmpty();
     }
 
@@ -395,8 +395,8 @@ public sealed class GitHubBlockersBrickTests
 
         var output = await Brick(github).ExecuteAsync(Input("https://github.com/cli/cli/pull/14816"), ImplementationType.Deterministic, Context());
 
-        Reasons(output, "blockers", "reason").Should().Equal("The required check build (ubuntu-latest) has not reported on 6235af8fddba.");
-        Reasons(output, "notes", "text").Should().Contain("The check lint concluded failure. It is not required, so it does not block the merge.");
+        Reasons(output, "blockers", "reason").Should().Equal("The required check `build (ubuntu-latest)` has not reported on 6235af8fddba.");
+        Reasons(output, "notes", "text").Should().Contain("The check `lint` concluded failure. It is not required, so it does not block the merge.");
         Reasons(output, "unknowns", "what").Should().Equal("Required approvals");
     }
 

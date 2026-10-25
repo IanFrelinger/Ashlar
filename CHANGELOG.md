@@ -35,6 +35,11 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   summary on `GET /branches/{base}`, the active rulesets on `GET /rules/branches/{base}`, and GraphQL `isRequired`
   and `reviewDecision`. A failing check that is not required is a note; a required check that has not run, and a
   required review that is missing, are blockers by name. Regression tests replay facts from the study's snapshot.
+- Names and text read from GitHub (check and status names, status descriptions, reviewer logins, base ref, tag) now
+  reach the Markdown `answer`, and the PR-blockers Action's job summary, as one inline code span each, capped and
+  stripped of control characters; evidence links are kept only for absolute http(s) URLs. A fork's workflow or any
+  integration with status access chooses some of that text, and it rendered before as live Markdown: headings, links,
+  images, and instructions to a model. Check names in the `answer` are therefore backticked.
 
 ### Added — live token benchmark (D9)
 
