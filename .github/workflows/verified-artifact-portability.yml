@@ -1,0 +1,258 @@
+# Build and sign one net8.0 fixture, then execute those same bytes in every consumer.
+# This is an advisory, path-filtered workflow, not a required branch-protection check.
+name: Verified Artifact Portability
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Catch changes in the current runtime patches and hosted runner images.
+    - cron: "30 11 * * 1"
+  push:
+    branches: [master, main]
+    paths:
+      - ".github/workflows/verified-artifact-portability.yml"
+      - "scripts/portability/verified-artifact-probe.ps1"
+      - "tools/VerifiedArtifactPortability/**"
+      - "samples/verified-brick-consumer/**"
+      - "samples/Directory.Build.props"
+      # The consumer uses Infrastructure and its transitive project references.
+      - "src/**"
+      - "Directory.Build.*"
+      - "Directory.Packages.props"
+      - "global.json"
+      - "VERSION"
+  pull_request:
+    paths:
+      - ".github/workflows/verified-artifact-portability.yml"
+      - "scripts/portability/verified-artifact-probe.ps1"
+      - "tools/VerifiedArtifactPortability/**"
+      - "samples/verified-brick-consumer/**"
+      - "samples/Directory.Build.props"
+      - "src/**"
+      - "Directory.Build.*"
+      - "Directory.Packages.props"
+      - "global.json"
+      - "VERSION"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verified-artifact-portability-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  produce:
+    name: Build and sign one net8.0 artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup build SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build and sign the deployment once
+        run: |
+          ./scripts/portability/verified-artifact-probe.ps1 `
+            -Mode Produce `
+            -ArtifactDirectory (Join-Path $env:RUNNER_TEMP 'verified-deployment') `
+            -WorkDirectory (Join-Path $env:RUNNER_TEMP 'verified-producer')
+
+      # v4 artifacts are immutable. Every matrix job below downloads this exact artifact;
+      # consumers build only their hosts, never the brick fixture or its producer.
+      - name: Upload signed deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-portability-deployment
+          path: ${{ runner.temp }}/verified-deployment/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload producer diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-portability-producer-diagnostics
+          path: |
+            ${{ runner.temp }}/verified-producer/*.log
+            ${{ runner.temp }}/verified-producer/**/*.runtimeconfig.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  consume:
+    name: Same artifact on .NET ${{ matrix.runtime }} (${{ matrix.os }})
+    needs: produce
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        runtime: [8, 9, 10]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup build SDK and runtime under test
+        uses: actions/setup-dotnet@v6
+        with:
+          # SDK 10 builds all hosts; the probe constrains roll-forward and asserts the
+          # executing runtime major so a neighboring installation cannot mask a failure.
+          dotnet-version: |
+            10.0.x
+            ${{ matrix.runtime }}.0.x
+
+      - name: Installed runtimes
+        run: dotnet --list-runtimes
+
+      - name: Download the producer's signed deployment
+        uses: actions/download-artifact@v4
+        with:
+          name: verified-portability-deployment
+          path: ${{ runner.temp }}/verified-deployment
+
+      - name: Execute unchanged artifact and refusal probes
+        env:
+          PROBE_RUNTIME_MAJOR: ${{ matrix.runtime }}
+        run: |
+          ./scripts/portability/verified-artifact-probe.ps1 `
+            -Mode Consume `
+            -ArtifactDirectory (Join-Path $env:RUNNER_TEMP 'verified-deployment') `
+            -WorkDirectory (Join-Path $env:RUNNER_TEMP 'verified-consumer') `
+            -RuntimeMajor ([int]$env:PROBE_RUNTIME_MAJOR)
+
+      - name: Record runtime and artifact evidence
+        if: always()
+        run: |
+          $receiptPath = Join-Path $env:RUNNER_TEMP 'verified-consumer/receipt.json'
+          '## Verified artifact portability' >> $env:GITHUB_STEP_SUMMARY
+          if (Test-Path -LiteralPath $receiptPath) {
+            '```json' >> $env:GITHUB_STEP_SUMMARY
+            Get-Content -LiteralPath $receiptPath >> $env:GITHUB_STEP_SUMMARY
+            '```' >> $env:GITHUB_STEP_SUMMARY
+          } else {
+            'No receipt was produced; inspect the build and probe logs.' >> $env:GITHUB_STEP_SUMMARY
+          }
+
+      - name: Upload consumer receipt and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-artifact-receipt-${{ matrix.os }}-net${{ matrix.runtime }}
+          path: |
+            ${{ runner.temp }}/verified-consumer/receipt.json
+            ${{ runner.temp }}/verified-consumer/*.log
+            ${{ runner.temp }}/verified-consumer/**/*.runtimeconfig.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  evidence:
+    name: Verify all nine artifact receipts
+    needs: [produce, consume]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download the original deployment
+        uses: actions/download-artifact@v4
+        with:
+          name: verified-portability-deployment
+          path: ${{ runner.temp }}/verified-evidence/deployment
+
+      - name: Download every consumer receipt
+        uses: actions/download-artifact@v4
+        with:
+          pattern: verified-artifact-receipt-*
+          path: ${{ runner.temp }}/verified-evidence/receipts
+
+      - name: Require every runtime and platform to report the original artifact
+        env:
+          PROBE_EVIDENCE_DIRECTORY: ${{ runner.temp }}/verified-evidence
+        run: |
+          @'
+          import base64
+          import hashlib
+          import itertools
+          import json
+          import os
+          import pathlib
+          import re
+          import uuid
+
+          root = pathlib.Path(os.environ["PROBE_EVIDENCE_DIRECTORY"])
+          deployment = root / "deployment"
+          manifest = json.loads((deployment / "manifest.json").read_text(encoding="utf-8"))
+          artifact_hash = base64.b64encode(hashlib.sha256((deployment / "gate-emitted-brick.dll").read_bytes()).digest()).decode("ascii")
+          if manifest["assemblySha256"] != artifact_hash:
+              raise SystemExit("FAIL: original deployment hash does not match its manifest")
+          module_id = uuid.UUID(manifest["moduleVersionId"])
+          if manifest["buildTargetFramework"] != "net8.0":
+              raise SystemExit("FAIL: producer did not build the net8.0 fixture")
+
+          receipt_files = sorted((root / "receipts").rglob("receipt.json"))
+          if len(receipt_files) != 9:
+              raise SystemExit(f"FAIL: expected 9 receipts, found {len(receipt_files)}")
+          expected = set(itertools.product((8, 9, 10), ("Linux", "Windows", "macOS")))
+          expected_checks = {
+              "runtime-and-assets", "producer-hash", "loaded-module-identity", "execute",
+              "execute-after-dll-replacement", "tampered-artifact-refused", "tampered-source-refused",
+              "missing-signature-refused", "invalid-signature-refused", "foreign-signer-refused",
+          }
+          observed = set()
+          rows = []
+          for path in receipt_files:
+              receipt = json.loads(path.read_text(encoding="utf-8"))
+              pair = (receipt["runtimeMajor"], receipt["platform"])
+              if pair not in expected or pair in observed:
+                  raise SystemExit(f"FAIL: unexpected or repeated runtime/platform receipt: {pair}")
+              observed.add(pair)
+              if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?", receipt["runtimeVersion"]):
+                  raise SystemExit(f"FAIL: invalid runtime version in {path}")
+              runtime_parts = receipt["runtimeVersion"].split(".")
+              if int(runtime_parts[0]) != receipt["runtimeMajor"] or int(runtime_parts[1]) != 0:
+                  raise SystemExit(f"FAIL: actual runtime differs from requested major/minor in {path}")
+              expected_tfm = ".NETCoreApp,Version=v10.0" if receipt["runtimeMajor"] == 10 else ".NETCoreApp,Version=v8.0"
+              if receipt["consumerTargetFramework"] != expected_tfm or receipt["contractsTargetFramework"] != expected_tfm:
+                  raise SystemExit(f"FAIL: consumer or contracts selected an unexpected framework asset in {path}")
+              if receipt["assemblySha256"] != artifact_hash:
+                  raise SystemExit(f"FAIL: consumer did not execute the original artifact: {path}")
+              if uuid.UUID(receipt["moduleVersionId"]) != module_id:
+                  raise SystemExit(f"FAIL: consumer loaded a different module: {path}")
+              if receipt["buildTargetFramework"] != manifest["buildTargetFramework"]:
+                  raise SystemExit(f"FAIL: fixture target framework changed in {path}")
+              checks = receipt.get("checks")
+              if not isinstance(checks, list) or not all(isinstance(check, str) for check in checks):
+                  raise SystemExit(f"FAIL: invalid successful probe checks in {path}")
+              if len(checks) != len(expected_checks) or set(checks) != expected_checks:
+                  raise SystemExit(f"FAIL: incomplete or repeated successful probe checks in {path}")
+              rows.append((pair[0], pair[1], receipt["runtimeVersion"], len(checks)))
+          if observed != expected:
+              raise SystemExit(f"FAIL: missing runtime/platform receipts: {expected - observed}")
+
+          lines = [
+              "## Same signed artifact: all nine combinations passed",
+              "",
+              f"Artifact SHA-256: `{artifact_hash}`",
+              f"Module ID: `{module_id}`",
+              "Build target: `net8.0`",
+              "",
+              "| Runtime | Platform | Actual runtime | Successful checks |",
+              "| --- | --- | --- | --- |",
+          ]
+          lines.extend(f"| .NET {major} | {platform} | {version} | {count} |" for major, platform, version, count in sorted(rows))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+          print("PASS: all nine runtime/platform combinations executed the original signed artifact")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

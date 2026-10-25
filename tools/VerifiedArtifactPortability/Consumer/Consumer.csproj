@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <!-- This probe must never silently move to another runtime major or minor. -->
+    <RollForward>LatestPatch</RollForward>
+    <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../DeploymentManifest.cs" Link="DeploymentManifest.cs" />
+    <ProjectReference Include="../../../samples/verified-brick-consumer/VerifiedBrickConsumer.csproj" />
+  </ItemGroup>
+</Project>
