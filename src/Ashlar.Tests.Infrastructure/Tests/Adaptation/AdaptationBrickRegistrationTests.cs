@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 using Ashlar.Bricks.Owasp.Security;
 using Ashlar.Infrastructure;
@@ -33,6 +34,42 @@ public sealed class AdaptationBrickRegistrationTests : TempDirTestBase
 
             brick.Should().NotBeNull();
             brick!.Id.Should().Be("owasp-scanner");
+    }
+
+    [Fact]
+    public void BrickTypeRegistration_reaches_the_registry_after_the_option_types()
+    {
+        var storePath = Path.Combine(TempDir, "adapt.db");
+        var services = new ServiceCollection()
+                .AddLogging(b => b.AddConsole())
+                .AddSingleton<IProviderFactory, ProviderFactory>()
+                .AddAdaptationInfrastructure(storePath)
+                .AddSingleton(new BrickTypeRegistration(typeof(RegisteredByTypeBrick)))
+                .AddAdaptationBricks(typeof(OWASPScannerBrick))
+                .BuildServiceProvider();
+
+        var registry = services.GetRequiredService<IBrickRegistry>();
+
+        registry.GetBrick(RegisteredByTypeBrick.BrickId).Should().NotBeNull(
+            "AddAshlarBrick<T>() registers only a BrickTypeRegistration, so the registry must read those");
+        registry.GetAllBricks().Select(b => b.Id).Should().ContainInOrder("owasp-scanner", RegisteredByTypeBrick.BrickId);
+    }
+
+    public sealed class RegisteredByTypeBrick : Brick
+    {
+        public const string BrickId = "test.registered-by-type";
+
+        public RegisteredByTypeBrick()
+        {
+            Id = BrickId;
+            Name = "Registered by type";
+            Version = "1.0.0";
+        }
+
+        public override Task<BrickOutput> ExecuteAsync(
+            BrickInput input, ImplementationType implementation, IExecutionContext context,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(new BrickOutput());
     }
 
     [Fact]

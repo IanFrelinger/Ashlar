@@ -112,7 +112,7 @@ The first restore downloads about 1 GB of packages into the NuGet cache, because
 
 ### 4. Register in a host
 
-To serve the brick over HTTP, register it in an ASP.NET Core host:
+To serve the brick over HTTP, register it in an ASP.NET Core host. `Ashlar.Authoring` does not bring the host, so the host project also references `Ashlar.Hosting.Bundle`, which provides `AddAshlar()`:
 
 ```csharp
 using Ashlar.Authoring;
@@ -311,8 +311,8 @@ Deploy that DLL and execute it, rather than compiling the brick yourself:
    binding is checkable from the log alone.
 
 `CertificationTrustVerifier` and `CertifiedBrickActivator` are both public in the published
-assemblies and need no extra pin: `Ashlar.Infrastructure` arrives through `Ashlar.Hosting.Bundle`
-directly and through `Ashlar.Authoring` → `Ashlar.Hosting` transitively.
+assemblies and need no extra pin: `Ashlar.Infrastructure` arrives through `Ashlar.Hosting.Bundle`.
+(`Ashlar.Authoring` no longer brings it since 0.4.0.)
 
 ### Choose an explicit deployment trust policy
 
