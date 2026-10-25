@@ -50,7 +50,7 @@ public sealed class GitHubBlockersBrick : Ashlar.Core.Domain.Bricks.Brick
                 new BrickOutputDefinition("unknowns", "object[]", "Each fact that could not be read: what and why"),
                 new BrickOutputDefinition("notes", "object[]", "Non-blocking observations: text and evidence URL"),
                 new BrickOutputDefinition("evidence", "string[]", "Every URL the answer relies on"),
-                new BrickOutputDefinition("answer", "string", "The answer as Markdown"),
+                new BrickOutputDefinition("answer", "string", "The answer as Markdown; names and text read from GitHub appear as inline code"),
             ],
         };
     }

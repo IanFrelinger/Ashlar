@@ -84,6 +84,12 @@ anything that could not be read is listed as an unknown with the reason, never r
 - `evidence` (string[]): every URL the answer relies on
 - `answer` (string): the whole answer as Markdown
 
+Check-run names, commit-status contexts and descriptions, reviewer logins, branch and tag names come from GitHub,
+and a fork's workflow or any integration with status access chooses some of them. Each is quoted as one inline code
+span in `blockers`, `notes` and `answer` (one line, at most 100 characters, a backtick becomes `'`), and an evidence
+URL from GitHub is kept only when it is an absolute `http(s)` URL. So the text arrives as data, not as headings,
+links, images or instructions to whatever reads the answer.
+
 **What it checks.** For a pull request: draft state, merge conflicts, a branch behind a base that requires up-to-date
 branches, reviewers whose latest review requests changes, required approvals, and failing, pending or never-reported
 required checks (check runs and commit statuses). For a release: the tag exists, a published (not draft) release
