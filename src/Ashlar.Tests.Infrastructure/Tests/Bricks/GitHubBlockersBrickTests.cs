@@ -235,6 +235,115 @@ public sealed class GitHubBlockersBrickTests
         github.Requests.Should().OnlyContain(u => u.Host == "api.github.com");
     }
 
+    // ── Required checks and reviews without admin rights ────────────────────────────────────────────────
+    // Facts trimmed from the 2026-10-25 accuracy study snapshot (tools/blockers-accuracy/fixtures,
+    // docs/benchmarks/blockers-accuracy.md, findings F1–F3). Branch protection answers 403 to the workflow token there.
+
+    [Fact]
+    public async Task F1_a_failing_check_no_rule_requires_is_a_note_and_the_ruleset_review_count_blocks()
+    {
+        // dotnet/efcore#39369: `coverage` failed but is not required; rulesets require 13 checks (all green) and 1 approval.
+        const string sha = "f010a2d71c58b8fa4c3570e06f8ed8b84a86b88b";
+        string[] required =
+        [
+            "license/cla", "Main (macos-15)", "Main (ubuntu-24.04)", "Main (windows-2025)", "Cosmos (ubuntu-24.04)",
+            "Cosmos (windows-2025)", "SqlServer (2019)", "SqlServer (2022)", "SqlServer (2025)",
+            "Microsoft.Data.Sqlite (ubuntu-24.04)", "Microsoft.Data.Sqlite (windows-2025)", "Sqlite (ubuntu-24.04)", "Sqlite (windows-2025)",
+        ];
+        var contexts = JsonSerializer.Serialize(required.Select(n => new { context = n, integration_id = 15368 }));
+        var github = OpenPullWithoutAdmin("dotnet", "efcore", 39369, sha, "main",
+                checkRuns: [.. required.Select(n => (n, "success")), ("Upload coverage", "success"), ("coverage", "failure"), ("discover", "success")])
+            .Json("/repos/dotnet/efcore/branches/main", """{"name":"main","protected":true,"protection":{"enabled":false,"required_status_checks":{"enforcement_level":"off","contexts":[],"checks":[]}}}""")
+            .Json("/repos/dotnet/efcore/rules/branches/main", $$"""
+                [{"type":"deletion","ruleset_source_type":"Organization","ruleset_source":"dotnet","ruleset_id":3795082},
+                 {"type":"pull_request","parameters":{"required_approving_review_count":1,"require_last_push_approval":true},"ruleset_id":3795082},
+                 {"type":"copilot_code_review","parameters":{"review_on_push":true},"ruleset_id":11805277},
+                 {"type":"required_status_checks","parameters":{"strict_required_status_checks_policy":false,"required_status_checks":{{contexts}}},"ruleset_id":11805277}]
+                """)
+            .Json("/graphql", GraphJson("REVIEW_REQUIRED", sha, required));
+
+        var output = await Brick(github).ExecuteAsync(Input("https://github.com/dotnet/efcore/pull/39369"), ImplementationType.Deterministic, Context());
+
+        output.Get<string>("verdict").Should().Be("blocked");
+        Reasons(output, "blockers", "reason").Should().Equal("0 of 1 required approving reviews.");
+        Reasons(output, "notes", "text").Should().Contain("The check coverage concluded failure. It is not required, so it does not block the merge.");
+        Reasons(output, "unknowns", "what").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task F2_F3_required_checks_that_never_ran_and_a_required_review_block_by_name()
+    {
+        // cli/cli#14816: classic protection requires three build checks, none has run; GitHub's review decision is
+        // REVIEW_REQUIRED, which no endpoint readable without admin rights states as a count.
+        const string sha = "6235af8fddba186b2ded7c686c24fe83289f7c46";
+        var github = OpenPullWithoutAdmin("cli", "cli", 14816, sha, "trunk",
+                checkRuns: [("check-requirements / check-requirements", "success"), ("label-external / label_issues", "success"), ("ready-for-review", "skipped")])
+            .Json("/repos/cli/cli/branches/trunk", """
+                {"name":"trunk","protected":true,"protection":{"enabled":true,"required_status_checks":{"enforcement_level":"non_admins",
+                 "contexts":["build (macos-latest)","build (ubuntu-latest)","build (windows-latest)"],
+                 "checks":[{"context":"build (macos-latest)","app_id":null},{"context":"build (ubuntu-latest)","app_id":null},{"context":"build (windows-latest)","app_id":null}]}}}
+                """)
+            .Json("/repos/cli/cli/rules/branches/trunk", """[{"type":"copilot_code_review","parameters":{"review_on_push":false},"ruleset_id":4898070}]""")
+            .Json("/graphql", GraphJson("REVIEW_REQUIRED", sha));
+
+        var output = await Brick(github).ExecuteAsync(Input("https://github.com/cli/cli/pull/14816"), ImplementationType.Deterministic, Context());
+
+        output.Get<string>("verdict").Should().Be("blocked");
+        Reasons(output, "blockers", "reason").Should().BeEquivalentTo(
+            "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+            "The required check build (macos-latest) has not reported on 6235af8fddba.",
+            "The required check build (ubuntu-latest) has not reported on 6235af8fddba.",
+            "The required check build (windows-latest) has not reported on 6235af8fddba.");
+        Reasons(output, "unknowns", "what").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task F2_a_missing_review_is_named_instead_of_an_unidentified_branch_rule()
+    {
+        // modelcontextprotocol/csharp-sdk#1934: every check green, nothing required; a ruleset requires 1 approval.
+        const string sha = "71a6449b2112d0cafcc9e18a198311b5bc9102de";
+        var github = OpenPullWithoutAdmin("modelcontextprotocol", "csharp-sdk", 1934, sha, "main",
+                checkRuns: [("build (ubuntu-latest, Release)", "success"), ("markdown-link-check", "success")],
+                reviews: """[{"id":1,"user":{"login":"tarekgh"},"state":"COMMENTED","submitted_at":"2026-10-20T10:00:00Z"}]""")
+            .Json("/repos/modelcontextprotocol/csharp-sdk/branches/main", """{"name":"main","protected":true,"protection":{"enabled":true,"required_status_checks":{"enforcement_level":"non_admins","contexts":[],"checks":[]}}}""")
+            .Json("/repos/modelcontextprotocol/csharp-sdk/rules/branches/main", """
+                [{"type":"deletion","ruleset_id":1},{"type":"pull_request","parameters":{"required_approving_review_count":1},"ruleset_id":1},{"type":"code_scanning","ruleset_id":2}]
+                """)
+            .Json("/graphql", GraphJson("REVIEW_REQUIRED", sha));
+
+        var output = await Brick(github).ExecuteAsync(Input("https://github.com/modelcontextprotocol/csharp-sdk/pull/1934"), ImplementationType.Deterministic, Context());
+
+        Reasons(output, "blockers", "reason").Should().Equal("0 of 1 required approving reviews.");
+        Reasons(output, "unknowns", "what").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Without_graphql_the_public_required_check_lists_still_decide_and_the_review_rule_stays_unknown()
+    {
+        // cli/cli#14816 read anonymously: GraphQL needs a token, so only the review decision is lost.
+        const string sha = "6235af8fddba186b2ded7c686c24fe83289f7c46";
+        var github = OpenPullWithoutAdmin("cli", "cli", 14816, sha, "trunk",
+                checkRuns: [("lint", "failure")])
+            .Json("/repos/cli/cli/branches/trunk", """{"name":"trunk","protected":true,"protection":{"enabled":true,"required_status_checks":{"enforcement_level":"non_admins","contexts":["build (ubuntu-latest)"]}}}""")
+            .Json("/repos/cli/cli/rules/branches/trunk", "[]")
+            .Json("/graphql", """{"message":"This endpoint requires you to be authenticated."}""", HttpStatusCode.Unauthorized);
+
+        var output = await Brick(github).ExecuteAsync(Input("https://github.com/cli/cli/pull/14816"), ImplementationType.Deterministic, Context());
+
+        Reasons(output, "blockers", "reason").Should().Equal("The required check build (ubuntu-latest) has not reported on 6235af8fddba.");
+        Reasons(output, "notes", "text").Should().Contain("The check lint concluded failure. It is not required, so it does not block the merge.");
+        Reasons(output, "unknowns", "what").Should().Equal("Required approvals");
+    }
+
+    [Fact]
+    public void An_approved_review_decision_settles_approvals_even_when_only_rulesets_gave_a_count()
+    {
+        var answer = Analyze(OpenPr(state: "blocked", protection: new ProtectionFacts(Array.Empty<string>(), 0, "APPROVED", ApprovalsPartial: true)));
+
+        answer.Blockers.Should().ContainSingle().Which.Reason.Should().Contain("could not identify");
+        answer.Unknowns.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task A_pull_request_that_cannot_be_read_is_unknown_with_githubs_reason()
     {
@@ -348,6 +457,68 @@ public sealed class GitHubBlockersBrickTests
         ProtectionFacts? protection = null) =>
         new(Pr, "title", Closed: false, Merged: false, Draft: false, mergeable, state, "master",
             reviews ?? Array.Empty<ReviewFact>(), ci ?? Ci(), protection ?? new ProtectionFacts(null, null));
+
+    private static StubGitHub OpenPullWithoutAdmin(
+        string owner, string repo, int number, string sha, string baseRef, (string Name, string Conclusion)[] checkRuns, string reviews = "[]")
+    {
+        var runs = checkRuns.Select((c, i) => new
+        {
+            id = i + 1,
+            name = c.Name,
+            status = "completed",
+            conclusion = c.Conclusion,
+            html_url = $"https://github.com/{owner}/{repo}/runs/{i + 1}",
+        });
+        return new StubGitHub()
+            .Json($"/repos/{owner}/{repo}/pulls/{number}", $$$"""
+                {"number":{{{number}}},"title":"t","state":"open","merged":false,"draft":false,"mergeable":true,"mergeable_state":"blocked",
+                 "html_url":"https://github.com/{{{owner}}}/{{{repo}}}/pull/{{{number}}}","head":{"sha":"{{{sha}}}","ref":"feature"},"base":{"ref":"{{{baseRef}}}"}}
+                """)
+            .Json($"/repos/{owner}/{repo}/pulls/{number}/reviews", reviews)
+            .Json($"/repos/{owner}/{repo}/commits/{sha}/check-runs",
+                $$"""{"total_count":{{checkRuns.Length}},"check_runs":{{JsonSerializer.Serialize(runs)}}}""")
+            .Json($"/repos/{owner}/{repo}/commits/{sha}/status", """{"state":"success","total_count":0,"statuses":[]}""")
+            .Json($"/repos/{owner}/{repo}/branches/{baseRef}/protection/required_status_checks", """{"message":"Resource not accessible by integration"}""", HttpStatusCode.Forbidden)
+            .Json($"/repos/{owner}/{repo}/branches/{baseRef}/protection/required_pull_request_reviews", """{"message":"Resource not accessible by integration"}""", HttpStatusCode.Forbidden);
+    }
+
+    // The response to GitHubBlockerReader's query, whose aliases make the keys snake_case.
+    private static string GraphJson(string reviewDecision, string sha, params string[] requiredContexts) =>
+        JsonSerializer.Serialize(new
+        {
+            data = new
+            {
+                repository = new
+                {
+                    pull_request = new
+                    {
+                        review_decision = reviewDecision,
+                        commits = new
+                        {
+                            nodes = new[]
+                            {
+                                new
+                                {
+                                    commit = new
+                                    {
+                                        oid = sha,
+                                        status_check_rollup = new
+                                        {
+                                            contexts = new { nodes = requiredContexts.Select(n => new { type_name = "CheckRun", name = n, is_required = true }) },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+    private static List<string> Reasons(BrickOutput output, string key, string field) =>
+        JsonDocument.Parse(JsonSerializer.Serialize(output.Get<object>(key))).RootElement.EnumerateArray()
+            .Select(e => e.GetProperty(field).GetString()!)
+            .ToList();
 
     private static string PullJson(string mergeable, string state, bool merged = false) => $$$"""
         {"number":7,"title":"t","state":"{{{(merged ? "closed" : "open")}}}","merged":{{{(merged ? "true" : "false")}}},"draft":false,

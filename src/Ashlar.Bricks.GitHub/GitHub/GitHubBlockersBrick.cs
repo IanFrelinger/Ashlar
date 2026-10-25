@@ -31,7 +31,7 @@ public sealed class GitHubBlockersBrick : Ashlar.Core.Domain.Bricks.Brick
 
         Id = "github.blockers";
         Name = "GitHub blockers";
-        Version = "1.0.0";
+        Version = "1.1.0";
         Icon = "🚧";
         Category = BrickCategory.Analysis;
         Description = "Answers what is blocking a GitHub pull request or release, with an evidence link per blocker and the facts that could not be read.";

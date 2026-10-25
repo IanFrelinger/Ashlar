@@ -20,9 +20,10 @@ internal sealed record BlockerAnswer(
 /// </summary>
 /// <remarks>
 /// Verdicts: <c>blocked</c> (at least one blocker), <c>unknown</c> (no blocker found, but something that could hide one
-/// was not read), <c>ready</c>, and for pull requests <c>merged</c> and <c>closed</c>. When the token cannot read branch
-/// protection (it needs admin rights), GitHub's own <c>mergeable_state</c> decides whether a failing check blocks:
-/// <c>clean</c>, <c>unstable</c> and <c>has_hooks</c> mean GitHub would allow the merge, so failures are notes.
+/// was not read), <c>ready</c>, and for pull requests <c>merged</c> and <c>closed</c>. A failing check that is not
+/// required is a note, never a blocker. Only when neither branch protection nor the public required-check lists could
+/// be read does GitHub's own <c>mergeable_state</c> decide whether a failing check blocks: <c>clean</c>,
+/// <c>unstable</c> and <c>has_hooks</c> mean GitHub would allow the merge, so failures are notes.
 /// </remarks>
 internal static class BlockerAnalysis
 {
@@ -98,7 +99,7 @@ internal static class BlockerAnalysis
         if (protection.RequiredChecks is null && !mergeAllowed)
         {
             unknowns.Add(new Unknown("Which checks are required",
-                "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."));
+                "Neither branch protection (it needs admin rights) nor the base branch's public required-check lists could be read, so every failing or pending check is listed as a blocker."));
         }
 
         AnalyzeCi(target, pr.Ci, protection.RequiredChecks, checksAdvisory, "head commit", blockers, unknowns, notes);
@@ -133,15 +134,27 @@ internal static class BlockerAnalysis
             blockers.Add(new Blocker($"{review.User} requested changes.", review.Url ?? pr.Url));
 
         var approvals = latest.Count(r => string.Equals(r.State, "approved", StringComparison.OrdinalIgnoreCase));
-        if (protection.RequiredApprovals is { } required)
+        var tooFew = protection.RequiredApprovals is { } required && approvals < required
+            ? new Blocker($"{approvals} of {required} required approving reviews.", pr.Url)
+            : null;
+
+        // GitHub's review decision, when read, is the authority: it also covers code-owner and last-push approval rules.
+        if (protection.ReviewDecision is { } decision)
         {
-            if (approvals < required)
-                blockers.Add(new Blocker($"{approvals} of {required} required approving reviews.", pr.Url));
+            if (string.Equals(decision, "REVIEW_REQUIRED", StringComparison.OrdinalIgnoreCase))
+            {
+                blockers.Add(tooFew ?? new Blocker(
+                    $"GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has {approvals} approving review(s).", pr.Url));
+            }
         }
-        else if (!mergeAllowed)
+        else if (tooFew is not null)
+        {
+            blockers.Add(tooFew);
+        }
+        else if ((protection.RequiredApprovals is null || protection.ApprovalsPartial) && !mergeAllowed)
         {
             unknowns.Add(new Unknown("Required approvals",
-                $"Branch protection is not readable with this token (it needs admin rights); the pull request has {approvals} approving review(s)."));
+                $"Branch protection is not readable with this token (it needs admin rights), and GitHub's review decision could not be read; the pull request has {approvals} approving review(s)."));
         }
     }
 

@@ -90,10 +90,17 @@ required checks (check runs and commit statuses). For a release: the tag exists,
 exists for it, and CI on the tagged commit.
 
 **Known limits.**
-- Branch protection is readable only with admin rights. Without them the required checks and approvals are unknowns,
-  and GitHub's `mergeable_state` decides whether a failing check blocks: `clean`, `unstable` and `has_hooks` mean
-  GitHub would allow the merge, so failures are notes; otherwise every failing or pending check is listed as a blocker.
-- Repository rulesets are not read. A `blocked` state nothing else explains is reported as a blocker naming that gap.
+- Branch protection's own endpoints need admin rights. Without them, the brick reads the same requirements from
+  sources that need none: the protection summary on `GET /repos/{o}/{r}/branches/{base}`, the active rulesets on
+  `GET /repos/{o}/{r}/rules/branches/{base}`, and GraphQL's `isRequired` per check and `reviewDecision` for the pull
+  request. A failing check none of them requires is a note, not a blocker; a required check with no run is a blocker.
+- GraphQL needs a token. Read anonymously, GitHub's review decision is not available, so an approval rule that only
+  classic branch protection states stays an unknown (a ruleset's approval count is still read).
+- Only if both public required-check lists fail to read does GitHub's `mergeable_state` decide whether a failing check
+  blocks: `clean`, `unstable` and `has_hooks` mean GitHub would allow the merge, so failures are notes; otherwise every
+  failing or pending check is listed as a blocker.
+- A `blocked` state nothing else explains (for example a rule type the brick does not read) is reported as a blocker
+  naming that gap.
 - Draft releases are found only among the 30 newest releases, and only with a token that has push access.
 
 ## Network access

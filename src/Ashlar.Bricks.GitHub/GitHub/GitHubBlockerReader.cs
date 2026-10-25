@@ -37,9 +37,7 @@ internal sealed class GitHubBlockerReader
 
         var reviews = await Try(() => _client.PullRequest.Review.GetAll(t.Owner, t.Repo, t.Number), "Reviews", unknowns).ConfigureAwait(false);
         var ci = await ReadCiAsync(t, pr.Head.Sha, unknowns).ConfigureAwait(false);
-        var protection = new ProtectionFacts(
-            await ReadRequiredChecksAsync(t, pr.Base.Ref).ConfigureAwait(false),
-            await ReadRequiredApprovalsAsync(t, pr.Base.Ref).ConfigureAwait(false));
+        var protection = await ReadProtectionAsync(t, pr.Base.Ref, pr.Head.Sha).ConfigureAwait(false);
 
         return new PullRequestFacts(
             pr.HtmlUrl,
@@ -115,6 +113,126 @@ internal sealed class GitHubBlockerReader
             statuses?.TotalCount ?? 0);
     }
 
+    // Branch protection's own endpoints need admin rights. Without them, the same requirements are public in three
+    // places: the protection summary on GET /branches/{base}, the active rulesets on GET /rules/branches/{base}, and
+    // GraphQL's per-check isRequired and the pull request's reviewDecision. The required-check list counts as known
+    // only when both REST lists were read, since a check that never reported is absent from GraphQL.
+    private async Task<ProtectionFacts> ReadProtectionAsync(GitHubTarget t, string branch, string headSha)
+    {
+        var adminChecks = await ReadRequiredChecksAsync(t, branch).ConfigureAwait(false);
+        var adminApprovals = await ReadRequiredApprovalsAsync(t, branch).ConfigureAwait(false);
+        var rules = await ReadRulesAsync(t, branch).ConfigureAwait(false);
+
+        var rulesChecks = rules?
+            .Where(r => r.Type == "required_status_checks")
+            .SelectMany(r => r.Parameters?.RequiredStatusChecks ?? [])
+            .Select(c => c.Context)
+            .OfType<string>()
+            .ToList();
+        int? rulesApprovals = rules is null
+            ? null
+            : rules.Where(r => r.Type == "pull_request").Select(r => r.Parameters?.RequiredApprovingReviewCount ?? 0).DefaultIfEmpty(0).Max();
+
+        if (adminChecks is not null && adminApprovals is not null)
+        {
+            return new ProtectionFacts(
+                adminChecks.Union(rulesChecks ?? [], StringComparer.Ordinal).ToList(),
+                Math.Max(adminApprovals.Value, rulesApprovals ?? 0));
+        }
+
+        var summaryChecks = adminChecks is null ? await ReadProtectionSummaryChecksAsync(t, branch).ConfigureAwait(false) : adminChecks;
+        var pull = await ReadPullRequestGraphAsync(t, headSha).ConfigureAwait(false);
+
+        IReadOnlyList<string>? checks = null;
+        if (summaryChecks is not null && rulesChecks is not null)
+            checks = summaryChecks.Union(rulesChecks, StringComparer.Ordinal).Union(pull?.RequiredContexts ?? [], StringComparer.Ordinal).ToList();
+
+        int? approvals = adminApprovals is null ? rulesApprovals : rulesApprovals is null ? null : Math.Max(adminApprovals.Value, rulesApprovals.Value);
+        return new ProtectionFacts(checks, approvals, pull?.ReviewDecision, ApprovalsPartial: adminApprovals is null && approvals is not null);
+    }
+
+    private async Task<List<RuleDto>?> ReadRulesAsync(GitHubTarget t, string branch)
+    {
+        try
+        {
+            var response = await _client.Connection.Get<List<RuleDto>>(
+                new Uri($"repos/{t.Owner}/{t.Repo}/rules/branches/{branch}", UriKind.Relative),
+                new Dictionary<string, string> { ["per_page"] = "100" }).ConfigureAwait(false);
+            return response.Body ?? [];
+        }
+        catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
+        {
+            return null;
+        }
+    }
+
+    // The public branch summary: protection.required_status_checks, readable without admin rights.
+    private async Task<IReadOnlyList<string>?> ReadProtectionSummaryChecksAsync(GitHubTarget t, string branch)
+    {
+        try
+        {
+            var response = await _client.Connection.Get<BranchDto>(
+                new Uri($"repos/{t.Owner}/{t.Repo}/branches/{branch}", UriKind.Relative), null).ConfigureAwait(false);
+            if (response.Body is null)
+                return null;
+            var required = response.Body.Protection?.RequiredStatusChecks;
+            if (required is null || string.Equals(required.EnforcementLevel, "off", StringComparison.OrdinalIgnoreCase))
+                return [];
+            return (required.Contexts ?? [])
+                .Concat((required.Checks ?? []).Select(c => c.Context).OfType<string>())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
+        catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
+        {
+            return null;
+        }
+    }
+
+    private const string PullRequestQuery = """
+        query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pull_request: pullRequest(number:$n){
+          review_decision: reviewDecision
+          commits(last:1){nodes{commit{oid status_check_rollup: statusCheckRollup{contexts(first:100){nodes{
+            type_name: __typename
+            ... on CheckRun{name is_required: isRequired(pullRequestNumber:$n)}
+            ... on StatusContext{context is_required: isRequired(pullRequestNumber:$n)}
+          }}}}}}
+        }}}
+        """;
+
+    // GraphQL needs a token; read anonymously, or with any other failure, this is null and the caller falls back.
+    private async Task<PullRequestGraph?> ReadPullRequestGraphAsync(GitHubTarget t, string headSha)
+    {
+        var body = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            query = PullRequestQuery,
+            variables = new { o = t.Owner, r = t.Repo, n = t.Number },
+        });
+        try
+        {
+            var response = await _client.Connection.Post<GraphResponseDto>(
+                new Uri("graphql", UriKind.Relative), body, "application/json", "application/json").ConfigureAwait(false);
+            var pull = response.Body?.Data?.Repository?.PullRequest;
+            if (pull is null || response.Body!.Errors is { Count: > 0 })
+                return null;
+            var commit = pull.Commits?.Nodes?.FirstOrDefault()?.Commit;
+            var required = commit is not null && string.Equals(commit.Oid, headSha, StringComparison.OrdinalIgnoreCase)
+                ? (commit.StatusCheckRollup?.Contexts?.Nodes ?? [])
+                    .Where(c => c.IsRequired == true)
+                    .Select(c => c.TypeName == "StatusContext" ? c.Context : c.Name)
+                    .OfType<string>()
+                    .ToList()
+                : new List<string>();
+            return new PullRequestGraph(pull.ReviewDecision ?? "NONE", required);
+        }
+        catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
+        {
+            return null;
+        }
+    }
+
+    private sealed record PullRequestGraph(string ReviewDecision, IReadOnlyList<string> RequiredContexts);
+
     // Branch protection is readable only with admin rights. GitHub answers 404 with "not protected" or "not enabled"
     // when the rule does not exist, which is a fact (none required); any other failure leaves it unknown.
     private async Task<IReadOnlyList<string>?> ReadRequiredChecksAsync(GitHubTarget t, string branch)
@@ -175,6 +293,9 @@ internal sealed class GitHubBlockerReader
     }
 
     private static bool IsReadFailure(Exception ex) => ex is ApiException or HttpRequestException or TaskCanceledException;
+
+    private static bool IsParseFailure(Exception ex) =>
+        ex is System.Runtime.Serialization.SerializationException or InvalidCastException or FormatException or ArgumentException;
 
     private static string Describe(Exception ex) => ex switch
     {

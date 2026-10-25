@@ -17,8 +17,22 @@ internal sealed record CiFacts(
     IReadOnlyList<StatusFact>? Statuses,
     int StatusesReported);
 
-/// <summary>Branch protection of the base branch. Each part is <see langword="null"/> when it could not be read.</summary>
-internal sealed record ProtectionFacts(IReadOnlyList<string>? RequiredChecks, int? RequiredApprovals);
+/// <summary>
+/// What the base branch requires: branch protection and repository rulesets. Each part is <see langword="null"/> when
+/// it could not be read.
+/// </summary>
+/// <param name="RequiredChecks">Every required check and status context, by name.</param>
+/// <param name="RequiredApprovals">The approving reviews required. A lower bound when <paramref name="ApprovalsPartial"/>.</param>
+/// <param name="ReviewDecision">GitHub's own review decision for the pull request (<c>REVIEW_REQUIRED</c>,
+/// <c>APPROVED</c>, <c>CHANGES_REQUESTED</c>, or <c>NONE</c> when no review rule applies); <see langword="null"/>
+/// when it was not read.</param>
+/// <param name="ApprovalsPartial">The approval count comes from rulesets only: legacy branch protection, which may
+/// require more, was not readable.</param>
+internal sealed record ProtectionFacts(
+    IReadOnlyList<string>? RequiredChecks,
+    int? RequiredApprovals,
+    string? ReviewDecision = null,
+    bool ApprovalsPartial = false);
 
 internal sealed record PullRequestFacts(
     string Url,
