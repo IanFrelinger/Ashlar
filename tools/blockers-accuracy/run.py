@@ -194,6 +194,8 @@ def main() -> int:
     ap.add_argument("--fixtures", default=str(HERE / "fixtures"))
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--arms", default="brick,native", help="comma-separated: brick, native")
+    ap.add_argument("--brick-dir", default="brick", help="directory under --fixtures holding the brick payloads")
     a = ap.parse_args()
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("ANTHROPIC_API_KEY is not set", file=sys.stderr)
@@ -223,11 +225,11 @@ def main() -> int:
     stopped = None
     with open(runs_file, "a", encoding="utf-8") as log:
         for url in order:
-            for arm in ("brick", "native"):
+            for arm in a.arms.split(","):
                 if (arm, url) in done:
                     continue
                 try:
-                    r = run_once(client, gh, fx / "brick", arm, url, a.max_turns)
+                    r = run_once(client, gh, fx / a.brick_dir, arm, url, a.max_turns)
                 except Budget as e:
                     stopped = str(e)
                     break

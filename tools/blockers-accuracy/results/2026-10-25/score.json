@@ -459,9 +459,9 @@
      "review_required"
     ],
     "extra": {
-     "check_failing:checks / test (3.11, lowest-direct, ubuntu-latest)": "overcall",
      "check_failing:checks / test (3.11, locked, ubuntu-latest)": "overcall",
      "check_failing:checks / test (3.11, locked, windows-latest)": "overcall",
+     "check_failing:checks / test (3.11, lowest-direct, ubuntu-latest)": "overcall",
      "check_failing:checks / test (3.11, lowest-direct, windows-latest)": "overcall"
     }
    },
@@ -525,9 +525,9 @@
      "review_required"
     ],
     "extra": {
+     "check_pending:efcore-ci (build helix)": "overcall",
      "check_pending:efcore-ci (build windows)": "overcall",
-     "check_pending:maestro auto-merge - all checks successful": "overcall",
-     "check_pending:efcore-ci (build helix)": "overcall"
+     "check_pending:maestro auto-merge - all checks successful": "overcall"
     }
    },
    "https://github.com/microsoft/semantic-kernel/pull/14641": {
@@ -1239,9 +1239,9 @@
      "review_required"
     ],
     "extra": {
-     "check_failing:checks / test (3.11, lowest-direct, ubuntu-latest)": "overcall",
      "check_failing:checks / test (3.11, locked, ubuntu-latest)": "overcall",
      "check_failing:checks / test (3.11, locked, windows-latest)": "overcall",
+     "check_failing:checks / test (3.11, lowest-direct, ubuntu-latest)": "overcall",
      "check_failing:checks / test (3.11, lowest-direct, windows-latest)": "overcall"
     },
     "parsed": true,
@@ -1317,9 +1317,9 @@
      "review_required"
     ],
     "extra": {
+     "check_pending:efcore-ci (build helix)": "overcall",
      "check_pending:efcore-ci (build windows)": "overcall",
-     "check_pending:maestro auto-merge - all checks successful": "overcall",
-     "check_pending:efcore-ci (build helix)": "overcall"
+     "check_pending:maestro auto-merge - all checks successful": "overcall"
     },
     "parsed": true,
     "cost_usd": 0.010023,

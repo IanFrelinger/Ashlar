@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """Record one snapshot per pull request: ground-truth facts (GraphQL), raw REST responses, and the brick's answer.
 
-Usage: capture.py <out-dir> -- <command that starts Ashlar.Mcp.Server.Host>
+Usage: capture.py <out-dir> [--extra NAME=COMMAND]... -- <command that starts Ashlar.Mcp.Server.Host>
 Needs GITHUB_TOKEN. Runs in CI, where the host can be built. For each target it writes, back to back:
   truth/<slug>.json      GraphQL facts the rubric is computed from (truth.py)
   github/<name>.json     the REST responses the native arm replays (same layout as run.py reads)
   brick/<slug>.json      the github.blockers payload, exactly as the MCP tool returned it
+  brick-NAME/<slug>.json the same from each --extra host (for example an older build), asked right after
 """
 from __future__ import annotations
 
 import datetime
 import json
 import os
+import shlex
 import pathlib
 import sys
 import time
@@ -58,6 +60,15 @@ def graphql(token: str, owner: str, repo: str, number: int) -> dict:
 def main(argv: list[str]) -> int:
     out = pathlib.Path(argv[0])
     command = argv[argv.index("--") + 1:]
+    head = argv[1:argv.index("--")]
+    extras = {}
+    while head:
+        flag, spec, head = head[0], head[1], head[2:]
+        if flag != "--extra" or "=" not in spec:
+            raise SystemExit(f"unexpected argument {flag} {spec}")
+        name, cmd = spec.split("=", 1)
+        extras[name] = shlex.split(cmd)
+        (out / f"brick-{name}").mkdir(parents=True, exist_ok=True)
     token = os.environ["GITHUB_TOKEN"]
     (out / "truth").mkdir(parents=True, exist_ok=True)
     (out / "brick").mkdir(parents=True, exist_ok=True)
@@ -78,6 +89,7 @@ def main(argv: list[str]) -> int:
             time.sleep(3)
         truth = graphql(token, owner, repo, n)
         brick = pr_blockers.ask(command, url, token, 180)
+        extra_answers = {name: pr_blockers.ask(cmd, url, token, 180) for name, cmd in extras.items()}
 
         sha, base = pr_rest["head"]["sha"], pr_rest["base"]["ref"]
         for path in (
@@ -100,6 +112,8 @@ def main(argv: list[str]) -> int:
             {"url": url, "captured_from": started, "captured_to": finished, "graphql": truth,
              "rest_head_sha": sha}, indent=1))
         (out / "brick" / f"{slug(url)}.json").write_text(json.dumps(brick, indent=1))
+        for name, answer in extra_answers.items():
+            (out / f"brick-{name}" / f"{slug(url)}.json").write_text(json.dumps(answer, indent=1))
         log.append(f"{url} truth={truth['state']}/{truth['mergeStateStatus']} brick={brick['outputs']['verdict']}"
                    f" sha_match={truth['headRefOid'] == sha}")
         print(log[-1], flush=True)

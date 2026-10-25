@@ -6,7 +6,9 @@ Graded answers:
   brick+sonnet  Sonnet with the brick as its only tool (run.py, arm "brick")
   native+sonnet Sonnet with the raw REST API as its only tool (run.py, arm "native")
 
-Usage: score.py <results-dir>   writes score.json and per-pr.md there and prints the summary.
+Usage: score.py <results-dir> [--fixtures DIR] [--brick-dir NAME]
+  writes score.json and per-pr.md in <results-dir> and prints the summary. --fixtures defaults to fixtures/, and
+  --brick-dir (the brick payloads graded as brick-raw) to brick.
 """
 from __future__ import annotations
 
@@ -29,6 +31,7 @@ BRICK_PATTERNS = [
     (re.compile(r"^The branch is behind "), lambda m: "behind"),
     (re.compile(r" requested changes\.$"), lambda m: "changes_requested"),
     (re.compile(r"required approving reviews\.$"), lambda m: "review_required"),
+    (re.compile(r"^GitHub reports that an approving review is required"), lambda m: "review_required"),
     (re.compile(r"^The check (.+) is still "), lambda m: f"check_pending:{m.group(1).lower()}"),
     (re.compile(r"^The check (.+) concluded "), lambda m: f"check_failing:{m.group(1).lower()}"),
     (re.compile(r"^The status (.+) is still pending\."), lambda m: f"check_pending:{m.group(1).lower()}"),
@@ -83,12 +86,14 @@ def grade(g: dict, verdict: str | None, claims: set[str], required: set[str]) ->
         else:
             extra[c] = classify_claim(g, c, tb)
     return {"truth_verdict": tv, "truth_blockers": sorted(tb), "verdict": verdict, "verdict_ok": verdict == tv,
-            "found": sorted(found), "missed": sorted(missed), "extra": extra}
+            "found": sorted(found), "missed": sorted(missed), "extra": dict(sorted(extra.items()))}
 
 
 def main(argv: list[str]) -> int:
     results = pathlib.Path(argv[0])
-    fx = HERE / "fixtures"
+    opts = dict(zip(argv[1::2], argv[2::2]))
+    fx = pathlib.Path(opts.get("--fixtures", HERE / "fixtures"))
+    brick_dir = opts.get("--brick-dir", "brick")
     targets = json.loads((HERE / "targets.json").read_text())["prs"]
     truth = {t["url"]: json.loads((fx / "truth" / f"{slug(t['url'])}.json").read_text())["graphql"] for t in targets}
     runs = {}
@@ -104,17 +109,18 @@ def main(argv: list[str]) -> int:
         required[t["url"]] = rest_required_checks(gh.get(f"/repos/{owner}/{repo}/branches/{base}")[0],
                                                   gh.get(f"/repos/{owner}/{repo}/rules/branches/{base}")[0])
     paired = [t["url"] for t in targets if ("brick", t["url"]) in runs and ("native", t["url"]) in runs]
+    ran = {arm: [t["url"] for t in targets if (arm, t["url"]) in runs] for arm in ("brick", "native")}
 
     graded = collections.defaultdict(dict)
     unmapped_all = {}
     for t in targets:
         url = t["url"]
-        v, keys, unmapped = brick_raw(json.loads((fx / "brick" / f"{slug(url)}.json").read_text()))
+        v, keys, unmapped = brick_raw(json.loads((fx / brick_dir / f"{slug(url)}.json").read_text()))
         if unmapped:
             unmapped_all[url] = unmapped
         graded["brick-raw"][url] = grade(truth[url], v, keys, required[url])
-    for url in paired:
-        for arm, label in (("brick", "brick+sonnet"), ("native", "native+sonnet")):
+    for arm, label in (("brick", "brick+sonnet"), ("native", "native+sonnet")):
+        for url in ran[arm]:
             r = runs[(arm, url)]
             v, keys = llm_keys(r["answer"])
             gr = grade(truth[url], v, keys, required[url])
@@ -140,8 +146,8 @@ def main(argv: list[str]) -> int:
     summary = {"all_prs": len(targets), "paired_prs": len(paired),
                "brick-raw (all PRs)": summarize("brick-raw", [t["url"] for t in targets]),
                "brick-raw (paired PRs)": summarize("brick-raw", paired),
-               "brick+sonnet": summarize("brick+sonnet", paired),
-               "native+sonnet": summarize("native+sonnet", paired),
+               "brick+sonnet": summarize("brick+sonnet", ran["brick"]),
+               "native+sonnet": summarize("native+sonnet", ran["native"]),
                "brick_unmapped_reasons": unmapped_all}
     (results / "score.json").write_text(json.dumps({"summary": summary, "graded": graded}, indent=1))
 
