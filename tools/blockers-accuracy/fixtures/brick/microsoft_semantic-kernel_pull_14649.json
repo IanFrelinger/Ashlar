@@ -1,0 +1,16 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "a1a65c46b46c4b2cafad139c8096d21e",
+ "summary": "PR #14649 is already merged.",
+ "outputs": {
+  "verdict": "merged",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/microsoft/semantic-kernel/pull/14649"
+  ],
+  "answer": "**What is blocking PR #14649?** PR #14649 is already merged.\n\nRead from https://github.com/microsoft/semantic-kernel/pull/14649\n"
+ }
+}

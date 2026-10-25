@@ -138,6 +138,7 @@ The plans below describe programs that have since finished; they are kept as the
 
 ## Additional Material
 
+- **`docs/benchmarks/blockers-accuracy.md`** — **accuracy study** of "what is blocking this PR?": 44 real pull requests in 5 public repositories, ground truth from GitHub's API at a recorded snapshot, the brick versus a native GitHub API arm on Sonnet; written rubric, results, brick findings (F1–F3) and limits; harness in `tools/blockers-accuracy/`.
 - **`docs/benchmarks/token-benchmark.md`** — **live token benchmark** (D9): one `github.blockers` brick call versus a native GitHub API tool loop on the Anthropic API, method, result and limits; harness in `tools/token-benchmark/`.
 - **`docs/commercial/go-to-market.md`** — **go-to-market decisions log**: positioning wedge, pricing tiers, billing, channels, partner terms and token-claim rule (D1–D10, owner-delegated 2026-10-25).
 - **`docs/marketing/positioning.md`** — **marketing positioning guide**: product name, one-liner, everyday frame ("receipts for AI actions" + "bouncer for new skills"), precision line (trust log + cert-gate), is/isn't clarity, what's live vs roadmap (Cloud = waitlist; autonomy = HOLD), funnel stages, visual lock, product naming, and messaging guardrails for sales/social consistency.

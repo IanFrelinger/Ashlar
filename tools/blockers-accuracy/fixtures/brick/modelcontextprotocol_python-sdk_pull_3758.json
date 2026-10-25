@@ -1,0 +1,16 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "3efac72899564432a04aba7249868a71",
+ "summary": "PR #3758 is already merged.",
+ "outputs": {
+  "verdict": "merged",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3758"
+  ],
+  "answer": "**What is blocking PR #3758?** PR #3758 is already merged.\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3758\n"
+ }
+}

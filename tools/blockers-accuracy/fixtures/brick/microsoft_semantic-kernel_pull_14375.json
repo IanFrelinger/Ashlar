@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "871523c852a448e99aee7dfe88774862",
+ "summary": "PR #14375 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind main, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14375"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 2 check run(s) and 0 commit status(es) on the head commit 98345610a836; none is failing or pending.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/98345610a8361f08fe4bfd05368f2f729cd626c4"
+   }
+  ],
+  "evidence": [
+   "https://github.com/microsoft/semantic-kernel/pull/14375",
+   "https://github.com/microsoft/semantic-kernel/commit/98345610a8361f08fe4bfd05368f2f729cd626c4"
+  ],
+  "answer": "**What is blocking PR #14375?** PR #14375 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The branch is behind main, and the base branch requires branches to be up to date. ([evidence](https://github.com/microsoft/semantic-kernel/pull/14375))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 2 check run(s) and 0 commit status(es) on the head commit 98345610a836; none is failing or pending. ([evidence](https://github.com/microsoft/semantic-kernel/commit/98345610a8361f08fe4bfd05368f2f729cd626c4))\n\nRead from https://github.com/microsoft/semantic-kernel/pull/14375\n"
+ }
+}

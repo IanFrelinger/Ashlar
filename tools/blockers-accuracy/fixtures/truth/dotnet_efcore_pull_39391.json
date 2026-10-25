@@ -1,0 +1,87 @@
+{
+ "url": "https://github.com/dotnet/efcore/pull/39391",
+ "captured_from": "2026-10-25T16:29:05.124590+00:00",
+ "captured_to": "2026-10-25T16:29:12.944797+00:00",
+ "graphql": {
+  "url": "https://github.com/dotnet/efcore/pull/39391",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "CONFLICTING",
+  "mergeStateStatus": "DIRTY",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "release/11.0",
+  "headRefOid": "a1a4d6fca3d2adcc886ecb949d1bb60c483673a9",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "a1a4d6fca3d2adcc886ecb949d1bb60c483673a9",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 7,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "Merge / run-merge",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "efcore-ci",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "efcore-ci (Build Helix)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "efcore-ci (Build Linux)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "efcore-ci (Build Windows)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "efcore-ci (Build macOS)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+}

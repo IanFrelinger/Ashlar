@@ -1,0 +1,32 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "97e21a6d7bea453192b1e834b2dcd497",
+ "summary": "PR #1788 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check build (windows-latest, Release) concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343913"
+   },
+   {
+    "text": "The check build (macos-latest, Debug) concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343880"
+   },
+   {
+    "text": "The check build (ubuntu-latest, Release) concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343785"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1788",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343913",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343880",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343785"
+  ],
+  "answer": "**What is blocking PR #1788?** PR #1788 is READY: nothing blocking was found.\n\nNotes:\n- The check build (windows-latest, Release) concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343913))\n- The check build (macos-latest, Debug) concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343880))\n- The check build (ubuntu-latest, Release) concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/39840330580/job/120039343785))\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1788\n"
+ }
+}

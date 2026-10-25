@@ -1,0 +1,31 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "4fef8c622a0546bea6c8eadc4a1e5544",
+ "summary": "PR #39369 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check coverage concluded failure.",
+    "evidence": "https://github.com/dotnet/efcore/actions/runs/40185152779/job/121144272825"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39369",
+   "https://github.com/dotnet/efcore/actions/runs/40185152779/job/121144272825"
+  ],
+  "answer": "**What is blocking PR #39369?** PR #39369 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The check coverage concluded failure. ([evidence](https://github.com/dotnet/efcore/actions/runs/40185152779/job/121144272825))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nRead from https://github.com/dotnet/efcore/pull/39369\n"
+ }
+}

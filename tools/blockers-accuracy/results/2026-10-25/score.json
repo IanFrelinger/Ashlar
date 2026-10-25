@@ -1,0 +1,2499 @@
+{
+ "summary": {
+  "all_prs": 44,
+  "paired_prs": 44,
+  "brick-raw (all PRs)": {
+   "prs": 44,
+   "verdict_correct": 44,
+   "truth_blockers": 111,
+   "found": 21,
+   "truth_blockers_rest_visible": 87,
+   "found_rest_visible": 21,
+   "claims": 41,
+   "overcall": 16,
+   "fabricated": 0,
+   "unsupported": 0,
+   "unattributed": 4,
+   "parse_failures": 0,
+   "cost_usd": 0,
+   "runs_with_live_fetch": 0
+  },
+  "brick-raw (paired PRs)": {
+   "prs": 44,
+   "verdict_correct": 44,
+   "truth_blockers": 111,
+   "found": 21,
+   "truth_blockers_rest_visible": 87,
+   "found_rest_visible": 21,
+   "claims": 41,
+   "overcall": 16,
+   "fabricated": 0,
+   "unsupported": 0,
+   "unattributed": 4,
+   "parse_failures": 0,
+   "cost_usd": 0,
+   "runs_with_live_fetch": 0
+  },
+  "brick+sonnet": {
+   "prs": 44,
+   "verdict_correct": 44,
+   "truth_blockers": 111,
+   "found": 21,
+   "truth_blockers_rest_visible": 87,
+   "found_rest_visible": 21,
+   "claims": 41,
+   "overcall": 16,
+   "fabricated": 0,
+   "unsupported": 0,
+   "unattributed": 4,
+   "parse_failures": 0,
+   "cost_usd": 0.2726,
+   "runs_with_live_fetch": 0
+  },
+  "native+sonnet": {
+   "prs": 44,
+   "verdict_correct": 42,
+   "truth_blockers": 111,
+   "found": 52,
+   "truth_blockers_rest_visible": 87,
+   "found_rest_visible": 34,
+   "claims": 52,
+   "overcall": 0,
+   "fabricated": 0,
+   "unsupported": 0,
+   "unattributed": 0,
+   "parse_failures": 2,
+   "cost_usd": 4.6124,
+   "runs_with_live_fetch": 8
+  },
+  "brick_unmapped_reasons": {}
+ },
+ "graded": {
+  "brick-raw": {
+   "https://github.com/cli/cli/pull/14196": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "conflict",
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict",
+     "draft"
+    ],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/dotnet/efcore/pull/39321": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "draft"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14658": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "draft"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/cli/cli/pull/12942": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/dotnet/efcore/pull/39400": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:analyze (javascript-typescript)": "overcall",
+     "check_failing:efcore-ci (build helix macos x64)": "overcall"
+    }
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3516": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/cli/cli/pull/13013": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:govulncheck": "overcall"
+    }
+   },
+   "https://github.com/dotnet/efcore/pull/39391": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14659": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14577": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14375": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14643": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {}
+   },
+   "https://github.com/cli/cli/pull/13899": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3681": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/cli/cli/pull/13506": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested",
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)"
+    ],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/1721": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested",
+     "conflict"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested",
+     "conflict"
+    ],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/dotnet/efcore/pull/39399": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:maestro auto-merge - version.details.props validation merge policy": "overcall"
+    }
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1952": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:markdown-link-check": "overcall"
+    }
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3540": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_failing:all-green",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_failing:all-green"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:checks / test (3.11, lowest-direct, ubuntu-latest)": "overcall",
+     "check_failing:checks / test (3.11, locked, ubuntu-latest)": "overcall",
+     "check_failing:checks / test (3.11, locked, windows-latest)": "overcall",
+     "check_failing:checks / test (3.11, lowest-direct, windows-latest)": "overcall"
+    }
+   },
+   "https://github.com/dotnet/efcore/pull/39369": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:coverage": "overcall"
+    }
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1929": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:build (windows-latest, release)": "overcall"
+    }
+   },
+   "https://github.com/dotnet/efcore/pull/38960": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:coverage": "overcall"
+    }
+   },
+   "https://github.com/dotnet/efcore/pull/39407": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:efcore-ci",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_pending:efcore-ci"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_pending:efcore-ci (build windows)": "overcall",
+     "check_pending:maestro auto-merge - all checks successful": "overcall",
+     "check_pending:efcore-ci (build helix)": "overcall"
+    }
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14641": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {
+     "check_pending:license/cla": "overcall"
+    }
+   },
+   "https://github.com/cli/cli/pull/14816": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    }
+   },
+   "https://github.com/dotnet/efcore/pull/39405": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    }
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14661": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    }
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    }
+   },
+   "https://github.com/cli/cli/pull/14716": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1949": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3680": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1709": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1788": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3542": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3541": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1955": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1948": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14649": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/13456": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/dotnet/efcore/pull/39350": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/dotnet/efcore/pull/39404": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3758": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3754": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   },
+   "https://github.com/cli/cli/pull/11926": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {}
+   }
+  },
+  "brick+sonnet": {
+   "https://github.com/cli/cli/pull/14196": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "conflict",
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict",
+     "draft"
+    ],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006507,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39321": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "draft"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.005933,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14658": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "draft"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.005746,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/12942": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.005965,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39400": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:analyze (javascript-typescript)": "overcall",
+     "check_failing:efcore-ci (build helix macos x64)": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.00916,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3516": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006291,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/13013": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:govulncheck": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.006997,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39391": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006133,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14659": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.004031,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14577": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006003,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14375": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.007073,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14643": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006301,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/13899": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006242,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3681": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006581,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/13506": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested",
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.0064,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/1721": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested",
+     "conflict"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested",
+     "conflict"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.010276,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39399": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:maestro auto-merge - version.details.props validation merge policy": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.005267,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1952": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:markdown-link-check": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.008304,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3540": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_failing:all-green",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_failing:all-green"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:checks / test (3.11, lowest-direct, ubuntu-latest)": "overcall",
+     "check_failing:checks / test (3.11, locked, ubuntu-latest)": "overcall",
+     "check_failing:checks / test (3.11, locked, windows-latest)": "overcall",
+     "check_failing:checks / test (3.11, lowest-direct, windows-latest)": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.014738,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39369": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:coverage": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.007888,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1929": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:build (windows-latest, release)": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.006871,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/38960": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_failing:coverage": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.00958,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39407": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:efcore-ci",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_pending:efcore-ci"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "check_pending:efcore-ci (build windows)": "overcall",
+     "check_pending:maestro auto-merge - all checks successful": "overcall",
+     "check_pending:efcore-ci (build helix)": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.010023,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14641": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {
+     "check_pending:license/cla": "overcall"
+    },
+    "parsed": true,
+    "cost_usd": 0.007168,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/14816": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    },
+    "parsed": true,
+    "cost_usd": 0.007272,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39405": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    },
+    "parsed": true,
+    "cost_usd": 0.00795,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14661": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    },
+    "parsed": true,
+    "cost_usd": 0.008066,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {
+     "other": "unattributed"
+    },
+    "parsed": true,
+    "cost_usd": 0.007424,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/14716": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.003965,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1949": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.004034,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3680": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.004108,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1709": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.003854,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1788": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.006586,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3542": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.009346,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3541": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.010083,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1955": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.002594,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1948": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.003036,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14649": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.002491,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/13456": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.003001,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39350": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.002235,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39404": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.003213,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3758": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.002356,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3754": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.003206,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/11926": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.002337,
+    "live_paths": []
+   }
+  },
+  "native+sonnet": {
+   "https://github.com/cli/cli/pull/14196": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "conflict",
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict",
+     "draft"
+    ],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.060601,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39321": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "draft",
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.112062,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14658": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "draft",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "draft",
+     "review_required"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.052815,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/12942": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.096846,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39400": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "verdict": null,
+    "verdict_ok": false,
+    "found": [],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": false,
+    "cost_usd": 0.144754,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3516": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict",
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.149492,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/13013": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "conflict",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "conflict"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.101039,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39391": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "verdict": null,
+    "verdict_ok": false,
+    "found": [],
+    "missed": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "conflict",
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": false,
+    "cost_usd": 0.087787,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14659": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind",
+     "review_required"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.057075,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14577": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind",
+     "review_required"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.067661,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14375": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind",
+     "review_required"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.068339,
+    "live_paths": [
+     "/repos/microsoft/semantic-kernel/pulls/14375/comments"
+    ]
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14643": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind",
+     "review_required"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.065345,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/13899": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.171263,
+    "live_paths": [
+     "/repos/cli/cli/compare/d528f20f2ee02f6703773e9f56c90e3c3f5d46b0...7031269eafb54c8b814883a4757db7eb9f2a6100"
+    ]
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3681": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.234359,
+    "live_paths": [
+     "/repos/modelcontextprotocol/python-sdk/compare/main...0bc072e24a84a795e98eca6e38eed129d2880f3e"
+    ]
+   },
+   "https://github.com/cli/cli/pull/13506": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested",
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested"
+    ],
+    "missed": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.098418,
+    "live_paths": [
+     "/repos/cli/cli/compare/trunk...kilasuit:fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+    ]
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/1721": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "changes_requested",
+     "conflict"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "changes_requested",
+     "conflict"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.199283,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39399": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.01743,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1952": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.09146,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3540": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_failing:all-green",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_failing:all-green",
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.214703,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39369": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.114735,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1929": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.164699,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/38960": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.134821,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39407": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:efcore-ci",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_pending:efcore-ci",
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.110991,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14641": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "behind",
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "behind",
+     "review_required"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.066875,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/14816": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_pending:build (macos-latest)",
+     "check_pending:build (ubuntu-latest)",
+     "check_pending:build (windows-latest)"
+    ],
+    "missed": [
+     "review_required"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.080147,
+    "live_paths": [
+     "/repos/cli/cli/issues/14816/comments"
+    ]
+   },
+   "https://github.com/dotnet/efcore/pull/39405": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "check_pending:cosmos (ubuntu-24.04)",
+     "check_pending:cosmos (windows-2025)",
+     "check_pending:main (macos-15)",
+     "check_pending:main (ubuntu-24.04)",
+     "check_pending:main (windows-2025)",
+     "check_pending:microsoft.data.sqlite (ubuntu-24.04)",
+     "check_pending:microsoft.data.sqlite (windows-2025)",
+     "check_pending:sqlite (ubuntu-24.04)",
+     "check_pending:sqlite (windows-2025)",
+     "check_pending:sqlserver (2019)",
+     "check_pending:sqlserver (2022)",
+     "check_pending:sqlserver (2025)",
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.28549,
+    "live_paths": [
+     "/repos/dotnet/efcore/issues/39405/comments",
+     "/repos/dotnet/efcore/actions/runs?head_sha=471c9f9508b25a18b30aaf3fd2855d0658f0a0a6"
+    ]
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14661": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check",
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "review_required"
+    ],
+    "missed": [
+     "check_pending:dotnet-build-and-test-check",
+     "check_pending:merge-gatekeeper",
+     "check_pending:python-integration-tests-check"
+    ],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.054244,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934": {
+    "truth_verdict": "blocked",
+    "truth_blockers": [
+     "review_required"
+    ],
+    "verdict": "blocked",
+    "verdict_ok": true,
+    "found": [
+     "review_required"
+    ],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.117795,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/14716": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.10302,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1949": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.098525,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3680": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.218033,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1709": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.083365,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1788": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.162045,
+    "live_paths": [
+     "/repos/modelcontextprotocol/csharp-sdk/contents/.github/CODEOWNERS",
+     "/repos/modelcontextprotocol/csharp-sdk/pulls/1788/files?per_page=100",
+     "/repos/modelcontextprotocol/csharp-sdk/contents/CODEOWNERS",
+     "/repos/modelcontextprotocol/csharp-sdk/contents/docs/CODEOWNERS",
+     "/repos/modelcontextprotocol/csharp-sdk/pulls/1788/commits"
+    ]
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3542": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.217287,
+    "live_paths": [
+     "/repos/modelcontextprotocol/python-sdk/check-runs/105573515065/annotations",
+     "/repos/modelcontextprotocol/python-sdk/check-runs/105572860002/annotations"
+    ]
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3541": {
+    "truth_verdict": "ready",
+    "truth_blockers": [],
+    "verdict": "ready",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.225038,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1955": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.02951,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1948": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.025845,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/14649": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.031875,
+    "live_paths": []
+   },
+   "https://github.com/microsoft/semantic-kernel/pull/13456": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.021892,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39350": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.033219,
+    "live_paths": []
+   },
+   "https://github.com/dotnet/efcore/pull/39404": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.022314,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3758": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.053155,
+    "live_paths": []
+   },
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3754": {
+    "truth_verdict": "closed",
+    "truth_blockers": [],
+    "verdict": "closed",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.026617,
+    "live_paths": []
+   },
+   "https://github.com/cli/cli/pull/11926": {
+    "truth_verdict": "merged",
+    "truth_blockers": [],
+    "verdict": "merged",
+    "verdict_ok": true,
+    "found": [],
+    "missed": [],
+    "extra": {},
+    "parsed": true,
+    "cost_usd": 0.040109,
+    "live_paths": []
+   }
+  }
+ }
+}

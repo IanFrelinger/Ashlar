@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "3b3f1c41ff36433a9a2be22ac1b1de55",
+ "summary": "PR #12942 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch has merge conflicts with trunk.",
+    "evidence": "https://github.com/cli/cli/pull/12942"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 11 check run(s) and 0 commit status(es) on the head commit bdedb68faa1f; none is failing or pending.",
+    "evidence": "https://github.com/cli/cli/commit/bdedb68faa1f542ba865cd8acf18eaade5293e00"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/12942",
+   "https://github.com/cli/cli/commit/bdedb68faa1f542ba865cd8acf18eaade5293e00"
+  ],
+  "answer": "**What is blocking PR #12942?** PR #12942 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The branch has merge conflicts with trunk. ([evidence](https://github.com/cli/cli/pull/12942))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 11 check run(s) and 0 commit status(es) on the head commit bdedb68faa1f; none is failing or pending. ([evidence](https://github.com/cli/cli/commit/bdedb68faa1f542ba865cd8acf18eaade5293e00))\n\nRead from https://github.com/cli/cli/pull/12942\n"
+ }
+}

@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "9c5338b83f2a4070ad7694a5bb8219fb",
+ "summary": "PR #1934 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset).",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 11 check run(s) and 0 commit status(es) on the head commit 71a6449b2112; none is failing or pending.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/commit/71a6449b2112d0cafcc9e18a198311b5bc9102de"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934",
+   "https://github.com/modelcontextprotocol/csharp-sdk/commit/71a6449b2112d0cafcc9e18a198311b5bc9102de"
+  ],
+  "answer": "**What is blocking PR #1934?** PR #1934 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset). ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/pull/1934))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 11 check run(s) and 0 commit status(es) on the head commit 71a6449b2112; none is failing or pending. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/commit/71a6449b2112d0cafcc9e18a198311b5bc9102de))\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1934\n"
+ }
+}
