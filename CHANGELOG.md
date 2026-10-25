@@ -17,6 +17,42 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-25
+
+### Changed — release-commit pin is 0.4.0
+
+- `VERSION`, `ci/published-version` and `consumer-template/Directory.Packages.props`
+  (`AshlarConsumerPackageVersion`) move to `0.4.0` together. Docs that name the current pin follow it.
+  nuget.org and GHCR still serve `0.3.0` until `v0.4.0` is published, and `deploy/node.yml` keeps the `0.3.0`
+  image digest until the post-release re-pin.
+- Certification trust behaviour of the pin is unchanged from `0.3.0` (`src/Ashlar.Certification.Contracts`
+  has no change since `v0.3.0`): `CertificationVerifyOptions.Default` and `.Strict` both set
+  `RequireEd25519Signature` and a `MinimumSchemaVersion` floor.
+- Owner-delegated decisions for this release are rows dated 2026-10-25 in the SPEC-007 decisions log.
+
+### Added — new packages in 0.4.0
+
+- `Ashlar.Bricks.GitHub`: the `github.blockers`, `github.pr-status` and `github.ci-status` bricks.
+- `Ashlar.Mcp.Server.Host`: the MCP brick host as a .NET tool, runnable with `dnx Ashlar.Mcp.Server.Host`
+  (MCP server name `io.github.ianfrelinger/ashlar`). Details under "MCP brick host" below.
+
+### Changed — PublicAPI promotion review for 0.4.0 (runbook step 7)
+
+- The six `PublicAPI.Unshipped.txt` files: `Ashlar.Abstractions` has the same 160 `ASHLAREXP002` lines as at
+  `v0.3.0`, which stay in `Unshipped.txt` (owner decision 2026-10-13); the other five have only the header.
+  No line moved.
+- Stable API added since `v0.3.0` went straight into `src/Ashlar.Brick.Contracts/PublicAPI.Shipped.txt`:
+  `BrickInput.TryGet<T>`, `BrickOutput.Get<T>(key, defaultValue)`, `BrickOutput.TryGet<T>`,
+  `BrickInputValidation` (`ApplyDefaults`, `TryValidateRequiredInputs`, `ValidateRequiredInputs`) and
+  `BrickInputValidationException`. `Ashlar.Core.Domain` (not API-tracked) gains `BrickTypeRegistration`.
+
+### Changed — what 0.4.0 changes by default (runbook step 9)
+
+- Nothing in egress. As in `0.3.0`, AirGapped and SecureWorkstation refuse disallowed egress by default;
+  SecureWorkstation's break-glass is `ASHLAR_EGRESS_MODE=report`, and AirGapped ignores it.
+- `Ashlar.Authoring` no longer brings `Ashlar.Hosting` (entry below): a host that calls `AddAshlar()` and
+  referenced only `Ashlar.Authoring` adds `Ashlar.Hosting.Bundle`.
+
 ### Added — MCP brick audit records form a hash chain
 
 - Each `MCP_BRICK_INVOKED` record, refusals included, carries a per-process `session`, `seq` (1, 2, …) and
