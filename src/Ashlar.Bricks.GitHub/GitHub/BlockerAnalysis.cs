@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Ashlar.Bricks.GitHub;
@@ -24,6 +25,10 @@ internal sealed record BlockerAnswer(
 /// required is a note, never a blocker. Only when neither branch protection nor the public required-check lists could
 /// be read does GitHub's own <c>mergeable_state</c> decide whether a failing check blocks: <c>clean</c>,
 /// <c>unstable</c> and <c>has_hooks</c> mean GitHub would allow the merge, so failures are notes.
+/// <para>Names and text read from GitHub are not trusted: a fork's workflow names its own check runs, and any
+/// integration with status access sets a status's context, description and target URL. Each such string enters the
+/// answer through <see cref="Quote"/>, as one inline code span, and each such URL through <see cref="Link"/>, so that
+/// it reaches a model or a rendered job summary as data, not as headings, links, images or instructions.</para>
 /// </remarks>
 internal static class BlockerAnalysis
 {
@@ -37,6 +42,9 @@ internal static class BlockerAnalysis
     {
         "failure", "timed_out", "cancelled", "action_required", "startup_failure", "stale",
     };
+
+    /// <summary>Characters of one quoted GitHub string kept in the answer.</summary>
+    public const int MaxQuoted = 100;
 
     private static readonly HashSet<string> MergeAllowedStates = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -83,9 +91,9 @@ internal static class BlockerAnalysis
 
         var state = pr.MergeableState?.ToLowerInvariant();
         if (pr.Mergeable == false || state == "dirty")
-            blockers.Add(new Blocker("The branch has merge conflicts with " + pr.BaseRef + ".", pr.Url));
+            blockers.Add(new Blocker("The branch has merge conflicts with " + Quote(pr.BaseRef) + ".", pr.Url));
         else if (state == "behind")
-            blockers.Add(new Blocker("The branch is behind " + pr.BaseRef + ", and the base branch requires branches to be up to date.", pr.Url));
+            blockers.Add(new Blocker("The branch is behind " + Quote(pr.BaseRef) + ", and the base branch requires branches to be up to date.", pr.Url));
         else if (pr.Mergeable is null || state is null or "unknown")
             unknowns.Add(new Unknown("Mergeability",
                 "GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view."));
@@ -131,7 +139,7 @@ internal static class BlockerAnalysis
             .ToList();
 
         foreach (var review in latest.Where(r => string.Equals(r.State, "changes_requested", StringComparison.OrdinalIgnoreCase)))
-            blockers.Add(new Blocker($"{review.User} requested changes.", review.Url ?? pr.Url));
+            blockers.Add(new Blocker($"{Quote(review.User)} requested changes.", Link(review.Url) ?? pr.Url));
 
         var approvals = latest.Count(r => string.Equals(r.State, "approved", StringComparison.OrdinalIgnoreCase));
         var tooFew = protection.RequiredApprovals is { } required && approvals < required
@@ -164,12 +172,12 @@ internal static class BlockerAnalysis
         var repoUrl = $"https://github.com/{target.Owner}/{target.Repo}";
         if (!release.TagExists)
         {
-            blockers.Add(new Blocker($"The tag {release.Tag} does not exist.", repoUrl + "/tags"));
+            blockers.Add(new Blocker($"The tag {Quote(release.Tag)} does not exist.", repoUrl + "/tags"));
             return Verdict(blockers, unknowns);
         }
 
         if (release.ReleaseUrl is null)
-            blockers.Add(new Blocker($"No GitHub release exists for the tag {release.Tag}.", repoUrl + "/releases"));
+            blockers.Add(new Blocker($"No GitHub release exists for the tag {Quote(release.Tag)}.", repoUrl + "/releases"));
         else if (release.Draft == true)
             blockers.Add(new Blocker("The release is still a draft.", release.ReleaseUrl));
 
@@ -212,9 +220,9 @@ internal static class BlockerAnalysis
             {
                 reported.Add(check.Name);
                 if (!string.Equals(check.Status, "completed", StringComparison.OrdinalIgnoreCase))
-                    problems.Add((check.Name, $"The check {check.Name} is still {check.Status.Replace('_', ' ')}.", check.Url ?? commitUrl));
+                    problems.Add((check.Name, $"The check {Quote(check.Name)} is still {check.Status.Replace('_', ' ')}.", Link(check.Url) ?? commitUrl));
                 else if (check.Conclusion is { } conclusion && FailedConclusions.Contains(conclusion))
-                    problems.Add((check.Name, $"The check {check.Name} concluded {conclusion.Replace('_', ' ')}.", check.Url ?? commitUrl));
+                    problems.Add((check.Name, $"The check {Quote(check.Name)} concluded {conclusion.Replace('_', ' ')}.", Link(check.Url) ?? commitUrl));
             }
         }
 
@@ -229,9 +237,9 @@ internal static class BlockerAnalysis
                 reported.Add(status.Context);
                 var state = status.State.ToLowerInvariant();
                 if (state == "pending")
-                    problems.Add((status.Context, $"The status {status.Context} is still pending.", status.Url ?? commitUrl));
+                    problems.Add((status.Context, $"The status {Quote(status.Context)} is still pending.", Link(status.Url) ?? commitUrl));
                 else if (state is "failure" or "error")
-                    problems.Add((status.Context, $"The status {status.Context} reported {state}" + (string.IsNullOrWhiteSpace(status.Description) ? "." : $": {status.Description}"), status.Url ?? commitUrl));
+                    problems.Add((status.Context, $"The status {Quote(status.Context)} reported {state}" + (string.IsNullOrWhiteSpace(status.Description) ? "." : $": {Quote(status.Description)}."), Link(status.Url) ?? commitUrl));
             }
         }
 
@@ -255,8 +263,58 @@ internal static class BlockerAnalysis
         if (required is not null && ci.Checks is not null && ci.Statuses is not null)
         {
             foreach (var name in required.Where(n => !reported.Contains(n)).OrderBy(n => n, StringComparer.Ordinal))
-                blockers.Add(new Blocker($"The required check {name} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.", commitUrl));
+                blockers.Add(new Blocker($"The required check {Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.", commitUrl));
         }
+    }
+
+    /// <summary>
+    /// A string read from GitHub as one inline code span: control, format (bidi) and line-separator characters become
+    /// spaces, runs of white space collapse, a backtick becomes <c>'</c> (so the span cannot be closed early), and
+    /// anything past <see cref="MaxQuoted"/> characters is cut with <c>…</c>.
+    /// </summary>
+    internal static string Quote(string? text)
+    {
+        var sb = new StringBuilder();
+        var cut = false;
+        foreach (var c in text ?? string.Empty)
+        {
+            if (sb.Length >= MaxQuoted)
+            {
+                cut = true;
+                break;
+            }
+
+            var category = char.GetUnicodeCategory(c);
+            if (char.IsControl(c) || char.IsWhiteSpace(c) || category is UnicodeCategory.Format
+                    or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator)
+            {
+                if (sb.Length > 0 && sb[^1] != ' ')
+                    sb.Append(' ');
+            }
+            else
+            {
+                sb.Append(c == '`' ? '\'' : c);
+            }
+        }
+
+        var quoted = sb.ToString().Trim();
+        if (cut)
+            quoted += "…";
+        return "`" + (quoted.Length == 0 ? "(empty)" : quoted) + "`";
+    }
+
+    /// <summary>
+    /// A URL read from GitHub, usable as a Markdown link target: an absolute <c>https</c> or <c>http</c> URL, with
+    /// parentheses and white space percent-encoded; anything else (<c>javascript:</c>, relative, malformed) is
+    /// <see langword="null"/>, and the caller falls back to a URL it built itself.
+    /// </summary>
+    internal static string? Link(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            return null;
+        return uri.AbsoluteUri.Replace("(", "%28", StringComparison.Ordinal).Replace(")", "%29", StringComparison.Ordinal)
+            .Replace(" ", "%20", StringComparison.Ordinal);
     }
 
     private static string Verdict(List<Blocker> blockers, List<Unknown> unknowns) =>
