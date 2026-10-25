@@ -49,7 +49,9 @@ public class AshlarSimpleCliTests
         using var host = AshlarSimpleCli.CreateSimpleHost(configureLogging: logging =>
         {
             invoked = true;
-            logging.SetMinimumLevel(LogLevel.Warning);
+            // A category rule, not SetMinimumLevel: the default host also binds Logging:LogLevel from
+            // configuration, and a configured Default rule outranks the minimum level.
+            logging.AddFilter(typeof(AshlarSimpleCliTests).FullName, LogLevel.Warning);
         });
 
         Assert.True(invoked);
