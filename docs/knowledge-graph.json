@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 825,
-    "declared_facts": 5358,
+    "test_files_declaring_facts": 826,
+    "declared_facts": 5360,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4289,6 +4289,13 @@
       "project": "Ashlar.Tests.Domain",
       "namespace": "Ashlar.Tests.Domain.Framework",
       "declared_facts": 1,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Domain/Tests/Bricks/BrickTypeRegistrationTests.cs",
+      "project": "Ashlar.Tests.Domain",
+      "namespace": "Ashlar.Tests.Domain.Tests.Bricks",
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
