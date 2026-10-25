@@ -28,6 +28,32 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 - `AshlarSimpleCliProdStyleTests` cover host creation, both `ExecuteAsync` overloads, `GetOrDefault` and output
   writing; `BrickOutputFormatters` is documented in `docs/SimpleCLI.md` ("Formatting outputs").
 
+### Added — MCP brick host, runnable with `dnx`
+
+- **`Ashlar.Mcp.Server.Host` is now a tool package** (`PackAsTool`, `PackageType` `McpServer`, `.mcp/server.json`
+  stamped with the package version) and is packed by the release workflow. A .NET 10 SDK runs it with
+  `dnx Ashlar.Mcp.Server.Host`. The package leaves out the local GGUF natives (`-p:AshlarMcpHostLocalModels=false`);
+  builds from source keep them.
+- **New `Ashlar.Mcp.Bricks`** (not a package of its own): `BrickMcpToolContributor` exposes bricks from
+  `IBrickRegistry` that are listed in `Ashlar:Mcp:Bricks:ExposedBrickIds` as MCP tools, through the existing bridge
+  (policy gate, concurrency limit, argument overrides). The tool schema comes from the brick's inputs; a call
+  converts arguments as `POST /api/bricks/{id}/execute` does, applies defaults, refuses missing required inputs
+  before the brick runs, and executes deterministically. Every call and every refusal writes one
+  `MCP_BRICK_INVOKED` barrier audit record (brick id and version, outcome, duration, SHA-256 of the arguments and of
+  the returned text; no values) to the configured audit sinks, and returns its `auditId`. Register with
+  `AddAshlarMcpBricks(configuration)`.
+- The stdio host registers `github.pr-status` and `github.ci-status` (exposed only when allowlisted) and writes
+  brick audit records to `<LocalApplicationData>/ashlar/mcp-audit` by default. See
+  `src/Ashlar.Mcp.Server.Host/README.md`.
+- `scripts/verify-mcp-brick-host-dnx.sh` (run by the MCP/A2A gate) packs the tool as a release does, runs it with
+  `dnx` from a local feed, and drives an MCP stdio session through a brick call and its audit record.
+
+### Fixed — a hosted service that needs the brick registry hung host start
+
+- `INCRCapabilitySnapshot` and `IPeerCapabilitySnapshot` were resolved by enumerating `IHostedService`. That builds
+  every hosted service, and one depending on `IBrickRegistry` re-entered through `CapabilityRoutingBrick`, so
+  startup recursed without ever throwing. Each poller is now one singleton that both interfaces forward to.
+
 ### Added — Package version diagnostics
 
 - New `scripts/ci/verify-package-versions.sh` script to diagnose Central Package Management issues

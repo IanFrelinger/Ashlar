@@ -12,15 +12,15 @@ remembered to update — staleness here is a red build.
 
 | | count |
 |---|---|
-| projects | 61 |
-| of those, published to nuget.org by a release | 23 |
-| of those, declaring `<IsPackable>true</IsPackable>` | 19 |
+| projects | 62 |
+| of those, published to nuget.org by a release | 24 |
+| of those, declaring `<IsPackable>true</IsPackable>` | 20 |
 | `ASHLAR_*` variables named in code | 177 |
 | of those, operator-facing (not test-only) | 155 |
 | missing from `docs/Configuration.md` | 17 |
 | **mentioned in no document at all** | **0** |
-| test files declaring xUnit facts | 823 |
-| declared facts | 5319 |
+| test files declaring xUnit facts | 824 |
+| declared facts | 5330 |
 | workflows | 61 |
 
 ## Namespaces cert-gate selects
@@ -65,6 +65,7 @@ convenience.
 - `Ashlar.Hosting` (src/Ashlar.Hosting/Ashlar.Hosting.csproj)
 - `Ashlar.Hosting.Bundle` (src/Ashlar.Hosting.Bundle/Ashlar.Hosting.Bundle.csproj)
 - `Ashlar.Infrastructure` (src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj)
+- `Ashlar.Mcp.Server.Host` (src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj)
 - `Ashlar.Orchestration` (src/Ashlar.Orchestration/Ashlar.Orchestration.csproj)
 - `Ashlar.Policies` (src/Ashlar.Policies/Ashlar.Policies.csproj)
 - `Ashlar.Runtime` (src/Ashlar.Runtime/Ashlar.Runtime.csproj)

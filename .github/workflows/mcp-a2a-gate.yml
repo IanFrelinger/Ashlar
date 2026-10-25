@@ -68,6 +68,12 @@ jobs:
           dotnet test src/Ashlar.Mcp.Server.Tests/Ashlar.Mcp.Server.Tests.csproj \
             --blame-hang-timeout 120s
 
+      - name: MCP brick host runs under dnx (packed tool, stdio session, audit record)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/verify-mcp-brick-host-dnx.sh
+
       - name: MCP client tests (incl. client<->server protocol round trips)
         shell: bash
         run: |

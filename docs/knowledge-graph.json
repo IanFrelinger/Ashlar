@@ -8,15 +8,15 @@
     "AstMutationEngineTests"
   ],
   "counts": {
-    "projects": 61,
-    "projects_shipped_to_nuget": 23,
-    "projects_declaring_ispackable_true": 19,
+    "projects": 62,
+    "projects_shipped_to_nuget": 24,
+    "projects_declaring_ispackable_true": 20,
     "config_variables": 177,
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 823,
-    "declared_facts": 5319,
+    "test_files_declaring_facts": 824,
+    "declared_facts": 5330,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -515,6 +515,22 @@
       ]
     },
     {
+      "name": "Ashlar.Mcp.Bricks",
+      "path": "src/Ashlar.Mcp.Bricks/Ashlar.Mcp.Bricks.csproj",
+      "layer": "src",
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
+      "target_frameworks": [
+        "net10.0",
+        "net8.0"
+      ],
+      "references": [
+        "Ashlar.Core.Application",
+        "Ashlar.Infrastructure",
+        "Ashlar.Mcp.Server"
+      ]
+    },
+    {
       "name": "Ashlar.Mcp.Client",
       "path": "src/Ashlar.Mcp.Client/Ashlar.Mcp.Client.csproj",
       "layer": "src",
@@ -560,13 +576,15 @@
       "name": "Ashlar.Mcp.Server.Host",
       "path": "src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj",
       "layer": "src",
-      "is_packable_explicit": false,
-      "ships_to_nuget": false,
+      "is_packable_explicit": true,
+      "ships_to_nuget": true,
       "target_frameworks": [
         "net10.0"
       ],
       "references": [
+        "Ashlar.Bricks.GitHub",
         "Ashlar.Hosting",
+        "Ashlar.Mcp.Bricks",
         "Ashlar.Mcp.Server",
         "Ashlar.Tools.Dev"
       ]
@@ -581,6 +599,7 @@
         "net8.0"
       ],
       "references": [
+        "Ashlar.Mcp.Bricks",
         "Ashlar.Mcp.Server"
       ]
     },
@@ -3129,6 +3148,13 @@
       "project": "Ashlar.Mcp.Server.Tests",
       "namespace": "Ashlar.Mcp.Server.Tests",
       "declared_facts": 11,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Mcp.Server.Tests/BrickMcpToolContributorTests.cs",
+      "project": "Ashlar.Mcp.Server.Tests",
+      "namespace": "Ashlar.Mcp.Server.Tests",
+      "declared_facts": 10,
       "in_cert_gate_filter": false
     },
     {
@@ -6467,7 +6493,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/KernelDiCompositionProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
-      "declared_facts": 8,
+      "declared_facts": 9,
       "in_cert_gate_filter": false
     },
     {
