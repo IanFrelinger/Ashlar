@@ -16,7 +16,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 825,
-    "declared_facts": 5356,
+    "declared_facts": 5358,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -161,8 +161,7 @@
       "references": [
         "Ashlar.Brick.Contracts",
         "Ashlar.Core.Application",
-        "Ashlar.Core.Domain",
-        "Ashlar.Hosting"
+        "Ashlar.Core.Domain"
       ]
     },
     {
@@ -4576,7 +4575,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Adaptation/AdaptationBrickRegistrationTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Adaptation",
-      "declared_facts": 2,
+      "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {
@@ -6494,7 +6493,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/HostingE2ESmokeTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
-      "declared_facts": 10,
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {

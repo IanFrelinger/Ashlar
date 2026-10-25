@@ -108,7 +108,7 @@ cd HelloRunner && dotnet run -- Ashlar
 # Hello, Ashlar! (Greeted Ashlar.)
 ```
 
-The first restore downloads about 1 GB of packages into the NuGet cache, because `Ashlar.Authoring` brings the hosting graph with it.
+With `Ashlar.Authoring` 0.3.0 the first restore downloads about 1 GB of packages into the NuGet cache, because that version brings the hosting graph with it. From 0.4.0 it does not: `scripts/measure-authoring-restore-footprint.sh` measures 30 packages and 144 MiB for this net8.0 project on an empty cache, and 67 MiB of that are the .NET reference packs that an empty net8.0 project restores too.
 
 ### 4. Register in a host
 
