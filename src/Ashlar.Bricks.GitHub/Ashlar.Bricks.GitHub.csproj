@@ -8,12 +8,17 @@
         <IsPackable>true</IsPackable>
         <PackageId>Ashlar.Bricks.GitHub</PackageId>
         <Title>Ashlar GitHub Bricks</Title>
-        <Description>GitHub operations bricks for Ashlar: pull request blockers (reviews, checks, mergeability) and CI status for a ref, built on Octokit.</Description>
-        <PackageTags>ashlar;bricks;github;pull-requests;ci</PackageTags>
+        <Description>GitHub operations bricks for Ashlar: what is blocking a pull request or release (with evidence links and explicit unknowns), pull request status and CI status for a ref, built on Octokit behind the Ashlar egress guard.</Description>
+        <PackageTags>ashlar;bricks;github;pull-requests;releases;ci</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
+        <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
     </ItemGroup>
 
     <ItemGroup>

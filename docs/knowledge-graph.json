@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 824,
-    "declared_facts": 5330,
+    "test_files_declaring_facts": 825,
+    "declared_facts": 5349,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -227,6 +227,7 @@
         "net8.0"
       ],
       "references": [
+        "Ashlar.Abstractions",
         "Ashlar.Analyzers",
         "Ashlar.Core.Domain"
       ]
@@ -4849,6 +4850,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.BaseFramework",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/GitHubBlockersBrickTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
+      "declared_facts": 19,
       "in_cert_gate_filter": false
     },
     {

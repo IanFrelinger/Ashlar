@@ -207,6 +207,7 @@ No remote embedding generator and no MCP sampling call exist.
 | EG-HTTP-05 | `application/src/Ashlar.CLI/Commands/WorkflowCommand.cs:545`; client at `:536` | An `EgressHttp` client, `PostAsJsonAsync api/orchestrate` | Discovered mesh peers (`--include-mesh-peers`) | The scenario prompt, `RuntimeSpecJson`, provider | CLI flag only | None | Handler(raw) |
 | EG-HTTP-06 | `application/src/Ashlar.CLI/Commands/MeshCommand.cs:392`; client at `:388` | An `EgressHttp` client, `GetAsync <url>/health` | The operator's `--url` | None | Operator command | n/a | Handler(raw) |
 | EG-HTTP-07 | `commercial/src/Ashlar.Commercial.MeshDirector/MeshDirectorCommand.cs:237`, `:343`, `:402`; client at `:415` | An `EgressHttp` client, `SendAsync` | `--base-url` or `ASHLAR_MESH_DIRECTOR_BASE_URL` | Fleet register, admit, revoke and list requests, with API-key and mesh-token headers | The operator's credentials | n/a | Handler(raw) |
+| EG-HTTP-08 | `src/Ashlar.Bricks.GitHub/GitHub/GitHubClientFactory.cs:22`; handler at `:26`. Used by `github.blockers`, `github.pr-status` and `github.ci-status` | An Octokit `GitHubClient` over `EgressHttp.Wrap` (Octokit's default handler, no automatic redirects) | `api.github.com` only: the base address is fixed, and the bricks accept only `https://github.com` URLs (`GitHubTarget.TryParse`) | Owner, repository, PR number, tag or ref in the URL; the caller's GitHub token in `Authorization` when one is passed | The brick's caller; no Ashlar gate decides which repository is read | None | Handler(raw) |
 
 ## 6. Mesh sharing and federation
 

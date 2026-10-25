@@ -107,35 +107,22 @@ public class PrStatusBrick : Ashlar.Core.Domain.Bricks.Brick
         return output;
     }
 
-    private GitHubClient CreateGitHubClient(BrickInput input)
+    private static GitHubClient CreateGitHubClient(BrickInput input)
     {
-        var client = new GitHubClient(new ProductHeaderValue("Ashlar-GitHub-Bricks"));
-
-        // Use token if provided for higher rate limits
-        if (input.TryGet<string>("githubToken", out var token) && !string.IsNullOrEmpty(token))
-        {
-            client.Credentials = new Credentials(token);
-        }
-
-        return client;
+        input.TryGet<string>("githubToken", out var token);
+        return GitHubClientFactory.Create(token);
     }
 
     private (string owner, string repo, int prNumber) ParsePrUrl(string prUrl)
     {
-        // Parse URLs like: https://github.com/owner/repo/pull/123
-        var uri = new Uri(prUrl);
-        var segments = uri.Segments;
-
-        if (segments.Length < 5 || segments[^2].TrimEnd('/') != "pull")
+        if (!GitHubTarget.TryParse(prUrl, out var target, out var error) || target!.Kind != GitHubTargetKind.PullRequest)
         {
-            throw new ArgumentException($"Invalid PR URL format: {prUrl}. Expected format: https://github.com/owner/repo/pull/123");
+            throw new ArgumentException(string.IsNullOrEmpty(error)
+                ? $"Invalid PR URL format: {prUrl}. Expected format: https://github.com/owner/repo/pull/123"
+                : error);
         }
 
-        var owner = segments[1].TrimEnd('/');
-        var repo = segments[2].TrimEnd('/');
-        var prNumber = int.Parse(segments[^1]);
-
-        return (owner, repo, prNumber);
+        return (target.Owner, target.Repo, target.Number);
     }
 
     private List<string> IdentifyBlockers(
