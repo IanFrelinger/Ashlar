@@ -80,8 +80,9 @@ Logs go to stderr; stdout carries only MCP JSON-RPC.
 
 - **Host-registered bricks are not certificate-checked.** The built-in bricks are admitted because this host
   registers them, like any `RegisterBrick<T>()` host. Use the certification gate for bricks you did not build.
-- **The audit sink is best-effort.** Records are queued and flushed per event; if the queue is full or the disk
-  write fails, the server logs a warning and the call still returns.
+- **The audit sink is best-effort.** Records are queued and written on a background task (flushed per event), so
+  a record lands moments after the response. If the queue is full or the disk write fails, the server logs a
+  warning and the call still returns.
 - **The GitHub bricks' traffic does not pass through Ashlar's egress guard** (Octokit owns its HTTP client).
   The server itself refuses to start under the `AirGapped` profile.
 - **The caller identity is not in the audit record.** Over stdio there is one local caller; the record holds

@@ -10,7 +10,7 @@
 # an McpServer tool package whose .mcp/server.json carries its own version and no placeholder; the
 # local GGUF natives are not in it; with one brick allowlisted the server lists exactly that brick,
 # a call reaches it and returns the auditId, and one MCP_BRICK_INVOKED record with that id and the
-# hashes of the exchange is on disk when the call returns.
+# hashes of the exchange reaches disk (within 10 s; the file sink drains asynchronously).
 #
 # WHAT THIS DOES NOT PROVE
 # ------------------------
@@ -136,11 +136,18 @@ try:
     audit_id = payload["auditId"]
     print("  ok   - tools/call reached the brick; auditId", audit_id)
 
-    records = []
-    for path in glob.glob(os.path.join(audit_dir, "*")):
-        with open(path, encoding="utf-8") as f:
-            records += [json.loads(l) for l in f if l.strip()]
-    mine = [r for r in records if r.get("correlationId") == audit_id]
+    # The file sink drains a queue on its own task and flushes per event, so the line lands
+    # moments after the response; allow it a few seconds rather than racing it.
+    deadline = time.time() + 10
+    while True:
+        records = []
+        for path in glob.glob(os.path.join(audit_dir, "*")):
+            with open(path, encoding="utf-8") as f:
+                records += [json.loads(l) for l in f if l.strip()]
+        mine = [r for r in records if r.get("correlationId") == audit_id]
+        if mine or time.time() > deadline:
+            break
+        time.sleep(0.2)
     assert len(mine) == 1, f"FAIL - {len(mine)} audit records for {audit_id} in {audit_dir}: {records}"
     record = mine[0]
     assert record["eventType"] == "MCP_BRICK_INVOKED", record

@@ -96,6 +96,23 @@ public sealed class BrickMcpToolContributorTests
         }
     }
 
+    private sealed class CapturingSink : IBarrierAuditSink
+    {
+        public List<BarrierAuditEvent> Events { get; } = new();
+
+        public ValueTask WriteAsync(BarrierAuditEvent auditEvent, CancellationToken cancellationToken = default)
+        {
+            Events.Add(auditEvent);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class DiscardingAuditLog : IBarrierAuditLog
+    {
+        public ValueTask RecordAsync(BarrierAuditEvent auditEvent, CancellationToken cancellationToken = default)
+            => ValueTask.CompletedTask;
+    }
+
     private static BrickMcpToolContributor Create(
         IBrickRegistry registry, IBarrierAuditLog audit, params string[] exposed)
     {
@@ -277,7 +294,7 @@ public sealed class BrickMcpToolContributorTests
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var ct = cts.Token;
-        var audit = new CapturingAudit();
+        var sink = new CapturingSink();
         var clientToServer = new Pipe();
         var serverToClient = new Pipe();
 
@@ -289,7 +306,9 @@ public sealed class BrickMcpToolContributorTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IBrickRegistry>(new Registry(new GreetBrick(), new OtherBrick()));
-        services.AddSingleton<IBarrierAuditLog>(audit);
+        // What AddAshlar() registers: a log that discards. Records must still reach the sinks.
+        services.AddSingleton<IBarrierAuditLog>(new DiscardingAuditLog());
+        services.AddSingleton<IBarrierAuditSink>(sink);
         services.AddAshlarMcpBricks(configuration);
         services.AddAshlarMcpServer(configuration)
             .WithStreamServerTransport(clientToServer.Reader.AsStream(), serverToClient.Writer.AsStream());
@@ -317,7 +336,7 @@ public sealed class BrickMcpToolContributorTests
             using var payload = JsonDocument.Parse(text);
             payload.RootElement.GetProperty("outputs").GetProperty("greeting").GetString().Should().Be("hi mcp");
             result.StructuredContent.Should().NotBeNull();
-            audit.Events.Should().ContainSingle()
+            sink.Events.Should().ContainSingle()
                 .Which.CorrelationId.Should().Be(payload.RootElement.GetProperty("auditId").GetString());
         }
         finally

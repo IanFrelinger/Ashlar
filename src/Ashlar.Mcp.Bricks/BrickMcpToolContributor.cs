@@ -22,7 +22,9 @@ namespace Ashlar.Mcp.Bricks;
 /// missing required inputs before the brick runs, and executes deterministically.
 ///
 /// Every call that reaches a brick, and every refusal of one, writes one
-/// <see cref="BarrierAuditEvent"/> (<see cref="EventType"/>) through <see cref="IBarrierAuditLog"/>.
+/// <see cref="BarrierAuditEvent"/> (<see cref="EventType"/>) through <see cref="IBarrierAuditLog"/>
+/// (registered by <see cref="AshlarMcpBricksServiceCollectionExtensions.AddAshlarMcpBricks"/> over the
+/// configured audit sinks).
 /// Its <see cref="BarrierAuditEvent.CorrelationId"/> is returned to the caller as <c>auditId</c>, and
 /// its detail carries the SHA-256 of the arguments as received and of the text returned, so a
 /// record can be matched to the exact exchange. Values themselves are never written to the record.
