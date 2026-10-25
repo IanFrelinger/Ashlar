@@ -21,6 +21,8 @@ on:
       - "scripts/verify-standalone-brick-authoring.sh"
       - "scripts/verify-external-product-shape.sh"
       - "consumer-template/host/**"
+      - "scripts/verify-github-bricks-package.sh"
+      - "src/Ashlar.Bricks.GitHub/**"
       - "scripts/pack-ashlar-hosting-graph.sh"
       - "scripts/pack-ashlar-hosting-graph.ps1"
       - "scripts/pack-ashlar-hosting-graph.allowlist.txt"
@@ -57,6 +59,8 @@ on:
       - "scripts/verify-standalone-brick-authoring.sh"
       - "scripts/verify-external-product-shape.sh"
       - "consumer-template/host/**"
+      - "scripts/verify-github-bricks-package.sh"
+      - "src/Ashlar.Bricks.GitHub/**"
       - "scripts/pack-ashlar-hosting-graph.sh"
       - "scripts/pack-ashlar-hosting-graph.ps1"
       - "scripts/pack-ashlar-hosting-graph.allowlist.txt"
@@ -160,6 +164,22 @@ jobs:
         env:
           ASHLAR_EXTERNAL_PRODUCT_VERIFY_VERSION: "9.9.9-ci-${{ github.run_id }}"
         run: bash scripts/verify-external-product-shape.sh
+
+  github-bricks-package:
+    name: Ashlar.Bricks.GitHub packed consumer
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Verify packed Ashlar.Bricks.GitHub restores and runs in a consumer
+        env:
+          ASHLAR_GITHUB_BRICKS_VERIFY_VERSION: "9.9.9-ci-${{ github.run_id }}"
+        run: bash scripts/verify-github-bricks-package.sh
 
   api-image-http-smoke:
     name: API image + curl /health + /api/status

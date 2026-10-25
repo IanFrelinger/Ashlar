@@ -67,9 +67,14 @@ Console.WriteLine($"CI Status: {status}, Failures: {failureCount}");
 
 ## Installation
 
+`Ashlar.Bricks.GitHub` ships from the first release after 0.3.0; 0.3.0 on nuget.org does not contain it.
+Pin it at the same version as the other `Ashlar.*` packages:
+
 ```xml
-<PackageReference Include="Ashlar.Bricks.GitHub" Version="0.4.0" />
+<PackageReference Include="Ashlar.Bricks.GitHub" Version="$(AshlarConsumerPackageVersion)" />
 ```
+
+The bricks live in the `Ashlar.Bricks.GitHub` namespace.
 
 ## Authentication
 
@@ -87,11 +92,10 @@ input.Set("githubToken", Environment.GetEnvironmentVariable("GITHUB_TOKEN"));
 
 - [Octokit](https://github.com/octokit/octokit.net) - Official GitHub API client for .NET
 - Ashlar.Core.Domain
-- Ashlar.Infrastructure
 
 ## Consumer-Driven Design
 
-This package was created based on real consumer needs identified during PR Blocker Assistant validation. It demonstrates the new `TryGet()` pattern added in Ashlar 0.4.0:
+This package was created based on real consumer needs identified during PR Blocker Assistant validation. It demonstrates the `TryGet()` pattern added after Ashlar 0.3.0:
 
 ```csharp
 // Optional parameter handling with TryGet

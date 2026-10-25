@@ -59,10 +59,9 @@ The CLI project also references spine-adjacent packs: **`Ashlar.Bricks.Owasp`**,
 |---------|------|
 | `src/Ashlar.Authoring/Ashlar.Authoring.csproj` | Minimal package for code-authored bricks: `Brick` base types, execution contracts, host registration helpers (see [`AuthoringBricks.md`](AuthoringBricks.md)) |
 | `src/Ashlar.Certification.State/Ashlar.Certification.State.csproj` | Attested state log binding: schema-bound mutable state with certified transition provenance |
-| `src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj` | GitHub integration brick pack (PR status, CI status, etc.) |
+| `src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj` | GitHub operations brick pack (PR status, CI status); packed by the release (`Ashlar.Bricks.GitHub` on nuget.org from the release after 0.3.0) |
 | `src/Ashlar.Bricks.Owasp/Ashlar.Bricks.Owasp.csproj` | OWASP brick pack (referenced by the CLI) |
 | `src/Ashlar.Bricks.SqlProfile/Ashlar.Bricks.SqlProfile.csproj` | SQL-profile brick pack built on `Ashlar.Authoring` (exercised by `Ashlar.Tests.Application`) |
-| `src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj` | GitHub operations brick pack (PR status, CI checks) |
 | `src/Ashlar.Policies.Dev/Ashlar.Policies.Dev.csproj` | Development policy pack |
 | `src/Ashlar.Tools.Dev/Ashlar.Tools.Dev.csproj` | Development tool pack |
 
@@ -117,7 +116,7 @@ rows here and in `ci/test-ownership.tsv`. The placement rule in
 |------|------------------|
 | Docs samples (distribution proofs) | `docs/samples/StableSdkHostSample/StableSdkHostSample.csproj`, `docs/samples/StableSdkHostSample/package-consumer/StableSdkHostSample.Package.csproj`, `docs/samples/NugetOrgRestoreVerify/Ashlar.NugetOrgRestoreVerify.csproj`, `docs/samples/NugetOrgRestoreHostingOnly/Ashlar.NugetOrgRestoreHostingOnly.csproj` |
 | Certification package samples | `docs/samples/CertificationPresetProbe/CertificationPresetProbe.csproj` (package inspection), `docs/samples/CertificationTrustConsumer/CertificationTrustConsumer.csproj` (packaged verifier checks) |
-| Samples (`samples/`, see [`samples/README.md`](../samples/README.md)) | `samples/hello-brick/HelloBrick/HelloBrick.csproj`, `samples/hello-brick/HelloBrick.Tests/HelloBrick.Tests.csproj`, `samples/templates/brick/__BrickName__Brick/__BrickName__Brick.csproj`, `samples/templates/brick/__BrickName__Brick.Tests/__BrickName__Brick.Tests.csproj` (token template copied by `ashlar new brick`), `samples/certified-brick-reuse/Ashlar.Certified.DamageResolver/Ashlar.Certified.DamageResolver.csproj`, `samples/certified-brick-reuse/ProjectB/ProjectB.csproj` |
+| Samples (`samples/`, see [`samples/README.md`](../samples/README.md)) | `samples/hello-brick/HelloBrick/HelloBrick.csproj`, `samples/hello-brick/HelloBrick.Tests/HelloBrick.Tests.csproj`, `samples/templates/brick/__BrickName__Brick/__BrickName__Brick.csproj`, `samples/templates/brick/__BrickName__Brick.Tests/__BrickName__Brick.Tests.csproj` (token template copied by `ashlar new brick`), `samples/certified-brick-reuse/Ashlar.Certified.DamageResolver/Ashlar.Certified.DamageResolver.csproj`, `samples/certified-brick-reuse/ProjectB/ProjectB.csproj`, `samples/verified-brick-consumer/VerifiedBrickConsumer.csproj` (loads a deployed brick from source + certification record + gate-emitted DLL under a pinned Ed25519 policy) |
 | Tools (`tools/`) | `tools/Ashlar.CertifyBrick/Ashlar.CertifyBrick.csproj` (certify a brick from the CLI), `tools/Ashlar.ExportCertifiedBrick/ExportCertifiedBrick.csproj` (export a certified brick + record) |
 | Consumer template (`consumer-template/`) | `consumer-template/host/ExternalProductHost.csproj` (tokenized reference consumer host; rendered by `scripts/verify-external-product-shape.sh`, see `consumer-template/host/README.md`) |
 | Spikes (`spikes/`; evidence, not product) | `spikes/autonomy-first-flight/FirstFlight/FirstFlight.csproj` (trust-loop first flight runner), `spikes/portability/tools/GenerateProbeBrick/GenerateProbeBrick.csproj` and `spikes/portability/generated/ErrorSummaryExtractorBrick/ErrorSummaryExtractorBrick.csproj` (portability probe; see `spikes/portability/REPORT.md`) |

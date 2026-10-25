@@ -76,6 +76,11 @@ jobs:
             -p:IncludeSymbols=true \
             -p:SymbolPackageFormat=snupkg \
             -v minimal
+          dotnet pack src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj -c Release -o "$OUT" \
+            -p:PackageVersion="${PACKAGE_VERSION}" \
+            -p:IncludeSymbols=true \
+            -p:SymbolPackageFormat=snupkg \
+            -v minimal
           # Ashlar.CLI is a PackAsTool package (embeds its ProjectReference outputs); without this line a
           # release ships the authoring packages but not the `ashlar` tool that scaffolds against them.
           dotnet pack application/src/Ashlar.CLI/Ashlar.CLI.csproj -c Release -o "$OUT" \

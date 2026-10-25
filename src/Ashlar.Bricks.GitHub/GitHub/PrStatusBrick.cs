@@ -3,7 +3,7 @@ using Octokit;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 
-namespace Ashlar.Bricks.GitHub.GitHub;
+namespace Ashlar.Bricks.GitHub;
 
 /// <summary>
 /// Analyzes GitHub Pull Request status including reviews, checks, and merge blockers.

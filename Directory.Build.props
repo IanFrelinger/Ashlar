@@ -50,7 +50,7 @@
   </ItemGroup>
 
   <!-- NuGet pack: README at repo root (NU5039 if only PackageReadmeFile without packed file). -->
-  <ItemGroup Condition="'$(IsPackable)' == 'true' AND '$(MSBuildProjectName)' != 'Ashlar.Hosting.Bundle' AND '$(MSBuildProjectName)' != 'Ashlar.Runtime.Bundle'">
+  <ItemGroup Condition="'$(IsPackable)' == 'true' AND '$(MSBuildProjectName)' != 'Ashlar.Hosting.Bundle' AND '$(MSBuildProjectName)' != 'Ashlar.Runtime.Bundle' AND '$(MSBuildProjectName)' != 'Ashlar.Bricks.GitHub'">
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 

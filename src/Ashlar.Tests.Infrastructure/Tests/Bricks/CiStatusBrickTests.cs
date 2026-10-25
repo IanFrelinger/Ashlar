@@ -4,7 +4,7 @@ using Ashlar.Core.Application.Testing.Abstractions;
 using Ashlar.Core.Application.Testing.Models;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
-using Ashlar.Bricks.GitHub.GitHub;
+using Ashlar.Bricks.GitHub;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Bricks;
 
