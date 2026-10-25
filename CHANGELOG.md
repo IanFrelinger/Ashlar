@@ -25,7 +25,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   registration in `configureServices` replaces it.
 - `PrintToConsole(includeAllOutputs: true)` printed a placeholder instead of the outputs; it now writes
   every value, and `WriteTo(TextWriter, includeAllOutputs)` does the same to any writer.
-- `AshlarSimpleCliTests` cover host creation, both `ExecuteAsync` overloads, `GetOrDefault` and output
+- `AshlarSimpleCliProdStyleTests` cover host creation, both `ExecuteAsync` overloads, `GetOrDefault` and output
   writing; `BrickOutputFormatters` is documented in `docs/SimpleCLI.md` ("Formatting outputs").
 
 ### Added — Package version diagnostics

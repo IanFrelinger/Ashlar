@@ -6436,7 +6436,7 @@
       "in_cert_gate_filter": false
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/AshlarSimpleCliTests.cs",
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/AshlarSimpleCliProdStyleTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
       "declared_facts": 13,

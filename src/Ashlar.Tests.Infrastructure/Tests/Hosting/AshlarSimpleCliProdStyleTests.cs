@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Hosting;
 
-public class AshlarSimpleCliTests
+public class AshlarSimpleCliProdStyleTests
 {
     [Fact]
     public void CreateSimpleHost_ResolvesExecutionContext()
@@ -51,11 +51,11 @@ public class AshlarSimpleCliTests
             invoked = true;
             // A category rule, not SetMinimumLevel: the default host also binds Logging:LogLevel from
             // configuration, and a configured Default rule outranks the minimum level.
-            logging.AddFilter(typeof(AshlarSimpleCliTests).FullName, LogLevel.Warning);
+            logging.AddFilter(typeof(AshlarSimpleCliProdStyleTests).FullName, LogLevel.Warning);
         });
 
         Assert.True(invoked);
-        var logger = host.Services.GetRequiredService<ILogger<AshlarSimpleCliTests>>();
+        var logger = host.Services.GetRequiredService<ILogger<AshlarSimpleCliProdStyleTests>>();
         Assert.False(logger.IsEnabled(LogLevel.Information));
         Assert.True(logger.IsEnabled(LogLevel.Warning));
     }
