@@ -18,4 +18,13 @@ public sealed class AshlarMcpBrickOptions
     /// Empty exposes no bricks. An id with no registered brick fails catalog validation at startup.
     /// </summary>
     public IList<string> ExposedBrickIds { get; } = new List<string>();
+
+    /// <summary>
+    /// Largest <c>arguments</c> object, in UTF-8 bytes as received, a brick call may carry. A larger call is refused
+    /// (and recorded) before its arguments are converted or reach the brick. Zero or less removes the cap.
+    /// </summary>
+    public int MaxArgumentBytes { get; set; } = DefaultMaxArgumentBytes;
+
+    /// <summary>Default <see cref="MaxArgumentBytes"/>: 64 KiB.</summary>
+    public const int DefaultMaxArgumentBytes = 64 * 1024;
 }

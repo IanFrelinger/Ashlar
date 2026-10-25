@@ -93,7 +93,8 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
     public async Task<AshlarMcpToolOutcome> InvokeAsync(string canonicalId, JsonElement arguments, CancellationToken ct)
     {
         var auditId = Guid.NewGuid().ToString("N");
-        var inputSha256 = Sha256(arguments.ValueKind == JsonValueKind.Undefined ? "{}" : arguments.GetRawText());
+        var rawArguments = arguments.ValueKind == JsonValueKind.Undefined ? "{}" : arguments.GetRawText();
+        var inputSha256 = Sha256(rawArguments);
         var stopwatch = Stopwatch.StartNew();
 
         var brick = _options.Value.ExposedBrickIds.Contains(canonicalId, StringComparer.Ordinal)
@@ -103,6 +104,16 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
         {
             return await RefuseAsync(canonicalId, version: null, auditId, inputSha256, stopwatch,
                 $"Brick '{canonicalId}' is not exposed.", ct).ConfigureAwait(false);
+        }
+
+        var maxArgumentBytes = _options.Value.MaxArgumentBytes;
+        var argumentBytes = Encoding.UTF8.GetByteCount(rawArguments);
+        if (maxArgumentBytes > 0 && argumentBytes > maxArgumentBytes)
+        {
+            return await RefuseAsync(brick.Id, brick.Version, auditId, inputSha256, stopwatch,
+                $"Arguments are {argumentBytes} bytes; the limit is {maxArgumentBytes} " +
+                $"({AshlarMcpBrickOptions.SectionPath}:{nameof(AshlarMcpBrickOptions.MaxArgumentBytes)}).", ct)
+                .ConfigureAwait(false);
         }
 
         if (arguments.ValueKind is not (JsonValueKind.Object or JsonValueKind.Undefined))

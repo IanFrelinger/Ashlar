@@ -116,8 +116,11 @@ public sealed class BrickMcpToolContributorTests
 
     private static BrickMcpToolContributor Create(
         IBrickRegistry registry, IBarrierAuditLog audit, params string[] exposed)
+        => Create(registry, audit, new AshlarMcpBrickOptions(), exposed);
+
+    private static BrickMcpToolContributor Create(
+        IBrickRegistry registry, IBarrierAuditLog audit, AshlarMcpBrickOptions options, params string[] exposed)
     {
-        var options = new AshlarMcpBrickOptions();
         foreach (var id in exposed)
         {
             options.ExposedBrickIds.Add(id);
@@ -262,6 +265,58 @@ public sealed class BrickMcpToolContributorTests
         outcome.IsError.Should().BeTrue();
         outcome.Text.Should().Contain("JSON object");
         brick.Executions.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Invoke_refuses_oversized_arguments_before_the_brick_runs_records_the_refusal_and_does_not_echo_them()
+    {
+        var brick = new GreetBrick();
+        var audit = new CapturingAudit();
+        var sut = Create(new Registry(brick), audit, new AshlarMcpBrickOptions { MaxArgumentBytes = 1024 }, "test.greet");
+        var raw = $$"""{"name":"{{new string('z', 4096)}}"}""";
+
+        var outcome = await sut.InvokeAsync("test.greet", Args(raw), CancellationToken.None);
+
+        outcome.IsError.Should().BeTrue();
+        outcome.Text.Should().Contain($"Arguments are {raw.Length} bytes; the limit is 1024");
+        outcome.Text.Should().NotContain("zzzz", "an oversized value is not echoed back");
+        outcome.Text.Length.Should().BeLessThan(300);
+        brick.Executions.Should().Be(0);
+        var detail = Detail(audit.Events.Single());
+        detail.GetProperty("outcome").GetString().Should().Be("refused");
+        detail.GetProperty("inputSha256").GetString().Should().Be(Sha256(raw));
+        outcome.Text.Should().Contain(audit.Events[0].CorrelationId);
+    }
+
+    [Fact]
+    public async Task Invoke_accepts_arguments_exactly_at_the_cap_and_counts_utf8_bytes_not_characters()
+    {
+        const string atCap = """{"name":"abcdefgh"}""";
+        var exact = Create(new Registry(new GreetBrick()), new CapturingAudit(),
+            new AshlarMcpBrickOptions { MaxArgumentBytes = atCap.Length }, "test.greet");
+        (await exact.InvokeAsync("test.greet", Args(atCap), CancellationToken.None)).IsError.Should().BeFalse();
+
+        var nonAscii = $$"""{"name":"{{new string('é', 8)}}"}""";
+        var bytes = Encoding.UTF8.GetByteCount(nonAscii);
+        bytes.Should().BeGreaterThan(nonAscii.Length);
+        var byBytes = Create(new Registry(new GreetBrick()), new CapturingAudit(),
+            new AshlarMcpBrickOptions { MaxArgumentBytes = nonAscii.Length }, "test.greet");
+        var outcome = await byBytes.InvokeAsync("test.greet", Args(nonAscii), CancellationToken.None);
+        outcome.IsError.Should().BeTrue();
+        outcome.Text.Should().Contain($"Arguments are {bytes} bytes");
+    }
+
+    [Fact]
+    public async Task A_zero_argument_cap_removes_the_limit_and_the_default_is_64_KiB()
+    {
+        new AshlarMcpBrickOptions().MaxArgumentBytes.Should().Be(64 * 1024);
+        var sut = Create(new Registry(new GreetBrick()), new CapturingAudit(),
+            new AshlarMcpBrickOptions { MaxArgumentBytes = 0 }, "test.greet");
+
+        var outcome = await sut.InvokeAsync(
+            "test.greet", Args($$"""{"name":"{{new string('y', 100_000)}}"}"""), CancellationToken.None);
+
+        outcome.IsError.Should().BeFalse(outcome.Text[..Math.Min(200, outcome.Text.Length)]);
     }
 
     [Fact]

@@ -28,7 +28,7 @@ internal sealed record GitHubTarget(GitHubTargetKind Kind, string Owner, string 
         target = null;
         if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri))
         {
-            error = $"Not an absolute URL: '{url}'.";
+            error = $"Not an absolute URL: '{Shown(url)}'.";
             return false;
         }
 
@@ -38,7 +38,7 @@ internal sealed record GitHubTarget(GitHubTargetKind Kind, string Owner, string 
             || !uri.IsDefaultPort
             || !string.IsNullOrEmpty(uri.UserInfo))
         {
-            error = $"Only https://github.com URLs are supported; got host '{uri.Host}'.";
+            error = $"Only https://github.com URLs are supported; got host '{Shown(uri.Host)}'.";
             return false;
         }
 
@@ -66,7 +66,12 @@ internal sealed record GitHubTarget(GitHubTargetKind Kind, string Owner, string 
             }
         }
 
-        error = $"Expected https://github.com/<owner>/<repo>/pull/<number> or https://github.com/<owner>/<repo>/releases/tag/<tag>; got '{url}'.";
+        error = $"Expected https://github.com/<owner>/<repo>/pull/<number> or https://github.com/<owner>/<repo>/releases/tag/<tag>; got '{Shown(url)}'.";
         return false;
     }
+
+    private const int MaxShown = 200;
+
+    private static string Shown(string? value)
+        => value is null || value.Length <= MaxShown ? value ?? string.Empty : string.Concat(value.AsSpan(0, MaxShown), "…");
 }

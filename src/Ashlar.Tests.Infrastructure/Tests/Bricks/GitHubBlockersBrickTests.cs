@@ -56,6 +56,19 @@ public sealed class GitHubBlockersBrickTests
         error.Should().NotBeNullOrEmpty();
     }
 
+    [Theory]
+    [InlineData("https://github.com/o/r/pull/")]
+    [InlineData("not a url ")]
+    public void A_refused_url_is_not_echoed_back_in_full(string prefix)
+    {
+        var url = prefix + new string('q', 1_000_000);
+
+        GitHubTarget.TryParse(url, out _, out var error).Should().BeFalse();
+
+        error.Length.Should().BeLessThan(400);
+        error.Should().Contain("…");
+    }
+
     [Fact]
     public async Task The_brick_refuses_a_url_off_github_com_before_any_request()
     {
