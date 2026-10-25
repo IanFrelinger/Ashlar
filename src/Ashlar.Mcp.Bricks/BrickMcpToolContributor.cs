@@ -29,6 +29,12 @@ namespace Ashlar.Mcp.Bricks;
 /// Its <see cref="BarrierAuditEvent.CorrelationId"/> is returned to the caller as <c>auditId</c>, and
 /// its detail carries the SHA-256 of the arguments as received and of the text returned, so a
 /// record can be matched to the exact exchange. Values themselves are never written to the record.
+///
+/// The records of one contributor instance (one server process) form a hash chain, which
+/// <see cref="McpBrickAuditChain.Verify"/> checks: each detail also carries the <c>auditId</c>, the time, the
+/// <c>session</c> id, a <c>seq</c> number (1, 2, …) and <c>prevSha256</c>, the SHA-256 of the previous record's
+/// detail string (<see cref="McpBrickAuditChain.Genesis"/> for the first). Records are written one at a time, so
+/// the file order is the chain order. Each written record's hash is also logged, as a copy outside the audit file.
 /// </summary>
 public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAuditor
 {
@@ -46,6 +52,10 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
     private readonly IBarrierContextAmbient? _barrier;
     private readonly TimeProvider _time;
     private readonly ILogger<BrickMcpToolContributor> _logger;
+    private readonly SemaphoreSlim _chain = new(1, 1);
+    private readonly string _session = Guid.NewGuid().ToString("N");
+    private long _sequence;
+    private string _previousSha256 = McpBrickAuditChain.Genesis;
 
     /// <summary><see cref="BarrierAuditEvent.AgentName"/> of a record for a tool name the catalog does not list.</summary>
     public const string UnknownToolAgentName = "mcp.unknown-tool";
@@ -182,12 +192,10 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
         AshlarMcpToolOutcome result,
         CancellationToken ct)
     {
-        var auditEvent = BuildEvent(brickId, version, auditId, inputSha256, stopwatch.ElapsedMilliseconds, outcome,
-            result.IsError, result.Text, requestedTool: null);
-
         try
         {
-            await _audit.RecordAsync(auditEvent, ct).ConfigureAwait(false);
+            await WriteChainedAsync(brickId, version, auditId, inputSha256, stopwatch.ElapsedMilliseconds, outcome,
+                result.IsError, result.Text, requestedTool: null, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -206,7 +214,8 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
     /// Writes an <see cref="EventType"/> record with outcome <c>refused</c>: <see cref="BarrierAuditEvent.AgentName"/>
     /// is the canonical id for a gate denial and <see cref="UnknownToolAgentName"/> for an unlisted name. The name as
     /// sent goes in as its SHA-256 (<c>requestedToolSha256</c>) and as <c>requestedTool</c>, cut to 64 characters
-    /// with everything outside <c>[A-Za-z0-9_.-]</c> replaced by <c>_</c>.
+    /// with everything outside <c>[A-Za-z0-9_.-]</c> replaced by <c>_</c>. The record is a link of the same hash
+    /// chain as the calls.
     /// </remarks>
     public async Task<string> RecordRefusalAsync(
         string requestedName, string? canonicalId, JsonElement arguments, string message, CancellationToken ct)
@@ -215,11 +224,44 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
         var text = $"{message} (auditId {auditId})";
         var version = canonicalId is null ? null : _registry.GetBrick(canonicalId)?.Version;
         var inputSha256 = Sha256(arguments.ValueKind == JsonValueKind.Undefined ? "{}" : arguments.GetRawText());
-        await _audit.RecordAsync(
-            BuildEvent(canonicalId ?? UnknownToolAgentName, version, auditId, inputSha256, durationMs: 0, "refused",
-                isError: true, text, requestedName),
-            ct).ConfigureAwait(false);
+        await WriteChainedAsync(canonicalId ?? UnknownToolAgentName, version, auditId, inputSha256, durationMs: 0,
+            "refused", isError: true, text, requestedName, ct).ConfigureAwait(false);
         return text;
+    }
+
+    /// <summary>
+    /// Writes one record as the next link of this instance's chain. A write that throws does not advance the
+    /// link: the next record links to the last one written, and the gap in <c>seq</c> shows the loss.
+    /// </summary>
+    private async Task WriteChainedAsync(
+        string agentName,
+        string? version,
+        string auditId,
+        string inputSha256,
+        long durationMs,
+        string outcome,
+        bool isError,
+        string resultText,
+        string? requestedTool,
+        CancellationToken ct)
+    {
+        await _chain.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var sequence = ++_sequence;
+            var auditEvent = BuildEvent(agentName, version, auditId, inputSha256, durationMs, outcome, isError,
+                resultText, requestedTool, sequence, _previousSha256);
+            await _audit.RecordAsync(auditEvent, ct).ConfigureAwait(false);
+
+            _previousSha256 = Sha256(auditEvent.Detail!);
+            _logger.LogInformation(
+                "MCP brick audit record written. AuditId={AuditId} Session={Session} Seq={Seq} RecordSha256={RecordSha256}",
+                auditId, _session, sequence, _previousSha256);
+        }
+        finally
+        {
+            _chain.Release();
+        }
     }
 
     private BarrierAuditEvent BuildEvent(
@@ -231,8 +273,11 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
         string outcome,
         bool isError,
         string resultText,
-        string? requestedTool)
+        string? requestedTool,
+        long sequence,
+        string previousSha256)
     {
+        var occurredAt = _time.GetUtcNow();
         var fields = new Dictionary<string, object?>
         {
             ["brickId"] = agentName == UnknownToolAgentName ? null : agentName,
@@ -249,6 +294,12 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
             fields["requestedToolSha256"] = Sha256(requestedTool);
         }
 
+        fields["auditId"] = auditId;
+        fields["occurredAt"] = occurredAt.UtcDateTime.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
+        fields["session"] = _session;
+        fields["seq"] = sequence;
+        fields["prevSha256"] = previousSha256;
+
         var current = _barrier?.Current;
         return new BarrierAuditEvent(
             EventType: EventType,
@@ -257,7 +308,7 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAu
             AgentName: agentName,
             CorrelationId: auditId,
             SpanId: string.Empty,
-            OccurredAt: _time.GetUtcNow(),
+            OccurredAt: occurredAt,
             Detail: JsonSerializer.Serialize(fields, PayloadJson));
     }
 

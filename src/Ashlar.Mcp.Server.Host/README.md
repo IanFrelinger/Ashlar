@@ -86,6 +86,21 @@ To find the record for one call: `grep <auditId> ~/.local/share/ashlar/mcp-audit
 returned. A refused unknown tool name has `agentName` `mcp.unknown-tool`, a null `brickId`, and the name as
 `requestedToolSha256` plus `requestedTool` (cut to 64 characters, anything outside `[A-Za-z0-9_.-]` replaced by `_`). **Argument and output values are not written**, so a token passed as `githubToken` does not land on disk.
 
+`inputSha256` is the hash of the arguments as the server re-serializes them: compact JSON, properties in the
+order sent, strings escaped the `System.Text.Json` default way (non-ASCII and `<>&'+` as `\uXXXX`), not the bytes
+the client sent. `resultSha256` is the hash of the exact text returned. These are plain SHA-256, not keyed: an
+argument with few possible values (a public pull request URL) can be recovered from its hash by trying candidates.
+A token is safe from that; which pull request was asked about is not.
+
+The records of one server process form a hash chain. Each `detail` also holds the `auditId`, `occurredAt`, a
+`session` id, `seq` (1, 2, …) and `prevSha256`: the SHA-256 of the previous record's `detail` string exactly as
+written (64 zeros for a session's first record). To verify a file, walk it per `session` and check that `seq`
+increases and each `prevSha256` matches; `McpBrickAuditChain.Verify` in `Ashlar.Mcp.Bricks` does exactly that. An
+edited, removed or reordered record breaks the chain. A gap in `seq` with the chain intact is a record the server
+could not write. The chain cannot show records cut from the end of a session, a deleted file, or a session rewritten
+from the edited record on: for the first, the server also logs each record's hash (`RecordSha256`) to stderr as it
+writes it, so compare the last one logged with the last record; for the rest, keep a copy of the files elsewhere.
+
 ## Configuration
 
 | Variable | Meaning |
