@@ -50,9 +50,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 - New `Ashlar.Bricks.GitHub` package with common GitHub operations
 - `PrStatusBrick`: Analyzes pull request status, reviews, and CI checks
-- Demonstrates consumer-driven framework improvement cycle
-- Uses new `TryGet()` pattern from 0.4.0 for optional parameters
+- `CiStatusBrick`: Summarizes workflow runs and check runs for a ref
+- Uses the new `TryGet()` pattern for optional parameters
 - Integrated with Octokit for official GitHub API access
+- Packed by the release workflow (`Ashlar.Bricks.GitHub` on nuget.org from the next release) and verified
+  as a standalone consumer by `scripts/verify-github-bricks-package.sh` in the Distribution Matrix Gate
+- The bricks are in the `Ashlar.Bricks.GitHub` namespace (was `Ashlar.Bricks.GitHub.GitHub` on master,
+  never published); the package depends on `Ashlar.Core.Domain`, not `Ashlar.Infrastructure`
 
 ### Added — TryGet methods for BrickInput and BrickOutput
 

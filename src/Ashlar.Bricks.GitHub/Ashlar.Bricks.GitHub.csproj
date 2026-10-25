@@ -5,12 +5,15 @@
         <LangVersion>12.0</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <Description>GitHub integration bricks for Ashlar - PR status, CI checks, issue analysis</Description>
+        <IsPackable>true</IsPackable>
+        <PackageId>Ashlar.Bricks.GitHub</PackageId>
+        <Title>Ashlar GitHub Bricks</Title>
+        <Description>GitHub operations bricks for Ashlar: pull request blockers (reviews, checks, mergeability) and CI status for a ref, built on Octokit.</Description>
+        <PackageTags>ashlar;bricks;github;pull-requests;ci</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
-        <ProjectReference Include="..\Ashlar.Infrastructure\Ashlar.Infrastructure.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -18,12 +21,20 @@
         <PackageReference Include="Octokit" />
     </ItemGroup>
 
+    <!-- The package page shows this project's README, not the repository README every other
+         packable project inherits from Directory.Build.props. -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
     <!-- Brick contract drift rule (ASHLAR0001/ASHLAR0002): keeps BrickInterface and the
-         Get/Set keys a brick actually uses from silently diverging. -->
+         Get/Set keys a brick actually uses from silently diverging. PrivateAssets keeps the
+         analyzer a build-time rule of this repository rather than a package dependency. -->
     <ItemGroup>
         <ProjectReference Include="..\Ashlar.Analyzers\Ashlar.Analyzers.csproj"
                           OutputItemType="Analyzer"
                           ReferenceOutputAssembly="false"
+                          PrivateAssets="all"
                           UndefineProperties="TargetFramework" />
     </ItemGroup>
 

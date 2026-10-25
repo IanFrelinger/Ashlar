@@ -134,6 +134,7 @@ Read from each project's `<TargetFrameworks>`; the `.csproj` is the authority if
 | `Ashlar.Hosting.Bundle` | `net8.0;net10.0` — metapackage over 14 `Ashlar.*` packages, including `Ashlar.Hosting` (`net8.0;net10.0`) and `Ashlar.Certification.Contracts` |
 | `Ashlar.Sdk` | `net8.0;net10.0` |
 | `Ashlar.Client` | `net8.0;net10.0` |
+| `Ashlar.Bricks.GitHub` | `net8.0;net10.0` — optional brick pack (PR blockers, CI status); **from the release after 0.3.0**, not in 0.3.0. Pin at the same version when you need it. |
 | `Ashlar.CLI` (dotnet tool) | `net10.0` |
 
 `Ashlar.Certification.Contracts` is not in the pin list above (nor in `scripts/consumer-surface-packages.txt`): it arrives transitively through `Ashlar.Hosting.Bundle`; a verify-only consumer pins it directly at the same version. `Ashlar.Certification.State` (the state log) cannot be pinned at all — it is not published, so a consumer that needs it works from a checkout.

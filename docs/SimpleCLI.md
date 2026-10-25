@@ -106,7 +106,7 @@ Full example: GitHub PR checker CLI
 ```csharp
 using System.CommandLine;
 using Ashlar.Hosting;
-using Ashlar.Bricks.GitHub.GitHub;
+using Ashlar.Bricks.GitHub;
 using Microsoft.Extensions.Logging;
 
 class Program

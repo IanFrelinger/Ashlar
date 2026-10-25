@@ -13,8 +13,8 @@ remembered to update — staleness here is a red build.
 | | count |
 |---|---|
 | projects | 61 |
-| of those, published to nuget.org by a release | 22 |
-| of those, declaring `<IsPackable>true</IsPackable>` | 18 |
+| of those, published to nuget.org by a release | 23 |
+| of those, declaring `<IsPackable>true</IsPackable>` | 19 |
 | `ASHLAR_*` variables named in code | 177 |
 | of those, operator-facing (not test-only) | 155 |
 | missing from `docs/Configuration.md` | 17 |
@@ -55,6 +55,7 @@ convenience.
 - `Ashlar.Authoring` (src/Ashlar.Authoring/Ashlar.Authoring.csproj)
 - `Ashlar.BackgroundAgents` (src/Ashlar.BackgroundAgents/Ashlar.BackgroundAgents.csproj)
 - `Ashlar.Brick.Contracts` (src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj)
+- `Ashlar.Bricks.GitHub` (src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj)
 - `Ashlar.CLI` (application/src/Ashlar.CLI/Ashlar.CLI.csproj)
 - `Ashlar.Certification.Contracts` (src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj)
 - `Ashlar.Client` (src/Ashlar.Client/Ashlar.Client.csproj)
