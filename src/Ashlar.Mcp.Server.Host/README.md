@@ -75,7 +75,8 @@ server does not list is an MCP protocol error, not a tool result.
 
 One JSON line per brick call (refusals included) in
 `<LocalApplicationData>/ashlar/mcp-audit/mcp-brick-calls-<start time>.ndjson` (on Linux
-`~/.local/share/ashlar/mcp-audit`), one file per server start. Set `Ashlar__Audit__File__Directory` to move it.
+`~/.local/share/ashlar/mcp-audit`), one file per server start, none deleted by the server. Set
+`Ashlar__Audit__File__Directory` to move it.
 To find the record for one call: `grep <auditId> ~/.local/share/ashlar/mcp-audit/mcp-brick-calls-*.ndjson`. Each record has `eventType` `MCP_BRICK_INVOKED`,
 `correlationId` = the `auditId` the caller saw, and a `detail` holding the brick id and version, the outcome
 (`succeeded`, `failed`, `refused`), the duration, and the SHA-256 of the arguments as received and of the text
@@ -89,6 +90,7 @@ returned. **Argument and output values are not written**, so a token passed as `
 | `Ashlar__Mcp__Server__ExposedToolIds__N` | Tools to expose (`repo.fs.read`, `repo.fs.list`). |
 | `Ashlar__Mcp__Server__RepoRoot` | Root the repo tools read from (default: working directory). |
 | `Ashlar__Audit__File__Directory` | Audit directory. |
+| `Ashlar__Audit__File__MaxRotatedFiles` | How many audit files to keep; the oldest are deleted when a server starts. `0` (default here) keeps all of them. Each server start is one file, so a count also deletes old sessions' records. |
 | `Ashlar__Audit__Sinks__0` | `File` (default here), `StructuredLog`, or `NoOp`. |
 
 Logs go to stderr; stdout carries only MCP JSON-RPC.

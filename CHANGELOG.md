@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — MCP brick host keeps every audit file
+
+- The MCP brick host no longer deletes the audit records of all but its last ten server starts. Each start opens a
+  new audit file and the file sink's default `MaxRotatedFiles` of 10 pruned the rest; the host now sets
+  `MaxRotatedFiles` to `0`, which the file sink now reads as "keep every file". Operators who want pruning set a
+  count explicitly. Found by the MCP host adversarial audit (H2).
+
 ### Fixed — MCP brick host: no record, no result
 
 - The MCP brick host now withholds a call's result when its audit record cannot be written (unwritable directory,

@@ -122,6 +122,27 @@ public sealed class FileBarrierAuditSinkTests
     }
 
     [Fact]
+    public async Task MaxRotatedFilesZero_KeepsEveryFile_AcrossSinkInstances()
+    {
+        var testDir = CreateTempDirectory();
+        var preexisting = Path.Combine(testDir, "audit-barriers-20200101T000000000Z.ndjson");
+        File.WriteAllText(preexisting, "{}");
+
+        for (var start = 0; start < 3; start++)
+        {
+            var sink = CreateSink(
+                testDir,
+                new TestLogger<FileBarrierAuditSink>(),
+                new FileBarrierAuditSinkOptions { FlushEveryEvent = true, MaxRotatedFiles = 0 });
+            await sink.WriteAsync(CreateEvent(start));
+            await sink.DisposeAsync();
+        }
+
+        File.Exists(preexisting).Should().BeTrue();
+        GetAuditFiles(testDir, "audit-barriers").Length.Should().Be(4);
+    }
+
+    [Fact]
     public async Task WriteAsync_ChannelFull_DropsEventsAndLogsWarning()
     {
         var testDir = CreateTempDirectory();

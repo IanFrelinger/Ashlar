@@ -33,16 +33,10 @@ var builder = Host.CreateApplicationBuilder(args);
 // Lowest-priority defaults: everything (appsettings, env vars, args) overrides them.
 builder.Configuration.Sources.Insert(0, new MemoryConfigurationSource
 {
-    InitialData = new Dictionary<string, string?>
+    InitialData = new Dictionary<string, string?>(AshlarMcpBrickHostDefaults.Audit(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)))
     {
         [$"{AshlarMcpServerOptions.SectionPath}:Enabled"] = "true",
-        // One durable record per brick call, flushed before the call returns, outside the
-        // working directory the IDE spawned this process in.
-        ["Ashlar:Audit:Sinks:0"] = "File",
-        ["Ashlar:Audit:File:Directory"] = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ashlar", "mcp-audit"),
-        ["Ashlar:Audit:File:FilePrefix"] = "mcp-brick-calls",
-        ["Ashlar:Audit:File:FlushEveryEvent"] = "true",
     },
 });
 

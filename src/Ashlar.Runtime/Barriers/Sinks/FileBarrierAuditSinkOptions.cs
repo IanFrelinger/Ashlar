@@ -19,7 +19,9 @@ public sealed class FileBarrierAuditSinkOptions
     public long MaxFileSizeBytes { get; init; } = 10 * 1024 * 1024;
 
     /// <summary>
-    /// Number of rotated files to retain. Oldest deleted on overflow.
+    /// Number of files with <see cref="FilePrefix"/> to retain in <see cref="Directory"/>; the oldest are deleted
+    /// when a new file is opened. Every sink instance opens a new file, so this also counts process restarts.
+    /// <c>0</c> keeps every file.
     /// </summary>
     public int MaxRotatedFiles { get; init; } = 10;
 
