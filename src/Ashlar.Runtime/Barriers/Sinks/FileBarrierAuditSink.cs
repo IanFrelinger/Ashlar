@@ -274,6 +274,11 @@ public sealed class FileBarrierAuditSink : IConfirmingBarrierAuditSink, IAsyncDi
 
     private async Task PruneRotatedFilesAsync()
     {
+        if (_options.MaxRotatedFiles == 0)
+        {
+            return;
+        }
+
         try
         {
             var pattern = $"{_options.FilePrefix}-*.ndjson";
@@ -344,7 +349,7 @@ public sealed class FileBarrierAuditSink : IConfirmingBarrierAuditSink, IAsyncDi
             Directory = string.IsNullOrWhiteSpace(options.Directory) ? "audit" : options.Directory.Trim(),
             FilePrefix = string.IsNullOrWhiteSpace(options.FilePrefix) ? "audit-barriers" : options.FilePrefix.Trim(),
             MaxFileSizeBytes = Math.Max(1, options.MaxFileSizeBytes),
-            MaxRotatedFiles = Math.Max(1, options.MaxRotatedFiles),
+            MaxRotatedFiles = options.MaxRotatedFiles == 0 ? 0 : Math.Max(1, options.MaxRotatedFiles),
             FlushIntervalMs = Math.Max(1, options.FlushIntervalMs),
             FlushEveryEvent = options.FlushEveryEvent,
             ChannelCapacity = Math.Max(1, options.ChannelCapacity)
