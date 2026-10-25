@@ -1,5 +1,7 @@
 # Monetization and product design (v1)
 
+> **Superseded for self-host tiers (2026-10-25).** Current tiers and prices are row D2 of the [go-to-market decisions log](commercial/go-to-market.md#decisions-log-added-2026-10-25): Community $0, Pro $1,500, Team $12,000, Enterprise from $40,000 per organisation per year. The ranges below are kept as the calibration history.
+
 This document defines a **dual-motion** model: a **Cursor-style hosted lane** for fast adoption, and an **infrastructure / sovereignty lane** for teams that need control, auditability, and procurement-friendly contracts. Numbers are **starting points** for calibration with design partners—not legal or tax advice.
 
 ---

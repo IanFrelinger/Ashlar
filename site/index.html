@@ -319,7 +319,7 @@
         
         .pricing-row {
             display: grid;
-            grid-template-columns: 200px repeat(5, 1fr);
+            grid-template-columns: 200px repeat(4, 1fr);
             border-bottom: 1px solid var(--oat);
         }
         
@@ -589,7 +589,7 @@
         <section class="hero">
             <div class="container">
                 <h1>Turn AI-generated know-how into<br>verified, reusable behavior</h1>
-                <p class="subtitle">Embeddable control layer — check AI-assisted behaviors before they run, package what’s admitted, record what happened. Local-first. Build on infrastructure you control.</p>
+                <p class="subtitle">The verified execution layer for AI agents in .NET. Your agents decide what to do. Ashlar decides what is allowed to run, and keeps the receipt. Local-first, on infrastructure you control.</p>
                 
                 <div class="hero-badges">
                     <span class="badge">Open core</span>
@@ -603,7 +603,7 @@
                         <span>See a receipt</span>
                     </a>
                     <a href="#design-partner" class="btn btn-secondary">
-                        <span>Design Partner · ~$4k / 90 days</span>
+                        <span>Design Partner · $4k / 90 days</span>
                     </a>
                 </div>
                 <p class="honesty" style="margin-top: 1.5rem;">One stranger path: clone → run → see a task receipt. No founder on the call.</p>
@@ -726,7 +726,7 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                 <p class="lead">Bring one AI-assisted behavior you already rely on. We run it through the admission gate, package it for reuse, and leave auditable receipts.</p>
                 <div class="dp-card">
                     <h3>Design Partner</h3>
-                    <p class="price">~$4k · ~90 days · live self-host / embed product</p>
+                    <p class="price">$4k · 90 days · credited to a first Team year · at most 3 at a time</p>
                     <ul>
                         <li>One behavior → admission gate → portable package → auditable receipts</li>
                         <li>Support on Discord + GitHub Discussions (best-effort: ack within 1 business day ET)</li>
@@ -742,10 +742,12 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
         </section>
 
         <!-- Pricing Section -->
+        <!-- Tiers and prices: docs/commercial/go-to-market.md decisions log, D2. Flat per organisation;
+             no seat counting, no metering, no telemetry. -->
         <section class="pricing" id="pricing">
             <div class="container">
-                <h2>Open core. Commercial ready.</h2>
-                <p class="lead">Community free forever. Design Partner (~$4k / 90 days) is the commercial on-ramp. Builder/Team/Enterprise are indicative. Cloud is waitlist.</p>
+                <h2>Open source runs everything.</h2>
+                <p class="lead">Paid plans buy assurance: support, the commercial Fleet modules, and vertical evidence packs. The open packages have no license keys and no telemetry. Priced per organization, per year.</p>
                 
                 <div class="pricing-table">
                     <!-- Header Row -->
@@ -756,36 +758,22 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                             <div class="tier-price">Free</div>
                         </div>
                         <div class="pricing-cell">
-                            <div class="tier-name">Cloud</div>
-                            <div class="tier-price">Coming soon</div>
-                        </div>
-                        <div class="pricing-cell">
-                            <div class="tier-name">Builder</div>
-                            <div class="tier-price">~$8k/yr</div>
+                            <div class="tier-name">Pro</div>
+                            <div class="tier-price">$1,500/yr</div>
                         </div>
                         <div class="pricing-cell">
                             <div class="tier-name">Team</div>
-                            <div class="tier-price">~$25k/yr</div>
+                            <div class="tier-price">$12,000/yr</div>
                         </div>
                         <div class="pricing-cell">
                             <div class="tier-name">Enterprise</div>
-                            <div class="tier-price">From $75k</div>
+                            <div class="tier-price">From $40,000/yr</div>
                         </div>
                     </div>
                     
                     <!-- Feature Rows -->
                     <div class="pricing-row">
-                        <div class="pricing-cell">Runtime & orchestration</div>
-                        <div class="pricing-cell"><span class="check">✓</span></div>
-                        <div class="pricing-cell"><span class="check">✓</span></div>
-                        <div class="pricing-cell"><span class="check">✓</span></div>
-                        <div class="pricing-cell"><span class="check">✓</span></div>
-                        <div class="pricing-cell"><span class="check">✓</span></div>
-                    </div>
-                    
-                    <div class="pricing-row">
-                        <div class="pricing-cell">Certification gate</div>
-                        <div class="pricing-cell"><span class="check">✓</span></div>
+                        <div class="pricing-cell">Runtime &amp; bricks</div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
@@ -793,8 +781,15 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                     </div>
                     
                     <div class="pricing-row">
-                        <div class="pricing-cell">Audit trails</div>
+                        <div class="pricing-cell">Admission gate</div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
+                        <div class="pricing-cell"><span class="check">✓</span></div>
+                        <div class="pricing-cell"><span class="check">✓</span></div>
+                        <div class="pricing-cell"><span class="check">✓</span></div>
+                    </div>
+                    
+                    <div class="pricing-row">
+                        <div class="pricing-cell">Receipts &amp; audit trails</div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
@@ -804,17 +799,15 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                     <div class="pricing-row">
                         <div class="pricing-cell">Deployment</div>
                         <div class="pricing-cell">Self-host</div>
-                        <div class="pricing-cell">Hosted PAYG</div>
-                        <div class="pricing-cell">Your VPC</div>
-                        <div class="pricing-cell">Your VPC</div>
-                        <div class="pricing-cell">Dedicated / On-prem</div>
+                        <div class="pricing-cell">Self-host</div>
+                        <div class="pricing-cell">Self-host</div>
+                        <div class="pricing-cell">Self-host / air-gapped</div>
                     </div>
                     
                     <div class="pricing-row">
-                        <div class="pricing-cell">Audit export</div>
+                        <div class="pricing-cell">Fleet (commercial modules)</div>
                         <div class="pricing-cell">—</div>
                         <div class="pricing-cell">—</div>
-                        <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                     </div>
@@ -830,16 +823,14 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                         <div class="pricing-cell">—</div>
                         <div class="pricing-cell"><span class="roadmap">Roadmap</span></div>
                         <div class="pricing-cell"><span class="roadmap">Roadmap</span></div>
-                        <div class="pricing-cell"><span class="roadmap">Roadmap</span></div>
                     </div>
                     
                     <div class="pricing-row">
                         <div class="pricing-cell">Support</div>
-                        <div class="pricing-cell">Community</div>
-                        <div class="pricing-cell">Email</div>
-                        <div class="pricing-cell">Priority</div>
-                        <div class="pricing-cell">Shared Slack</div>
-                        <div class="pricing-cell">Named CSM</div>
+                        <div class="pricing-cell">Discord + Discussions</div>
+                        <div class="pricing-cell">Email · 2 business days</div>
+                        <div class="pricing-cell">Private channel · 1 business day</div>
+                        <div class="pricing-cell">Contracted</div>
                     </div>
                     
                     <div class="pricing-row">
@@ -847,32 +838,28 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                         <div class="pricing-cell">—</div>
                         <div class="pricing-cell">—</div>
                         <div class="pricing-cell">—</div>
-                        <div class="pricing-cell">—</div>
                         <div class="pricing-cell"><span class="check">✓</span></div>
                     </div>
                     
                     <div class="pricing-row">
-                        <div class="pricing-cell"></div>
+                        <div class="pricing-cell">How to start</div>
                         <div class="pricing-cell">
                             <a href="#see-receipt" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">See a receipt</a>
                         </div>
                         <div class="pricing-cell">
-                            <a href="#contact" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">Waitlist</a>
+                            <a href="#contact" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">Card checkout soon</a>
                         </div>
                         <div class="pricing-cell">
-                            <a href="#contact" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">Contact</a>
+                            <a href="#contact" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">Order form</a>
                         </div>
                         <div class="pricing-cell">
-                            <a href="#contact" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">Contact</a>
-                        </div>
-                        <div class="pricing-cell">
-                            <a href="#contact" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">Contact</a>
+                            <a href="#contact" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.6rem 1.2rem;">Through a partner</a>
                         </div>
                     </div>
                 </div>
                 
                 <p style="text-align: center; margin-top: 2rem; color: var(--olive); font-size: 0.95rem;">
-                    Commercial prices are indicative starting points. Production contracts based on seats, environments, and support requirements.
+                    Design Partner: $4k for 90 days, at most 3 at a time, credited to a first Team year. Cloud: waitlist only, not available. Autonomy and self-extension are not part of any plan. Pro is bought by card with no sales call once checkout opens; until then, ask on Discussions.
                 </p>
             </div>
         </section>
@@ -884,7 +871,7 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                 <p>See a receipt on the open-source path.<br>Or bring one behavior into Design Partner.</p>
                 <div class="cta-buttons">
                     <a href="#see-receipt" class="btn btn-primary">See a receipt</a>
-                    <a href="#design-partner" class="btn btn-secondary">Design Partner · ~$4k / 90 days</a>
+                    <a href="#design-partner" class="btn btn-secondary">Design Partner · $4k / 90 days</a>
                     <a href="https://discord.gg/rAyh2jtb8" class="btn btn-secondary">Discord</a>
                 </div>
                 <p style="margin-top: 2rem; color: var(--olive); font-size: 0.95rem;">

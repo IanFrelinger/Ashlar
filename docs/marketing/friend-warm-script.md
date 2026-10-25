@@ -21,7 +21,7 @@ Ashlar isn't a chat box. It's a control layer that turns AI know-how into **veri
 
 Most AI tools are a chat window. Ashlar embeds under your product: check AI-assisted behaviors before they run, package what's admitted, leave a receipt, and re-check at the next host. Models can change; the **behavior lives in the contract**. Local-first. The AI suggests; the company keeps the keys.
 
-**Design partner (~$4k / 90 days):** one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
+**Design partner ($4k / 90 days):** one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
 
 ## Words to use
 | Prefer | Avoid with friends |

@@ -27,7 +27,7 @@ One page. If a claim isn't here, don't invent it.
 - "Certified" = artifact + gate (not a diploma vibe for friends — prefer *checked before it runs*)  
 - Cross-model = **behavioral equivalence** (same required behavior), not identical outputs  
 
-**CTA:** Design Partner ~$4k / 90 days — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
+**CTA:** Design Partner $4k / 90 days — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
 
 ## ALWAYS (say freely)
 
@@ -42,14 +42,15 @@ One page. If a claim isn't here, don't invent it.
 
 **One-liner:** Ashlar turns AI-generated know-how into verified, reusable behavior you can audit, move between systems, and run under constraints.
 
-Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety check* — not skill/certified (diploma vibe).
+Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety check* — not skill/certified (diploma vibe). Technical copy says **brick**, never "skill" (decisions log D1).
 
 ---
 
 ## SOFT (true, don't lead / don't oversell)
 
 - Mesh / share + re-verify primitives exist — **not** Fleet org plane as sold SKU; **not** headline  
-- Builder ~$8k / Team ~$25k / Enterprise from ~$75k — indicative until order form  
+- Pro $1,500/org/yr (card, no call) · Team $12,000/org/yr · Enterprise from $40,000/yr (partner-led) — go-to-market decisions log D2; Pro checkout opens once billing is live  
+- Token savings — **no percentages** until the live token benchmark is published (decisions log D9)  
 - Cloud PAYG — **waitlist only**  
 - Human-governed self-extend — sealed/hold by default (not unattended GA)  
 - **Prompt certification (vision):** prompt packs verified for **same required behavior** across approved models (witness/tests) — not byte-identical output; swap models safely when proven  
@@ -90,8 +91,8 @@ Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety ch
 ## CLOSE path (live)
 
 1. Embed / self-host → see **receipts + gate** (quickstart ~15 min)  
-2. Design partner **~$4k / ~90 days** — **one behavior** → gate → package → receipts  
-3. Convert → Builder / Team / Enterprise (order form)  
+2. Design partner **$4k / 90 days** (max 3 at a time, credited to a first Team year) — **one behavior** → gate → package → receipts  
+3. Convert → Pro (card) / Team (order form) / Enterprise (through a partner)  
 4. Expand → Fleet / Cloud **when unlocked and shipped**
 
 **ICP:** builders who embed or self-host. Security often co-buyer.  
