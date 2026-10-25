@@ -73,7 +73,8 @@ The CLI project also references spine-adjacent packs: **`Ashlar.Bricks.Owasp`**,
 | `src/Ashlar.Transport.Grpc.Server/Ashlar.Transport.Grpc.Server.csproj` | gRPC server implementation |
 | `src/Ashlar.Transport.Grpc.Server.Host/Ashlar.Transport.Grpc.Server.Host.csproj` | Standalone gRPC host |
 | `src/Ashlar.Mcp.Server/Ashlar.Mcp.Server.csproj` | Ashlar as an **MCP server** (tool exposure over stdio/HTTP) — [`ProtocolIntegration-MCP-A2A.md`](architecture/ProtocolIntegration-MCP-A2A.md) |
-| `src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj` | Standalone stdio MCP host executable |
+| `src/Ashlar.Mcp.Bricks/Ashlar.Mcp.Bricks.csproj` | Brick contributor for the MCP server: exposes allowlisted `IBrickRegistry` bricks as MCP tools, one barrier audit record per call |
+| `src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj` | Standalone stdio MCP brick host; packed as the `dnx`-runnable `Ashlar.Mcp.Server.Host` tool package (`PackageType` `McpServer`) — [`README`](../src/Ashlar.Mcp.Server.Host/README.md) |
 | `src/Ashlar.Mcp.Client/Ashlar.Mcp.Client.csproj` | Ashlar as an **MCP client** (allow-listed remote tools) — [`ProtocolIntegration-MCP-A2A.md`](architecture/ProtocolIntegration-MCP-A2A.md) |
 | `src/Ashlar.Transport.A2A/Ashlar.Transport.A2A.csproj` | **A2A** client transport (`A2AAgentTransport : IAgentTransport`) — [`ProtocolIntegration-MCP-A2A.md`](architecture/ProtocolIntegration-MCP-A2A.md) |
 | `src/Ashlar.Transport.A2A.Server/Ashlar.Transport.A2A.Server.csproj` | **A2A** server core mounted by `Ashlar.API` |

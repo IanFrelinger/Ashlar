@@ -6,13 +6,28 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    <!-- Delivery vehicle, not a library: never packed. -->
-    <IsPackable>false</IsPackable>
+    <!-- Ships as a .NET tool package that NuGet lists as an MCP server, so a .NET 10 SDK runs it with
+         `dnx Ashlar.Mcp.Server.Host`. Framework-dependent: one package for every platform. -->
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ashlar-mcp</ToolCommandName>
+    <PackageType>McpServer</PackageType>
+    <PackageId>Ashlar.Mcp.Server.Host</PackageId>
+    <Title>Ashlar MCP brick host</Title>
+    <Description>Ashlar MCP server over stdio: exposes allowlisted Ashlar bricks (GitHub PR blockers and CI status built in) and read-only repo tools to MCP clients, writing one audit record per brick call. Run with dnx.</Description>
+    <PackageTags>ashlar;mcp;mcp-server;bricks;agents;github</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Local GGUF natives (see below) are ~27 MB compressed; a dnx download whose job is serving
+         bricks should not carry them. Builds keep them; the tool package is packed with
+         -p:AshlarMcpHostLocalModels=false (release workflow, scripts/verify-mcp-brick-host-dnx.sh). -->
+    <AshlarMcpHostLocalModels Condition="'$(AshlarMcpHostLocalModels)' == ''">true</AshlarMcpHostLocalModels>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Ashlar.Hosting\Ashlar.Hosting.csproj" />
     <ProjectReference Include="..\Ashlar.Mcp.Server\Ashlar.Mcp.Server.csproj" />
+    <ProjectReference Include="..\Ashlar.Mcp.Bricks\Ashlar.Mcp.Bricks.csproj" />
+    <ProjectReference Include="..\Ashlar.Bricks.GitHub\Ashlar.Bricks.GitHub.csproj" />
     <ProjectReference Include="..\Ashlar.Tools.Dev\Ashlar.Tools.Dev.csproj" />
   </ItemGroup>
 
@@ -23,10 +38,28 @@
          provider (gated on ASHLAR_LOCAL_MODEL_PATH) re-adds it. Program.cs calls AddAshlar(), so
          ProviderFactory keeps offering "local" whether or not the natives are present - dropping
          this line is a silent capability loss that surfaces as ModelUnavailableException at the
-         first inference, never a build error. An air-gapped stdio host is the composition local
-         weights exist for, so it keeps them. No Dockerfile builds this host: whoever publishes it
-         chooses the mode, and a RID publish needs the CPU-variant prune documented in
-         consumer-template/CONSUMING.md. -->
-    <PackageReference Include="LLamaSharp.Backend.Cpu" />
+         first inference, never a build error. A SecureWorkstation stdio host is a composition local
+         weights exist for, so builds keep them; the dnx tool package does not (README says so).
+         No Dockerfile builds this host: whoever publishes it chooses the mode, and a RID publish
+         needs the CPU-variant prune documented in consumer-template/CONSUMING.md. -->
+    <PackageReference Include="LLamaSharp.Backend.Cpu" Condition="'$(AshlarMcpHostLocalModels)' == 'true'" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- .mcp/server.json is what NuGet.org turns into the package's "MCP Server" tab. Its two version
+       fields must equal the package version, so the packed copy is stamped from PackageVersion
+       instead of being edited by hand at every release. -->
+  <Target Name="AshlarStampMcpServerJson" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <_AshlarServerJsonPath>$(IntermediateOutputPath)mcp/server.json</_AshlarServerJsonPath>
+      <_AshlarServerJson>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/.mcp/server.json').Replace('__PACKAGE_VERSION__', '$(PackageVersion)'))</_AshlarServerJson>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(_AshlarServerJsonPath)" Lines="$(_AshlarServerJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <None Include="$(_AshlarServerJsonPath)" Pack="true" PackagePath=".mcp/" />
+    </ItemGroup>
+  </Target>
 </Project>

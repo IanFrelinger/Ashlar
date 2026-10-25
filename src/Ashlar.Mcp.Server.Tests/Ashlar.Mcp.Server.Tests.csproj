@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ashlar.Mcp.Server\Ashlar.Mcp.Server.csproj" />
+    <ProjectReference Include="..\Ashlar.Mcp.Bricks\Ashlar.Mcp.Bricks.csproj" />
   </ItemGroup>
 
   <ItemGroup>

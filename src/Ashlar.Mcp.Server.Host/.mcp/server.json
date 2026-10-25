@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "description": "Ashlar bricks over MCP: allowlisted, deterministic .NET bricks with one audit record per call.",
+  "name": "io.github.ianfrelinger/ashlar",
+  "version": "__PACKAGE_VERSION__",
+  "packages": [
+    {
+      "registryType": "nuget",
+      "registryBaseUrl": "https://api.nuget.org",
+      "identifier": "Ashlar.Mcp.Server.Host",
+      "version": "__PACKAGE_VERSION__",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [],
+      "environmentVariables": [
+        {
+          "name": "Ashlar__Mcp__Bricks__ExposedBrickIds__0",
+          "description": "Brick to expose, e.g. github.pr-status. Nothing is exposed until at least one id is listed.",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "Ashlar__Mcp__Bricks__ExposedBrickIds__1",
+          "description": "Optional second brick, e.g. github.ci-status.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/IanFrelinger/Ashlar",
+    "source": "github"
+  }
+}

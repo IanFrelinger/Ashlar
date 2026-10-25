@@ -92,6 +92,7 @@ Rationale: this tier protects two moats at once — an extensible SDK and a sing
 | OPEN | `src/Ashlar.Transport.Grpc/Ashlar.Transport.Grpc.csproj` |
 | OPEN | `src/Ashlar.Transport.Grpc.Server/Ashlar.Transport.Grpc.Server.csproj` |
 | OPEN | `src/Ashlar.Transport.Grpc.Server.Host/Ashlar.Transport.Grpc.Server.Host.csproj` |
+| OPEN | `src/Ashlar.Mcp.Bricks/Ashlar.Mcp.Bricks.csproj` |
 | OPEN | `src/Ashlar.Mcp.Server/Ashlar.Mcp.Server.csproj` |
 | OPEN | `src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj` |
 | OPEN | `src/Ashlar.Mcp.Server.Tests/Ashlar.Mcp.Server.Tests.csproj` |
