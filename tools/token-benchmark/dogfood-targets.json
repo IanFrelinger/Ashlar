@@ -1,0 +1,28 @@
+{
+  "workloads": [
+    {
+      "id": "ashlar-pull-requests",
+      "urls": [
+        "https://github.com/IanFrelinger/Ashlar/pull/877",
+        "https://github.com/IanFrelinger/Ashlar/pull/875",
+        "https://github.com/IanFrelinger/Ashlar/pull/873",
+        "https://github.com/IanFrelinger/Ashlar/pull/871",
+        "https://github.com/IanFrelinger/Ashlar/pull/870",
+        "https://github.com/IanFrelinger/Ashlar/pull/869",
+        "https://github.com/IanFrelinger/Ashlar/pull/853",
+        "https://github.com/IanFrelinger/Ashlar/pull/844",
+        "https://github.com/IanFrelinger/Ashlar/pull/840",
+        "https://github.com/IanFrelinger/Ashlar/pull/839",
+        "https://github.com/IanFrelinger/Ashlar/pull/876"
+      ]
+    },
+    {
+      "id": "ashlar-release-tags",
+      "urls": [
+        "https://github.com/IanFrelinger/Ashlar/releases/tag/v0.3.0",
+        "https://github.com/IanFrelinger/Ashlar/releases/tag/v0.2.0",
+        "https://github.com/IanFrelinger/Ashlar/releases/tag/v0.1.2"
+      ]
+    }
+  ]
+}
