@@ -202,7 +202,9 @@ public sealed class BrickMcpToolContributorTests
         detail.GetProperty("brickVersion").GetString().Should().Be("2.1.0");
         detail.GetProperty("inputSha256").GetString().Should().Be(Sha256(raw));
         detail.GetProperty("resultSha256").GetString().Should().Be(Sha256(outcome.Text));
-        e.Detail.Should().NotContain("ada", "argument and output values stay out of the record");
+        // Quoted or joined values only: the record's sha256 hex can contain "ada" by chance.
+        e.Detail.Should().NotContain("\"ada\"", "argument values stay out of the record");
+        e.Detail.Should().NotContain("hi ada", "output values stay out of the record");
     }
 
     [Fact]
