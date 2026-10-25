@@ -61,10 +61,10 @@ namespace Ashlar.Infrastructure.Certification;
 ///   internals and compile clean. That surface is not a property of the change being judged: it
 ///   differs between the CLI, an API host, a test host and a node, so the same bytes get different
 ///   verdicts on machines running the same build. Only assemblies NAMED in code get in from there,
-///   via the anchors. (What it is NOT is a claim that a brick project cannot see those types:
-///   measured from the built package, <c>Ashlar.Authoring</c> depends on <c>Ashlar.Hosting</c>, which
-///   has a <c>ProjectReference</c> on <c>Ashlar.Infrastructure</c>. The property here is
-///   declaredness, not reachability.)
+///   via the anchors. (What it is NOT is a claim that no project beside a brick can see those types:
+///   a brick project that references only <c>Ashlar.Authoring</c> no longer has
+///   <c>Ashlar.Infrastructure</c> in its restore closure, but a host referencing
+///   <c>Ashlar.Hosting.Bundle</c> does. The property here is declaredness, not reachability.)
 ///   Under a self-contained publish the framework and the app share one directory, which would admit
 ///   the whole app output directory through the framework half; <see cref="Compose"/> refuses that
 ///   shape by name rather than letting the documented property quietly invert.</item>
@@ -133,12 +133,14 @@ internal static class CertifierReferenceSet
     /// <c>IBrickExecutor</c>, <c>IServiceCollection</c>, <c>ILogger&lt;T&gt;</c> and
     /// <c>BrickRuntimeSpec</c>.</para>
     ///
-    /// <para><b>Two assemblies of that package are deliberately absent, with the reason.</b>
+    /// <para><b>One assembly of that package is deliberately absent, with the reason.</b>
     /// <c>Ashlar.Authoring</c> itself (which declares <c>AddAshlarBrick&lt;T&gt;()</c> in
-    /// <c>AshlarAuthoringServiceCollectionExtensions.cs</c>) and <c>Ashlar.Hosting</c> cannot be
-    /// anchored from here at all: <c>src/Ashlar.Hosting/Ashlar.Hosting.csproj</c> has a
-    /// <c>ProjectReference</c> on <c>Ashlar.Infrastructure</c>, so naming a type in either would be an
-    /// assembly-reference cycle. Resolving them by file name beside the host is the
+    /// <c>AshlarAuthoringServiceCollectionExtensions.cs</c>) is not referenced by
+    /// <c>Ashlar.Infrastructure</c>, so it cannot be named here; adding that reference would widen what
+    /// a proposal may compile against, which is its own change. <c>Ashlar.Hosting</c> cannot be
+    /// anchored at all: <c>src/Ashlar.Hosting/Ashlar.Hosting.csproj</c> has a <c>ProjectReference</c>
+    /// on <c>Ashlar.Infrastructure</c>, so naming a type in it would be an assembly-reference cycle.
+    /// Resolving them by file name beside the host is the
     /// app-output-directory mechanism this type refuses, and skipping them when absent is the silent
     /// partial set it refuses. So a proposal containing HOST REGISTRATION code is refused by A2, and
     /// that is a narrowed claim rather than an accident: the envelope lets a self-extending node add a

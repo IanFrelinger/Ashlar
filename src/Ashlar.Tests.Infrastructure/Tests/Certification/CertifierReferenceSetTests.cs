@@ -271,11 +271,11 @@ public sealed class CertifierReferenceSetTests : IDisposable
     /// is the framework plus named anchors, and <c>Ashlar.Infrastructure</c> is not one of them, so
     /// those types are not in scope on any of them.
     ///
-    /// <para>Not asserted here, because it is not true: that a brick project cannot compile such
-    /// source. Measured from the built package, <c>Ashlar.Authoring</c> depends on
-    /// <c>Ashlar.Hosting</c>, which has a <c>ProjectReference</c> on <c>Ashlar.Infrastructure</c>, so
-    /// the certifier's assembly IS in a scaffolded brick's restore closure. That is a packaging fact
-    /// worth its own look; it is not what this assertion rests on.</para>
+    /// <para>Not what this assertion rests on: whether a brick project can compile such source. A
+    /// brick project that references only <c>Ashlar.Authoring</c> no longer has
+    /// <c>Ashlar.Infrastructure</c> in its restore closure, but a host referencing
+    /// <c>Ashlar.Hosting.Bundle</c> does, and the property here is declaredness, not
+    /// reachability.</para>
     /// </summary>
     [Fact]
     public async Task Proposal_referencing_the_certifiers_own_internals_is_refused()
@@ -332,10 +332,11 @@ public sealed class CertifierReferenceSetTests : IDisposable
 
     /// <summary>
     /// The other side of that boundary, pinned so it stays a decision rather than becoming an
-    /// accident. <c>AddAshlarBrick&lt;T&gt;()</c> is declared in <c>Ashlar.Authoring</c> itself, and
-    /// <c>Ashlar.Authoring</c> → <c>Ashlar.Hosting</c> → <c>Ashlar.Infrastructure</c>
-    /// (<c>src/Ashlar.Hosting/Ashlar.Hosting.csproj</c>), so this assembly cannot name a type in
-    /// either without an assembly-reference cycle. Resolving them by file name beside the host is the
+    /// accident. <c>AddAshlarBrick&lt;T&gt;()</c> is declared in <c>Ashlar.Authoring</c> itself, which
+    /// <c>Ashlar.Infrastructure</c> does not reference, and <c>AddAshlar()</c> in
+    /// <c>Ashlar.Hosting</c>, which references <c>Ashlar.Infrastructure</c>
+    /// (<c>src/Ashlar.Hosting/Ashlar.Hosting.csproj</c>), so naming a type in it would be an
+    /// assembly-reference cycle. Resolving them by file name beside the host is the
     /// app-output-directory mechanism <see cref="CertifierReferenceSet"/> refuses; skipping them when
     /// absent is the silent partial set it refuses. So host registration is out of the declared
     /// surface, which is defensible only because the envelope lets a self-extending node add a
@@ -362,7 +363,7 @@ public sealed class CertifierReferenceSetTests : IDisposable
 
         result.Passed.Should().BeFalse(
             "not because host registration is illegitimate, but because Ashlar.Authoring and "
-            + "Ashlar.Hosting cannot be anchored from inside Ashlar.Infrastructure. If that ever "
+            + "Ashlar.Hosting are not anchored from inside Ashlar.Infrastructure. If that ever "
             + "changes this assertion is the thing to delete: " + result.Detail);
         result.Detail.Should().Contain(
             "Ashlar",

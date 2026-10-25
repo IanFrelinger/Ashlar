@@ -86,6 +86,8 @@ The `Ashlar.Authoring` package brings all authoring types: `Brick`, `BrickInput`
 
 ### Registering in a host
 
+`Ashlar.Authoring` does not bring the host. The host project also references `Ashlar.Hosting.Bundle`, which provides `AddAshlar()`:
+
 ```csharp
 using Ashlar.Authoring;
 using Ashlar.Hosting;
@@ -150,7 +152,7 @@ At runtime, registered code bricks flow into the same `IBrickRegistry` surface u
 
 For CLI/adaptation scenarios, `AddAdaptationBricks(typeof(HelloBrick))` is the lower-level equivalent. Prefer `AddAshlarSdk(...RegisterBrick<T>())` for application-host code.
 
-`Ashlar.Authoring` adds `services.AddAshlarBrick<HelloBrick>()`, which is exactly `AddAshlarSdk(sdk => sdk.RegisterBrick<HelloBrick>())` behind a one-call name: use `AddAshlarBrick<T>()` when your project references `Ashlar.Authoring` (the `ashlar new brick` scaffold and [`consumer-template/CONSUMING.md`](../consumer-template/CONSUMING.md) do), and use `AddAshlarSdk(...RegisterBrick<T>())` directly when you only reference the `Ashlar.Hosting` graph or need to register several things in one `IAshlarSdkBuilder` callback. Both must run before `AddAshlar()`.
+`Ashlar.Authoring` adds `services.AddAshlarBrick<HelloBrick>()`, which puts the brick in the same `IBrickRegistry` without referencing the host: it registers a `BrickTypeRegistration` singleton, and the registry that `AddAshlar()` builds creates every registered type, after the types from `AddAshlarSdk(...RegisterBrick<T>())` and `AddAdaptationBricks`. Use `AddAshlarBrick<T>()` when your project references `Ashlar.Authoring` (the `ashlar new brick` scaffold and [`consumer-template/CONSUMING.md`](../consumer-template/CONSUMING.md) do), and use `AddAshlarSdk(...RegisterBrick<T>())` directly when you need to register several things in one `IAshlarSdkBuilder` callback; `AddAshlarSdk` must run before `AddAshlar()`. Since 0.4.0 `Ashlar.Authoring` no longer depends on `Ashlar.Hosting`, so a brick project restores only the authoring surface and a host adds `Ashlar.Hosting.Bundle` itself.
 
 ## Input type enforcement and wire format
 

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Ashlar.BackgroundAgents.Registry;
 using Ashlar.BackgroundAgents.Trust;
 using Ashlar.Abstractions.Routing;
+using Ashlar.Authoring;
 using Ashlar.Core.Application.Observation.Ports;
 using Ashlar.Core.Application.Validation.Ports;
 using Ashlar.Hosting;
@@ -191,5 +192,20 @@ public sealed class HostingE2ESmokeTests
         sp.GetService<Microsoft.Extensions.AI.IChatClient>().Should().BeNull();
         sp.GetRequiredService<Ashlar.BackgroundAgents.RAG.IRAGService>()
             .Should().BeOfType<Ashlar.Hosting.Meai.MeaiVectorDataRagAdapter>();
+    }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task AddAshlarBrick_then_AddAshlar_puts_the_brick_in_the_registry()
+    {
+        await Task.CompletedTask;
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAshlarBrick<Adaptation.AdaptationBrickRegistrationTests.RegisteredByTypeBrick>();
+        services.AddAshlar();
+        using var sp = services.BuildServiceProvider();
+
+        sp.GetRequiredService<Ashlar.Core.Domain.Execution.IBrickRegistry>()
+            .GetBrick(Adaptation.AdaptationBrickRegistrationTests.RegisteredByTypeBrick.BrickId)
+            .Should().NotBeNull("Ashlar.Authoring registers the brick without referencing the host");
     }
 }

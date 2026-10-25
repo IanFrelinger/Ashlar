@@ -46,6 +46,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   pinned `Ashlar.Authoring` version is on nuget.org, and names a local feed or a `ProjectReference` only for a
   version that is not (`NU1101`). Owner-delegated decision of 2026-10-25.
 
+### Changed — `Ashlar.Authoring` no longer brings the host
+
+- `Ashlar.Authoring` drops its dependency on `Ashlar.Hosting`. A net8.0 brick project's first restore on an
+  empty cache goes from 144 packages and 998 MiB (0.3.0 from nuget.org) to 30 packages and 144 MiB, measured
+  by `scripts/measure-authoring-restore-footprint.sh`. 67 MiB of both figures are the .NET reference packs that
+  an empty net8.0 project restores too.
+- `AddAshlarBrick<T>()` keeps its signature. It now registers a `BrickTypeRegistration` singleton (new, in
+  `Ashlar.Core.Domain`), and the brick registry that `AddAshlar()` builds creates those types after the ones
+  from `AddAshlarSdk(...RegisterBrick<T>())` and `AddAdaptationBricks`. It no longer adds an empty
+  `AshlarSdkOptions`.
+- Migration: a host that calls `AddAshlar()` and referenced only `Ashlar.Authoring` adds a
+  `PackageReference` to `Ashlar.Hosting.Bundle` (the consumer template's host already has one).
+
 ### Fixed — portability-gate `run-mock-completes` red since #832
 
 - `scripts/e2e-loop.sh` expected a plain mock `ashlar run` to exit 0. Since #832 a run where only the

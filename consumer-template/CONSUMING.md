@@ -108,11 +108,11 @@ cd HelloRunner && dotnet run -- Ashlar
 # Hello, Ashlar! (Greeted Ashlar.)
 ```
 
-The first restore downloads about 1 GB of packages into the NuGet cache, because `Ashlar.Authoring` brings the hosting graph with it.
+With `Ashlar.Authoring` 0.3.0 the first restore downloads about 1 GB of packages into the NuGet cache, because that version brings the hosting graph with it. From 0.4.0 it does not: `scripts/measure-authoring-restore-footprint.sh` measures 30 packages and 144 MiB for this net8.0 project on an empty cache, and 67 MiB of that are the .NET reference packs that an empty net8.0 project restores too.
 
 ### 4. Register in a host
 
-To serve the brick over HTTP, register it in an ASP.NET Core host:
+To serve the brick over HTTP, register it in an ASP.NET Core host. `Ashlar.Authoring` does not bring the host, so the host project also references `Ashlar.Hosting.Bundle`, which provides `AddAshlar()`:
 
 ```csharp
 using Ashlar.Authoring;
@@ -311,8 +311,8 @@ Deploy that DLL and execute it, rather than compiling the brick yourself:
    binding is checkable from the log alone.
 
 `CertificationTrustVerifier` and `CertifiedBrickActivator` are both public in the published
-assemblies and need no extra pin: `Ashlar.Infrastructure` arrives through `Ashlar.Hosting.Bundle`
-directly and through `Ashlar.Authoring` → `Ashlar.Hosting` transitively.
+assemblies and need no extra pin: `Ashlar.Infrastructure` arrives through `Ashlar.Hosting.Bundle`.
+(`Ashlar.Authoring` no longer brings it since 0.4.0.)
 
 ### Choose an explicit deployment trust policy
 
