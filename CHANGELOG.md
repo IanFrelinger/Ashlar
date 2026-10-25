@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — portability-gate `run-mock-completes` red since #832
+
+- `scripts/e2e-loop.sh` expected a plain mock `ashlar run` to exit 0. Since #832 a run where only the
+  GenericAgent placeholder answered fails with `NO_WORK` (exit 2), on purpose. The scenario now claims that
+  failure (`run-mock-no-work-fails`), and `run-mock-completes` sends a request carrying its own decomposition,
+  so the offline echo routes it to the Planning agent and the run completes with no escalation.
+
 ### Fixed — first-run friction found by a fresh-agent pilot
 
 - The `consumer-template/CONSUMING.md` quick start now compiles as written (its csproj lacked
