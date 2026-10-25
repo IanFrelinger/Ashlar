@@ -46,8 +46,7 @@ Ashlar__Mcp__Bricks__ExposedBrickIds__0=github.blockers \
 ```
 
 In an MCP client configuration, set `"command": "dotnet"` and pass the `.dll` path as the only `args` entry.
-Build first and start the built `.dll`: a `dotnet run` that builds writes build output to stdout, which is the
-JSON-RPC channel.
+Build once and start the built `.dll`, so a client does not wait for a build on every start.
 
 ## Built-in bricks
 
