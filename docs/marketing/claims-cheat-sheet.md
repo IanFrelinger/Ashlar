@@ -50,7 +50,7 @@ Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety ch
 
 - Mesh / share + re-verify primitives exist — **not** Fleet org plane as sold SKU; **not** headline  
 - Pro $1,500/org/yr (card, no call) · Team $12,000/org/yr · Enterprise from $40,000/yr (partner-led) — go-to-market decisions log D2; Pro checkout opens once billing is live  
-- Token savings — **no percentages** until the live token benchmark is published (decisions log D9)  
+- Token savings — only with its scope and a link to [`docs/benchmarks/token-benchmark.md`](../benchmarks/token-benchmark.md) (decisions log D9): "in our benchmark, one brick call cost 96–98% less than an agent reading the raw GitHub API, on three workloads with caching on". Never as a general figure  
 - Cloud PAYG — **waitlist only**  
 - Human-governed self-extend — sealed/hold by default (not unattended GA)  
 - **Prompt certification (vision):** prompt packs verified for **same required behavior** across approved models (witness/tests) — not byte-identical output; swap models safely when proven  

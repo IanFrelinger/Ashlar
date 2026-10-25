@@ -1,0 +1,23 @@
+{
+  "workloads": [
+    {
+      "id": "w1-single-pr",
+      "question": "What is blocking this pull request from merging? {urls}",
+      "urls": ["https://github.com/modelcontextprotocol/csharp-sdk/pull/1952"]
+    },
+    {
+      "id": "w2-release",
+      "question": "Is this release shippable, and if not, what is blocking it? {urls}",
+      "urls": ["https://github.com/IanFrelinger/Ashlar/releases/tag/v0.3.0"]
+    },
+    {
+      "id": "w3-triage-three-prs",
+      "question": "Triage these pull requests: for each one, say whether it can merge now and, if not, what blocks it. {urls}",
+      "urls": [
+        "https://github.com/dotnet/aspire/pull/21307",
+        "https://github.com/modelcontextprotocol/csharp-sdk/pull/1945",
+        "https://github.com/microsoft/semantic-kernel/pull/14655"
+      ]
+    }
+  ]
+}

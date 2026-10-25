@@ -17,6 +17,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — live token benchmark (D9)
+
+- `docs/benchmarks/token-benchmark.md`: one `github.blockers` brick call versus a native GitHub API tool loop, live
+  on the Anthropic API with caching on: 96–98% lower median cost and 3–5× faster on three workloads, same verdicts.
+  Scope and limits are stated with the result. Harness, recorded inputs and raw runs in `tools/token-benchmark/`.
+
 ### Added — free "Ashlar PR blockers" GitHub Action
 
 - `actions/pr-blockers`: a composite action that runs the `github.blockers` brick through the MCP brick host on the

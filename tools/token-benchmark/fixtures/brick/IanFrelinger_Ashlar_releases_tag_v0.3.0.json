@@ -1,0 +1,22 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "050111d49fb84e53af5819479bf287ac",
+ "summary": "Release v0.3.0 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 33 check run(s) and 0 commit status(es) on the tagged commit c0c0287e141d; none is failing or pending.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/c0c0287e141d5cd173d6bc86d67f635443758f47"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/releases/tag/v0.3.0",
+   "https://github.com/IanFrelinger/Ashlar/commit/c0c0287e141d5cd173d6bc86d67f635443758f47"
+  ],
+  "answer": "**What is blocking release v0.3.0?** Release v0.3.0 is READY: nothing blocking was found.\n\nNotes:\n- Read 33 check run(s) and 0 commit status(es) on the tagged commit c0c0287e141d; none is failing or pending. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/c0c0287e141d5cd173d6bc86d67f635443758f47))\n\nRead from https://github.com/IanFrelinger/Ashlar/releases/tag/v0.3.0\n"
+ }
+}
