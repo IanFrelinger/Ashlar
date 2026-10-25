@@ -24,6 +24,17 @@ pull request URLs and the cause. All three share one root: the brick learns whic
 required only from branch protection, which needs admin rights, and GitHub publishes the same facts without
 them.
 
+**After the fix.** `github.blockers` 1.1.0 ([#874](https://github.com/IanFrelinger/Ashlar/pull/874)) reads those
+facts from the non-admin sources. It was re-run on a second snapshot of the same 44 pull requests, taken 2026-10-25
+about 18:00 UTC, with the old and new bricks asked back to back:
+
+- Verdicts were right on 44 of 44 for both bricks.
+- Blockers found: **109 of 109** for 1.1.0, against 19 of 109 for 1.0.0.
+- Wrong claims: none for 1.1.0, against 13 overcalls and 6 unidentified-rule claims for 1.0.0.
+
+Read that result with its limit: the fixed brick now reads the same GitHub sources the rubric is computed from.
+See [Re-run after the fix](#re-run-after-the-fix).
+
 ## Results
 
 Model `claude-sonnet-5-5`, one run per pull request per arm (88 runs). Prices: $2 per million input tokens,
@@ -120,6 +131,38 @@ reported". The brick already has that sentence, but uses it only when protection
 Fixing F1–F3 needs one change to the reader: take required checks and approvals from the public sources when
 `branches/{base}/protection` returns 404 or 403.
 
+**Status: fixed in `github.blockers` 1.1.0** ([#874](https://github.com/IanFrelinger/Ashlar/pull/874)). The fix
+has regression tests built from this snapshot's facts for dotnet/efcore#39369, cli/cli#14816 and
+modelcontextprotocol/csharp-sdk#1934, and each finding was mutation-checked. The re-run is below.
+
+## Re-run after the fix
+
+A second snapshot of the same 44 pull requests was captured in CI on 2026-10-25, run `40218094404`, at about
+18:00 UTC. For each pull request the capture recorded the truth facts, then asked the fixed brick (1.1.0, #874's
+code), then asked the old one (1.0.0, master `3a03598e7`), back to back. Both bricks used the same token and saw the
+same pull request state. Pull requests had moved since the first snapshot: the truth has 109 blockers on 28 blocked
+pull requests, against 111 before. Grading uses the same rubric and `score.py`.
+
+| Answer graded | Verdict right | Blockers found | Overcalls | Fabricated | Unattributed | Every blocker found | Cost (total) |
+|---|---|---|---|---|---|---|---|
+| brick 1.0.0, raw payload | 44 / 44 | 19 / 109 | 13 | 0 | 6 | 3 of 28 PRs | $0 |
+| brick 1.1.0, raw payload | 44 / 44 | **109 / 109** | **0** | 0 | 0 | **28 of 28 PRs** | $0 |
+| brick 1.1.0 + Sonnet | 44 / 44 | 109 / 109 | 0 | 0 | 0 | 28 of 28 PRs | $0.3287 |
+
+By kind, brick 1.1.0 found every one: missing required review 24/24, required check with no run 66/66, conflict
+6/6, behind 5/5, changes requested 4/4, draft 3/3, failing required check 1/1. Its non-required failing checks are
+now notes, for example `coverage` on [dotnet/efcore#39369] and `govulncheck` on [cli/cli#13013].
+
+**Limit on this result.** Brick 1.1.0 now reads the GitHub sources the rubric is computed from: GraphQL
+`reviewDecision` and `isRequired`, and the public protection summary and rulesets. Full agreement therefore shows
+two things. The brick reads and applies those facts without error, and it no longer overcalls or misses on these
+44 pull requests. It is not independent evidence that GitHub's merge box would list exactly these blockers. The
+native arm was not re-run; its numbers above are from the first snapshot and are not comparable with this table.
+
+Spend for the re-run: $0.3287, against a $1 budget. The key was used as an environment variable only and unset
+after the run. Raw files: `tools/blockers-accuracy/fixtures-rerun/` (truth, `brick/` for 1.1.0, `brick-old/` for
+1.0.0, REST responses), `results/2026-10-25-rerun/` and `results/2026-10-25-rerun-old/`.
+
 ## Rubric
 
 Ground truth is computed by `tools/blockers-accuracy/truth.py` from the snapshot, deterministically. Nothing is
@@ -209,6 +252,8 @@ any number in this document was taken.
 ```bash
 cd tools/blockers-accuracy
 python3 score.py results/2026-10-25        # re-grade the recorded runs; no key, no network
+python3 score.py results/2026-10-25-rerun --fixtures fixtures-rerun --brick-dir brick          # brick 1.1.0
+python3 score.py results/2026-10-25-rerun-old --fixtures fixtures-rerun --brick-dir brick-old  # brick 1.0.0
 ```
 
 The harness, recorded inputs and raw runs are in [`tools/blockers-accuracy/`](../../tools/blockers-accuracy/README.md).

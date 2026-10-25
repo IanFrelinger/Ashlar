@@ -13,9 +13,12 @@ snapshot. Method, rubric and the published result:
 | `run.py` | Asks Sonnet in the brick and native arms from the recorded data; writes `runs.jsonl` and `meta.jsonl`; stops at `--budget-usd` |
 | `score.py` | Grades the brick payload and both arms' answers; writes `score.json` and `per-pr.md` |
 | `fixtures/truth/`, `fixtures/brick/`, `fixtures/github/` | The snapshot (captured 2026-10-25 16:28–16:34 UTC) |
-| `results/<date>/` | Raw runs and scores of a published run |
+| `fixtures-rerun/` | The second snapshot (2026-10-25, about 18:00 UTC), after the fix in #874: truth, `brick/` (1.1.0), `brick-old/` (1.0.0), REST responses |
+| `results/<date>/` | Raw runs and scores of a published run (`2026-10-25-rerun*` grade the second snapshot) |
 
-Re-grading needs no key and no network: `python3 score.py results/2026-10-25`.
+Re-grading needs no key and no network: `python3 score.py results/2026-10-25`. `score.py --fixtures DIR --brick-dir NAME`
+grades another snapshot or brick build; `run.py --arms brick` runs one arm only; `capture.py --extra NAME=COMMAND`
+asks a second host build right after the first.
 
 `run.py` reads `ANTHROPIC_API_KEY` from the environment, sends it only as a request header, and masks it in any
 error it prints.

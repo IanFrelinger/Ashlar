@@ -1,0 +1,59 @@
+{
+ "url": "https://github.com/microsoft/semantic-kernel/pull/14659",
+ "captured_from": "2026-10-25T17:53:36.614042+00:00",
+ "captured_to": "2026-10-25T17:53:48.430769+00:00",
+ "graphql": {
+  "url": "https://github.com/microsoft/semantic-kernel/pull/14659",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BEHIND",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "c2344a8861d6ca98cbbbe7a9569da81a7d67a88a",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "c2344a8861d6ca98cbbbe7a9569da81a7d67a88a",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 3,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "add_label",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Issue/PR: add title prefix",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "c2344a8861d6ca98cbbbe7a9569da81a7d67a88a"
+}

@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "0b2c1de1024747409814f48dc1b92c0a",
+ "summary": "PR #14816 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset).",
+    "evidence": "https://github.com/cli/cli/pull/14816"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 7 check run(s) and 0 commit status(es) on the head commit 6235af8fddba; none is failing or pending.",
+    "evidence": "https://github.com/cli/cli/commit/6235af8fddba186b2ded7c686c24fe83289f7c46"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/14816",
+   "https://github.com/cli/cli/commit/6235af8fddba186b2ded7c686c24fe83289f7c46"
+  ],
+  "answer": "**What is blocking PR #14816?** PR #14816 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset). ([evidence](https://github.com/cli/cli/pull/14816))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 7 check run(s) and 0 commit status(es) on the head commit 6235af8fddba; none is failing or pending. ([evidence](https://github.com/cli/cli/commit/6235af8fddba186b2ded7c686c24fe83289f7c46))\n\nRead from https://github.com/cli/cli/pull/14816\n"
+ }
+}

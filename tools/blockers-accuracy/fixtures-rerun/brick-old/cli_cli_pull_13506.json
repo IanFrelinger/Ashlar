@@ -1,0 +1,37 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "2fc7946d28c44e478e674f4d91959e5d",
+ "summary": "PR #13506 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "babakks requested changes.",
+    "evidence": "https://github.com/cli/cli/pull/13506#pullrequestreview-4352069212"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "No check run or commit status has reported on the head commit fdb4e47437a3.",
+    "evidence": "https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/13506",
+   "https://github.com/cli/cli/pull/13506#pullrequestreview-4352069212",
+   "https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+  ],
+  "answer": "**What is blocking PR #13506?** PR #13506 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- babakks requested changes. ([evidence](https://github.com/cli/cli/pull/13506#pullrequestreview-4352069212))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- No check run or commit status has reported on the head commit fdb4e47437a3. ([evidence](https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1))\n\nRead from https://github.com/cli/cli/pull/13506\n"
+ }
+}

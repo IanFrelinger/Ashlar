@@ -1,0 +1,40 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "28574e5764be4e8996b6343b06145dd5",
+ "summary": "PR #13506 is BLOCKED by 4 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "babakks requested changes.",
+    "evidence": "https://github.com/cli/cli/pull/13506#pullrequestreview-4352069212"
+   },
+   {
+    "reason": "The required check build (macos-latest) has not reported on fdb4e47437a3.",
+    "evidence": "https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+   },
+   {
+    "reason": "The required check build (ubuntu-latest) has not reported on fdb4e47437a3.",
+    "evidence": "https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+   },
+   {
+    "reason": "The required check build (windows-latest) has not reported on fdb4e47437a3.",
+    "evidence": "https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "No check run or commit status has reported on the head commit fdb4e47437a3.",
+    "evidence": "https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/13506",
+   "https://github.com/cli/cli/pull/13506#pullrequestreview-4352069212",
+   "https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+  ],
+  "answer": "**What is blocking PR #13506?** PR #13506 is BLOCKED by 4 blocker(s).\n\nBlockers:\n- babakks requested changes. ([evidence](https://github.com/cli/cli/pull/13506#pullrequestreview-4352069212))\n- The required check build (macos-latest) has not reported on fdb4e47437a3. ([evidence](https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1))\n- The required check build (ubuntu-latest) has not reported on fdb4e47437a3. ([evidence](https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1))\n- The required check build (windows-latest) has not reported on fdb4e47437a3. ([evidence](https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1))\n\nNotes:\n- No check run or commit status has reported on the head commit fdb4e47437a3. ([evidence](https://github.com/cli/cli/commit/fdb4e47437a3140146e76d12c0f3b5dd23df34a1))\n\nRead from https://github.com/cli/cli/pull/13506\n"
+ }
+}

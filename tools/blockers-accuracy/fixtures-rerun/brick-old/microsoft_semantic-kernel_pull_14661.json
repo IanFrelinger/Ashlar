@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "fdd5c88f6bac4671acc628cbe85a5cba",
+ "summary": "PR #14661 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset).",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14661"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 3 check run(s) and 0 commit status(es) on the head commit 8bb175163f49; none is failing or pending.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/8bb175163f49c584ae11a6aa743c326300c0655c"
+   }
+  ],
+  "evidence": [
+   "https://github.com/microsoft/semantic-kernel/pull/14661",
+   "https://github.com/microsoft/semantic-kernel/commit/8bb175163f49c584ae11a6aa743c326300c0655c"
+  ],
+  "answer": "**What is blocking PR #14661?** PR #14661 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset). ([evidence](https://github.com/microsoft/semantic-kernel/pull/14661))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 3 check run(s) and 0 commit status(es) on the head commit 8bb175163f49; none is failing or pending. ([evidence](https://github.com/microsoft/semantic-kernel/commit/8bb175163f49c584ae11a6aa743c326300c0655c))\n\nRead from https://github.com/microsoft/semantic-kernel/pull/14661\n"
+ }
+}

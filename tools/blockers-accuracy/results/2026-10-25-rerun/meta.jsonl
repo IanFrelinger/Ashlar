@@ -1,0 +1,1 @@
+{"model": "claude-sonnet-5-5", "price_in": 2.0, "price_out": 10.0, "cache_write_mult": 1.25, "cache_read_mult": 0.05, "spent_this_invocation": 0.3287, "stopped": null, "finished_at": "2026-10-25T18:05:36.863581+00:00"}

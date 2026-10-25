@@ -1,0 +1,47 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "dbef152cee344d8abbbc59680da7fdfa",
+ "summary": "PR #3540 is BLOCKED by 2 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/pull/3540"
+   },
+   {
+    "reason": "The check all-green concluded failure.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105573407053"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check checks / test (3.11, locked, windows-latest) concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749378"
+   },
+   {
+    "text": "The check checks / test (3.11, lowest-direct, windows-latest) concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749312"
+   },
+   {
+    "text": "The check checks / test (3.11, locked, ubuntu-latest) concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749302"
+   },
+   {
+    "text": "The check checks / test (3.11, lowest-direct, ubuntu-latest) concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749261"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3540",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105573407053",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749378",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749312",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749302",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749261"
+  ],
+  "answer": "**What is blocking PR #3540?** PR #3540 is BLOCKED by 2 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/modelcontextprotocol/python-sdk/pull/3540))\n- The check all-green concluded failure. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105573407053))\n\nNotes:\n- The check checks / test (3.11, locked, windows-latest) concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749378))\n- The check checks / test (3.11, lowest-direct, windows-latest) concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749312))\n- The check checks / test (3.11, locked, ubuntu-latest) concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749302))\n- The check checks / test (3.11, lowest-direct, ubuntu-latest) concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749261))\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3540\n"
+ }
+}

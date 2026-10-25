@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "9a962769742b4feca0b4c6975b92cdc9",
+ "summary": "PR #3516 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/pull/3516"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 33 check run(s) and 0 commit status(es) on the head commit cf40ca7862e4; none is failing or pending.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/commit/cf40ca7862e4e97a06be8a7f93327ddb942b0371"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3516",
+   "https://github.com/modelcontextprotocol/python-sdk/commit/cf40ca7862e4e97a06be8a7f93327ddb942b0371"
+  ],
+  "answer": "**What is blocking PR #3516?** PR #3516 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/modelcontextprotocol/python-sdk/pull/3516))\n\nNotes:\n- Read 33 check run(s) and 0 commit status(es) on the head commit cf40ca7862e4; none is failing or pending. ([evidence](https://github.com/modelcontextprotocol/python-sdk/commit/cf40ca7862e4e97a06be8a7f93327ddb942b0371))\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3516\n"
+ }
+}

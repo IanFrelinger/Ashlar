@@ -1,0 +1,31 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "8b518837dc394f77ac51abf35cb0f3ca",
+ "summary": "PR #39321 is BLOCKED by 2 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The pull request is a draft.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39321"
+   },
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39321"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 20 check run(s) and 0 commit status(es) on the head commit 71a3b57bc3a9; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/efcore/commit/71a3b57bc3a9af23a87f3c684d3648c62f3e954f"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39321",
+   "https://github.com/dotnet/efcore/commit/71a3b57bc3a9af23a87f3c684d3648c62f3e954f"
+  ],
+  "answer": "**What is blocking PR #39321?** PR #39321 is BLOCKED by 2 blocker(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/dotnet/efcore/pull/39321))\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/efcore/pull/39321))\n\nNotes:\n- Read 20 check run(s) and 0 commit status(es) on the head commit 71a3b57bc3a9; none is failing or pending. ([evidence](https://github.com/dotnet/efcore/commit/71a3b57bc3a9af23a87f3c684d3648c62f3e954f))\n\nRead from https://github.com/dotnet/efcore/pull/39321\n"
+ }
+}

@@ -1,0 +1,79 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "75a725239d644fed97239b13358deb8d",
+ "summary": "PR #39391 is BLOCKED by 14 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch has merge conflicts with release/11.0.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39391"
+   },
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39391"
+   },
+   {
+    "reason": "The required check Cosmos (ubuntu-24.04) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Cosmos (windows-2025) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Main (macos-15) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Main (ubuntu-24.04) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Main (windows-2025) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Microsoft.Data.Sqlite (ubuntu-24.04) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Microsoft.Data.Sqlite (windows-2025) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check SqlServer (2019) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check SqlServer (2022) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check SqlServer (2025) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Sqlite (ubuntu-24.04) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   },
+   {
+    "reason": "The required check Sqlite (windows-2025) has not reported on a1a4d6fca3d2.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 7 check run(s) and 0 commit status(es) on the head commit a1a4d6fca3d2; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39391",
+   "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+  ],
+  "answer": "**What is blocking PR #39391?** PR #39391 is BLOCKED by 14 blocker(s).\n\nBlockers:\n- The branch has merge conflicts with release/11.0. ([evidence](https://github.com/dotnet/efcore/pull/39391))\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/efcore/pull/39391))\n- The required check Cosmos (ubuntu-24.04) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Cosmos (windows-2025) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Main (macos-15) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Main (ubuntu-24.04) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Main (windows-2025) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Microsoft.Data.Sqlite (ubuntu-24.04) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Microsoft.Data.Sqlite (windows-2025) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check SqlServer (2019) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check SqlServer (2022) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check SqlServer (2025) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Sqlite (ubuntu-24.04) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n- The required check Sqlite (windows-2025) has not reported on a1a4d6fca3d2. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n\nNotes:\n- Read 7 check run(s) and 0 commit status(es) on the head commit a1a4d6fca3d2; none is failing or pending. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n\nRead from https://github.com/dotnet/efcore/pull/39391\n"
+ }
+}

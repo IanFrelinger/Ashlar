@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "0f9d19e2068341d3aefaed0bdb00d2b0",
+ "summary": "PR #39391 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch has merge conflicts with release/11.0.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39391"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 7 check run(s) and 0 commit status(es) on the head commit a1a4d6fca3d2; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39391",
+   "https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9"
+  ],
+  "answer": "**What is blocking PR #39391?** PR #39391 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The branch has merge conflicts with release/11.0. ([evidence](https://github.com/dotnet/efcore/pull/39391))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 7 check run(s) and 0 commit status(es) on the head commit a1a4d6fca3d2; none is failing or pending. ([evidence](https://github.com/dotnet/efcore/commit/a1a4d6fca3d2adcc886ecb949d1bb60c483673a9))\n\nRead from https://github.com/dotnet/efcore/pull/39391\n"
+ }
+}
