@@ -91,6 +91,7 @@ returned. A refused unknown tool name has `agentName` `mcp.unknown-tool`, a null
 | Variable | Meaning |
 |----------|---------|
 | `Ashlar__Mcp__Bricks__ExposedBrickIds__N` | Bricks to expose. An id with no registered brick stops the server at startup. |
+| `Ashlar__Mcp__Bricks__MaxArgumentBytes` | Largest brick-call `arguments` object, in UTF-8 bytes (default 65536; `0` removes the cap). A larger call is refused, recorded, and not echoed back. |
 | `Ashlar__Mcp__Server__ExposedToolIds__N` | Tools to expose (`repo.fs.read`, `repo.fs.list`). |
 | `Ashlar__Mcp__Server__RepoRoot` | Root the repo tools read from (default: working directory). |
 | `Ashlar__Audit__File__Directory` | Audit directory. |
