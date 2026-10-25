@@ -415,6 +415,9 @@ internal static partial class AshlarKernelRegistrar
         IConfiguration configuration = ctx.Configuration;
 
         MeaiPipelineServiceCollectionExtensions.RegisterGovernanceDefaults(services);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<
+            Ashlar.AI.Pipeline.Governance.IChatInvocationUsageObserver,
+            Ashlar.Hosting.Meai.MeaiProviderUsageObserver>());
         MeaiPipelineServiceCollectionExtensions.RegisterVectorDataRag(services);
 
         // INTENTIONAL override, not an accident of ordering. Phase 11 registers

@@ -50,7 +50,9 @@ public static class AshlarGovernanceChatClientBuilderExtensions
         builder.Use((inner, sp) =>
         {
             var auditor = sp.GetRequiredService<IChatInvocationAuditor>();
-            return new AuditingChatClient(inner, auditor, targetKey);
+            return new AuditingChatClient(inner, auditor, targetKey,
+                correlationIdAccessor: null,
+                usageObservers: sp.GetServices<IChatInvocationUsageObserver>());
         });
 
         return builder;

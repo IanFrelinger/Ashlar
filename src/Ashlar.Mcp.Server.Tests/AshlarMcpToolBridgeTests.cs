@@ -61,12 +61,18 @@ public sealed class AshlarMcpToolBridgeTests
         IEnumerable<IMcpToolContributor> contributors,
         IMcpInvocationGate? gate = null,
         AshlarMcpServerOptions? options = null)
-        => new(
+    {
+        options ??= new AshlarMcpServerOptions();
+        // These fixtures expose only public test data. Production tools need an explicit operator label too.
+        options.ResponseLabels["echo"] = "Public";
+        options.ResponseLabels["repo.fs.read"] = "Public";
+        return new(
             contributors,
             gate ?? new RecordingGate(),
             new FixedSnapshotFactory(),
-            Options.Create(options ?? new AshlarMcpServerOptions()),
+            Options.Create(options),
             NullLogger<AshlarMcpToolBridge>.Instance);
+    }
 
     private static CallToolRequestParams Params(string name, Dictionary<string, JsonElement>? args = null)
         => new() { Name = name, Arguments = args };

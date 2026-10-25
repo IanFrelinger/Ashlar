@@ -7,6 +7,9 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using Ashlar.Abstractions;
+using Ashlar.Abstractions.Security;
+
+#pragma warning disable ASHLAREXP002 // ResponseReadScope and SecurityLabel enforce the reviewed MCP response boundary.
 
 namespace Ashlar.Mcp.Server;
 
@@ -65,7 +68,7 @@ public sealed class AshlarMcpToolBridge
     /// <summary>Handles MCP <c>tools/list</c>.</summary>
     public async ValueTask<ListToolsResult> ListToolsAsync(CancellationToken ct)
     {
-        var catalog = await BuildCatalogAsync(ct).ConfigureAwait(false);
+        var catalog = await BuildRequestCatalogAsync(ct).ConfigureAwait(false);
         var tools = new List<Tool>(catalog.Count);
         foreach (var entry in catalog.Values)
         {
@@ -90,12 +93,12 @@ public sealed class AshlarMcpToolBridge
         var caller = user?.Identity?.Name ?? "anonymous";
         var name = parameters.Name;
 
-        var catalog = _catalog ?? await BuildCatalogAsync(ct).ConfigureAwait(false);
+        var catalog = _catalog ?? await BuildRequestCatalogAsync(ct).ConfigureAwait(false);
         if (!catalog.TryGetValue(name, out var entry))
         {
             // One rebuild covers the "listed before a contributor refresh" race; a second miss is
             // a genuinely unknown tool, which the spec treats as a protocol-level error.
-            catalog = await BuildCatalogAsync(ct).ConfigureAwait(false);
+            catalog = await BuildRequestCatalogAsync(ct).ConfigureAwait(false);
             if (!catalog.TryGetValue(name, out entry))
             {
                 _logger.LogWarning("MCP call to unknown tool. Tool={ToolName} Caller={Caller}", name, caller);
@@ -106,13 +109,39 @@ public sealed class AshlarMcpToolBridge
         var canonicalId = entry.Descriptor.CanonicalId;
         var arguments = BuildArguments(parameters, canonicalId);
 
-        var decision = _gate.Authorize(new ToolCall(canonicalId, arguments), _snapshots.Create(canonicalId));
+        // The authenticated SDK principal and operator configuration are the only clearance inputs. A tool
+        // result cannot label itself public, and request arguments cannot grant the caller a higher clearance.
+        var options = _options.Value;
+        options.ResponseLabels.TryGetValue(canonicalId, out var responseLabel);
+        using var response = new ResponseReadScope("mcp-response:" + canonicalId,
+            ResolveCallerClearance(user, options), SecurityLabel.ParseOrSystemHigh(responseLabel));
+        if (!response.CanRead().Allowed)
+            return ResponseDenied(canonicalId, caller);
+
+        McpGateDecision decision;
+        try
+        {
+            decision = _gate.Authorize(new ToolCall(canonicalId, arguments), _snapshots.Create(canonicalId));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(ct);
+        }
+        catch (Exception ex)
+        {
+            // Host policies and snapshot providers can throw messages containing data. The SDK must not
+            // receive those exceptions to format as a protocol response.
+            _logger.LogError(ex, "MCP policy evaluation failed. Tool={ToolId} Caller={Caller}", canonicalId, caller);
+            return ErrorResult($"Tool '{name}' failed with an internal error.");
+        }
         if (!decision.Allowed)
         {
             _logger.LogWarning(
                 "MCP tool call denied. Tool={ToolId} Caller={Caller} Reason={Reason}",
                 canonicalId, caller, decision.Reason);
-            return ErrorResult($"Call to '{name}' was denied: {decision.Reason}");
+            return response.CanRead().Allowed
+                ? ErrorResult($"Call to '{name}' was denied: {decision.Reason}")
+                : ResponseDenied(canonicalId, caller);
         }
 
         await _concurrency.WaitAsync(ct).ConfigureAwait(false);
@@ -121,6 +150,18 @@ public sealed class AshlarMcpToolBridge
         {
             var outcome = await entry.Contributor.InvokeAsync(canonicalId, arguments, ct).ConfigureAwait(false);
 
+            if (!response.CanRead().Allowed)
+                return ResponseDenied(canonicalId, caller);
+
+            JsonElement? structured = outcome.Payload is not null and not string
+                ? JsonSerializer.SerializeToElement(outcome.Payload)
+                : null;
+
+            // Getters/converters can perform additional labelled reads. Never disclose either representation
+            // if serialization raised the high-water mark above the recipient's clearance.
+            if (!response.CanRead().Allowed)
+                return ResponseDenied(canonicalId, caller);
+
             _logger.LogInformation(
                 "MCP tool call completed. Tool={ToolId} Caller={Caller} IsError={IsError} DurationMs={DurationMs}",
                 canonicalId, caller, outcome.IsError, stopwatch.ElapsedMilliseconds);
@@ -128,22 +169,22 @@ public sealed class AshlarMcpToolBridge
             var result = new CallToolResult
             {
                 IsError = outcome.IsError,
-                Content = [new TextContentBlock { Text = outcome.Text }],
+                Content = [new TextContentBlock
+                {
+                    Text = outcome.SerializePayloadAsText && structured.HasValue
+                        ? structured.Value.GetRawText()
+                        : outcome.Text,
+                }],
+                StructuredContent = structured,
             };
-            if (outcome.Payload is not null and not string)
-            {
-                result.StructuredContent = JsonSerializer.SerializeToElement(outcome.Payload);
-            }
 
             return result;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            throw;
-        }
-        catch (McpProtocolException)
-        {
-            throw;
+            // The transport may format exception messages. Preserve cancellation without forwarding text
+            // supplied by a contributor, which can contain the same private data as a normal result.
+            throw new OperationCanceledException(ct);
         }
         catch (Exception ex)
         {
@@ -157,6 +198,48 @@ public sealed class AshlarMcpToolBridge
         finally
         {
             _concurrency.Release();
+        }
+    }
+
+    private CallToolResult ResponseDenied(string canonicalId, string caller)
+    {
+        _logger.LogWarning("MCP response denied by read policy. Tool={ToolId} Caller={Caller}", canonicalId, caller);
+        return ErrorResult("Response denied by data access policy.");
+    }
+
+    private static SecurityLabel ResolveCallerClearance(ClaimsPrincipal? user, AshlarMcpServerOptions options)
+    {
+        if (user is null || string.IsNullOrWhiteSpace(options.CallerIdentityIssuer))
+            return SecurityLabel.Public;
+
+        var subjects = user.Identities.Where(identity => identity.IsAuthenticated)
+            .SelectMany(identity => identity.FindAll(ClaimTypes.NameIdentifier))
+            .Where(claim => string.Equals(claim.Issuer, options.CallerIdentityIssuer, StringComparison.Ordinal))
+            .Select(claim => claim.Value).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+
+        if (subjects.Length != 1 || !options.CallerClearances.TryGetValue(subjects[0], out var clearance))
+            return SecurityLabel.Public;
+
+        return SecurityLabel.ParseOrPublic(clearance);
+    }
+
+    private async Task<IReadOnlyDictionary<string, CatalogEntry>> BuildRequestCatalogAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await BuildCatalogAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(ct);
+        }
+        catch (Exception ex)
+        {
+            // Catalog metadata is host-published, but discovery failures can carry private backend details.
+            // In particular, the SDK forwards McpProtocolException.Message to the remote caller. Keep
+            // detailed diagnostics in startup validation and host logs, never in request error messages.
+            _logger.LogError(ex, "MCP tool catalog discovery failed.");
+            throw new McpProtocolException("Tool catalog is unavailable.", McpErrorCode.InternalError);
         }
     }
 

@@ -1,4 +1,8 @@
 #nullable enable
+Ashlar.Abstractions.Security.ResponseReadScope
+Ashlar.Abstractions.Security.ResponseReadScope.ResponseReadScope(string! subjectId, Ashlar.Abstractions.Security.SecurityLabel! clearance, Ashlar.Abstractions.Security.SecurityLabel! responseFloor) -> void
+Ashlar.Abstractions.Security.ResponseReadScope.CanRead() -> Ashlar.Abstractions.Security.AccessDecision
+Ashlar.Abstractions.Security.ResponseReadScope.Dispose() -> void
 Ashlar.Abstractions.Security.AccessDecision
 Ashlar.Abstractions.Security.AccessDecision.AccessDecision() -> void
 Ashlar.Abstractions.Security.AccessDecision.Allowed.get -> bool

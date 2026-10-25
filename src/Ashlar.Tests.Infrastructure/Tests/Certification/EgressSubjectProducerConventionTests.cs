@@ -9,8 +9,8 @@ namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>
 /// SPEC-007 PR 4.5, the floor pin: every place production code enters an <c>EgressSubject</c> frame
-/// (<c>EgressSubject.Enter</c>, and <c>EgressSubject.BeginRead</c>, which enters a read's frame) is listed here with
-/// its floor and the method it is in, and each one is a <c>using</c> in a method that is not an iterator.
+/// (<c>EgressSubject.Enter</c>, <c>EgressSubject.BeginRead</c>, and the reviewed <c>ResponseReadScope</c> owner)
+/// is listed here with its floor and method. Host entries are <c>using</c> statements outside iterators.
 /// </summary>
 /// <remarks>
 /// <para><b>Why the floor is pinned.</b> A runner declares the floor it can vouch for, and a frame below
@@ -35,14 +35,23 @@ public sealed class EgressSubjectProducerConventionTests
     private static readonly string[] ProductionRoots =
         ["src", "application", "applications", "commercial", "products", "tools", "consumer-template"];
     private const string SystemHighFloor = "new HighWaterMark(SecurityLabel.SystemHigh)";
+    private const string ResponseScopeOwner = "src/Ashlar.Abstractions/Security/ResponseReadScope.cs | "
+        + ".ctor(string, SecurityLabel, SecurityLabel) | Enter | _mark = new HighWaterMark(responseFloor)";
+    private const string McpResponseScope = "src/Ashlar.Mcp.Server/AshlarMcpToolBridge.cs | "
+        + "CallToolAsync(CallToolRequestParams, ClaimsPrincipal?, CancellationToken) | ResponseReadScope | "
+        + "SecurityLabel.ParseOrSystemHigh(responseLabel)";
 
     /// <summary>Path, enclosing method (with parameter types), call, and floor (for <c>Enter</c>).</summary>
     private static readonly string[] ExpectedSites =
     [
+        ResponseScopeOwner,
         "src/Ashlar.BackgroundAgents.HostRunners/SelfExtendRunnerAdapter.cs | "
             + "RunAsync(string, string?, string?, string?, string?, string?, CancellationToken) | Enter | " + SystemHighFloor,
         "src/Ashlar.BackgroundAgents/Agents/ToolCallingAgent.cs | "
             + "RunCycleAsync(WorldSnapshot, IToolbox, PolicyEngine, ChainRejectionCallback?, IAgentMemory?, CancellationToken) | BeginRead | -",
+        McpResponseScope,
+        "src/Ashlar.Mcp.Server/ToolboxMcpToolContributor.cs | "
+            + "InvokeAsync(string, JsonElement, CancellationToken) | BeginRead | -",
     ];
 
     /// <summary>Path and type name of every production type that declares itself labelled.</summary>
@@ -65,15 +74,29 @@ public sealed class EgressSubjectProducerConventionTests
     }
 
     [Fact]
-    public void No_production_runner_declares_a_floor_below_SystemHigh()
+    public void No_production_runner_declares_an_unreviewed_floor_below_SystemHigh()
     {
-        var enters = Scan().Sites.Where(s => s.Call == "Enter").ToList();
+        var enters = Scan().Sites.Where(s => s.Call == "Enter" && s.Pin != ResponseScopeOwner).ToList();
 
         enters.Should().NotBeEmpty("self-extend declares its frame");
         enters.Should().AllSatisfy(s => s.Floor.Should().Be(
             SystemHighFloor,
-            "a runner may declare a floor below SystemHigh only for inputs it built and can vouch for, and in PR 4 none does ({0})",
+            "a runner may declare a floor below SystemHigh only for reviewed inputs; the response lifetime owner is pinned separately ({0})",
             s.Pin));
+    }
+
+    [Fact]
+    public void Only_the_reviewed_response_owner_accepts_an_operator_floor_and_every_host_use_is_pinned()
+    {
+        var scan = Scan();
+        scan.Sites.Where(s => s.Pin == ResponseScopeOwner).Should().ContainSingle();
+        scan.Sites.Where(s => s.Call == "ResponseReadScope").Select(s => s.Pin).Should().Equal(McpResponseScope);
+
+        // The sole non-using Enter transfers ownership to this IDisposable. Every construction at a host seam
+        // is still required to be a using below. Behavioral tests cover enclosing taint, pending reads and disposal.
+        var source = File.ReadAllText(Path.Combine(RepoPathResolver.FindRepoRoot(), "src/Ashlar.Abstractions/Security/ResponseReadScope.cs"));
+        source.Should().Contain("_subject = EgressSubject.Enter(subjectId, _mark = new HighWaterMark(responseFloor));");
+        source.Should().Contain("_subject.Dispose();");
     }
 
     [Fact]
@@ -82,11 +105,12 @@ public sealed class EgressSubjectProducerConventionTests
         var scan = Scan();
 
         scan.StaticImports.Should().BeEmpty("a using static of EgressSubject would hide a frame entry from this scan");
-        scan.Aliases.Should().BeEmpty("an alias of EgressSubject or IEgressLabelledTool would hide a frame entry or trusted reader from this scan");
+        scan.Aliases.Should().BeEmpty("an alias of EgressSubject, ResponseReadScope or IEgressLabelledTool would hide a frame entry or trusted reader from this scan");
         scan.Sites.Should().NotBeEmpty();
         scan.Sites.Should().AllSatisfy(s =>
         {
-            s.IsUsing.Should().BeTrue("{0} must be the resource of a using statement or declaration, so the flow that entered the frame disposes it, in order", s.Pin);
+            if (s.Pin != ResponseScopeOwner)
+                s.IsUsing.Should().BeTrue("{0} must be the resource of a using statement or declaration, so the flow that entered the frame disposes it, in order", s.Pin);
             s.InIterator.Should().BeFalse("{0} must not be in an iterator: after a yield return the body resumes on its consumer's flow", s.Pin);
         });
     }
@@ -159,9 +183,25 @@ public sealed class EgressSubjectProducerConventionTests
             "fixture.cs | Nested");
     }
 
+    [Fact]
+    public void The_scan_pins_response_scope_floors_and_requires_host_using_ownership()
+    {
+        const string source = """
+            class Host
+            {
+                void Scoped() { using var response = new ResponseReadScope("request", clearance, SecurityLabel.SystemHigh); }
+                void Bare() { var response = new Ashlar.Abstractions.Security.ResponseReadScope("request", clearance, floor); }
+            }
+            """;
+        SitesIn("fixture.cs", source).Select(s => $"{s.Pin} | using={s.IsUsing}").Should().Equal(
+            "fixture.cs | Scoped() | ResponseReadScope | SecurityLabel.SystemHigh | using=True",
+            "fixture.cs | Bare() | ResponseReadScope | floor | using=False");
+    }
+
     [Theory]
     [InlineData("using L = Ashlar.Abstractions.Security.Egress.IEgressLabelledTool;")]
     [InlineData("global using L = global::Ashlar.Abstractions.Security.Egress.IEgressLabelledTool;")]
+    [InlineData("using L = Ashlar.Abstractions.Security.ResponseReadScope;")]
     public void A_labelled_tool_alias_is_rejected_before_it_can_hide_an_implementer(string directive)
     {
         var (_, aliases) = DirectivesIn("fixture.cs", directive + " sealed class Rogue : L { }");
@@ -193,7 +233,8 @@ public sealed class EgressSubjectProducerConventionTests
             var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
 
             var text = File.ReadAllText(file);
-            if (!text.Contains("EgressSubject", StringComparison.Ordinal) && !text.Contains("IEgressLabelledTool", StringComparison.Ordinal))
+            if (!text.Contains("EgressSubject", StringComparison.Ordinal) && !text.Contains("IEgressLabelledTool", StringComparison.Ordinal)
+                && !text.Contains("ResponseReadScope", StringComparison.Ordinal))
                 continue;
 
             var (staticImports, aliases) = DirectivesIn(relative, text);
@@ -223,7 +264,7 @@ public sealed class EgressSubjectProducerConventionTests
             var name = directive.Name is null ? null : SimpleName(directive.Name);
             if (name == "EgressSubject" && directive.StaticKeyword != default)
                 staticImports.Add(relative);
-            else if (name is "EgressSubject" or "IEgressLabelledTool" && directive.Alias is not null)
+            else if (name is "EgressSubject" or "IEgressLabelledTool" or "ResponseReadScope" && directive.Alias is not null)
                 aliases.Add($"{relative} | {directive.Alias.Name.Identifier.ValueText}");
         }
 
@@ -264,6 +305,17 @@ public sealed class EgressSubjectProducerConventionTests
             var (member, body) = EnclosingMember(call);
             yield return new Site($"{relative} | {member} | {name} | {floor}", name, floor, IsUsingResource(call), IsIterator(body));
         }
+
+        foreach (var creation in unit.DescendantNodes().OfType<ObjectCreationExpressionSyntax>()
+                     .Where(c => SimpleName(c.Type) == "ResponseReadScope"))
+        {
+            var floor = creation.ArgumentList?.Arguments.Count > 2
+                ? Normalize(creation.ArgumentList.Arguments[2].ToString())
+                : "-";
+            var (member, body) = EnclosingMember(creation);
+            yield return new Site($"{relative} | {member} | ResponseReadScope | {floor}", "ResponseReadScope", floor,
+                IsUsingResource(creation), IsIterator(body));
+        }
     }
 
     private static bool NamesEgressSubject(ExpressionSyntax expression) => expression switch
@@ -275,7 +327,7 @@ public sealed class EgressSubjectProducerConventionTests
     };
 
     // The resource of `using (X)`, `using (var v = X)` or `using var v = X;`, directly.
-    private static bool IsUsingResource(InvocationExpressionSyntax call)
+    private static bool IsUsingResource(SyntaxNode call)
     {
         SyntaxNode node = call;
         while (node.Parent is ParenthesizedExpressionSyntax)

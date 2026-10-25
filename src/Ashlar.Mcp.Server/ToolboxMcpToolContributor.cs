@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ashlar.Abstractions;
 
+#pragma warning disable ASHLAREXP002 // IEgressLabelledTool and EgressSubject report classified reads before MCP response authorization.
+
 namespace Ashlar.Mcp.Server;
 
 /// <summary>
@@ -82,7 +84,22 @@ public sealed class ToolboxMcpToolContributor : IMcpToolContributor
         var snapshot = _snapshots.Create(canonicalId);
         try
         {
-            var result = await tool.InvokeAsync(new ToolCall(canonicalId, arguments), snapshot, ct).ConfigureAwait(false);
+            ToolResult result;
+            if (tool is IEgressLabelledTool labelled)
+            {
+                using (var read = EgressSubject.BeginRead())
+                {
+                    result = await tool.InvokeAsync(new ToolCall(canonicalId, arguments), snapshot, ct).ConfigureAwait(false);
+                    labelled.ReportRead(read.Reporter, result);
+                    read.Complete();
+                }
+            }
+            else
+            {
+                // Unlabelled tools rely on the operator's response floor. Missing floors are SystemHigh at
+                // the bridge, never implicitly Public. Labelled tools must still report every completed read.
+                result = await tool.InvokeAsync(new ToolCall(canonicalId, arguments), snapshot, ct).ConfigureAwait(false);
+            }
 
             // Deltas describe world-state changes for the simulation loop; they are meaningless to
             // a remote MCP caller, so their log lines go to the host log instead of the wire.
@@ -95,7 +112,11 @@ public sealed class ToolboxMcpToolContributor : IMcpToolContributor
             {
                 null => new AshlarMcpToolOutcome(IsError: false, Text: "(no output)"),
                 string text => new AshlarMcpToolOutcome(IsError: false, Text: text),
-                var payload => new AshlarMcpToolOutcome(IsError: false, Text: JsonSerializer.Serialize(payload), Payload: payload),
+                // Serialization may execute payload getters. The bridge must authorize the recipient first.
+                var payload => new AshlarMcpToolOutcome(IsError: false, Text: string.Empty, Payload: payload)
+                {
+                    SerializePayloadAsText = true,
+                },
             };
         }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)

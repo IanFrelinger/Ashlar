@@ -21,7 +21,7 @@ The status line above and the starting prompt are the owner's, as written; the s
 | 2: bridge the existing labels | Merged | #707, `f1f2cff48` |
 | 3: egress inventory and one guard, report-only | The owner split it into 3a and 3b. Both are merged | 3a: #709, `c257aa684`; 3b: #711, `8ec674d2a` |
 | 4: the guard enforces | Merged. 4.1–4.10 earlier; 4.11 is #746. The owner answered its eight questions on 2026-10-05 (decisions log). | #746, `7cb132897` |
-| 5: clearances on subjects | First slice merged: #748 (policy ceiling, host may only tighten, skill level on the sealed package). The composition check is a library API with no production caller yet; inbound response bodies are not mediated; receiver-side CanRead is still open. | #748, `ac264559f` |
+| 5: clearances on subjects | First slice merged: #748 (policy ceiling, host may only tighten, skill level on the sealed package). MCP tools/call now checks authenticated recipient clearance and operator response floors. The composition check has no production caller yet; API/gRPC/A2A/Fleet/mesh response mediation remains open. | #748, `ac264559f` |
 
 - **PR 1** added `Ashlar.Abstractions.Security` in `src/Ashlar.Abstractions/Security/`, with 367 cert-gate tests. The
   four §4.4 mutations went red (16, 19, 11 and 49 of 367) and back to green. The §4.6 checklist is left as written;
@@ -228,6 +228,19 @@ The status line above and the starting prompt are the owner's, as written; the s
   is treated as agent-backed: completion, faults, synchronous policy denials and each streamed update observe
   `SystemHigh`. Model responses are not reads. Producer convention facts pin `Enter`/`BeginRead`, their floors,
   enclosing methods, in-order `using` shape, absence of iterators, and the labelled-tool implementer list.
+- **MCP response boundary follow-on (2026-10-24).** `AshlarMcpToolBridge.CallToolAsync` now creates an experimental
+  `ResponseReadScope` and calls `CanRead` before execution and before/after structured-payload serialization.
+  Denial releases neither text nor structured data, including error outcomes; the built-in toolbox defers
+  serialization. The response floor is trusted operator configuration (`ResponseLabels`), never model-supplied
+  or a self-label on the response. Missing or invalid data labels are `SystemHigh`. Caller clearance defaults
+  to `Public` and is elevated only by the operator's subject map for an authenticated NameIdentifier from the
+  configured issuer; request arguments and clearance claims cannot grant it. Observed reads, pending reads and
+  enclosing subjects can only raise the effective response label. This is a reviewed exception to the PR 4.5
+  SystemHigh-only producer rule: the operator vouches for the configured floor and any reads above it must be
+  reported. `EgressSubjectProducerConventionTests` pins the lifetime owner and the bridge's `using` construction.
+  `McpResponseReadBoundaryTests` exercises real serialization sentinels and caller spoofing. Catalog metadata
+  remains host-published; logs are a separate boundary. API, gRPC, A2A, Fleet and mesh responses are still outside
+  this mediation, and the existing protected-profile listener restrictions remain unchanged.
 - **PR 4.10** (#720, `02fa27f1d`) AirGapped and SecureWorkstation hygiene. The profile reaches Infrastructure through
   `AshlarResolvedDeploymentProfileOptions`, which `AddAshlar` registers from the resolved profile. On AirGapped,
   every remote routing reason runs locally (`AirGapped: remote execution unavailable; running locally (<reason>)`);
@@ -495,7 +508,7 @@ prove `git status --porcelain` is empty, and re-run green. Report each one in th
 | 2 | **Bridge the existing labels.** Map `IDataSensitivityLevel` and `TrustTierOrder` onto `SecurityLabel`. No behaviour change. | Parity tests: same order, unlabelled maps to `SystemHigh`, every existing test green | Merged: #707, `f1f2cff48` |
 | 3 | **Egress inventory and one guard, report-only.** List every outbound path: cloud model calls, web search, `MeshStore` publish and `pkg share`, the A2A and MCP clients, HTTP tools, export bundles. Route each through one `IEgressGuard` that evaluates `CanWrite`, and log its decisions. | A convention test fails when a new outbound path bypasses the guard; the inventory is written down | Split by the owner into 3a and 3b. 3a merged: #709, `c257aa684` (the guard, the inventory and the convention test; routes nothing). 3b merged: #711, `8ec674d2a` (routes every listed non-exempt site, report-only) |
 | 4 | **Guard enforces.** Switched on per deployment profile; `AirGapped` and `SecureWorkstation` enforce by default. | A seeded leak test (an agent tries to write labelled data down) fails closed with an explained refusal | Merged. 4.11: #746, `7cb132897` (see the status) |
-| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | #748, `ac264559f` (first slice; not wired). Clearances live in `ashlar.policy.yaml`; a host may only tighten them; a missing clearance is `Public`. The skill's highest level is `ExtensionPackage.HighestLevel`, covered by the seal and not by the gate-record signature. `SkillComposition.Decide` refuses a skill above the clearance, but no production composition path calls it yet. Inbound response bodies stay unmediated |
+| 5 | **Clearances on subjects.** Agents get a clearance; a sealed skill declares its highest level in the package manifest. | Composing an agent with a skill above its clearance is refused | #748, `ac264559f` (first slice; not wired). Clearances live in `ashlar.policy.yaml`; a host may only tighten them; a missing clearance is `Public`. The skill's highest level is `ExtensionPackage.HighestLevel`, covered by the seal and not by the gate-record signature. `SkillComposition.Decide` refuses a skill above the clearance, but no production composition path calls it yet. MCP tools/call now mediates response bodies; API/gRPC/A2A/Fleet/mesh response bodies remain unmediated |
 | 6 | **Trusted downgrade.** A certified downgrade or redaction skill plus a gate-store human sign-off is the only thing that lowers a label, and every downgrade gets a receipt. | Downgrade without sign-off is refused; with it, a receipt verifies | Not started |
 | 7 | **Provisioned resources inherit labels.** Databases, containers and local models an agent spins up carry its label and compartments, register themselves, and are torn down with the compartment. Teardown gets a receipt. | Tearing down a compartment leaves no resource behind and records the wipe | Not started |
 | 8 | **Container execution host.** A real `INativeExecutionHost` built on the Docker sandbox, so a sealed skill can run out-of-process in its compartment. | The same skill gives identical results in-process and in a container | Not started |

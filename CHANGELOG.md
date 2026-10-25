@@ -17,6 +17,23 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — Verified hosting and workflow recovery guards
+
+- `VerifiedBrick`, `VerifiedBrickRegistry`, and `AddAshlarVerifiedBricks` load pinned gate-emitted
+  deployments through the published packages. The verified host refuses startup on tampering or
+  a later registry override. See [verified production hosting](docs/VerifiedProductionHosting.md).
+- Pipeline stages persist their operation identity before dispatch. **Behavior change:** stages
+  without an explicit replay-safe `Effects` declaration stop automatic retries and incomplete
+  recovery when external effects are uncertain. Completed legacy checkpoints without input-bound
+  fingerprints require reconciliation. See [migration guidance](docs/architecture/PipelineEffectRecovery.md).
+- **MCP configuration change:** tool responses require operator classification and sufficient
+  authenticated caller clearance. Unclassified responses fail closed; arguments cannot grant
+  clearance. See [MCP response policy](docs/architecture/ProtocolIntegration-MCP-A2A.md).
+- Provider usage records preserve reported counts, unknown usage, retries, and resume lineage.
+  See [usage accounting](docs/ProviderUsageAccounting.md) for coverage and completeness limits.
+- Signer policy keys are immutable after construction. An outside-checkout NuGet smoke test runs
+  the real certification gate and verifies the emitted deployment through the packaged host.
+
 ### Added — Package version diagnostics
 
 - New `scripts/ci/verify-package-versions.sh` script to diagnose Central Package Management issues

@@ -44,8 +44,8 @@ public sealed class PipelineDecomposer : IPipelineDecomposer
             StageType = stage.StageType,
             JoinStrategy = stage.JoinStrategy,
             QuorumCount = stage.QuorumCount,
-            Predecessors = predecessors[stage.Id],
-            Successors = successors[stage.Id],
+            Predecessors = predecessors[stage.Id].AsReadOnly(),
+            Successors = successors[stage.Id].AsReadOnly(),
             FallbackChain = stage.Mode == PipelineExecutionMode.Hybrid
                 ? stage.FallbackChain
                 : Array.Empty<PipelineWorkerType>()
@@ -54,7 +54,7 @@ public sealed class PipelineDecomposer : IPipelineDecomposer
         return new PipelineExecutionGraph
         {
             TemplateId = template.TemplateId,
-            Nodes = nodes
+            Nodes = nodes.AsReadOnly()
         };
     }
 }

@@ -229,12 +229,21 @@ public sealed class OllamaProvider
     }
 
     /// <summary>Execute chat asynchronously.</summary>
-    public async Task<Result<string>> ExecuteChatAsync(
+    public Task<Result<string>> ExecuteChatAsync(
         string requestedModel,
         string systemPrompt,
         string userPrompt,
         IReadOnlyList<byte[]>? imageBytesList,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        ExecuteChatAsync(requestedModel, systemPrompt, userPrompt, imageBytesList, new ProviderUsageRequest(), cancellationToken);
+
+    internal async Task<Result<string>> ExecuteChatAsync(
+        string requestedModel,
+        string systemPrompt,
+        string userPrompt,
+        IReadOnlyList<byte[]>? imageBytesList,
+        ProviderUsageRequest usageRequest,
+        CancellationToken cancellationToken)
     {
         var validationResult = ValidateModel(requestedModel);
         if (!validationResult.IsSuccess || validationResult.Value is null)
@@ -257,9 +266,11 @@ public sealed class OllamaProvider
         };
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
+        using var attempt = usageRequest.Begin("ollama", validationResult.Value.Name, cancellationToken);
         try
         {
             using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            var body = await attempt.ReadBodyAsync(response, cancellationToken, ollama: true).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return Result<string>.Failure(new Error(
@@ -267,8 +278,7 @@ public sealed class OllamaProvider
                     $"Ollama /api/chat returned {(int)response.StatusCode} ({response.StatusCode})."));
             }
 
-            await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var jsonDocument = await JsonDocument.ParseAsync(responseStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            using var jsonDocument = JsonDocument.Parse(body);
 
             if (!jsonDocument.RootElement.TryGetProperty("message", out var messageElement)
                 || !messageElement.TryGetProperty("content", out var contentElement))
@@ -279,6 +289,7 @@ public sealed class OllamaProvider
             }
 
             var content = contentElement.GetString() ?? string.Empty;
+            attempt.Succeeded();
             return Result<string>.Success(content);
         }
         catch (Exception ex) when (Ashlar.Abstractions.Security.Egress.EgressRefusal.Find(ex) is not null)

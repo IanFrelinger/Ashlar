@@ -14,6 +14,9 @@ public sealed record PipelineStageExecutionRequest
     /// <summary>Attempt number for this stage execution.</summary>
     public required int Attempt { get; init; }
 
+    /// <summary>Stable operation identity across retries, fallback workers, and resumed runs. Idempotent connectors must deduplicate against this key.</summary>
+    public string? IdempotencyKey { get; init; }
+
     /// <summary>Worker pool type selected for this attempt.</summary>
     public required PipelineWorkerType WorkerType { get; init; }
 

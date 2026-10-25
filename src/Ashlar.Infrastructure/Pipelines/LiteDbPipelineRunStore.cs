@@ -1,4 +1,6 @@
 using LiteDB;
+using JsonSerializer = System.Text.Json.JsonSerializer;
+using Ashlar.Core.Application.Execution;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Core.Application.Pipelines.Ports;
 using Ashlar.Core.Application.Persistence;
@@ -134,6 +136,8 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         {
             RunId = run.RunId,
             TemplateId = run.TemplateId,
+            ResumeSourceRunId = run.ResumeSourceRunId,
+            ProviderUsageJson = JsonSerializer.Serialize(run.ProviderUsageAttempts),
             State = run.State.ToString(),
             StartedAt = run.StartedAt,
             CompletedAt = run.CompletedAt,
@@ -142,6 +146,10 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
                 StageId = stage.StageId,
                 State = stage.State.ToString(),
                 Attempt = stage.Attempt,
+                IdempotencyKey = stage.IdempotencyKey,
+                ExecutionFingerprint = stage.ExecutionFingerprint,
+                Effects = stage.Effects?.ToString(),
+                ReconciliationRequired = stage.ReconciliationRequired,
                 WorkerId = stage.WorkerId,
                 WorkerType = stage.WorkerType?.ToString(),
                 Output = stage.Output,
@@ -156,6 +164,11 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         {
             RunId = doc.RunId,
             TemplateId = doc.TemplateId,
+            ResumeSourceRunId = doc.ResumeSourceRunId,
+            ProviderUsageAttempts = doc.ProviderUsageJson == null
+                ? Array.Empty<ProviderUsageRecord>()
+                : JsonSerializer.Deserialize<ProviderUsageRecord[]>(doc.ProviderUsageJson)
+                  ?? throw new InvalidOperationException("Invalid persisted provider usage."),
             State = ParseEnum<PipelineRunState>(doc.State, PipelineRunState.Pending),
             StartedAt = doc.StartedAt,
             CompletedAt = doc.CompletedAt,
@@ -164,6 +177,10 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
                 StageId = stage.StageId,
                 State = ParseEnum<PipelineStageRunState>(stage.State, PipelineStageRunState.Pending),
                 Attempt = stage.Attempt,
+                IdempotencyKey = stage.IdempotencyKey,
+                ExecutionFingerprint = stage.ExecutionFingerprint,
+                Effects = ParseEffects(stage.Effects),
+                ReconciliationRequired = stage.ReconciliationRequired,
                 WorkerId = stage.WorkerId,
                 WorkerType = string.IsNullOrWhiteSpace(stage.WorkerType)
                     ? null
@@ -179,9 +196,18 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         if (string.IsNullOrWhiteSpace(value))
             return fallback;
 
-        return Enum.TryParse<TEnum>(value, ignoreCase: true, out var parsed)
-            ? parsed
-            : fallback;
+        if (Enum.TryParse<TEnum>(value, ignoreCase: true, out var parsed) && Enum.IsDefined(typeof(TEnum), parsed))
+            return parsed;
+        throw new InvalidOperationException($"stage-reconciliation-required: Invalid persisted {typeof(TEnum).Name} value.");
+    }
+
+    private static PipelineStageEffects? ParseEffects(string? value)
+    {
+        if (value == null)
+            return null;
+        if (Enum.TryParse<PipelineStageEffects>(value, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed))
+            return parsed;
+        throw new InvalidOperationException("stage-reconciliation-required: Invalid persisted stage effect declaration.");
     }
 
     private sealed class PipelineRunDocument
@@ -191,6 +217,8 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         public string RunId { get; set; } = string.Empty;
         /// <summary>Template id.</summary>
         public string TemplateId { get; set; } = string.Empty;
+        public string? ResumeSourceRunId { get; set; }
+        public string? ProviderUsageJson { get; set; }
         /// <summary>State.</summary>
         public string State { get; set; } = string.Empty;
         /// <summary>Started at.</summary>
@@ -209,6 +237,10 @@ public sealed class LiteDbPipelineRunStore : IPipelineRunStore
         public string State { get; set; } = string.Empty;
         /// <summary>Attempt.</summary>
         public int Attempt { get; set; }
+        public string? IdempotencyKey { get; set; }
+        public string? ExecutionFingerprint { get; set; }
+        public string? Effects { get; set; }
+        public bool ReconciliationRequired { get; set; }
         /// <summary>Worker id.</summary>
         public string? WorkerId { get; set; }
         /// <summary>Worker type.</summary>

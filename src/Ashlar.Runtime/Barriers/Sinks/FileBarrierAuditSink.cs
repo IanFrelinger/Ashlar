@@ -229,9 +229,11 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    private string BuildUniqueFilePath()
+    private string BuildUniqueFilePath() => BuildUniqueFilePath(DateTimeOffset.UtcNow);
+
+    private string BuildUniqueFilePath(DateTimeOffset now)
     {
-        var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssfffZ");
+        var timestamp = now.ToString("yyyyMMddTHHmmssfffZ");
         var basePath = Path.Combine(_options.Directory, $"{_options.FilePrefix}-{timestamp}.ndjson");
         if (!File.Exists(basePath))
         {

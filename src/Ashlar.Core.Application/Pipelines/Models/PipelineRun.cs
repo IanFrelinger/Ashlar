@@ -1,3 +1,5 @@
+using Ashlar.Core.Application.Execution;
+
 namespace Ashlar.Core.Application.Pipelines.Models;
 
 /// <summary>
@@ -10,6 +12,15 @@ public sealed record PipelineRun
 
     /// <summary>Template identifier that produced this run.</summary>
     public string TemplateId { get; init; } = string.Empty;
+
+    /// <summary>Source checkpoint when this execution resumed a prior run.</summary>
+    public string? ResumeSourceRunId { get; init; }
+
+    /// <summary>Observed provider attempts made by this invocation only; source-run usage is not copied on resume.</summary>
+    public IReadOnlyList<ProviderUsageRecord> ProviderUsageAttempts { get; init; } = Array.Empty<ProviderUsageRecord>();
+
+    /// <summary>Reported token subtotals and completeness for observed attempts; empty or missing usage remains unknown.</summary>
+    public ProviderUsageSummary ProviderUsage => ProviderUsageSummary.FromAttempts(ProviderUsageAttempts);
 
     /// <summary>Overall lifecycle state of the run.</summary>
     public PipelineRunState State { get; init; } = PipelineRunState.Pending;

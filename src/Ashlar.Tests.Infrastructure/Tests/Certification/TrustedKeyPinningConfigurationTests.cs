@@ -95,6 +95,43 @@ public sealed class TrustedKeyPinningConfigurationTests : IDisposable
             + "any keypair at all is self-consistent and loads");
     }
 
+    [Fact]
+    public void Composed_pinning_cannot_be_changed_through_caller_arrays_or_exposed_collection_interfaces()
+    {
+        var trusted = CreateEd25519Key();
+        var foreign = CreateEd25519Key();
+        var callerKeys = new[] { trusted.PublicKeyBase64 };
+        var policy = CertificationTrustPolicy.FromTrustedKeys(callerKeys);
+        var store = Store(policy);
+        var trustedBrick = SaveRecordSignedBy(trusted.PrivateKeyBase64);
+        var foreignBrick = SaveRecordSignedBy(foreign.PrivateKeyBase64);
+
+        // Composition must retain the operator's original choice even if its input buffer is reused.
+        callerKeys[0] = foreign.PublicKeyBase64;
+        var exposedViews = new[]
+        {
+            policy.TrustedEd25519PublicKeys!,
+            policy.Strict.TrustedEd25519PublicKeys!,
+            policy.Default.TrustedEd25519PublicKeys!,
+            policy.Apply(CertificationVerifyOptions.Strict).TrustedEd25519PublicKeys!,
+        };
+        foreach (var keys in exposedViews)
+        {
+            // IReadOnlyCollection alone does not prevent downcasts to a mutable array or collection.
+            if (keys is IList<string> list)
+                Assert.Throws<NotSupportedException>(() => list[0] = foreign.PublicKeyBase64);
+            if (keys is ICollection<string> collection)
+            {
+                Assert.Throws<NotSupportedException>(() => collection.Add(foreign.PublicKeyBase64));
+                Assert.Throws<NotSupportedException>(() => collection.Clear());
+            }
+            keys.Should().ContainSingle().Which.Should().Be(trusted.PublicKeyBase64);
+        }
+
+        store.Get(trustedBrick).Should().NotBeNull("the original signer remains trusted after composition");
+        store.Get(foreignBrick).Should().BeNull("caller mutations must not redirect a composed consumer's trust");
+    }
+
     /// <summary>
     /// Fact (a) on the admission edge: the same configuration refuses a self-produced brick whose
     /// certificate was signed by a key the operator did not list, with the verifier's own failure

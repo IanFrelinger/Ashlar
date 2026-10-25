@@ -31,12 +31,13 @@ public sealed class EgressSubjectFloorPinTests
         ["src", "application", "applications", "commercial", "products", "tools", "consumer-template"];
 
     /// <summary>
-    /// The only production frame in PR 4.5. The floor is <c>SystemHigh</c> because the self-extend snapshot carries
-    /// unlabelled carry-over. <c>RunAsync</c> is the overload that runs the cycle; the overloads that await it do not
-    /// enter.
+    /// Self-extend remains <c>SystemHigh</c> because its snapshot carries unlabelled carry-over.
+    /// The reviewed response lifetime owner accepts the operator floor explicitly at entry; its host call sites
+    /// and assignment to the private mark are also pinned by <see cref="EgressSubjectProducerConventionTests"/>.
     /// </summary>
     private static readonly string[] ExpectedSites =
     [
+        "src/Ashlar.Abstractions/Security/ResponseReadScope.cs | ResponseReadScope | responseFloor | x1",
         "src/Ashlar.BackgroundAgents.HostRunners/SelfExtendRunnerAdapter.cs | RunAsync | SecurityLabel.SystemHigh | x1",
     ];
 
@@ -60,6 +61,22 @@ public sealed class EgressSubjectFloorPinTests
             "an emptied scan must not pass because it found no Enter");
         sites.Should().Equal(ExpectedSites,
             "a production Enter that is not pinned, or a pin whose file, method, floor or count drifted, fails");
+    }
+
+    [Theory]
+    [InlineData("_mark = new HighWaterMark(responseFloor)", "responseFloor")]
+    [InlineData("new HighWaterMark(SecurityLabel.SystemHigh)", "SecurityLabel.SystemHigh")]
+    [InlineData("_mark = new HighWaterMark(SecurityLabel.Public)", "SecurityLabel.Public")]
+    [InlineData("_mark", "(no floor)")]
+    public void Constructor_entries_pin_the_explicit_floor_and_do_not_infer_a_bare_mark(string argument, string expectedFloor)
+    {
+        var source = "public ResponseReadScope(string subjectId, SecurityLabel clearance, SecurityLabel responseFloor)\n"
+            + "{\n    _subject = " + EnterCall + "subjectId, " + argument + ");\n}";
+        var callAt = source.IndexOf(EnterCall, StringComparison.Ordinal);
+
+        EnclosingMethod(source, callAt).Should().Be("ResponseReadScope");
+        Floor(source, callAt).Should().Be(expectedFloor,
+            "an operator floor, a literal lower floor and an untraceable mark must produce distinct pins");
     }
 
     private static (List<string> Sites, int Scanned) Sites(string root)

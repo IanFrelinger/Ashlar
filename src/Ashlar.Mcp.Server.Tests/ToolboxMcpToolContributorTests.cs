@@ -141,7 +141,7 @@ public sealed class ToolboxMcpToolContributorTests
     }
 
     [Fact]
-    public async Task Object_payload_is_serialized_and_kept_as_structured_payload()
+    public async Task Object_payload_is_kept_unserialized_until_the_bridge_authorizes_the_recipient()
     {
         var payload = new { path = "a.txt", exists = true };
         var tool = new FakeTool("echo", invoke: (_, _, _) =>
@@ -152,8 +152,8 @@ public sealed class ToolboxMcpToolContributorTests
 
         outcome.IsError.Should().BeFalse();
         outcome.Payload.Should().BeSameAs(payload);
-        using var doc = JsonDocument.Parse(outcome.Text);
-        doc.RootElement.GetProperty("exists").GetBoolean().Should().BeTrue();
+        outcome.Text.Should().BeEmpty();
+        outcome.SerializePayloadAsText.Should().BeTrue();
     }
 
     [Fact]

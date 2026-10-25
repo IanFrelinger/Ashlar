@@ -14,6 +14,18 @@ public sealed record PipelineStageRun
     /// <summary>Attempt number for this stage (incremented on retry).</summary>
     public int Attempt { get; init; }
 
+    /// <summary>Stable operation identity allocated before dispatch and preserved on resume.</summary>
+    public string? IdempotencyKey { get; init; }
+
+    /// <summary>Hash binding the operation identity to its stage, topology, and inputs.</summary>
+    public string? ExecutionFingerprint { get; init; }
+
+    /// <summary>Replay safety declaration at creation; null denotes a legacy checkpoint.</summary>
+    public PipelineStageEffects? Effects { get; init; }
+
+    /// <summary>Whether an uncertain external effect requires reconciliation before further execution.</summary>
+    public bool ReconciliationRequired { get; init; }
+
     /// <summary>Identifier of the worker that executed this stage, if assigned.</summary>
     public string? WorkerId { get; init; }
 

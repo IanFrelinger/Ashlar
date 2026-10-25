@@ -56,20 +56,26 @@ public sealed class McpRoundTripTests
         public Pipe ServerToClient { get; } = new();
         public Exception? ClientWriteFailure { get; set; }
 
-        public ServerHarness()
+        public ServerHarness(string? responseLabel = "Public", IMcpToolContributor? contributor = null)
         {
-            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            var configurationValues = new Dictionary<string, string?>
             {
                 [$"{AshlarMcpServerOptions.SectionPath}:Enabled"] = "true",
                 [$"{AshlarMcpServerOptions.SectionPath}:ServerName"] = "ashlar-test",
                 [$"{AshlarMcpServerOptions.SectionPath}:ExposedToolIds:0"] = "echo.tool",
-            }).Build();
+            };
+            // The echo fixture contains public test strings only; security cases override or omit its floor.
+            if (responseLabel is not null)
+                configurationValues[$"{AshlarMcpServerOptions.SectionPath}:ResponseLabels:echo.tool"] = responseLabel;
+            var configuration = new ConfigurationBuilder().AddInMemoryCollection(configurationValues).Build();
 
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddSingleton<ITool>(new EchoTool());
             services.AddAshlarMcpServer(configuration)
                 .WithStreamServerTransport(ClientToServer.Reader.AsStream(), ServerToClient.Writer.AsStream());
+            if (contributor is not null)
+                services.AddSingleton(contributor);
             _provider = services.BuildServiceProvider();
         }
 
@@ -214,6 +220,66 @@ public sealed class McpRoundTripTests
         result.Content.OfType<TextContentBlock>().Single().Text.Should().Contain("ping");
         result.StructuredContent.HasValue.Should().BeTrue();
         result.StructuredContent!.Value.GetProperty("echoed").GetString().Should().Be("ping");
+    }
+
+    [Theory(Timeout = 60000)]
+    [Trait("Category", "ProdStyle")]
+    [InlineData(null)]
+    [InlineData("Secret")]
+    public async Task Real_protocol_handler_refuses_unlabelled_or_private_responses_to_anonymous_clients(string? label)
+    {
+        var ct = TestTimeout();
+        await using var harness = new ServerHarness(label);
+        await harness.StartAsync(ct);
+        await using var client = await harness.ConnectClientAsync(ct);
+
+        var result = await client.CallToolAsync("echo_tool",
+            new Dictionary<string, object?> { ["value"] = "private-response-canary", ["clearance"] = "SystemHigh" },
+            cancellationToken: ct);
+
+        result.IsError.Should().BeTrue();
+        result.Content.OfType<TextContentBlock>().Single().Text.Should().Be("Response denied by data access policy.");
+        result.StructuredContent.Should().BeNull();
+        JsonSerializer.Serialize(result).Should().NotContain("private-response-canary");
+    }
+
+    [Theory(Timeout = 60000)]
+    [Trait("Category", "ProdStyle")]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Real_protocol_catalog_failures_do_not_disclose_discovery_exception_text(bool listRequest)
+    {
+        const string canary = "private-catalog-backend-canary";
+        var ct = TestTimeout();
+        var contributor = new FailingCatalogContributor(canary);
+        await using var harness = new ServerHarness(contributor: contributor);
+        await harness.StartAsync(ct);
+        await using var client = await harness.ConnectClientAsync(ct);
+        contributor.Fail = true;
+
+        Func<Task> request = async () =>
+        {
+            if (listRequest)
+                await client.ListToolsAsync((ModelContextProtocol.RequestOptions?)null, ct);
+            else
+                await client.CallToolAsync("unknown_tool_forces_refresh", cancellationToken: ct);
+        };
+        var error = (await request.Should().ThrowAsync<McpException>()).Which;
+
+        error.Message.Should().Contain("Tool catalog is unavailable.");
+        error.ToString().Should().NotContain(canary);
+    }
+
+    private sealed class FailingCatalogContributor(string canary) : IMcpToolContributor
+    {
+        public bool Fail { get; set; }
+        public Task<IReadOnlyList<AshlarMcpToolDescriptor>> DescribeAsync(CancellationToken ct)
+            => Fail
+                ? throw new McpProtocolException(canary, McpErrorCode.InvalidParams)
+                : Task.FromResult<IReadOnlyList<AshlarMcpToolDescriptor>>([]);
+
+        public Task<AshlarMcpToolOutcome> InvokeAsync(string canonicalId, JsonElement arguments, CancellationToken ct)
+            => throw new InvalidOperationException("The catalog-only contributor exposes no executable tools.");
     }
 
     [Fact(Timeout = 60000)]

@@ -52,4 +52,11 @@ public sealed record AshlarMcpToolDescriptor(
 /// <param name="IsError">True when the tool executed but failed (maps to <c>isError</c> on the MCP result).</param>
 /// <param name="Text">Text representation of the outcome.</param>
 /// <param name="Payload">Optional structured payload.</param>
-public sealed record AshlarMcpToolOutcome(bool IsError, string Text, object? Payload = null);
+public sealed record AshlarMcpToolOutcome(bool IsError, string Text, object? Payload = null)
+{
+    /// <summary>
+    /// Requests the bridge to produce the text representation from the structured payload after response access
+    /// is authorized. Contributors must defer payload serialization to the bridge when using this option.
+    /// </summary>
+    public bool SerializePayloadAsText { get; init; }
+}

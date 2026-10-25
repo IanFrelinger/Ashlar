@@ -24,6 +24,7 @@ public sealed class CertifierBoundaryScanTests
         "System.Reflection.Assembly::LoadFile",
         "System.Reflection.Assembly::Load",
         "System.Runtime.Loader.AssemblyLoadContext::LoadFromAssemblyPath",
+        "System.Runtime.Loader.AssemblyLoadContext::LoadFromStream",
         "System.Activator::CreateInstance"
     };
 

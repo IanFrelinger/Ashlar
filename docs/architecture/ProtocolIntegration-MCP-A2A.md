@@ -63,12 +63,41 @@ Every `tools/call` then flows through `AshlarMcpToolBridge`, which applies in or
    (`Ashlar__Mcp__Server__ArgumentOverrides__repo.fs.read__root=/srv/repo`). Use this for the
    `repo.fs.*` tools, whose `root` argument would otherwise let a remote caller point them at an
    arbitrary directory.
-3. **Policy gate** — `IMcpInvocationGate` (default: every DI-registered `IPolicy` must approve,
+3. **Response read authorization** — the operator sets `ResponseLabels` by canonical tool id. Missing labels
+   mean `SystemHigh`; missing caller clearance means `Public`. The bridge binds clearance to authenticated
+   `NameIdentifier` claims from `CallerIdentityIssuer`, using the operator's `CallerClearances` map. Arguments,
+   model-generated labels and client-provided clearance claims cannot grant access. A `ResponseReadScope` joins
+   the configured floor with observed reads and enclosing subject labels. The bridge checks before execution,
+   before payload serialization and again afterwards, suppressing text, structured content and error outcomes
+   together on refusal. The built-in contributor defers structured-payload serialization to this boundary.
+4. **Policy gate** — `IMcpInvocationGate` (default: every DI-registered `IPolicy` must approve,
    evaluated against the canonical tool id, mirroring `AgentHost`'s approve+audit pair, which MCP
    traffic otherwise bypasses). Denials come back as `isError` tool results.
-4. **Concurrency ceiling** — `MaxConcurrentToolCalls` (default 8); Ashlar tools were written for a
+5. **Concurrency ceiling** — `MaxConcurrentToolCalls` (default 8); Ashlar tools were written for a
    single agent loop and are not assumed reentrant.
-5. **Audit logging** — caller principal, canonical id, duration, and outcome.
+6. **Audit logging** — caller principal, canonical id, duration, and outcome.
+
+`ResponseLabels` is a trusted operator assertion about every datum the tool can return, including failures.
+It must cover the tool's accessible data and be raised by labelled reads when necessary. It is not a label
+supplied by the model or by the response itself. A host that classifies an uninstrumented private-data tool as
+Public has made an unsafe policy decision; this guard is not a sandbox or automatic data classifier. Custom
+contributors must finish their reads before returning and defer payload serialization to the bridge.
+The built-in toolbox invokes `IEgressLabelledTool.ReportRead` inside a read scope; an unreported result or a
+failed labelled read becomes `SystemHigh`. Unlabelled tools still depend on the operator's classification floor.
+
+For authenticated HTTP callers, configure the issuer actually assigned by the host's authentication handler
+and map its stable subject identifiers to canonical labels. Do not copy a subject or issuer from tool arguments.
+For example, `CallerIdentityIssuer=https://identity.example/ashlar`, `CallerClearances:alice=Secret//C:PROJECT_A`
+and `ResponseLabels:private.read=Secret//C:PROJECT_A` permit that authenticated subject to read the response.
+The shipped stdio host has no authenticated principal, so it can receive only explicitly Public responses.
+Allowlisting a tool without a response label now leaves its calls denied; existing deployments must configure
+reviewed classifications before enabling data disclosure.
+
+This mediation covers MCP `tools/call`. Catalog descriptions and schemas remain host-published metadata;
+contributors must not place secrets in them. API, gRPC, A2A, Fleet and mesh responses need their own trusted caller
+binding and read checks. The existing AirGapped/SecureWorkstation listener restrictions remain in force.
+Catalog discovery failures return a fixed internal error to clients; detailed exceptions remain available in
+startup validation and host logs.
 
 Startup validation (`McpCatalogStartupValidator`) fails the host boot when the surface is enabled
 but the catalog is invalid: allowlisted id with no registered tool, an input schema that is not a
@@ -79,14 +108,21 @@ JSON object schema, or two ids collapsing to the same sanitized MCP name (`repo.
 
 ```bash
 dotnet run --project src/Ashlar.Mcp.Server.Host -- \
-  Ashlar__Mcp__Server__ExposedToolIds__0=repo.fs.read \
-  Ashlar__Mcp__Server__ExposedToolIds__1=repo.fs.list \
-  Ashlar__Mcp__Server__RepoRoot=/srv/repo
+  Ashlar:Mcp:Server:ExposedToolIds:0=repo.fs.read \
+  Ashlar:Mcp:Server:ExposedToolIds:1=repo.fs.list \
+  Ashlar:Mcp:Server:ResponseLabels:repo.fs.read=Public \
+  Ashlar:Mcp:Server:ResponseLabels:repo.fs.list=Public \
+  Ashlar:Mcp:Server:ArgumentOverrides:repo.fs.read:root=/srv/public-repo \
+  Ashlar:Mcp:Server:ArgumentOverrides:repo.fs.list:root=/srv/public-repo \
+  Ashlar:Mcp:Server:RepoRoot=/srv/public-repo
 ```
 
-(Values can equally come from environment variables or `appsettings.json`; `Enabled` defaults to
+(Values can equally come from environment variables, using `__` in place of `:`, or `appsettings.json`; `Enabled` defaults to
 `true` in this host only — running the binary is the opt-in — and all logging goes to stderr
 because stdout carries the protocol stream.)
+
+The example assumes `/srv/public-repo` contains only public data. Pinning the root limits which repository is
+accessible; review the tool's file-access semantics as well before assigning a Public response classification.
 
 Claude Code registration example:
 
