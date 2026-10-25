@@ -57,6 +57,20 @@ public sealed class McpBrickAuditChainTests
     }
 
     [Fact]
+    public async Task Concurrent_calls_through_an_audit_log_that_awaits_still_form_one_unbroken_chain()
+    {
+        var audit = new CapturingAudit { YieldBeforeWrite = true };
+        var sut = Create(audit);
+
+        await Task.WhenAll(Enumerable.Range(0, 32).Select(_ =>
+            Task.Run(() => sut.InvokeAsync("test.echo", Args("{}"), CancellationToken.None))));
+
+        var result = McpBrickAuditChain.Verify(audit.Snapshot().Select(AsFileLine));
+        result.Problems.Should().BeEmpty();
+        result.Records.Should().Be(32);
+    }
+
+    [Fact]
     public async Task An_edited_record_is_detected()
     {
         var lines = (await FileTrailAsync(sequential: 4, concurrent: 0)).ToList();
@@ -191,15 +205,33 @@ public sealed class McpBrickAuditChainTests
 
         public int FailOnCall { get; init; }
 
-        public ValueTask RecordAsync(BarrierAuditEvent auditEvent, CancellationToken cancellationToken = default)
+        /// <summary>Await before writing, as a sink that confirms a flush does, so concurrent records can interleave.</summary>
+        public bool YieldBeforeWrite { get; init; }
+
+        public List<BarrierAuditEvent> Snapshot()
         {
-            if (++_calls == FailOnCall)
+            lock (Events)
+            {
+                return Events.ToList();
+            }
+        }
+
+        public async ValueTask RecordAsync(BarrierAuditEvent auditEvent, CancellationToken cancellationToken = default)
+        {
+            if (YieldBeforeWrite)
+            {
+                await Task.Delay(1, cancellationToken);
+            }
+
+            if (Interlocked.Increment(ref _calls) == FailOnCall)
             {
                 throw new IOException("disk full");
             }
 
-            Events.Add(auditEvent);
-            return ValueTask.CompletedTask;
+            lock (Events)
+            {
+                Events.Add(auditEvent);
+            }
         }
     }
 
