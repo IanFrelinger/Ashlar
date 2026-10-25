@@ -87,10 +87,9 @@ public sealed class NewCommand : Command
                 project = Path.Combine(projectRoot, $"{normalizedName}Brick.csproj"),
                 testProject,
                 next = $"dotnet test \"{testProject}\"",
-                // The CLI cannot tell offline whether this version is on nuget.org; an unpublished one
-                // fails restore with NU1101, so name both cases up front instead of at restore time.
-                restoreHint = $"If Ashlar.Authoring {resolvedAshlarVersion} is on nuget.org, a plain dotnet restore is enough. " +
-                              "If it is not (NU1101), pass a local feed " +
+                // Ashlar.Authoring is not published to nuget.org yet; without a feed the generated
+                // PackageReference fails restore with NU1101. Say so up front instead of at restore time.
+                restoreHint = $"Ashlar.Authoring {resolvedAshlarVersion} must be restorable: pass a local feed " +
                               "(dotnet restore --source FEED --source https://api.nuget.org/v3/index.json) " +
                               "or replace the PackageReference with a ProjectReference to src/Ashlar.Authoring/Ashlar.Authoring.csproj " +
                               "(docs/AuthoringBricks.md, section Restoring Ashlar.Authoring)."

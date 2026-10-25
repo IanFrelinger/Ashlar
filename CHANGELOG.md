@@ -26,8 +26,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 - `Ashlar.Mcp.Server.Host/README.md` says how to run the server from a clone before it is on nuget.org, and
   names the audit file correctly (`mcp-brick-calls-<start time>.ndjson`, one per server start; it said `.jsonl`).
 - `docs/AuthoringBricks.md` puts plain nuget.org first for a published version.
-- `ashlar new brick`: the restore hint no longer says a feed is required, and the scaffolded test no longer
-  carries an unreplaced `__brick name__` token (a CLI test now fails on any leftover token).
+- `ashlar new brick`: the scaffolded test no longer carries an unreplaced `__brick name__` token (a CLI test
+  now fails on any leftover token), and the generated README no longer lists raw template tokens.
 - `github.blockers` adds a note counting the check runs and commit statuses it read when none is failing or
   pending, with the commit as evidence, so "no blocker" shows the checks were read. Its advice for an
   uncomputed mergeability no longer promises an answer "in a few seconds".

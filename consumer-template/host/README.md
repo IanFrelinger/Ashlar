@@ -73,7 +73,8 @@ Anywhere else, the build fails with `MSB9008` (the referenced project does not e
 With the `HelloBrick` from [../CONSUMING.md](../CONSUMING.md) (`MyCompany.MyBricks.HelloBrick`, id `my-company.hello`):
 
 ```bash
-dotnet run --project app/host --urls http://127.0.0.1:5080
+cd app/host && dotnet run --urls http://127.0.0.1:5080
+# in a second terminal, once it is listening:
 curl -s http://127.0.0.1:5080/health
 curl -s -X POST http://127.0.0.1:5080/api/bricks/my-company.hello/execute \
   -H "Content-Type: application/json" -d '{"input":{"name":"Ashlar"}}'

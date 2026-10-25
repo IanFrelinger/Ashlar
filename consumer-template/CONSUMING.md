@@ -104,7 +104,7 @@ sealed class ConsoleContext : IExecutionContext
 ```
 
 ```bash
-dotnet run --project HelloRunner -- Ashlar
+cd HelloRunner && dotnet run -- Ashlar
 # Hello, Ashlar! (Greeted Ashlar.)
 ```
 
