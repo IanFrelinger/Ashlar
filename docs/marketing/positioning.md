@@ -64,7 +64,7 @@ Technical / developer-facing positioning:
 - **CTA:** Embed runtime via `services.AddAshlar()`
 
 ### Adopting → Paid
-- **Message:** "Open source runs everything. Paid plans buy assurance." No token-savings percentages until the live benchmark is published (D9).
+- **Message:** "Open source runs everything. Paid plans buy assurance." Token savings only with the scope stated in `docs/benchmarks/token-benchmark.md` (D9), never as a general figure.
 - **Channels:** Pricing page, commercial discussions
 - **CTA:** Pro $1,500/org/yr by card · Team $12,000/org/yr by order form · Enterprise from $40,000/yr through a partner (go-to-market decisions log D2)
 

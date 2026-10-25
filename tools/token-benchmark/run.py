@@ -130,8 +130,10 @@ class Budget(Exception):
 
 
 class Client:
-    def __init__(self, model: str, price_in: float, price_out: float, budget: float):
+    def __init__(self, model: str, price_in: float, price_out: float, budget: float,
+                 write_mult: float = 1.25, read_mult: float = 0.10):
         self.model, self.price_in, self.price_out, self.budget = model, price_in, price_out, budget
+        self.write_mult, self.read_mult = write_mult, read_mult
         self.spent = 0.0
         self.headers = {
             "x-api-key": os.environ["ANTHROPIC_API_KEY"],
@@ -143,8 +145,8 @@ class Client:
 
     def cost(self, u: dict) -> float:
         return (u.get("input_tokens", 0) * self.price_in
-                + u.get("cache_creation_input_tokens", 0) * self.price_in * 1.25
-                + u.get("cache_read_input_tokens", 0) * self.price_in * 0.10
+                + u.get("cache_creation_input_tokens", 0) * self.price_in * self.write_mult
+                + u.get("cache_read_input_tokens", 0) * self.price_in * self.read_mult
                 + u.get("output_tokens", 0) * self.price_out) / 1e6
 
     def create(self, body: dict) -> dict:
@@ -225,7 +227,8 @@ def run_once(client: Client, fx: Fixtures, arm: str, workload: dict, max_turns: 
     return {
         "arm": arm, "workload": workload["id"], "requests": requests, "tool_calls": tool_calls,
         "usage": usage, "billed_input_equivalent": round(
-            usage["input_tokens"] + 1.25 * usage["cache_creation_input_tokens"] + 0.10 * usage["cache_read_input_tokens"]),
+            usage["input_tokens"] + client.write_mult * usage["cache_creation_input_tokens"]
+            + client.read_mult * usage["cache_read_input_tokens"]),
         "cost_usd": round(cost, 6), "seconds": round(time.monotonic() - started, 1), "stop": stop,
         "verdicts": verdicts, "agrees_with_brick": f"{agree}/{len(workload['urls'])}",
         "final_answer": final_text,
@@ -235,7 +238,7 @@ def run_once(client: Client, fx: Fixtures, arm: str, workload: dict, max_turns: 
 def summarize(runs: list, meta: dict) -> str:
     lines = [
         f"Model `{meta['model']}`; prices ${meta['price_in']}/MTok input, ${meta['price_out']}/MTok output, "
-        "cache write 1.25×, cache read 0.10× input. Medians over repetitions.", "",
+        f"cache write {meta['write_mult']}×, cache read {meta['read_mult']}× input. Medians over repetitions.", "",
         "| Workload | Arm | Runs | Requests | Tool calls | Input | Cache write | Cache read | Output | Cost (USD) | Verdicts agreeing with brick |",
         "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
@@ -264,6 +267,8 @@ def main() -> int:
     ap.add_argument("--model", required=True)
     ap.add_argument("--price-in", type=float, required=True)
     ap.add_argument("--price-out", type=float, required=True)
+    ap.add_argument("--cache-write-mult", type=float, default=1.25)
+    ap.add_argument("--cache-read-mult", type=float, default=0.10)
     ap.add_argument("--reps-native", type=int, default=2)
     ap.add_argument("--reps-brick", type=int, default=3)
     ap.add_argument("--max-turns", type=int, default=15)
@@ -277,7 +282,7 @@ def main() -> int:
         print("ANTHROPIC_API_KEY is not set", file=sys.stderr)
         return 2
     fx = Fixtures(pathlib.Path(a.fixtures), os.environ.get("GITHUB_TOKEN", ""))
-    client = Client(a.model, a.price_in, a.price_out, a.budget_usd)
+    client = Client(a.model, a.price_in, a.price_out, a.budget_usd, a.cache_write_mult, a.cache_read_mult)
     workloads = json.loads((HERE / "targets.json").read_text())["workloads"]
     if a.only:
         workloads = [w for w in workloads if w["id"] in a.only.split(",")]
@@ -312,6 +317,7 @@ def main() -> int:
             print(f"{w['id']:<22} {arm:<6} rep {rep}: {r['requests']} req, {r['tool_calls']} calls, "
                   f"${r['cost_usd']:.4f}, verdicts {r['agrees_with_brick']} (spent ${client.spent:.4f})")
     meta = {"model": a.model, "price_in": a.price_in, "price_out": a.price_out, "spent": client.spent,
+            "write_mult": a.cache_write_mult, "read_mult": a.cache_read_mult,
             "live_fetches": fx.live_fetches, "stopped": stopped,
             "finished_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
