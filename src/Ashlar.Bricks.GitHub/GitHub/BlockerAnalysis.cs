@@ -250,6 +250,7 @@ internal static class BlockerAnalysis
             Closed => $"{target.Label} is closed without being merged",
             _ => $"{target.Label}: no blocker found, but it is UNKNOWN whether anything blocks it",
         };
+        head = char.ToUpperInvariant(head[0]) + head[1..];
         return unknowns > 0 ? $"{head}; {unknowns} unknown(s)." : head + ".";
     }
 

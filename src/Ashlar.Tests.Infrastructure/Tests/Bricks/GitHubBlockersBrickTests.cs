@@ -244,6 +244,7 @@ public sealed class GitHubBlockersBrickTests
         var output = await Brick(github).ExecuteAsync(Input("https://github.com/o/r/releases/tag/v9"), ImplementationType.Deterministic, Context());
 
         output.Get<string>("verdict").Should().Be("blocked");
+        output.Summary.Should().Be("Release v9 is BLOCKED by 1 blocker(s).");
         JsonSerializer.Serialize(output.Get<object>("blockers")).Should().Contain("The tag v9 does not exist.").And.Contain("https://github.com/o/r/tags");
     }
 
