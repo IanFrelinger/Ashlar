@@ -1,0 +1,48 @@
+# Dogfood for the free "Ashlar PR blockers" action (actions/pr-blockers): runs it against the pull
+# request that changes it, with the real Ashlar.Mcp.Server.Host. Advisory; never a required check.
+# The verdict usually includes this job's own pending check, so it only reports (fail-on-blocked off).
+name: PR blockers action
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/pr-blockers-action.yml"
+      - "actions/pr-blockers/**"
+      - "src/Ashlar.Mcp.Server.Host/**"
+      - "src/Ashlar.Bricks.GitHub/**"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Pull request or release-tag URL to ask about
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+
+jobs:
+  pr-blockers:
+    name: Ashlar PR blockers (dogfood)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Ask github.blockers
+        id: blockers
+        uses: ./actions/pr-blockers
+        with:
+          url: ${{ inputs.url }}
+
+      - name: Require an answer
+        shell: bash
+        env:
+          VERDICT: ${{ steps.blockers.outputs.verdict }}
+        run: |
+          case "$VERDICT" in
+            blocked|ready|unknown|merged|closed) echo "verdict: $VERDICT" ;;
+            *) echo "::error::no verdict from the action (got '$VERDICT')"; exit 1 ;;
+          esac

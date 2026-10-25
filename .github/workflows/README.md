@@ -3,11 +3,11 @@
 Workflows in this directory are **manual-first** to reduce duplicate CI load, surprise
 minute costs, and branch-noise on `cursor/**` and other integration branches. The full,
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
-the summary of the 62 files (counted 2026-09-29) is:
+the summary of the 62 files (counted 2026-10-25, after `pr-blockers-action.yml` was added) is:
 
-- **20 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
+- **21 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
   `full-platform-readiness-gate`, `layer-boundary`, `shell-lint`, `uat-gate`; `layer-boundary`
-  carries `paths: "**"`, which matches everything); twelve path-filtered
+  carries `paths: "**"`, which matches everything); thirteen path-filtered
   (kernel/application/security/coverage/testing-strategy/other path-scoped gates); and one
   label-driven, `release-staging-on-label`. `full-platform-readiness-gate` filters
   paths *inside* the workflow (a `changes` job) so its `Readiness summary` check always reports:
@@ -31,7 +31,7 @@ the summary of the 62 files (counted 2026-09-29) is:
   `mesh-lab-tls-gate` lost its Tue 07:00 schedule on 2026-09-13 after four consecutive red
   scheduled runs, joining its two mesh siblings as manual-only.
 
-The first five classes are disjoint and account for every file: **20 + 18 + 18 + 2 + 3 = 61**.
+The first five classes are disjoint and account for every file: **21 + 18 + 18 + 2 + 3 = 62**.
 The schedule bullet is a cross-cut, not a sixth class: three of those six (`distribution-matrix-gate`,
 `full-platform-readiness-gate`, `runtime-portability-gate`) also run on `pull_request` and are counted
 in the first class; the other three (`onboarding-quickstart-gate`, `rc-gate`,

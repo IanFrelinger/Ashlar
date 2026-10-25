@@ -117,6 +117,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `apps/runtime-studio/README.md` — **hub** for the Runtime Studio agent-set JSON, CLI vs API-hosted background agents, and how the Director portal fits; anchor [How this fits](../apps/runtime-studio/README.md#how-this-fits-one-config-flexible-hosts).
 - `docs/SelfHostedAgentServer.md` — `deploy/compose/docker-compose.agent-server.yml`: mounted workspace + env template `docs/config/agent-server.env.example`.
 - **`docs/Federation.md`** — hub-less **peer-to-peer sharing** of signed `.ashpkg` extensions (F1–F4): serve (`/mesh/v1/…`), pull from configured peers / a tailnet / LAN multicast discovery (`ashlar mesh lan`), and TLS/mTLS for a private fleet. Distinct from the commercial director/hub mesh. Config lives in `deploy/node.yml`.
+- `actions/pr-blockers/README.md` — the free **Ashlar PR blockers** GitHub Action: runs the `github.blockers` brick on a pull request and writes the verdict and evidence links to the job summary.
 - `docs/GrpcHost.md` — `src/Ashlar.Transport.Grpc.Server.Host`: listen address, HTTP/2 (h2c vs TLS), the client-side `Ashlar:GrpcTransport` `/run/secrets/*` defaults, compose secrets shape.
 - `docs/ide/AshlarVscode.md` — VS Code / Cursor extension + `/api/ide/*` bridge (chat, patches, runs, workloads, streaming).
 - `docs/Phase1SecureCopilotWalkthrough.md` — first-success secure copilot MVP walkthrough using `deploy/compose/docker-compose.agent-server.yml`.

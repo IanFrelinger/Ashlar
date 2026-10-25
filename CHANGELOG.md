@@ -17,6 +17,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — free "Ashlar PR blockers" GitHub Action
+
+- `actions/pr-blockers`: a composite action that runs the `github.blockers` brick through the MCP brick host on the
+  runner and writes the verdict, each blocker with its evidence link, and every unread fact to the job summary.
+  No account, no key; it reads GitHub with the job's token. A run that gets no answer fails rather than reading as
+  ready. Dogfooded by `.github/workflows/pr-blockers-action.yml` (advisory) and tested against a stub server by
+  `tests/scripts/pr-blockers-action.test.sh`.
+
 ### Fixed — portability-gate `run-mock-completes` red since #832
 
 - `scripts/e2e-loop.sh` expected a plain mock `ashlar run` to exit 0. Since #832 a run where only the

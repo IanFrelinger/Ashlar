@@ -1,0 +1,70 @@
+name: Ashlar PR blockers
+description: >-
+  Answers "what is blocking this pull request?" with the open-source Ashlar github.blockers brick:
+  a verdict, each blocker with an evidence link, and every fact it could not read. No account, no key.
+author: Ashlar
+branding:
+  icon: shield
+  color: gray-dark
+
+inputs:
+  url:
+    description: >-
+      Pull request (https://github.com/<owner>/<repo>/pull/<n>) or release tag
+      (.../releases/tag/<tag>) URL. Defaults to the pull request that triggered the run.
+    required: false
+    default: ""
+  github-token:
+    description: Token the brick reads GitHub with. Read access is enough.
+    required: false
+    default: ${{ github.token }}
+  fail-on-blocked:
+    description: >-
+      "true" fails the step when the verdict is "blocked". This job's own check is pending while it
+      runs, so use it as a gate only from a trigger that fires after your CI (see README).
+    required: false
+    default: "false"
+  setup-dotnet:
+    description: '"false" skips installing the .NET 10 SDK when the job already has it.'
+    required: false
+    default: "true"
+
+outputs:
+  verdict:
+    description: blocked, ready, unknown, merged, closed, or error (no answer)
+    value: ${{ steps.ask.outputs.verdict }}
+  blocker-count:
+    description: Number of blockers found
+    value: ${{ steps.ask.outputs.blocker-count }}
+  audit-id:
+    description: Audit id of the brick call
+    value: ${{ steps.ask.outputs.audit-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up .NET 10
+      if: inputs.setup-dotnet == 'true'
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+
+    # Built from this action's own checkout until Ashlar.Mcp.Server.Host is on nuget.org; run from
+    # the repository root so its global.json picks the SDK.
+    - name: Build the Ashlar MCP brick host
+      shell: bash
+      working-directory: ${{ github.action_path }}/../..
+      run: dotnet build src/Ashlar.Mcp.Server.Host -c Release -nologo -v quiet
+
+    - name: Ask github.blockers
+      id: ask
+      shell: bash
+      env:
+        ASHLAR_PR_BLOCKERS_URL: ${{ inputs.url || github.event.pull_request.html_url }}
+        ASHLAR_GITHUB_TOKEN: ${{ inputs.github-token }}
+        ASHLAR_FAIL_ON_BLOCKED: ${{ inputs.fail-on-blocked }}
+        Ashlar__Audit__File__Directory: ${{ runner.temp }}/ashlar-mcp-audit
+      run: |
+        root="$(cd "$GITHUB_ACTION_PATH/../.." && pwd)"
+        python3 "$GITHUB_ACTION_PATH/pr_blockers.py" -- \
+          dotnet "$root/src/Ashlar.Mcp.Server.Host/bin/Release/net10.0/Ashlar.Mcp.Server.Host.dll"
