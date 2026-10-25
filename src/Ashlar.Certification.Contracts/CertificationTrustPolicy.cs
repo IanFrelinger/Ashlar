@@ -89,7 +89,9 @@ public sealed class CertificationTrustPolicy
 
     private CertificationTrustPolicy(string[]? trustedKeys)
     {
-        TrustedEd25519PublicKeys = trustedKeys;
+        // The public IReadOnlyCollection must not expose a mutable backing array. Every preset
+        // shares this immutable snapshot so pinning cannot drift after host composition.
+        TrustedEd25519PublicKeys = trustedKeys is null ? null : Array.AsReadOnly((string[])trustedKeys.Clone());
         Strict = Apply(CertificationVerifyOptions.Strict);
         Default = Apply(CertificationVerifyOptions.Default);
     }

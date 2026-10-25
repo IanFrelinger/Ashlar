@@ -41,6 +41,7 @@ public static class PipelineRunPersistence
             State = proposed.State,
             CompletedAt = proposed.CompletedAt,
             StageRuns = proposed.StageRuns,
+            ProviderUsageAttempts = proposed.ProviderUsageAttempts,
         };
     }
 }

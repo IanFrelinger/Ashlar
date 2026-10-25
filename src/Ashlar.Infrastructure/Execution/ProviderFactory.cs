@@ -186,21 +186,38 @@ public class ProviderFactory : IProviderFactory, IDisposable
     private static bool IsProviderCallTransient(Exception ex) =>
         TransientClassifiers.Network(ex) || ex is ModelUnavailableException;
 
-    private Task<HttpResponseMessage> SendHttpWithResilienceAsync(
+    private Task<ProviderUsageHttpResponse> SendHttpWithResilienceAsync(
         Func<CancellationToken, Task<HttpResponseMessage>> send,
+        string provider,
+        string model,
         CancellationToken cancellationToken)
     {
+        var usageRequest = new ProviderUsageRequest();
         return _resilientExecutor.ExecuteAsync(async ct =>
         {
-            var resp = await send(ct).ConfigureAwait(false);
-            if ((int)resp.StatusCode >= 500 || resp.StatusCode == HttpStatusCode.TooManyRequests)
+            var attempt = usageRequest.Begin(provider, model, ct);
+            HttpResponseMessage? resp = null;
+            try
             {
-                var code = (int)resp.StatusCode;
-                resp.Dispose();
-                throw new HttpRequestException($"Transient HTTP status {code}");
-            }
+                resp = await send(ct).ConfigureAwait(false);
+                attempt.HttpStatusCode = (int)resp.StatusCode;
+                if ((int)resp.StatusCode >= 500 || resp.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    // A rejected response may still carry charged usage. Capture it before retrying.
+                    await attempt.ReadBodyAsync(resp, ct).ConfigureAwait(false);
+                    throw new HttpRequestException($"Transient HTTP status {(int)resp.StatusCode}");
+                }
 
-            return resp;
+                // Content parsing stays outside the retry policy: instrumentation must not replay a
+                // successful HTTP request merely because the response content was malformed.
+                return new ProviderUsageHttpResponse(resp, attempt);
+            }
+            catch
+            {
+                attempt.Dispose();
+                resp?.Dispose();
+                throw;
+            }
         }, CreateLlmRetryPolicy(), cancellationToken);
     }
     
@@ -283,7 +300,7 @@ public class ProviderFactory : IProviderFactory, IDisposable
 
             var model = Environment.GetEnvironmentVariable("OPENAI_COMPAT_MODEL") ?? AshlarDefaults.OpenAiCompatDefaultModel;
             var url = OpenAiCompatibleEndpoint.NormalizeChatCompletionsUrl(baseUrl).ToString();
-            return await ExecuteOpenAiChatCompletionAsync(url, apiKey, model, systemPrompt, userPrompt, cancellationToken);
+            return await ExecuteOpenAiChatCompletionAsync(url, apiKey, model, systemPrompt, userPrompt, cancellationToken, "openai_compat");
         }
 
         if (provider is "azure")
@@ -298,8 +315,9 @@ public class ProviderFactory : IProviderFactory, IDisposable
 
         if (provider is "ollama")
         {
+            var usageRequest = new ProviderUsageRequest();
             return await _resilientExecutor.ExecuteAsync(
-                ct => ExecuteOllamaAsync(systemPrompt, userPrompt, null, config, ct),
+                ct => ExecuteOllamaAsync(systemPrompt, userPrompt, null, config, ct, usageRequest),
                 CreateLlmRetryPolicy(IsProviderCallTransient),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -324,7 +342,8 @@ public class ProviderFactory : IProviderFactory, IDisposable
         string model,
         string systemPrompt,
         string userPrompt,
-        CancellationToken ct)
+        CancellationToken ct,
+        string provider = "openai")
     {
         var payload = new
         {
@@ -338,15 +357,16 @@ public class ProviderFactory : IProviderFactory, IDisposable
         };
         var json = JsonSerializer.Serialize(payload);
 
-        using var resp = await SendHttpWithResilienceAsync(token =>
+        using var measured = await SendHttpWithResilienceAsync(async token =>
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             req.Content = new StringContent(json);
             req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            return Http.SendAsync(req, token);
-        }, ct).ConfigureAwait(false);
-        var body = await resp.Content.ReadAsStringAsync(ct);
+            return await Http.SendAsync(req, token).ConfigureAwait(false);
+        }, provider, model, ct).ConfigureAwait(false);
+        var resp = measured.Response;
+        var body = await measured.ReadBodyAsync(ct);
         resp.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(body);
@@ -356,7 +376,9 @@ public class ProviderFactory : IProviderFactory, IDisposable
             .GetProperty("content")
             .GetString();
 
-        return content ?? throw new InvalidOperationException("OpenAI-compatible response content was null");
+        if (content is null) throw new InvalidOperationException("OpenAI-compatible response content was null");
+        measured.Attempt.Succeeded();
+        return content;
     }
 
     private async Task<string> ExecuteAzureOpenAiAsync(string endpoint, string apiKey, string deployment, string systemPrompt, string userPrompt, CancellationToken ct)
@@ -376,15 +398,16 @@ public class ProviderFactory : IProviderFactory, IDisposable
         };
         var json = JsonSerializer.Serialize(payload);
 
-        using var resp = await SendHttpWithResilienceAsync(token =>
+        using var measured = await SendHttpWithResilienceAsync(async token =>
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, url);
             req.Headers.Add("api-key", apiKey);
             req.Content = new StringContent(json);
             req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            return Http.SendAsync(req, token);
-        }, ct).ConfigureAwait(false);
-        var body = await resp.Content.ReadAsStringAsync(ct);
+            return await Http.SendAsync(req, token).ConfigureAwait(false);
+        }, "azure", deployment, ct).ConfigureAwait(false);
+        var resp = measured.Response;
+        var body = await measured.ReadBodyAsync(ct);
         resp.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(body);
@@ -394,7 +417,9 @@ public class ProviderFactory : IProviderFactory, IDisposable
             .GetProperty("content")
             .GetString();
 
-        return content ?? throw new InvalidOperationException("Azure OpenAI response content was null");
+        if (content is null) throw new InvalidOperationException("Azure OpenAI response content was null");
+        measured.Attempt.Succeeded();
+        return content;
     }
 
     private async Task<string> ExecuteOpenAiVisionAsync(
@@ -404,7 +429,8 @@ public class ProviderFactory : IProviderFactory, IDisposable
         string systemPrompt,
         string userPrompt,
         byte[]? imageBytes,
-        CancellationToken ct)
+        CancellationToken ct,
+        string provider = "openai")
     {
         var url = OpenAiCompatibleEndpoint.NormalizeChatCompletionsUrl(openAiBaseUrl).ToString();
 
@@ -432,8 +458,9 @@ public class ProviderFactory : IProviderFactory, IDisposable
         req.Content = new StringContent(JsonSerializer.Serialize(payload));
         req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
+        using var attempt = new ProviderUsageRequest().Begin(provider, model, ct);
         using var resp = await Http.SendAsync(req, ct);
-        var body = await resp.Content.ReadAsStringAsync(ct);
+        var body = await attempt.ReadBodyAsync(resp, ct);
         resp.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(body);
@@ -443,7 +470,9 @@ public class ProviderFactory : IProviderFactory, IDisposable
             .GetProperty("content")
             .GetString();
 
-        return content ?? throw new InvalidOperationException("OpenAI vision response content was null");
+        if (content is null) throw new InvalidOperationException("OpenAI vision response content was null");
+        attempt.Succeeded();
+        return content;
     }
 
     private async Task<string> ExecuteAzureOpenAiVisionAsync(string endpoint, string apiKey, string deployment, string systemPrompt, string userPrompt, byte[]? imageBytes, object? config, CancellationToken ct)
@@ -476,8 +505,9 @@ public class ProviderFactory : IProviderFactory, IDisposable
         req.Content = new StringContent(JsonSerializer.Serialize(payload));
         req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
+        using var attempt = new ProviderUsageRequest().Begin("azure", deployment, ct);
         using var resp = await Http.SendAsync(req, ct);
-        var body = await resp.Content.ReadAsStringAsync(ct);
+        var body = await attempt.ReadBodyAsync(resp, ct);
         resp.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(body);
@@ -487,7 +517,9 @@ public class ProviderFactory : IProviderFactory, IDisposable
             .GetProperty("content")
             .GetString();
 
-        return content ?? throw new InvalidOperationException("Azure OpenAI vision response content was null");
+        if (content is null) throw new InvalidOperationException("Azure OpenAI vision response content was null");
+        attempt.Succeeded();
+        return content;
     }
 
     private static string? GetModelFromConfig(object? config)
@@ -501,7 +533,7 @@ public class ProviderFactory : IProviderFactory, IDisposable
         return prop?.GetValue(config) as string;
     }
 
-    private async Task<string> ExecuteOllamaAsync(string systemPrompt, string userPrompt, IReadOnlyList<byte[]>? imageBytesList, object? config, CancellationToken ct)
+    private async Task<string> ExecuteOllamaAsync(string systemPrompt, string userPrompt, IReadOnlyList<byte[]>? imageBytesList, object? config, CancellationToken ct, ProviderUsageRequest? usageRequest = null)
     {
         var baseUrl = await GetOllamaBaseUrlAsync(ct);
         var hasImages = imageBytesList is { Count: > 0 };
@@ -531,7 +563,7 @@ public class ProviderFactory : IProviderFactory, IDisposable
         }
 
         var execution = await ollamaProvider
-            .ExecuteChatAsync(requestedModel, systemPrompt, userPrompt, imageBytesList, ct)
+            .ExecuteChatAsync(requestedModel, systemPrompt, userPrompt, imageBytesList, usageRequest ?? new ProviderUsageRequest(), ct)
             .ConfigureAwait(false);
         if (!execution.IsSuccess)
         {
@@ -575,7 +607,7 @@ public class ProviderFactory : IProviderFactory, IDisposable
                 ?? Environment.GetEnvironmentVariable("OPENAI_VISION_MODEL")
                 ?? Environment.GetEnvironmentVariable("OPENAI_MODEL")
                 ?? AshlarDefaults.OpenAiDefaultVisionModel;
-            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, imageBytes, cancellationToken);
+            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, imageBytes, cancellationToken, provider);
         }
 
         if (provider is "openai_compat")
@@ -592,7 +624,7 @@ public class ProviderFactory : IProviderFactory, IDisposable
                 ?? Environment.GetEnvironmentVariable("OPENAI_COMPAT_VISION_MODEL")
                 ?? Environment.GetEnvironmentVariable("OPENAI_COMPAT_MODEL")
                 ?? AshlarDefaults.OpenAiCompatDefaultVisionModel;
-            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, imageBytes, cancellationToken);
+            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, imageBytes, cancellationToken, provider);
         }
 
         if (provider is "azure")
@@ -653,7 +685,7 @@ public class ProviderFactory : IProviderFactory, IDisposable
                 ?? Environment.GetEnvironmentVariable("OPENAI_VISION_MODEL")
                 ?? Environment.GetEnvironmentVariable("OPENAI_MODEL")
                 ?? AshlarDefaults.OpenAiDefaultVisionModel;
-            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, frames[^1], cancellationToken);
+            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, frames[^1], cancellationToken, provider);
         }
 
         if (provider is "openai_compat")
@@ -670,7 +702,7 @@ public class ProviderFactory : IProviderFactory, IDisposable
                 ?? Environment.GetEnvironmentVariable("OPENAI_COMPAT_VISION_MODEL")
                 ?? Environment.GetEnvironmentVariable("OPENAI_COMPAT_MODEL")
                 ?? AshlarDefaults.OpenAiCompatDefaultVisionModel;
-            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, frames[^1], cancellationToken);
+            return await ExecuteOpenAiVisionAsync(apiKey, baseUrl, model, systemPrompt, userPrompt, frames[^1], cancellationToken, provider);
         }
 
         if (provider is "azure")

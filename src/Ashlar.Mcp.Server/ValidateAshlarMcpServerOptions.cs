@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
+using Ashlar.Abstractions.Security;
+
+#pragma warning disable ASHLAREXP002 // SecurityLabel validates trusted operator response classifications and recipient clearances.
 
 namespace Ashlar.Mcp.Server;
 
@@ -80,6 +83,21 @@ public sealed class ValidateAshlarMcpServerOptions : IValidateOptions<AshlarMcpS
             {
                 failures.Add("ArgumentOverrides contains an empty tool id key.");
             }
+        }
+
+        foreach (var response in options.ResponseLabels)
+        {
+            if (string.IsNullOrWhiteSpace(response.Key) || !SecurityLabel.TryParse(response.Value, out _))
+                failures.Add("ResponseLabels requires non-empty tool ids and canonical security labels.");
+        }
+
+        if (options.CallerClearances.Count > 0 && string.IsNullOrWhiteSpace(options.CallerIdentityIssuer))
+            failures.Add("CallerIdentityIssuer is required when CallerClearances is configured.");
+
+        foreach (var caller in options.CallerClearances)
+        {
+            if (string.IsNullOrWhiteSpace(caller.Key) || !SecurityLabel.TryParse(caller.Value, out _))
+                failures.Add("CallerClearances requires non-empty authenticated subjects and canonical security labels.");
         }
 
         return failures.Count > 0

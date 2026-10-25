@@ -1,0 +1,3 @@
+<Project>
+  <!-- Standalone consumer: stop importing repository build customizations when inspected in-place. -->
+</Project>

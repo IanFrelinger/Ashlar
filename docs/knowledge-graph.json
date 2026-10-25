@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 822,
-    "declared_facts": 5306,
+    "test_files_declaring_facts": 829,
+    "declared_facts": 5388,
     "workflows": 61
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -1585,7 +1585,8 @@
     {
       "name": "ASHLAR_LLM_RETRY_COUNT",
       "declared_in": [
-        "Ashlar.Infrastructure"
+        "Ashlar.Infrastructure",
+        "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -3108,7 +3109,7 @@
       "file": "src/Ashlar.Mcp.Client.Tests/McpRoundTripTests.cs",
       "project": "Ashlar.Mcp.Client.Tests",
       "namespace": "Ashlar.Mcp.Client.Tests",
-      "declared_facts": 5,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -3133,6 +3134,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Mcp.Server.Tests/McpResponseReadBoundaryTests.cs",
+      "project": "Ashlar.Mcp.Server.Tests",
+      "namespace": "Ashlar.Mcp.Server.Tests",
+      "declared_facts": 19,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Mcp.Server.Tests/McpToolNamingTests.cs",
       "project": "Ashlar.Mcp.Server.Tests",
       "namespace": "Ashlar.Mcp.Server.Tests",
@@ -3144,6 +3152,13 @@
       "project": "Ashlar.Mcp.Server.Tests",
       "namespace": "Ashlar.Mcp.Server.Tests",
       "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Mcp.Server.Tests/ResponseReadScopeTests.cs",
+      "project": "Ashlar.Mcp.Server.Tests",
+      "namespace": "Ashlar.Mcp.Server.Tests",
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {
@@ -3375,6 +3390,13 @@
       "project": "Ashlar.Tests.Application",
       "namespace": "Ashlar.Tests.Application.Tests.Execution",
       "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Application/Tests/Execution/ProviderUsageContractTests.cs",
+      "project": "Ashlar.Tests.Application",
+      "namespace": "Ashlar.Tests.Application.Tests.Execution",
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {
@@ -5453,7 +5475,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressSubjectFloorPinTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 1,
+      "declared_facts": 2,
       "in_cert_gate_filter": true
     },
     {
@@ -5467,7 +5489,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressSubjectProducerConventionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 7,
+      "declared_facts": 9,
       "in_cert_gate_filter": true
     },
     {
@@ -5887,7 +5909,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/TrustedKeyPinningConfigurationTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 19,
+      "declared_facts": 20,
       "in_cert_gate_filter": true
     },
     {
@@ -5923,6 +5945,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 10,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/VerifiedHostingProdStyleTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 3,
       "in_cert_gate_filter": true
     },
     {
@@ -6332,6 +6361,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/ProviderUsageAccountingProdStyleTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
+      "declared_facts": 15,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/RunPodBrickGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
@@ -6469,6 +6505,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Hosting/MeaiUsageAccountingProdStyleTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Hosting",
+      "declared_facts": 9,
       "in_cert_gate_filter": false
     },
     {
@@ -6973,6 +7016,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Pipelines",
       "declared_facts": 8,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Pipelines/PipelineSideEffectRecoveryProdStyleTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Pipelines",
+      "declared_facts": 15,
       "in_cert_gate_filter": false
     },
     {

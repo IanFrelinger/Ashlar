@@ -2,6 +2,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Ashlar.Core.Application.Execution;
+using Ashlar.Infrastructure.Execution;
 using Ashlar.Core.Application.Common.Ports;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Models;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
@@ -67,22 +69,29 @@ public sealed class OllamaModelServingBackend : IModelServingBackend
         {
             var payload = BuildChatPayload(modelId, system, prompt, parameters);
             _metricsCollector?.IncrementCounter("ncr.ollama.chat.request");
+            using var attempt = new ProviderUsageRequest().Begin("ollama", modelId, ct);
             using var response = await PostJsonAsync("/api/chat", payload, ct).ConfigureAwait(false);
+            var body = await attempt.ReadBodyAsync(response, ct, ollama: true).ConfigureAwait(false);
             _metricsCollector?.RecordExecutionTime("ncr.ollama.chat.duration", DateTimeOffset.UtcNow - started);
             _metricsCollector?.IncrementCounter(response.IsSuccessStatusCode ? "ncr.ollama.chat.success" : "ncr.ollama.chat.failure");
             response.EnsureSuccessStatusCode();
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
             var content = doc.RootElement
                 .GetProperty("message")
                 .GetProperty("content")
                 .GetString() ?? string.Empty;
 
+            // Keep the legacy int field usable; exact long counts remain in Usage even if they exceed int.
+            var reportedOutput = attempt.Usage.OutputTokenCount;
+            var legacyReported = reportedOutput is >= 0 and <= int.MaxValue;
+            attempt.Succeeded();
             return new InferenceResult
             {
                 Output = content,
-                TokenCount = ApproximateTokenCount(content),
+                TokenCount = legacyReported ? (int)reportedOutput!.Value : ApproximateTokenCount(content),
+                TokenCountSource = legacyReported ? ProviderUsageSource.ProviderReported : ProviderUsageSource.Estimated,
+                Usage = attempt.Usage,
                 Duration = DateTimeOffset.UtcNow - started
             };
         }

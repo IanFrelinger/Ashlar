@@ -38,6 +38,13 @@ public sealed class PipelineTemplateValidator : IPipelineTemplateValidator
             if (!stagesById.TryAdd(stage.Id, stage))
                 errors.Add($"Duplicate stage id '{stage.Id}'.");
 
+            if (!Enum.IsDefined(stage.Effects))
+                errors.Add($"Stage '{stage.Id}' has an invalid Effects declaration.");
+            if (!Enum.IsDefined(stage.Mode) || !Enum.IsDefined(stage.StageType) ||
+                (stage.JoinStrategy.HasValue && !Enum.IsDefined(stage.JoinStrategy.Value)) ||
+                stage.FallbackChain.Any(worker => !Enum.IsDefined(worker)))
+                errors.Add($"Stage '{stage.Id}' has an invalid execution or worker enum value.");
+
             if (stage.Mode == PipelineExecutionMode.Hybrid && stage.FallbackChain.Count == 0)
                 errors.Add($"Hybrid stage '{stage.Id}' must define fallback chain.");
 

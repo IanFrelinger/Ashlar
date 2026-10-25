@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Collections.ObjectModel;
+using Ashlar.Core.Application.Execution;
 using Ashlar.Core.Application.Pipelines.Models;
 using Ashlar.Core.Application.Pipelines.Ports;
 using Ashlar.Core.Application.Resilience.Ports;
@@ -40,6 +42,8 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             .GroupBy(x => x.WorkerType)
             .ToDictionary(g => g.Key, g => g.First());
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        if (_options.MaxRetryAttempts <= 0 || _options.RetryDelayMs < 0 || !Enum.IsDefined(_options.CompletionPolicy))
+            throw new ArgumentException("Retry attempts must be positive, delay nonnegative, and completion policy valid.", nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -50,6 +54,19 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (request == null) throw new ArgumentNullException(nameof(request));
+        if (request.Inputs == null) throw new ArgumentException("Pipeline inputs are required.", nameof(request));
+        request = request with
+        {
+            Inputs = new ReadOnlyDictionary<string, string>(request.Inputs.ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal)),
+            Template = request.Template == null ? null! : request.Template with
+            {
+                Stages = Array.AsReadOnly(request.Template.Stages.Select(stage => stage with
+                {
+                    FallbackChain = Array.AsReadOnly(stage.FallbackChain.ToArray())
+                }).ToArray()),
+                Edges = Array.AsReadOnly(request.Template.Edges.ToArray())
+            }
+        };
 
         var validation = _validator.Validate(request.Template);
         if (!validation.IsValid)
@@ -57,8 +74,11 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
 
         var graph = _decomposer.Decompose(request.Template);
         var runId = string.IsNullOrWhiteSpace(request.RunId) ? Guid.NewGuid().ToString("N") : request.RunId!;
+        using var usage = new ProviderUsageScope(runId);
         var allowResume = !string.IsNullOrWhiteSpace(request.ResumeRunId);
         var resumeFailed = request.ResumeFailedStages || _options.ResumeFailedStages;
+        var stageDefinitionsById = request.Template.Stages
+            .ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
         var stageStates = graph.Nodes.ToDictionary(n => n.StageId, _ => PipelineStageRunState.Pending, StringComparer.Ordinal);
         var stageAttempts = graph.Nodes.ToDictionary(n => n.StageId, _ => 0, StringComparer.Ordinal);
         var stageRuns = graph.Nodes.ToDictionary(
@@ -67,20 +87,22 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             {
                 StageId = n.StageId,
                 State = PipelineStageRunState.Pending,
-                Attempt = 0
+                Attempt = 0,
+                IdempotencyKey = Guid.NewGuid().ToString("N"),
+                Effects = stageDefinitionsById[n.StageId].Effects,
+                ExecutionFingerprint = PipelineOperationIdentity.Fingerprint(
+                    request.Template.TemplateId, request.Template.Version, stageDefinitionsById[n.StageId], n, request.Inputs)
             },
             StringComparer.Ordinal);
 
         if (allowResume)
-            await TryHydrateFromPriorRunAsync(request, graph, stageStates, stageAttempts, stageRuns, resumeFailed, cancellationToken);
-
-        var stageDefinitionsById = request.Template.Stages
-            .ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
+            await TryHydrateFromPriorRunAsync(request, stageStates, stageAttempts, stageRuns, resumeFailed, cancellationToken);
 
         var run = new PipelineRun
         {
             RunId = runId,
             TemplateId = request.Template.TemplateId,
+            ResumeSourceRunId = allowResume ? request.ResumeRunId : null,
             State = PipelineRunState.Running,
             StartedAt = DateTimeOffset.UtcNow,
             StageRuns = stageRuns.Values.ToArray()
@@ -92,113 +114,146 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             cancellationToken);
         _logger.LogInformation("Pipeline run {RunId} started for template {TemplateId}.", run.RunId, run.TemplateId);
 
-        while (true)
+        Task<PipelineRun> CheckpointAsync(PipelineRun next, CancellationToken token)
+            => PersistAsync(runId, next with { ProviderUsageAttempts = usage.Snapshot() }, token);
+
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (stageStates.Values.All(s => s == PipelineStageRunState.Completed))
-            {
-                run = await PersistAsync(
-                    runId,
-                    FinalizeRun(run, PipelineRunState.Completed, stageRuns),
-                    cancellationToken);
-                _logger.LogInformation("Pipeline run {RunId} completed successfully.", run.RunId);
-                return run;
-            }
-
-            if (IsTerminalWithoutPending(stageStates))
-            {
-                var hasAnyFailure = stageRuns.Values.Any(stageRun => stageRun.State == PipelineStageRunState.Failed);
-                var hasCriticalFailure = stageRuns.Values.Any(stageRun =>
-                    stageRun.State == PipelineStageRunState.Failed &&
-                    stageDefinitionsById.TryGetValue(stageRun.StageId, out var stageDefinition) &&
-                    stageDefinition.Constraints.Critical);
-
-                var terminalState = ResolveTerminalState(hasAnyFailure, hasCriticalFailure, _options.CompletionPolicy);
-                run = await PersistAsync(
-                    runId,
-                    FinalizeRun(run, terminalState, stageRuns),
-                    cancellationToken);
-                _logger.LogInformation(
-                    "Pipeline run {RunId} reached terminal state {State}.",
-                    run.RunId,
-                    terminalState);
-                return run;
-            }
-
-            var readyStageIds = _scheduler.GetReadyStages(graph, stageStates);
-            if (readyStageIds.Count == 0)
-            {
-                run = await PersistAsync(
-                    runId,
-                    FinalizeRun(run, PipelineRunState.Failed, stageRuns),
-                    cancellationToken);
-                _logger.LogWarning("Pipeline run {RunId} stalled with no ready stages.", run.RunId);
-                return run;
-            }
-
-            foreach (var stageId in readyStageIds)
+            while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var node = graph.Nodes.Single(n => n.StageId == stageId);
-                var stage = request.Template.Stages.Single(s => s.Id.Equals(stageId, StringComparison.OrdinalIgnoreCase));
-
-                if (!CanStageExecute(node, stageStates))
-                    continue;
-
-                stageStates[stageId] = PipelineStageRunState.Running;
-                run = await PersistAsync(
-                    runId,
-                    UpdateRun(run, stageRuns, PipelineRunState.Running),
-                    cancellationToken);
-
-                var execution = await ExecuteWithRetryAndFallbackAsync(
-                    runId,
-                    stage,
-                    node,
-                    request.Inputs,
-                    stageAttempts,
-                    cancellationToken);
-
-                stageRuns[stageId] = new PipelineStageRun
+                if (stageStates.Values.All(s => s == PipelineStageRunState.Completed))
                 {
-                    StageId = stageId,
-                    State = execution.Succeeded ? PipelineStageRunState.Completed : PipelineStageRunState.Failed,
-                    Attempt = stageAttempts[stageId],
-                    WorkerId = execution.WorkerId,
-                    WorkerType = execution.WorkerType,
-                    Output = execution.Output,
-                    Error = execution.Error
-                };
-                stageStates[stageId] = stageRuns[stageId].State;
-
-                _logger.LogInformation(
-                    "Pipeline stage {StageId} completed with state {State} on worker {WorkerType}.",
-                    stageId,
-                    stageRuns[stageId].State,
-                    stageRuns[stageId].WorkerType);
-
-                if (stageRuns[stageId].State == PipelineStageRunState.Failed && stage.Constraints.Critical)
-                {
-                    run = await PersistAsync(
-                        runId,
-                        FinalizeRun(run, PipelineRunState.Failed, stageRuns),
+                    run = await CheckpointAsync(
+                        FinalizeRun(run, PipelineRunState.Completed, stageRuns),
                         cancellationToken);
-                    _logger.LogWarning("Critical stage {StageId} failed; run {RunId} is failing fast.", stageId, run.RunId);
+                    _logger.LogInformation("Pipeline run {RunId} completed successfully.", run.RunId);
                     return run;
                 }
+
+                if (IsTerminalWithoutPending(stageStates))
+                {
+                    var hasAnyFailure = stageRuns.Values.Any(stageRun => stageRun.State == PipelineStageRunState.Failed);
+                    var hasCriticalFailure = stageRuns.Values.Any(stageRun =>
+                        stageRun.ReconciliationRequired ||
+                        (stageRun.State == PipelineStageRunState.Failed &&
+                         stageDefinitionsById.TryGetValue(stageRun.StageId, out var stageDefinition) &&
+                         stageDefinition.Constraints.Critical));
+
+                    var terminalState = ResolveTerminalState(hasAnyFailure, hasCriticalFailure, _options.CompletionPolicy);
+                    run = await CheckpointAsync(
+                        FinalizeRun(run, terminalState, stageRuns),
+                        cancellationToken);
+                    _logger.LogInformation(
+                        "Pipeline run {RunId} reached terminal state {State}.",
+                        run.RunId,
+                        terminalState);
+                    return run;
+                }
+
+                var readyStageIds = _scheduler.GetReadyStages(graph, stageStates);
+                if (readyStageIds.Count == 0)
+                {
+                    run = await CheckpointAsync(
+                        FinalizeRun(run, PipelineRunState.Failed, stageRuns),
+                        cancellationToken);
+                    _logger.LogWarning("Pipeline run {RunId} stalled with no ready stages.", run.RunId);
+                    return run;
+                }
+
+                foreach (var stageId in readyStageIds)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var node = graph.Nodes.Single(n => n.StageId == stageId);
+                    var stage = stageDefinitionsById[stageId];
+
+                    if (!CanStageExecute(node, stageStates))
+                        continue;
+
+                    var execution = await ExecuteWithRetryAndFallbackAsync(
+                        runId,
+                        stage,
+                        node,
+                        request.Inputs,
+                        stageAttempts,
+                        stageRuns[stageId].IdempotencyKey!,
+                        async (workerType, attempt) =>
+                        {
+                            // Persist intent before dispatch. If the completion write is lost, resume
+                            // sees an uncertain invocation rather than a stage that never ran.
+                            stageStates[stageId] = PipelineStageRunState.Running;
+                            stageRuns[stageId] = stageRuns[stageId] with
+                            {
+                                State = PipelineStageRunState.Running,
+                                Attempt = attempt,
+                                WorkerType = workerType,
+                                ReconciliationRequired = !PipelineOperationIdentity.CanReplay(stage.Effects),
+                                Output = null,
+                                Error = null
+                            };
+                            run = await CheckpointAsync(UpdateRun(run, stageRuns, PipelineRunState.Running), cancellationToken);
+                        },
+                        cancellationToken);
+
+                    stageRuns[stageId] = stageRuns[stageId] with
+                    {
+                        State = execution.Succeeded ? PipelineStageRunState.Completed : PipelineStageRunState.Failed,
+                        Attempt = stageAttempts[stageId],
+                        WorkerId = execution.WorkerId,
+                        WorkerType = execution.WorkerType,
+                        Output = execution.Output,
+                        Error = execution.Error,
+                        ReconciliationRequired = execution.ReconciliationRequired
+                    };
+                    stageStates[stageId] = stageRuns[stageId].State;
+                    run = await CheckpointAsync(UpdateRun(run, stageRuns, PipelineRunState.Running), cancellationToken);
+
+                    _logger.LogInformation(
+                        "Pipeline stage {StageId} completed with state {State} on worker {WorkerType}.",
+                        stageId,
+                        stageRuns[stageId].State,
+                        stageRuns[stageId].WorkerType);
+
+                    if (execution.ReconciliationRequired ||
+                        (stageRuns[stageId].State == PipelineStageRunState.Failed && stage.Constraints.Critical))
+                    {
+                        run = await CheckpointAsync(
+                            FinalizeRun(run, PipelineRunState.Failed, stageRuns),
+                            cancellationToken);
+                        _logger.LogWarning("Stage {StageId} requires the run {RunId} to stop after failure.", stageId, run.RunId);
+                        return run;
+                    }
+                }
+
+                var scaleSnapshot = BuildScalingSnapshot(stageRuns.Values);
+                var scaleDecision = _scalingPolicy.Evaluate(scaleSnapshot);
+                _logger.LogDebug(
+                    "Pipeline scaling decision: deterministic={DeterministicWorkers}, agentic={AgenticWorkers}.",
+                    scaleDecision.DeterministicWorkers,
+                    scaleDecision.AgenticWorkers);
+
+                run = await CheckpointAsync(
+                    UpdateRun(run, stageRuns, PipelineRunState.Running),
+                    cancellationToken);
             }
-
-            var scaleSnapshot = BuildScalingSnapshot(stageRuns.Values);
-            var scaleDecision = _scalingPolicy.Evaluate(scaleSnapshot);
-            _logger.LogDebug(
-                "Pipeline scaling decision: deterministic={DeterministicWorkers}, agentic={AgenticWorkers}.",
-                scaleDecision.DeterministicWorkers,
-                scaleDecision.AgenticWorkers);
-
-            run = await PersistAsync(
-                runId,
-                UpdateRun(run, stageRuns, PipelineRunState.Running),
-                cancellationToken);
+        }
+        catch
+        {
+            // Preserve the actual stored state: a failed write may have committed before its
+            // acknowledgement was lost. Accounting must never roll that checkpoint back.
+            try
+            {
+                await _runStore.MergeAsync(runId, stored =>
+                {
+                    _ = PipelineRunPersistence.Advance(stored, run);
+                    return stored! with { ProviderUsageAttempts = usage.Snapshot() };
+                }, CancellationToken.None);
+            }
+            catch (Exception accountingError)
+            {
+                _logger.LogWarning(accountingError, "Could not persist provider usage for interrupted pipeline run {RunId}.", runId);
+            }
+            throw;
         }
     }
 
@@ -221,7 +276,6 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
     /// Omitting RunId generates a fresh destination, including for interrupted source runs.
     /// </remarks>
     /// <param name="request">The execution request, carrying <c>ResumeRunId</c>.</param>
-    /// <param name="graph">The execution graph.</param>
     /// <param name="stageStates">Stage states to hydrate.</param>
     /// <param name="stageAttempts">Stage attempt counts to hydrate.</param>
     /// <param name="stageRuns">Stage runs to hydrate.</param>
@@ -229,7 +283,6 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
     /// <param name="cancellationToken">Cancellation token.</param>
     private async Task TryHydrateFromPriorRunAsync(
         PipelineExecutionRequest request,
-        PipelineExecutionGraph graph,
         IDictionary<string, PipelineStageRunState> stageStates,
         IDictionary<string, int> stageAttempts,
         IDictionary<string, PipelineStageRun> stageRuns,
@@ -247,39 +300,64 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             return;
         }
 
+        if (!string.Equals(prior.TemplateId, request.Template.TemplateId, StringComparison.Ordinal))
+            throw new InvalidOperationException("Resume source belongs to a different pipeline template.");
+        if (!Enum.IsDefined(prior.State))
+            throw ReconciliationRequired("checkpoint", "The source contains an invalid run state.");
+        if (prior.StageRuns == null || prior.StageRuns.Any(stage => stage == null || string.IsNullOrWhiteSpace(stage.StageId)))
+            throw ReconciliationRequired("checkpoint", "The source must contain one record for every stage.");
+        var priorIds = new HashSet<string>(prior.StageRuns.Select(stage => stage.StageId), StringComparer.Ordinal);
+        if (priorIds.Count != prior.StageRuns.Count || !priorIds.SetEquals(stageStates.Keys))
+            throw ReconciliationRequired("checkpoint", "Source stage identities must match the current graph exactly without duplicates.");
+
         foreach (var stage in prior.StageRuns)
         {
-            if (!stageStates.ContainsKey(stage.StageId))
-                continue;
+            var current = stageRuns[stage.StageId];
+            if (!Enum.IsDefined(stage.State) || stage.Attempt < 0 ||
+                (stage.Effects.HasValue && !Enum.IsDefined(stage.Effects.Value)))
+                throw ReconciliationRequired(stage.StageId, "Checkpoint contains invalid execution metadata.");
+            if (stage.State == PipelineStageRunState.Completed && string.IsNullOrWhiteSpace(stage.ExecutionFingerprint))
+                throw ReconciliationRequired(stage.StageId, "Completed output lacks its original input and stage fingerprint.");
+            if (stage.ExecutionFingerprint != null &&
+                !string.Equals(stage.ExecutionFingerprint, current.ExecutionFingerprint, StringComparison.Ordinal))
+                throw ReconciliationRequired(stage.StageId, "The stage, topology, or inputs changed since its operation key was created.");
+            if (stage.Effects.HasValue && stage.Effects != current.Effects)
+                throw ReconciliationRequired(stage.StageId, "The effect declaration changed since the checkpoint.");
+            // Disabling failed-stage retries must not let a resumed workflow continue past
+            // an unresolved unsafe effect while silently carrying its failure forward.
+            if (stage.State != PipelineStageRunState.Completed && !PipelineOperationIdentity.CanReplay(current.Effects!.Value))
+                throw ReconciliationRequired(stage.StageId, "Incomplete stages require an explicit replay-safe declaration.");
 
-            var canCarryForward = stage.State == PipelineStageRunState.Completed ||
-                                  (resumeFailed && stage.State == PipelineStageRunState.Failed);
+            var willReplay = stage.State != PipelineStageRunState.Completed &&
+                             (stage.State != PipelineStageRunState.Failed || resumeFailed);
+            if (willReplay)
+            {
+                // Even a pending source may still be executing in another host. Resuming a
+                // snapshot is not an exclusive lease on the original external operation.
+                if (current.Effects == PipelineStageEffects.Idempotent &&
+                    (stage.Effects != PipelineStageEffects.Idempotent ||
+                     string.IsNullOrWhiteSpace(stage.IdempotencyKey) || string.IsNullOrWhiteSpace(stage.ExecutionFingerprint)))
+                    throw ReconciliationRequired(stage.StageId, "An idempotent stage requires its original persisted key and fingerprint.");
+            }
 
-            if (!canCarryForward)
-                continue;
-
-            var carriedState = stage.State == PipelineStageRunState.Failed
-                ? PipelineStageRunState.Pending
-                : stage.State;
+            var carriedState = willReplay ? PipelineStageRunState.Pending : stage.State;
             stageStates[stage.StageId] = carriedState;
             stageAttempts[stage.StageId] = stage.Attempt;
-            stageRuns[stage.StageId] = stage with { State = carriedState };
-        }
-
-        // Ensure unknown graph stages are reset to pending.
-        foreach (var node in graph.Nodes)
-        {
-            if (!stageRuns.ContainsKey(node.StageId))
+            stageRuns[stage.StageId] = stage with
             {
-                stageRuns[node.StageId] = new PipelineStageRun
-                {
-                    StageId = node.StageId,
-                    State = PipelineStageRunState.Pending,
-                    Attempt = 0
-                };
-            }
+                State = carriedState,
+                IdempotencyKey = stage.IdempotencyKey ?? (willReplay ? current.IdempotencyKey : null),
+                ExecutionFingerprint = stage.ExecutionFingerprint ?? (willReplay ? current.ExecutionFingerprint : null),
+                Effects = stage.Effects ?? current.Effects,
+                ReconciliationRequired = !willReplay && stage.ReconciliationRequired,
+                Output = willReplay ? null : stage.Output,
+                Error = willReplay ? null : stage.Error
+            };
         }
     }
+
+    private static InvalidOperationException ReconciliationRequired(string stageId, string reason)
+        => new($"stage-reconciliation-required: Stage '{stageId}': {reason} Reconcile external effects before starting a new operation.");
 
     private bool CanStageExecute(
         PipelineExecutionNode node,
@@ -314,6 +392,8 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
         PipelineExecutionNode node,
         IReadOnlyDictionary<string, string> inputs,
         IDictionary<string, int> stageAttempts,
+        string idempotencyKey,
+        Func<PipelineWorkerType, int, Task> beforeAttempt,
         CancellationToken cancellationToken)
     {
         var chain = ResolveWorkerChain(stage);
@@ -341,14 +421,15 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             // through the executor would mean throwing exceptions to signal ordinary
             // outcomes. What it does share is the policy and its backoff.
             var retryPolicy = RetryPolicy.FixedDelay(
-                maxAttempts: Math.Max(1, _options.MaxRetryAttempts),
-                delay: TimeSpan.FromMilliseconds(Math.Max(0, _options.RetryDelayMs)));
+                maxAttempts: _options.MaxRetryAttempts,
+                delay: TimeSpan.FromMilliseconds(_options.RetryDelayMs));
             var maxAttempts = retryPolicy.MaxAttempts;
             for (var localAttempt = 1; localAttempt <= maxAttempts; localAttempt++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                stageAttempts[stage.Id] = stageAttempts[stage.Id] + 1;
+                stageAttempts[stage.Id] = checked(stageAttempts[stage.Id] + 1);
                 var globalAttempt = stageAttempts[stage.Id];
+                await beforeAttempt(workerType, globalAttempt);
 
                 _logger.LogDebug(
                     "Executing stage {StageId} attempt {Attempt} on {WorkerType}.",
@@ -361,6 +442,7 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
                     RunId = runId,
                     StageId = stage.Id,
                     Attempt = globalAttempt,
+                    IdempotencyKey = idempotencyKey,
                     WorkerType = workerType,
                     Stage = stage,
                     Node = node,
@@ -375,6 +457,18 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
                         WorkerId = result.WorkerId,
                         WorkerType = workerType,
                         Output = result.Output
+                    };
+                }
+
+                if (!PipelineOperationIdentity.CanReplay(stage.Effects))
+                {
+                    return new ExecutionOutcome
+                    {
+                        Succeeded = false,
+                        WorkerId = result.WorkerId,
+                        WorkerType = workerType,
+                        ReconciliationRequired = true,
+                        Error = ReconciliationRequired(stage.Id, result.Error ?? "The invocation failed with an uncertain effect outcome.").Message
                     };
                 }
 
@@ -502,6 +596,7 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
     {
         /// <summary>Whether the operation succeeded.</summary>
         public bool Succeeded { get; init; }
+        public bool ReconciliationRequired { get; init; }
         /// <summary>Worker id.</summary>
         public string? WorkerId { get; init; }
         /// <summary>Worker type.</summary>

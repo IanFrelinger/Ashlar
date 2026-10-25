@@ -59,4 +59,28 @@ public sealed class AshlarMcpServerOptions
     /// </summary>
     public IDictionary<string, IDictionary<string, string>> ArgumentOverrides { get; }
         = new Dictionary<string, IDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Operator classification floors for complete tool responses (text, structured content and errors), keyed by
+    /// canonical Ashlar tool id. Values are canonical security labels, for example <c>Public</c> or
+    /// <c>Secret//C:PROJECT_A//K:NOWEB</c>. Missing classifications are SystemHigh, so exposure alone never authorizes
+    /// disclosure. Only classify a tool Public when all data it can access is public or its reads report stricter labels.
+    /// </summary>
+    public IDictionary<string, string> ResponseLabels { get; }
+        = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Trusted issuer for authenticated caller NameIdentifier claims. Set by the host operator to the issuer used
+    /// by its authentication handler. Missing issuer, anonymous requests and ambiguous identities receive Public
+    /// clearance. Tool arguments and caller-provided clearance claims are never used.
+    /// </summary>
+    public string? CallerIdentityIssuer { get; set; }
+
+    /// <summary>
+    /// Operator-owned clearance map keyed by authenticated NameIdentifier subject, matched ordinally under
+    /// <see cref="CallerIdentityIssuer"/>. Missing subjects have Public clearance. Unauthenticated stdio calls also
+    /// remain Public; a transport must supply a trusted authenticated principal to grant higher clearance.
+    /// </summary>
+    public IDictionary<string, string> CallerClearances { get; }
+        = new Dictionary<string, string>(StringComparer.Ordinal);
 }

@@ -65,8 +65,8 @@ public sealed class PipelineOrchestratorGapCoverageTests
             TemplateId = "stall",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "upstream", Name = "Upstream", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "blocked", Name = "Blocked", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "upstream", Name = "Upstream", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "blocked", Name = "Blocked", Mode = PipelineExecutionMode.Deterministic },
             },
             Edges = new[] { new PipelineEdge("upstream", "blocked") },
         };
@@ -101,11 +101,12 @@ public sealed class PipelineOrchestratorGapCoverageTests
             TemplateId = "quorum",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "c", Name = "C", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "c", Name = "C", Mode = PipelineExecutionMode.Deterministic },
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "join",
                     Name = "Join",
                     StageType = PipelineStageType.FanIn,
@@ -171,7 +172,7 @@ public sealed class PipelineOrchestratorGapCoverageTests
             TemplateId = "agentic-only",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "think", Name = "Think", Mode = PipelineExecutionMode.Agentic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "think", Name = "Think", Mode = PipelineExecutionMode.Agentic },
             },
         };
 
@@ -219,21 +220,20 @@ public sealed class PipelineOrchestratorGapCoverageTests
             TemplateId = "resume-options",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
             },
             Edges = new[] { new PipelineEdge("a", "b") },
         };
 
-        await runStore.PutAsync(new PipelineRun
+        var original = await orchestrator.RunAsync(new PipelineExecutionRequest { RunId = "prior-options", Template = template });
+        await runStore.PutAsync(original with
         {
-            RunId = "prior-options",
-            TemplateId = "resume-options",
             State = PipelineRunState.Failed,
             StageRuns = new[]
             {
-                new PipelineStageRun { StageId = "a", State = PipelineStageRunState.Completed, Attempt = 1, WorkerType = PipelineWorkerType.Deterministic },
-                new PipelineStageRun { StageId = "b", State = PipelineStageRunState.Failed, Attempt = 1, WorkerType = PipelineWorkerType.Deterministic, Error = "x" },
+                original.StageRuns.Single(stage => stage.StageId == "a"),
+                original.StageRuns.Single(stage => stage.StageId == "b") with { State = PipelineStageRunState.Failed, Error = "x" },
             },
         });
 
@@ -281,6 +281,7 @@ public sealed class PipelineOrchestratorGapCoverageTests
             {
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "hybrid",
                     Name = "Hybrid",
                     Mode = PipelineExecutionMode.Hybrid,
@@ -333,7 +334,7 @@ public sealed class PipelineOrchestratorGapCoverageTests
     }
 
     [Fact]
-    public async Task RunAsync_resume_skips_unknown_prior_stages_not_in_graph()
+    public async Task RunAsync_resume_refuses_prior_stages_not_in_graph()
     {
         var orchestrator = PipelineOrchestratorTests.BuildOrchestratorForGap(
             out var runStore,
@@ -342,7 +343,7 @@ public sealed class PipelineOrchestratorGapCoverageTests
         var template = new PipelineTemplate
         {
             TemplateId = "resume-trim",
-            Stages = new[] { new PipelineStageDefinition { Id = "only", Name = "Only", Mode = PipelineExecutionMode.Deterministic } },
+            Stages = new[] { new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "only", Name = "Only", Mode = PipelineExecutionMode.Deterministic } },
         };
 
         await runStore.PutAsync(new PipelineRun
@@ -357,15 +358,15 @@ public sealed class PipelineOrchestratorGapCoverageTests
             },
         });
 
-        var run = await orchestrator.RunAsync(new PipelineExecutionRequest
+        var resume = () => orchestrator.RunAsync(new PipelineExecutionRequest
         {
             RunId = "resume-trim-run",
             ResumeRunId = "prior-trim",
             Template = template,
         }, CancellationToken.None);
 
-        run.State.Should().Be(PipelineRunState.Completed);
-        run.StageRuns.Should().ContainSingle(x => x.StageId == "only");
+        await resume.Should().ThrowAsync<InvalidOperationException>().WithMessage("*stage identities must match*");
+        (await runStore.GetAsync("resume-trim-run")).Should().BeNull();
     }
 
     [Fact]
@@ -509,6 +510,6 @@ public sealed class PipelineOrchestratorGapCoverageTests
     private static PipelineTemplate SingleStageTemplate(string stageId) => new()
     {
         TemplateId = stageId + "-template",
-        Stages = new[] { new PipelineStageDefinition { Id = stageId, Name = stageId, Mode = PipelineExecutionMode.Deterministic } },
+        Stages = new[] { new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = stageId, Name = stageId, Mode = PipelineExecutionMode.Deterministic } },
     };
 }

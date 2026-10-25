@@ -8,6 +8,10 @@
 //   Ashlar__Mcp__Server__Enabled                 defaults to true here — running this binary IS the opt-in;
 //                                              still overridable to false, and refused under AirGapped.
 //   Ashlar__Mcp__Server__ExposedToolIds__0       allowlist, e.g. "repo.fs.read" — empty exposes zero tools.
+//   Ashlar__Mcp__Server__ResponseLabels__repo.fs.read
+//                                              trusted operator classification; absent is SystemHigh, not Public.
+//                                              This stdio host has no authenticated principal and receives Public
+//                                              responses only. Do not mark private repositories Public to enable it.
 //   Ashlar__Mcp__Server__RepoRoot                world-snapshot root (defaults to the working directory).
 //   Ashlar__Mcp__Server__ArgumentOverrides__repo.fs.read__root
 //                                              pin caller-visible args, e.g. force 'root' for repo tools.
@@ -39,7 +43,7 @@ builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 builder.Services.AddAshlar();
 
 // Read-only repo tools available for allowlisting out of the box. Nothing is exposed until the
-// operator lists ids in ExposedToolIds; mutating tools (repo.fs.write, git commit, dotnet run)
+// operator lists ids in ExposedToolIds and configures reviewed response classifications. Mutating tools (repo.fs.write, git commit, dotnet run)
 // are deliberately not pre-registered — hosts that want them must add them explicitly.
 builder.Services.AddSingleton<ITool, RepoFsReadTool>();
 builder.Services.AddSingleton<ITool, RepoFsListTool>();

@@ -17,6 +17,9 @@ public sealed record PipelineStageDefinition
     /// <summary>Execution mode governing worker selection for this stage.</summary>
     public PipelineExecutionMode Mode { get; init; } = PipelineExecutionMode.Deterministic;
 
+    /// <summary>Replay safety declaration. Unspecified stages require reconciliation after uncertain execution.</summary>
+    public PipelineStageEffects Effects { get; init; } = PipelineStageEffects.Unspecified;
+
     /// <summary>Fan-in join strategy when multiple predecessors feed this stage.</summary>
     public PipelineJoinStrategy? JoinStrategy { get; init; }
 

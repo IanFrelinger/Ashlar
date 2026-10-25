@@ -14,6 +14,7 @@ public sealed class AuditingChatClient : DelegatingChatClient
     private readonly IChatInvocationAuditor _auditor;
     private readonly string _targetKey;
     private readonly Func<string?>? _correlationIdAccessor;
+    private readonly IReadOnlyList<IChatInvocationUsageObserver> _usageObservers;
 
     /// <summary>Creates an auditing decorator.</summary>
     public AuditingChatClient(
@@ -21,11 +22,23 @@ public sealed class AuditingChatClient : DelegatingChatClient
         IChatInvocationAuditor auditor,
         string targetKey,
         Func<string?>? correlationIdAccessor = null)
+        : this(innerClient, auditor, targetKey, correlationIdAccessor, null)
+    {
+    }
+
+    /// <summary>Creates an auditing decorator with optional host usage observers.</summary>
+    public AuditingChatClient(
+        IChatClient innerClient,
+        IChatInvocationAuditor auditor,
+        string targetKey,
+        Func<string?>? correlationIdAccessor,
+        IEnumerable<IChatInvocationUsageObserver>? usageObservers)
         : base(innerClient)
     {
         _auditor = auditor ?? throw new ArgumentNullException(nameof(auditor));
         _targetKey = targetKey ?? throw new ArgumentNullException(nameof(targetKey));
         _correlationIdAccessor = correlationIdAccessor;
+        _usageObservers = usageObservers?.ToArray() ?? Array.Empty<IChatInvocationUsageObserver>();
     }
 
     /// <inheritdoc />
@@ -35,36 +48,37 @@ public sealed class AuditingChatClient : DelegatingChatClient
         CancellationToken cancellationToken = default)
     {
         var sw = Stopwatch.StartNew();
+        var invocation = new Invocation(Guid.NewGuid(), DateTimeOffset.UtcNow);
         try
         {
             var response = await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
             sw.Stop();
-            Emit("success", response.ModelId ?? options?.ModelId, sw.ElapsedMilliseconds, response.Usage);
+            Emit(invocation, "success", response.ModelId ?? options?.ModelId, sw.ElapsedMilliseconds, response.Usage);
             return response;
         }
         catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
         {
             sw.Stop();
-            EmitRefusal(refusal, options?.ModelId, sw.ElapsedMilliseconds);
+            EmitRefusal(invocation, refusal, options?.ModelId, sw.ElapsedMilliseconds);
             EgressRefusal.ThrowIfPresent(ex);
             throw;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             sw.Stop();
-            Emit("cancelled", options?.ModelId, sw.ElapsedMilliseconds, reasonCode: "cancelled");
+            Emit(invocation, "cancelled", options?.ModelId, sw.ElapsedMilliseconds, reasonCode: "cancelled");
             throw;
         }
         catch (PolicyViolationException ex)
         {
             sw.Stop();
-            Emit("denied", options?.ModelId ?? ex.ModelId, sw.ElapsedMilliseconds, reasonCode: ex.Code);
+            Emit(invocation, "denied", options?.ModelId ?? ex.ModelId, sw.ElapsedMilliseconds, reasonCode: ex.Code);
             throw;
         }
         catch (Exception)
         {
             sw.Stop();
-            Emit("fault", options?.ModelId, sw.ElapsedMilliseconds, reasonCode: "fault");
+            Emit(invocation, "fault", options?.ModelId, sw.ElapsedMilliseconds, reasonCode: "fault");
             throw;
         }
     }
@@ -76,6 +90,7 @@ public sealed class AuditingChatClient : DelegatingChatClient
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var sw = Stopwatch.StartNew();
+        var invocation = new Invocation(Guid.NewGuid(), DateTimeOffset.UtcNow);
         string? modelId = options?.ModelId;
         UsageDetails? usage = null;
         var completed = false;
@@ -93,8 +108,20 @@ public sealed class AuditingChatClient : DelegatingChatClient
             {
                 activeRefusal = refusal;
                 sw.Stop();
-                EmitRefusal(refusal, modelId, sw.ElapsedMilliseconds, usage);
+                EmitRefusal(invocation, refusal, modelId, sw.ElapsedMilliseconds, usage);
                 EgressRefusal.ThrowIfPresent(ex);
+                throw;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                sw.Stop();
+                Emit(invocation, "cancelled", modelId, sw.ElapsedMilliseconds, usage, "cancelled");
+                throw;
+            }
+            catch (Exception)
+            {
+                sw.Stop();
+                Emit(invocation, "fault", modelId, sw.ElapsedMilliseconds, usage, "fault");
                 throw;
             }
 
@@ -109,26 +136,26 @@ public sealed class AuditingChatClient : DelegatingChatClient
                 {
                     activeRefusal = refusal;
                     sw.Stop();
-                    EmitRefusal(refusal, modelId, sw.ElapsedMilliseconds, usage);
+                    EmitRefusal(invocation, refusal, modelId, sw.ElapsedMilliseconds, usage);
                     EgressRefusal.ThrowIfPresent(ex);
                     throw;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     sw.Stop();
-                    Emit("cancelled", modelId, sw.ElapsedMilliseconds, usage, "cancelled");
+                    Emit(invocation, "cancelled", modelId, sw.ElapsedMilliseconds, usage, "cancelled");
                     throw;
                 }
                 catch (PolicyViolationException ex)
                 {
                     sw.Stop();
-                    Emit("denied", modelId ?? ex.ModelId, sw.ElapsedMilliseconds, usage, ex.Code);
+                    Emit(invocation, "denied", modelId ?? ex.ModelId, sw.ElapsedMilliseconds, usage, ex.Code);
                     throw;
                 }
                 catch (Exception)
                 {
                     sw.Stop();
-                    Emit("fault", modelId, sw.ElapsedMilliseconds, usage, "fault");
+                    Emit(invocation, "fault", modelId, sw.ElapsedMilliseconds, usage, "fault");
                     throw;
                 }
 
@@ -172,17 +199,27 @@ public sealed class AuditingChatClient : DelegatingChatClient
                 catch (Exception ex) when (EgressRefusal.Find(ex) is { } refusal)
                 {
                     sw.Stop();
-                    EmitRefusal(refusal, modelId, sw.ElapsedMilliseconds, usage);
+                    EmitRefusal(invocation, refusal, modelId, sw.ElapsedMilliseconds, usage);
                     EgressRefusal.ThrowIfPresent(ex);
                     throw;
                 }
+                catch (Exception)
+                {
+                    sw.Stop();
+                    if (!invocation.Emitted) Emit(invocation, "fault", modelId, sw.ElapsedMilliseconds, usage, "dispose_fault");
+                    throw;
+                }
             }
-
+            if (!completed && !invocation.Emitted && activeRefusal is null)
+            {
+                sw.Stop();
+                Emit(invocation, "cancelled", modelId, sw.ElapsedMilliseconds, usage, "stream_disposed");
+            }
         }
-        if (completed) Emit("success", modelId, sw.ElapsedMilliseconds, usage);
+        if (completed) Emit(invocation, "success", modelId, sw.ElapsedMilliseconds, usage);
     }
 
-    private void EmitRefusal(EgressRefusedException refusal, string? modelId, long latencyMs, UsageDetails? usage = null)
+    private void EmitRefusal(Invocation invocation, EgressRefusedException refusal, string? modelId, long latencyMs, UsageDetails? usage = null)
     {
         try
         {
@@ -190,7 +227,7 @@ public sealed class AuditingChatClient : DelegatingChatClient
             if (!EgressRefusalAuditDeduper.ShouldRecord(refusal.Decision))
                 return;
 
-            Emit("denied", modelId, latencyMs, usage, "egress_refused", refusal.Decision);
+            Emit(invocation, "denied", modelId, latencyMs, usage, "egress_refused", refusal.Decision);
         }
         catch (Exception)
         {
@@ -199,6 +236,7 @@ public sealed class AuditingChatClient : DelegatingChatClient
     }
 
     private void Emit(
+        Invocation invocation,
         string outcome,
         string? modelId,
         long latencyMs,
@@ -206,6 +244,7 @@ public sealed class AuditingChatClient : DelegatingChatClient
         string? reasonCode = null,
         EgressDecision? egressDecision = null)
     {
+        invocation.Emitted = true;
         var sanitize = SanitizationCallContext.Result;
         var decisions = new List<string> { $"target={_targetKey}", $"outcome={outcome}" };
         if (sanitize is not null)
@@ -213,8 +252,11 @@ public sealed class AuditingChatClient : DelegatingChatClient
             decisions.Add($"sanitize_redactions={sanitize.RedactionCount}");
         }
 
-        _auditor.Record(new ChatInvocationAuditRecord
+        var record = new ChatInvocationAuditRecord
         {
+            InvocationId = invocation.Id,
+            StartedAt = invocation.StartedAt,
+            IsProviderInvocation = !string.Equals(_targetKey, Routing.RoutingChatClient.RouterTargetKey, StringComparison.Ordinal),
             TargetKey = _targetKey,
             ModelId = modelId,
             Outcome = outcome,
@@ -223,10 +265,28 @@ public sealed class AuditingChatClient : DelegatingChatClient
             RedactionCategories = sanitize?.Categories ?? Array.Empty<string>(),
             InputTokenCount = usage?.InputTokenCount,
             OutputTokenCount = usage?.OutputTokenCount,
+            CachedInputTokenCount = usage?.CachedInputTokenCount,
+            ReasoningTokenCount = usage?.ReasoningTokenCount,
+            UsageIsProviderReported = usage is ProviderReportedChatUsage,
+            UsageHasInvalidCounts = usage is ProviderReportedChatUsage { HasInvalidCounts: true },
             LatencyMs = latencyMs,
             CorrelationId = _correlationIdAccessor?.Invoke(),
             ReasonCode = reasonCode,
             EgressDecision = egressDecision,
-        });
+        };
+        foreach (var observer in _usageObservers)
+        {
+            try { observer.Observe(record); }
+            catch (Exception)
+            {
+                // Optional accounting cannot turn a successful call into a retry or replace a refusal.
+            }
+        }
+        _auditor.Record(record);
+    }
+
+    private sealed record Invocation(Guid Id, DateTimeOffset StartedAt)
+    {
+        internal bool Emitted { get; set; }
     }
 }

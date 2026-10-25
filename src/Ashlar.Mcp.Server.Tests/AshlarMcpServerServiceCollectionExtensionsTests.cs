@@ -40,6 +40,9 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
             ($"{AshlarMcpServerOptions.SectionPath}:Enabled", "true"),
             ($"{AshlarMcpServerOptions.SectionPath}:ExposedToolIds:0", "repo.fs.read"),
             ($"{AshlarMcpServerOptions.SectionPath}:ServerName", "ashlar-test"),
+            ($"{AshlarMcpServerOptions.SectionPath}:ResponseLabels:repo.fs.read", "Secret"),
+            ($"{AshlarMcpServerOptions.SectionPath}:CallerIdentityIssuer", "https://identity.example/ashlar"),
+            ($"{AshlarMcpServerOptions.SectionPath}:CallerClearances:alice", "Secret"),
             ($"{AshlarMcpServerOptions.SectionPath}:ArgumentOverrides:repo.fs.read:root", "X:/pinned")));
 
         var options = provider.GetRequiredService<IOptions<AshlarMcpServerOptions>>().Value;
@@ -47,6 +50,9 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
         options.Enabled.Should().BeTrue();
         options.ExposedToolIds.Should().ContainSingle().Which.Should().Be("repo.fs.read");
         options.ServerName.Should().Be("ashlar-test");
+        options.ResponseLabels["repo.fs.read"].Should().Be("Secret");
+        options.CallerIdentityIssuer.Should().Be("https://identity.example/ashlar");
+        options.CallerClearances["alice"].Should().Be("Secret");
         options.ArgumentOverrides["repo.fs.read"]["root"].Should().Be("X:/pinned");
     }
 

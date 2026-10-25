@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+using Ashlar.AI.Pipeline.Governance;
 
 namespace Ashlar.AI.Pipeline.Clients;
 
@@ -55,6 +56,7 @@ public sealed class OllamaHttpChatClient : IChatClient, IDisposable
         return new ChatResponse(new ChatMessage(ChatRole.Assistant, text))
         {
             ModelId = body?.Model ?? options?.ModelId ?? _defaultModel,
+            Usage = ReadUsage(body),
         };
     }
 
@@ -93,11 +95,19 @@ public sealed class OllamaHttpChatClient : IChatClient, IDisposable
 
             var chunk = JsonSerializer.Deserialize<OllamaChatResponse>(line, JsonOptions);
             var content = chunk?.Message?.Content;
-            if (!string.IsNullOrEmpty(content))
+            var usage = chunk?.Done == true ? ReadUsage(chunk) : null;
+            if (!string.IsNullOrEmpty(content) || usage is not null)
             {
-                yield return new ChatResponseUpdate(ChatRole.Assistant, content)
+                var contents = new List<AIContent>();
+                if (!string.IsNullOrEmpty(content)) contents.Add(new TextContent(content));
+                if (usage is not null) contents.Add(new UsageContent(usage));
+                // Keep terminal text and its already-received usage together. Consumers may
+                // stop enumeration after the text and must not lose the counters in that chunk.
+                yield return new ChatResponseUpdate
                 {
+                    Role = ChatRole.Assistant,
                     ModelId = chunk?.Model ?? options?.ModelId ?? _defaultModel,
+                    Contents = contents
                 };
             }
 
@@ -180,11 +190,36 @@ public sealed class OllamaHttpChatClient : IChatClient, IDisposable
 
     private static string ResolveModel(MeaiPipelineOptions options) => OllamaEndpointResolver.ResolveModel(options);
 
+    private static ProviderReportedChatUsage? ReadUsage(OllamaChatResponse? response)
+    {
+        if (response is null) return null;
+        var invalid = false;
+        var input = ReadCount(response.PromptEvalCount, ref invalid);
+        var output = ReadCount(response.EvalCount, ref invalid);
+        if (!input.HasValue && !output.HasValue && !invalid) return null;
+        return new ProviderReportedChatUsage
+        {
+            InputTokenCount = input,
+            OutputTokenCount = output,
+            HasInvalidCounts = invalid
+        };
+    }
+
+    private static long? ReadCount(JsonElement value, ref bool invalid)
+    {
+        if (value.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) return null;
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var count) && count >= 0) return count;
+        invalid = true;
+        return null;
+    }
+
     private sealed class OllamaChatResponse
     {
         public string? Model { get; set; }
         public OllamaMessage? Message { get; set; }
         public bool Done { get; set; }
+        public JsonElement PromptEvalCount { get; set; }
+        public JsonElement EvalCount { get; set; }
     }
 
     private sealed class OllamaMessage

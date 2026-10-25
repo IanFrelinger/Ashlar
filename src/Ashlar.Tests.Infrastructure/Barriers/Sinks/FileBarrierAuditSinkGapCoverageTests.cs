@@ -96,7 +96,8 @@ public sealed class FileBarrierAuditSinkGapCoverageTests
         var testDir = CreateTempDirectory();
         var buildUnique = typeof(FileBarrierAuditSink).GetMethod(
             "BuildUniqueFilePath",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null, types: Type.EmptyTypes, modifiers: null)!;
 
         await using var sink = CreateSink(testDir, new TestLogger<FileBarrierAuditSink>());
         var firstPath = (string)buildUnique.Invoke(sink, null)!;
@@ -150,32 +151,25 @@ public sealed class FileBarrierAuditSinkGapCoverageTests
         var testDir = CreateTempDirectory();
         var buildUnique = typeof(FileBarrierAuditSink).GetMethod(
             "BuildUniqueFilePath",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null, types: [typeof(DateTimeOffset)], modifiers: null)!;
 
         await using var sink = CreateSink(testDir, new TestLogger<FileBarrierAuditSink>());
-        var firstPath = (string)buildUnique.Invoke(sink, null)!;
-        var fileName = Path.GetFileName(firstPath);
-        var timestamp = fileName
-            .Replace("audit-barriers-", string.Empty, StringComparison.Ordinal)
-            .Replace(".ndjson", string.Empty, StringComparison.Ordinal);
+        // Disk operations under coverage need not finish within one millisecond. Hold the
+        // filename's timestamp fixed so both occupied candidates belong to the same collision.
+        var now = new DateTimeOffset(2026, 1, 2, 3, 4, 5, 123, TimeSpan.Zero);
+        var firstPath = (string)buildUnique.Invoke(sink, [now])!;
+        var baseName = Path.GetFileNameWithoutExtension(firstPath);
+        var firstSuffix = Path.Combine(testDir, baseName + "-1.ndjson");
         File.WriteAllText(firstPath, "{}");
-        File.WriteAllText(Path.Combine(testDir, $"audit-barriers-{timestamp}-1.ndjson"), "{}");
+        File.WriteAllText(firstSuffix, "{}");
 
-        string? suffixed = null;
-        for (var attempt = 0; attempt < 200; attempt++)
-        {
-            var candidate = (string)buildUnique.Invoke(sink, null)!;
-            if (candidate.EndsWith("-2.ndjson", StringComparison.Ordinal))
-            {
-                suffixed = candidate;
-                break;
-            }
+        var suffixed = (string)buildUnique.Invoke(sink, [now])!;
 
-            if (!File.Exists(candidate))
-                File.WriteAllText(candidate, "{}");
-        }
-
-        suffixed.Should().NotBeNull();
+        suffixed.Should().Be(Path.Combine(testDir, baseName + "-2.ndjson"));
+        File.Exists(suffixed).Should().BeFalse();
+        File.ReadAllText(firstPath).Should().Be("{}");
+        File.ReadAllText(firstSuffix).Should().Be("{}");
     }
 
     [Fact]

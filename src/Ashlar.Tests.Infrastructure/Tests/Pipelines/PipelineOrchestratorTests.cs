@@ -28,10 +28,11 @@ public sealed class PipelineOrchestratorTests
             TemplateId = "happy-path",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "ingest", Name = "Ingest", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "enrich", Name = "Enrich", Mode = PipelineExecutionMode.Agentic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "ingest", Name = "Ingest", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "enrich", Name = "Enrich", Mode = PipelineExecutionMode.Agentic },
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "merge",
                     Name = "Merge",
                     StageType = PipelineStageType.FanIn,
@@ -78,9 +79,10 @@ public sealed class PipelineOrchestratorTests
             TemplateId = "fallback",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "root", Name = "Root", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "root", Name = "Root", Mode = PipelineExecutionMode.Deterministic },
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "hybrid-stage",
                     Name = "Hybrid",
                     Mode = PipelineExecutionMode.Hybrid,
@@ -128,6 +130,7 @@ public sealed class PipelineOrchestratorTests
             {
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "critical",
                     Name = "Critical",
                     Mode = PipelineExecutionMode.Deterministic,
@@ -139,6 +142,7 @@ public sealed class PipelineOrchestratorTests
                 },
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "downstream",
                     Name = "Downstream",
                     Mode = PipelineExecutionMode.Agentic
@@ -183,9 +187,9 @@ public sealed class PipelineOrchestratorTests
             TemplateId = "resume-template",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "b", Name = "B", Mode = PipelineExecutionMode.Agentic },
-                new PipelineStageDefinition { Id = "c", Name = "C", Mode = PipelineExecutionMode.Deterministic }
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "b", Name = "B", Mode = PipelineExecutionMode.Agentic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "c", Name = "C", Mode = PipelineExecutionMode.Deterministic }
             },
             Edges = new[]
             {
@@ -194,21 +198,20 @@ public sealed class PipelineOrchestratorTests
             }
         };
 
-        await runStore.PutAsync(new PipelineRun
+        var original = await orchestrator.RunAsync(new PipelineExecutionRequest { RunId = "prior-run", Template = template });
+        await runStore.PutAsync(original with
         {
-            RunId = "prior-run",
-            TemplateId = "resume-template",
             State = PipelineRunState.Failed,
             StageRuns = new[]
             {
-                new PipelineStageRun
+                original.StageRuns.Single(stage => stage.StageId == "a") with
                 {
                     StageId = "a",
                     State = PipelineStageRunState.Completed,
                     Attempt = 1,
                     WorkerType = PipelineWorkerType.Deterministic
                 },
-                new PipelineStageRun
+                original.StageRuns.Single(stage => stage.StageId == "b") with
                 {
                     StageId = "b",
                     State = PipelineStageRunState.Failed,
@@ -216,7 +219,7 @@ public sealed class PipelineOrchestratorTests
                     WorkerType = PipelineWorkerType.Agentic,
                     Error = "prior failure"
                 },
-                new PipelineStageRun
+                original.StageRuns.Single(stage => stage.StageId == "c") with
                 {
                     StageId = "c",
                     State = PipelineStageRunState.Pending,
@@ -256,10 +259,11 @@ public sealed class PipelineOrchestratorTests
             TemplateId = "fanin-first-success",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "join",
                     Name = "Join",
                     StageType = PipelineStageType.FanIn,
@@ -305,10 +309,11 @@ public sealed class PipelineOrchestratorTests
             TemplateId = "fail-closed-default",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "b", Name = "B", Mode = PipelineExecutionMode.Deterministic },
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "join",
                     Name = "Join",
                     StageType = PipelineStageType.FanIn,
@@ -354,7 +359,7 @@ public sealed class PipelineOrchestratorTests
             TemplateId = "resume-missing-fails",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "only", Name = "Only", Mode = PipelineExecutionMode.Deterministic }
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "only", Name = "Only", Mode = PipelineExecutionMode.Deterministic }
             }
         };
 
@@ -386,7 +391,7 @@ public sealed class PipelineOrchestratorTests
             TemplateId = "resume-missing-allowed",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "only", Name = "Only", Mode = PipelineExecutionMode.Deterministic }
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "only", Name = "Only", Mode = PipelineExecutionMode.Deterministic }
             }
         };
 

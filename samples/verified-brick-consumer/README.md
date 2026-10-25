@@ -1,6 +1,7 @@
 # Verified brick consumer
 
-This reference library loads a deployed brick from its source, certification record,
+This reference library delegates to `Ashlar.Infrastructure.Certification.VerifiedBrick`
+to load a deployed brick from its source, certification record,
 and gate-emitted DLL. The caller supplies the expected brick ID and a policy containing
 trusted Ed25519 public keys. An unpinned policy is rejected before any deployment file
 is read.
@@ -35,9 +36,9 @@ executions before disposing. Dependencies use the host's default load context, s
 the host supplies the compatible Ashlar contracts. An assembly load context is not
 a process sandbox.
 
-The project uses checkout references, including `Ashlar.Infrastructure` for its
-existing IL import fence. This is a source integration sample, not a separately
-published NuGet package or evidence of package-feed compatibility.
+The sample uses checkout references. The loader itself ships in `Ashlar.Infrastructure`;
+applications can use it directly without referencing this sample. For a verified-only
+host registry and startup checks, see [verified production hosting](../../docs/VerifiedProductionHosting.md).
 
 Run its integration tests from the repository root:
 

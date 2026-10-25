@@ -384,6 +384,8 @@ public sealed class LiteDbPatternProcessedStoreClaimTests : TempDirTestBase
         using var db = new LiteDatabase(LiteDbConnectionString.ForSharedAccess(path));
         var doc = db.GetCollection(CollectionName).FindOne(Query.EQ(PatternIdField, patternId));
         Assert.NotNull(doc);
-        return new DateTimeOffset(DateTime.SpecifyKind(doc["ProcessedAt"].AsDateTime, DateTimeKind.Utc));
+        // LiteDB deserializes dates in local time by default. Convert the instant;
+        // relabeling the local clock as UTC shifts it by the host's timezone offset.
+        return new DateTimeOffset(doc["ProcessedAt"].AsDateTime.ToUniversalTime());
     }
 }

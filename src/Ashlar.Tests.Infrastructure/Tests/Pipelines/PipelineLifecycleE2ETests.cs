@@ -63,7 +63,7 @@ public sealed class PipelineLifecycleE2ETests
             TemplateId = id,
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "stage1", Name = "Stage1", Mode = PipelineExecutionMode.Deterministic }
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "stage1", Name = "Stage1", Mode = PipelineExecutionMode.Deterministic }
             },
             Edges = Array.Empty<PipelineEdge>()
         };
@@ -104,9 +104,9 @@ public sealed class PipelineLifecycleE2ETests
             TemplateId = "linear-lifecycle",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "b", Name = "B", Mode = PipelineExecutionMode.Agentic },
-                new PipelineStageDefinition { Id = "c", Name = "C", Mode = PipelineExecutionMode.Deterministic }
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "a", Name = "A", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "b", Name = "B", Mode = PipelineExecutionMode.Agentic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "c", Name = "C", Mode = PipelineExecutionMode.Deterministic }
             },
             Edges = new[] { new PipelineEdge("a", "b"), new PipelineEdge("b", "c") }
         };
@@ -188,10 +188,11 @@ public sealed class PipelineLifecycleE2ETests
             TemplateId = "fan-in-lifecycle",
             Stages = new[]
             {
-                new PipelineStageDefinition { Id = "src1", Name = "Src1", Mode = PipelineExecutionMode.Deterministic },
-                new PipelineStageDefinition { Id = "src2", Name = "Src2", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "src1", Name = "Src1", Mode = PipelineExecutionMode.Deterministic },
+                new PipelineStageDefinition { Effects = PipelineStageEffects.None, Id = "src2", Name = "Src2", Mode = PipelineExecutionMode.Deterministic },
                 new PipelineStageDefinition
                 {
+                    Effects = PipelineStageEffects.None,
                     Id = "merge", Name = "Merge",
                     StageType = PipelineStageType.FanIn,
                     JoinStrategy = PipelineJoinStrategy.All,
@@ -380,13 +381,21 @@ public sealed class PipelineLifecycleE2ETests
         try
         {
             IPipelineRunStore store = durable ? new LiteDbPipelineRunStore(path) : new InMemoryPipelineRunStore();
-            await store.PutAsync(new PipelineRun
+            var sourceAdapter = new CountingAdapter(_ => Task.FromResult(new PipelineStageExecutionResult
             {
-                RunId = "source", TemplateId = "ownership", State = sourceState,
+                Succeeded = true, WorkerId = "prior-worker", Output = "prior-output"
+            }));
+            var original = await OwnershipOrchestrator(store, sourceAdapter).RunAsync(new PipelineExecutionRequest
+            {
+                RunId = "source", Template = OwnershipTemplate("a", "b")
+            });
+            await store.PutAsync(original with
+            {
+                State = sourceState,
                 StageRuns =
                 [
-                    new PipelineStageRun { StageId = "a", State = PipelineStageRunState.Completed, Output = "prior-output", Attempt = 2 },
-                    new PipelineStageRun { StageId = "b", State = PipelineStageRunState.Failed, Error = "prior-error", Attempt = 1 },
+                    original.StageRuns.Single(stage => stage.StageId == "a") with { Attempt = 2 },
+                    original.StageRuns.Single(stage => stage.StageId == "b") with { State = PipelineStageRunState.Failed, Error = "prior-error" },
                 ],
             });
             var before = await store.GetAsync("source");
@@ -414,6 +423,7 @@ public sealed class PipelineLifecycleE2ETests
         TemplateId = "ownership",
         Stages = stages.Select(id => new PipelineStageDefinition
         {
+            Effects = PipelineStageEffects.None,
             Id = id, Name = id, Mode = PipelineExecutionMode.Deterministic,
             Constraints = new PipelineStageConstraints { Critical = false },
         }).ToArray(),

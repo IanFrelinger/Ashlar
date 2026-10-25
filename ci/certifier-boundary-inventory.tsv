@@ -1,5 +1,5 @@
 # B5 frozen inventory. Columns: site<TAB>api<TAB>reason
-# Shrink-only: a vanished site is a test failure. A new site is a test failure.
+# A vanished or unreviewed new site is a test failure. Promotions must retain their verification boundary.
 # Scope: Ashlar.Infrastructure.Certification* (the certifier process).
 Ashlar.Infrastructure.Certification.CertifiedBrickActivator::Activate	System.Reflection.Assembly::Load	gate-emitted in-memory activation after metadata-only discovery and IL fence
 Ashlar.Infrastructure.Certification.CertifiedBrickActivator::Activate	System.Activator::CreateInstance	gate-emitted disk activation after metadata-only discovery
@@ -8,3 +8,5 @@ Ashlar.Infrastructure.Certification.BrickMutationEngine::ExecuteMutantAsync	Syst
 Ashlar.Infrastructure.Certification.MutantWitnessExecutor::RunWitnessCoreAsync	System.Activator::CreateInstance	mutant BrickInput construct
 Ashlar.Infrastructure.Certification.HotSwap.CertifiedBrickHotSwapHost::MaterializeAsync	System.Runtime.Loader.AssemblyLoadContext::LoadFromAssemblyPath	hot-swap generation load
 Ashlar.Infrastructure.Certification.HotSwap.CertifiedBrickHotSwapHost::MaterializeAsync	System.Activator::CreateInstance	hot-swap brick construct
+Ashlar.Infrastructure.Certification.VerifiedBrick::LoadFromFilesAsync	System.Runtime.Loader.AssemblyLoadContext::LoadFromStream	promoted verified-consumer sample; pinned signed bytes and IL fence before loading the same buffer
+Ashlar.Infrastructure.Certification.VerifiedBrick::LoadFromFilesAsync	System.Activator::CreateInstance	promoted verified-consumer sample; signed type binding and post-construction brick identity check
