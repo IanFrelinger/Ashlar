@@ -55,7 +55,7 @@ public sealed class AdaptationBrickRegistrationTests : TempDirTestBase
         registry.GetAllBricks().Select(b => b.Id).Should().ContainInOrder("owasp-scanner", RegisteredByTypeBrick.BrickId);
     }
 
-    public sealed class RegisteredByTypeBrick : Brick
+    public sealed class RegisteredByTypeBrick : global::Ashlar.Core.Domain.Bricks.Brick
     {
         public const string BrickId = "test.registered-by-type";
 
