@@ -57,16 +57,36 @@ public sealed class AshlarMcpToolBridgeTests
         public WorldSnapshot Create(string canonicalToolId) => WorldSnapshot.ForRepo("X:/repo");
     }
 
+    private sealed class RecordingAuditor : IMcpRefusalAuditor
+    {
+        public List<(string Name, string? CanonicalId, string Arguments, string Message)> Refusals { get; } = new();
+
+        public Exception? Throw { get; init; }
+
+        public Task<string> RecordRefusalAsync(string requestedName, string? canonicalId, JsonElement arguments, string message, CancellationToken ct)
+        {
+            if (Throw is not null)
+            {
+                throw Throw;
+            }
+
+            Refusals.Add((requestedName, canonicalId, arguments.GetRawText(), message));
+            return Task.FromResult($"{message} (auditId a{Refusals.Count})");
+        }
+    }
+
     private static AshlarMcpToolBridge Create(
         IEnumerable<IMcpToolContributor> contributors,
         IMcpInvocationGate? gate = null,
-        AshlarMcpServerOptions? options = null)
+        AshlarMcpServerOptions? options = null,
+        IMcpRefusalAuditor? auditor = null)
         => new(
             contributors,
             gate ?? new RecordingGate(),
             new FixedSnapshotFactory(),
             Options.Create(options ?? new AshlarMcpServerOptions()),
-            NullLogger<AshlarMcpToolBridge>.Instance);
+            NullLogger<AshlarMcpToolBridge>.Instance,
+            auditor is null ? null : [auditor]);
 
     private static CallToolRequestParams Params(string name, Dictionary<string, JsonElement>? args = null)
         => new() { Name = name, Arguments = args };
@@ -118,6 +138,62 @@ public sealed class AshlarMcpToolBridgeTests
 
         (await act.Should().ThrowAsync<McpProtocolException>())
             .Which.ErrorCode.Should().Be(McpErrorCode.InvalidParams);
+    }
+
+    [Fact]
+    public async Task An_unknown_tool_is_recorded_by_the_refusal_auditor_and_the_error_carries_its_id()
+    {
+        var auditor = new RecordingAuditor();
+        var bridge = Create(new[] { new FakeContributor().Offering("known", "known") }, auditor: auditor);
+
+        var act = () => bridge.CallToolAsync(
+            Params("github_pr-status", new() { ["url"] = Json.Object("\"x\"") }), user: null, CancellationToken.None).AsTask();
+
+        var error = (await act.Should().ThrowAsync<McpProtocolException>()).Which;
+        error.ErrorCode.Should().Be(McpErrorCode.InvalidParams);
+        error.Message.Should().Contain("(auditId a1)");
+        auditor.Refusals.Should().ContainSingle().Which.Should().Be(
+            ("github_pr-status", (string?)null, """{"url":"x"}""", "Unknown tool 'github_pr-status'."));
+    }
+
+    [Fact]
+    public async Task A_gate_denial_is_recorded_by_the_refusal_auditor_with_the_canonical_id()
+    {
+        var auditor = new RecordingAuditor();
+        var gate = new RecordingGate(McpGateDecision.Deny("policy said no"));
+        var bridge = Create(new[] { new FakeContributor().Offering("repo_fs_read", "repo.fs.read") }, gate, auditor: auditor);
+
+        var result = await bridge.CallToolAsync(Params("repo_fs_read"), user: null, CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        result.Content.OfType<TextContentBlock>().Single().Text.Should().Contain("policy said no").And.Contain("(auditId a1)");
+        auditor.Refusals.Should().ContainSingle().Which.CanonicalId.Should().Be("repo.fs.read");
+    }
+
+    [Fact]
+    public async Task A_refusal_whose_record_fails_is_still_refused_and_says_it_is_unaudited()
+    {
+        var auditor = new RecordingAuditor { Throw = new IOException("disk full") };
+        var bridge = Create(new[] { new FakeContributor().Offering("known", "known") }, auditor: auditor);
+
+        var act = () => bridge.CallToolAsync(Params("nope"), user: null, CancellationToken.None).AsTask();
+
+        (await act.Should().ThrowAsync<McpProtocolException>()).Which.Message.Should().Contain("could not be written");
+    }
+
+    [Fact]
+    public async Task An_oversized_unknown_name_is_cut_in_the_error_but_reaches_the_auditor_whole()
+    {
+        var auditor = new RecordingAuditor();
+        var bridge = Create(new[] { new FakeContributor().Offering("known", "known") }, auditor: auditor);
+        var name = "x\n" + new string('a', 100_000);
+
+        var act = () => bridge.CallToolAsync(Params(name), user: null, CancellationToken.None).AsTask();
+
+        var error = (await act.Should().ThrowAsync<McpProtocolException>()).Which;
+        error.Message.Length.Should().BeLessThan(200);
+        error.Message.Should().NotContain("\n");
+        auditor.Refusals.Single().Name.Should().Be(name);
     }
 
     [Fact]

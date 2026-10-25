@@ -29,10 +29,16 @@ public static class AshlarMcpBricksServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddOptions<AshlarMcpBrickOptions>().Bind(configuration.GetSection(AshlarMcpBrickOptions.SectionPath));
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IMcpToolContributor, BrickMcpToolContributor>(sp =>
+        services.TryAddSingleton(sp =>
             ActivatorUtilities.CreateInstance<BrickMcpToolContributor>(sp, new ConfirmedBarrierAuditLog(
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ConfirmedBarrierAuditLog>>(),
-                sp.GetServices<IBarrierAuditSink>()))));
+                sp.GetServices<IBarrierAuditSink>())));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IMcpToolContributor, BrickMcpToolContributor>(
+            sp => sp.GetRequiredService<BrickMcpToolContributor>()));
+        // The same instance records what the bridge refuses before a contributor sees it (unknown tool names,
+        // gate denials), so those land in the same audit trail as the calls themselves.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IMcpRefusalAuditor, BrickMcpToolContributor>(
+            sp => sp.GetRequiredService<BrickMcpToolContributor>()));
         return services;
     }
 }

@@ -22,14 +22,15 @@ namespace Ashlar.Mcp.Bricks;
 /// missing required inputs before the brick runs, and executes deterministically.
 ///
 /// Every call that reaches a brick, and every refusal of one, writes one
-/// <see cref="BarrierAuditEvent"/> (<see cref="EventType"/>) through <see cref="IBarrierAuditLog"/>
+/// <see cref="BarrierAuditEvent"/> (<see cref="EventType"/>) through <see cref="IBarrierAuditLog"/>; so does every
+/// call the bridge refuses before a contributor sees it (<see cref="RecordRefusalAsync"/>)
 /// (registered by <see cref="AshlarMcpBricksServiceCollectionExtensions.AddAshlarMcpBricks"/> over the
 /// configured audit sinks).
 /// Its <see cref="BarrierAuditEvent.CorrelationId"/> is returned to the caller as <c>auditId</c>, and
 /// its detail carries the SHA-256 of the arguments as received and of the text returned, so a
 /// record can be matched to the exact exchange. Values themselves are never written to the record.
 /// </summary>
-public sealed class BrickMcpToolContributor : IMcpToolContributor
+public sealed class BrickMcpToolContributor : IMcpToolContributor, IMcpRefusalAuditor
 {
     /// <summary><see cref="BarrierAuditEvent.EventType"/> of the record written per brick call.</summary>
     public const string EventType = "MCP_BRICK_INVOKED";
@@ -45,6 +46,9 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor
     private readonly IBarrierContextAmbient? _barrier;
     private readonly TimeProvider _time;
     private readonly ILogger<BrickMcpToolContributor> _logger;
+
+    /// <summary><see cref="BarrierAuditEvent.AgentName"/> of a record for a tool name the catalog does not list.</summary>
+    public const string UnknownToolAgentName = "mcp.unknown-tool";
 
     /// <summary>Creates the contributor.</summary>
     public BrickMcpToolContributor(
@@ -167,27 +171,8 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor
         AshlarMcpToolOutcome result,
         CancellationToken ct)
     {
-        var detail = JsonSerializer.Serialize(new Dictionary<string, object?>
-        {
-            ["brickId"] = brickId,
-            ["brickVersion"] = version,
-            ["outcome"] = outcome,
-            ["isError"] = result.IsError,
-            ["durationMs"] = stopwatch.ElapsedMilliseconds,
-            ["inputSha256"] = inputSha256,
-            ["resultSha256"] = Sha256(result.Text),
-        }, PayloadJson);
-
-        var current = _barrier?.Current;
-        var auditEvent = new BarrierAuditEvent(
-            EventType: EventType,
-            BarrierLevel: string.IsNullOrEmpty(current?.Level) ? "none" : current!.Level,
-            AuthoritySource: string.IsNullOrEmpty(current?.AuthoritySource) ? "mcp" : current!.AuthoritySource,
-            AgentName: brickId,
-            CorrelationId: auditId,
-            SpanId: string.Empty,
-            OccurredAt: _time.GetUtcNow(),
-            Detail: detail);
+        var auditEvent = BuildEvent(brickId, version, auditId, inputSha256, stopwatch.ElapsedMilliseconds, outcome,
+            result.IsError, result.Text, requestedTool: null);
 
         try
         {
@@ -203,6 +188,73 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor
         }
 
         return result;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes an <see cref="EventType"/> record with outcome <c>refused</c>: <see cref="BarrierAuditEvent.AgentName"/>
+    /// is the canonical id for a gate denial and <see cref="UnknownToolAgentName"/> for an unlisted name. The name as
+    /// sent goes in as its SHA-256 (<c>requestedToolSha256</c>) and as <c>requestedTool</c>, cut to 64 characters
+    /// with everything outside <c>[A-Za-z0-9_.-]</c> replaced by <c>_</c>.
+    /// </remarks>
+    public async Task<string> RecordRefusalAsync(
+        string requestedName, string? canonicalId, JsonElement arguments, string message, CancellationToken ct)
+    {
+        var auditId = Guid.NewGuid().ToString("N");
+        var text = $"{message} (auditId {auditId})";
+        var version = canonicalId is null ? null : _registry.GetBrick(canonicalId)?.Version;
+        var inputSha256 = Sha256(arguments.ValueKind == JsonValueKind.Undefined ? "{}" : arguments.GetRawText());
+        await _audit.RecordAsync(
+            BuildEvent(canonicalId ?? UnknownToolAgentName, version, auditId, inputSha256, durationMs: 0, "refused",
+                isError: true, text, requestedName),
+            ct).ConfigureAwait(false);
+        return text;
+    }
+
+    private BarrierAuditEvent BuildEvent(
+        string agentName,
+        string? version,
+        string auditId,
+        string inputSha256,
+        long durationMs,
+        string outcome,
+        bool isError,
+        string resultText,
+        string? requestedTool)
+    {
+        var fields = new Dictionary<string, object?>
+        {
+            ["brickId"] = agentName == UnknownToolAgentName ? null : agentName,
+            ["brickVersion"] = version,
+            ["outcome"] = outcome,
+            ["isError"] = isError,
+            ["durationMs"] = durationMs,
+            ["inputSha256"] = inputSha256,
+            ["resultSha256"] = Sha256(resultText),
+        };
+        if (requestedTool is not null)
+        {
+            fields["requestedTool"] = Printable(requestedTool);
+            fields["requestedToolSha256"] = Sha256(requestedTool);
+        }
+
+        var current = _barrier?.Current;
+        return new BarrierAuditEvent(
+            EventType: EventType,
+            BarrierLevel: string.IsNullOrEmpty(current?.Level) ? "none" : current!.Level,
+            AuthoritySource: string.IsNullOrEmpty(current?.AuthoritySource) ? "mcp" : current!.AuthoritySource,
+            AgentName: agentName,
+            CorrelationId: auditId,
+            SpanId: string.Empty,
+            OccurredAt: _time.GetUtcNow(),
+            Detail: JsonSerializer.Serialize(fields, PayloadJson));
+    }
+
+    private static string Printable(string name)
+    {
+        var cut = name.Length <= McpToolNaming.MaxNameLength ? name : name[..McpToolNaming.MaxNameLength];
+        var chars = cut.Select(c => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '_' or '.' or '-' ? c : '_');
+        return new string(chars.ToArray());
     }
 
     internal static JsonElement BuildInputSchema(DomainBrick brick)

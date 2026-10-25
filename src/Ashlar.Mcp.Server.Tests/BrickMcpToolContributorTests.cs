@@ -357,6 +357,89 @@ public sealed class BrickMcpToolContributorTests
         return reader.ReadToEnd();
     }
 
+    [Fact]
+    public async Task A_bridge_refusal_is_recorded_with_the_name_hashed_and_printable_and_no_argument_values()
+    {
+        var audit = new CapturingAudit();
+        var sut = Create(new Registry(new GreetBrick()), audit, "test.greet");
+        const string raw = """{"githubToken":"ghp_secret"}""";
+
+        var text = await sut.RecordRefusalAsync("evil\ntool<script>", canonicalId: null, Args(raw), "Unknown tool 'x'.", CancellationToken.None);
+
+        var e = audit.Events.Should().ContainSingle().Subject;
+        e.EventType.Should().Be(BrickMcpToolContributor.EventType);
+        e.AgentName.Should().Be(BrickMcpToolContributor.UnknownToolAgentName);
+        text.Should().Be($"Unknown tool 'x'. (auditId {e.CorrelationId})");
+        var detail = Detail(e);
+        detail.GetProperty("outcome").GetString().Should().Be("refused");
+        detail.GetProperty("brickId").ValueKind.Should().Be(JsonValueKind.Null);
+        detail.GetProperty("requestedTool").GetString().Should().Be("evil_tool_script_");
+        detail.GetProperty("requestedToolSha256").GetString().Should().Be(Sha256("evil\ntool<script>"));
+        detail.GetProperty("inputSha256").GetString().Should().Be(Sha256(raw));
+        detail.GetProperty("resultSha256").GetString().Should().Be(Sha256(text));
+        e.Detail.Should().NotContain("ghp_secret");
+    }
+
+    [Fact(Timeout = 60000)]
+    public async Task A_real_MCP_client_calling_an_unlisted_brick_gets_a_protocol_error_that_is_on_the_record()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var ct = cts.Token;
+        var sink = new CapturingSink();
+        var clientToServer = new Pipe();
+        var serverToClient = new Pipe();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"{AshlarMcpServerOptions.SectionPath}:Enabled"] = "true",
+            [$"{AshlarMcpBrickOptions.SectionPath}:ExposedBrickIds:0"] = "test.greet",
+        }).Build();
+        var other = new OtherBrick();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IBrickRegistry>(new Registry(new GreetBrick(), other));
+        services.AddSingleton<IBarrierAuditSink>(sink);
+        services.AddAshlarMcpBricks(configuration);
+        services.AddAshlarMcpServer(configuration)
+            .WithStreamServerTransport(clientToServer.Reader.AsStream(), serverToClient.Writer.AsStream());
+        await using var provider = services.BuildServiceProvider();
+        var hosted = provider.GetServices<IHostedService>().ToList();
+        foreach (var h in hosted)
+        {
+            await h.StartAsync(ct);
+        }
+
+        try
+        {
+            var transport = new StreamClientTransport(
+                clientToServer.Writer.AsStream(), serverToClient.Reader.AsStream(), NullLoggerFactory.Instance);
+            await using var client = await McpClient.CreateAsync(transport, cancellationToken: ct);
+
+            var act = () => client.CallToolAsync(
+                "test_other", new Dictionary<string, object?> { ["k"] = "v" }, cancellationToken: ct).AsTask();
+
+            var error = (await act.Should().ThrowAsync<ModelContextProtocol.McpException>()).Which;
+            other.Executions.Should().Be(0);
+            var record = sink.Events.Should().ContainSingle().Subject;
+            record.AgentName.Should().Be(BrickMcpToolContributor.UnknownToolAgentName);
+            error.Message.Should().Contain(record.CorrelationId);
+            Detail(record).GetProperty("requestedTool").GetString().Should().Be("test_other");
+        }
+        finally
+        {
+            foreach (var h in Enumerable.Reverse(hosted))
+            {
+                try
+                {
+                    await h.StopAsync(CancellationToken.None);
+                }
+                catch
+                {
+                    // Best-effort shutdown of the in-memory session.
+                }
+            }
+        }
+    }
+
     [Fact(Timeout = 60000)]
     public async Task A_real_MCP_client_lists_and_calls_an_allowlisted_brick_through_the_bridge()
     {
