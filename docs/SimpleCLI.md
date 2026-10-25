@@ -182,6 +182,9 @@ public static IHost CreateSimpleHost(
 
 Creates and builds a ready-to-use host.
 
+`CreateSimpleHostBuilder` registers a default `IExecutionContext` (`AgentId` = `AshlarSimpleCli.SimpleCliAgentId`)
+before running `configureServices`, so registering your own `IExecutionContext` there replaces it.
+
 ### Brick.ExecuteAsync Extension
 
 ```csharp
@@ -256,9 +259,41 @@ catch (Exception ex)
 4. **Validate inputs**: Check brick's `Interface.Inputs` for required parameters
 5. **Log errors**: Configure logging level based on your CLI verbosity needs
 
+## Formatting outputs
+
+`BrickOutputFormatters` (namespace `Ashlar.Hosting`) renders any `BrickOutput` in one of four shapes, so
+every CLI prints results the same way:
+
+| Method | Shape | Notes |
+|--------|-------|-------|
+| `output.ToJson(indented: true)` | JSON object: `summary` (when set) plus every output key | Keys are written as stored (no camel-casing). An output named `summary` overwrites the summary field. |
+| `output.ToMarkdown(title: null)` | `## title`, `### Summary`, `### Outputs` with `**key**: value` lines | Booleans render as `✅ true` / `❌ false`; arrays as `[a, b]`. |
+| `output.ToPlainText(includeEmpty: false)` | `Summary:` then `Outputs:` with `  key: value` lines | Empty values are skipped unless `includeEmpty` is true; arrays render as `a, b`. |
+| `output.ToTable()` | Box-drawn two-column table | Values longer than 48 characters are cut with `...`; arrays render as `[N items]`. |
+
+Outputs are listed in key order. Nested objects are written with `ToString()` (except in `ToJson`), so
+for structured values such as `PrStatusBrick`'s `checks`, prefer `ToJson`.
+
+```csharp
+using Ashlar.Hosting;
+
+var output = await brick.ExecuteAsync(input => input.Set("prUrl", prUrl));
+
+Console.WriteLine(format switch
+{
+    "json" => output.ToJson(),
+    "markdown" => output.ToMarkdown("PR status"),
+    "table" => output.ToTable(),
+    _ => output.ToPlainText(),
+});
+```
+
+For a quick look while developing, `output.PrintToConsole(includeAllOutputs: true)` writes the summary and
+every output value; `output.WriteTo(writer, includeAllOutputs: true)` does the same to any `TextWriter`.
+
 ## Complete Example: PR Blocker CLI
 
-See `examples/cli/PrBlockerCli/` for a complete working example.
+Pattern 3 above is the complete example.
 
 ## Migration from Manual Setup
 
