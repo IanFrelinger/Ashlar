@@ -5,6 +5,7 @@ using Ashlar.Core.Application.Certification.Models;
 using Ashlar.Core.Domain.Execution;
 using Ashlar.Infrastructure.Certification;
 using Ashlar.Samples.VerifiedBrickConsumer;
+using Ashlar.Tests.Infrastructure.Helpers;
 using Mono.Cecil;
 using NSec.Cryptography;
 using Xunit;
@@ -40,7 +41,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
     private string RecordPath => Path.Combine(_directory, "record.json");
     private string AssemblyPath => Path.Combine(_directory, "gate-emitted-brick.dll");
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Executes_the_signed_module_even_after_deployed_DLL_is_replaced()
     {
         var (artifact, _, policy) = await Deploy();
@@ -57,13 +58,13 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
         Assert.Equal("certified", result.Get<string>("marker"));
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Unpinned_policy_is_rejected_before_reading_any_deployment_files()
     {
         await Assert.ThrowsAsync<CertificationTrustConfigurationException>(() => Load(CertificationTrustPolicy.Unpinned));
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Foreign_signer_is_refused()
     {
         await Deploy();
@@ -73,7 +74,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
         Assert.Contains("ed25519-key-not-trusted", ex.Message);
     }
 
-    [Theory]
+    [Theory(Timeout = TestTimeouts.Integration)]
     [InlineData("source", "content-hash-mismatch")]
     [InlineData("artifact", "artifact-hash-mismatch")]
     [InlineData("signature", "ed25519-signature-required")]
@@ -102,7 +103,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
             a => !before.Contains(a) && a.GetType(TypeName) is not null);
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Validly_signed_record_for_another_identity_is_refused()
     {
         var (artifact, record, policy) = await Deploy(record => record with { BrickId = "other" });
@@ -112,7 +113,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
         Assert.Contains("brick-id-mismatch", ex.Message);
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Loaded_brick_must_match_the_expected_identity()
     {
         var (_, _, policy) = await Deploy(source: Source.Replace(BrickId, "other"));
@@ -121,7 +122,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
         Assert.Contains("brick-instance-id-mismatch", ex.Message);
     }
 
-    [Theory]
+    [Theory(Timeout = TestTimeouts.Integration)]
     [InlineData("", "artifact-binding-invalid")]
     [InlineData("Ashlar.ConsumerProbe.MissingBrick", "artifact-type-invalid")]
     public async Task Signed_artifact_binding_must_name_a_brick(string typeName, string failureCode)
@@ -136,7 +137,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
         Assert.Contains(failureCode, ex.Message);
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Ambiguous_signed_artifact_bindings_are_refused()
     {
         var (_, _, policy) = await Deploy(record => record with
@@ -148,7 +149,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
         Assert.Contains("artifact-binding-invalid", ex.Message);
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Signed_artifact_with_forbidden_import_is_refused_before_loading()
     {
         var (_, _, policy) = await Deploy(source: Source.Replace("Summary = \"certified\"", "Summary = System.Environment.MachineName"));
@@ -160,7 +161,7 @@ public sealed class VerifiedConsumerProdStyleTests : IDisposable
             a => !before.Contains(a) && a.GetType(TypeName) is not null);
     }
 
-    [Fact]
+    [Fact(Timeout = TestTimeouts.Integration)]
     public async Task Disposed_consumer_refuses_execution()
     {
         var (_, _, policy) = await Deploy();
