@@ -17,7 +17,7 @@
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 825,
     "declared_facts": 5351,
-    "workflows": 61
+    "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -8807,6 +8807,14 @@
       "triggers": [
         "pull_request",
         "push"
+      ]
+    },
+    {
+      "file": ".github/workflows/pr-blockers-action.yml",
+      "name": "PR blockers action",
+      "triggers": [
+        "pull_request",
+        "workflow_dispatch"
       ]
     },
     {
