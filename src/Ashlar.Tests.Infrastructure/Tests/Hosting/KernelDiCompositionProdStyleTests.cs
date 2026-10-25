@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Ashlar.Core.Application.Execution.Routing;
 using Ashlar.Core.Application.NodeCapabilityRuntime.Ports;
 using Ashlar.Core.Application.Observation.Ports;
@@ -202,8 +203,8 @@ public sealed class KernelDiCompositionProdStyleTests : IDisposable
         using var sp = BuildProvider(AshlarDeploymentProfile.Full, trust: false, adaptive: false);
 
         sp.GetRequiredService<INCRCapabilitySnapshot>().Should().BeOfType<NCRCapabilityPoller>(
-            "the snapshot is resolved by filtering the hosted-service enumerable for this concrete "
-            + "type, so an implementation the container declines to surface fails at .First()");
+            "the snapshot forwards to the poller registered by concrete type, so the container must "
+            + "activate the internal type");
 
         sp.GetRequiredService<IPeerCapabilitySnapshot>().Should().BeOfType<PeerCapabilitySnapshotPoller>(
             "same shape, same failure mode, separate registration");
@@ -211,6 +212,42 @@ public sealed class KernelDiCompositionProdStyleTests : IDisposable
         sp.GetRequiredService<ILocalExecutor>().Should().BeOfType<ProviderFactoryLocalExecutor>(
             "registered by concrete type rather than through a factory, so this one proves the "
             + "container activates an internal type at all: the constructor is public, the type is not");
+    }
+
+    [Fact(Timeout = TestTimeouts.E2E)]
+    public async Task CapabilitySnapshots_AreTheHostedPollers_AndAHostedServiceMayDependOnTheBrickRegistry()
+    {
+        // The snapshots used to be found with sp.GetServices<IHostedService>().OfType<...>().First().
+        // Enumerating IHostedService builds every hosted service; one that needs IBrickRegistry
+        // (the MCP server's brick contributor does) re-enters through CapabilityRoutingBrick ->
+        // INCRCapabilitySnapshot, and the host recursed at start without ever throwing.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAshlarProfile(AshlarDeploymentProfile.Full, _ => { });
+        services.AddHostedService<NeedsBrickRegistry>();
+        using var sp = services.BuildServiceProvider();
+
+        var resolve = Task.Run(() => sp.GetServices<IHostedService>().ToList());
+        var finished = await Task.WhenAny(resolve, Task.Delay(TimeSpan.FromSeconds(20)));
+
+        finished.Should().BeSameAs(resolve,
+            "resolving the hosted services must not recurse through the capability snapshots");
+        var hosted = await resolve;
+        hosted.OfType<NeedsBrickRegistry>().Should().ContainSingle();
+        hosted.OfType<NCRCapabilityPoller>().Should().ContainSingle()
+            .Which.Should().BeSameAs(sp.GetRequiredService<INCRCapabilitySnapshot>(),
+                "the snapshot is the poller the host starts, not a second, never-polled instance");
+        hosted.OfType<PeerCapabilitySnapshotPoller>().Should().ContainSingle()
+            .Which.Should().BeSameAs(sp.GetRequiredService<IPeerCapabilitySnapshot>());
+    }
+
+    private sealed class NeedsBrickRegistry(Ashlar.Core.Domain.Execution.IBrickRegistry registry) : IHostedService
+    {
+        public Ashlar.Core.Domain.Execution.IBrickRegistry Registry { get; } = registry;
+
+        public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     // ───────────────────────────────── helpers ────────────────────────────────

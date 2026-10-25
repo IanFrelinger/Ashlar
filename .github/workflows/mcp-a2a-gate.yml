@@ -6,6 +6,8 @@ on:
       - ".github/workflows/mcp-a2a-gate.yml"
       - "src/Ashlar.Mcp.Server/**"
       - "src/Ashlar.Mcp.Server.Host/**"
+      - "src/Ashlar.Mcp.Bricks/**"
+      - "scripts/verify-mcp-brick-host-dnx.sh"
       - "src/Ashlar.Mcp.Server.Tests/**"
       - "src/Ashlar.Mcp.Client/**"
       - "src/Ashlar.Mcp.Client.Tests/**"
@@ -26,6 +28,8 @@ on:
       - ".github/workflows/mcp-a2a-gate.yml"
       - "src/Ashlar.Mcp.Server/**"
       - "src/Ashlar.Mcp.Server.Host/**"
+      - "src/Ashlar.Mcp.Bricks/**"
+      - "scripts/verify-mcp-brick-host-dnx.sh"
       - "src/Ashlar.Mcp.Server.Tests/**"
       - "src/Ashlar.Mcp.Client/**"
       - "src/Ashlar.Mcp.Client.Tests/**"
@@ -63,6 +67,12 @@ jobs:
           set -euo pipefail
           dotnet test src/Ashlar.Mcp.Server.Tests/Ashlar.Mcp.Server.Tests.csproj \
             --blame-hang-timeout 120s
+
+      - name: MCP brick host runs under dnx (packed tool, stdio session, audit record)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/verify-mcp-brick-host-dnx.sh
 
       - name: MCP client tests (incl. client<->server protocol round trips)
         shell: bash

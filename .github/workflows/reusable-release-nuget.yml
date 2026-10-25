@@ -87,6 +87,13 @@ jobs:
             -p:PackageVersion="${PACKAGE_VERSION}" \
             -p:IncludeTestProjectReferences=false \
             -v minimal
+          # The MCP brick host, the same way: a PackAsTool + McpServer package that `dnx` runs.
+          # AshlarMcpHostLocalModels=false leaves the ~27 MB local GGUF natives out of the download;
+          # scripts/verify-mcp-brick-host-dnx.sh packs it identically and runs it.
+          dotnet pack src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj -c Release -o "$OUT" \
+            -p:PackageVersion="${PACKAGE_VERSION}" \
+            -p:AshlarMcpHostLocalModels=false \
+            -v minimal
           ls -la "$OUT"
 
       - name: Release manifest (SHA-256 per nupkg)

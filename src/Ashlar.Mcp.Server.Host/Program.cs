@@ -11,13 +11,21 @@
 //   Ashlar__Mcp__Server__RepoRoot                world-snapshot root (defaults to the working directory).
 //   Ashlar__Mcp__Server__ArgumentOverrides__repo.fs.read__root
 //                                              pin caller-visible args, e.g. force 'root' for repo tools.
+//   Ashlar__Mcp__Bricks__ExposedBrickIds__0      brick allowlist, e.g. "github.pr-status" — empty exposes zero bricks.
+//   Ashlar__Audit__File__Directory              where the per-call brick audit records (JSONL) go; defaults to
+//                                              <LocalApplicationData>/ashlar/mcp-audit. Ashlar__Audit__Sinks__0
+//                                              selects the sink (File by default here; StructuredLog or NoOp).
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Ashlar.Abstractions;
+using Ashlar.Bricks.GitHub;
 using Ashlar.Hosting;
+using Ashlar.Hosting.Sdk.Extensions;
+using Ashlar.Mcp.Bricks;
 using Ashlar.Mcp.Server;
+using Ashlar.Runtime;
 using Ashlar.Tools.Dev;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -28,6 +36,13 @@ builder.Configuration.Sources.Insert(0, new MemoryConfigurationSource
     InitialData = new Dictionary<string, string?>
     {
         [$"{AshlarMcpServerOptions.SectionPath}:Enabled"] = "true",
+        // One durable record per brick call, flushed before the call returns, outside the
+        // working directory the IDE spawned this process in.
+        ["Ashlar:Audit:Sinks:0"] = "File",
+        ["Ashlar:Audit:File:Directory"] = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ashlar", "mcp-audit"),
+        ["Ashlar:Audit:File:FilePrefix"] = "mcp-brick-calls",
+        ["Ashlar:Audit:File:FlushEveryEvent"] = "true",
     },
 });
 
@@ -43,6 +58,14 @@ builder.Services.AddAshlar();
 // are deliberately not pre-registered — hosts that want them must add them explicitly.
 builder.Services.AddSingleton<ITool, RepoFsReadTool>();
 builder.Services.AddSingleton<ITool, RepoFsListTool>();
+
+// Bricks available for allowlisting out of the box, on the same terms: registered here, exposed only
+// when listed in Ashlar:Mcp:Bricks:ExposedBrickIds. Both call api.github.com through Octokit.
+builder.Services.AddAshlarSdk(sdk => sdk
+    .RegisterBrick<PrStatusBrick>()
+    .RegisterBrick<CiStatusBrick>());
+builder.Services.AddBarrierAuditSinks(builder.Configuration);
+builder.Services.AddAshlarMcpBricks(builder.Configuration);
 
 builder.Services.AddAshlarMcpServer(builder.Configuration).WithStdioServerTransport();
 
