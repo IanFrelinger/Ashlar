@@ -8,11 +8,16 @@ using Ashlar.Abstractions.Barriers;
 namespace Ashlar.Runtime.Barriers.Sinks;
 
 /// <summary>Append-only file sink for barrier audit events with rotation and async draining.</summary>
-public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
+/// <remarks>
+/// <see cref="WriteAsync"/> only enqueues: it never throws, and an event that cannot be written is logged and lost.
+/// <see cref="WriteConfirmedAsync"/> goes through the same queue and the same single writer, so file order is queue
+/// order, but completes only after its line is flushed, and throws when it is not.
+/// </remarks>
+public sealed class FileBarrierAuditSink : IConfirmingBarrierAuditSink, IAsyncDisposable
 {
     private readonly FileBarrierAuditSinkOptions _options;
     private readonly ILogger<FileBarrierAuditSink> _logger;
-    private readonly Channel<BarrierAuditEvent> _channel;
+    private readonly Channel<Pending> _channel;
     private readonly Task _drainTask;
     private readonly JsonSerializerOptions _jsonSerializerOptions = new(JsonSerializerDefaults.Web);
     private readonly TimeSpan _flushInterval;
@@ -31,7 +36,7 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
         _options = Normalize(options);
         _flushInterval = TimeSpan.FromMilliseconds(_options.FlushIntervalMs);
 
-        _channel = Channel.CreateBounded<BarrierAuditEvent>(new BoundedChannelOptions(_options.ChannelCapacity)
+        _channel = Channel.CreateBounded<Pending>(new BoundedChannelOptions(_options.ChannelCapacity)
         {
             SingleReader = true,
             SingleWriter = false,
@@ -55,7 +60,7 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
 
         try
         {
-            if (!_channel.Writer.TryWrite(auditEvent))
+            if (!_channel.Writer.TryWrite(new Pending(auditEvent, null)))
             {
                 _logger.LogWarning(
                     "Barrier audit channel full; dropping event. EventType={EventType} CorrelationId={CorrelationId} AgentName={AgentName}",
@@ -74,6 +79,26 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
         }
 
         return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask WriteConfirmedAsync(
+        BarrierAuditEvent auditEvent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(auditEvent);
+
+        var confirm = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            await _channel.Writer.WriteAsync(new Pending(auditEvent, confirm), cancellationToken).ConfigureAwait(false);
+        }
+        catch (ChannelClosedException ex)
+        {
+            throw new IOException("The barrier audit file sink is closed; the event was not written.", ex);
+        }
+
+        await confirm.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Flushes pending events and releases file writer resources.</summary>
@@ -102,9 +127,17 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
         {
             while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
-                while (_channel.Reader.TryRead(out var auditEvent))
+                while (_channel.Reader.TryRead(out var pending))
                 {
-                    await AppendEventAsync(auditEvent).ConfigureAwait(false);
+                    var failure = await AppendEventAsync(pending.Event, flush: pending.Confirm is not null).ConfigureAwait(false);
+                    if (failure is null)
+                    {
+                        pending.Confirm?.TrySetResult();
+                    }
+                    else
+                    {
+                        pending.Confirm?.TrySetException(failure);
+                    }
                 }
             }
         }
@@ -115,10 +148,15 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
         finally
         {
             await FlushAndCloseWriterAsync().ConfigureAwait(false);
+            var stopped = new IOException("The barrier audit file sink stopped before the event was written.");
+            while (_channel.Reader.TryRead(out var orphan))
+            {
+                orphan.Confirm?.TrySetException(stopped);
+            }
         }
     }
 
-    private async Task AppendEventAsync(BarrierAuditEvent auditEvent)
+    private async Task<Exception?> AppendEventAsync(BarrierAuditEvent auditEvent, bool flush)
     {
         try
         {
@@ -127,20 +165,10 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
             await _writer!.WriteLineAsync(line).ConfigureAwait(false);
             _currentFileSizeBytes += Utf8ByteCount(line) + Utf8ByteCount(Environment.NewLine);
 
-            if (_options.FlushEveryEvent)
+            if (flush || _options.FlushEveryEvent || DateTimeOffset.UtcNow >= _nextFlushUtc)
             {
                 await _writer.FlushAsync().ConfigureAwait(false);
                 _nextFlushUtc = DateTimeOffset.UtcNow.Add(_flushInterval);
-            }
-            else if (DateTimeOffset.UtcNow >= _nextFlushUtc)
-            {
-                await _writer.FlushAsync().ConfigureAwait(false);
-                _nextFlushUtc = DateTimeOffset.UtcNow.Add(_flushInterval);
-            }
-
-            if (_currentFileSizeBytes >= _options.MaxFileSizeBytes)
-            {
-                await RotateFileAsync().ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -150,6 +178,45 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
                 "Failed to append barrier audit event. EventType={EventType} CorrelationId={CorrelationId}",
                 auditEvent.EventType,
                 auditEvent.CorrelationId);
+            // A writer whose flush failed still holds the unwritten line, and would put it in front of the next
+            // event; start the next event on a fresh file instead.
+            DiscardWriter();
+            return ex;
+        }
+
+        if (_currentFileSizeBytes >= _options.MaxFileSizeBytes)
+        {
+            try
+            {
+                await RotateFileAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to rotate the barrier audit file.");
+                DiscardWriter();
+            }
+        }
+
+        return null;
+    }
+
+    private void DiscardWriter()
+    {
+        var writer = _writer;
+        _writer = null;
+        _currentFileSizeBytes = 0;
+        if (writer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            writer.BaseStream.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Ignoring a failure while discarding a broken barrier audit file writer.");
         }
     }
 
@@ -283,6 +350,8 @@ public sealed class FileBarrierAuditSink : IBarrierAuditSink, IAsyncDisposable
             ChannelCapacity = Math.Max(1, options.ChannelCapacity)
         };
     }
+
+    private sealed record Pending(BarrierAuditEvent Event, TaskCompletionSource? Confirm);
 
     private sealed record SerializableAuditLine(
         DateTime Timestamp,

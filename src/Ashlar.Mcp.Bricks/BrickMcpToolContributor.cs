@@ -195,10 +195,11 @@ public sealed class BrickMcpToolContributor : IMcpToolContributor
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // The brick has run; what cannot be claimed is a record of it. Say so rather than
-            // return a result the caller would take as audited.
+            // What cannot be claimed is a record of the call. Say so rather than return a result the
+            // caller would take as audited.
             _logger.LogError(ex, "MCP brick audit record failed. Brick={BrickId} AuditId={AuditId}", brickId, auditId);
-            return new AshlarMcpToolOutcome(true, $"Brick '{brickId}' ran but its audit record could not be written (auditId {auditId}).");
+            var what = outcome == "refused" ? "was refused" : "ran";
+            return new AshlarMcpToolOutcome(true, $"Brick '{brickId}' {what} but its audit record could not be written (auditId {auditId}).");
         }
 
         return result;

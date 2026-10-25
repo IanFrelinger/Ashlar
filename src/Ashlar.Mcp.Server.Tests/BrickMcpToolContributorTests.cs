@@ -6,6 +6,7 @@ using Ashlar.Abstractions.Barriers;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 using Ashlar.Mcp.Bricks;
+using Ashlar.Runtime;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -289,6 +290,71 @@ public sealed class BrickMcpToolContributorTests
         brick.Executions.Should().Be(1);
         outcome.IsError.Should().BeTrue();
         outcome.Text.Should().Contain("audit record could not be written");
+    }
+
+    [Fact]
+    public async Task With_the_File_sink_unable_to_write_a_call_withholds_its_result_and_says_it_is_unaudited()
+    {
+        var notADirectory = Path.Combine(TempDirectory(), "not-a-directory");
+        await File.WriteAllTextAsync(notADirectory, "x");
+        await using var provider = ComposeWithFileSink(Path.Combine(notADirectory, "audit"), out var brick);
+        var sut = provider.GetServices<IMcpToolContributor>().OfType<BrickMcpToolContributor>().Single();
+
+        var ran = await sut.InvokeAsync("test.greet", Args("""{"name":"leak"}"""), CancellationToken.None);
+        var refused = await sut.InvokeAsync("test.greet", Args("{}"), CancellationToken.None);
+
+        brick.Executions.Should().Be(1);
+        ran.IsError.Should().BeTrue();
+        ran.Text.Should().Contain("ran but its audit record could not be written").And.NotContain("hi leak");
+        ran.Payload.Should().BeNull();
+        refused.IsError.Should().BeTrue();
+        refused.Text.Should().Contain("was refused but its audit record could not be written");
+    }
+
+    [Fact]
+    public async Task With_the_File_sink_the_record_is_on_disk_when_the_call_returns()
+    {
+        var dir = TempDirectory();
+        await using var provider = ComposeWithFileSink(dir, out _);
+        var sut = provider.GetServices<IMcpToolContributor>().OfType<BrickMcpToolContributor>().Single();
+
+        var outcome = await sut.InvokeAsync("test.greet", Args("""{"name":"x"}"""), CancellationToken.None);
+
+        outcome.IsError.Should().BeFalse(outcome.Text);
+        var auditId = JsonDocument.Parse(outcome.Text).RootElement.GetProperty("auditId").GetString();
+        var onDisk = string.Concat(Directory.GetFiles(dir, "*.ndjson").Select(ReadShared));
+        onDisk.Should().Contain(auditId);
+    }
+
+    private static ServiceProvider ComposeWithFileSink(string auditDirectory, out GreetBrick brick)
+    {
+        brick = new GreetBrick();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"{AshlarMcpBrickOptions.SectionPath}:ExposedBrickIds:0"] = "test.greet",
+            ["Ashlar:Audit:Sinks:0"] = "File",
+            ["Ashlar:Audit:File:Directory"] = auditDirectory,
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IBrickRegistry>(new Registry(brick));
+        services.AddBarrierAuditSinks(configuration);
+        services.AddAshlarMcpBricks(configuration);
+        return services.BuildServiceProvider();
+    }
+
+    private static string TempDirectory()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "ashlar-mcp-audit-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(path);
+        return path;
+    }
+
+    private static string ReadShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     [Fact(Timeout = 60000)]
