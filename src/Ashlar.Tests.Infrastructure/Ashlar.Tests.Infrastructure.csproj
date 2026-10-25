@@ -101,6 +101,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../samples/verified-brick-consumer/VerifiedBrickConsumer.csproj" />
     <ProjectReference Include="..\Ashlar.Certification.Contracts\Ashlar.Certification.Contracts.csproj" />
     <ProjectReference Include="..\Ashlar.Certification.State\Ashlar.Certification.State.csproj" />
     <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
