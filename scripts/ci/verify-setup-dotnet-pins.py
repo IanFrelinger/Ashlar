@@ -76,8 +76,37 @@ def satisfies(pin, wanted, policy):
     return True
 
 
+INSTALL_DIRS = (".docker", ".devcontainer", ".github")
+CHANNEL = re.compile(r"(dotnet-install|install-dotnet)\S*\s.*(--channel|-Channel)\b")
+
+
+def channel_installs(root):
+    """dotnet-install invocations (continuation lines joined) that pick a channel in CI images and workflows."""
+    found = []
+    for top in INSTALL_DIRS:
+        for path in sorted((root / top).rglob("*")):
+            if not path.is_file():
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            lines, n = text.split("\n"), 0
+            while n < len(lines):
+                start, command = n, lines[n]
+                while command.rstrip().endswith("\\") and n + 1 < len(lines):
+                    n += 1
+                    command = command.rstrip()[:-1] + " " + lines[n]
+                if CHANNEL.search(command) and not command.lstrip().startswith("#"):
+                    found.append(f"{path.relative_to(root).as_posix()}:{start + 1}")
+                n += 1
+    return found
+
+
 def check(root):
     errors, pins, steps = [], {}, 0
+    for where in channel_installs(root):
+        errors.append(f"{where}: dotnet-install with a channel resolves through aka.ms; pass an exact --version")
     files = sorted(root.glob(".github/workflows/*.y*ml")) + sorted(root.glob("actions/**/action.y*ml"))
     for path in files:
         lines = path.read_text(encoding="utf-8").split("\n")

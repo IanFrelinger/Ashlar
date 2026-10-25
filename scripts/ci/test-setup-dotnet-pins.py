@@ -108,6 +108,20 @@ class PinTests(unittest.TestCase):
         self.workflow("a.yml", DASH_STEP.format(first="10.0.403"))
         self.assertTrue(any("actions/x/action.yml:4" in e for e in self.errors()))
 
+    def test_a_channel_dotnet_install_in_an_image_is_refused_even_across_continuation_lines(self):
+        self.workflow("a.yml", DASH_STEP.format(first="10.0.403"))
+        (self.root / ".docker").mkdir()
+        (self.root / ".docker/Dockerfile.x").write_text(
+            "RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && \\\n"
+            "    bash /tmp/dotnet-install.sh --version 8.0.33 --runtime dotnet && \\\n"
+            "    bash /tmp/dotnet-install.sh \\\n"
+            "      --channel 8.0 --runtime aspnetcore\n"
+            "# bash dotnet-install.sh --channel 8.0 (a comment is not an install)\n")
+        errors = self.errors()
+        self.assertEqual([e for e in errors if "dotnet-install with a channel" in e],
+                         [".docker/Dockerfile.x:1: dotnet-install with a channel resolves through aka.ms; pass an exact --version"],
+                         errors)
+
     def test_the_repository_passes(self):
         errors, steps, _ = PINS.check(REPO)
         self.assertEqual(errors, [])
