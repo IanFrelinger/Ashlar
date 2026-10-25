@@ -31,6 +31,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   ready. Dogfooded by `.github/workflows/pr-blockers-action.yml` (advisory) and tested against a stub server by
   `tests/scripts/pr-blockers-action.test.sh`.
 
+### Fixed — `ashlar new brick` restore hint
+
+- The scaffold's `restoreHint` said a feed was required. It now says a plain `dotnet restore` is enough when the
+  pinned `Ashlar.Authoring` version is on nuget.org, and names a local feed or a `ProjectReference` only for a
+  version that is not (`NU1101`). Owner-delegated decision of 2026-10-25.
+
 ### Fixed — portability-gate `run-mock-completes` red since #832
 
 - `scripts/e2e-loop.sh` expected a plain mock `ashlar run` to exit 0. Since #832 a run where only the

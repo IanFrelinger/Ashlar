@@ -87,5 +87,8 @@ public sealed class NewCommandTests
         using var doc = JsonDocument.Parse(writer.ToString());
         doc.RootElement.GetProperty("ok").GetBoolean().Should().BeTrue();
         doc.RootElement.GetProperty("details").GetProperty("testProject").GetString().Should().Contain("JsonThingBrick.Tests");
+        doc.RootElement.GetProperty("details").GetProperty("restoreHint").GetString().Should()
+            .Contain("is on nuget.org, a plain dotnet restore is enough")
+            .And.Contain("If it is not (NU1101), pass a local feed");
     }
 }
