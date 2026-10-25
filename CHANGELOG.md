@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — MCP brick audit records form a hash chain
+
+- Each `MCP_BRICK_INVOKED` record, refusals included, carries a per-process `session`, `seq` (1, 2, …) and
+  `prevSha256` (the SHA-256 of the previous record's detail), plus its `auditId` and time. Records are written one at
+  a time, so file order is chain order, and each written record's hash is also logged. `McpBrickAuditChain.Verify`
+  checks a trail and reports an edited, removed or reordered record; a record the server could not write shows as a
+  gap in `seq`, not a break. The chain is unkeyed: it does not stop someone who can rewrite a session from the edit
+  onwards (see the host README). Found by the MCP host adversarial audit (M2).
+
 ### Fixed — MCP brick host records what it refuses, and caps argument size
 
 - The MCP brick host now records calls to tools it does not list and calls its policy gate denies

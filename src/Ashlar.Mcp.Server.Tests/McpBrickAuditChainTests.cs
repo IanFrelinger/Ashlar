@@ -120,6 +120,26 @@ public sealed class McpBrickAuditChainTests
     }
 
     [Fact]
+    public async Task A_bridge_refusal_is_a_link_of_the_same_chain_as_the_calls()
+    {
+        var audit = new CapturingAudit();
+        var sut = Create(audit);
+
+        await sut.InvokeAsync("test.echo", Args("{}"), CancellationToken.None);
+        await sut.RecordRefusalAsync("not_listed", canonicalId: null, Args("{}"), "Unknown tool.", CancellationToken.None);
+        await sut.InvokeAsync("test.echo", Args("{}"), CancellationToken.None);
+
+        var refusal = Detail(audit.Events[1]);
+        refusal.GetProperty("seq").GetInt64().Should().Be(2);
+        refusal.GetProperty("prevSha256").GetString().Should().Be(Sha256(audit.Events[0].Detail!));
+        refusal.GetProperty("auditId").GetString().Should().Be(audit.Events[1].CorrelationId);
+        Detail(audit.Events[2]).GetProperty("prevSha256").GetString().Should().Be(Sha256(audit.Events[1].Detail!));
+        var result = McpBrickAuditChain.Verify(audit.Events.Select(AsFileLine));
+        result.Problems.Should().BeEmpty();
+        result.Records.Should().Be(3);
+    }
+
+    [Fact]
     public async Task A_record_the_server_could_not_write_is_a_gap_not_a_break()
     {
         var audit = new CapturingAudit { FailOnCall = 2 };
