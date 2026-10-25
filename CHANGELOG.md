@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — `github.blockers` reads required checks and reviews without admin rights (1.1.0)
+
+- Without admin rights the brick used to treat every failing or pending check as blocking, never named a missing
+  required review, and missed required checks that had not run. These were findings F1–F3 of the accuracy study on
+  44 real pull requests. It now reads the same requirements from sources that need no admin rights: the protection
+  summary on `GET /branches/{base}`, the active rulesets on `GET /rules/branches/{base}`, and GraphQL `isRequired`
+  and `reviewDecision`. A failing check that is not required is a note; a required check that has not run, and a
+  required review that is missing, are blockers by name. Regression tests replay facts from the study's snapshot.
+
 ### Added — live token benchmark (D9)
 
 - `docs/benchmarks/token-benchmark.md`: one `github.blockers` brick call versus a native GitHub API tool loop, live
