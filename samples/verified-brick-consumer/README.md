@@ -48,3 +48,9 @@ dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -
 
 The tests deploy real files and check module identity, execution after DLL replacement,
 pinning, tampering, signed identity mismatches, artifact bindings, and disposal.
+
+For runtime portability, use the [same-artifact probe](../../tools/VerifiedArtifactPortability/README.md).
+It builds and signs one .NET 8 fixture, then consumes those unchanged bytes on actual
+.NET 8, 9, and 10 runtimes across Windows, Linux, and macOS. It checks runtime and
+module identity explicitly; the integration tests above compile a new fixture per
+run and their test host permits major runtime roll-forward.
