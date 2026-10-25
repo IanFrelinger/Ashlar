@@ -174,7 +174,7 @@ public class AshlarSimpleCliTests
     {
     }
 
-    private sealed class RecordingBrick : Brick
+    private sealed class RecordingBrick : Ashlar.Core.Domain.Bricks.Brick
     {
         public RecordingBrick()
         {
