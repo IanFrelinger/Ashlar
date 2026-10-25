@@ -4,7 +4,7 @@
 # Provisions everything the overnight convergence loop needs so that the host
 # never runs git or dotnet:
 #   1. .NET 8 runtime alongside SDK 10 (layer test projects target net8.0;
-#      CI installs 10.0.x + 8.0.x — mirror it).
+#      CI installs SDKs 10.0.403 + 8.0.427 — mirror it).
 #   2. Global git identity + safe.directory (docker exec runs as root; the
 #      bind-mounted host repo and mounted worktrees have foreign ownership).
 #   3. The agent clone at $CLONE — a container-native clone of the host repo
@@ -27,7 +27,8 @@ if dotnet --list-runtimes | grep -q '^Microsoft\.NETCore\.App 8\.'; then
   echo "net8 runtime present"
 else
   curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
-  bash /tmp/dotnet-install.sh --runtime aspnetcore --channel 8.0 --install-dir /usr/share/dotnet
+  # An exact --version downloads from builds.dotnet.microsoft.com; --channel resolves through aka.ms.
+  bash /tmp/dotnet-install.sh --runtime aspnetcore --version 8.0.33 --install-dir /usr/share/dotnet
 fi
 
 echo "-- python stdlib (dependency-boundary gate) --"

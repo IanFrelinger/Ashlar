@@ -21,8 +21,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            10.0.x
-            8.0.x
+            10.0.403
+            8.0.427
 
       - name: Pack + restore sample (same as pre-push)
         env:
@@ -40,8 +40,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            10.0.x
-            8.0.x
+            10.0.403
+            8.0.427
 
       - name: Verify against nuget.org
         run: bash scripts/verify-stable-sdk-host-sample-published-feed.sh "${{ inputs.version }}"
@@ -60,8 +60,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            10.0.x
-            8.0.x
+            10.0.403
+            8.0.427
 
       - name: Packed contracts are fail-closed
         run: bash scripts/verify-packed-certification-trust-behavior.sh
@@ -77,8 +77,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            10.0.x
-            8.0.x
+            10.0.403
+            8.0.427
 
       # Reports before it judges: the probe runs against any published version, including ones
       # whose API surface predates today's, so its output is readable even when the gate below

@@ -38,7 +38,7 @@ if ! dotnet --list-runtimes | grep -q '^Microsoft\.AspNetCore\.App 8\.'; then
     DOTNET_SUDO="sudo -n"
   fi
   curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
-  ${DOTNET_SUDO} bash /tmp/dotnet-install.sh --channel 8.0 --runtime aspnetcore \
+  ${DOTNET_SUDO} bash /tmp/dotnet-install.sh --version 8.0.33 --runtime aspnetcore \
     --install-dir "${DOTNET_ROOT:-/usr/share/dotnet}" --no-path
   rm -f /tmp/dotnet-install.sh
   dotnet --list-runtimes | grep '^Microsoft\.AspNetCore\.App 8\.' || {

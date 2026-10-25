@@ -47,7 +47,7 @@ runs:
       if: inputs.setup-dotnet == 'true'
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 10.0.x
+        dotnet-version: 10.0.403
 
     # Built from this action's own checkout until Ashlar.Mcp.Server.Host is on nuget.org; run from
     # the repository root so its global.json picks the SDK.

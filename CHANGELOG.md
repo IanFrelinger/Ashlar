@@ -17,6 +17,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — CI installs .NET from exact versions, not through aka.ms
+
+- Every `actions/setup-dotnet` step (61 across the workflows and `actions/pr-blockers`) now pins exact versions
+  (SDK `10.0.403`, `9.0.320`, `8.0.427`) instead of `X.Y.x` or `global-json-file`, and the test images under
+  `.docker/` and `.devcontainer/post-create.sh` install the .NET 8 runtimes with `--version 8.0.33`, not `--channel 8.0`. A channel makes dotnet-install
+  resolve the download through an aka.ms link; on 2026-10-25 those links redirected to a storage account answering
+  409, and every job failed at "Setup .NET". An exact version downloads from builds.dotnet.microsoft.com directly.
+  `scripts/ci/verify-setup-dotnet-pins.py` (run by `shell-lint`) keeps every pin exact, one per band, and requires
+  the SDK pin to satisfy `global.json` under its `rollForward` policy, so `global.json` stays the source of truth.
+
 ### Fixed — `github.blockers` reads required checks and reviews without admin rights (1.1.0)
 
 - Without admin rights the brick used to treat every failing or pending check as blocking, never named a missing

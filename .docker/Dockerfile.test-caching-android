@@ -41,8 +41,8 @@ COPY . .
 # Install the .NET 8.0 runtime so the net8.0 inner build of the multi-target test projects
 # runs on the real 8.0 runtime (net8 consumer story); the SDK image itself is 10.x.
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && \
-    bash /tmp/dotnet-install.sh --channel 8.0 --runtime aspnetcore --install-dir /usr/share/dotnet --no-path && \
-    bash /tmp/dotnet-install.sh --channel 8.0 --runtime dotnet --install-dir /usr/share/dotnet --no-path && \
+    bash /tmp/dotnet-install.sh --version 8.0.33 --runtime aspnetcore --install-dir /usr/share/dotnet --no-path && \
+    bash /tmp/dotnet-install.sh --version 8.0.33 --runtime dotnet --install-dir /usr/share/dotnet --no-path && \
     rm /tmp/dotnet-install.sh
 
 # Restore dependencies for test projects

@@ -40,7 +40,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.403
 
       # Each tier runs to completion and the verdict is taken at the end, for the same reason the
       # scripts collect failures instead of aborting on the first one: a failing tier must not hide
@@ -164,7 +164,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.403
 
       - name: Tier 8 — do the docs still describe this repo, on Windows?
         if: always()

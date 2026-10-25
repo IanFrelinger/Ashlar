@@ -7,8 +7,8 @@ RUN apt-get update && \
     apt-get install -y curl git && \
     rm -rf /var/lib/apt/lists/* && \
     curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && \
-    bash /tmp/dotnet-install.sh --runtime dotnet --channel 8.0 --install-dir /usr/share/dotnet && \
-    bash /tmp/dotnet-install.sh --runtime aspnetcore --channel 8.0 --install-dir /usr/share/dotnet && \
+    bash /tmp/dotnet-install.sh --runtime dotnet --version 8.0.33 --install-dir /usr/share/dotnet && \
+    bash /tmp/dotnet-install.sh --runtime aspnetcore --version 8.0.33 --install-dir /usr/share/dotnet && \
     rm -f /tmp/dotnet-install.sh
 
 WORKDIR /workspace
