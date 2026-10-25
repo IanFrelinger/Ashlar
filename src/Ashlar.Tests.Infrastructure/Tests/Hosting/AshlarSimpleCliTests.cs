@@ -17,6 +17,18 @@ public class AshlarSimpleCliTests
         var context = host.Services.GetService<IExecutionContext>();
 
         Assert.NotNull(context);
+        Assert.Equal(AshlarSimpleCli.SimpleCliAgentId, context!.AgentId);
+    }
+
+    [Fact]
+    public void CreateSimpleHost_CallerExecutionContextReplacesTheDefault()
+    {
+        var mine = new Ashlar.Infrastructure.Execution.ExecutionContext { AgentId = "mine" };
+
+        using var host = AshlarSimpleCli.CreateSimpleHost(configureServices: services =>
+            services.AddSingleton<IExecutionContext>(mine));
+
+        Assert.Same(mine, host.Services.GetRequiredService<IExecutionContext>());
     }
 
     [Fact]
@@ -70,7 +82,7 @@ public class AshlarSimpleCliTests
         Assert.Equal("ashlar", brick.LastInput!.Get<string>("name"));
         Assert.Equal(3, brick.LastInput.Get<int>("count"));
         Assert.Equal(ImplementationType.Deterministic, brick.LastImplementation);
-        Assert.NotNull(brick.LastContext);
+        Assert.Equal(AshlarSimpleCli.SimpleCliAgentId, brick.LastContext!.AgentId);
         Assert.Equal("echo:ashlar", output.Get<string>("echo"));
     }
 

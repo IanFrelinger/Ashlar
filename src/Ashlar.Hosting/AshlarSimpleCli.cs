@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Domain.Bricks;
@@ -13,6 +14,9 @@ namespace Ashlar.Hosting;
 /// </summary>
 public static class AshlarSimpleCli
 {
+    /// <summary><see cref="IExecutionContext.AgentId"/> of the default context the simple host registers.</summary>
+    public const string SimpleCliAgentId = "ashlar-simple-cli";
+
     /// <summary>
     /// Creates a simple host builder for CLI applications.
     /// Uses the System deployment profile for minimal overhead.
@@ -34,7 +38,15 @@ public static class AshlarSimpleCli
             {
                 // Add Ashlar with minimal (System) profile
                 services.AddAshlarProfile(AshlarDeploymentProfile.System);
-                
+
+                // No deployment profile registers an IExecutionContext; ExecuteAsync below needs one.
+                // Registered before configureServices so a caller's own registration wins.
+                services.TryAddSingleton<IExecutionContext>(new Ashlar.Infrastructure.Execution.ExecutionContext
+                {
+                    AgentId = SimpleCliAgentId,
+                    BehaviorId = SimpleCliAgentId,
+                });
+
                 // Allow additional configuration
                 configureServices?.Invoke(services);
             });
