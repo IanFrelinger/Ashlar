@@ -1,0 +1,1 @@
+{"path": "/repos/dotnet/aspnetcore/branches/release/11.0/protection", "status": 403, "body": "{\"message\":\"Resource not accessible by integration\",\"documentation_url\":\"https://docs.github.com/rest/branches/branch-protection#get-branch-protection\",\"status\":\"403\"}", "recorded_at": "2026-10-25T22:08:37.395211+00:00"}

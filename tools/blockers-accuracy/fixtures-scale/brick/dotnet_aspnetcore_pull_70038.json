@@ -1,0 +1,53 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "50ac8136157e40e6ae149fe05486f19c",
+ "summary": "PR #70038 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check `aspnetcore-ci` concluded failure.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121228335242"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Build Analysis` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121236808645"
+   },
+   {
+    "text": "The check `Build Insights` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121236808263"
+   },
+   {
+    "text": "The check `aspnetcore-template-tests-pr` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121236653943"
+   },
+   {
+    "text": "The check `aspnetcore-template-tests-pr (Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121236648840"
+   },
+   {
+    "text": "The check `aspnetcore-ci (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121228329115"
+   },
+   {
+    "text": "The check `Maestro auto-merge - All Checks Successful` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121215509778"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/70038",
+   "https://github.com/dotnet/aspnetcore/runs/121228335242",
+   "https://github.com/dotnet/aspnetcore/runs/121236808645",
+   "https://github.com/dotnet/aspnetcore/runs/121236808263",
+   "https://github.com/dotnet/aspnetcore/runs/121236653943",
+   "https://github.com/dotnet/aspnetcore/runs/121236648840",
+   "https://github.com/dotnet/aspnetcore/runs/121228329115",
+   "https://github.com/dotnet/aspnetcore/runs/121215509778"
+  ],
+  "answer": "**What is blocking PR #70038?** PR #70038 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- The check `aspnetcore-ci` concluded failure. ([evidence](https://github.com/dotnet/aspnetcore/runs/121228335242))\n\nNotes:\n- The check `Build Analysis` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121236808645))\n- The check `Build Insights` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121236808263))\n- The check `aspnetcore-template-tests-pr` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121236653943))\n- The check `aspnetcore-template-tests-pr (Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121236648840))\n- The check `aspnetcore-ci (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121228329115))\n- The check `Maestro auto-merge - All Checks Successful` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121215509778))\n\nRead from https://github.com/dotnet/aspnetcore/pull/70038\n"
+ }
+}

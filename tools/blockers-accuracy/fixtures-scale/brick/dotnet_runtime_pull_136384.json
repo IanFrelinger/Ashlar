@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "bc30c059fd6b47a38c97018534804b07",
+ "summary": "PR #136384 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `runtime` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/121234151076"
+   },
+   {
+    "text": "The check `runtime (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/121234144160"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/runtime/pull/136384",
+   "https://github.com/dotnet/runtime/runs/121234151076",
+   "https://github.com/dotnet/runtime/runs/121234144160"
+  ],
+  "answer": "**What is blocking PR #136384?** PR #136384 is READY: nothing blocking was found.\n\nNotes:\n- The check `runtime` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/121234151076))\n- The check `runtime (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/121234144160))\n\nRead from https://github.com/dotnet/runtime/pull/136384\n"
+ }
+}

@@ -1,0 +1,226 @@
+{
+ "url": "https://github.com/dotnet/runtime/pull/136379",
+ "captured_from": "2026-10-25T22:06:40.371195+00:00",
+ "captured_to": "2026-10-25T22:06:48.181633+00:00",
+ "graphql": {
+  "url": "https://github.com/dotnet/runtime/pull/136379",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "CLEAN",
+  "reviewDecision": "APPROVED",
+  "baseRefName": "main",
+  "headRefOid": "1d0b0d316f8744732b5da827a85f0e979b023c56",
+  "latestOpinionatedReviews": {
+   "nodes": [
+    {
+     "author": {
+      "login": "jkoritzinsky"
+     },
+     "state": "APPROVED"
+    },
+    {
+     "author": {
+      "login": "vcsjones"
+     },
+     "state": "APPROVED"
+    }
+   ]
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "1d0b0d316f8744732b5da827a85f0e979b023c56",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 25,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "poll-pull-requests",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "check-labels",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "predict-pull-label",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "dotnet-linker-tests",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "hardware-intrinsics-arm64",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "hardware-intrinsics-wasm",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-coreclr hardware-intrinsics",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-coreclr ilasm",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-coreclr superpmi-diffs",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-coreclr superpmi-replay",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-dev-innerloop",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-diagnostics",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-libraries enterprise-linux",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-libraries stress-http-pr",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-libraries stress-ssl-pr",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-llvm",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-wasm-perf",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Build Analysis",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Build Insights",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Helix Queue Insights (preview)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Helix Queue Insights (preview)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-report-green",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "runtime-report-green (Report_Green)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "1d0b0d316f8744732b5da827a85f0e979b023c56"
+}

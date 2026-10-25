@@ -1,0 +1,1 @@
+{"path": "/repos/modelcontextprotocol/python-sdk/branches/bound-subscription-cleanup/protection", "status": 403, "body": "{\"message\":\"Resource not accessible by integration\",\"documentation_url\":\"https://docs.github.com/rest/branches/branch-protection#get-branch-protection\",\"status\":\"403\"}", "recorded_at": "2026-10-25T22:07:33.963697+00:00"}

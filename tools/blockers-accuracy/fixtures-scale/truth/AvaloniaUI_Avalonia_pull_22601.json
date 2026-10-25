@@ -1,0 +1,80 @@
+{
+ "url": "https://github.com/AvaloniaUI/Avalonia/pull/22601",
+ "captured_from": "2026-10-25T22:04:10.805629+00:00",
+ "captured_to": "2026-10-25T22:04:17.262998+00:00",
+ "graphql": {
+  "url": "https://github.com/AvaloniaUI/Avalonia/pull/22601",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": true,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BEHIND",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "653a11b591bc4cfb17159309c23ccd6d7e7573f4",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "653a11b591bc4cfb17159309c23ccd6d7e7573f4",
+      "statusCheckRollup": {
+       "state": "PENDING",
+       "contexts": {
+        "totalCount": 6,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "Runner",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "WIP",
+          "status": "IN_PROGRESS",
+          "conclusion": null,
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "pull_request_label",
+          "status": "IN_PROGRESS",
+          "conclusion": null,
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests (Mac)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests (Windows)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "653a11b591bc4cfb17159309c23ccd6d7e7573f4"
+}

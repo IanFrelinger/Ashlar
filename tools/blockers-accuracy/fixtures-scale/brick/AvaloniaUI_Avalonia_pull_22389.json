@@ -1,0 +1,43 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "4cc30c71275544358ae62e6d4e9ab4ce",
+ "summary": "PR #22389 is BLOCKED by 3 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "`jsuarezruiz` requested changes.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22389#pullrequestreview-5425972449"
+   },
+   {
+    "reason": "The check `macOS` concluded cancelled.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112398241406"
+   },
+   {
+    "reason": "The check `Windows` concluded cancelled.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112398240962"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Publish Release NuGet Packages` concluded cancelled. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112405169194"
+   },
+   {
+    "text": "The check `Publish Nightly NuGet Packages` concluded cancelled. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112405169002"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22389",
+   "https://github.com/AvaloniaUI/Avalonia/pull/22389#pullrequestreview-5425972449",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112398241406",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112398240962",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112405169194",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112405169002"
+  ],
+  "answer": "**What is blocking PR #22389?** PR #22389 is BLOCKED by 3 blocker(s).\n\nBlockers:\n- `jsuarezruiz` requested changes. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22389#pullrequestreview-5425972449))\n- The check `macOS` concluded cancelled. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112398241406))\n- The check `Windows` concluded cancelled. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112398240962))\n\nNotes:\n- The check `Publish Release NuGet Packages` concluded cancelled. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112405169194))\n- The check `Publish Nightly NuGet Packages` concluded cancelled. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/37501167669/job/112405169002))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22389\n"
+ }
+}

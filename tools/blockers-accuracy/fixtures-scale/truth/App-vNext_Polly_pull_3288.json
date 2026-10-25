@@ -1,0 +1,52 @@
+{
+ "url": "https://github.com/App-vNext/Polly/pull/3288",
+ "captured_from": "2026-10-25T22:06:15.596951+00:00",
+ "captured_to": "2026-10-25T22:06:22.284502+00:00",
+ "graphql": {
+  "url": "https://github.com/App-vNext/Polly/pull/3288",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": null,
+  "baseRefName": "main",
+  "headRefOid": "1316d2576d4f0f03b0c12e2e14ff7e521d318069",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "1316d2576d4f0f03b0c12e2e14ff7e521d318069",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 2,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "review",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+}

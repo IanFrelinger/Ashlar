@@ -1,0 +1,43 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "781b2c3bbadb4a5090086ebd5b46af3b",
+ "summary": "PR #136300 is BLOCKED by 3 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check `check-labels` concluded failure.",
+    "evidence": "https://github.com/dotnet/runtime/actions/runs/39871354226/job/120146293603"
+   },
+   {
+    "reason": "The check `Build Analysis` concluded failure.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120009931703"
+   },
+   {
+    "reason": "The check `check-labels` concluded failure.",
+    "evidence": "https://github.com/dotnet/runtime/actions/runs/39809249673/job/119930700390"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `runtime` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120008852465"
+   },
+   {
+    "text": "The check `runtime (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120008812401"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/runtime/pull/136300",
+   "https://github.com/dotnet/runtime/actions/runs/39871354226/job/120146293603",
+   "https://github.com/dotnet/runtime/runs/120009931703",
+   "https://github.com/dotnet/runtime/actions/runs/39809249673/job/119930700390",
+   "https://github.com/dotnet/runtime/runs/120008852465",
+   "https://github.com/dotnet/runtime/runs/120008812401"
+  ],
+  "answer": "**What is blocking PR #136300?** PR #136300 is BLOCKED by 3 blocker(s).\n\nBlockers:\n- The check `check-labels` concluded failure. ([evidence](https://github.com/dotnet/runtime/actions/runs/39871354226/job/120146293603))\n- The check `Build Analysis` concluded failure. ([evidence](https://github.com/dotnet/runtime/runs/120009931703))\n- The check `check-labels` concluded failure. ([evidence](https://github.com/dotnet/runtime/actions/runs/39809249673/job/119930700390))\n\nNotes:\n- The check `runtime` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/120008852465))\n- The check `runtime (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/120008812401))\n\nRead from https://github.com/dotnet/runtime/pull/136300\n"
+ }
+}

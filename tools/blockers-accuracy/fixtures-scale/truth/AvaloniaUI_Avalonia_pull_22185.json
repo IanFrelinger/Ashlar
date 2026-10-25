@@ -1,0 +1,115 @@
+{
+ "url": "https://github.com/AvaloniaUI/Avalonia/pull/22185",
+ "captured_from": "2026-10-25T22:05:20.669150+00:00",
+ "captured_to": "2026-10-25T22:05:27.651575+00:00",
+ "graphql": {
+  "url": "https://github.com/AvaloniaUI/Avalonia/pull/22185",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "pr4g/vvar-advances",
+  "headRefOid": "80960d69479b2064bae57f100121d1d5c500a33a",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "80960d69479b2064bae57f100121d1d5c500a33a",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 11,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "Runner",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Linux",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "macOS",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Windows",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Branch Info",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Publish Nightly NuGet Packages",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Publish Release NuGet Packages",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Unit Tests",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "WIP",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "pull_request_label",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "80960d69479b2064bae57f100121d1d5c500a33a"
+}

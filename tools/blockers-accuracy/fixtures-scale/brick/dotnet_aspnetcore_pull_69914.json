@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "851797a5512e4b1784c503f228c28f8c",
+ "summary": "PR #69914 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/aspnetcore/pull/69914"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 26 check run(s) and 0 commit status(es) on the head commit d0dba03f4fae; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/aspnetcore/commit/d0dba03f4fae926bb6f74095a924f085004478e9"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/69914",
+   "https://github.com/dotnet/aspnetcore/commit/d0dba03f4fae926bb6f74095a924f085004478e9"
+  ],
+  "answer": "**What is blocking PR #69914?** PR #69914 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/aspnetcore/pull/69914))\n\nNotes:\n- Read 26 check run(s) and 0 commit status(es) on the head commit d0dba03f4fae; none is failing or pending. ([evidence](https://github.com/dotnet/aspnetcore/commit/d0dba03f4fae926bb6f74095a924f085004478e9))\n\nRead from https://github.com/dotnet/aspnetcore/pull/69914\n"
+ }
+}

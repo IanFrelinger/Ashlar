@@ -1,0 +1,66 @@
+{
+ "url": "https://github.com/IanFrelinger/Ashlar/pull/875",
+ "captured_from": "2026-10-25T22:02:31.047905+00:00",
+ "captured_to": "2026-10-25T22:02:36.751726+00:00",
+ "graphql": {
+  "url": "https://github.com/IanFrelinger/Ashlar/pull/875",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "CONFLICTING",
+  "mergeStateStatus": "DIRTY",
+  "reviewDecision": null,
+  "baseRefName": "master",
+  "headRefOid": "2a98c71766a0c4cdbbddb707c10b1edae32c7709",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "2a98c71766a0c4cdbbddb707c10b1edae32c7709",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 4,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "Compose test lane (ubuntu)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "lychee (README + docs)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "guard",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Compose ephemeral lane",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "2a98c71766a0c4cdbbddb707c10b1edae32c7709"
+}

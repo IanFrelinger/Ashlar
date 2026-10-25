@@ -1,0 +1,262 @@
+{
+ "url": "https://github.com/dotnet/aspnetcore/pull/69832",
+ "captured_from": "2026-10-25T22:08:22.312475+00:00",
+ "captured_to": "2026-10-25T22:08:29.939229+00:00",
+ "graphql": {
+  "url": "https://github.com/dotnet/aspnetcore/pull/69832",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "7c7f288dda7a8018c537d3e684e654f0b9ac734b",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "7c7f288dda7a8018c537d3e684e654f0b9ac734b",
+      "statusCheckRollup": {
+       "state": "FAILURE",
+       "contexts": {
+        "totalCount": 32,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "lint",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Build Analysis",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Build Insights",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Helix tests Monitor Helix Jobs)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Local development validation Test: Windows local development validation)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-template-tests-pr",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-template-tests-pr (Monitor Helix Jobs)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-always-green",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Helix Queue Insights (preview)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Helix Queue Insights (preview)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Build Build: Linux x64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Build Build: Windows x64/x86/arm64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Build Build: macOS arm64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Build Build: macOS x64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Build Code check)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Build Source-Build (Managed))",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Helix tests Tests: Helix x64 Subset 1)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Helix tests Tests: Helix x64 Subset 2)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Platform tests Test: Ubuntu x64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Platform tests Test: Windows Server x64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-ci (Platform tests Test: macOS)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-components-e2e",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-components-e2e (Test: Blazor E2E tests on Linux (CoreCLR))",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-components-e2e (Test: Blazor E2E tests on Linux (Mono client and WebAssembly))",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-components-e2e (Test: Blazor E2E tests on Linux (Mono server))",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-quarantined-pr",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-quarantined-pr (Tests: Helix)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-quarantined-pr (Tests: Ubuntu x64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-quarantined-pr (Tests: Windows x64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "aspnetcore-template-tests-pr (Tests: Helix template tests x64)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "7c7f288dda7a8018c537d3e684e654f0b9ac734b"
+}

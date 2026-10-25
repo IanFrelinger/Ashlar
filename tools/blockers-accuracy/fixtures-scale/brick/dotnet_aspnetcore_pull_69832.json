@@ -1,0 +1,57 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "d979447ffec941ac8d77df155180f8f7",
+ "summary": "PR #69832 is BLOCKED by 2 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/aspnetcore/pull/69832"
+   },
+   {
+    "reason": "The check `Build Analysis` concluded failure.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121222900193"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Build Insights` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121222884796"
+   },
+   {
+    "text": "The check `aspnetcore-template-tests-pr` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121222774931"
+   },
+   {
+    "text": "The check `aspnetcore-template-tests-pr (Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121222770489"
+   },
+   {
+    "text": "The check `aspnetcore-ci` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121219994344"
+   },
+   {
+    "text": "The check `aspnetcore-ci (Helix tests Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121219990072"
+   },
+   {
+    "text": "The check `aspnetcore-ci (Local development validation Test: Windows local development validation)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121217480960"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/69832",
+   "https://github.com/dotnet/aspnetcore/runs/121222900193",
+   "https://github.com/dotnet/aspnetcore/runs/121222884796",
+   "https://github.com/dotnet/aspnetcore/runs/121222774931",
+   "https://github.com/dotnet/aspnetcore/runs/121222770489",
+   "https://github.com/dotnet/aspnetcore/runs/121219994344",
+   "https://github.com/dotnet/aspnetcore/runs/121219990072",
+   "https://github.com/dotnet/aspnetcore/runs/121217480960"
+  ],
+  "answer": "**What is blocking PR #69832?** PR #69832 is BLOCKED by 2 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/aspnetcore/pull/69832))\n- The check `Build Analysis` concluded failure. ([evidence](https://github.com/dotnet/aspnetcore/runs/121222900193))\n\nNotes:\n- The check `Build Insights` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121222884796))\n- The check `aspnetcore-template-tests-pr` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121222774931))\n- The check `aspnetcore-template-tests-pr (Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121222770489))\n- The check `aspnetcore-ci` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121219994344))\n- The check `aspnetcore-ci (Helix tests Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121219990072))\n- The check `aspnetcore-ci (Local development validation Test: Windows local development validation)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121217480960))\n\nRead from https://github.com/dotnet/aspnetcore/pull/69832\n"
+ }
+}

@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "2995edaeec0f49c9ab81eac2ec8326dd",
+ "summary": "PR #844 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind `master`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/pull/844"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 15 check run(s) and 0 commit status(es) on the head commit bc36efa5030d; none is failing or pending.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/bc36efa5030dc676155acaa7f0f55c0379bf2738"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/844",
+   "https://github.com/IanFrelinger/Ashlar/commit/bc36efa5030dc676155acaa7f0f55c0379bf2738"
+  ],
+  "answer": "**What is blocking PR #844?** PR #844 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- The branch is behind `master`, and the base branch requires branches to be up to date. ([evidence](https://github.com/IanFrelinger/Ashlar/pull/844))\n\nNotes:\n- Read 15 check run(s) and 0 commit status(es) on the head commit bc36efa5030d; none is failing or pending. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/bc36efa5030dc676155acaa7f0f55c0379bf2738))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/844\n"
+ }
+}

@@ -1,6 +1,6 @@
 {
  "selected_on": "2026-10-25",
- "note": "selected_as is the PR's state when it was picked; ground truth is the capture snapshot",
+ "note": "scale pass (100 PRs, 10 public repos incl. IanFrelinger/Ashlar); selected_as is selection label only; ground truth is the capture snapshot",
  "prs": [
   {
    "url": "https://github.com/cli/cli/pull/14196",
@@ -176,6 +176,230 @@
   },
   {
    "url": "https://github.com/cli/cli/pull/11926",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/877",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/875",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/873",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/871",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/870",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/869",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/853",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/844",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/840",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/839",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/868",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/872",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/876",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/866",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/874",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/751",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/750",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/737",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/IanFrelinger/Ashlar/pull/736",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22601",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22600",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22599",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22560",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22515",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22462",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22436",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22393",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22389",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22387",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22185",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22184",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22183",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22182",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/22180",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/21854",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/AvaloniaUI/Avalonia/pull/21713",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/App-vNext/Polly/pull/3288",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/runtime/pull/136399",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/runtime/pull/136384",
+   "selected_as": "unstable"
+  },
+  {
+   "url": "https://github.com/dotnet/runtime/pull/136379",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/dotnet/runtime/pull/136337",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/runtime/pull/136300",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/runtime/pull/136278",
+   "selected_as": "unstable"
+  },
+  {
+   "url": "https://github.com/dotnet/runtime/pull/136272",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3543",
+   "selected_as": "unstable"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3521",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/69914",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/70032",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/69312",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/69193",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/70038",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/69832",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/69981",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/aspnetcore/pull/70037",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/App-vNext/Polly/pull/7",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/App-vNext/Polly/pull/4",
    "selected_as": "merged"
   }
  ]

@@ -1,0 +1,59 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "7bb9b0fcac384535bc3a921e39eb23de",
+ "summary": "PR #3288 is BLOCKED by 9 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The required check `CodeQL` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `code-ql` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `dependency-review` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `lint` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `macos-latest` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `mutation-tests` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `ubuntu-latest` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `validate-packages` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   },
+   {
+    "reason": "The required check `windows-latest` has not reported on 1316d2576d4f.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 2 check run(s) and 0 commit status(es) on the head commit 1316d2576d4f; none is failing or pending.",
+    "evidence": "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+   }
+  ],
+  "evidence": [
+   "https://github.com/App-vNext/Polly/pull/3288",
+   "https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069"
+  ],
+  "answer": "**What is blocking PR #3288?** PR #3288 is BLOCKED by 9 blocker(s).\n\nBlockers:\n- The required check `CodeQL` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `code-ql` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `dependency-review` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `lint` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `macos-latest` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `mutation-tests` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `ubuntu-latest` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `validate-packages` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n- The required check `windows-latest` has not reported on 1316d2576d4f. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n\nNotes:\n- Read 2 check run(s) and 0 commit status(es) on the head commit 1316d2576d4f; none is failing or pending. ([evidence](https://github.com/App-vNext/Polly/commit/1316d2576d4f0f03b0c12e2e14ff7e521d318069))\n\nRead from https://github.com/App-vNext/Polly/pull/3288\n"
+ }
+}

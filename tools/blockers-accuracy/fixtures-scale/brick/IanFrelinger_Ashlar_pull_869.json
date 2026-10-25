@@ -1,0 +1,68 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "1a10bc561bb3433998ff365387004324",
+ "summary": "PR #869 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The required check `Readiness summary` has not reported on de613cadd596.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/de613cadd59636891ccde6d27a2da710b5f44e34"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Ubuntu-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658625"
+   },
+   {
+    "text": "The check `Linux \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658523"
+   },
+   {
+    "text": "The check `macOS \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658509"
+   },
+   {
+    "text": "The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658489"
+   },
+   {
+    "text": "The check `Debian-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658481"
+   },
+   {
+    "text": "The check `Alpine-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658450"
+   },
+   {
+    "text": "The check `uat (tiers 0-2, 4-10)` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659641/job/121303318281"
+   },
+   {
+    "text": "The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659665/job/121302574555"
+   },
+   {
+    "text": "The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237655386/job/121302561677"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/869",
+   "https://github.com/IanFrelinger/Ashlar/commit/de613cadd59636891ccde6d27a2da710b5f44e34",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658625",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658523",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658509",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658489",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658481",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658450",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659641/job/121303318281",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237659665/job/121302574555",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237655386/job/121302561677"
+  ],
+  "answer": "**What is blocking PR #869?** PR #869 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- The required check `Readiness summary` has not reported on de613cadd596. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/de613cadd59636891ccde6d27a2da710b5f44e34))\n\nNotes:\n- The check `Ubuntu-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658625))\n- The check `Linux \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658523))\n- The check `macOS \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658509))\n- The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658489))\n- The check `Debian-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658481))\n- The check `Alpine-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659630/job/121303658450))\n- The check `uat (tiers 0-2, 4-10)` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659641/job/121303318281))\n- The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237659665/job/121302574555))\n- The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237655386/job/121302561677))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/869\n"
+ }
+}

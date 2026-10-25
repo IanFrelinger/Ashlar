@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "804f7f4de3244540b0bc7556bcc54848",
+ "summary": "PR #871 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch has merge conflicts with `master`.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/pull/871"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `verify` concluded cancelled. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40219783816/job/121248634450"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/871",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40219783816/job/121248634450"
+  ],
+  "answer": "**What is blocking PR #871?** PR #871 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- The branch has merge conflicts with `master`. ([evidence](https://github.com/IanFrelinger/Ashlar/pull/871))\n\nNotes:\n- The check `verify` concluded cancelled. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40219783816/job/121248634450))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/871\n"
+ }
+}

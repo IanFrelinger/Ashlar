@@ -1,0 +1,42 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "77a06eb87ca0497383e3834a15248fbc",
+ "summary": "PR #70037 is BLOCKED by 2 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/aspnetcore/pull/70037"
+   },
+   {
+    "reason": "The check `Build Analysis` concluded failure.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121159135261"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Build Insights` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121159116840"
+   },
+   {
+    "text": "The check `aspnetcore-ci` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121159038510"
+   },
+   {
+    "text": "The check `aspnetcore-ci (Helix tests Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/121159034010"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/70037",
+   "https://github.com/dotnet/aspnetcore/runs/121159135261",
+   "https://github.com/dotnet/aspnetcore/runs/121159116840",
+   "https://github.com/dotnet/aspnetcore/runs/121159038510",
+   "https://github.com/dotnet/aspnetcore/runs/121159034010"
+  ],
+  "answer": "**What is blocking PR #70037?** PR #70037 is BLOCKED by 2 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/aspnetcore/pull/70037))\n- The check `Build Analysis` concluded failure. ([evidence](https://github.com/dotnet/aspnetcore/runs/121159135261))\n\nNotes:\n- The check `Build Insights` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121159116840))\n- The check `aspnetcore-ci` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121159038510))\n- The check `aspnetcore-ci (Helix tests Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/121159034010))\n\nRead from https://github.com/dotnet/aspnetcore/pull/70037\n"
+ }
+}

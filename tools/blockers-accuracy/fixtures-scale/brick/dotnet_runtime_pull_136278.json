@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "b6f35ba8357c40988c21cf5e01529512",
+ "summary": "PR #136278 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `runtime-coreclr ilasm` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120840835808"
+   },
+   {
+    "text": "The check `runtime-coreclr ilasm (Build coreclr Pri1 Runtime Tests Run linux arm checked)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120820031585"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/runtime/pull/136278",
+   "https://github.com/dotnet/runtime/runs/120840835808",
+   "https://github.com/dotnet/runtime/runs/120820031585"
+  ],
+  "answer": "**What is blocking PR #136278?** PR #136278 is READY: nothing blocking was found.\n\nNotes:\n- The check `runtime-coreclr ilasm` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/120840835808))\n- The check `runtime-coreclr ilasm (Build coreclr Pri1 Runtime Tests Run linux arm checked)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/120820031585))\n\nRead from https://github.com/dotnet/runtime/pull/136278\n"
+ }
+}

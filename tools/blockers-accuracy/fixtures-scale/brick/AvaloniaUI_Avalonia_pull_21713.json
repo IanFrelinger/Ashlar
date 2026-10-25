@@ -1,0 +1,77 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "a4ff34f4460e43c3b82ca8a9cd73ecec",
+ "summary": "PR #21713 is BLOCKED by 7 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The pull request is a draft.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/21713"
+   },
+   {
+    "reason": "The branch is behind `main`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/21713"
+   },
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/21713"
+   },
+   {
+    "reason": "The required check `Avalonia - Integration Tests` has not reported on f1c968897432.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65"
+   },
+   {
+    "reason": "The required check `Linux` has not reported on f1c968897432.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65"
+   },
+   {
+    "reason": "The required check `Windows` has not reported on f1c968897432.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65"
+   },
+   {
+    "reason": "The required check `macOS` has not reported on f1c968897432.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `AvaloniaUI.Avalonia` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/85510935776"
+   },
+   {
+    "text": "The check `AvaloniaUI.Avalonia (macOS)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/85510933992"
+   },
+   {
+    "text": "The check `AvaloniaUI.Avalonia (Windows)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/85510867804"
+   },
+   {
+    "text": "The check `AvaloniaUI.Avalonia (Linux)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/85508955891"
+   },
+   {
+    "text": "The check `WIP` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/85508132960"
+   },
+   {
+    "text": "The check `pull_request_label` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/85508132266"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/21713",
+   "https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65",
+   "https://github.com/AvaloniaUI/Avalonia/runs/85510935776",
+   "https://github.com/AvaloniaUI/Avalonia/runs/85510933992",
+   "https://github.com/AvaloniaUI/Avalonia/runs/85510867804",
+   "https://github.com/AvaloniaUI/Avalonia/runs/85508955891",
+   "https://github.com/AvaloniaUI/Avalonia/runs/85508132960",
+   "https://github.com/AvaloniaUI/Avalonia/runs/85508132266"
+  ],
+  "answer": "**What is blocking PR #21713?** PR #21713 is BLOCKED by 7 blocker(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/21713))\n- The branch is behind `main`, and the base branch requires branches to be up to date. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/21713))\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/21713))\n- The required check `Avalonia - Integration Tests` has not reported on f1c968897432. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65))\n- The required check `Linux` has not reported on f1c968897432. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65))\n- The required check `Windows` has not reported on f1c968897432. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65))\n- The required check `macOS` has not reported on f1c968897432. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/f1c968897432ae3651a093e197b44d629b445f65))\n\nNotes:\n- The check `AvaloniaUI.Avalonia` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/85510935776))\n- The check `AvaloniaUI.Avalonia (macOS)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/85510933992))\n- The check `AvaloniaUI.Avalonia (Windows)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/85510867804))\n- The check `AvaloniaUI.Avalonia (Linux)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/85508955891))\n- The check `WIP` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/85508132960))\n- The check `pull_request_label` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/85508132266))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/21713\n"
+ }
+}

@@ -24,6 +24,10 @@ pull request URLs and the cause. All three share one root: the brick learns whic
 required only from branch protection, which needs admin rights, and GitHub publishes the same facts without
 them.
 
+**Scale pass.** The same 1.1.0 brick was graded brick-raw on a third snapshot of **100** pull requests in **10**
+public repositories (including `IanFrelinger/Ashlar` and other .NET-heavy hosts): **100/100** verdicts, **211/211**
+blockers, no wrong claims, **$0** Anthropic spend. See [blockers-accuracy-scale.md](blockers-accuracy-scale.md).
+
 **After the fix.** `github.blockers` 1.1.0 ([#874](https://github.com/IanFrelinger/Ashlar/pull/874)) reads those
 facts from the non-admin sources. It was re-run on a second snapshot of the same 44 pull requests, taken 2026-10-25
 about 18:00 UTC, with the old and new bricks asked back to back:

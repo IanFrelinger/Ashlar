@@ -1,0 +1,38 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "745ceff44d5d44479218f37c108b2329",
+ "summary": "PR #136399 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check `Build Analysis` concluded failure.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120769122531"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Build Insights` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120768958348"
+   },
+   {
+    "text": "The check `runtime-coreclr ilasm` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120768838713"
+   },
+   {
+    "text": "The check `runtime-coreclr ilasm (Build coreclr Pri1 Runtime Tests Run linux arm checked)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/runtime/runs/120743311736"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/runtime/pull/136399",
+   "https://github.com/dotnet/runtime/runs/120769122531",
+   "https://github.com/dotnet/runtime/runs/120768958348",
+   "https://github.com/dotnet/runtime/runs/120768838713",
+   "https://github.com/dotnet/runtime/runs/120743311736"
+  ],
+  "answer": "**What is blocking PR #136399?** PR #136399 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- The check `Build Analysis` concluded failure. ([evidence](https://github.com/dotnet/runtime/runs/120769122531))\n\nNotes:\n- The check `Build Insights` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/120768958348))\n- The check `runtime-coreclr ilasm` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/120768838713))\n- The check `runtime-coreclr ilasm (Build coreclr Pri1 Runtime Tests Run linux arm checked)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/120743311736))\n\nRead from https://github.com/dotnet/runtime/pull/136399\n"
+ }
+}

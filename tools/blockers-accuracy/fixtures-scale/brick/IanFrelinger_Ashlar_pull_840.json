@@ -1,0 +1,152 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "1dcac3df24e64bbaad9c33c5bb6cc537",
+ "summary": "PR #840 is BLOCKED by 4 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind `master`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/pull/840"
+   },
+   {
+    "reason": "The check `Readiness summary` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121268620270"
+   },
+   {
+    "reason": "The check `build-core` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936735/job/121267189731"
+   },
+   {
+    "reason": "The check `cert-gate` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936700/job/121267189449"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `macOS \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477708"
+   },
+   {
+    "text": "The check `Ubuntu-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477588"
+   },
+   {
+    "text": "The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477559"
+   },
+   {
+    "text": "The check `Linux \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477554"
+   },
+   {
+    "text": "The check `Debian-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477547"
+   },
+   {
+    "text": "The check `Alpine-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477540"
+   },
+   {
+    "text": "The check `uat (tiers 0-2, 4-10)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936742/job/121267190101"
+   },
+   {
+    "text": "The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (aot)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189983"
+   },
+   {
+    "text": "The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (trim-partial)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189980"
+   },
+   {
+    "text": "The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (trim-full)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189943"
+   },
+   {
+    "text": "The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (trim-full-reflection-on)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189909"
+   },
+   {
+    "text": "The check `uat cross-platform (tiers 8, 9)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936742/job/121267189908"
+   },
+   {
+    "text": "The check `netstandard2.0 asset under Mono (execute)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189906"
+   },
+   {
+    "text": "The check `Ashlar.Bricks.GitHub packed consumer` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189793"
+   },
+   {
+    "text": "The check `Standalone brick authoring scaffold` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189774"
+   },
+   {
+    "text": "The check `NuGet local pack \u2192 StableSdkHostSample` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189770"
+   },
+   {
+    "text": "The check `Ashlar.Client \u2194 in-process Ashlar.API (net10)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189756"
+   },
+   {
+    "text": "The check `net9.0 runtime \u2190 lib/net8.0 asset (execute)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189705"
+   },
+   {
+    "text": "The check `security-gate` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936653/job/121267189601"
+   },
+   {
+    "text": "The check `kernel-gate` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936730/job/121267189599"
+   },
+   {
+    "text": "The check `External product shape (brick + host + client)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189549"
+   },
+   {
+    "text": "The check `packed-certification-trust` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936653/job/121267189520"
+   },
+   {
+    "text": "The check `kernel-coverage` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936689/job/121267189352"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/840",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121268620270",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936735/job/121267189731",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936700/job/121267189449",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477708",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477588",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477559",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477554",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477547",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477540",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936742/job/121267190101",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189983",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189980",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189943",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189909",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936742/job/121267189908",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189906",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189793",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189774",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189770",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189756",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189705",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936653/job/121267189601",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936730/job/121267189599",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189549",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936653/job/121267189520",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40225936689/job/121267189352"
+  ],
+  "answer": "**What is blocking PR #840?** PR #840 is BLOCKED by 4 blocker(s).\n\nBlockers:\n- The branch is behind `master`, and the base branch requires branches to be up to date. ([evidence](https://github.com/IanFrelinger/Ashlar/pull/840))\n- The check `Readiness summary` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121268620270))\n- The check `build-core` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936735/job/121267189731))\n- The check `cert-gate` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936700/job/121267189449))\n\nNotes:\n- The check `macOS \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477708))\n- The check `Ubuntu-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477588))\n- The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477559))\n- The check `Linux \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477554))\n- The check `Debian-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477547))\n- The check `Alpine-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936688/job/121267477540))\n- The check `uat (tiers 0-2, 4-10)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936742/job/121267190101))\n- The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (aot)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189983))\n- The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (trim-partial)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189980))\n- The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (trim-full)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189943))\n- The check `net10.0 trimmed / AOT publish \u2192 canonical bytes (execute) (trim-full-reflection-on)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189909))\n- The check `uat cross-platform (tiers 8, 9)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936742/job/121267189908))\n- The check `netstandard2.0 asset under Mono (execute)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189906))\n- The check `Ashlar.Bricks.GitHub packed consumer` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189793))\n- The check `Standalone brick authoring scaffold` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189774))\n- The check `NuGet local pack \u2192 StableSdkHostSample` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189770))\n- The check `Ashlar.Client \u2194 in-process Ashlar.API (net10)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189756))\n- The check `net9.0 runtime \u2190 lib/net8.0 asset (execute)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936737/job/121267189705))\n- The check `security-gate` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936653/job/121267189601))\n- The check `kernel-gate` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936730/job/121267189599))\n- The check `External product shape (brick + host + client)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936678/job/121267189549))\n- The check `packed-certification-trust` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936653/job/121267189520))\n- The check `kernel-coverage` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40225936689/job/121267189352))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/840\n"
+ }
+}

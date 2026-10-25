@@ -1,0 +1,44 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "8c28285c328d4a6090df2184cbf10eb4",
+ "summary": "PR #22515 is BLOCKED by 5 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind `main`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22515"
+   },
+   {
+    "reason": "`kekekeks` requested changes.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22515#pullrequestreview-5574284986"
+   },
+   {
+    "reason": "The required check `Linux` has not reported on dea481caeb81.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7"
+   },
+   {
+    "reason": "The required check `Windows` has not reported on dea481caeb81.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7"
+   },
+   {
+    "reason": "The required check `macOS` has not reported on dea481caeb81.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 4 check run(s) and 0 commit status(es) on the head commit dea481caeb81; none is failing or pending.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22515",
+   "https://github.com/AvaloniaUI/Avalonia/pull/22515#pullrequestreview-5574284986",
+   "https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7"
+  ],
+  "answer": "**What is blocking PR #22515?** PR #22515 is BLOCKED by 5 blocker(s).\n\nBlockers:\n- The branch is behind `main`, and the base branch requires branches to be up to date. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22515))\n- `kekekeks` requested changes. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22515#pullrequestreview-5574284986))\n- The required check `Linux` has not reported on dea481caeb81. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7))\n- The required check `Windows` has not reported on dea481caeb81. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7))\n- The required check `macOS` has not reported on dea481caeb81. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7))\n\nNotes:\n- Read 4 check run(s) and 0 commit status(es) on the head commit dea481caeb81; none is failing or pending. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/dea481caeb81e0abb88fbfb832f0bab8ae8f0eb7))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22515\n"
+ }
+}

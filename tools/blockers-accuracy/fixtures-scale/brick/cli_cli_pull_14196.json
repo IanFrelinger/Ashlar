@@ -1,0 +1,47 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "6fb4919bbb0e478c86ae3f0726777ba3",
+ "summary": "PR #14196 is BLOCKED by 6 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The pull request is a draft.",
+    "evidence": "https://github.com/cli/cli/pull/14196"
+   },
+   {
+    "reason": "The branch has merge conflicts with `trunk`.",
+    "evidence": "https://github.com/cli/cli/pull/14196"
+   },
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/cli/cli/pull/14196"
+   },
+   {
+    "reason": "The required check `build (macos-latest)` has not reported on 1479d25fc7c5.",
+    "evidence": "https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5"
+   },
+   {
+    "reason": "The required check `build (ubuntu-latest)` has not reported on 1479d25fc7c5.",
+    "evidence": "https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5"
+   },
+   {
+    "reason": "The required check `build (windows-latest)` has not reported on 1479d25fc7c5.",
+    "evidence": "https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 7 check run(s) and 0 commit status(es) on the head commit 1479d25fc7c5; none is failing or pending.",
+    "evidence": "https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/14196",
+   "https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5"
+  ],
+  "answer": "**What is blocking PR #14196?** PR #14196 is BLOCKED by 6 blocker(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/cli/cli/pull/14196))\n- The branch has merge conflicts with `trunk`. ([evidence](https://github.com/cli/cli/pull/14196))\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/cli/cli/pull/14196))\n- The required check `build (macos-latest)` has not reported on 1479d25fc7c5. ([evidence](https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5))\n- The required check `build (ubuntu-latest)` has not reported on 1479d25fc7c5. ([evidence](https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5))\n- The required check `build (windows-latest)` has not reported on 1479d25fc7c5. ([evidence](https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5))\n\nNotes:\n- Read 7 check run(s) and 0 commit status(es) on the head commit 1479d25fc7c5; none is failing or pending. ([evidence](https://github.com/cli/cli/commit/1479d25fc7c5de74cba70863340d2f5003390be5))\n\nRead from https://github.com/cli/cli/pull/14196\n"
+ }
+}

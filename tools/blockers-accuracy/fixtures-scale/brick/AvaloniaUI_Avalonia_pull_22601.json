@@ -1,0 +1,53 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "f136e99aef2e4b98bbc3c94c55a50393",
+ "summary": "PR #22601 is BLOCKED by 6 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The pull request is a draft.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22601"
+   },
+   {
+    "reason": "The branch is behind `main`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22601"
+   },
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22601"
+   },
+   {
+    "reason": "The required check `Linux` has not reported on 653a11b591bc.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/653a11b591bc4cfb17159309c23ccd6d7e7573f4"
+   },
+   {
+    "reason": "The required check `Windows` has not reported on 653a11b591bc.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/653a11b591bc4cfb17159309c23ccd6d7e7573f4"
+   },
+   {
+    "reason": "The required check `macOS` has not reported on 653a11b591bc.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/653a11b591bc4cfb17159309c23ccd6d7e7573f4"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `pull_request_label` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/121225411236"
+   },
+   {
+    "text": "The check `WIP` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/121225410981"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22601",
+   "https://github.com/AvaloniaUI/Avalonia/commit/653a11b591bc4cfb17159309c23ccd6d7e7573f4",
+   "https://github.com/AvaloniaUI/Avalonia/runs/121225411236",
+   "https://github.com/AvaloniaUI/Avalonia/runs/121225410981"
+  ],
+  "answer": "**What is blocking PR #22601?** PR #22601 is BLOCKED by 6 blocker(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22601))\n- The branch is behind `main`, and the base branch requires branches to be up to date. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22601))\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22601))\n- The required check `Linux` has not reported on 653a11b591bc. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/653a11b591bc4cfb17159309c23ccd6d7e7573f4))\n- The required check `Windows` has not reported on 653a11b591bc. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/653a11b591bc4cfb17159309c23ccd6d7e7573f4))\n- The required check `macOS` has not reported on 653a11b591bc. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/653a11b591bc4cfb17159309c23ccd6d7e7573f4))\n\nNotes:\n- The check `pull_request_label` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/121225411236))\n- The check `WIP` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/121225410981))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22601\n"
+ }
+}

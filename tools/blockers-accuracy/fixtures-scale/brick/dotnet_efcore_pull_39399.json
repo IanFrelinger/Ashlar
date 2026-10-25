@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "2e733130e5a54ae3b01c979eee8c86e8",
+ "summary": "PR #39399 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39399"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Maestro auto-merge - Version.Details.props Validation Merge Policy` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/efcore/runs/121172061018"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39399",
+   "https://github.com/dotnet/efcore/runs/121172061018"
+  ],
+  "answer": "**What is blocking PR #39399?** PR #39399 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/efcore/pull/39399))\n\nNotes:\n- The check `Maestro auto-merge - Version.Details.props Validation Merge Policy` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/efcore/runs/121172061018))\n\nRead from https://github.com/dotnet/efcore/pull/39399\n"
+ }
+}

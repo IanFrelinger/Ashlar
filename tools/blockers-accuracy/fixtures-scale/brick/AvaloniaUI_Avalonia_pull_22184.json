@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "cfbee25f80654411bea96588f6348207",
+ "summary": "PR #22184 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22184"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 11 check run(s) and 0 commit status(es) on the head commit d4763907230c; none is failing or pending.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/d4763907230ca6dd097b797e4b1c68973af6bb72"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22184",
+   "https://github.com/AvaloniaUI/Avalonia/commit/d4763907230ca6dd097b797e4b1c68973af6bb72"
+  ],
+  "answer": "**What is blocking PR #22184?** PR #22184 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22184))\n\nNotes:\n- Read 11 check run(s) and 0 commit status(es) on the head commit d4763907230c; none is failing or pending. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/d4763907230ca6dd097b797e4b1c68973af6bb72))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22184\n"
+ }
+}

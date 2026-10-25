@@ -1,0 +1,31 @@
+{
+ "url": "https://github.com/App-vNext/Polly/pull/4",
+ "captured_from": "2026-10-25T22:08:49.238066+00:00",
+ "captured_to": "2026-10-25T22:08:53.041501+00:00",
+ "graphql": {
+  "url": "https://github.com/App-vNext/Polly/pull/4",
+  "state": "MERGED",
+  "merged": true,
+  "closed": true,
+  "isDraft": false,
+  "mergeable": "CONFLICTING",
+  "mergeStateStatus": "DIRTY",
+  "reviewDecision": null,
+  "baseRefName": "master",
+  "headRefOid": "880f6b6bebe2284766d48450063375bec319fda4",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "880f6b6bebe2284766d48450063375bec319fda4",
+      "statusCheckRollup": null
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "880f6b6bebe2284766d48450063375bec319fda4"
+}

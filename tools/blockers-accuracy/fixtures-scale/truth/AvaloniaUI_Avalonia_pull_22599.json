@@ -1,0 +1,80 @@
+{
+ "url": "https://github.com/AvaloniaUI/Avalonia/pull/22599",
+ "captured_from": "2026-10-25T22:04:23.672570+00:00",
+ "captured_to": "2026-10-25T22:04:30.380214+00:00",
+ "graphql": {
+  "url": "https://github.com/AvaloniaUI/Avalonia/pull/22599",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BEHIND",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "c4814e03e55cfd4c342be39570a7a48ca2d8a233",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "c4814e03e55cfd4c342be39570a7a48ca2d8a233",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 6,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "Runner",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests (Mac)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests (Windows)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "WIP",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "pull_request_label",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "c4814e03e55cfd4c342be39570a7a48ca2d8a233"
+}

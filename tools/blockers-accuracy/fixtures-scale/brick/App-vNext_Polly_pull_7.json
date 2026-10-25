@@ -1,0 +1,16 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "4e5a9bdfbe894838b44572d2d3aafb3a",
+ "summary": "PR #7 is already merged.",
+ "outputs": {
+  "verdict": "merged",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/App-vNext/Polly/pull/7"
+  ],
+  "answer": "**What is blocking PR #7?** PR #7 is already merged.\n\nRead from https://github.com/App-vNext/Polly/pull/7\n"
+ }
+}

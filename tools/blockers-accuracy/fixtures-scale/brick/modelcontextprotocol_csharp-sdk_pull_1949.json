@@ -1,0 +1,22 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "822978ac516c44bc9b6799444774ff44",
+ "summary": "PR #1949 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 10 check run(s) and 0 commit status(es) on the head commit 279b264ea31c; none is failing or pending.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/commit/279b264ea31c404fa9a9ef0b69f69dae03dcb2e5"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1949",
+   "https://github.com/modelcontextprotocol/csharp-sdk/commit/279b264ea31c404fa9a9ef0b69f69dae03dcb2e5"
+  ],
+  "answer": "**What is blocking PR #1949?** PR #1949 is READY: nothing blocking was found.\n\nNotes:\n- Read 10 check run(s) and 0 commit status(es) on the head commit 279b264ea31c; none is failing or pending. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/commit/279b264ea31c404fa9a9ef0b69f69dae03dcb2e5))\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1949\n"
+ }
+}

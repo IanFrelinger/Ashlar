@@ -1,0 +1,52 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "06d1d96dba9a48ba959d6279a49acff9",
+ "summary": "PR #1934 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `build (windows-latest, Debug)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884817"
+   },
+   {
+    "text": "The check `build (ubuntu-latest, Release)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884758"
+   },
+   {
+    "text": "The check `build (ubuntu-latest, Debug)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884630"
+   },
+   {
+    "text": "The check `build (macos-latest, Release)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884619"
+   },
+   {
+    "text": "The check `build (macos-latest, Debug)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884518"
+   },
+   {
+    "text": "The check `build (windows-latest, Release)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884352"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884817",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884758",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884630",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884619",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884518",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884352"
+  ],
+  "answer": "**What is blocking PR #1934?** PR #1934 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/pull/1934))\n\nNotes:\n- The check `build (windows-latest, Debug)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884817))\n- The check `build (ubuntu-latest, Release)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884758))\n- The check `build (ubuntu-latest, Debug)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884630))\n- The check `build (macos-latest, Release)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884619))\n- The check `build (macos-latest, Debug)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884518))\n- The check `build (windows-latest, Release)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40224611375/job/121264884352))\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1934\n"
+ }
+}

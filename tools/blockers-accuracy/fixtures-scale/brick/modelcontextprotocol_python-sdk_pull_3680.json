@@ -1,0 +1,22 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "823f1dd5e7ef4435bc1f87bd988f01e7",
+ "summary": "PR #3680 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 44 check run(s) and 0 commit status(es) on the head commit 0a35fd85c51b; none is failing or pending.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/commit/0a35fd85c51ba7284748b58ca5aee45ed4dfa572"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3680",
+   "https://github.com/modelcontextprotocol/python-sdk/commit/0a35fd85c51ba7284748b58ca5aee45ed4dfa572"
+  ],
+  "answer": "**What is blocking PR #3680?** PR #3680 is READY: nothing blocking was found.\n\nNotes:\n- Read 44 check run(s) and 0 commit status(es) on the head commit 0a35fd85c51b; none is failing or pending. ([evidence](https://github.com/modelcontextprotocol/python-sdk/commit/0a35fd85c51ba7284748b58ca5aee45ed4dfa572))\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3680\n"
+ }
+}

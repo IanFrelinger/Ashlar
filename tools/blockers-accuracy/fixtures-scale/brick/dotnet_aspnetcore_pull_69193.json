@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "2567031498ef41c6abb8c4f0d59afbec",
+ "summary": "PR #69193 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 1 approving review(s).",
+    "evidence": "https://github.com/dotnet/aspnetcore/pull/69193"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 31 check run(s) and 0 commit status(es) on the head commit 52632d6b7ff7; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/aspnetcore/commit/52632d6b7ff773a06494f01baad2ab21882617a4"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/69193",
+   "https://github.com/dotnet/aspnetcore/commit/52632d6b7ff773a06494f01baad2ab21882617a4"
+  ],
+  "answer": "**What is blocking PR #69193?** PR #69193 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 1 approving review(s). ([evidence](https://github.com/dotnet/aspnetcore/pull/69193))\n\nNotes:\n- Read 31 check run(s) and 0 commit status(es) on the head commit 52632d6b7ff7; none is failing or pending. ([evidence](https://github.com/dotnet/aspnetcore/commit/52632d6b7ff773a06494f01baad2ab21882617a4))\n\nRead from https://github.com/dotnet/aspnetcore/pull/69193\n"
+ }
+}

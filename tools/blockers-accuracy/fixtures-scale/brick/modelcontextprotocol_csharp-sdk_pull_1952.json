@@ -1,0 +1,22 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "9f474a7f6dd642a49910c59664079c77",
+ "summary": "PR #1952 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `markdown-link-check` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40142907403/job/121018186668"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1952",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40142907403/job/121018186668"
+  ],
+  "answer": "**What is blocking PR #1952?** PR #1952 is READY: nothing blocking was found.\n\nNotes:\n- The check `markdown-link-check` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40142907403/job/121018186668))\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1952\n"
+ }
+}
