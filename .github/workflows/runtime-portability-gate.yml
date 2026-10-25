@@ -119,8 +119,8 @@ jobs:
           # nowhere else in CI. The consumer's runtimeconfig asks for 9.0 with the default Minor
           # roll-forward, so 10.0.x beside it is not selected — and the probe asserts the major.
           dotnet-version: |
-            10.0.x
-            9.0.x
+            10.0.403
+            9.0.320
 
       - name: Installed runtimes
         shell: bash
@@ -211,7 +211,7 @@ jobs:
           # 10.0.x only, and deliberately only: the consumer is published self-contained, so it
           # carries its own runtime and resolves nothing from an installed one. PublishAot also
           # needs a C toolchain and linker, which the ubuntu-latest image already provides.
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.403
 
       - name: Installed runtimes
         shell: bash
@@ -299,7 +299,7 @@ jobs:
         with:
           # Build side only. Nothing here runs the netstandard2.0 asset — that is Mono's job, and
           # Mono arrives as a container image rather than a runtime install.
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.403
 
       - name: Installed runtimes
         shell: bash

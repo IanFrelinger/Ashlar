@@ -37,8 +37,8 @@ jobs:
         with:
           # 10.0.x builds (global.json); 8.0.x keeps net8.0-targeted deps on the real runtime.
           dotnet-version: |
-            10.0.x
-            8.0.x
+            10.0.403
+            8.0.427
 
       - name: init → verify → break → refuse, on ${{ matrix.os }}
         shell: bash

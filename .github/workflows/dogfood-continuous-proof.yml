@@ -41,8 +41,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            10.0.x
-            8.0.x
+            10.0.403
+            8.0.427
 
       # There was a "Check Strict Ed25519 readiness" step here that grepped
       # Ashlar.Certification.Contracts/CertificationVerifyOptions.cs for RequireEd25519Signature and

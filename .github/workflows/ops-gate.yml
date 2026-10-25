@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v6
         with:
-          global-json-file: global.json
+          dotnet-version: 10.0.403
 
       - name: Tier A (dogfood 1–6)
         if: inputs.tier == 'a' || inputs.tier == 'full'

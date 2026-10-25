@@ -34,7 +34,7 @@ Workflow file: `.github/workflows/environment-setup-gate-v1.yml`
 
 Each matrix job performs:
 
-1. Setup .NET SDK (`10.0.x`, `8.0.x`).
+1. Setup .NET SDK (`10.0.403`, `8.0.427`: exact pins, checked by `scripts/ci/verify-setup-dotnet-pins.py`).
 2. Run platform setup dependency check:
    - Linux/macOS: `bash scripts/setup/setup.sh check`
    - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup\setup.ps1 -Mode check`

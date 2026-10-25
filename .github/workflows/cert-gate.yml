@@ -28,8 +28,8 @@ jobs:
         with:
           # 10.0.x builds (global.json); 8.0.x keeps the -f net8.0 lane on the real 8.0 runtime.
           dotnet-version: |
-            10.0.x
-            8.0.x
+            10.0.403
+            8.0.427
 
       - name: Run cert-gate
         shell: bash
