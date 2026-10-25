@@ -6,7 +6,7 @@ using Xunit;
 
 namespace __Namespace__.Tests;
 
-/// <summary>Tests for __brick name__brick.</summary>
+/// <summary>Tests for __BrickName__Brick.</summary>
 public sealed class __BrickName__BrickTests
 {
     [Fact]

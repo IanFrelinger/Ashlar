@@ -176,6 +176,29 @@ public sealed class GitHubBlockersBrickTests
     }
 
     [Fact]
+    public void Checks_that_all_passed_are_counted_in_a_note_with_the_commit_as_evidence()
+    {
+        var ci = Ci(checks: [new CheckFact("build", "completed", "success", null), new CheckFact("lint", "completed", "skipped", null)],
+            statuses: [new StatusFact("deploy", "success", null, null)]);
+
+        var answer = Analyze(OpenPr(ci: ci, state: "clean"));
+
+        answer.Verdict.Should().Be("ready");
+        var note = answer.Notes.Should().ContainSingle().Subject;
+        note.Text.Should().Be($"Read 2 check run(s) and 1 commit status(es) on the head commit {Sha[..12]}; none is failing or pending.");
+        note.Evidence.Should().Be($"https://github.com/o/r/commit/{Sha}");
+        answer.Evidence.Should().Contain(note.Evidence!);
+    }
+
+    [Fact]
+    public void A_commit_nothing_has_reported_on_says_so()
+    {
+        var answer = Analyze(OpenPr(state: "clean"));
+
+        answer.Notes.Should().ContainSingle().Which.Text.Should().StartWith("No check run or commit status has reported on the head commit");
+    }
+
+    [Fact]
     public void A_merged_pull_request_has_no_blockers()
     {
         var answer = Analyze(OpenPr() with { Merged = true, Closed = true });

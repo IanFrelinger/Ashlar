@@ -14,6 +14,7 @@ Here's a complete, copy-pasteable brick that external consumers can use immediat
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   
   <ItemGroup>
@@ -60,7 +61,58 @@ public sealed class HelloBrick : Brick
 }
 ```
 
-### 3. Register in a host
+Put the project in `HelloBrick/HelloBrick.csproj` and the class in `HelloBrick/HelloBrick.cs`. Both restore from plain nuget.org; no feed is needed.
+
+### 3. Run it
+
+A console project next to the brick calls `ExecuteAsync` directly. `HelloRunner/HelloRunner.csproj`:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../HelloBrick/HelloBrick.csproj" />
+  </ItemGroup>
+</Project>
+```
+
+`HelloRunner/Program.cs`:
+
+```csharp
+using Ashlar.Core.Domain.Bricks;
+using Ashlar.Core.Domain.Execution;
+using MyCompany.MyBricks;
+
+var brick = new HelloBrick();
+var input = new BrickInput(new Dictionary<string, object> { ["name"] = args.Length > 0 ? args[0] : "world" });
+var output = await brick.ExecuteAsync(input, ImplementationType.Deterministic, new ConsoleContext());
+Console.WriteLine($"{output.Get<string>("message")} ({output.Summary})");
+
+sealed class ConsoleContext : IExecutionContext
+{
+    public string AgentId => "console";
+    public string BehaviorId => "hello";
+    public bool IsAirGapped => true;
+    public bool AuditMode => false;
+    public string Provider => "none";
+    public IReadOnlyDictionary<string, object> Variables { get; } = new Dictionary<string, object>();
+}
+```
+
+```bash
+cd HelloRunner && dotnet run -- Ashlar
+# Hello, Ashlar! (Greeted Ashlar.)
+```
+
+The first restore downloads about 1 GB of packages into the NuGet cache, because `Ashlar.Authoring` brings the hosting graph with it.
+
+### 4. Register in a host
+
+To serve the brick over HTTP, register it in an ASP.NET Core host:
 
 ```csharp
 using Ashlar.Authoring;
@@ -70,6 +122,8 @@ using Ashlar.Hosting;
 services.AddAshlarBrick<HelloBrick>();
 services.AddAshlar();
 ```
+
+A complete host you can build is in [`host/`](host/README.md), with a `curl` example.
 
 That's it! The three things you need:
 1. **Package**: `Ashlar.Authoring` (brings all authoring types)

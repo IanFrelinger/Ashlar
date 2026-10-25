@@ -17,6 +17,21 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — first-run friction found by a fresh-agent pilot
+
+- The `consumer-template/CONSUMING.md` quick start now compiles as written (its csproj lacked
+  `ImplicitUsings`, so `Task` and `CancellationToken` failed with `CS0246`) and has a "Run it" step: a console
+  runner that prints the brick's output, verified against 0.3.0 from nuget.org.
+- `consumer-template/host/README.md` states the directory layout its csproj needs and gives a `curl` example.
+- `Ashlar.Mcp.Server.Host/README.md` says how to run the server from a clone before it is on nuget.org, and
+  names the audit file correctly (`mcp-brick-calls-<start time>.ndjson`, one per server start; it said `.jsonl`).
+- `docs/AuthoringBricks.md` puts plain nuget.org first for a published version.
+- `ashlar new brick`: the scaffolded test no longer carries an unreplaced `__brick name__` token (a CLI test
+  now fails on any leftover token), and the generated README no longer lists raw template tokens.
+- `github.blockers` adds a note counting the check runs and commit statuses it read when none is failing or
+  pending, with the commit as evidence, so "no blocker" shows the checks were read. Its advice for an
+  uncomputed mergeability no longer promises an answer "in a few seconds".
+
 ### Added — `github.blockers`: what is blocking a pull request or release
 
 - `GitHubBlockersBrick` in `Ashlar.Bricks.GitHub` answers what is blocking a github.com pull request or release.
