@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — MCP brick host: no record, no result
+
+- The MCP brick host now withholds a call's result when its audit record cannot be written (unwritable directory,
+  full disk), instead of returning it with an `auditId` that matches no record. The file sink confirms each MCP
+  record after it is written and flushed (`IConfirmingBarrierAuditSink`), and `ConfirmedBarrierAuditLog` turns any
+  sink failure into a tool error. Found by the MCP host adversarial audit (H1).
+
 ### Fixed — CI installs .NET from exact versions, not through aka.ms
 
 - Every `actions/setup-dotnet` step (61 across the workflows and `actions/pr-blockers`) now pins exact versions

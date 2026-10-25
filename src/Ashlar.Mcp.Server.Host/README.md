@@ -97,9 +97,10 @@ Logs go to stderr; stdout carries only MCP JSON-RPC.
 
 - **Host-registered bricks are not certificate-checked.** The built-in bricks are admitted because this host
   registers them, like any `RegisterBrick<T>()` host. Use the certification gate for bricks you did not build.
-- **The audit sink is best-effort.** Records are queued and written on a background task (flushed per event), so
-  a record lands moments after the response. If the queue is full or the disk write fails, the server logs a
-  warning and the call still returns.
+- **No record, no result.** A call returns only after its record is written and flushed. If the record cannot be
+  written (a full disk, an unwritable directory), the call comes back as a tool error saying so, with its `auditId`
+  and without the brick's output, even when the brick ran. Flushed means handed to the operating system, not
+  `fsync`ed: a power loss can still take the last records.
 - **A token passed as `githubToken` travels in the tool arguments**, so the MCP client sees it. The audit record
   holds only its hash. The GitHub bricks send through Ashlar's egress guard (`EG-HTTP-08`), and the server refuses
   to start under the `AirGapped` profile.

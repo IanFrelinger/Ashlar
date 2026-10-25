@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 826,
-    "declared_facts": 5365,
+    "test_files_declaring_facts": 827,
+    "declared_facts": 5372,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -3154,7 +3154,7 @@
       "file": "src/Ashlar.Mcp.Server.Tests/BrickMcpToolContributorTests.cs",
       "project": "Ashlar.Mcp.Server.Tests",
       "namespace": "Ashlar.Mcp.Server.Tests",
-      "declared_facts": 10,
+      "declared_facts": 12,
       "in_cert_gate_filter": false
     },
     {
@@ -4415,6 +4415,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Barriers.Sinks",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Barriers/Sinks/FileBarrierAuditSinkConfirmedWriteTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Barriers.Sinks",
+      "declared_facts": 5,
       "in_cert_gate_filter": false
     },
     {
