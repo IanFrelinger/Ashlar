@@ -4,7 +4,6 @@ using Ashlar.Core.Application.Generation;
 using Ashlar.Core.Application.Generation.Ports;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Bricks.Ports;
-using Ashlar.Hosting.Sdk.Extensions;
 
 namespace Ashlar.Authoring;
 
@@ -14,13 +13,15 @@ namespace Ashlar.Authoring;
 public static class AshlarAuthoringServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers a code-authored brick with the Ashlar host SDK.
-    /// Call before <c>AddAshlar()</c>.
+    /// Registers a code-authored brick for the host's brick registry, as a
+    /// <see cref="BrickTypeRegistration"/>. The registry that <c>AddAshlar()</c> builds creates it, so this
+    /// package does not reference the host.
     /// </summary>
     public static IServiceCollection AddAshlarBrick<TBrick>(this IServiceCollection services)
         where TBrick : DomainBrick
     {
-        return services.AddAshlarSdk(sdk => sdk.RegisterBrick<TBrick>());
+        services.AddSingleton(new BrickTypeRegistration(typeof(TBrick)));
+        return services;
     }
 
     /// <summary>
@@ -36,11 +37,10 @@ public static class AshlarAuthoringServiceCollectionExtensions
         //
         //   TryAddSingleton    the DI singleton, for anything resolving the brick
         //                      type directly.
-        //   AddAshlarBrick       adds the TYPE to AshlarSdkOptions.BrickTypes, which
-        //                      AdaptationBrickOptions.AdditionalBrickTypes feeds to
-        //                      ActivatorUtilities.CreateInstance when BrickRegistry
-        //                      is built — constructing a fresh instance rather than
-        //                      resolving the singleton above.
+        //   AddAshlarBrick       adds a BrickTypeRegistration, which the brick
+        //                      registry feeds to ActivatorUtilities.CreateInstance
+        //                      when it is built — constructing a fresh instance
+        //                      rather than resolving the singleton above.
         //
         // Left as-is on purpose. The brick is stateless, so two instances are
         // harmless, and routing the registry through the container instead would

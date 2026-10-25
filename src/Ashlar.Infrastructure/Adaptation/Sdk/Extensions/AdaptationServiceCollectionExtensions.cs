@@ -121,8 +121,8 @@ public static class AdaptationServiceCollectionExtensions
                 }
             }
 
-            var options = sp.GetService<IOptions<AdaptationBrickOptions>>();
-            if (options?.Value?.AdditionalBrickTypes is { Count: > 0 } types)
+            var types = AdditionalBrickTypes(sp);
+            if (types.Count > 0)
             {
                 foreach (var type in types)
                 {
@@ -207,8 +207,8 @@ public static class AdaptationServiceCollectionExtensions
             }
         }
 
-        var options = sp.GetService<IOptions<AdaptationBrickOptions>>();
-        if (options?.Value?.AdditionalBrickTypes is not { Count: > 0 } types)
+        var types = AdditionalBrickTypes(sp);
+        if (types.Count == 0)
             return;
 
         foreach (var type in types)
@@ -227,6 +227,19 @@ public static class AdaptationServiceCollectionExtensions
                 // Skip bricks that fail to instantiate (missing DI, etc.)
             }
         }
+    }
+
+    /// <summary>
+    /// The brick types configured through <see cref="AdaptationBrickOptions"/>, then every
+    /// <see cref="BrickTypeRegistration"/> in the container (<c>AddAshlarBrick&lt;T&gt;()</c>), in registration order.
+    /// </summary>
+    internal static List<Type> AdditionalBrickTypes(IServiceProvider sp)
+    {
+        var types = new List<Type>();
+        if (sp.GetService<IOptions<AdaptationBrickOptions>>()?.Value?.AdditionalBrickTypes is { } configured)
+            types.AddRange(configured);
+        types.AddRange(sp.GetServices<BrickTypeRegistration>().Select(r => r.BrickType));
+        return types;
     }
 
     /// <summary>

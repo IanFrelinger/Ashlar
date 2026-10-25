@@ -11,7 +11,7 @@
     <NoWarn>$(NoWarn);1591;RS0036;RS0037</NoWarn>
     <PackageId>Ashlar.Authoring</PackageId>
     <Title>Ashlar Authoring</Title>
-    <Description>Minimal package for code-authored Ashlar bricks: Brick base types, execution contracts, and host registration helpers.</Description>
+    <Description>Minimal package for code-authored Ashlar bricks: Brick base types, execution contracts, and host registration helpers. It does not bring the host: a host that calls AddAshlar() references Ashlar.Hosting.Bundle.</Description>
     <PackageTags>ashlar;authoring;bricks;sdk</PackageTags>
     <RepositoryUrl>https://github.com/IanFrelinger/Ashlar</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -21,7 +21,6 @@
     <ProjectReference Include="..\Ashlar.Brick.Contracts\Ashlar.Brick.Contracts.csproj" />
     <ProjectReference Include="..\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
     <ProjectReference Include="..\Ashlar.Core.Application\Ashlar.Core.Application.csproj" />
-    <ProjectReference Include="..\Ashlar.Hosting\Ashlar.Hosting.csproj" />
   </ItemGroup>
 
   <ItemGroup>
