@@ -17,6 +17,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — token benchmark follow-up arms
+
+- `docs/benchmarks/token-benchmark.md`: against the official GitHub MCP server's tools the `github.blockers` brick
+  cost 87–94% less on Sonnet 5.5 and 86–97% less on Haiku 5.5, same verdicts; a local qwen3:4b answered every
+  brick-arm question correctly on CPU. Raw runs in `tools/token-benchmark/results/`.
+
 ## [0.4.0] - 2026-10-25
 
 ### Changed — release-commit pin is 0.4.0

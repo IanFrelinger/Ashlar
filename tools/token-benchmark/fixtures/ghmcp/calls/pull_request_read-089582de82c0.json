@@ -1,0 +1,1 @@
+{"request": {"arguments": {"method": "get_status", "owner": "dotnet", "pullNumber": 21307, "repo": "aspire"}, "name": "pull_request_read"}, "result": {"content": [{"type": "text", "text": "{\"state\":\"pending\",\"sha\":\"55850a4671635558edb63cab39a27aedca2116ba\",\"total_count\":0,\"statuses\":[]}"}]}, "recorded_at": "2026-10-25T16:27:36.183457+00:00"}

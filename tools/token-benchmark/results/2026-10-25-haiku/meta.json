@@ -1,0 +1,16 @@
+{
+ "backend": "anthropic",
+ "model": "claude-haiku-5-5",
+ "price_in": 0.1,
+ "price_out": 0.5,
+ "write_mult": 1.25,
+ "read_mult": 0.1,
+ "long_threshold": 100000,
+ "long_price_in": 0.5,
+ "long_price_out": 2.5,
+ "num_ctx": 32768,
+ "spent": 0.059194145,
+ "live_fetches": 13,
+ "stopped": null,
+ "finished_at": "2026-10-25T16:31:55.821950+00:00"
+}

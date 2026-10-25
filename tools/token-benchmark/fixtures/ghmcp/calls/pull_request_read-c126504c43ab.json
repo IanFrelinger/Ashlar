@@ -1,0 +1,1 @@
+{"request": {"arguments": {"method": "get_review_comments", "owner": "modelcontextprotocol", "pullNumber": 1952, "repo": "csharp-sdk"}, "name": "pull_request_read"}, "result": {"content": [{"type": "text", "text": "{\"review_threads\":[],\"totalCount\":0,\"pageInfo\":{\"hasNextPage\":false,\"hasPreviousPage\":false}}"}]}, "recorded_at": "2026-10-25T16:25:22.893611+00:00"}

@@ -1,0 +1,16 @@
+{
+ "backend": "ollama",
+ "model": "qwen3:4b",
+ "price_in": 0.0,
+ "price_out": 0.0,
+ "write_mult": 1.25,
+ "read_mult": 0.1,
+ "long_threshold": 0,
+ "long_price_in": 0.0,
+ "long_price_out": 0.0,
+ "num_ctx": "8192 (brick) / 32768 (ghmcp)",
+ "spent": 0.0,
+ "live_fetches": 0,
+ "stopped": null,
+ "finished_at": "2026-10-25T17:18:46.892949+00:00"
+}

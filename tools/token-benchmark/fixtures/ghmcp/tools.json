@@ -1,0 +1,337 @@
+{
+ "server": "github/github-mcp-server v2.0.3",
+ "flags": "stdio --read-only --toolsets=pull_requests,repos,actions",
+ "tools": [
+  {
+   "name": "pull_request_read",
+   "description": "Get information on a specific pull request in GitHub repository.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "after": {
+      "type": "string",
+      "description": "Cursor for pagination, used only by the get_review_comments method. Pass the endCursor from the previous page's PageInfo to fetch the next page."
+     },
+     "method": {
+      "type": "string",
+      "description": "Action to specify what pull request data needs to be retrieved from GitHub. \nPossible options: \n 1. get - Get details of a specific pull request.\n 2. get_diff - Get the diff of a pull request.\n 3. get_status - Get combined commit status of a head commit in a pull request.\n 4. get_files - Get the list of files changed in a pull request. Use with pagination parameters to control the number of results returned.\n 5. get_commits - Get the list of commits on a pull request. Use with pagination parameters to control the number of results returned.\n 6. get_review_comments - Get review threads on a pull request. Each thread contains logically grouped review comments made on the same code location during pull request reviews. Returns thread metadata and comments with nullable current and original line-range coordinates (line, start_line, original_line, original_start_line). Current coordinates are omitted when unavailable, such as for outdated comments. Use cursor-based pagination (perPage, after) to control results.\n 7. get_reviews - Get the reviews on a pull request. When asked for review comments, use get_review_comments method. Use with pagination parameters to control the number of results returned.\n 8. get_comments - Get comments on a pull request. Use this if user doesn't specifically want review comments. Use with pagination parameters to control the number of results returned.\n 9. get_check_runs - Get check runs for the head commit of a pull request. Check runs are the individual CI/CD jobs and checks that run on the PR.\n",
+      "enum": [
+       "get",
+       "get_diff",
+       "get_status",
+       "get_files",
+       "get_commits",
+       "get_review_comments",
+       "get_reviews",
+       "get_comments",
+       "get_check_runs"
+      ]
+     },
+     "owner": {
+      "type": "string",
+      "description": "Repository owner",
+      "x-mcp-header": "owner"
+     },
+     "page": {
+      "type": "number",
+      "description": "Page number for pagination (min 1)",
+      "minimum": 1
+     },
+     "perPage": {
+      "type": "number",
+      "description": "Results per page for pagination (min 1, max 100)",
+      "minimum": 1,
+      "maximum": 100
+     },
+     "pullNumber": {
+      "type": "number",
+      "description": "Pull request number"
+     },
+     "repo": {
+      "type": "string",
+      "description": "Repository name",
+      "x-mcp-header": "repo"
+     }
+    },
+    "required": [
+     "method",
+     "owner",
+     "repo",
+     "pullNumber"
+    ]
+   }
+  },
+  {
+   "name": "get_release_by_tag",
+   "description": "Get a specific release by its tag name in a GitHub repository",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "owner": {
+      "type": "string",
+      "description": "Repository owner",
+      "x-mcp-header": "owner"
+     },
+     "repo": {
+      "type": "string",
+      "description": "Repository name",
+      "x-mcp-header": "repo"
+     },
+     "tag": {
+      "type": "string",
+      "description": "Tag name (e.g., 'v1.0.0')"
+     }
+    },
+    "required": [
+     "owner",
+     "repo",
+     "tag"
+    ]
+   }
+  },
+  {
+   "name": "get_tag",
+   "description": "Get details about a specific git tag in a GitHub repository",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "owner": {
+      "type": "string",
+      "description": "Repository owner",
+      "x-mcp-header": "owner"
+     },
+     "repo": {
+      "type": "string",
+      "description": "Repository name",
+      "x-mcp-header": "repo"
+     },
+     "tag": {
+      "type": "string",
+      "description": "Tag name"
+     }
+    },
+    "required": [
+     "owner",
+     "repo",
+     "tag"
+    ]
+   }
+  },
+  {
+   "name": "get_commit",
+   "description": "Get details for a commit from a GitHub repository",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "detail": {
+      "type": "string",
+      "description": "Level of detail to include for changed files. \"none\" omits stats and files entirely. \"stats\" (default) includes per-file metadata: filename, status, and lines-of-code counts (additions, deletions, changes), with no patch content. \"full_patch\" additionally includes the unified diff content for each file and can be very large.",
+      "default": "stats",
+      "enum": [
+       "none",
+       "stats",
+       "full_patch"
+      ]
+     },
+     "owner": {
+      "type": "string",
+      "description": "Repository owner",
+      "x-mcp-header": "owner"
+     },
+     "page": {
+      "type": "number",
+      "description": "Page number for pagination (min 1)",
+      "minimum": 1
+     },
+     "perPage": {
+      "type": "number",
+      "description": "Results per page for pagination (min 1, max 100)",
+      "minimum": 1,
+      "maximum": 100
+     },
+     "repo": {
+      "type": "string",
+      "description": "Repository name",
+      "x-mcp-header": "repo"
+     },
+     "sha": {
+      "type": "string",
+      "description": "Commit SHA, branch name, or tag name"
+     }
+    },
+    "required": [
+     "owner",
+     "repo",
+     "sha"
+    ]
+   }
+  },
+  {
+   "name": "actions_list",
+   "description": "Tools for listing GitHub Actions resources.\nUse this tool to list workflows in a repository, or list workflow runs, jobs, and artifacts for a specific workflow or workflow run.\n",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "method": {
+      "type": "string",
+      "description": "The action to perform",
+      "enum": [
+       "list_workflows",
+       "list_workflow_runs",
+       "list_workflow_jobs",
+       "list_workflow_run_artifacts"
+      ]
+     },
+     "owner": {
+      "type": "string",
+      "description": "Repository owner",
+      "x-mcp-header": "owner"
+     },
+     "page": {
+      "type": "number",
+      "description": "Page number for pagination (default: 1)",
+      "minimum": 1
+     },
+     "perPage": {
+      "type": "number",
+      "description": "Results per page for pagination (default: 30, max: 100)",
+      "minimum": 1,
+      "maximum": 100
+     },
+     "repo": {
+      "type": "string",
+      "description": "Repository name",
+      "x-mcp-header": "repo"
+     },
+     "resource_id": {
+      "type": "string",
+      "description": "The unique identifier of the resource. This will vary based on the \"method\" provided, so ensure you provide the correct ID:\n- Do not provide any resource ID for 'list_workflows' method.\n- Provide a workflow ID or workflow file name (e.g. ci.yaml) for 'list_workflow_runs' method, or omit to list all workflow runs in the repository.\n- Provide a workflow run ID for 'list_workflow_jobs' and 'list_workflow_run_artifacts' methods.\n"
+     },
+     "workflow_jobs_filter": {
+      "type": "object",
+      "properties": {
+       "filter": {
+        "type": "string",
+        "description": "Filters jobs by their completed_at timestamp",
+        "enum": [
+         "latest",
+         "all"
+        ]
+       }
+      },
+      "description": "Filters for workflow jobs. **ONLY** used when method is 'list_workflow_jobs'"
+     },
+     "workflow_runs_filter": {
+      "type": "object",
+      "properties": {
+       "actor": {
+        "type": "string",
+        "description": "Filter to a specific GitHub user's workflow runs."
+       },
+       "branch": {
+        "type": "string",
+        "description": "Filter workflow runs to a specific Git branch. Use the name of the branch."
+       },
+       "event": {
+        "type": "string",
+        "description": "Filter workflow runs to a specific event type",
+        "enum": [
+         "branch_protection_rule",
+         "check_run",
+         "check_suite",
+         "create",
+         "delete",
+         "deployment",
+         "deployment_status",
+         "discussion",
+         "discussion_comment",
+         "fork",
+         "gollum",
+         "issue_comment",
+         "issues",
+         "label",
+         "merge_group",
+         "milestone",
+         "page_build",
+         "public",
+         "pull_request",
+         "pull_request_review",
+         "pull_request_review_comment",
+         "pull_request_target",
+         "push",
+         "registry_package",
+         "release",
+         "repository_dispatch",
+         "schedule",
+         "status",
+         "watch",
+         "workflow_call",
+         "workflow_dispatch",
+         "workflow_run"
+        ]
+       },
+       "status": {
+        "type": "string",
+        "description": "Filter workflow runs to only runs with a specific status",
+        "enum": [
+         "queued",
+         "in_progress",
+         "completed",
+         "requested",
+         "waiting"
+        ]
+       }
+      },
+      "description": "Filters for workflow runs. **ONLY** used when method is 'list_workflow_runs'"
+     }
+    },
+    "required": [
+     "method",
+     "owner",
+     "repo"
+    ]
+   }
+  },
+  {
+   "name": "actions_get",
+   "description": "Get details about specific GitHub Actions resources.\nUse this tool to get details about individual workflows, workflow runs, jobs, and artifacts by their unique IDs.\n",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "method": {
+      "type": "string",
+      "description": "The method to execute",
+      "enum": [
+       "get_workflow",
+       "get_workflow_run",
+       "get_workflow_job",
+       "download_workflow_run_artifact",
+       "get_workflow_run_usage",
+       "get_workflow_run_logs_url"
+      ]
+     },
+     "owner": {
+      "type": "string",
+      "description": "Repository owner",
+      "x-mcp-header": "owner"
+     },
+     "repo": {
+      "type": "string",
+      "description": "Repository name",
+      "x-mcp-header": "repo"
+     },
+     "resource_id": {
+      "type": "string",
+      "description": "The unique identifier of the resource. This will vary based on the \"method\" provided, so ensure you provide the correct ID:\n- Provide a workflow ID or workflow file name (e.g. ci.yaml) for 'get_workflow' method.\n- Provide a workflow run ID for 'get_workflow_run', 'get_workflow_run_usage', and 'get_workflow_run_logs_url' methods.\n- Provide an artifact ID for 'download_workflow_run_artifact' method.\n- Provide a job ID for 'get_workflow_job' method.\n"
+     }
+    },
+    "required": [
+     "method",
+     "owner",
+     "repo",
+     "resource_id"
+    ]
+   }
+  }
+ ]
+}

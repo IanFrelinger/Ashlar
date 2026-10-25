@@ -1,0 +1,1 @@
+{"request": {"arguments": {"method": "get_review_comments", "owner": "microsoft", "pullNumber": 14655, "repo": "semantic-kernel"}, "name": "pull_request_read"}, "result": {"content": [{"type": "text", "text": "{\"review_threads\":[],\"totalCount\":0,\"pageInfo\":{\"hasNextPage\":false,\"hasPreviousPage\":false}}"}]}, "recorded_at": "2026-10-25T16:29:40.619233+00:00"}
