@@ -27,6 +27,7 @@ public sealed class AshlarMcpToolBridge
     private readonly IMcpWorldSnapshotFactory _snapshots;
     private readonly IOptions<AshlarMcpServerOptions> _options;
     private readonly ILogger<AshlarMcpToolBridge> _logger;
+    private readonly IMcpRefusalAuditor? _refusalAuditor;
     private readonly SemaphoreSlim _concurrency;
 
     // Volatile snapshot of the last-built catalog, used to route tools/call without a rebuild.
@@ -36,18 +37,26 @@ public sealed class AshlarMcpToolBridge
     private sealed record CatalogEntry(AshlarMcpToolDescriptor Descriptor, IMcpToolContributor Contributor);
 
     /// <summary>Creates the bridge over all registered contributors.</summary>
+    /// <param name="contributors">Every registered contributor.</param>
+    /// <param name="gate">The policy gate.</param>
+    /// <param name="snapshots">World snapshots for the gate.</param>
+    /// <param name="options">Server options.</param>
+    /// <param name="logger">Logger.</param>
+    /// <param name="refusalAuditors">Records the refusals made here; the last registered one is used. None: they are only logged.</param>
     public AshlarMcpToolBridge(
         IEnumerable<IMcpToolContributor> contributors,
         IMcpInvocationGate gate,
         IMcpWorldSnapshotFactory snapshots,
         IOptions<AshlarMcpServerOptions> options,
-        ILogger<AshlarMcpToolBridge> logger)
+        ILogger<AshlarMcpToolBridge> logger,
+        IEnumerable<IMcpRefusalAuditor>? refusalAuditors = null)
     {
         _contributors = contributors.ToList();
         _gate = gate;
         _snapshots = snapshots;
         _options = options;
         _logger = logger;
+        _refusalAuditor = refusalAuditors?.LastOrDefault();
         _concurrency = new SemaphoreSlim(Math.Max(1, options.Value.MaxConcurrentToolCalls));
     }
 
@@ -98,8 +107,11 @@ public sealed class AshlarMcpToolBridge
             catalog = await BuildCatalogAsync(ct).ConfigureAwait(false);
             if (!catalog.TryGetValue(name, out entry))
             {
-                _logger.LogWarning("MCP call to unknown tool. Tool={ToolName} Caller={Caller}", name, caller);
-                throw new McpProtocolException($"Unknown tool '{name}'.", McpErrorCode.InvalidParams);
+                var shown = Shown(name);
+                _logger.LogWarning("MCP call to unknown tool. Tool={ToolName} Caller={Caller}", shown, caller);
+                var text = await AuditRefusalAsync(name, canonicalId: null, RawArguments(parameters), $"Unknown tool '{shown}'.", ct)
+                    .ConfigureAwait(false);
+                throw new McpProtocolException(text, McpErrorCode.InvalidParams);
             }
         }
 
@@ -112,7 +124,8 @@ public sealed class AshlarMcpToolBridge
             _logger.LogWarning(
                 "MCP tool call denied. Tool={ToolId} Caller={Caller} Reason={Reason}",
                 canonicalId, caller, decision.Reason);
-            return ErrorResult($"Call to '{name}' was denied: {decision.Reason}");
+            return ErrorResult(await AuditRefusalAsync(
+                name, canonicalId, arguments, $"Call to '{name}' was denied: {decision.Reason}", ct).ConfigureAwait(false));
         }
 
         await _concurrency.WaitAsync(ct).ConfigureAwait(false);
@@ -186,11 +199,46 @@ public sealed class AshlarMcpToolBridge
         return catalog;
     }
 
+    private async Task<string> AuditRefusalAsync(
+        string requestedName, string? canonicalId, JsonElement arguments, string message, CancellationToken ct)
+    {
+        if (_refusalAuditor is null)
+        {
+            return message;
+        }
+
+        try
+        {
+            return await _refusalAuditor.RecordRefusalAsync(requestedName, canonicalId, arguments, message, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "MCP refusal audit record failed. Tool={ToolName}", Shown(requestedName));
+            return message + " Its audit record could not be written.";
+        }
+    }
+
+    /// <summary>A caller-sent tool name as it may appear in a log line or an error: at most
+    /// <see cref="McpToolNaming.MaxNameLength"/> characters, control characters replaced.</summary>
+    private static string Shown(string name)
+    {
+        var cut = name.Length <= McpToolNaming.MaxNameLength ? name : name[..McpToolNaming.MaxNameLength] + "…";
+        return string.Create(cut.Length, cut, static (span, source) =>
+        {
+            for (var i = 0; i < source.Length; i++)
+            {
+                span[i] = char.IsControl(source[i]) ? '?' : source[i];
+            }
+        });
+    }
+
+    private static JsonElement RawArguments(CallToolRequestParams parameters) => parameters.Arguments is null
+        ? EmptyObject
+        : JsonSerializer.SerializeToElement(parameters.Arguments);
+
     private JsonElement BuildArguments(CallToolRequestParams parameters, string canonicalId)
     {
-        var argumentsElement = parameters.Arguments is null
-            ? EmptyObject
-            : JsonSerializer.SerializeToElement(parameters.Arguments);
+        var argumentsElement = RawArguments(parameters);
 
         if (!_options.Value.ArgumentOverrides.TryGetValue(canonicalId, out var overrides) || overrides.Count == 0)
         {

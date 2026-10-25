@@ -116,8 +116,11 @@ public sealed class BrickMcpToolContributorTests
 
     private static BrickMcpToolContributor Create(
         IBrickRegistry registry, IBarrierAuditLog audit, params string[] exposed)
+        => Create(registry, audit, new AshlarMcpBrickOptions(), exposed);
+
+    private static BrickMcpToolContributor Create(
+        IBrickRegistry registry, IBarrierAuditLog audit, AshlarMcpBrickOptions options, params string[] exposed)
     {
-        var options = new AshlarMcpBrickOptions();
         foreach (var id in exposed)
         {
             options.ExposedBrickIds.Add(id);
@@ -265,6 +268,58 @@ public sealed class BrickMcpToolContributorTests
     }
 
     [Fact]
+    public async Task Invoke_refuses_oversized_arguments_before_the_brick_runs_records_the_refusal_and_does_not_echo_them()
+    {
+        var brick = new GreetBrick();
+        var audit = new CapturingAudit();
+        var sut = Create(new Registry(brick), audit, new AshlarMcpBrickOptions { MaxArgumentBytes = 1024 }, "test.greet");
+        var raw = $$"""{"name":"{{new string('z', 4096)}}"}""";
+
+        var outcome = await sut.InvokeAsync("test.greet", Args(raw), CancellationToken.None);
+
+        outcome.IsError.Should().BeTrue();
+        outcome.Text.Should().Contain($"Arguments are {raw.Length} bytes; the limit is 1024");
+        outcome.Text.Should().NotContain("zzzz", "an oversized value is not echoed back");
+        outcome.Text.Length.Should().BeLessThan(300);
+        brick.Executions.Should().Be(0);
+        var detail = Detail(audit.Events.Single());
+        detail.GetProperty("outcome").GetString().Should().Be("refused");
+        detail.GetProperty("inputSha256").GetString().Should().Be(Sha256(raw));
+        outcome.Text.Should().Contain(audit.Events[0].CorrelationId);
+    }
+
+    [Fact]
+    public async Task Invoke_accepts_arguments_exactly_at_the_cap_and_counts_utf8_bytes_not_characters()
+    {
+        const string atCap = """{"name":"abcdefgh"}""";
+        var exact = Create(new Registry(new GreetBrick()), new CapturingAudit(),
+            new AshlarMcpBrickOptions { MaxArgumentBytes = atCap.Length }, "test.greet");
+        (await exact.InvokeAsync("test.greet", Args(atCap), CancellationToken.None)).IsError.Should().BeFalse();
+
+        var nonAscii = $$"""{"name":"{{new string('é', 8)}}"}""";
+        var bytes = Encoding.UTF8.GetByteCount(nonAscii);
+        bytes.Should().BeGreaterThan(nonAscii.Length);
+        var byBytes = Create(new Registry(new GreetBrick()), new CapturingAudit(),
+            new AshlarMcpBrickOptions { MaxArgumentBytes = nonAscii.Length }, "test.greet");
+        var outcome = await byBytes.InvokeAsync("test.greet", Args(nonAscii), CancellationToken.None);
+        outcome.IsError.Should().BeTrue();
+        outcome.Text.Should().Contain($"Arguments are {bytes} bytes");
+    }
+
+    [Fact]
+    public async Task A_zero_argument_cap_removes_the_limit_and_the_default_is_64_KiB()
+    {
+        new AshlarMcpBrickOptions().MaxArgumentBytes.Should().Be(64 * 1024);
+        var sut = Create(new Registry(new GreetBrick()), new CapturingAudit(),
+            new AshlarMcpBrickOptions { MaxArgumentBytes = 0 }, "test.greet");
+
+        var outcome = await sut.InvokeAsync(
+            "test.greet", Args($$"""{"name":"{{new string('y', 100_000)}}"}"""), CancellationToken.None);
+
+        outcome.IsError.Should().BeFalse(outcome.Text[..Math.Min(200, outcome.Text.Length)]);
+    }
+
+    [Fact]
     public async Task Invoke_reports_a_throwing_brick_as_a_tool_error_and_audits_it_as_failed()
     {
         var audit = new CapturingAudit();
@@ -355,6 +410,89 @@ public sealed class BrickMcpToolContributorTests
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
+    }
+
+    [Fact]
+    public async Task A_bridge_refusal_is_recorded_with_the_name_hashed_and_printable_and_no_argument_values()
+    {
+        var audit = new CapturingAudit();
+        var sut = Create(new Registry(new GreetBrick()), audit, "test.greet");
+        const string raw = """{"githubToken":"ghp_secret"}""";
+
+        var text = await sut.RecordRefusalAsync("evil\ntool<script>", canonicalId: null, Args(raw), "Unknown tool 'x'.", CancellationToken.None);
+
+        var e = audit.Events.Should().ContainSingle().Subject;
+        e.EventType.Should().Be(BrickMcpToolContributor.EventType);
+        e.AgentName.Should().Be(BrickMcpToolContributor.UnknownToolAgentName);
+        text.Should().Be($"Unknown tool 'x'. (auditId {e.CorrelationId})");
+        var detail = Detail(e);
+        detail.GetProperty("outcome").GetString().Should().Be("refused");
+        detail.GetProperty("brickId").ValueKind.Should().Be(JsonValueKind.Null);
+        detail.GetProperty("requestedTool").GetString().Should().Be("evil_tool_script_");
+        detail.GetProperty("requestedToolSha256").GetString().Should().Be(Sha256("evil\ntool<script>"));
+        detail.GetProperty("inputSha256").GetString().Should().Be(Sha256(raw));
+        detail.GetProperty("resultSha256").GetString().Should().Be(Sha256(text));
+        e.Detail.Should().NotContain("ghp_secret");
+    }
+
+    [Fact(Timeout = 60000)]
+    public async Task A_real_MCP_client_calling_an_unlisted_brick_gets_a_protocol_error_that_is_on_the_record()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var ct = cts.Token;
+        var sink = new CapturingSink();
+        var clientToServer = new Pipe();
+        var serverToClient = new Pipe();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"{AshlarMcpServerOptions.SectionPath}:Enabled"] = "true",
+            [$"{AshlarMcpBrickOptions.SectionPath}:ExposedBrickIds:0"] = "test.greet",
+        }).Build();
+        var other = new OtherBrick();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IBrickRegistry>(new Registry(new GreetBrick(), other));
+        services.AddSingleton<IBarrierAuditSink>(sink);
+        services.AddAshlarMcpBricks(configuration);
+        services.AddAshlarMcpServer(configuration)
+            .WithStreamServerTransport(clientToServer.Reader.AsStream(), serverToClient.Writer.AsStream());
+        await using var provider = services.BuildServiceProvider();
+        var hosted = provider.GetServices<IHostedService>().ToList();
+        foreach (var h in hosted)
+        {
+            await h.StartAsync(ct);
+        }
+
+        try
+        {
+            var transport = new StreamClientTransport(
+                clientToServer.Writer.AsStream(), serverToClient.Reader.AsStream(), NullLoggerFactory.Instance);
+            await using var client = await McpClient.CreateAsync(transport, cancellationToken: ct);
+
+            var act = () => client.CallToolAsync(
+                "test_other", new Dictionary<string, object?> { ["k"] = "v" }, cancellationToken: ct).AsTask();
+
+            var error = (await act.Should().ThrowAsync<ModelContextProtocol.McpException>()).Which;
+            other.Executions.Should().Be(0);
+            var record = sink.Events.Should().ContainSingle().Subject;
+            record.AgentName.Should().Be(BrickMcpToolContributor.UnknownToolAgentName);
+            error.Message.Should().Contain(record.CorrelationId);
+            Detail(record).GetProperty("requestedTool").GetString().Should().Be("test_other");
+        }
+        finally
+        {
+            foreach (var h in Enumerable.Reverse(hosted))
+            {
+                try
+                {
+                    await h.StopAsync(CancellationToken.None);
+                }
+                catch
+                {
+                    // Best-effort shutdown of the in-memory session.
+                }
+            }
+        }
     }
 
     [Fact(Timeout = 60000)]

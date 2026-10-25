@@ -17,6 +17,16 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — MCP brick host records what it refuses, and caps argument size
+
+- The MCP brick host now records calls to tools it does not list and calls its policy gate denies
+  (`IMcpRefusalAuditor`): an `MCP_BRICK_INVOKED` record with outcome `refused`, the requested name hashed and in
+  printable form, and the `auditId` in the error the caller sees. Before, those refusals reached only stderr, and the
+  error echoed the requested name whole. Found by the MCP host adversarial audit (M1).
+- Brick-call arguments over `Ashlar:Mcp:Bricks:MaxArgumentBytes` (UTF-8 bytes, default 64 KiB, `0` turns the cap
+  off) are refused and recorded before the brick runs, and `github.blockers` no longer echoes a refused URL in full
+  (a 10 MB `url` produced a 10 MB error). Found by the MCP host adversarial audit (L1).
+
 ### Fixed — MCP brick host keeps every audit file
 
 - The MCP brick host no longer deletes the audit records of all but its last ten server starts. Each start opens a

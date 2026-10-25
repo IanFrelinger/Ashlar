@@ -69,7 +69,10 @@ A successful call returns a JSON text block (also sent as structured content):
 
 Missing required inputs and arguments that are not a JSON object come back as tool errors (`isError: true`)
 before the brick runs, and also carry an `auditId`. A brick that throws comes back the same way. A tool name the
-server does not list is an MCP protocol error, not a tool result.
+server does not list (including a registered brick that is not allowlisted) is an MCP protocol error, not a tool
+result; it is recorded too, and the error message carries its `auditId`. A `tools/call` whose `arguments` is not a
+JSON object, or a frame that is not valid JSON-RPC, is rejected by the MCP SDK before any Ashlar code runs, and is
+not recorded.
 
 ## Audit records
 
@@ -80,13 +83,15 @@ One JSON line per brick call (refusals included) in
 To find the record for one call: `grep <auditId> ~/.local/share/ashlar/mcp-audit/mcp-brick-calls-*.ndjson`. Each record has `eventType` `MCP_BRICK_INVOKED`,
 `correlationId` = the `auditId` the caller saw, and a `detail` holding the brick id and version, the outcome
 (`succeeded`, `failed`, `refused`), the duration, and the SHA-256 of the arguments as received and of the text
-returned. **Argument and output values are not written**, so a token passed as `githubToken` does not land on disk.
+returned. A refused unknown tool name has `agentName` `mcp.unknown-tool`, a null `brickId`, and the name as
+`requestedToolSha256` plus `requestedTool` (cut to 64 characters, anything outside `[A-Za-z0-9_.-]` replaced by `_`). **Argument and output values are not written**, so a token passed as `githubToken` does not land on disk.
 
 ## Configuration
 
 | Variable | Meaning |
 |----------|---------|
 | `Ashlar__Mcp__Bricks__ExposedBrickIds__N` | Bricks to expose. An id with no registered brick stops the server at startup. |
+| `Ashlar__Mcp__Bricks__MaxArgumentBytes` | Largest brick-call `arguments` object, in UTF-8 bytes (default 65536; `0` removes the cap). A larger call is refused, recorded, and not echoed back. |
 | `Ashlar__Mcp__Server__ExposedToolIds__N` | Tools to expose (`repo.fs.read`, `repo.fs.list`). |
 | `Ashlar__Mcp__Server__RepoRoot` | Root the repo tools read from (default: working directory). |
 | `Ashlar__Audit__File__Directory` | Audit directory. |
