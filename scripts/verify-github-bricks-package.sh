@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Packs Ashlar.Bricks.GitHub with the two Ashlar packages it depends on into a temp feed, then builds
+# Packs Ashlar.Bricks.GitHub with the three Ashlar packages it depends on into a temp feed, then builds
 # and runs a consumer that restores ONLY from that feed (+ nuget.org) — no repo ProjectReference.
 #
 # WHAT THIS PROVES
 # ----------------
 # The package a release pushes is consumable on its own: it restores, its dependency closure is
-# Ashlar.Core.Domain (+ Ashlar.Brick.Contracts), Octokit and logging abstractions and nothing that
+# Ashlar.Core.Domain (+ Ashlar.Brick.Contracts), Ashlar.Abstractions (the egress guard), Octokit and
+# logging abstractions and nothing that
 # only exists in this repository, the nuspec carries a description and its own README, the bricks
 # are in the `Ashlar.Bricks.GitHub` namespace, and a consumer process can construct both and execute one.
 #
@@ -41,6 +42,7 @@ pack() {
 
 pack src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj
 pack src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj
+pack src/Ashlar.Abstractions/Ashlar.Abstractions.csproj
 pack src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj
 
 NUPKG="${FEED}/Ashlar.Bricks.GitHub.${VERSION}.nupkg"
@@ -53,7 +55,7 @@ grep -q '<description>[^<]*GitHub' <<<"${NUSPEC}" || fail_nuspec "nuspec has no 
 grep -q '<readme>README.md</readme>' <<<"${NUSPEC}" || fail_nuspec "nuspec has no README"
 unzip -p "${NUPKG}" README.md | head -1 | grep -q '^# Ashlar.Bricks.GitHub' \
   || fail_nuspec "packed README.md is not the package's own README"
-for dep in Ashlar.Core.Domain Octokit; do
+for dep in Ashlar.Core.Domain Ashlar.Abstractions Octokit; do
   grep -q "id=\"${dep}\"" <<<"${NUSPEC}" || fail_nuspec "nuspec does not depend on ${dep}"
 done
 # Neither of these is needed by the bricks; either one would drag the full infrastructure graph or
@@ -113,6 +115,20 @@ Check(prOutput.Get<string>("state") == "error", "PrStatusBrick reports a malform
 
 var ci = new CiStatusBrick(NullLogger<CiStatusBrick>.Instance);
 Check(ci.Id == "github.ci-status", $"CiStatusBrick id is github.ci-status (got {ci.Id})");
+
+var blockers = new GitHubBlockersBrick(NullLogger<GitHubBlockersBrick>.Instance);
+Check(blockers.Id == "github.blockers", $"GitHubBlockersBrick id is github.blockers (got {blockers.Id})");
+var offHost = new BrickInput();
+offHost.Set("url", "https://example.invalid/owner/repo/pull/1");
+try
+{
+    await blockers.ExecuteAsync(offHost, ImplementationType.Deterministic, new NoContext());
+    Check(false, "GitHubBlockersBrick refuses a URL that is not on github.com");
+}
+catch (ArgumentException)
+{
+    Check(true, "GitHubBlockersBrick refuses a URL that is not on github.com");
+}
 
 Console.WriteLine(failures == 0 ? "consumer: OK" : $"consumer: {failures} failure(s)");
 return failures == 0 ? 0 : 1;

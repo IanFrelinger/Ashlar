@@ -131,6 +131,9 @@ public sealed partial class EgressGuardConventionTests
         ["unguarded: an AWS SDK client (SmsIngressDynamoDbServiceCollectionExtensions.cs:12)"] = new("""
             services.AddSingleton<IAmazonDynamoDB>(_ => new AmazonDynamoDBClient());
             """, "sdk.client 1/0"),
+        ["unguarded: an Octokit client over its own HttpClient (PrStatusBrick.cs:112 as it was before EG-HTTP-08)"] = new("""
+            var client = new GitHubClient(new ProductHeaderValue("Ashlar-GitHub-Bricks"));
+            """, "sdk.client 1/0"),
         ["unguarded: a Process with a ProcessStartInfo initializer counts twice (WorkflowCommand.cs:337)"] = new("""
             using var process = new Process
             {
@@ -332,6 +335,11 @@ public sealed partial class EgressGuardConventionTests
             handler.SslOptions.RemoteCertificateValidationCallback = ValidatePeer;
             return EgressHttp.Wrap(handler, EgressFamilies.MeshPull, "EG-MESH-04");
             """, "http.new 2/2"),
+        ["guarded: an Octokit client whose connection's handler is wrapped (GitHubClientFactory)"] = new("""
+            return new Octokit.GitHubClient(new Connection(product, GitHubClient.GitHubApiUrl, store,
+                new HttpClientAdapter(() => EgressHttp.Wrap(HttpMessageHandlerFactory.CreateDefault(), EgressFamilies.Http, "EG-HTTP-08")),
+                new SimpleJsonSerializer()));
+            """, "http.new 1/1; sdk.client 1/1"),
         ["guarded: factory.CreateClient is not a construction"] = new("""
             var named = factory.CreateClient("x");
             var raw = EgressHttp.CreateClient(EgressFamilies.Http, "EG-HTTP-06");

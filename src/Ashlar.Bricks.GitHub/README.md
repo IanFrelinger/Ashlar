@@ -65,6 +65,43 @@ var failureCount = output.Get<int>("failureCount");
 Console.WriteLine($"CI Status: {status}, Failures: {failureCount}");
 ```
 
+### GitHubBlockersBrick
+
+Answers "what is blocking this pull request or release?". Each blocker comes with a link to its evidence, and
+anything that could not be read is listed as an unknown with the reason, never read as "passed".
+
+**Inputs:**
+- `url` (string, required): `https://github.com/<owner>/<repo>/pull/<n>` or `https://github.com/<owner>/<repo>/releases/tag/<tag>`.
+  Any other host is refused with `ArgumentException` before a request is made.
+- `githubToken` (string, optional)
+
+**Outputs:**
+- `verdict` (string): `blocked`, `ready`, `unknown` (no blocker found, but something that could hide one was not read),
+  `merged` or `closed`
+- `blockers` (object[]): `reason` and `evidence` (a URL: the check run, the review, the pull request, the tag list)
+- `unknowns` (object[]): `what` and `why`
+- `notes` (object[]): non-blocking observations, such as a failing check that is not required
+- `evidence` (string[]): every URL the answer relies on
+- `answer` (string): the whole answer as Markdown
+
+**What it checks.** For a pull request: draft state, merge conflicts, a branch behind a base that requires up-to-date
+branches, reviewers whose latest review requests changes, required approvals, and failing, pending or never-reported
+required checks (check runs and commit statuses). For a release: the tag exists, a published (not draft) release
+exists for it, and CI on the tagged commit.
+
+**Known limits.**
+- Branch protection is readable only with admin rights. Without them the required checks and approvals are unknowns,
+  and GitHub's `mergeable_state` decides whether a failing check blocks: `clean`, `unstable` and `has_hooks` mean
+  GitHub would allow the merge, so failures are notes; otherwise every failing or pending check is listed as a blocker.
+- Repository rulesets are not read. A `blocked` state nothing else explains is reported as a blocker naming that gap.
+- Draft releases are found only among the 30 newest releases, and only with a token that has push access.
+
+## Network access
+
+Every request goes to `api.github.com` through the Ashlar egress guard (`EgressHttp.Wrap`, inventory row `EG-HTTP-08`
+in `docs/EgressInventory.md`), so a deployment profile that refuses external egress refuses these bricks too, with
+`EgressRefusedException`.
+
 ## Installation
 
 `Ashlar.Bricks.GitHub` ships from the first release after 0.3.0; 0.3.0 on nuget.org does not contain it.
@@ -92,6 +129,7 @@ input.Set("githubToken", Environment.GetEnvironmentVariable("GITHUB_TOKEN"));
 
 - [Octokit](https://github.com/octokit/octokit.net) - Official GitHub API client for .NET
 - Ashlar.Core.Domain
+- Ashlar.Abstractions (the egress guard)
 
 ## Consumer-Driven Design
 
@@ -99,17 +137,15 @@ This package was created based on real consumer needs identified during PR Block
 
 ```csharp
 // Optional parameter handling with TryGet
-if (input.TryGet<string>("githubToken", out var token) && !string.IsNullOrEmpty(token))
-{
-    client.Credentials = new Credentials(token);
-}
+input.TryGet<string>("githubToken", out var token);
+var client = GitHubClientFactory.Create(token); // internal: anonymous when the token is null or empty
 ```
 
 ## Future Additions
 
 Potential bricks for future releases:
 - `IssueAnalyzerBrick`: GitHub issue analysis and classification
-- `ReleaseCheckerBrick`: Release validation and changelog generation
+- `ReleaseCheckerBrick`: Changelog generation (release blockers are `GitHubBlockersBrick`)
 - `CodeReviewAssistantBrick`: Automated code review assistance
 - `RepoMetricsBrick`: Repository health metrics and statistics
 

@@ -45,6 +45,8 @@ src/Ashlar.Agents.TestKit/StubHttpMessageHandler.cs	http.new	1	0	-	Exempt:TestDo
 src/Ashlar.BackgroundAgents.HostRunners/SelfExtendAdmissionBridge.cs	door	2	2	Precedes	-	EG-MESH-01	auto-share Pack and Publish (:299, :300), after the EG-MESH-01 guard on the resolved store (:292)
 src/Ashlar.BackgroundAgents/Autonomy/OllamaProposalSource.cs	http.param	1	1	Precedes	-	EG-MDL-11	experimental proposer takes an injected client into a private field; ProposeAsync's only send follows the EG-MDL-11 guard (:132)
 src/Ashlar.BackgroundAgents/WebSearch/BingWebSearchProvider.cs	http.param	1	1	Precedes	-	EG-WEB-01	Bing provider takes a caller's client into a private field; SearchAsync's only send follows the EG-WEB-01 guard (:56)
+src/Ashlar.Bricks.GitHub/GitHub/GitHubClientFactory.cs	http.new	1	1	Wrapped	-	EG-HTTP-08	Octokit's handler wrapped by EgressHttp.Wrap inside the HttpClientAdapter factory (:26)
+src/Ashlar.Bricks.GitHub/GitHub/GitHubClientFactory.cs	sdk.client	1	1	Wrapped	-	EG-HTTP-08	the only Octokit GitHubClient of the GitHub bricks (:22), over a Connection whose handler is EgressHttp.Wrap (:26); base address api.github.com
 src/Ashlar.Client/AshlarClient.cs	http.param	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client; covered by the guard handler when the consumer also calls AddAshlar or AddAshlarEgressGuard
 src/Ashlar.Client/ServiceCollectionExtensions.cs	http.register	1	0	-	Exempt:ConsumerSdk	EG-HTTP-04	consumer SDK typed client registration (:20)
 src/Ashlar.Hosting/AshlarKernelRegistrar.Phases.cs	http.register	1	1	Factory	-	EG-EXE-04	named client AshlarExecution (:778); AddAshlarEgressGuard follows it in the same remote-URL block (:780)

@@ -612,6 +612,7 @@ public sealed partial class EgressGuardConventionTests
             + @"|\bnew\s+" + AnyNs + @"(?:HttpClientTransport|SseClientTransport|A2AClient|A2ACardResolver)\s*\("
             + @"|\bMcpClient\s*\.\s*CreateAsync\s*\("
             + @"|\bnew\s+" + AnyNs + @"Amazon[A-Za-z0-9_]*Client\s*\("
+            + @"|\bnew\s+" + AnyNs + @"GitHubClient\s*\("
             + @"|\.\s*AsIChatClient\s*\(",
             Rx);
 

@@ -11,7 +11,7 @@ Nothing is exposed by default. You list the bricks (and tools) a client may call
 Needs the .NET 10 SDK, which ships `dnx`.
 
 ```bash
-Ashlar__Mcp__Bricks__ExposedBrickIds__0=github.pr-status dnx Ashlar.Mcp.Server.Host --yes
+Ashlar__Mcp__Bricks__ExposedBrickIds__0=github.blockers dnx Ashlar.Mcp.Server.Host --yes
 ```
 
 VS Code (`.vscode/mcp.json`):
@@ -24,7 +24,7 @@ VS Code (`.vscode/mcp.json`):
       "command": "dnx",
       "args": ["Ashlar.Mcp.Server.Host", "--yes"],
       "env": {
-        "Ashlar__Mcp__Bricks__ExposedBrickIds__0": "github.pr-status",
+        "Ashlar__Mcp__Bricks__ExposedBrickIds__0": "github.blockers",
         "Ashlar__Mcp__Bricks__ExposedBrickIds__1": "github.ci-status"
       }
     }
@@ -38,10 +38,12 @@ Pin a version with `Ashlar.Mcp.Server.Host@<version>` in `args`.
 
 | Brick id | MCP tool name | What it does |
 |----------|---------------|--------------|
+| `github.blockers` | `github_blockers` | What is blocking a pull request or release: a verdict, each blocker with an evidence link, and every fact it could not read (with the reason). Input: `url` (`https://github.com/<owner>/<repo>/pull/<n>` or `.../releases/tag/<tag>`); optional `githubToken`. |
 | `github.pr-status` | `github_pr-status` | Pull request state, mergeability, reviews, checks and the blockers they add up to. Input: `prUrl`; optional `githubToken`. |
 | `github.ci-status` | `github_ci-status` | Workflow runs and check runs for a ref. Inputs: `owner`, `repo`, `ref`; optional `githubToken`. |
 
-Both call `api.github.com`. Without a token GitHub allows 60 requests an hour.
+All three call `api.github.com` and accept only `https://github.com` URLs. Without a token GitHub allows 60 requests
+an hour; pass `githubToken` for more, and to read private repositories.
 
 ## What a call returns
 
@@ -83,8 +85,9 @@ Logs go to stderr; stdout carries only MCP JSON-RPC.
 - **The audit sink is best-effort.** Records are queued and written on a background task (flushed per event), so
   a record lands moments after the response. If the queue is full or the disk write fails, the server logs a
   warning and the call still returns.
-- **The GitHub bricks' traffic does not pass through Ashlar's egress guard** (Octokit owns its HTTP client).
-  The server itself refuses to start under the `AirGapped` profile.
+- **A token passed as `githubToken` travels in the tool arguments**, so the MCP client sees it. The audit record
+  holds only its hash. The GitHub bricks send through Ashlar's egress guard (`EG-HTTP-08`), and the server refuses
+  to start under the `AirGapped` profile.
 - **The caller identity is not in the audit record.** Over stdio there is one local caller; the record holds
   what was asked and answered, not who asked.
 - **No local GGUF inference in this package.** The `local` model provider's native backend is left out of the

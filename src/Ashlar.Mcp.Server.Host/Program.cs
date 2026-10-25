@@ -11,7 +11,7 @@
 //   Ashlar__Mcp__Server__RepoRoot                world-snapshot root (defaults to the working directory).
 //   Ashlar__Mcp__Server__ArgumentOverrides__repo.fs.read__root
 //                                              pin caller-visible args, e.g. force 'root' for repo tools.
-//   Ashlar__Mcp__Bricks__ExposedBrickIds__0      brick allowlist, e.g. "github.pr-status" — empty exposes zero bricks.
+//   Ashlar__Mcp__Bricks__ExposedBrickIds__0      brick allowlist, e.g. "github.blockers" — empty exposes zero bricks.
 //   Ashlar__Audit__File__Directory              where the per-call brick audit records (JSONL) go; defaults to
 //                                              <LocalApplicationData>/ashlar/mcp-audit. Ashlar__Audit__Sinks__0
 //                                              selects the sink (File by default here; StructuredLog or NoOp).
@@ -60,8 +60,10 @@ builder.Services.AddSingleton<ITool, RepoFsReadTool>();
 builder.Services.AddSingleton<ITool, RepoFsListTool>();
 
 // Bricks available for allowlisting out of the box, on the same terms: registered here, exposed only
-// when listed in Ashlar:Mcp:Bricks:ExposedBrickIds. Both call api.github.com through Octokit.
+// when listed in Ashlar:Mcp:Bricks:ExposedBrickIds. All three call api.github.com through Octokit, behind the
+// egress guard (EG-HTTP-08).
 builder.Services.AddAshlarSdk(sdk => sdk
+    .RegisterBrick<GitHubBlockersBrick>()
     .RegisterBrick<PrStatusBrick>()
     .RegisterBrick<CiStatusBrick>());
 builder.Services.AddBarrierAuditSinks(builder.Configuration);

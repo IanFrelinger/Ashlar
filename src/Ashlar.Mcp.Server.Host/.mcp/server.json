@@ -16,13 +16,13 @@
       "environmentVariables": [
         {
           "name": "Ashlar__Mcp__Bricks__ExposedBrickIds__0",
-          "description": "Brick to expose, e.g. github.pr-status. Nothing is exposed until at least one id is listed.",
+          "description": "Brick to expose, e.g. github.blockers. Nothing is exposed until at least one id is listed.",
           "isRequired": true,
           "isSecret": false
         },
         {
           "name": "Ashlar__Mcp__Bricks__ExposedBrickIds__1",
-          "description": "Optional second brick, e.g. github.ci-status.",
+          "description": "Optional second brick, e.g. github.pr-status or github.ci-status.",
           "isRequired": false,
           "isSecret": false
         }

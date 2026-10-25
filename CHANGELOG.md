@@ -17,6 +17,22 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — `github.blockers`: what is blocking a pull request or release
+
+- `GitHubBlockersBrick` in `Ashlar.Bricks.GitHub` answers what is blocking a github.com pull request or release.
+  Each blocker carries an evidence URL, and every fact it could not read (branch protection without admin
+  rights, mergeability GitHub has not computed yet, a rate limit, unread pages) is reported as an unknown with
+  the reason, never as "passed". Verdicts are `blocked`, `ready`, `unknown`, `merged` and `closed`.
+- All three GitHub bricks now send through the egress guard (`EgressHttp.Wrap`, new inventory row `EG-HTTP-08`).
+  The egress scanner recognises `new GitHubClient(`, so an unguarded Octokit client fails the egress
+  conventions. `Ashlar.Bricks.GitHub` now depends on `Ashlar.Abstractions`.
+- `github.pr-status` and `github.blockers` accept only `https://github.com` URLs; any other host was previously
+  parsed and answered with data about api.github.com.
+- The MCP brick host registers `github.blockers` (MCP tool `github_blockers`, exposed when allowlisted), so
+  `dnx Ashlar.Mcp.Server.Host` answers "what is blocking this PR or release?" for any MCP client.
+  `scripts/verify-mcp-brick-host-dnx.sh` exposes it and checks its refusal of an off-github.com URL and the
+  audit record of that call.
+
 ### Fixed — `AshlarSimpleCli` could not execute a brick
 
 - `CreateSimpleHost()` and both `brick.ExecuteAsync(...)` helpers resolved an `IExecutionContext` that no
