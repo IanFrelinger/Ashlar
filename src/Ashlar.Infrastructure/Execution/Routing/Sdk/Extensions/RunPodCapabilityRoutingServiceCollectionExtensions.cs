@@ -63,12 +63,19 @@ public static class RunPodCapabilityRoutingServiceCollectionExtensions
         services.AddAshlarEgressGuard();
 
         services.TryAddSingleton<ILocalQueueDepthProvider, EnvironmentQueueDepthProvider>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, NCRCapabilityPoller>());
-        services.TryAddSingleton<INCRCapabilitySnapshot>(sp =>
-            sp.GetServices<IHostedService>().OfType<NCRCapabilityPoller>().First());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, PeerCapabilitySnapshotPoller>());
-        services.TryAddSingleton<IPeerCapabilitySnapshot>(sp =>
-            sp.GetServices<IHostedService>().OfType<PeerCapabilitySnapshotPoller>().First());
+        // Each poller is one singleton reached by both its snapshot interface and IHostedService.
+        // The snapshots must not be found by enumerating IHostedService: that constructs EVERY hosted
+        // service, and one that depends on the brick registry (the MCP server does) re-enters this
+        // composition through CapabilityRoutingBrick -> INCRCapabilitySnapshot, a cycle factories
+        // hide from the container, so startup recursed without ever throwing.
+        services.TryAddSingleton<NCRCapabilityPoller>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, NCRCapabilityPoller>(
+            sp => sp.GetRequiredService<NCRCapabilityPoller>()));
+        services.TryAddSingleton<INCRCapabilitySnapshot>(sp => sp.GetRequiredService<NCRCapabilityPoller>());
+        services.TryAddSingleton<PeerCapabilitySnapshotPoller>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, PeerCapabilitySnapshotPoller>(
+            sp => sp.GetRequiredService<PeerCapabilitySnapshotPoller>()));
+        services.TryAddSingleton<IPeerCapabilitySnapshot>(sp => sp.GetRequiredService<PeerCapabilitySnapshotPoller>());
         services.TryAddSingleton<AshlarPeerBrickExecutor>();
         services.TryAddSingleton<IPeerExecutor>(sp => sp.GetRequiredService<AshlarPeerBrickExecutor>());
         services.TryAddSingleton(sp =>
