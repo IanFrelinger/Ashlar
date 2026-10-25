@@ -251,8 +251,16 @@ run_cli run "test request" --path "$D"
 claim "run-refuses-unverified" 65 "you cannot run what does not verify"
 
 sed -e "s/mode: proposing/mode: sealed/" -e "s/gatesRequired: \[tests\]/gatesRequired: []/" "$D/ashlar.policy.yaml" > "$D/.p" && mv "$D/.p" "$D/ashlar.policy.yaml"
+# The mock provider's reply is an echo, not decomposition JSON, so a plain request becomes the Gameplay
+# fallback, GenericAgent does no work, and the run fails with the NO_WORK escalation (#832). A mock run
+# that completes has to give a specialized agent something to do: the echo returns the architect prompt,
+# which carries the request, so a request holding its own decomposition routes to the Planning agent.
 run_cli run "classify one sample invoice" --path "$D"
-claim "run-mock-completes" 0 "provider mock"
+claim "run-mock-no-work-fails" 2 "provider mock" "Orchestration failed" "Escalations: 1"
+
+PLAN_REQUEST='Plan how to classify one sample invoice. ```json {"agents":[{"agentId":"plan-1","domain":"Planning","goal":"Plan how to classify one sample invoice"}],"reasoning":"one planning step","confidence":0.9} ```'
+run_cli run "$PLAN_REQUEST" --path "$D"
+claim "run-mock-completes" 0 "provider mock" "Creating agent plan-1 for domain Planning" "Orchestration completed successfully" "Escalations: 0"
 
 run_cli run "x" --path "$WORK"
 claim "run-not-a-project" 1 "not an ashlar project"
