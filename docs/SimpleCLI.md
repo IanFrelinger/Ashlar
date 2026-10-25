@@ -271,7 +271,7 @@ every CLI prints results the same way:
 | `output.ToPlainText(includeEmpty: false)` | `Summary:` then `Outputs:` with `  key: value` lines | Empty values are skipped unless `includeEmpty` is true; arrays render as `a, b`. |
 | `output.ToTable()` | Box-drawn two-column table | Values longer than 48 characters are cut with `...`; arrays render as `[N items]`. |
 
-Outputs are listed in key order. Nested objects are written with `ToString()` (except in `ToJson`), so
+`ToMarkdown`, `ToPlainText` and `ToTable` list outputs in key order; `ToJson` keeps insertion order. Nested objects are written with `ToString()` (except in `ToJson`), so
 for structured values such as `PrStatusBrick`'s `checks`, prefer `ToJson`.
 
 ```csharp
