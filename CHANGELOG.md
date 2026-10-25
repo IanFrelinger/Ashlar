@@ -17,6 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — `AshlarSimpleCli` could not execute a brick
+
+- `CreateSimpleHost()` and both `brick.ExecuteAsync(...)` helpers resolved an `IExecutionContext` that no
+  deployment profile registers, so every call threw `No service for type IExecutionContext`. The simple
+  host now registers a default context (`AgentId` = `AshlarSimpleCli.SimpleCliAgentId`); a caller's own
+  registration in `configureServices` replaces it.
+- `PrintToConsole(includeAllOutputs: true)` printed a placeholder instead of the outputs; it now writes
+  every value, and `WriteTo(TextWriter, includeAllOutputs)` does the same to any writer.
+- `AshlarSimpleCliProdStyleTests` cover host creation, both `ExecuteAsync` overloads, `GetOrDefault` and output
+  writing; `BrickOutputFormatters` is documented in `docs/SimpleCLI.md` ("Formatting outputs").
+
 ### Added — Package version diagnostics
 
 - New `scripts/ci/verify-package-versions.sh` script to diagnose Central Package Management issues

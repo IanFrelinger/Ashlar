@@ -183,7 +183,7 @@ public static class BrickOutputFormatters
         };
     }
 
-    private static string FormatValueForPlainText(object? value)
+    internal static string FormatValueForPlainText(object? value)
     {
         return value switch
         {

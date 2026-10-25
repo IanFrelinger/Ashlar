@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Ashlar.Core.Domain.Bricks;
@@ -13,6 +14,9 @@ namespace Ashlar.Hosting;
 /// </summary>
 public static class AshlarSimpleCli
 {
+    /// <summary><see cref="IExecutionContext.AgentId"/> of the default context the simple host registers.</summary>
+    public const string SimpleCliAgentId = "ashlar-simple-cli";
+
     /// <summary>
     /// Creates a simple host builder for CLI applications.
     /// Uses the System deployment profile for minimal overhead.
@@ -34,7 +38,15 @@ public static class AshlarSimpleCli
             {
                 // Add Ashlar with minimal (System) profile
                 services.AddAshlarProfile(AshlarDeploymentProfile.System);
-                
+
+                // No deployment profile registers an IExecutionContext; ExecuteAsync below needs one.
+                // Registered before configureServices so a caller's own registration wins.
+                services.TryAddSingleton<IExecutionContext>(new Ashlar.Infrastructure.Execution.ExecutionContext
+                {
+                    AgentId = SimpleCliAgentId,
+                    BehaviorId = SimpleCliAgentId,
+                });
+
                 // Allow additional configuration
                 configureServices?.Invoke(services);
             });
@@ -126,22 +138,44 @@ public static class BrickOutputCliExtensions
     /// Prints brick output summary to console.
     /// </summary>
     /// <param name="output">The brick output.</param>
-    /// <param name="includeAllOutputs">Whether to print all outputs (default: false, only summary).</param>
+    /// <param name="includeAllOutputs">Whether to print every output value as well (default: false, only summary).</param>
     public static void PrintToConsole(this BrickOutput output, bool includeAllOutputs = false)
+        => output.WriteTo(Console.Out, includeAllOutputs);
+
+    /// <summary>
+    /// Writes the brick output summary, and optionally every output value, to <paramref name="writer"/>.
+    /// Output values are written in ordinal key order, one per line, formatted as by <see cref="BrickOutputFormatters.ToPlainText"/>.
+    /// </summary>
+    /// <param name="output">The brick output.</param>
+    /// <param name="writer">Destination, e.g. <see cref="Console.Out"/> or a <see cref="StringWriter"/>.</param>
+    /// <param name="includeAllOutputs">Whether to write every output value as well (default: false, only summary).</param>
+    public static void WriteTo(this BrickOutput output, TextWriter writer, bool includeAllOutputs = false)
     {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(writer);
+
         if (!string.IsNullOrEmpty(output.Summary))
         {
-            Console.WriteLine($"Summary: {output.Summary}");
+            writer.WriteLine($"Summary: {output.Summary}");
         }
 
-        if (includeAllOutputs)
+        if (!includeAllOutputs)
         {
-            Console.WriteLine("\nOutputs:");
-            // Note: BrickOutput doesn't expose all keys directly in current API
-            // This is a simplified version - real implementation would need
-            // BrickOutput to expose its keys or use reflection
-            Console.WriteLine("  (Use TryGet<T> or Get<T> to access specific outputs)");
+            return;
+        }
+
+        var values = output.ToDictionary();
+        writer.WriteLine();
+        writer.WriteLine("Outputs:");
+        if (values.Count == 0)
+        {
+            writer.WriteLine("  (none)");
+            return;
+        }
+
+        foreach (var key in values.Keys.OrderBy(k => k, StringComparer.Ordinal))
+        {
+            writer.WriteLine($"  {key}: {BrickOutputFormatters.FormatValueForPlainText(values[key])}");
         }
     }
 }
-
