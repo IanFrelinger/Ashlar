@@ -210,13 +210,15 @@ Map release bars to **commercial funnel stages**: Aware → Eval → Embed → D
 
 **Current readiness:** ⚠️ **NEAR for runtime** (P0 PRs merged, branch protection live; limitation 9 closed 2026-09-13); ⚠️ **HOLD for Forge** (pending dated ledger passes)
 
-### 3.5 Paid (Builder/Team/Enterprise tiers)
+### 3.5 Paid (Pro/Team/Enterprise tiers)
 
 **What they buy:**
 - **Community (free):** Open-core runtime, NuGet packages, HTTP API, CLI, local-first
-- **Builder (~$8k/yr indicative):** Enhanced support, SLA, staging feed access, priority bug fixes
-- **Team (~$25k/yr indicative):** Multi-user, shared policies, centralized audit aggregation
-- **Enterprise ($75k+/yr indicative):** Dedicated support, custom SLA, on-premises deployment assistance, governance module
+- **Pro ($1,500/org/yr, card):** Email support with a 2-business-day target
+- **Team ($12,000/org/yr, order form):** Private support channel with a 1-business-day target, commercial Fleet modules
+- **Enterprise (from $40,000/yr, through a partner):** Contracted support and SLA, on-premises and air-gapped deployment assistance
+
+Tiers and prices: row D2 of the [go-to-market decisions log](../commercial/go-to-market.md#decisions-log-added-2026-10-25).
 
 **Cloud PAYG:** Later phase (not v0.x)
 

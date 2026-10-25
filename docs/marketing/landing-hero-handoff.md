@@ -4,9 +4,9 @@
 
 ## Live CTAs (locked)
 - **H1:** Turn AI-generated know-how into verified, reusable behavior.
-- **Subtitle:** Embeddable control layer — check AI-assisted behaviors before they run, package what’s admitted, record what happened. Local-first.
+- **Subtitle:** The verified execution layer for AI agents in .NET. Your agents decide what to do. Ashlar decides what is allowed to run, and keeps the receipt. Local-first, on infrastructure you control. (Go-to-market decisions log D1, 2026-10-25.)
 - **Primary CTA:** See a receipt → `#see-receipt` (Docker 3-command + TesterQuickstart). Stranger path: clone → run → task receipt. No founder on the call.
-- **Secondary CTA:** Design Partner · ~$4k / 90 days → `#design-partner`
+- **Secondary CTA:** Design Partner · $4k / 90 days → `#design-partner`
 - **Honesty:** Task receipt ≠ gate admission. Quickstart proves receipt; gate proven in CI / DP work.
 - **Support:** Discord · Discussions
 

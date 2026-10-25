@@ -9,7 +9,7 @@
 ### Everyday Framing
 Use this language to communicate what Ashlar does to non-technical audiences:
 - **"Receipts for AI actions"** — every task has an audit trail
-- **"Bouncer for new skills"** — certification gate controls what code runs
+- **"Bouncer for new bricks"** — certification gate controls what code runs. Say "bricks", never "skills" (go-to-market decisions log D1)
 
 ### Precision Line
 Technical / developer-facing positioning:
@@ -49,7 +49,7 @@ Technical / developer-facing positioning:
 ## Funnel Stages
 
 ### Aware → Interested
-- **Message:** "Receipts for AI actions" + "Bouncer for new skills"
+- **Message:** "Receipts for AI actions" + "Bouncer for new bricks"
 - **Channels:** GitHub README, landing page, social cards, technical blog posts
 - **CTA:** Start with TesterQuickstart (clone, build, run API, submit task, read audit trail)
 
@@ -64,9 +64,9 @@ Technical / developer-facing positioning:
 - **CTA:** Embed runtime via `services.AddAshlar()`
 
 ### Adopting → Paid
-- **Message:** "Community free forever. Builder/Team/Enterprise for scale and sovereignty."
+- **Message:** "Open source runs everything. Paid plans buy assurance." No token-savings percentages until the live benchmark is published (D9).
 - **Channels:** Pricing page, commercial discussions
-- **CTA:** Contact for Builder/Team/Enterprise (starting ~$8k/yr)
+- **CTA:** Pro $1,500/org/yr by card · Team $12,000/org/yr by order form · Enterprise from $40,000/yr through a partner (go-to-market decisions log D2)
 
 ## Visual Lock
 
@@ -102,7 +102,7 @@ Technical / developer-facing positioning:
 - ✅ "Local-first .NET runtime"
 - ✅ "Auditable AI workflows you embed"
 - ✅ "Trust log" and "certification gate"
-- ✅ "Receipts for AI actions" + "Bouncer for new skills"
+- ✅ "Receipts for AI actions" + "Bouncer for new bricks"
 - ✅ "Community free forever"
 - ✅ "Cloud PAYG on waitlist" (not live)
 
@@ -117,7 +117,7 @@ Technical / developer-facing positioning:
 
 For blog posts, social media, sales materials, and partner communications:
 1. Lead with **local-first** and **auditable**
-2. Use **everyday frame** ("receipts for AI actions" + "bouncer for new skills")
+2. Use **everyday frame** ("receipts for AI actions" + "bouncer for new bricks")
 3. Specify **trust log + cert-gate** as precision
 4. Clarify **Cloud = waitlist only** (not GA)
 5. Hold **autonomy claims** until dogfood scorecard + Strict E2E + hygiene PR

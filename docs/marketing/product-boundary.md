@@ -77,8 +77,8 @@ Fleet · Cloud · Forge · Workstation · verticals (Release Manager, etc.)
 | Offer | Honest scope |
 |-------|----------------|
 | Community $0 | Single-node open-core: govern behavior with gate + receipts + packages |
-| Design partner ~$4k | **One behavior** → through the gate → package → receipts (~90 days); Discord + Discussions; thin §2a |
-| Builder / Team / Ent | Indicative self-host commercial (order form) |
+| Design partner $4k | **One behavior** → through the gate → package → receipts (~90 days); Discord + Discussions; thin §2a |
+| Pro / Team / Ent | $1,500 / $12,000 / from $40,000 per org per year, self-host (decisions log D2): Pro by card, Team by order form, Enterprise through a partner |
 | Fleet / Cloud | When shipped — org coordination / hosted; never weaken the gate |
 
 Open single-node can be powerful. Companies pay to coordinate many nodes/humans/org policy — not because "the agent got smarter."
@@ -112,7 +112,7 @@ Particular product/org UX, billing, K8s, IDE? → product ring.
 
 **Careful:** deterministic only when the gate proves it · certified = artifact + gate · cross-model = behavioral equivalence (not identical outputs).
 
-**CTA:** Design Partner ~$4k/90d — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
+**CTA:** Design Partner $4k/90d — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
 
 ## One-liner (locked)
 

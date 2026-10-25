@@ -19,7 +19,7 @@ Clean, modern developer-tool aesthetic (Linear/Vercel/Notion-adjacent):
 
 1. Hero — "The .NET runtime you build AI products on"
 2. Bento Grid — Auditable workflows, certification gate, your infrastructure, build integration, terminal preview
-3. Pricing Table — Community (free), Cloud (coming soon), Builder (~$8k/yr), Team (~$25k/yr), Enterprise (from $75k/yr)
+3. Pricing Table — Community (free), Pro ($1,500/yr), Team ($12,000/yr), Enterprise (from $40,000/yr, partner-led); Design Partner and Cloud waitlist in the footnote
 4. CTA — GitHub start + email contact
 
 ## Messaging Alignment

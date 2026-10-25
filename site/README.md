@@ -45,7 +45,7 @@ The site follows the official brand guidelines from `assets/brand/BRAND.md`:
    - Your infrastructure
    - Build on Ashlar (NuGet/API integration)
    - Terminal preview (using official SVG)
-3. **Pricing Table** — Transparent comparison: Community (free), Cloud (coming soon), Builder (~$8k/yr), Team (~$25k/yr), Enterprise (from $75k/yr)
+3. **Pricing Table** — Transparent comparison: Community (free), Pro ($1,500/yr), Team ($12,000/yr), Enterprise (from $40,000/yr, partner-led); Design Partner and Cloud waitlist in the footnote
 4. **CTA** — GitHub and email contact
 5. **Footer** — Resources, community, legal links
 
