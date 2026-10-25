@@ -23,6 +23,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   cost 87–94% less on Sonnet 5.5 and 86–97% less on Haiku 5.5, same verdicts; a local qwen3:4b answered every
   brick-arm question correctly on CPU. Raw runs in `tools/token-benchmark/results/`.
 
+### Added — `github.blockers` dogfood on Ashlar's own pull requests and releases
+
+- `docs/benchmarks/blockers-dogfood.md`: the MCP brick host, built from master, answered for 11 Ashlar pull requests
+  and 3 release tags; checked against GitHub's own view: 10 exact, 4 `unknown`, 0 wrong. All 4 unknowns are
+  mergeability GitHub had not computed yet, hiding 3 merge conflicts and 1 branch behind master; a bounded re-read
+  is the recorded follow-up. Haiku 5.5 and Sonnet 5.5 summaries of every answer, checked for verdict and links.
+  `capture_brick.py` takes `--targets`; new `dogfood_summarize.py`.
+
 ## [0.4.0] - 2026-10-25
 
 ### Changed — release-commit pin is 0.4.0

@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "27276d62502f48ddbef2aab648ee611a",
+ "summary": "PR #853: no blocker found, but it is UNKNOWN whether anything blocks it; 1 unknown(s).",
+ "outputs": {
+  "verdict": "unknown",
+  "blockers": [],
+  "unknowns": [
+   {
+    "what": "Mergeability",
+    "why": "GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 53 check run(s) and 0 commit status(es) on the head commit 8b9fda6a16e3; none is failing or pending.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/853",
+   "https://github.com/IanFrelinger/Ashlar/commit/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6"
+  ],
+  "answer": "**What is blocking PR #853?** PR #853: no blocker found, but it is UNKNOWN whether anything blocks it; 1 unknown(s).\n\nUnknowns:\n- Mergeability: GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view.\n\nNotes:\n- Read 53 check run(s) and 0 commit status(es) on the head commit 8b9fda6a16e3; none is failing or pending. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/853\n"
+ }
+}

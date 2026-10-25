@@ -1,0 +1,158 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "e90850c2ca5540fc969ba95ccbeca4c7",
+ "summary": "PR #869 is BLOCKED by 2 blocker(s); 1 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check `build-core` is still in progress.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152522/job/121301042186"
+   },
+   {
+    "reason": "The required check `Readiness summary` has not reported on 27645f7e3c6d.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/27645f7e3c6dd0d4898f214fe6d2f66e3dc98b25"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Mergeability",
+    "why": "GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view."
+   }
+  ],
+  "notes": [
+   {
+    "text": "The check `Debian-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301146082"
+   },
+   {
+    "text": "The check `Ubuntu-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301146012"
+   },
+   {
+    "text": "The check `Alpine-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145978"
+   },
+   {
+    "text": "The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145950"
+   },
+   {
+    "text": "The check `Linux \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145925"
+   },
+   {
+    "text": "The check `macOS \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145920"
+   },
+   {
+    "text": "The check `Docker CLI image \u2014 build \u00b7 smoke \u00b7 discover` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145915"
+   },
+   {
+    "text": "The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152632/job/121301042498"
+   },
+   {
+    "text": "The check `testing-strategy` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152612/job/121301042444"
+   },
+   {
+    "text": "The check `uat (tiers 0-2, 4-10)` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152524/job/121301042438"
+   },
+   {
+    "text": "The check `MCP/A2A adapter suites` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152548/job/121301042277"
+   },
+   {
+    "text": "The check `NuGet local pack \u2192 StableSdkHostSample` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031370"
+   },
+   {
+    "text": "The check `Ashlar.Client \u2194 in-process Ashlar.API (net10)` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031240"
+   },
+   {
+    "text": "The check `Ashlar.Bricks.GitHub packed consumer` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031225"
+   },
+   {
+    "text": "The check `Pack script vs Ashlar.Hosting graph` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031176"
+   },
+   {
+    "text": "The check `Standalone brick authoring scaffold` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031170"
+   },
+   {
+    "text": "The check `External product shape (brick + host + client)` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031135"
+   },
+   {
+    "text": "The check `API image + curl /health + /api/status` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031129"
+   },
+   {
+    "text": "The check `Flag combo \u2014 report-output-json` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301031014"
+   },
+   {
+    "text": "The check `Flag combo \u2014 ollama-model-override` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301030994"
+   },
+   {
+    "text": "The check `Scaffold + Optimize \u2014 workflow lab spec lifecycle` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301030950"
+   },
+   {
+    "text": "The check `CLI image build + smoke` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301030928"
+   },
+   {
+    "text": "The check `gate-v1 (windows-latest)` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148920/job/121301030815"
+   },
+   {
+    "text": "The check `quickstart-native-linux` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148926/job/121301030763"
+   },
+   {
+    "text": "The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148960/job/121301030441"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/869",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152522/job/121301042186",
+   "https://github.com/IanFrelinger/Ashlar/commit/27645f7e3c6dd0d4898f214fe6d2f66e3dc98b25",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301146082",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301146012",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145978",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145950",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145925",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145920",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145915",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152632/job/121301042498",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152612/job/121301042444",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152524/job/121301042438",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237152548/job/121301042277",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031370",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031240",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031225",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031176",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031170",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031135",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031129",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301031014",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301030994",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301030950",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301030928",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148920/job/121301030815",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148926/job/121301030763",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40237148960/job/121301030441"
+  ],
+  "answer": "**What is blocking PR #869?** PR #869 is BLOCKED by 2 blocker(s); 1 unknown(s).\n\nBlockers:\n- The check `build-core` is still in progress. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152522/job/121301042186))\n- The required check `Readiness summary` has not reported on 27645f7e3c6d. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/27645f7e3c6dd0d4898f214fe6d2f66e3dc98b25))\n\nUnknowns:\n- Mergeability: GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view.\n\nNotes:\n- The check `Debian-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301146082))\n- The check `Ubuntu-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301146012))\n- The check `Alpine-Container (container) \u2014 setup \u00b7 discover \u00b7 dry-run` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145978))\n- The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145950))\n- The check `Linux \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145925))\n- The check `macOS \u2014 setup \u00b7 discover \u00b7 dry-run` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145920))\n- The check `Docker CLI image \u2014 build \u00b7 smoke \u00b7 discover` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152571/job/121301145915))\n- The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152632/job/121301042498))\n- The check `testing-strategy` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152612/job/121301042444))\n- The check `uat (tiers 0-2, 4-10)` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152524/job/121301042438))\n- The check `MCP/A2A adapter suites` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237152548/job/121301042277))\n- The check `NuGet local pack \u2192 StableSdkHostSample` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031370))\n- The check `Ashlar.Client \u2194 in-process Ashlar.API (net10)` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031240))\n- The check `Ashlar.Bricks.GitHub packed consumer` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031225))\n- The check `Pack script vs Ashlar.Hosting graph` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031176))\n- The check `Standalone brick authoring scaffold` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031170))\n- The check `External product shape (brick + host + client)` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031135))\n- The check `API image + curl /health + /api/status` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301031129))\n- The check `Flag combo \u2014 report-output-json` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301031014))\n- The check `Flag combo \u2014 ollama-model-override` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301030994))\n- The check `Scaffold + Optimize \u2014 workflow lab spec lifecycle` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148973/job/121301030950))\n- The check `CLI image build + smoke` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148894/job/121301030928))\n- The check `gate-v1 (windows-latest)` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148920/job/121301030815))\n- The check `quickstart-native-linux` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148926/job/121301030763))\n- The check `kernel-coverage` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40237148960/job/121301030441))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/869\n"
+ }
+}

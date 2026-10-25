@@ -1,0 +1,44 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "827284564a184d62b876ee519d9f9dd1",
+ "summary": "PR #875 is BLOCKED by 4 blocker(s); 1 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The required check `Readiness summary` has not reported on 2a98c71766a0.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709"
+   },
+   {
+    "reason": "The required check `build-core` has not reported on 2a98c71766a0.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709"
+   },
+   {
+    "reason": "The required check `cert-gate` has not reported on 2a98c71766a0.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709"
+   },
+   {
+    "reason": "The required check `shell-lint` has not reported on 2a98c71766a0.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Mergeability",
+    "why": "GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 4 check run(s) and 0 commit status(es) on the head commit 2a98c71766a0; none is failing or pending.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/875",
+   "https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709"
+  ],
+  "answer": "**What is blocking PR #875?** PR #875 is BLOCKED by 4 blocker(s); 1 unknown(s).\n\nBlockers:\n- The required check `Readiness summary` has not reported on 2a98c71766a0. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709))\n- The required check `build-core` has not reported on 2a98c71766a0. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709))\n- The required check `cert-gate` has not reported on 2a98c71766a0. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709))\n- The required check `shell-lint` has not reported on 2a98c71766a0. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709))\n\nUnknowns:\n- Mergeability: GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view.\n\nNotes:\n- Read 4 check run(s) and 0 commit status(es) on the head commit 2a98c71766a0; none is failing or pending. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/2a98c71766a0c4cdbbddb707c10b1edae32c7709))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/875\n"
+ }
+}

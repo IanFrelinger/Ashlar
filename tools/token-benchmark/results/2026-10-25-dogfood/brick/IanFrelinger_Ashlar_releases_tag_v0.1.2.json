@@ -1,0 +1,47 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "e3970375a684487ea1a27d7f050f11bc",
+ "summary": "Release v0.1.2 is BLOCKED by 6 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check `Readiness summary` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694826/job/101011341405"
+   },
+   {
+    "reason": "The check `NuGet packages / pack-and-publish` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/33867752688/job/101006550765"
+   },
+   {
+    "reason": "The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694826/job/101006194923"
+   },
+   {
+    "reason": "The check `perf-gate` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694863/job/101006194573"
+   },
+   {
+    "reason": "The check `uat cross-platform (tiers 8, 9)` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694772/job/101006194261"
+   },
+   {
+    "reason": "The check `uat (tiers 0-2, 4-10)` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694772/job/101006194059"
+   }
+  ],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/releases/tag/v0.1.2",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694826/job/101011341405",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/33867752688/job/101006550765",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694826/job/101006194923",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694863/job/101006194573",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694772/job/101006194261",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/33867694772/job/101006194059"
+  ],
+  "answer": "**What is blocking release v0.1.2?** Release v0.1.2 is BLOCKED by 6 blocker(s).\n\nBlockers:\n- The check `Readiness summary` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/33867694826/job/101011341405))\n- The check `NuGet packages / pack-and-publish` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/33867752688/job/101006550765))\n- The check `Windows \u2014 setup \u00b7 discover \u00b7 dry-run` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/33867694826/job/101006194923))\n- The check `perf-gate` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/33867694863/job/101006194573))\n- The check `uat cross-platform (tiers 8, 9)` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/33867694772/job/101006194261))\n- The check `uat (tiers 0-2, 4-10)` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/33867694772/job/101006194059))\n\nRead from https://github.com/IanFrelinger/Ashlar/releases/tag/v0.1.2\n"
+ }
+}
