@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Ashlar is pre-1.0; the first tagged release is `v0.1.0` (2026-08-30). Security fixes go to `master` and to the current release line. This release commit sets that line to `0.3.x`. Until `v0.3.0` is tagged, `0.2.x` is still the newest published line, and nuget.org and GHCR still serve `0.2.0`.
+Ashlar is pre-1.0; the first tagged release is `v0.1.0` (2026-08-30). Security fixes go to `master` and to the current release line. This release commit sets that line to `0.4.x`. Until `v0.4.0` is tagged, `0.3.x` is still the newest published line, and nuget.org and GHCR still serve `0.3.0`.
 
 ## Reporting a vulnerability
 
