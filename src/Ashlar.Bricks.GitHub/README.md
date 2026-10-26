@@ -107,6 +107,8 @@ exists for it, and CI on the tagged commit.
   failing or pending check is listed as a blocker.
 - A `blocked` state nothing else explains (for example a rule type the brick does not read) is reported as a blocker
   naming that gap.
+- GitHub computes mergeability in a background job and answers `null` until it finishes. The brick re-reads an
+  open pull request up to twice, 2 seconds apart. If mergeability is still uncomputed after that, it is an unknown.
 - Draft releases are found only among the 30 newest releases, and only with a token that has push access.
 
 ## Network access

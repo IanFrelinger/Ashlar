@@ -423,6 +423,68 @@ public sealed class GitHubBlockersBrickTests
     }
 
     [Fact]
+    public async Task Mergeability_github_had_not_computed_is_read_again_and_a_conflict_found_on_the_reread_blocks()
+    {
+        var waits = new List<TimeSpan>();
+        var github = WithGreenOpenPrRoutes(new StubGitHub()
+            .Sequence("/repos/o/r/pulls/7",
+                (HttpStatusCode.OK, PullJson(mergeable: "null", state: "unknown")),
+                (HttpStatusCode.OK, PullJson(mergeable: "false", state: "dirty"))));
+
+        var output = await Brick(github, waits).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+
+        output.Get<string>("verdict").Should().Be("blocked");
+        Reasons(output, "blockers", "reason").Should().ContainSingle(r => r.Contains("merge conflicts"));
+        Reasons(output, "unknowns", "what").Should().NotContain("Mergeability");
+        PullReads(github).Should().Be(2);
+        waits.Should().Equal(TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public async Task Mergeability_still_not_computed_after_two_rereads_stays_unknown()
+    {
+        var waits = new List<TimeSpan>();
+        var github = WithGreenOpenPrRoutes(new StubGitHub()
+            .Sequence("/repos/o/r/pulls/7", (HttpStatusCode.OK, PullJson(mergeable: "null", state: "unknown"))));
+
+        var output = await Brick(github, waits).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+
+        output.Get<string>("verdict").Should().Be("unknown");
+        Reasons(output, "unknowns", "what").Should().Contain("Mergeability");
+        PullReads(github).Should().Be(3);
+        waits.Should().Equal(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public async Task Computed_mergeability_is_read_once()
+    {
+        var waits = new List<TimeSpan>();
+        var github = WithGreenOpenPrRoutes(new StubGitHub()
+            .Json("/repos/o/r/pulls/7", PullJson(mergeable: "true", state: "clean")));
+
+        var output = await Brick(github, waits).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+
+        output.Get<string>("verdict").Should().Be("ready");
+        PullReads(github).Should().Be(1);
+        waits.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_failed_reread_keeps_the_first_answer_and_adds_no_second_unknown()
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub()
+            .Sequence("/repos/o/r/pulls/7",
+                (HttpStatusCode.OK, PullJson(mergeable: "null", state: "unknown")),
+                (HttpStatusCode.InternalServerError, """{"message":"Server Error"}""")));
+
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+
+        output.Get<string>("verdict").Should().Be("unknown");
+        Reasons(output, "unknowns", "what").Should().Equal("Mergeability");
+        PullReads(github).Should().Be(3);
+    }
+
+    [Fact]
     public async Task A_pull_request_that_cannot_be_read_is_unknown_with_githubs_reason()
     {
         var github = new StubGitHub();
@@ -504,8 +566,22 @@ public sealed class GitHubBlockersBrickTests
 
     // ── helpers ──────────────────────────────────────────────────────────────────────────────────────────
 
-    private static GitHubBlockersBrick Brick(StubGitHub github) =>
-        new(NullLogger<GitHubBlockersBrick>.Instance, token => GitHubClientFactory.Create(token, () => github, new EgressGuard("full", "report")));
+    private static GitHubBlockersBrick Brick(StubGitHub github, List<TimeSpan>? waits = null) =>
+        new(NullLogger<GitHubBlockersBrick>.Instance, token => GitHubClientFactory.Create(token, () => github, new EgressGuard("full", "report")),
+            d => { waits?.Add(d); return Task.CompletedTask; });
+
+    /// <summary>Everything an open pull request needs besides the pull request itself: no reviews, green checks, no protection.</summary>
+    private static StubGitHub WithGreenOpenPrRoutes(StubGitHub github) => github
+        .Json("/repos/o/r/branches/master/protection/required_status_checks", """{"message":"Branch not protected"}""", HttpStatusCode.NotFound)
+        .Json("/repos/o/r/branches/master/protection/required_pull_request_reviews", """{"message":"Branch not protected"}""", HttpStatusCode.NotFound)
+        .Json("/repos/o/r/pulls/7/reviews", "[]")
+        .Json($"/repos/o/r/commits/{Sha}/check-runs", """
+            {"total_count":1,"check_runs":[
+              {"id":1,"name":"build","status":"completed","conclusion":"success","html_url":"https://github.com/o/r/actions/runs/1/job/1"}]}
+            """)
+        .Json($"/repos/o/r/commits/{Sha}/status", """{"state":"success","total_count":0,"statuses":[]}""");
+
+    private static int PullReads(StubGitHub github) => github.Requests.Count(u => u.AbsolutePath == "/repos/o/r/pulls/7");
 
     private static BrickInput Input(string url)
     {
@@ -624,6 +700,7 @@ public sealed class GitHubBlockersBrickTests
     private sealed class StubGitHub : HttpMessageHandler
     {
         private readonly Dictionary<string, (HttpStatusCode Status, string Body, (string, string)[] Headers)> _routes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Queue<(HttpStatusCode Status, string Body)>> _sequences = new(StringComparer.Ordinal);
         private readonly ConcurrentQueue<Uri> _requests = new();
 
         public IReadOnlyList<Uri> Requests => _requests.ToArray();
@@ -634,13 +711,22 @@ public sealed class GitHubBlockersBrickTests
             return this;
         }
 
+        /// <summary>Answers each request to <paramref name="path"/> with the next response; the last one repeats.</summary>
+        public StubGitHub Sequence(string path, params (HttpStatusCode Status, string Body)[] responses)
+        {
+            _sequences[path] = new Queue<(HttpStatusCode, string)>(responses);
+            return this;
+        }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             _requests.Enqueue(request.RequestUri!);
             var path = request.RequestUri!.AbsolutePath.Replace("/git/refs/", "/git/ref/", StringComparison.Ordinal);
-            var (status, body, headers) = _routes.TryGetValue(path, out var route)
-                ? route
-                : (HttpStatusCode.NotFound, """{"message":"Not Found"}""", Array.Empty<(string, string)>());
+            var (status, body, headers) = _sequences.TryGetValue(path, out var sequence)
+                ? NextOf(sequence)
+                : _routes.TryGetValue(path, out var route)
+                    ? route
+                    : (HttpStatusCode.NotFound, """{"message":"Not Found"}""", Array.Empty<(string, string)>());
             var response = new HttpResponseMessage(status)
             {
                 RequestMessage = request,
@@ -649,6 +735,15 @@ public sealed class GitHubBlockersBrickTests
             foreach (var (name, value) in headers)
                 response.Headers.TryAddWithoutValidation(name, value);
             return Task.FromResult(response);
+        }
+
+        private static (HttpStatusCode, string, (string, string)[]) NextOf(Queue<(HttpStatusCode Status, string Body)> sequence)
+        {
+            lock (sequence)
+            {
+                var (status, body) = sequence.Count > 1 ? sequence.Dequeue() : sequence.Peek();
+                return (status, body, Array.Empty<(string, string)>());
+            }
         }
     }
 }

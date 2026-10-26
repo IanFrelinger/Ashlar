@@ -174,7 +174,8 @@ All 28 are in [`summaries.jsonl`](../../tools/token-benchmark/results/2026-10-25
    (`src/Ashlar.Bricks.GitHub/GitHub/BlockerAnalysis.cs`); it reads the pull request once. GitHub's documented
    pattern is to read again after a short wait. A bounded re-read (for example two more reads, two seconds apart)
    when `mergeable` is `null` would likely have turned all 4 into the right blocker. That is a product change for
-   after the 0.4.0 freeze, not something this run changed.
+   after the 0.4.0 freeze, not something this run changed. `github.blockers` 1.2.0 (unreleased; see `CHANGELOG.md`)
+   adds exactly that re-read. This run's answers were recorded with 1.1.0 and are not re-run here.
 2. **"Blocked" on a published release means the evidence on the tagged commit is red, not that nothing
    shipped.** v0.1.2 is on nuget.org (`Ashlar.CLI` 0.1.2 published 11:29 UTC on 2026-09-04), yet the release
    workflow's `pack-and-publish` job then failed at 11:32 and its "Draft GitHub Release" step was skipped. The

@@ -18,20 +18,23 @@ public sealed class GitHubBlockersBrick : Ashlar.Core.Domain.Bricks.Brick
 {
     private readonly ILogger<GitHubBlockersBrick> _logger;
     private readonly Func<string?, Octokit.IGitHubClient> _clientFor;
+    private readonly Func<TimeSpan, Task>? _delay;
 
     public GitHubBlockersBrick(ILogger<GitHubBlockersBrick> logger)
         : this(logger, token => GitHubClientFactory.Create(token))
     {
     }
 
-    internal GitHubBlockersBrick(ILogger<GitHubBlockersBrick> logger, Func<string?, Octokit.IGitHubClient> clientFor)
+    internal GitHubBlockersBrick(
+        ILogger<GitHubBlockersBrick> logger, Func<string?, Octokit.IGitHubClient> clientFor, Func<TimeSpan, Task>? delay = null)
     {
         _logger = logger;
         _clientFor = clientFor;
+        _delay = delay;
 
         Id = "github.blockers";
         Name = "GitHub blockers";
-        Version = "1.1.0";
+        Version = "1.2.0";
         Icon = "🚧";
         Category = BrickCategory.Analysis;
         Description = "Answers what is blocking a GitHub pull request or release, with an evidence link per blocker and the facts that could not be read.";
@@ -66,7 +69,7 @@ public sealed class GitHubBlockersBrick : Ashlar.Core.Domain.Bricks.Brick
             throw new ArgumentException(error, nameof(input));
 
         input.TryGet<string>("githubToken", out var token);
-        var snapshot = await new GitHubBlockerReader(_clientFor(token)).ReadAsync(target!).ConfigureAwait(false);
+        var snapshot = await new GitHubBlockerReader(_clientFor(token), _delay).ReadAsync(target!).ConfigureAwait(false);
         var answer = BlockerAnalysis.Analyze(snapshot);
         _logger.LogInformation("github.blockers {Target}: {Verdict}, {Blockers} blocker(s), {Unknowns} unknown(s)",
             target!.WebUrl, answer.Verdict, answer.Blockers.Count, answer.Unknowns.Count);
