@@ -1,0 +1,1 @@
+{"request": {"arguments": {"method": "get_review_comments", "owner": "dotnet", "pullNumber": 21307, "repo": "aspire"}, "name": "pull_request_read"}, "result": {"content": [{"type": "text", "text": "{\"review_threads\":[],\"totalCount\":0,\"pageInfo\":{\"hasNextPage\":false,\"hasPreviousPage\":false}}"}]}, "recorded_at": "2026-10-25T16:30:39.078767+00:00"}

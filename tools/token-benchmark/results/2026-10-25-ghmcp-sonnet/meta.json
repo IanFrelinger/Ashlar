@@ -1,0 +1,16 @@
+{
+ "backend": "anthropic",
+ "model": "claude-sonnet-5-5",
+ "price_in": 2.0,
+ "price_out": 10.0,
+ "write_mult": 1.25,
+ "read_mult": 0.05,
+ "long_threshold": 0,
+ "long_price_in": 0.0,
+ "long_price_out": 0.0,
+ "num_ctx": 32768,
+ "spent": 0.7575906999999997,
+ "live_fetches": 30,
+ "stopped": null,
+ "finished_at": "2026-10-25T16:28:44.109461+00:00"
+}

@@ -1,0 +1,1 @@
+{"request": {"arguments": {"method": "get_status", "owner": "modelcontextprotocol", "pullNumber": 1945, "repo": "csharp-sdk"}, "name": "pull_request_read"}, "result": {"content": [{"type": "text", "text": "{\"state\":\"pending\",\"sha\":\"ccfd0924a06f070fefa7beb7ae671c9fb3c0e372\",\"total_count\":0,\"statuses\":[]}"}]}, "recorded_at": "2026-10-25T16:26:37.149485+00:00"}

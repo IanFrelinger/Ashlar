@@ -1,0 +1,1 @@
+{"request": {"arguments": {"method": "list_workflow_jobs", "owner": "dotnet", "perPage": 100, "repo": "aspire", "resource_id": "40064819860", "workflow_jobs_filter": {"filter": "latest"}}, "name": "actions_list"}, "result": {"content": [{"type": "text", "text": "{\"jobs\":{\"total_count\":0,\"jobs\":[]}}"}]}, "recorded_at": "2026-10-25T16:26:36.295304+00:00"}
