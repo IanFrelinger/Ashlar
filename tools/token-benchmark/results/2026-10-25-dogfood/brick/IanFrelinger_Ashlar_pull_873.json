@@ -1,0 +1,38 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "74135ff2d0f94d85ab1ac6c71c156a1c",
+ "summary": "PR #873 is BLOCKED by 1 blocker(s); 1 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check `shell-lint` concluded failure.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40215216321/job/121234761890"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Mergeability",
+    "why": "GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view."
+   }
+  ],
+  "notes": [
+   {
+    "text": "The check `verify` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40215216284/job/121234762206"
+   },
+   {
+    "text": "The check `MCP/A2A adapter suites` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/IanFrelinger/Ashlar/actions/runs/40215178199/job/121234653619"
+   }
+  ],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/873",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40215216321/job/121234761890",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40215216284/job/121234762206",
+   "https://github.com/IanFrelinger/Ashlar/actions/runs/40215178199/job/121234653619"
+  ],
+  "answer": "**What is blocking PR #873?** PR #873 is BLOCKED by 1 blocker(s); 1 unknown(s).\n\nBlockers:\n- The check `shell-lint` concluded failure. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40215216321/job/121234761890))\n\nUnknowns:\n- Mergeability: GitHub had not computed it when asked (it does so in a background job, which can take a while); ask again later, and if it stays unknown, the pull request page shows GitHub's own view.\n\nNotes:\n- The check `verify` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40215216284/job/121234762206))\n- The check `MCP/A2A adapter suites` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/IanFrelinger/Ashlar/actions/runs/40215178199/job/121234653619))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/873\n"
+ }
+}

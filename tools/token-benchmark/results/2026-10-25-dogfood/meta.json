@@ -1,0 +1,10 @@
+{
+ "models": [
+  "claude-haiku-5-5:0.10:0.50",
+  "claude-sonnet-5-5:2:10"
+ ],
+ "spent": 0.0832188,
+ "stopped": null,
+ "payloads": 14,
+ "finished_at": "2026-10-25T21:58:16.126856+00:00"
+}
