@@ -44,6 +44,14 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   is the recorded follow-up. Haiku 5.5 and Sonnet 5.5 summaries of every answer, checked for verdict and links.
   `capture_brick.py` takes `--targets`; new `dogfood_summarize.py`.
 
+### Fixed — `github.blockers` re-reads mergeability GitHub had not computed (1.2.0)
+
+- When GitHub answers `mergeable: null` for an open pull request, the brick reads the pull request up to two
+  more times, 2 seconds apart, before reporting mergeability as unknown. In the 2026-10-25 dogfood
+  (`docs/benchmarks/blockers-dogfood.md`) all 4 unknown answers were this case, and they hid 3 merge
+  conflicts and 1 branch behind its base. A re-read that fails keeps the first read's answer. Merged and closed
+  pull requests are not re-read. Mergeability that is still uncomputed after the re-reads stays an unknown.
+
 ## [0.4.0] - 2026-10-25
 
 ### Changed — release-commit pin is 0.4.0

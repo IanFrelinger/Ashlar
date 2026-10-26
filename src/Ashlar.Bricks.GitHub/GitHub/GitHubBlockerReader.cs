@@ -9,9 +9,20 @@ namespace Ashlar.Bricks.GitHub;
 /// </summary>
 internal sealed class GitHubBlockerReader
 {
-    private readonly IGitHubClient _client;
+    /// <summary>
+    /// Waits before each re-read of an open pull request whose mergeability GitHub had not computed. GitHub computes
+    /// it in a background job and answers <c>null</c> until that finishes; every push to the base branch restarts it.
+    /// </summary>
+    internal static readonly IReadOnlyList<TimeSpan> MergeableRereadDelays = [TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2)];
 
-    public GitHubBlockerReader(IGitHubClient client) => _client = client;
+    private readonly IGitHubClient _client;
+    private readonly Func<TimeSpan, Task> _delay;
+
+    public GitHubBlockerReader(IGitHubClient client, Func<TimeSpan, Task>? delay = null)
+    {
+        _client = client;
+        _delay = delay ?? (d => Task.Delay(d));
+    }
 
     public async Task<BlockerSnapshot> ReadAsync(GitHubTarget target)
     {
@@ -27,6 +38,14 @@ internal sealed class GitHubBlockerReader
             notFound: "The pull request was not found, or is not visible to this token.").ConfigureAwait(false);
         if (pr is null)
             return null;
+
+        foreach (var wait in MergeableRereadDelays)
+        {
+            if (pr.Mergeable is not null || pr.Merged || pr.State.Value == ItemState.Closed)
+                break;
+            await _delay(wait).ConfigureAwait(false);
+            pr = await RereadAsync(t).ConfigureAwait(false) ?? pr;
+        }
 
         var closed = pr.State.Value == ItemState.Closed;
         if (pr.Merged || closed)
@@ -51,6 +70,19 @@ internal sealed class GitHubBlockerReader
             reviews?.Select(r => new ReviewFact(r.User?.Login ?? "(unknown user)", r.State.StringValue, r.HtmlUrl, r.SubmittedAt)).ToList(),
             ci,
             protection);
+    }
+
+    /// <summary>A failed re-read keeps the first read's answer, whose unknown mergeability is already reported.</summary>
+    private async Task<PullRequest?> RereadAsync(GitHubTarget t)
+    {
+        try
+        {
+            return await _client.PullRequest.Get(t.Owner, t.Repo, t.Number).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (IsReadFailure(ex))
+        {
+            return null;
+        }
     }
 
     private async Task<ReleaseFacts?> ReadReleaseAsync(GitHubTarget t, List<Unknown> unknowns)
