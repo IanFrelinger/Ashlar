@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "44313b0508de461788c15397d0f9763c",
+ "summary": "PR #1952 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1952"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check markdown-link-check concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40142907403/job/121018186668"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1952",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40142907403/job/121018186668"
+  ],
+  "answer": "**What is blocking PR #1952?** PR #1952 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/pull/1952))\n\nNotes:\n- The check markdown-link-check concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40142907403/job/121018186668))\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1952\n"
+ }
+}

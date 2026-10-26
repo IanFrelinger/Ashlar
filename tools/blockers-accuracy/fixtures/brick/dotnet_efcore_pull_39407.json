@@ -1,0 +1,46 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "84698745976149c7b145254d543c1c36",
+ "summary": "PR #39407 is BLOCKED by 4 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check Maestro auto-merge - All Checks Successful is still in progress.",
+    "evidence": "https://github.com/dotnet/efcore/runs/121215521585"
+   },
+   {
+    "reason": "The check efcore-ci (Build Windows) is still in progress.",
+    "evidence": "https://github.com/dotnet/efcore/runs/121214321187"
+   },
+   {
+    "reason": "The check efcore-ci (Build Helix) is still in progress.",
+    "evidence": "https://github.com/dotnet/efcore/runs/121214319258"
+   },
+   {
+    "reason": "The check efcore-ci is still queued.",
+    "evidence": "https://github.com/dotnet/efcore/runs/121214312161"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39407",
+   "https://github.com/dotnet/efcore/runs/121215521585",
+   "https://github.com/dotnet/efcore/runs/121214321187",
+   "https://github.com/dotnet/efcore/runs/121214319258",
+   "https://github.com/dotnet/efcore/runs/121214312161"
+  ],
+  "answer": "**What is blocking PR #39407?** PR #39407 is BLOCKED by 4 blocker(s); 2 unknown(s).\n\nBlockers:\n- The check Maestro auto-merge - All Checks Successful is still in progress. ([evidence](https://github.com/dotnet/efcore/runs/121215521585))\n- The check efcore-ci (Build Windows) is still in progress. ([evidence](https://github.com/dotnet/efcore/runs/121214321187))\n- The check efcore-ci (Build Helix) is still in progress. ([evidence](https://github.com/dotnet/efcore/runs/121214319258))\n- The check efcore-ci is still queued. ([evidence](https://github.com/dotnet/efcore/runs/121214312161))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nRead from https://github.com/dotnet/efcore/pull/39407\n"
+ }
+}

@@ -1,0 +1,37 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "94e9725736644c28bdd5af8885691ee1",
+ "summary": "PR #3681 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "maxisbey requested changes.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/pull/3681#pullrequestreview-5489652536"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 42 check run(s) and 0 commit status(es) on the head commit 0bc072e24a84; none is failing or pending.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/commit/0bc072e24a84a795e98eca6e38eed129d2880f3e"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3681",
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3681#pullrequestreview-5489652536",
+   "https://github.com/modelcontextprotocol/python-sdk/commit/0bc072e24a84a795e98eca6e38eed129d2880f3e"
+  ],
+  "answer": "**What is blocking PR #3681?** PR #3681 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- maxisbey requested changes. ([evidence](https://github.com/modelcontextprotocol/python-sdk/pull/3681#pullrequestreview-5489652536))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 42 check run(s) and 0 commit status(es) on the head commit 0bc072e24a84; none is failing or pending. ([evidence](https://github.com/modelcontextprotocol/python-sdk/commit/0bc072e24a84a795e98eca6e38eed129d2880f3e))\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3681\n"
+ }
+}

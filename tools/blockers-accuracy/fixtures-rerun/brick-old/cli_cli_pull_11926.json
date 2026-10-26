@@ -1,0 +1,16 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "caa9f0e3bdd64562a15386e565212145",
+ "summary": "PR #11926 is already merged.",
+ "outputs": {
+  "verdict": "merged",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/cli/cli/pull/11926"
+  ],
+  "answer": "**What is blocking PR #11926?** PR #11926 is already merged.\n\nRead from https://github.com/cli/cli/pull/11926\n"
+ }
+}

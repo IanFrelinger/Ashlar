@@ -1,0 +1,182 @@
+{
+ "selected_on": "2026-10-25",
+ "note": "selected_as is the PR's state when it was picked; ground truth is the capture snapshot",
+ "prs": [
+  {
+   "url": "https://github.com/cli/cli/pull/14196",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39321",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14658",
+   "selected_as": "draft"
+  },
+  {
+   "url": "https://github.com/cli/cli/pull/12942",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39400",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3516",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/cli/cli/pull/13013",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39391",
+   "selected_as": "conflict"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14659",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14577",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14375",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14643",
+   "selected_as": "behind"
+  },
+  {
+   "url": "https://github.com/cli/cli/pull/13899",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3681",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/cli/cli/pull/13506",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/1721",
+   "selected_as": "changes-requested"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39399",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1952",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3540",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39369",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1929",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/38960",
+   "selected_as": "blocked-failing-ci"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39407",
+   "selected_as": "blocked-pending-ci"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14641",
+   "selected_as": "blocked-pending-ci"
+  },
+  {
+   "url": "https://github.com/cli/cli/pull/14816",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39405",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14661",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1934",
+   "selected_as": "blocked-review"
+  },
+  {
+   "url": "https://github.com/cli/cli/pull/14716",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1949",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3680",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1709",
+   "selected_as": "ready-clean"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1788",
+   "selected_as": "unstable"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3542",
+   "selected_as": "unstable"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3541",
+   "selected_as": "unstable"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1955",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1948",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/14649",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/microsoft/semantic-kernel/pull/13456",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39350",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/dotnet/efcore/pull/39404",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3758",
+   "selected_as": "merged"
+  },
+  {
+   "url": "https://github.com/modelcontextprotocol/python-sdk/pull/3754",
+   "selected_as": "closed"
+  },
+  {
+   "url": "https://github.com/cli/cli/pull/11926",
+   "selected_as": "merged"
+  }
+ ]
+}

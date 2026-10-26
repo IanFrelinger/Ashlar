@@ -1,0 +1,31 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "b52ac4777f7342d6a2fd5e013aa8a5f8",
+ "summary": "PR #1929 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check build (windows-latest, Release) concluded failure.",
+    "evidence": "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40038054148/job/120716802580"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1929",
+   "https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40038054148/job/120716802580"
+  ],
+  "answer": "**What is blocking PR #1929?** PR #1929 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The check build (windows-latest, Release) concluded failure. ([evidence](https://github.com/modelcontextprotocol/csharp-sdk/actions/runs/40038054148/job/120716802580))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1929\n"
+ }
+}

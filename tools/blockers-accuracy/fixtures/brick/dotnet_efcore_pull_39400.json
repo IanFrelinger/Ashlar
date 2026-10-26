@@ -1,0 +1,40 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "729ffc513aa748fba210b4eb5a982005",
+ "summary": "PR #39400 is BLOCKED by 3 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch has merge conflicts with main.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39400"
+   },
+   {
+    "reason": "The check efcore-ci (Build Helix macOS x64) concluded failure.",
+    "evidence": "https://github.com/dotnet/efcore/runs/120883718753"
+   },
+   {
+    "reason": "The check Analyze (javascript-typescript) concluded failure.",
+    "evidence": "https://github.com/dotnet/efcore/actions/runs/40095964228/job/120878178401"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39400",
+   "https://github.com/dotnet/efcore/runs/120883718753",
+   "https://github.com/dotnet/efcore/actions/runs/40095964228/job/120878178401"
+  ],
+  "answer": "**What is blocking PR #39400?** PR #39400 is BLOCKED by 3 blocker(s); 2 unknown(s).\n\nBlockers:\n- The branch has merge conflicts with main. ([evidence](https://github.com/dotnet/efcore/pull/39400))\n- The check efcore-ci (Build Helix macOS x64) concluded failure. ([evidence](https://github.com/dotnet/efcore/runs/120883718753))\n- The check Analyze (javascript-typescript) concluded failure. ([evidence](https://github.com/dotnet/efcore/actions/runs/40095964228/job/120878178401))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nRead from https://github.com/dotnet/efcore/pull/39400\n"
+ }
+}

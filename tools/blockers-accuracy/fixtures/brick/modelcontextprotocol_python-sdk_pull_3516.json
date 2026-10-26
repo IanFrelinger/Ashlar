@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "98a8827073204e3ca2b563969fb426c0",
+ "summary": "PR #3516 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch has merge conflicts with main.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/pull/3516"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 33 check run(s) and 0 commit status(es) on the head commit 8195fa0bda27; none is failing or pending.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/commit/8195fa0bda2761cfd5491bbf1c8eab94e4a8838a"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3516",
+   "https://github.com/modelcontextprotocol/python-sdk/commit/8195fa0bda2761cfd5491bbf1c8eab94e4a8838a"
+  ],
+  "answer": "**What is blocking PR #3516?** PR #3516 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The branch has merge conflicts with main. ([evidence](https://github.com/modelcontextprotocol/python-sdk/pull/3516))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 33 check run(s) and 0 commit status(es) on the head commit 8195fa0bda27; none is failing or pending. ([evidence](https://github.com/modelcontextprotocol/python-sdk/commit/8195fa0bda2761cfd5491bbf1c8eab94e4a8838a))\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3516\n"
+ }
+}

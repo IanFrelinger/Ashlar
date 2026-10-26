@@ -1,0 +1,108 @@
+{
+ "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1929",
+ "captured_from": "2026-10-25T17:55:55.223691+00:00",
+ "captured_to": "2026-10-25T17:56:08.592921+00:00",
+ "graphql": {
+  "url": "https://github.com/modelcontextprotocol/csharp-sdk/pull/1929",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "d633262bbc403d8f07234f5cecef619d788bb22d",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "d633262bbc403d8f07234f5cecef619d788bb22d",
+      "statusCheckRollup": {
+       "state": "FAILURE",
+       "contexts": {
+        "totalCount": 10,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "build (ubuntu-latest, Debug)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Analyze (actions)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (ubuntu-latest, Release)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Analyze (csharp)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (windows-latest, Debug)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (windows-latest, Release)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (macos-latest, Debug)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (macos-latest, Release)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "publish-coverage",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "CodeQL",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "d633262bbc403d8f07234f5cecef619d788bb22d"
+}

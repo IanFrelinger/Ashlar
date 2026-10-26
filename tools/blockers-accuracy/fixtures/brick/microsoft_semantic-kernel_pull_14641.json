@@ -1,0 +1,35 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "56fb9ee12bbe4df5934a507fd05c8e59",
+ "summary": "PR #14641 is BLOCKED by 2 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind main, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14641"
+   },
+   {
+    "reason": "The check license/cla is still queued.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/runs/120036643384"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [],
+  "evidence": [
+   "https://github.com/microsoft/semantic-kernel/pull/14641",
+   "https://github.com/microsoft/semantic-kernel/runs/120036643384"
+  ],
+  "answer": "**What is blocking PR #14641?** PR #14641 is BLOCKED by 2 blocker(s); 2 unknown(s).\n\nBlockers:\n- The branch is behind main, and the base branch requires branches to be up to date. ([evidence](https://github.com/microsoft/semantic-kernel/pull/14641))\n- The check license/cla is still queued. ([evidence](https://github.com/microsoft/semantic-kernel/runs/120036643384))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nRead from https://github.com/microsoft/semantic-kernel/pull/14641\n"
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "8f9a4b27bcca4447b6979e23a36ca43e",
+ "summary": "PR #1955 is already merged.",
+ "outputs": {
+  "verdict": "merged",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/csharp-sdk/pull/1955"
+  ],
+  "answer": "**What is blocking PR #1955?** PR #1955 is already merged.\n\nRead from https://github.com/modelcontextprotocol/csharp-sdk/pull/1955\n"
+ }
+}

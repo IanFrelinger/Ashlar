@@ -1,0 +1,16 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "dd68da4a915641e4b0dc8e48b06f6ed4",
+ "summary": "PR #39350 is already merged.",
+ "outputs": {
+  "verdict": "merged",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39350"
+  ],
+  "answer": "**What is blocking PR #39350?** PR #39350 is already merged.\n\nRead from https://github.com/dotnet/efcore/pull/39350\n"
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "42343eab664f4fb9bf7b0423ff0da1e6",
+ "summary": "PR #39399 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check Maestro auto-merge - Version.Details.props Validation Merge Policy concluded failure.",
+    "evidence": "https://github.com/dotnet/efcore/runs/121172061018"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39399",
+   "https://github.com/dotnet/efcore/runs/121172061018"
+  ],
+  "answer": "**What is blocking PR #39399?** PR #39399 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The check Maestro auto-merge - Version.Details.props Validation Merge Policy concluded failure. ([evidence](https://github.com/dotnet/efcore/runs/121172061018))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nRead from https://github.com/dotnet/efcore/pull/39399\n"
+ }
+}

@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "1d0f34ef36ee47e880c23851dad29216",
+ "summary": "PR #14658 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The pull request is a draft.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14658"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 3 check run(s) and 0 commit status(es) on the head commit 3cd8e4b76fe7; none is failing or pending.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/3cd8e4b76fe7efdf30b6cdb0fe0afa312b60168a"
+   }
+  ],
+  "evidence": [
+   "https://github.com/microsoft/semantic-kernel/pull/14658",
+   "https://github.com/microsoft/semantic-kernel/commit/3cd8e4b76fe7efdf30b6cdb0fe0afa312b60168a"
+  ],
+  "answer": "**What is blocking PR #14658?** PR #14658 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/microsoft/semantic-kernel/pull/14658))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 3 check run(s) and 0 commit status(es) on the head commit 3cd8e4b76fe7; none is failing or pending. ([evidence](https://github.com/microsoft/semantic-kernel/commit/3cd8e4b76fe7efdf30b6cdb0fe0afa312b60168a))\n\nRead from https://github.com/microsoft/semantic-kernel/pull/14658\n"
+ }
+}

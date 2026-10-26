@@ -1,0 +1,269 @@
+{
+ "url": "https://github.com/microsoft/semantic-kernel/pull/13456",
+ "captured_from": "2026-10-25T16:33:11.938616+00:00",
+ "captured_to": "2026-10-25T16:33:17.960190+00:00",
+ "graphql": {
+  "url": "https://github.com/microsoft/semantic-kernel/pull/13456",
+  "state": "CLOSED",
+  "merged": false,
+  "closed": true,
+  "isDraft": false,
+  "mergeable": "UNKNOWN",
+  "mergeStateStatus": "UNKNOWN",
+  "reviewDecision": null,
+  "baseRefName": "main",
+  "headRefOid": "73e6c78f7fa9643361e098edea5bfe8433b6357a",
+  "latestOpinionatedReviews": {
+   "nodes": [
+    {
+     "author": {
+      "login": "eavanvalkenburg"
+     },
+     "state": "APPROVED"
+    }
+   ]
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "73e6c78f7fa9643361e098edea5bfe8433b6357a",
+      "statusCheckRollup": {
+       "state": "FAILURE",
+       "contexts": {
+        "totalCount": 32,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "add_label",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "merge-gatekeeper",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "pre-commit (3.10)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "paths-filter",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "python-tests-coverage",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.10, ubuntu-latest, false, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Spell Check with Typos",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "paths-filter",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.10, ubuntu-latest, false, dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.10, windows-latest, false, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.10, windows-latest, false, dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.11, ubuntu-latest, false, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.11, ubuntu-latest, false, dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.11, windows-latest, false, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.11, windows-latest, false, dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.12, ubuntu-latest, false, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.12, ubuntu-latest, false, dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.12, windows-latest, false, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.12, windows-latest, false, dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.12, macos-latest, false, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.12, macos-latest, false, dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Unit Tests (3.13, ubuntu-latest, true, unit-all-except-dapr)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Pre-Merge Integration Tests - AI Services (incl samples using those)",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "dotnet-build-and-test",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Pre-Merge Integration Tests - Multi-Modality",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "dotnet-build-and-test-check",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Pre-Merge Integration Tests - Agents",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Pre-Merge Integration Tests - Ollama",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Pre-Merge Integration Tests - Memory (incl samples using those)",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Python Integration Tests - Scheduled run",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "python-integration-tests-check",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "73e6c78f7fa9643361e098edea5bfe8433b6357a"
+}

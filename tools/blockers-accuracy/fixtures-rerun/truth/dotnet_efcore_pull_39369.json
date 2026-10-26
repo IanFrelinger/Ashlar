@@ -1,0 +1,171 @@
+{
+ "url": "https://github.com/dotnet/efcore/pull/39369",
+ "captured_from": "2026-10-25T17:55:44.135500+00:00",
+ "captured_to": "2026-10-25T17:55:55.223324+00:00",
+ "graphql": {
+  "url": "https://github.com/dotnet/efcore/pull/39369",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "f010a2d71c58b8fa4c3570e06f8ed8b84a86b88b",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "f010a2d71c58b8fa4c3570e06f8ed8b84a86b88b",
+      "statusCheckRollup": {
+       "state": "FAILURE",
+       "contexts": {
+        "totalCount": 19,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "coverage",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "discover",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Main (windows-2025)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Main (ubuntu-24.04)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Main (macos-15)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "evaluate (${{ matrix.id }})",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Cosmos (windows-2025)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Cosmos (ubuntu-24.04)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "evaluation",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "SqlServer (2025)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "SqlServer (2022)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "SqlServer (2019)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Sqlite (windows-2025)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Sqlite (ubuntu-24.04)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Microsoft.Data.Sqlite (windows-2025)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Microsoft.Data.Sqlite (ubuntu-24.04)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "API Baselines",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Upload coverage",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "f010a2d71c58b8fa4c3570e06f8ed8b84a86b88b"
+}

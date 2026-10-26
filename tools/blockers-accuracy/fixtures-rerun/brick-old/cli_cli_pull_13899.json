@@ -1,0 +1,37 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "b23975fb43c249d6a756e9d3d24a6627",
+ "summary": "PR #13899 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "BagToad requested changes.",
+    "evidence": "https://github.com/cli/cli/pull/13899#pullrequestreview-4719388403"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 11 check run(s) and 0 commit status(es) on the head commit 7031269eafb5; none is failing or pending.",
+    "evidence": "https://github.com/cli/cli/commit/7031269eafb54c8b814883a4757db7eb9f2a6100"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/13899",
+   "https://github.com/cli/cli/pull/13899#pullrequestreview-4719388403",
+   "https://github.com/cli/cli/commit/7031269eafb54c8b814883a4757db7eb9f2a6100"
+  ],
+  "answer": "**What is blocking PR #13899?** PR #13899 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- BagToad requested changes. ([evidence](https://github.com/cli/cli/pull/13899#pullrequestreview-4719388403))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 11 check run(s) and 0 commit status(es) on the head commit 7031269eafb5; none is failing or pending. ([evidence](https://github.com/cli/cli/commit/7031269eafb54c8b814883a4757db7eb9f2a6100))\n\nRead from https://github.com/cli/cli/pull/13899\n"
+ }
+}

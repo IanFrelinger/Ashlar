@@ -1,0 +1,122 @@
+{
+ "url": "https://github.com/cli/cli/pull/11926",
+ "captured_from": "2026-10-25T17:59:44.323067+00:00",
+ "captured_to": "2026-10-25T17:59:50.789850+00:00",
+ "graphql": {
+  "url": "https://github.com/cli/cli/pull/11926",
+  "state": "MERGED",
+  "merged": true,
+  "closed": true,
+  "isDraft": false,
+  "mergeable": "UNKNOWN",
+  "mergeStateStatus": "UNKNOWN",
+  "reviewDecision": "APPROVED",
+  "baseRefName": "trunk",
+  "headRefOid": "1ad9093b42056fb3842edf8f1714b319b7d40686",
+  "latestOpinionatedReviews": {
+   "nodes": [
+    {
+     "author": {
+      "login": "BagToad"
+     },
+     "state": "APPROVED"
+    }
+   ]
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "1ad9093b42056fb3842edf8f1714b319b7d40686",
+      "statusCheckRollup": {
+       "state": "FAILURE",
+       "contexts": {
+        "totalCount": 11,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "CodeQL-Build (go)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "lint",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (ubuntu-latest)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "CodeQL-Build (actions)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (windows-latest)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "build (macos-latest)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "govulncheck",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "integration-tests (ubuntu-latest)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "integration-tests (windows-latest)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "integration-tests (macos-latest)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "CodeQL",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "1ad9093b42056fb3842edf8f1714b319b7d40686"
+}

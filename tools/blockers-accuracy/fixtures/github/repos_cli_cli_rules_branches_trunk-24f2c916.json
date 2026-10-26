@@ -1,0 +1,1 @@
+{"path": "/repos/cli/cli/rules/branches/trunk", "status": 200, "body": "[{\"type\":\"copilot_code_review\",\"parameters\":{\"review_on_push\":false,\"review_draft_pull_requests\":true},\"ruleset_source_type\":\"Repository\",\"ruleset_source\":\"cli/cli\",\"ruleset_id\":4898070}]", "recorded_at": "2026-10-25T16:33:46.282206+00:00"}

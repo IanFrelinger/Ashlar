@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "76884f89bb4b4a9093c3789b6cbc7aec",
+ "summary": "PR #39321 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The pull request is a draft.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39321"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 20 check run(s) and 0 commit status(es) on the head commit 71a3b57bc3a9; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/efcore/commit/71a3b57bc3a9af23a87f3c684d3648c62f3e954f"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39321",
+   "https://github.com/dotnet/efcore/commit/71a3b57bc3a9af23a87f3c684d3648c62f3e954f"
+  ],
+  "answer": "**What is blocking PR #39321?** PR #39321 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/dotnet/efcore/pull/39321))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 20 check run(s) and 0 commit status(es) on the head commit 71a3b57bc3a9; none is failing or pending. ([evidence](https://github.com/dotnet/efcore/commit/71a3b57bc3a9af23a87f3c684d3648c62f3e954f))\n\nRead from https://github.com/dotnet/efcore/pull/39321\n"
+ }
+}

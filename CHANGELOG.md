@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — "what is blocking this PR?" accuracy study
+
+- `docs/benchmarks/blockers-accuracy.md`: 44 real pull requests in 5 public repositories, graded against ground
+  truth from GitHub's API at a recorded snapshot. The `github.blockers` verdict was right on 44 of 44. The brick
+  found 21 of 111 true blockers (native Sonnet arm: 52), with 16 overcalls and no fabricated claims. Three brick
+  findings (F1–F3) come from reading required checks and approvals only from admin-only branch protection.
+  Harness, snapshot and raw runs in `tools/blockers-accuracy/`. A re-run on a second snapshot after the fix
+  (`github.blockers` 1.1.0, #874) found 109 of 109 blockers with no wrong claims; the old brick found 19.
+
 ### Added — token benchmark follow-up arms
 
 - `docs/benchmarks/token-benchmark.md`: against the official GitHub MCP server's tools the `github.blockers` brick

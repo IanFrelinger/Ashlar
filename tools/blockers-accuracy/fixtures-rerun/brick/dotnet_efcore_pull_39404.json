@@ -1,0 +1,21 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "a25ee282caef41b8a16e522426ca8914",
+ "summary": "PR #39404 is closed without being merged.",
+ "outputs": {
+  "verdict": "closed",
+  "blockers": [
+   {
+    "reason": "The pull request is closed without being merged.",
+    "evidence": "https://github.com/dotnet/efcore/pull/39404"
+   }
+  ],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39404"
+  ],
+  "answer": "**What is blocking PR #39404?** PR #39404 is closed without being merged.\n\nBlockers:\n- The pull request is closed without being merged. ([evidence](https://github.com/dotnet/efcore/pull/39404))\n\nRead from https://github.com/dotnet/efcore/pull/39404\n"
+ }
+}

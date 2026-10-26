@@ -1,0 +1,51 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "1702f1a6830c4c85a5a179a689f06e4a",
+ "summary": "PR #3540 is BLOCKED by 5 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check all-green concluded failure.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105573407053"
+   },
+   {
+    "reason": "The check checks / test (3.11, locked, windows-latest) concluded failure.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749378"
+   },
+   {
+    "reason": "The check checks / test (3.11, lowest-direct, windows-latest) concluded failure.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749312"
+   },
+   {
+    "reason": "The check checks / test (3.11, locked, ubuntu-latest) concluded failure.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749302"
+   },
+   {
+    "reason": "The check checks / test (3.11, lowest-direct, ubuntu-latest) concluded failure.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749261"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3540",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105573407053",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749378",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749312",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749302",
+   "https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749261"
+  ],
+  "answer": "**What is blocking PR #3540?** PR #3540 is BLOCKED by 5 blocker(s); 2 unknown(s).\n\nBlockers:\n- The check all-green concluded failure. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105573407053))\n- The check checks / test (3.11, locked, windows-latest) concluded failure. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749378))\n- The check checks / test (3.11, lowest-direct, windows-latest) concluded failure. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749312))\n- The check checks / test (3.11, locked, ubuntu-latest) concluded failure. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749302))\n- The check checks / test (3.11, lowest-direct, ubuntu-latest) concluded failure. ([evidence](https://github.com/modelcontextprotocol/python-sdk/actions/runs/35336596753/job/105572749261))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3540\n"
+ }
+}

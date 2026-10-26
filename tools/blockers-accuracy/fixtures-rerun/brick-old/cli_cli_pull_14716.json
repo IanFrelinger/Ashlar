@@ -1,0 +1,22 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "ef58152216b84d5b88740b826d60b95c",
+ "summary": "PR #14716 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 16 check run(s) and 0 commit status(es) on the head commit 936921fa9e67; none is failing or pending.",
+    "evidence": "https://github.com/cli/cli/commit/936921fa9e67cdbf78fb25abc6252afabafef056"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/14716",
+   "https://github.com/cli/cli/commit/936921fa9e67cdbf78fb25abc6252afabafef056"
+  ],
+  "answer": "**What is blocking PR #14716?** PR #14716 is READY: nothing blocking was found.\n\nNotes:\n- Read 16 check run(s) and 0 commit status(es) on the head commit 936921fa9e67; none is failing or pending. ([evidence](https://github.com/cli/cli/commit/936921fa9e67cdbf78fb25abc6252afabafef056))\n\nRead from https://github.com/cli/cli/pull/14716\n"
+ }
+}

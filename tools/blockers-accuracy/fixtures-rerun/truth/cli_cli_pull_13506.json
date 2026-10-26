@@ -1,0 +1,38 @@
+{
+ "url": "https://github.com/cli/cli/pull/13506",
+ "captured_from": "2026-10-25T17:54:47.368959+00:00",
+ "captured_to": "2026-10-25T17:54:57.316420+00:00",
+ "graphql": {
+  "url": "https://github.com/cli/cli/pull/13506",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "CHANGES_REQUESTED",
+  "baseRefName": "trunk",
+  "headRefOid": "fdb4e47437a3140146e76d12c0f3b5dd23df34a1",
+  "latestOpinionatedReviews": {
+   "nodes": [
+    {
+     "author": {
+      "login": "babakks"
+     },
+     "state": "CHANGES_REQUESTED"
+    }
+   ]
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "fdb4e47437a3140146e76d12c0f3b5dd23df34a1",
+      "statusCheckRollup": null
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "fdb4e47437a3140146e76d12c0f3b5dd23df34a1"
+}

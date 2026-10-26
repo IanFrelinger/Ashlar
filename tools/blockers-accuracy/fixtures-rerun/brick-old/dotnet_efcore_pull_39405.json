@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.0.0",
+ "auditId": "1e5f4691a9c24809a673b0c4ec0770a1",
+ "summary": "PR #39405 is BLOCKED by 1 blocker(s); 2 unknown(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset).",
+    "evidence": "https://github.com/dotnet/efcore/pull/39405"
+   }
+  ],
+  "unknowns": [
+   {
+    "what": "Required approvals",
+    "why": "Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s)."
+   },
+   {
+    "what": "Which checks are required",
+    "why": "Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker."
+   }
+  ],
+  "notes": [
+   {
+    "text": "Read 15 check run(s) and 0 commit status(es) on the head commit 471c9f9508b2; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/efcore/commit/471c9f9508b25a18b30aaf3fd2855d0658f0a0a6"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/39405",
+   "https://github.com/dotnet/efcore/commit/471c9f9508b25a18b30aaf3fd2855d0658f0a0a6"
+  ],
+  "answer": "**What is blocking PR #39405?** PR #39405 is BLOCKED by 1 blocker(s); 2 unknown(s).\n\nBlockers:\n- GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset). ([evidence](https://github.com/dotnet/efcore/pull/39405))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights); the pull request has 0 approving review(s).\n- Which checks are required: Branch protection is not readable with this token (it needs admin rights), so every failing or pending check is listed as a blocker.\n\nNotes:\n- Read 15 check run(s) and 0 commit status(es) on the head commit 471c9f9508b2; none is failing or pending. ([evidence](https://github.com/dotnet/efcore/commit/471c9f9508b25a18b30aaf3fd2855d0658f0a0a6))\n\nRead from https://github.com/dotnet/efcore/pull/39405\n"
+ }
+}
