@@ -1,0 +1,28 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "0f8217ba8d234d24a6ec16642e02c7a3",
+ "summary": "PR #3681 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "`maxisbey` requested changes.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/pull/3681#pullrequestreview-5489652536"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 42 check run(s) and 0 commit status(es) on the head commit 0bc072e24a84; none is failing or pending.",
+    "evidence": "https://github.com/modelcontextprotocol/python-sdk/commit/0bc072e24a84a795e98eca6e38eed129d2880f3e"
+   }
+  ],
+  "evidence": [
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3681",
+   "https://github.com/modelcontextprotocol/python-sdk/pull/3681#pullrequestreview-5489652536",
+   "https://github.com/modelcontextprotocol/python-sdk/commit/0bc072e24a84a795e98eca6e38eed129d2880f3e"
+  ],
+  "answer": "**What is blocking PR #3681?** PR #3681 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- `maxisbey` requested changes. ([evidence](https://github.com/modelcontextprotocol/python-sdk/pull/3681#pullrequestreview-5489652536))\n\nNotes:\n- Read 42 check run(s) and 0 commit status(es) on the head commit 0bc072e24a84; none is failing or pending. ([evidence](https://github.com/modelcontextprotocol/python-sdk/commit/0bc072e24a84a795e98eca6e38eed129d2880f3e))\n\nRead from https://github.com/modelcontextprotocol/python-sdk/pull/3681\n"
+ }
+}

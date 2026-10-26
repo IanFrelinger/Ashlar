@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "6e8375f399ff4e179cdf07f91d900439",
+ "summary": "PR #70032 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/aspnetcore/pull/70032"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 19 check run(s) and 0 commit status(es) on the head commit a3c072de420d; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/aspnetcore/commit/a3c072de420dea79caa317c2f661d91299ff9038"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/70032",
+   "https://github.com/dotnet/aspnetcore/commit/a3c072de420dea79caa317c2f661d91299ff9038"
+  ],
+  "answer": "**What is blocking PR #70032?** PR #70032 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/aspnetcore/pull/70032))\n\nNotes:\n- Read 19 check run(s) and 0 commit status(es) on the head commit a3c072de420d; none is failing or pending. ([evidence](https://github.com/dotnet/aspnetcore/commit/a3c072de420dea79caa317c2f661d91299ff9038))\n\nRead from https://github.com/dotnet/aspnetcore/pull/70032\n"
+ }
+}

@@ -1,0 +1,43 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "0c2ab868e24f4e4bb41752e3a5892a3f",
+ "summary": "PR #14659 is BLOCKED by 5 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind `main`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14659"
+   },
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14659"
+   },
+   {
+    "reason": "The required check `dotnet-build-and-test-check` has not reported on c2344a8861d6.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a"
+   },
+   {
+    "reason": "The required check `merge-gatekeeper` has not reported on c2344a8861d6.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a"
+   },
+   {
+    "reason": "The required check `python-integration-tests-check` has not reported on c2344a8861d6.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 3 check run(s) and 0 commit status(es) on the head commit c2344a8861d6; none is failing or pending.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a"
+   }
+  ],
+  "evidence": [
+   "https://github.com/microsoft/semantic-kernel/pull/14659",
+   "https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a"
+  ],
+  "answer": "**What is blocking PR #14659?** PR #14659 is BLOCKED by 5 blocker(s).\n\nBlockers:\n- The branch is behind `main`, and the base branch requires branches to be up to date. ([evidence](https://github.com/microsoft/semantic-kernel/pull/14659))\n- 0 of 1 required approving reviews. ([evidence](https://github.com/microsoft/semantic-kernel/pull/14659))\n- The required check `dotnet-build-and-test-check` has not reported on c2344a8861d6. ([evidence](https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a))\n- The required check `merge-gatekeeper` has not reported on c2344a8861d6. ([evidence](https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a))\n- The required check `python-integration-tests-check` has not reported on c2344a8861d6. ([evidence](https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a))\n\nNotes:\n- Read 3 check run(s) and 0 commit status(es) on the head commit c2344a8861d6; none is failing or pending. ([evidence](https://github.com/microsoft/semantic-kernel/commit/c2344a8861d6ca98cbbbe7a9569da81a7d67a88a))\n\nRead from https://github.com/microsoft/semantic-kernel/pull/14659\n"
+ }
+}

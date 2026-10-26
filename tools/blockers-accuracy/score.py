@@ -25,6 +25,18 @@ from truth import REST_INVISIBLE, classify_claim, ground_truth, rest_required_ch
 
 KINDS = {"draft", "conflict", "behind", "changes_requested", "review_required", "check_failing", "check_pending", "other"}
 
+def _check_key(kind: str, name: str) -> str:
+    """Map a brick reason's check/status name to a rubric key.
+
+    After #872 the brick quotes GitHub-sourced names as one inline code span (`name`), so strip a
+    surrounding pair of backticks before comparing with the truth keys (which have no markup).
+    """
+    name = name.strip()
+    if len(name) >= 2 and name[0] == "`" and name[-1] == "`":
+        name = name[1:-1]
+    return f"{kind}:{name.lower()}"
+
+
 BRICK_PATTERNS = [
     (re.compile(r"^The pull request is a draft\."), lambda m: "draft"),
     (re.compile(r"^The branch has merge conflicts"), lambda m: "conflict"),
@@ -32,11 +44,11 @@ BRICK_PATTERNS = [
     (re.compile(r" requested changes\.$"), lambda m: "changes_requested"),
     (re.compile(r"required approving reviews\.$"), lambda m: "review_required"),
     (re.compile(r"^GitHub reports that an approving review is required"), lambda m: "review_required"),
-    (re.compile(r"^The check (.+) is still "), lambda m: f"check_pending:{m.group(1).lower()}"),
-    (re.compile(r"^The check (.+) concluded "), lambda m: f"check_failing:{m.group(1).lower()}"),
-    (re.compile(r"^The status (.+) is still pending\."), lambda m: f"check_pending:{m.group(1).lower()}"),
-    (re.compile(r"^The status (.+?) reported "), lambda m: f"check_failing:{m.group(1).lower()}"),
-    (re.compile(r"^The required check (.+) has not reported "), lambda m: f"check_pending:{m.group(1).lower()}"),
+    (re.compile(r"^The check (.+) is still "), lambda m: _check_key("check_pending", m.group(1))),
+    (re.compile(r"^The check (.+) concluded "), lambda m: _check_key("check_failing", m.group(1))),
+    (re.compile(r"^The status (.+) is still pending\."), lambda m: _check_key("check_pending", m.group(1))),
+    (re.compile(r"^The status (.+?) reported "), lambda m: _check_key("check_failing", m.group(1))),
+    (re.compile(r"^The required check (.+) has not reported "), lambda m: _check_key("check_pending", m.group(1))),
     (re.compile(r"blocked by a branch rule"), lambda m: "other"),
     (re.compile(r"^The pull request is closed without being merged\."), lambda m: None),
 ]

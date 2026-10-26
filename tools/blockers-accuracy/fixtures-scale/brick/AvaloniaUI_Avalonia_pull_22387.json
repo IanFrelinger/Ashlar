@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "37a674fedcb14dd18f7ed04077907ae4",
+ "summary": "PR #22387 is BLOCKED by 2 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The pull request is a draft.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22387"
+   },
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22387"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `pull_request_label` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/118151129820"
+   },
+   {
+    "text": "The check `WIP` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/113961532739"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22387",
+   "https://github.com/AvaloniaUI/Avalonia/runs/118151129820",
+   "https://github.com/AvaloniaUI/Avalonia/runs/113961532739"
+  ],
+  "answer": "**What is blocking PR #22387?** PR #22387 is BLOCKED by 2 blocker(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22387))\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22387))\n\nNotes:\n- The check `pull_request_label` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/118151129820))\n- The check `WIP` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/113961532739))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22387\n"
+ }
+}

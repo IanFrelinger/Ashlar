@@ -1,0 +1,52 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "7bd1f2c759704a7ba3d3e073e65204f8",
+ "summary": "PR #22180 is BLOCKED by 4 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22180"
+   },
+   {
+    "reason": "The check `Windows` concluded cancelled.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623536"
+   },
+   {
+    "reason": "The check `Linux` concluded cancelled.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623528"
+   },
+   {
+    "reason": "The check `macOS` concluded cancelled.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623486"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Publish Nightly NuGet Packages` concluded cancelled. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459632950"
+   },
+   {
+    "text": "The check `Publish Release NuGet Packages` concluded cancelled. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459631822"
+   },
+   {
+    "text": "The check `Branch Info` concluded cancelled. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623167"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22180",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623536",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623528",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623486",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459632950",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459631822",
+   "https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623167"
+  ],
+  "answer": "**What is blocking PR #22180?** PR #22180 is BLOCKED by 4 blocker(s).\n\nBlockers:\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22180))\n- The check `Windows` concluded cancelled. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623536))\n- The check `Linux` concluded cancelled. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623528))\n- The check `macOS` concluded cancelled. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623486))\n\nNotes:\n- The check `Publish Nightly NuGet Packages` concluded cancelled. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459632950))\n- The check `Publish Release NuGet Packages` concluded cancelled. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459631822))\n- The check `Branch Info` concluded cancelled. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/actions/runs/36584090739/job/109459623167))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22180\n"
+ }
+}

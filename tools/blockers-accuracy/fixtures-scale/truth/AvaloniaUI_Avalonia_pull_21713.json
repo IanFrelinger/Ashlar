@@ -1,0 +1,115 @@
+{
+ "url": "https://github.com/AvaloniaUI/Avalonia/pull/21713",
+ "captured_from": "2026-10-25T22:06:05.368488+00:00",
+ "captured_to": "2026-10-25T22:06:15.596454+00:00",
+ "graphql": {
+  "url": "https://github.com/AvaloniaUI/Avalonia/pull/21713",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": true,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BEHIND",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "f1c968897432ae3651a093e197b44d629b445f65",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "f1c968897432ae3651a093e197b44d629b445f65",
+      "statusCheckRollup": {
+       "state": "FAILURE",
+       "contexts": {
+        "totalCount": 11,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "Runner",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.Avalonia",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.Avalonia (Linux)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.Avalonia (Windows)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.Avalonia (macOS)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "WIP",
+          "status": "IN_PROGRESS",
+          "conclusion": null,
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "pull_request_label",
+          "status": "IN_PROGRESS",
+          "conclusion": null,
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.Avalonia (GetPRNumber)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.IntegrationTests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.IntegrationTests (Mac)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "AvaloniaUI.IntegrationTests (Windows)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "f1c968897432ae3651a093e197b44d629b445f65"
+}

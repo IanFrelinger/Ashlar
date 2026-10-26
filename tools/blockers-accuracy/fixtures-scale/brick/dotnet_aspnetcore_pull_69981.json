@@ -1,0 +1,48 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "811c1ac35197472f900a132856351abe",
+ "summary": "PR #69981 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The check `aspnetcore-ci` concluded failure.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/120169539586"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Build Analysis` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/120181997393"
+   },
+   {
+    "text": "The check `Build Insights` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/120181988506"
+   },
+   {
+    "text": "The check `aspnetcore-ci (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/120169530618"
+   },
+   {
+    "text": "The check `aspnetcore-ci (Build Tests: Helix x64 Subset 2)` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/120151645238"
+   },
+   {
+    "text": "The check `Maestro auto-merge - All Checks Successful` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/aspnetcore/runs/120145085354"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/69981",
+   "https://github.com/dotnet/aspnetcore/runs/120169539586",
+   "https://github.com/dotnet/aspnetcore/runs/120181997393",
+   "https://github.com/dotnet/aspnetcore/runs/120181988506",
+   "https://github.com/dotnet/aspnetcore/runs/120169530618",
+   "https://github.com/dotnet/aspnetcore/runs/120151645238",
+   "https://github.com/dotnet/aspnetcore/runs/120145085354"
+  ],
+  "answer": "**What is blocking PR #69981?** PR #69981 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- The check `aspnetcore-ci` concluded failure. ([evidence](https://github.com/dotnet/aspnetcore/runs/120169539586))\n\nNotes:\n- The check `Build Analysis` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/120181997393))\n- The check `Build Insights` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/120181988506))\n- The check `aspnetcore-ci (Build Monitor Helix Jobs)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/120169530618))\n- The check `aspnetcore-ci (Build Tests: Helix x64 Subset 2)` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/120151645238))\n- The check `Maestro auto-merge - All Checks Successful` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/aspnetcore/runs/120145085354))\n\nRead from https://github.com/dotnet/aspnetcore/pull/69981\n"
+ }
+}

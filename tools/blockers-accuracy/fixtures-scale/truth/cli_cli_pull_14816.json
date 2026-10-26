@@ -1,0 +1,87 @@
+{
+ "url": "https://github.com/cli/cli/pull/14816",
+ "captured_from": "2026-10-25T22:00:15.223078+00:00",
+ "captured_to": "2026-10-25T22:00:22.497952+00:00",
+ "graphql": {
+  "url": "https://github.com/cli/cli/pull/14816",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "trunk",
+  "headRefOid": "6235af8fddba186b2ded7c686c24fe83289f7c46",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "6235af8fddba186b2ded7c686c24fe83289f7c46",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 7,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "label-external / label_issues",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "close-from-default-branch / close-from-default-branch",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "check-requirements / check-requirements",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "check-requirements / close-unmet-requirements",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "close-unmet-requirements",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "close-no-help-wanted",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "ready-for-review",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "6235af8fddba186b2ded7c686c24fe83289f7c46"
+}

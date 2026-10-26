@@ -1,0 +1,28 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "891284fe6e05496eb26023b6997d1ff8",
+ "summary": "PR #22462 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "`MrJul` requested changes.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22462#pullrequestreview-5572996174"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 12 check run(s) and 0 commit status(es) on the head commit 749e417c8469; none is failing or pending.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/commit/749e417c84695be900a5f18de0e7d3ad2a2211c3"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22462",
+   "https://github.com/AvaloniaUI/Avalonia/pull/22462#pullrequestreview-5572996174",
+   "https://github.com/AvaloniaUI/Avalonia/commit/749e417c84695be900a5f18de0e7d3ad2a2211c3"
+  ],
+  "answer": "**What is blocking PR #22462?** PR #22462 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- `MrJul` requested changes. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22462#pullrequestreview-5572996174))\n\nNotes:\n- Read 12 check run(s) and 0 commit status(es) on the head commit 749e417c8469; none is failing or pending. ([evidence](https://github.com/AvaloniaUI/Avalonia/commit/749e417c84695be900a5f18de0e7d3ad2a2211c3))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22462\n"
+ }
+}

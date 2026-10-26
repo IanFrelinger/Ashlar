@@ -1,0 +1,31 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "51ad1dbe70834696b4ca5deee0502780",
+ "summary": "PR #13013 is BLOCKED by 2 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch has merge conflicts with `trunk`.",
+    "evidence": "https://github.com/cli/cli/pull/13013"
+   },
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/cli/cli/pull/13013"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `govulncheck` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/cli/cli/actions/runs/23472895899/job/71398350402"
+   }
+  ],
+  "evidence": [
+   "https://github.com/cli/cli/pull/13013",
+   "https://github.com/cli/cli/actions/runs/23472895899/job/71398350402"
+  ],
+  "answer": "**What is blocking PR #13013?** PR #13013 is BLOCKED by 2 blocker(s).\n\nBlockers:\n- The branch has merge conflicts with `trunk`. ([evidence](https://github.com/cli/cli/pull/13013))\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/cli/cli/pull/13013))\n\nNotes:\n- The check `govulncheck` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/cli/cli/actions/runs/23472895899/job/71398350402))\n\nRead from https://github.com/cli/cli/pull/13013\n"
+ }
+}

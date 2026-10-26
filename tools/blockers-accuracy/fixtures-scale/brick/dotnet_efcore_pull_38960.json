@@ -1,0 +1,27 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "13bb77c5436b4453b1144c9404eeba49",
+ "summary": "PR #38960 is BLOCKED by 1 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/dotnet/efcore/pull/38960"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `coverage` concluded failure. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/dotnet/efcore/actions/runs/40184236596/job/121141521014"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/efcore/pull/38960",
+   "https://github.com/dotnet/efcore/actions/runs/40184236596/job/121141521014"
+  ],
+  "answer": "**What is blocking PR #38960?** PR #38960 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/efcore/pull/38960))\n\nNotes:\n- The check `coverage` concluded failure. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/efcore/actions/runs/40184236596/job/121141521014))\n\nRead from https://github.com/dotnet/efcore/pull/38960\n"
+ }
+}

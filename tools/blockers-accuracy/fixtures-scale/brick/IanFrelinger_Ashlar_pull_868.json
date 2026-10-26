@@ -1,0 +1,16 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "c0f3f51be68846559a1a6e1026ae9e80",
+ "summary": "PR #868 is already merged.",
+ "outputs": {
+  "verdict": "merged",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [],
+  "evidence": [
+   "https://github.com/IanFrelinger/Ashlar/pull/868"
+  ],
+  "answer": "**What is blocking PR #868?** PR #868 is already merged.\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/868\n"
+ }
+}

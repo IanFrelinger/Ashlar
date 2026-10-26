@@ -1,0 +1,22 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "be183c88aeba4536bd4e37213e1a3a9e",
+ "summary": "PR #69312 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 38 check run(s) and 0 commit status(es) on the head commit a034f78460da; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/aspnetcore/commit/a034f78460da6c0169488a589b4a7405da17871e"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/aspnetcore/pull/69312",
+   "https://github.com/dotnet/aspnetcore/commit/a034f78460da6c0169488a589b4a7405da17871e"
+  ],
+  "answer": "**What is blocking PR #69312?** PR #69312 is READY: nothing blocking was found.\n\nNotes:\n- Read 38 check run(s) and 0 commit status(es) on the head commit a034f78460da; none is failing or pending. ([evidence](https://github.com/dotnet/aspnetcore/commit/a034f78460da6c0169488a589b4a7405da17871e))\n\nRead from https://github.com/dotnet/aspnetcore/pull/69312\n"
+ }
+}

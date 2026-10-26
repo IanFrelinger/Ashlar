@@ -1,0 +1,80 @@
+{
+ "url": "https://github.com/microsoft/semantic-kernel/pull/14641",
+ "captured_from": "2026-10-25T22:00:06.802539+00:00",
+ "captured_to": "2026-10-25T22:00:15.222761+00:00",
+ "graphql": {
+  "url": "https://github.com/microsoft/semantic-kernel/pull/14641",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BEHIND",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "f4c9410d2e899f6d140025b04ae3ef91215fbe7a",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "f4c9410d2e899f6d140025b04ae3ef91215fbe7a",
+      "statusCheckRollup": {
+       "state": "PENDING",
+       "contexts": {
+        "totalCount": 6,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "prepare_pr",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "add_label",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Issue/PR: add title prefix",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "team_check",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "review",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "QUEUED",
+          "conclusion": null,
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "f4c9410d2e899f6d140025b04ae3ef91215fbe7a"
+}

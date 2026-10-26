@@ -1,0 +1,36 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "3f21a904c0bc4903b9ffc2879980d46a",
+ "summary": "PR #22560 is BLOCKED by 3 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind `main`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22560"
+   },
+   {
+    "reason": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/pull/22560"
+   },
+   {
+    "reason": "The check `Avalonia - Integration Tests` is still queued.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/121297120180"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `Avalonia - Integration Tests (Mac)` is still in progress. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/AvaloniaUI/Avalonia/runs/121297123617"
+   }
+  ],
+  "evidence": [
+   "https://github.com/AvaloniaUI/Avalonia/pull/22560",
+   "https://github.com/AvaloniaUI/Avalonia/runs/121297120180",
+   "https://github.com/AvaloniaUI/Avalonia/runs/121297123617"
+  ],
+  "answer": "**What is blocking PR #22560?** PR #22560 is BLOCKED by 3 blocker(s).\n\nBlockers:\n- The branch is behind `main`, and the base branch requires branches to be up to date. ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22560))\n- GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s). ([evidence](https://github.com/AvaloniaUI/Avalonia/pull/22560))\n- The check `Avalonia - Integration Tests` is still queued. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/121297120180))\n\nNotes:\n- The check `Avalonia - Integration Tests (Mac)` is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/AvaloniaUI/Avalonia/runs/121297123617))\n\nRead from https://github.com/AvaloniaUI/Avalonia/pull/22560\n"
+ }
+}

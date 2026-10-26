@@ -1,0 +1,164 @@
+{
+ "url": "https://github.com/AvaloniaUI/Avalonia/pull/22183",
+ "captured_from": "2026-10-25T22:05:34.929975+00:00",
+ "captured_to": "2026-10-25T22:05:42.003201+00:00",
+ "graphql": {
+  "url": "https://github.com/AvaloniaUI/Avalonia/pull/22183",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "pr4d/hvar-advances",
+  "headRefOid": "467e5b4819173b72c2fa49bc3f68e0a0ee36aa6f",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "467e5b4819173b72c2fa49bc3f68e0a0ee36aa6f",
+      "statusCheckRollup": {
+       "state": "FAILURE",
+       "contexts": {
+        "totalCount": 18,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "Linux",
+          "status": "COMPLETED",
+          "conclusion": "CANCELLED",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Runner",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Runner",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Linux",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "macOS",
+          "status": "COMPLETED",
+          "conclusion": "CANCELLED",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "macOS",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Windows",
+          "status": "COMPLETED",
+          "conclusion": "CANCELLED",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Windows",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Branch Info",
+          "status": "COMPLETED",
+          "conclusion": "CANCELLED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Branch Info",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Publish Nightly NuGet Packages",
+          "status": "COMPLETED",
+          "conclusion": "CANCELLED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Publish Nightly NuGet Packages",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Publish Release NuGet Packages",
+          "status": "COMPLETED",
+          "conclusion": "CANCELLED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Publish Release NuGet Packages",
+          "status": "COMPLETED",
+          "conclusion": "SKIPPED",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": true
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "Avalonia - Unit Tests",
+          "status": "COMPLETED",
+          "conclusion": "NEUTRAL",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "WIP",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "pull_request_label",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "467e5b4819173b72c2fa49bc3f68e0a0ee36aa6f"
+}

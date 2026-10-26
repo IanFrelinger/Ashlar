@@ -1,0 +1,22 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "e81fd661108c476098ed695f0b95129c",
+ "summary": "PR #136379 is READY: nothing blocking was found.",
+ "outputs": {
+  "verdict": "ready",
+  "blockers": [],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "Read 25 check run(s) and 0 commit status(es) on the head commit 1d0b0d316f87; none is failing or pending.",
+    "evidence": "https://github.com/dotnet/runtime/commit/1d0b0d316f8744732b5da827a85f0e979b023c56"
+   }
+  ],
+  "evidence": [
+   "https://github.com/dotnet/runtime/pull/136379",
+   "https://github.com/dotnet/runtime/commit/1d0b0d316f8744732b5da827a85f0e979b023c56"
+  ],
+  "answer": "**What is blocking PR #136379?** PR #136379 is READY: nothing blocking was found.\n\nNotes:\n- Read 25 check run(s) and 0 commit status(es) on the head commit 1d0b0d316f87; none is failing or pending. ([evidence](https://github.com/dotnet/runtime/commit/1d0b0d316f8744732b5da827a85f0e979b023c56))\n\nRead from https://github.com/dotnet/runtime/pull/136379\n"
+ }
+}

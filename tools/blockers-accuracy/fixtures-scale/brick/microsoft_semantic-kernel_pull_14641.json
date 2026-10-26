@@ -1,0 +1,44 @@
+{
+ "brickId": "github.blockers",
+ "brickVersion": "1.1.0",
+ "auditId": "f2424533880949d0b456742d9bfd63c4",
+ "summary": "PR #14641 is BLOCKED by 5 blocker(s).",
+ "outputs": {
+  "verdict": "blocked",
+  "blockers": [
+   {
+    "reason": "The branch is behind `main`, and the base branch requires branches to be up to date.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14641"
+   },
+   {
+    "reason": "0 of 1 required approving reviews.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/pull/14641"
+   },
+   {
+    "reason": "The required check `dotnet-build-and-test-check` has not reported on f4c9410d2e89.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/f4c9410d2e899f6d140025b04ae3ef91215fbe7a"
+   },
+   {
+    "reason": "The required check `merge-gatekeeper` has not reported on f4c9410d2e89.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/f4c9410d2e899f6d140025b04ae3ef91215fbe7a"
+   },
+   {
+    "reason": "The required check `python-integration-tests-check` has not reported on f4c9410d2e89.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/commit/f4c9410d2e899f6d140025b04ae3ef91215fbe7a"
+   }
+  ],
+  "unknowns": [],
+  "notes": [
+   {
+    "text": "The check `license/cla` is still queued. It is not required, so it does not block the merge.",
+    "evidence": "https://github.com/microsoft/semantic-kernel/runs/120036643384"
+   }
+  ],
+  "evidence": [
+   "https://github.com/microsoft/semantic-kernel/pull/14641",
+   "https://github.com/microsoft/semantic-kernel/commit/f4c9410d2e899f6d140025b04ae3ef91215fbe7a",
+   "https://github.com/microsoft/semantic-kernel/runs/120036643384"
+  ],
+  "answer": "**What is blocking PR #14641?** PR #14641 is BLOCKED by 5 blocker(s).\n\nBlockers:\n- The branch is behind `main`, and the base branch requires branches to be up to date. ([evidence](https://github.com/microsoft/semantic-kernel/pull/14641))\n- 0 of 1 required approving reviews. ([evidence](https://github.com/microsoft/semantic-kernel/pull/14641))\n- The required check `dotnet-build-and-test-check` has not reported on f4c9410d2e89. ([evidence](https://github.com/microsoft/semantic-kernel/commit/f4c9410d2e899f6d140025b04ae3ef91215fbe7a))\n- The required check `merge-gatekeeper` has not reported on f4c9410d2e89. ([evidence](https://github.com/microsoft/semantic-kernel/commit/f4c9410d2e899f6d140025b04ae3ef91215fbe7a))\n- The required check `python-integration-tests-check` has not reported on f4c9410d2e89. ([evidence](https://github.com/microsoft/semantic-kernel/commit/f4c9410d2e899f6d140025b04ae3ef91215fbe7a))\n\nNotes:\n- The check `license/cla` is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/microsoft/semantic-kernel/runs/120036643384))\n\nRead from https://github.com/microsoft/semantic-kernel/pull/14641\n"
+ }
+}

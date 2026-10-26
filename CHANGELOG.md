@@ -25,6 +25,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   findings (F1–F3) come from reading required checks and approvals only from admin-only branch protection.
   Harness, snapshot and raw runs in `tools/blockers-accuracy/`. A re-run on a second snapshot after the fix
   (`github.blockers` 1.1.0, #874) found 109 of 109 blockers with no wrong claims; the old brick found 19.
+- `docs/benchmarks/blockers-accuracy-scale.md`: scale pass on 100 pull requests in 10 public repositories
+  (including `IanFrelinger/Ashlar`), brick-raw only, same rubric. Verdicts 100/100, blockers 211/211, no wrong
+  claims, $0 Anthropic spend. `score.py` strips #872 inline-code quotes on check names so brick reasons still
+  match truth keys.
 
 ### Added — token benchmark follow-up arms
 

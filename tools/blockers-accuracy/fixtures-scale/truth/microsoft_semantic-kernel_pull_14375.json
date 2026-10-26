@@ -1,0 +1,52 @@
+{
+ "url": "https://github.com/microsoft/semantic-kernel/pull/14375",
+ "captured_from": "2026-10-25T21:58:30.321769+00:00",
+ "captured_to": "2026-10-25T21:58:38.289970+00:00",
+ "graphql": {
+  "url": "https://github.com/microsoft/semantic-kernel/pull/14375",
+  "state": "OPEN",
+  "merged": false,
+  "closed": false,
+  "isDraft": false,
+  "mergeable": "MERGEABLE",
+  "mergeStateStatus": "BEHIND",
+  "reviewDecision": "REVIEW_REQUIRED",
+  "baseRefName": "main",
+  "headRefOid": "98345610a8361f08fe4bfd05368f2f729cd626c4",
+  "latestOpinionatedReviews": {
+   "nodes": []
+  },
+  "commits": {
+   "nodes": [
+    {
+     "commit": {
+      "oid": "98345610a8361f08fe4bfd05368f2f729cd626c4",
+      "statusCheckRollup": {
+       "state": "SUCCESS",
+       "contexts": {
+        "totalCount": 2,
+        "nodes": [
+         {
+          "__typename": "CheckRun",
+          "name": "add_label",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         },
+         {
+          "__typename": "CheckRun",
+          "name": "license/cla",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "isRequired": false
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "rest_head_sha": "98345610a8361f08fe4bfd05368f2f729cd626c4"
+}
