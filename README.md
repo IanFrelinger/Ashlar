@@ -15,7 +15,7 @@
 
 ## Support
 
-- **Discord:** https://discord.gg/rAyh2jtb8 — community + design-partner support  
+- **Discord:** https://discord.gg/CzkAvrjW8g — community + design-partner support  
 - **GitHub Discussions:** https://github.com/IanFrelinger/Ashlar/discussions — commercial / product Q&A  
 
 Ashlar is a local-first .NET runtime for auditable AI workflows you embed: generated code is certified before admission, and every action is on the record. Build trustworthy AI applications on infrastructure you control.
