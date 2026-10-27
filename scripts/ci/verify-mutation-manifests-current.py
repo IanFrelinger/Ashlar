@@ -2,8 +2,8 @@
 """Check exact mutation targets against the current checkout, without running tests.
 
 WHY: a stale or ambiguous replacement invalidates a mutation run before its assertions
-execute. Derive the population from spec007-*.json, with floors so an empty or
-truncated scan cannot pass. This checks currency only, never mutation kill evidence.
+execute. Derive the population from spec007-*.json and spec010-*.json, with floors so an
+empty or truncated scan cannot pass. This checks currency only, never mutation kill evidence.
 """
 import argparse
 import json
@@ -12,10 +12,13 @@ import sys
 
 MIN_MANIFESTS = 7
 MIN_MUTATIONS = 285
+# SPEC-007's egress manifests, and SPEC-010's privacy-label manifest (SPEC-010 section 8).
+MANIFEST_GLOBS = ("spec007-*.json", "spec010-*.json")
 
 
 def scan(root):
-    manifests = sorted((root / "scripts/mutations").glob("spec007-*.json"))
+    found = {path.name: path for pattern in MANIFEST_GLOBS for path in (root / "scripts/mutations").glob(pattern)}
+    manifests = [found[name] for name in sorted(found)]
     problems = []
     count = 0
     for manifest in manifests:

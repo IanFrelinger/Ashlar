@@ -159,3 +159,52 @@ Ashlar.Abstractions.Security.Egress.EgressRefusedException.Site.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressRefusedException.Sequence.get -> long
 Ashlar.Abstractions.Security.Egress.EgressRefusedException.Ref.get -> string!
 Ashlar.Abstractions.Security.Egress.EgressRefusedException.ErrorCode.get -> string!
+Ashlar.Abstractions.Security.PrivacyLabel
+Ashlar.Abstractions.Security.PrivacyLabel.LocalOnly = 0 -> Ashlar.Abstractions.Security.PrivacyLabel
+Ashlar.Abstractions.Security.PrivacyLabel.NoExternalModel = 1 -> Ashlar.Abstractions.Security.PrivacyLabel
+Ashlar.Abstractions.Security.PrivacyLabel.NoNetworkExport = 3 -> Ashlar.Abstractions.Security.PrivacyLabel
+Ashlar.Abstractions.Security.PrivacyLabel.NoWeb = 2 -> Ashlar.Abstractions.Security.PrivacyLabel
+Ashlar.Abstractions.Security.PrivacyLabelSet
+Ashlar.Abstractions.Security.PrivacyLabelSet.Contains(Ashlar.Abstractions.Security.PrivacyLabel label) -> bool
+Ashlar.Abstractions.Security.PrivacyLabelSet.Equals(Ashlar.Abstractions.Security.PrivacyLabelSet? other) -> bool
+Ashlar.Abstractions.Security.PrivacyLabelSet.Labels.get -> System.Collections.Generic.IReadOnlyList<Ashlar.Abstractions.Security.PrivacyLabel>!
+Ashlar.Abstractions.Security.PrivacyLabelSet.Union(Ashlar.Abstractions.Security.PrivacyLabelSet! other) -> Ashlar.Abstractions.Security.PrivacyLabelSet!
+Ashlar.Abstractions.Security.PrivacyLabelSetJsonConverter
+Ashlar.Abstractions.Security.PrivacyLabelSetJsonConverter.PrivacyLabelSetJsonConverter() -> void
+Ashlar.Abstractions.Security.ReadSet
+Ashlar.Abstractions.Security.ReadSet.Current.get -> Ashlar.Abstractions.Security.PrivacyLabelSet!
+Ashlar.Abstractions.Security.ReadSet.Observe(Ashlar.Abstractions.Security.PrivacyLabelSet! labels) -> void
+Ashlar.Abstractions.Security.ReadSet.ReadSet() -> void
+Ashlar.Abstractions.Security.ReadSet.ReadSet(Ashlar.Abstractions.Security.PrivacyLabelSet! floor) -> void
+Ashlar.Abstractions.Security.Egress.EgressRefusalReason
+Ashlar.Abstractions.Security.Egress.EgressRefusalReason.LabelForbidsDestination = 2 -> Ashlar.Abstractions.Security.Egress.EgressRefusalReason
+Ashlar.Abstractions.Security.Egress.EgressRefusalReason.LocalOnlyData = 1 -> Ashlar.Abstractions.Security.Egress.EgressRefusalReason
+Ashlar.Abstractions.Security.Egress.EgressRefusalReason.NoDecision = 4 -> Ashlar.Abstractions.Security.Egress.EgressRefusalReason
+Ashlar.Abstractions.Security.Egress.EgressRefusalReason.None = 0 -> Ashlar.Abstractions.Security.Egress.EgressRefusalReason
+Ashlar.Abstractions.Security.Egress.EgressRefusalReason.UnknownDestination = 3 -> Ashlar.Abstractions.Security.Egress.EgressRefusalReason
+Ashlar.Abstractions.Security.Egress.PrivacyDecision
+Ashlar.Abstractions.Security.Egress.PrivacyDecision.Allowed.get -> bool
+Ashlar.Abstractions.Security.Egress.PrivacyDecision.Equals(Ashlar.Abstractions.Security.Egress.PrivacyDecision other) -> bool
+Ashlar.Abstractions.Security.Egress.PrivacyDecision.ForbiddenBy.get -> Ashlar.Abstractions.Security.PrivacyLabel?
+Ashlar.Abstractions.Security.Egress.PrivacyDecision.PrivacyDecision() -> void
+Ashlar.Abstractions.Security.Egress.PrivacyDecision.Reason.get -> Ashlar.Abstractions.Security.Egress.EgressRefusalReason
+Ashlar.Abstractions.Security.Egress.PrivacyRule
+override Ashlar.Abstractions.Security.PrivacyLabelSet.Equals(object? obj) -> bool
+override Ashlar.Abstractions.Security.PrivacyLabelSet.GetHashCode() -> int
+override Ashlar.Abstractions.Security.PrivacyLabelSet.ToString() -> string!
+override Ashlar.Abstractions.Security.PrivacyLabelSetJsonConverter.HandleNull.get -> bool
+override Ashlar.Abstractions.Security.PrivacyLabelSetJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> Ashlar.Abstractions.Security.PrivacyLabelSet!
+override Ashlar.Abstractions.Security.PrivacyLabelSetJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, Ashlar.Abstractions.Security.PrivacyLabelSet! value, System.Text.Json.JsonSerializerOptions! options) -> void
+override Ashlar.Abstractions.Security.Egress.PrivacyDecision.Equals(object? obj) -> bool
+override Ashlar.Abstractions.Security.Egress.PrivacyDecision.GetHashCode() -> int
+override Ashlar.Abstractions.Security.Egress.PrivacyDecision.ToString() -> string!
+static Ashlar.Abstractions.Security.PrivacyLabelSet.LocalOnly.get -> Ashlar.Abstractions.Security.PrivacyLabelSet!
+static Ashlar.Abstractions.Security.PrivacyLabelSet.None.get -> Ashlar.Abstractions.Security.PrivacyLabelSet!
+static Ashlar.Abstractions.Security.PrivacyLabelSet.Of(params Ashlar.Abstractions.Security.PrivacyLabel[]! labels) -> Ashlar.Abstractions.Security.PrivacyLabelSet!
+static Ashlar.Abstractions.Security.PrivacyLabelSet.ParseOrLocalOnly(string? text) -> Ashlar.Abstractions.Security.PrivacyLabelSet!
+static Ashlar.Abstractions.Security.PrivacyLabelSet.TryParse(string? text, out Ashlar.Abstractions.Security.PrivacyLabelSet! labels) -> bool
+static Ashlar.Abstractions.Security.PrivacyLabelSet.operator !=(Ashlar.Abstractions.Security.PrivacyLabelSet? left, Ashlar.Abstractions.Security.PrivacyLabelSet? right) -> bool
+static Ashlar.Abstractions.Security.PrivacyLabelSet.operator ==(Ashlar.Abstractions.Security.PrivacyLabelSet? left, Ashlar.Abstractions.Security.PrivacyLabelSet? right) -> bool
+static Ashlar.Abstractions.Security.Egress.PrivacyDecision.operator !=(Ashlar.Abstractions.Security.Egress.PrivacyDecision left, Ashlar.Abstractions.Security.Egress.PrivacyDecision right) -> bool
+static Ashlar.Abstractions.Security.Egress.PrivacyDecision.operator ==(Ashlar.Abstractions.Security.Egress.PrivacyDecision left, Ashlar.Abstractions.Security.Egress.PrivacyDecision right) -> bool
+static Ashlar.Abstractions.Security.Egress.PrivacyRule.Decide(Ashlar.Abstractions.Security.PrivacyLabelSet! readSet, Ashlar.Abstractions.Security.Egress.EgressDestinationClass destination) -> Ashlar.Abstractions.Security.Egress.PrivacyDecision

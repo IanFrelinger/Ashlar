@@ -26,6 +26,19 @@ where this spec says otherwise.
 
 Master at the time of writing: `0e89da03` (0.4.0, plus #883 to #886).
 
+## Status (2026-10-27)
+
+*Added by PR 1, which also put test names on the Enforced-by lines of §3.1, §3.3, §3.4 and §3.7.*
+
+| PR | State | Number and merge commit |
+|---|---|---|
+| 0: records (this spec, its decisions-log row, the index, the SPEC-007 note) | Merged | #888, `de46f1238` |
+| 1: the label set, the rule and the read set, in `Ashlar.Abstractions` | In review | #891 |
+| 2 to 5 | Not started | |
+
+- **PR 1** uses the label names of §3.1, which the owner kept on 2026-10-27 (§11 Q1). The decisions-log row that
+  records that answer is #889, a records PR that merges before PR 1.
+
 ## 1. Why
 
 On 2026-10-27 the owner relayed a security reviewer's advice and accepted it the same day:
@@ -123,11 +136,35 @@ A **privacy label** names a kind of destination the data must not reach. Version
 - Labels have no order. There are no clearances, compartments or caveats. Nothing removes a label from data or from
   a subject, so there is no downgrade.
 - **Fail closed.** Unlabelled data, an unknown label name and text that does not parse MUST be treated as
-  `local-only`. *Enforced by:* PR 1.
+  `local-only`. *Enforced by* (cert-gate):
+  - text that does not parse, an unknown label name among them (PR 1, #891):
+    `PrivacyLabelSetTextFormTests.TryParse_RefusesNonCanonicalText_AndFailsClosedToLocalOnly`,
+    `PrivacyLabelSetTextFormTests.ParseOrLocalOnly_MapsEveryRefusalToLocalOnly`,
+    `PrivacyLabelSetTextFormTests.UnparseableText_LeavesOnlyHostOpen` and
+    `ReadSetTests.ObservingUnparseableLabelText_FailsClosedToLocalOnly`;
+  - an uninitialised label or label set (PR 1, #891):
+    `PrivacyLabelSetTextFormTests.ThereAreExactlyFourLabels_WithPinnedValues_AndLocalOnlyIsTheZero` and
+    `PrivacyLabelSetTextFormTests.AnObjectNoConstructorRanOn_ReadsAsLocalOnly_NeverAsNone`;
+  - unlabelled data through the bridges: PR 2.
 - **Text form.** Labels are sorted ordinally and joined by commas, as in `no-external-model,no-network-export`. The
   empty set is `none`. Parsing accepts exactly the canonical forms, so text and sets correspond one to one; anything
   else fails closed to `local-only`. JSON and type converters write and read only the canonical text and refuse
-  `null`, as SPEC-007's converter does. *Enforced by:* PR 1.
+  `null`, as SPEC-007's converter does. *Enforced by* (PR 1, #891, cert-gate):
+  - the text form and its round trip:
+    `PrivacyLabelSetTextFormTests.EachLabel_HasTheTextTheSpecNames`,
+    `PrivacyLabelSetTextFormTests.EverySet_PrintsItsLabelsSortedOrdinallyByText_JoinedByCommas`,
+    `PrivacyLabelSetTextFormTests.None_IsTheEmptySet_WrittenNone`,
+    `PrivacyLabelSetTextFormTests.TryParse_AcceptsCanonicalText_AndRoundTrips` and
+    `PrivacyLabelSetTextFormTests.TextAndSets_CorrespondOneToOne`;
+  - exactly the canonical forms:
+    `PrivacyLabelSetTextFormTests.TryParse_RefusesNonCanonicalText_AndFailsClosedToLocalOnly`;
+  - the converters:
+    `PrivacyLabelSetTextFormTests.Json_WritesTheCanonicalTextAndReadsItBack`,
+    `PrivacyLabelSetTextFormTests.Json_RefusesAnythingButCanonicalText`,
+    `PrivacyLabelSetTextFormTests.Json_RefusesANullSetEitherWay`,
+    `PrivacyLabelSetTextFormTests.TypeConverter_ConvertsCanonicalTextBothWays`,
+    `PrivacyLabelSetTextFormTests.TypeConverter_RefusesNonCanonicalText` and
+    `PrivacyLabelSetTextFormTests.TypeConverter_RefusesNullEitherWay`.
 
 ### 3.2 Destinations
 
@@ -146,8 +183,18 @@ A send from a subject whose read set is R, to a destination of class D, is decid
 5. Otherwise it is allowed.
 
 A decision that faults is refused with `NoDecision`, as today. In report mode the same decision is recorded and
-nothing is refused, as today. *Enforced by:* PR 1, with a decision table covering every class against every subset
-of the four labels (5 × 16 rows).
+nothing is refused, as today. *Enforced by:* PR 1 (#891), with a decision table covering every class against every
+subset of the four labels (5 × 16 rows). In cert-gate:
+- the table: `PrivacyRuleDecisionTests.Decide_FollowsTheDecisionTable`, kept complete by
+  `PrivacyRuleDecisionTests.TheDecisionTable_HasOneRowForEveryClassAndEverySubset`;
+- the order of the steps:
+  `PrivacyRuleDecisionTests.Step1_HostComesFirst_SoEvenLocalOnlyDataMayStayOnTheHost`,
+  `PrivacyRuleDecisionTests.Step2_LocalOnlyIsReported_BeforeTheDestinationIsClassifiedOrALabelForbidsIt` and
+  `PrivacyRuleDecisionTests.Step3_AnUnknownDestination_IsRefused_EvenForDataNoLabelRestricts`;
+- a class value the rule does not know, refused at step 3 like `Unknown`:
+  `PrivacyRuleDecisionTests.AClassValueTheRuleDoesNotKnow_IsRefusedAsUnknown`.
+
+The two sentences above about a faulted decision and report mode are the guard's; PR 3a and 3b test them.
 
 ### 3.4 Subjects carry a read set
 
@@ -156,7 +203,8 @@ of the four labels (5 × 16 rows).
 - Every frame rule from SPEC-007 PR 4.4 and 4.5 stands, with "join" read as "union". That covers monotone nesting,
   `Observe`, read scopes, detachment and the `using` obligations.
 - `Observe` is atomic, so no concurrent observation is lost. The property that
-  `HighWaterMarkTests.ConcurrentObservations_AreNeverLost` pins carries over.
+  `HighWaterMarkTests.ConcurrentObservations_AreNeverLost` pins carries over. *Enforced by* (PR 1, #891, cert-gate,
+  for `ReadSet`, which the frames take in PR 3a): `ReadSetTests.ConcurrentObservations_AreNeverLost`.
 - A read scope is pinned at `local-only` until it reports. When it is disposed, it observes the union of its reports
   if the read completed, and `local-only` otherwise.
 - With no live frame the read set is `local-only`, with the basis `no-subject`.
@@ -200,7 +248,11 @@ These are unchanged, and SPEC-007's decisions-log rows Q1, Q5 and 4.6 stand:
 - **`EgressRefusalReason`** replaces `AccessDenialReason` for egress. Its values are `None`, `LocalOnlyData`,
   `LabelForbidsDestination`, `UnknownDestination` and `NoDecision`, and they are pinned and only ever appended.
   `Reason == None` holds exactly when the send is allowed, and a default-initialised decision is a refusal; the
-  property that `ReferenceMonitorDecisionTests.DefaultAccessDecision_FailsClosed` pins carries over.
+  property that `ReferenceMonitorDecisionTests.DefaultAccessDecision_FailsClosed` pins carries over. *Enforced by*
+  (PR 1, #891, cert-gate, for `PrivacyDecision`, the rule's result, whose members `EgressDecision` takes in PR 3b):
+  - `PrivacyRuleDecisionTests.EgressRefusalReason_ValuesArePinned_AndOnlyAppended`,
+  - `PrivacyRuleDecisionTests.Reason_IsNone_ExactlyWhenAllowed_OnEveryRowAndOnTheDefault` and
+  - `PrivacyRuleDecisionTests.DefaultPrivacyDecision_FailsClosed`.
 - **What each party sees.** The refused subject still gets only the reason category, site, family, destination class
   and a random reference (SPEC-007 Q7). Remote parties still get fixed text, and the CLI still exits 77.
 - **The `Ashlar-Egress` event source.** Its field names and order are a public contract (`EgressEventSource.cs:14`).

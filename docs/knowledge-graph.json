@@ -15,8 +15,8 @@
     "operator_facing_config_variables": 155,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 829,
-    "declared_facts": 5399,
+    "test_files_declaring_facts": 833,
+    "declared_facts": 5461,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5762,6 +5762,27 @@
       "in_cert_gate_filter": true
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/PrivacyLabelSetLawTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 14,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/PrivacyLabelSetTextFormTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 24,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/PrivacyRuleDecisionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 14,
+      "in_cert_gate_filter": true
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/ProcessGlobalEnvironmentConventionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
@@ -5780,6 +5801,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 6,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/ReadSetTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 10,
       "in_cert_gate_filter": true
     },
     {

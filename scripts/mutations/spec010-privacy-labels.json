@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "prepared_against": "a39751e4393dc1a55806a2dc0c2a22d5b767aba2",
+  "note": "SPEC-010 PR 1: the privacy label set, the rule and the parse; PR 2 adds the bridge cases. The first four are SPEC-010 section 8's minimum set (drop step 3, let local-only through to ExternalModel, lose a label in the union, make a failed parse return none); s10-rule-drops-unknown-step replaces step 3's refusal with step 5's Allow, which is what dropping the step gives every input that reaches it. All 11 were KILLED on 2026-10-27 by scripts/mutation-check.sh at prepared_against (net8.0, this filter: 348 tests), each with an exact restore, a clean status and a green rerun; the PR 1 body lists the counts and the tests that went red. A verdict holds for that commit: rerun against the tree before relying on it.",
+  "mutations": [
+    {
+      "id": "s10-rule-drops-unknown-step",
+      "file": "src/Ashlar.Abstractions/Security/Egress/PrivacyRule.cs",
+      "old": "return PrivacyDecision.Refuse(EgressRefusalReason.UnknownDestination);",
+      "new": "return PrivacyDecision.Allow();",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "Decide_FollowsTheDecisionTable",
+        "Step3_AnUnknownDestination_IsRefused_EvenForDataNoLabelRestricts",
+        "AClassValueTheRuleDoesNotKnow_IsRefusedAsUnknown"
+      ]
+    },
+    {
+      "id": "s10-rule-local-only-reaches-external-model",
+      "file": "src/Ashlar.Abstractions/Security/Egress/PrivacyRule.cs",
+      "old": "if (readSet.Contains(PrivacyLabel.LocalOnly))",
+      "new": "if (readSet.Contains(PrivacyLabel.LocalOnly) && destination != EgressDestinationClass.ExternalModel)",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "Decide_FollowsTheDecisionTable",
+        "Step2_LocalOnlyIsReported_BeforeTheDestinationIsClassifiedOrALabelForbidsIt"
+      ]
+    },
+    {
+      "id": "s10-union-loses-a-label",
+      "file": "src/Ashlar.Abstractions/Security/PrivacyLabelSet.cs",
+      "old": "return Sets[Mask | other.Mask];",
+      "new": "return Sets[Mask & other.Mask];",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "None_IsTheIdentityOfUnion",
+        "Union_HoldsEveryLabelOfBothSets",
+        "Union_IsTheSetOfLabelsInEither"
+      ]
+    },
+    {
+      "id": "s10-failed-parse-is-none",
+      "file": "src/Ashlar.Abstractions/Security/PrivacyLabelSet.cs",
+      "old": "labels = parsed ?? LocalOnly;",
+      "new": "labels = parsed ?? None;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "TryParse_RefusesNonCanonicalText_AndFailsClosedToLocalOnly",
+        "ParseOrLocalOnly_MapsEveryRefusalToLocalOnly"
+      ]
+    },
+    {
+      "id": "s10-observe-not-atomic",
+      "file": "src/Ashlar.Abstractions/Security/ReadSet.cs",
+      "old": "var witnessed = Interlocked.CompareExchange(ref _current, union, seen);",
+      "new": "var witnessed = seen; Volatile.Write(ref _current, union);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "ConcurrentObservations_AreNeverLost"
+      ]
+    },
+    {
+      "id": "s10-default-decision-allows",
+      "file": "src/Ashlar.Abstractions/Security/Egress/PrivacyDecision.cs",
+      "old": "public EgressRefusalReason Reason => _decided ? _reason : EgressRefusalReason.NoDecision;",
+      "new": "public EgressRefusalReason Reason => _decided ? _reason : EgressRefusalReason.None;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "DefaultPrivacyDecision_FailsClosed",
+        "EgressRefusalReason_ValuesArePinned_AndOnlyAppended"
+      ]
+    },
+    {
+      "id": "s10-web-search-checks-the-wrong-label",
+      "file": "src/Ashlar.Abstractions/Security/Egress/PrivacyRule.cs",
+      "old": "label = PrivacyLabel.NoWeb;",
+      "new": "label = PrivacyLabel.NoNetworkExport;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "Decide_FollowsTheDecisionTable",
+        "EachNoLabel_ForbidsExactlyOneClass"
+      ]
+    },
+    {
+      "id": "s10-host-refuses-local-only",
+      "file": "src/Ashlar.Abstractions/Security/Egress/PrivacyRule.cs",
+      "old": "if (destination == EgressDestinationClass.Host)",
+      "new": "if (destination == EgressDestinationClass.Host && !readSet.Contains(PrivacyLabel.LocalOnly))",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "Decide_FollowsTheDecisionTable",
+        "Step1_HostComesFirst_SoEvenLocalOnlyDataMayStayOnTheHost"
+      ]
+    },
+    {
+      "id": "s10-text-sorted-by-enum-value",
+      "file": "src/Ashlar.Abstractions/Security/PrivacyLabelSet.cs",
+      "old": "{ PrivacyLabel.LocalOnly, PrivacyLabel.NoExternalModel, PrivacyLabel.NoNetworkExport, PrivacyLabel.NoWeb };",
+      "new": "{ PrivacyLabel.LocalOnly, PrivacyLabel.NoExternalModel, PrivacyLabel.NoWeb, PrivacyLabel.NoNetworkExport };",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "EverySet_PrintsItsLabelsSortedOrdinallyByText_JoinedByCommas",
+        "TryParse_AcceptsCanonicalText_AndRoundTrips"
+      ]
+    },
+    {
+      "id": "s10-parse-ignores-case",
+      "file": "src/Ashlar.Abstractions/Security/PrivacyLabelSet.cs",
+      "old": "new Dictionary<string, PrivacyLabelSet>(SetCount, StringComparer.Ordinal)",
+      "new": "new Dictionary<string, PrivacyLabelSet>(SetCount, StringComparer.OrdinalIgnoreCase)",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "TryParse_RefusesNonCanonicalText_AndFailsClosedToLocalOnly",
+        "Json_RefusesAnythingButCanonicalText"
+      ]
+    },
+    {
+      "id": "s10-json-reads-null-as-missing",
+      "file": "src/Ashlar.Abstractions/Security/PrivacyLabelSetJsonConverter.cs",
+      "old": "public override bool HandleNull => true;",
+      "new": "public override bool HandleNull => false;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~PrivacyLabelSet|FullyQualifiedName~PrivacyRuleDecisionTests|FullyQualifiedName~ReadSetTests",
+      "expected_failures": [
+        "Json_RefusesANullSetEitherWay"
+      ]
+    }
+  ]
+}
