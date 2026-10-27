@@ -17,6 +17,32 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — privacy labels and the privacy rule (SPEC-010 PR 1)
+
+- **`Ashlar.Abstractions.Security`: privacy labels, the privacy rule and the read set.** `PrivacyLabel` is a
+  closed set of four labels, each naming where data must not go: `local-only` (anything outside the host boundary),
+  `no-external-model`, `no-web` and `no-network-export`. `PrivacyLabelSet` holds zero or more of them, and the
+  empty set, `none`, means no restriction. It has one canonical text form, the labels sorted ordinally by their text
+  and joined by commas (`no-external-model,no-network-export`), and `TryParse` accepts only those sixteen strings. On
+  a refusal both `TryParse` and `ParseOrLocalOnly` give `local-only`, so an unknown label name and text that does not
+  parse fail closed, and `default(PrivacyLabel)` is `LocalOnly` too. JSON and TypeDescriptor carry a set only as its
+  canonical string and refuse anything else, `null` included. `PrivacyRule.Decide` decides a send from a read set to
+  an `EgressDestinationClass` in SPEC-010's order: `Host` is allowed; a read set holding `local-only` is refused
+  (`LocalOnlyData`); an `Unknown` destination, or a class value the rule does not know, is refused
+  (`UnknownDestination`); a read set holding the label that forbids the class is refused (`LabelForbidsDestination`,
+  with the label in `ForbiddenBy`); anything else is allowed. The reasons are `EgressRefusalReason` values, pinned and
+  only appended, and `default(PrivacyDecision)` is a refusal (`NoDecision`), not an allow. `ReadSet` is a subject's
+  running union of the sets it has read, united atomically under concurrent `Observe` calls.
+
+  Additive, with no behaviour change: nothing in the runtime calls these types yet, and the egress guard decides on
+  security labels until SPEC-010 PR 3b. The new public API is `[Experimental]` under `ASHLAREXP002` and recorded in
+  `src/Ashlar.Abstractions/PublicAPI.Unshipped.txt`. These are privacy checks at the egress boundary; they say nothing
+  about what an agent's text output carries. The union laws, the text form and the converters, the full decision
+  table (five destination classes against all sixteen label sets) and the read set are cert-gate tests, listed in
+  `ci/cert-gate-assertions.md`. `scripts/mutations/spec010-privacy-labels.json` holds the mutations they were checked
+  against, and `scripts/ci/verify-mutation-manifests-current.py` now reads `spec010-*.json` manifests as well as
+  `spec007-*.json`.
+
 ### Added — "what is blocking this PR?" accuracy study
 
 - `docs/benchmarks/blockers-accuracy.md`: 44 real pull requests in 5 public repositories, graded against ground

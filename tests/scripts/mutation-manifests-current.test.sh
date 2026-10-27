@@ -43,6 +43,12 @@ with tempfile.TemporaryDirectory() as temp:
                  for n in range(41 if index < 5 else 40)]
         (manifests / f"spec007-{index}.json").write_text(json.dumps({"mutations": cases}), encoding="utf-8")
     expect("current fixture", 0, "7 manifest(s), 285 mutation(s), 0 problem(s)", run(tree))
+    spec010 = manifests / "spec010-0.json"
+    spec010.write_text(json.dumps({"mutations": [{"id": "case-s10", "file": "source.cs", "old": "gone",
+                                                  "new": "mutated", "expected_failures": ["Named_test"]}]}),
+                       encoding="utf-8")
+    expect("spec010 manifest is scanned", 1, "spec010-0.json: case-s10 (source.cs): old occurs 0 times", run(tree))
+    spec010.unlink()
     source.write_text("different\n", encoding="utf-8")
     expect("missing old names id and file", 1, "case-0-0 (source.cs): old occurs 0 times", run(tree))
     source.write_text("unique original unique original\n", encoding="utf-8")
@@ -68,6 +74,6 @@ with tempfile.TemporaryDirectory() as temp:
 
 expect("current repository", 0, "0 problem(s)", run(root))
 print(f"passed: {passed}   failed: {failed}")
-assert passed + failed == 9, "partial fixture execution"
+assert passed + failed == 10, "partial fixture execution"
 sys.exit(1 if failed else 0)
 PY
