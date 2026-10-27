@@ -2,6 +2,10 @@
 
 **Status: PROPOSED — 2026-10-03.** Written for Claude Code to start the work. Owner: @IanFrelinger.
 
+**Superseded in part (added 2026-10-27).** [SPEC-010](SPEC-010-privacy-labels.md), proposed on the owner's decision of
+2026-10-27, replaces this spec's data model with privacy labels: §2.1–§2.4, §8, PR 5 and PR 6. The egress guard, its
+frames, modes, profiles, refusal surface and this decisions log stand, except where SPEC-010 says otherwise.
+
 **Start here:** implement **PR 1 (§4)** and stop. Everything after it is listed in §5 so the design
 holds together, but each later PR waits for the one before it to merge. Ask the owner about anything
 in §8 rather than guessing.
