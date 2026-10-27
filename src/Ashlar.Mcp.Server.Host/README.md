@@ -1,5 +1,7 @@
 # Ashlar.Mcp.Server.Host
 
+<!-- mcp-name: io.github.ianfrelinger/ashlar -->
+
 An MCP server over stdio that exposes **Ashlar bricks** (typed, deterministic .NET units of work) and
 read-only repository tools to any MCP client: VS Code / GitHub Copilot, Claude Code, Cursor, Visual Studio.
 Every brick call writes one audit record you can match to the exact request and response.
