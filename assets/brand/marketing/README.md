@@ -10,10 +10,13 @@ This directory is for marketing and social media assets.
 ## Official Assets (Used)
 
 The landing page and social sharing use only official brand assets from the parent directory:
-- `../ashlar-logo-chaos.svg` — Official logo mark
-- `../ashlar-terminal-preview.svg` — Terminal session preview
-- `../ashlar-og-flat-1200x630.png` — **NEW** Flat, typographic OG card (to be generated)
-- `../ashlar-social-card-1280x640.png` — Existing social card (alternative)
+- `../ashlar-logo-flat.svg` — header logo (wordmark and mark)
+- `../ashlar-icon-github-clean.svg` — the mark alone; a copy is the site's favicon
+- `../ashlar-og-flat-1200x630.png` — flat, typographic OG card, wired in `site/index.html`
+- `../ashlar-social-card-1280x640.png` — older social card (alternative)
+
+`ashlar-logo-chaos.svg` is in `experiments/`, and `../ashlar-terminal-preview.svg` is no longer on the site: it
+shows the pre-rename "nexo" banner and v0.2.0.
 
 ## Experimental Assets (Not Used)
 

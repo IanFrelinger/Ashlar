@@ -8,7 +8,7 @@ Type: Baloo 2 ExtraBold (wordmark). Embedded as subsets inside the SVGs — no f
 
 **Name:** Ashlar (not "nexo")  
 **One-liner:** Local-first .NET runtime for auditable AI workflows you embed  
-**Everyday frame:** "Receipts for AI actions" + "Bouncer for new skills"  
+**Everyday frame:** "Receipts for AI actions" + "Bouncer for new bricks"  
 **Precision line:** Trust log + cert-gate
 
 ## Where each file goes
@@ -18,9 +18,10 @@ Type: Baloo 2 ExtraBold (wordmark). Embedded as subsets inside the SVGs — no f
 | `ashlar-logo-flat.svg` | README hero — **wired**, centred `<img>` at the top of `README.md`; also used in `site/index.html` |
 | `ashlar-icon-nuget-128.png` | NuGet package icon — **wired** repo-wide in `Directory.Build.props` (see below) |
 | `ashlar-icon-github-512.png` | GitHub org/repo avatar — Settings → upload |
+| `ashlar-icon-github-clean.svg` | Preferred avatar upload (see below); a copy in `site/assets/brand/` is the site's favicon |
 | `ashlar-og-flat-1200x630.png` | **Primary OG card** — flat, typographic social card (1200×630); **wired** in `site/index.html` `<meta property="og:image">`; also suitable for GitHub Settings → Social preview |
 | `ashlar-social-card-1280x640.png` | Alternative social preview (1280×640) — deprecated, prefer OG flat |
-| `ashlar-terminal-preview.svg` | docs/marketing use — mock CLI session; **used** in landing page bento grid |
+| `ashlar-terminal-preview.svg` | Mock CLI session. **Not used on the site:** it still shows the pre-rename "nexo" banner, v0.2.0 and invented counts, so redraw it before any reuse |
 | `marketing/experiments/` | *Archive* — old "nexo" collage branding with tape/sparkles (not used on primary surfaces) |
 | `*.svg` sources | keep in `assets/brand/` as the editable masters |
 

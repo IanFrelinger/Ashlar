@@ -20,7 +20,7 @@ Stakeholder feedback: these feel like "AI slop" with:
 - Too much decorative gold (brand guideline: gold = certified only, sparse)
 
 The landing page instead uses:
-- Official brand SVGs (`ashlar-logo-chaos.svg`, `ashlar-terminal-preview.svg`)
+- Official brand SVGs (`ashlar-logo-flat.svg`, and `ashlar-icon-github-clean.svg` as the favicon)
 - Flat, typographic OG card generated from HTML/CSS
 - Clean bento-grid layout with real code snippets
 - Modern developer-tool aesthetic (2026 standard)

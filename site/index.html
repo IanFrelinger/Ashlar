@@ -20,7 +20,7 @@
     <meta property="twitter:description" content="Check AI-assisted behaviors before they run. Package admitted behavior. Record what happened.">
     <meta property="twitter:image" content="https://raw.githubusercontent.com/IanFrelinger/Ashlar/master/assets/brand/ashlar-og-flat-1200x630.png">
     
-    <link rel="icon" type="image/svg+xml" href="assets/brand/ashlar-logo-flat.svg">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/ashlar-icon-github-clean.svg">
     
     <style>
         :root {
@@ -203,6 +203,8 @@
         }
         
         .bento-item {
+            /* Let a tile shrink below its widest code line; the code scrolls inside its box. */
+            min-width: 0;
             background: var(--oat);
             border: 1px solid var(--ink);
             border-radius: 12px;
@@ -262,6 +264,7 @@
             border-radius: 8px;
             font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
             font-size: 0.875rem;
+            white-space: pre;
             overflow-x: auto;
             margin-top: 1.5rem;
             line-height: 1.6;
@@ -275,17 +278,45 @@
             color: var(--gold);
         }
         
-        .terminal-preview {
-            background: var(--ink);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1.5rem;
+        .bento-item p a {
+            color: var(--ink);
+            text-decoration: underline;
         }
-        
-        .terminal-preview img {
-            width: 100%;
-            height: auto;
-            display: block;
+
+        /* Release news: ink, not gold. Gold means certified. */
+        .new-badge {
+            display: inline-block;
+            background: var(--ink);
+            color: var(--cream);
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 0.35rem 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .announce {
+            display: inline-block;
+            margin-bottom: 2rem;
+            padding: 0.45rem 1.1rem;
+            background: var(--oat);
+            border: 1px solid var(--ink);
+            border-radius: 999px;
+            color: var(--ink);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .announce:hover {
+            background: var(--cream);
+        }
+
+        /* Clear the sticky header when the hero link jumps here. */
+        #new {
+            scroll-margin-top: 7rem;
         }
         
         /* Pricing Section */
@@ -345,6 +376,7 @@
         
         .pricing-cell:first-child {
             justify-content: flex-start;
+            text-align: left;
             font-weight: 600;
         }
         
@@ -378,9 +410,13 @@
         }
 
         /* Not shipped yet. The page already marks Cloud "Coming soon"; feature rows need the
-           same vocabulary so an unbuilt capability cannot read as an included one. */
+           same vocabulary so an unbuilt capability cannot read as an included one. Olive with a
+           dashed outline, not gold: gold means certified, and gold text on cream is about 2:1. */
         .roadmap {
-            color: var(--gold);
+            color: var(--olive);
+            border: 1px dashed var(--olive);
+            border-radius: 4px;
+            padding: 0.15rem 0.5rem;
             font-size: 0.78rem;
             font-weight: 600;
             letter-spacing: 0.04em;
@@ -426,6 +462,8 @@
             padding: 1.25rem 1.5rem;
             font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
             font-size: 0.85rem;
+            white-space: pre;
+            overflow-x: auto;
             text-align: left;
             max-width: 720px;
             margin: 2rem auto 0;
@@ -570,7 +608,6 @@
         <div class="container">
             <a href="#" class="logo">
                 <img src="assets/brand/ashlar-logo-flat.svg" alt="Ashlar">
-                <span>Ashlar</span>
             </a>
             <nav>
                 <a href="https://github.com/IanFrelinger/Ashlar">GitHub</a>
@@ -588,6 +625,7 @@
         <!-- Hero Section -->
         <section class="hero">
             <div class="container">
+                <a href="#new" class="announce">New in 0.4: an MCP server for your AI tools, and a free GitHub Action →</a>
                 <h1>Turn AI-generated know-how into<br>verified, reusable behavior</h1>
                 <p class="subtitle">The verified execution layer for AI agents in .NET. Your agents decide what to do. Ashlar decides what is allowed to run, and keeps the receipt. Local-first, on infrastructure you control.</p>
                 
@@ -619,7 +657,7 @@
                         <h3>Auditable workflows</h3>
                         <p>Submit a task and you get the output <strong>and</strong> a <strong>receipt</strong> of what ran. Every task is stored under an id, and the trust log carries an entry whose <code>sourceId</code> is that id.</p>
                         <p class="honesty">This is the audit trail — a record of what ran — not by itself an admit-before-run certificate.</p>
-                        <div class="code-preview">
+                        <pre class="code-preview">
 <span class="comment"># Submit an audited task</span>
 POST /api/copilot/task
 { <span class="keyword">"task"</span>: <span class="keyword">"Summarize this repository"</span> }
@@ -633,24 +671,23 @@ POST /api/copilot/task
 
 <span class="comment"># Trust log carries the audit entry:</span>
 GET /api/trust/dashboard
-<span class="comment"># sourceId matches the taskId</span>
-                        </div>
+<span class="comment"># sourceId matches the taskId</span></pre>
                     </div>
 
                     <!-- Certified Artifacts -->
                     <div class="bento-item certified">
                         <span class="cert-badge">Admission gate</span>
                         <h3>Checked before it runs</h3>
-                        <p>Behaviors Ashlar—or a model—proposes only become trusted after the admission gate (analyzer fence → witness → mutation testing → determinism checks where they apply).</p>
+                        <p>Behaviors Ashlar—or a model—proposes only become trusted after the admission gate's five checks: analyzer fence → witness → mutation testing → determinism → dependency graph. The witness cases are never shown to whoever proposes the code.</p>
                         <p style="margin-top: 1rem; font-size: 0.95rem; color: var(--olive);">The gate is a required CI check on <code>master</code>. Every ADMIT/REJECT it has reached is a row in <code>docs/certification-evidence.md</code>.</p>
-                        <p class="honesty">A task <strong>receipt</strong> (audit trail) is not the same as gate <strong>admission</strong>. The quickstart shows a receipt; the gate is tested in CI and in design-partner work.</p>
+                        <p class="honesty">A task <strong>receipt</strong> (audit trail) is not the same as gate <strong>admission</strong>, and a brick a host registers directly is not checked unless the host calls the verifier. The quickstart shows a receipt; the gate is tested in CI and in design-partner work.</p>
                     </div>
 
                     <!-- Your Infrastructure -->
                     <div class="bento-item">
                         <h3>Your infrastructure</h3>
                         <p>Runs as a CLI, an HTTP API, containers, or embedded in your own host.</p>
-                        <div class="code-preview">
+                        <pre class="code-preview">
 <span class="comment"># Run locally</span>
 ashlar doctor
 
@@ -660,15 +697,14 @@ dotnet add package Ashlar.Client
 <span class="comment"># Configure HTTP client</span>
 services.AddAshlarClient(
     <span class="keyword">"http://localhost:5000"</span>
-);
-                        </div>
+);</pre>
                     </div>
 
                     <!-- Build on Ashlar -->
                     <div class="bento-item large">
                         <h3>Build on Ashlar</h3>
                         <p>Embed as a NuGet dependency. Integrate via HTTP. Run the CLI. Deploy with Docker. Your choice.</p>
-                        <div class="code-preview">
+                        <pre class="code-preview">
 <span class="comment">// Add the Ashlar client</span>
 <span class="keyword">builder</span>.Services.AddAshlarClient(baseUrl: <span class="keyword">"http://localhost:5000"</span>);
 
@@ -677,20 +713,42 @@ services.AddAshlarClient(
     HttpMethod.<span class="keyword">Post</span>,
     <span class="keyword">"/api/copilot/task"</span>,
     JsonContent.Create(<span class="keyword">new</span> { task = <span class="keyword">"Analyze this dataset"</span> })
-);
-                        </div>
+);</pre>
                         <div style="margin-top: 1.5rem;">
                             <a href="https://github.com/IanFrelinger/Ashlar/blob/master/docs/IntegratorGuide.md" class="btn btn-secondary">Read integrator guide →</a>
                         </div>
                     </div>
 
-                    <!-- Terminal Preview -->
-                    <div class="bento-item tall">
+                    <!-- New in 0.4: the MCP brick host and the pr-blockers Action (README "New in 0.4.0") -->
+                    <div class="bento-item large" id="new">
+                        <span class="new-badge">New in 0.4</span>
+                        <h3>In your editor and your CI</h3>
+                        <p>The MCP brick host serves Ashlar bricks as audited tools to VS Code with GitHub Copilot, Claude Code, Cursor and Visual Studio. Nothing is exposed until you allowlist it, and every call, refusals included, writes one audit record.</p>
+                        <pre class="code-preview">
+<span class="comment">// .vscode/mcp.json</span>
+{
+  <span class="keyword">"servers"</span>: {
+    <span class="keyword">"ashlar"</span>: {
+      <span class="keyword">"command"</span>: <span class="keyword">"dnx"</span>,
+      <span class="keyword">"args"</span>: [<span class="keyword">"Ashlar.Mcp.Server.Host@0.4.0"</span>, <span class="keyword">"--yes"</span>],
+      <span class="keyword">"env"</span>: {
+        <span class="keyword">"Ashlar__Mcp__Bricks__ExposedBrickIds__0"</span>: <span class="keyword">"github.blockers"</span>
+      }
+    }
+  }
+}</pre>
+                        <p style="margin-top: 1.5rem;">The free <a href="https://github.com/IanFrelinger/Ashlar/tree/master/actions/pr-blockers">pr-blockers GitHub Action</a> writes the <code>github.blockers</code> verdict, with each blocker's evidence link, to your job summary. No account, no API key, no telemetry.</p>
+                        <p class="honesty">In our benchmark, one <code>github.blockers</code> call cost 87–94% less than an agent using the official GitHub MCP server's tools, on three workloads with caching on (<a href="https://github.com/IanFrelinger/Ashlar/blob/master/docs/benchmarks/token-benchmark.md">method</a>). The GitHub bricks the host ships with are registered directly, so they run without a certificate check.</p>
+                    </div>
+
+                    <!-- Local-first. The terminal mock-up that sat here showed the pre-rename name and v0.2.0. -->
+                    <div class="bento-item">
                         <h3>Local-first operation</h3>
                         <p>Local model routing (Ollama) is the default route. Cloud providers are opt-in targets. Air-gapped and local-only deployments are first-class.</p>
-                        <div class="terminal-preview">
-                            <img src="assets/brand/ashlar-terminal-preview.svg" alt="Ashlar terminal session">
-                        </div>
+                        <p style="margin-top: 1rem;">On the air-gapped and secure-workstation profiles, outbound calls the policy doesn't allow are refused by default.</p>
+                        <pre class="code-preview">
+<span class="comment"># Apply the air-gapped trust policy pack</span>
+ashlar trust pack apply --id air-gapped</pre>
                     </div>
                 </div>
             </div>
@@ -702,13 +760,12 @@ services.AddAshlarClient(
             <div class="container">
                 <h2>See a receipt</h2>
                 <p>One path. Hide the rest. Clone, run, submit one task, read its audit trail — without us on the call.</p>
-                <div class="quickstart-box">
+                <pre class="quickstart-box">
 <span class="comment"># Lane A — Docker portal (~3 commands)</span>
 git clone https://github.com/IanFrelinger/Ashlar.git && cd Ashlar
 docker build -f .docker/Dockerfile.quickstart -t ashlar:quickstart .
 docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
-<span class="comment"># Open http://localhost:8080 — then follow TesterQuickstart for a task receipt</span>
-                </div>
+<span class="comment"># Open http://localhost:8080 — then follow TesterQuickstart for a task receipt</span></pre>
                 <p class="honesty" style="margin-top: 1.5rem;">
                     Prefer no Docker? <a href="https://github.com/IanFrelinger/Ashlar/blob/master/docs/TesterQuickstart.md" style="color: var(--olive); text-decoration: underline;">TesterQuickstart</a> — build, run the API on loopback, one task, one receipt (~15 min).
                 </p>
@@ -747,7 +804,7 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
         <section class="pricing" id="pricing">
             <div class="container">
                 <h2>Open source runs everything.</h2>
-                <p class="lead">Paid plans buy assurance: support, the commercial Fleet modules, and vertical evidence packs. The open packages have no license keys and no telemetry. Priced per organization, per year.</p>
+                <p class="lead">Paid plans buy assurance: support and the commercial Fleet modules, with vertical evidence packs planned. The open packages have no license keys and no telemetry. Priced per organization, per year.</p>
                 
                 <div class="pricing-table">
                     <!-- Header Row -->
@@ -797,11 +854,12 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
                     </div>
                     
                     <div class="pricing-row">
+                        <!-- The AirGapped profile is in the open runtime, so every tier can run air-gapped. -->
                         <div class="pricing-cell">Deployment</div>
-                        <div class="pricing-cell">Self-host</div>
-                        <div class="pricing-cell">Self-host</div>
-                        <div class="pricing-cell">Self-host</div>
-                        <div class="pricing-cell">Self-host / air-gapped</div>
+                        <div class="pricing-cell">Self-host or air-gapped</div>
+                        <div class="pricing-cell">Self-host or air-gapped</div>
+                        <div class="pricing-cell">Self-host or air-gapped</div>
+                        <div class="pricing-cell">Self-host or air-gapped</div>
                     </div>
                     
                     <div class="pricing-row">
