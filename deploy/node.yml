@@ -20,10 +20,10 @@ services:
     # The `sha-<12>` tags only became multi-arch on master builds as of 0983d74. Anything older is
     # amd64-only and fails on an arm64 node with "no matching manifest for linux/arm64".
     #
-    # 0.4.0, verified to carry both linux/amd64 and linux/arm64 (index sha256:4f23e3a8..., pushed by
-    # release.yml run 40259988449 as nexo-cli:0.4.0 and nexo-cli:sha-9c970af197fb, the v0.4.0
+    # 0.4.1, verified to carry both linux/amd64 and linux/arm64 (index sha256:d7b31de2..., pushed by
+    # release.yml run 40582413546 as nexo-cli:0.4.1 and nexo-cli:sha-2dda4f1da245, the v0.4.1
     # release commit).
-    image: ghcr.io/ianfrelinger/nexo-cli@sha256:4f23e3a8d285b0eda9363a4ccc04e3b00d116e161b2810ec9e8611505fcd036e
+    image: ghcr.io/ianfrelinger/nexo-cli@sha256:d7b31de211747b71a954ef117a9c5520fb4a10775286d06c4015a68eba1f75a2
 
     # No `build:` key, deliberately. A node runs a published, signed artifact that CI produced —
     # not whatever happens to be in the working tree of the machine it is standing on.
