@@ -23,10 +23,11 @@ jobs:
   blockers:
     runs-on: ubuntu-24.04
     steps:
-      - uses: IanFrelinger/Ashlar/actions/pr-blockers@master
+      - uses: IanFrelinger/Ashlar/actions/pr-blockers@v0.4.0
 ```
 
-Pin a commit SHA instead of `master` for a reproducible run.
+Pin a release tag such as `v0.4.0`, or a commit SHA, for a reproducible run. The action builds the brick from
+its own checkout, so `@master` picks up brick fixes as soon as they merge.
 
 | Input | Default | Meaning |
 |-------|---------|---------|
@@ -45,8 +46,8 @@ The step fails (exit 2) when the brick gives no answer (tool error, protocol err
 - **It sees its own pending check.** On a `pull_request` trigger this job is itself still running, so the
   verdict usually lists pending checks. Use it as a summary there. To gate on it, trigger it after your
   CI finishes (for example `workflow_run` on your CI workflow, passing the PR URL as `url`).
-- **Built from source on each run.** The host is not on nuget.org yet, so the action builds it from its own
-  checkout (a few minutes). It will switch to `dnx Ashlar.Mcp.Server.Host` once the package ships.
+- **Built from source on each run.** The action builds the host from its own checkout (a few minutes). The
+  host has been on nuget.org since 0.4.0, but the action has not switched to `dnx Ashlar.Mcp.Server.Host` yet.
 - **Branch protection is readable only with admin rights.** With the default token, required checks and
   approvals come back as unknowns and GitHub's `mergeable_state` decides; see the brick's limits in
   [`src/Ashlar.Bricks.GitHub/README.md`](../../src/Ashlar.Bricks.GitHub/README.md#githubblockersbrick).

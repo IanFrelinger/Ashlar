@@ -36,8 +36,8 @@ Pin a version with `Ashlar.Mcp.Server.Host@<version>` in `args`.
 
 ### From a clone
 
-The package is not on nuget.org before the first release that ships it (0.3.0 does not). Until then `dnx`
-answers `ashlar.mcp.server.host is not found in NuGet feeds`, and you run the server from a clone:
+The package has been on nuget.org since 0.4.0. To run unreleased changes, or a version older than 0.4.0 (where
+`dnx` answers `ashlar.mcp.server.host is not found in NuGet feeds`), run the server from a clone:
 
 ```bash
 dotnet build src/Ashlar.Mcp.Server.Host -c Release
