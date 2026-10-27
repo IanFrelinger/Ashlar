@@ -414,7 +414,7 @@ Never say these, in code, docs or marketing (they are also in `docs/marketing/cl
 
 ## 11. Open questions for the owner (ask; don't guess)
 
-1. **Label names.** Are `local-only`, `no-external-model`, `no-web` and `no-network-export` right?
+1. **Label names.** **Answered 2026-10-27: the four names stand (decisions log).** Are `local-only`, `no-external-model`, `no-web` and `no-network-export` right?
    `no-external-model` is deliberately broader than "cloud": it covers any model that is not on this machine,
    in-house servers included.
 2. **The event source.** Should the payload keep its field names and order, write `destinationLabel` as the empty
@@ -432,6 +432,7 @@ Never say these, in code, docs or marketing (they are also in `docs/marketing/cl
 | Date | Applies to | Decision |
 |---|---|---|
 | 2026-10-27 | SPEC-007's data model | **Replace classification levels with privacy labels, and keep the egress guard.** The owner relayed a security reviewer's advice: drop classification levels, frame data controls in privacy terms, and don't make security claims that need proof. The owner then answered the integrator's question in chat with "Yeah replace the classification labels". |
+| 2026-10-27 | §11 Q1, label names | **The four labels keep the names proposed: `local-only`, `no-external-model`, `no-web` and `no-network-export`.** The integrator asked whether to start PR 1 with those four names, and the owner answered "Execute" in chat. |
 
 ## Starting prompt for Claude Code
 
