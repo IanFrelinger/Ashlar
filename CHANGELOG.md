@@ -43,6 +43,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   against, and `scripts/ci/verify-mutation-manifests-current.py` now reads `spec010-*.json` manifests as well as
   `spec007-*.json`.
 
+## [0.4.1] - 2026-10-27
+
+A patch release. It ships `github.blockers` 1.2.0, which re-reads mergeability GitHub had not computed yet, and the
+package README line the official MCP Registry checks before it lists the MCP brick host. No public API changes, and no
+change to what any deployment profile does by default.
+
+### Changed — package READMEs
+
+- `Ashlar.Mcp.Server.Host`'s package README carries `mcp-name: io.github.ianfrelinger/ashlar`, the line the official MCP
+  Registry looks for before it lists a server (#886). 0.4.0 cannot be listed; 0.4.1 can.
+- The repository README, which is packed into every package, leads with the D1 tagline and the 0.4.0 entry points
+  (#883, #884), and says "tested", not "proven", for CI results (#887).
+
 ### Added — "what is blocking this PR?" accuracy study
 
 - `docs/benchmarks/blockers-accuracy.md`: 44 real pull requests in 5 public repositories, graded against ground
