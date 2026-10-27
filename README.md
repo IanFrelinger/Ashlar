@@ -9,7 +9,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](global.json)
 
-> **Local-first .NET runtime for auditable AI workflows you embed — generated code certified before admission, every action on the record.**
+> **The verified execution layer for AI agents in .NET.** Your agents decide what to do. Ashlar decides what is allowed to run, and keeps the receipt.
 
 **Website:** [Marketing landing page](site/) — open-core product site with commercial pricing and integration guides.
 
@@ -18,13 +18,19 @@
 - **Discord:** https://discord.gg/rAyh2jtb8 — community + design-partner support  
 - **GitHub Discussions:** https://github.com/IanFrelinger/Ashlar/discussions — commercial / product Q&A  
 
-Ashlar is a self-hosted .NET runtime for AI workflows you can audit and embed in your products. Build trustworthy AI applications on infrastructure you control.
+Ashlar is a local-first .NET runtime for auditable AI workflows you embed: generated code is certified before admission, and every action is on the record. Build trustworthy AI applications on infrastructure you control.
 
 **Three things you get, each with a command behind it:**
 
 1. **Auditable workflows.** Submit a task and you get the output **and** the record of what ran: the task is stored under an id, and the trust log carries an entry whose `sourceId` is that id (`POST /api/copilot/task` → `GET /api/trust/dashboard`).
 2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → witness (correctness) → mutation testing (does the witness have teeth) → determinism → dependency graph. A brick a host registers itself (`AddAshlarSdk(sdk => sdk.RegisterBrick<T>())`) is not checked: the default host instantiates it into the brick registry without reading a certificate. The gate is a required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has proven is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md).
 3. **Your infrastructure.** Runs as a CLI, an HTTP API, containers, or embedded in your own host. Local-first: local model routing (Ollama; mock/offline behind an explicit `ASHLAR_ALLOW_MOCK=1`) is the default route and cloud providers are opt-in targets; the API refuses to start on a network exposure profile without auth. There is no hosted Ashlar service.
+
+**New in 0.4.0** (25 October 2026): audited GitHub tools for your agents and your CI, all open source.
+
+- **A free "PR blockers" check.** The [`actions/pr-blockers`](actions/pr-blockers/README.md) GitHub Action runs the `github.blockers` brick on pull requests and writes the verdict, and every blocker with its evidence link, to the job summary. No account, no API key, no telemetry: it reads GitHub with the job's own token.
+- **Bricks as audited tools in your editor.** The MCP brick host (`dnx Ashlar.Mcp.Server.Host@0.4.0 --yes`) exposes only the bricks you allowlist to VS Code with GitHub Copilot, Claude Code, Cursor and Visual Studio, and writes one audit record per call, refusals included. It registers its GitHub bricks itself, so the certification gate does not check them (item 2 above). See [`src/Ashlar.Mcp.Server.Host`](src/Ashlar.Mcp.Server.Host/README.md).
+- **Verdicts, not API dumps.** [`Ashlar.Bricks.GitHub`](src/Ashlar.Bricks.GitHub/README.md) answers "what is blocking this pull request or release?" with a verdict and its evidence. In our benchmark, one brick call cost 87–94% less than an agent using the official GitHub MCP server's tools, on three workloads with caching on ([method and results](docs/benchmarks/token-benchmark.md)). The [accuracy study](docs/benchmarks/blockers-accuracy.md) publishes the misses: 1.0.0 named 21 of 111 true blockers, and 1.1.0 named 211 of 211 across 100 pull requests in 10 public repositories.
 
 **See a receipt in 3 commands** (no keys, no decisions):
 
@@ -96,7 +102,7 @@ For layer-by-layer detail see [`docs/Architecture.md`](docs/Architecture.md); fo
 
 ## What Ashlar is not
 
-- **Not a hosted SaaS or chatbot.** You run it (CLI, API, container, or embedded in your app); nothing is sent to a Ashlar-operated service.
+- **Not a hosted SaaS or chatbot.** You run it (CLI, API, container, or embedded in your app); nothing is sent to an Ashlar-operated service.
 - **Not cloud-dependent.** Cloud providers are opt-in execution targets, not requirements. Air-gapped and local-only deployments are first-class.
 - **Not a drop-in IDE plugin by itself.** Ashlar is a runtime and orchestration layer. `extensions/ashlar-vscode/` against a host on the `SecureWorkstation` profile is the IDE path — not `ASHLAR_DEPLOYMENT_PROFILE=air-gapped`. See [`docs/architecture/product-split.md`](docs/architecture/product-split.md).
 - **Local-first by default.** Production network exposure requires auth + TLS; the shipped defaults are HTTP-only with no auth for local use (see the [Quick Start note](#quick-start-5-minutes)).
@@ -318,12 +324,11 @@ Run these from the repo root. Stacks that bind-mount the repository (agent serve
 
 The self-extending agent in these stacks is **Passive by default** (observe only): it is armed by the aggressiveness mode file (`ashlar background-agent mode set --value active`; path `ASHLAR_AGENT_MODE_PATH`), and a missing file or an unrecognised value reads as Passive. See [`docs/SelfHostedAgentServer.md`](docs/SelfHostedAgentServer.md).
 
-Validate a pipeline template from a mounted workspace with the CLI image that exists today (`:0.3.0`).
-The release-commit pin `ghcr.io/ianfrelinger/nexo-cli:0.4.0` does not exist until `v0.4.0` publishes:
+Validate a pipeline template from a mounted workspace with the release CLI image (`:0.4.0`):
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/ianfrelinger/nexo-cli:0.3.0 \
+  ghcr.io/ianfrelinger/nexo-cli:0.4.0 \
   pipeline validate --template /work/path/to/template.json
 ```
 
@@ -363,8 +368,8 @@ Ship Ashlar from published container images and compose files. Host-native scrip
 
 | Image | Use |
 |-------|-----|
-| `ghcr.io/ianfrelinger/nexo-cli:0.4.0` | **Operator tag for this release commit.** The immutable multi-arch tag appears when `v0.4.0` publishes. Until then the image that exists is `:0.3.0`. `deploy/node.yml` stays on the `0.3.0` digest until the post-release re-pin (`docs/RELEASE_RUNBOOK.md`). |
-| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.4.0` after it publishes (or a digest) for anything durable. |
+| `ghcr.io/ianfrelinger/nexo-cli:0.4.0` | **Operator tag for the `v0.4.0` release.** Immutable and multi-arch (linux/amd64 and linux/arm64); `deploy/node.yml` pins its digest. |
+| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.4.0` (or a digest) for anything durable. |
 | Build from `.docker/Dockerfile.quickstart` | Single-container API + portal smoke path with mock-friendly defaults. |
 | Build from `.docker/Dockerfile.api` | API image used by compose stacks. |
 
