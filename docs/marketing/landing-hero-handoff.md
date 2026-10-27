@@ -7,7 +7,7 @@
 - **Subtitle:** The verified execution layer for AI agents in .NET. Your agents decide what to do. Ashlar decides what is allowed to run, and keeps the receipt. Local-first, on infrastructure you control. (Go-to-market decisions log D1, 2026-10-25.)
 - **Primary CTA:** See a receipt → `#see-receipt` (Docker 3-command + TesterQuickstart). Stranger path: clone → run → task receipt. No founder on the call.
 - **Secondary CTA:** Design Partner · $4k / 90 days → `#design-partner`
-- **Honesty:** Task receipt ≠ gate admission. Quickstart proves receipt; gate proven in CI / DP work.
+- **Honesty:** Task receipt ≠ gate admission. Quickstart shows a receipt; the gate is tested in CI / DP work.
 - **Support:** Discord · Discussions
 
 ## Design Partner card

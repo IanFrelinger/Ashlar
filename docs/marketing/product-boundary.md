@@ -90,7 +90,7 @@ Open single-node can be powerful. Companies pay to coordinate many nodes/humans/
 | | |
 |--|--|
 | **Architecture** | Learning Harness + prompt certification are first-class *direction* |
-| **GTM** | Public verbs until Dogfood unlock: **Run · Prove · Control · Share** (not Learn). Prompt packs / Learn as vision with live-vs-roadmap honesty |
+| **GTM** | Public verbs until Dogfood unlock: **Run · Record · Control · Share** (not Learn). Prompt packs / Learn as vision with live-vs-roadmap honesty |
 
 ---
 
@@ -110,7 +110,7 @@ Particular product/org UX, billing, K8s, IDE? → product ring.
 
 **Supporting:** verify before run · reuse with evidence · models interchangeable (behavior in contract) · know what ran (receipts) · re-check at destination · compose from admitted pieces.
 
-**Careful:** deterministic only when the gate proves it · certified = artifact + gate · cross-model = behavioral equivalence (not identical outputs).
+**Careful:** deterministic only when the gate has checked it · certified = artifact + gate · cross-model = behavioral equivalence (not identical outputs).
 
 **CTA:** Design Partner $4k/90d — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
 

@@ -43,7 +43,7 @@ These are **blockers** for any public release candidate tag. Every item referenc
 - Model proposing scale boundary — limitation 5; mechanism closed, breadth (multiple objectives/tasks) is host-operations work
 
 **What sales/marketing may claim:**
-- ✅ "Certified artifacts require passing analyzer fence, witness (correctness), mutation testing, determinism — gate is CI-proven"
+- ✅ "Certified artifacts require passing analyzer fence, witness (correctness), mutation testing, determinism — the gate is a required CI check"
 - ✅ "Trust log auditable via `/api/trust/dashboard`; every decision on the record"
 - ✅ "Fail-closed admission: proposals face real gate, uncertified code rejected"
 

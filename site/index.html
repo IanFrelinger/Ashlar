@@ -618,7 +618,7 @@
                     <div class="bento-item large">
                         <h3>Auditable workflows</h3>
                         <p>Submit a task and you get the output <strong>and</strong> a <strong>receipt</strong> of what ran. Every task is stored under an id, and the trust log carries an entry whose <code>sourceId</code> is that id.</p>
-                        <p class="honesty">This is the audit trail — proof of what ran — not by itself an admit-before-run certificate.</p>
+                        <p class="honesty">This is the audit trail — a record of what ran — not by itself an admit-before-run certificate.</p>
                         <div class="code-preview">
 <span class="comment"># Submit an audited task</span>
 POST /api/copilot/task
@@ -641,9 +641,9 @@ GET /api/trust/dashboard
                     <div class="bento-item certified">
                         <span class="cert-badge">Admission gate</span>
                         <h3>Checked before it runs</h3>
-                        <p>Behaviors Ashlar—or a model—proposes only become trusted after the admission gate (analyzer fence → witness → mutation testing → determinism checks when the gate proves them).</p>
-                        <p style="margin-top: 1rem; font-size: 0.95rem; color: var(--olive);">The gate is a required CI check on <code>master</code>. Every ADMIT/REJECT it has proven is a row in <code>docs/certification-evidence.md</code>.</p>
-                        <p class="honesty">A task <strong>receipt</strong> (audit trail) is not the same as gate <strong>admission</strong>. The quickstart shows a receipt; the gate is proven in CI and design-partner work.</p>
+                        <p>Behaviors Ashlar—or a model—proposes only become trusted after the admission gate (analyzer fence → witness → mutation testing → determinism checks where they apply).</p>
+                        <p style="margin-top: 1rem; font-size: 0.95rem; color: var(--olive);">The gate is a required CI check on <code>master</code>. Every ADMIT/REJECT it has reached is a row in <code>docs/certification-evidence.md</code>.</p>
+                        <p class="honesty">A task <strong>receipt</strong> (audit trail) is not the same as gate <strong>admission</strong>. The quickstart shows a receipt; the gate is tested in CI and in design-partner work.</p>
                     </div>
 
                     <!-- Your Infrastructure -->
