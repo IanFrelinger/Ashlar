@@ -25,7 +25,7 @@ The site follows the official brand guidelines from `assets/brand/BRAND.md`:
 - Large, clean typography with high contrast
 - Intentional whitespace
 - Official brand assets only (SVGs from `assets/brand/`)
-- Real UI/code/terminal snippets as proof (`ashlar-terminal-preview.svg`)
+- Real UI/code/terminal snippets as evidence (`ashlar-terminal-preview.svg`)
 - Transparent pricing comparison table
 - Fast static HTML/CSS
 - Modern developer-tool aesthetic (2026 standard)

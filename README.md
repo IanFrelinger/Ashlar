@@ -23,7 +23,7 @@ Ashlar is a local-first .NET runtime for auditable AI workflows you embed: gener
 **Three things you get, each with a command behind it:**
 
 1. **Auditable workflows.** Submit a task and you get the output **and** the record of what ran: the task is stored under an id, and the trust log carries an entry whose `sourceId` is that id (`POST /api/copilot/task` → `GET /api/trust/dashboard`).
-2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → witness (correctness) → mutation testing (does the witness have teeth) → determinism → dependency graph. A brick a host registers itself (`AddAshlarSdk(sdk => sdk.RegisterBrick<T>())`) is not checked: the default host instantiates it into the brick registry without reading a certificate. The gate is a required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has proven is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md).
+2. **Certified artifacts.** Code that Ashlar — or a model — proposes only becomes trusted after the certification gate: analyzer fence → witness (correctness) → mutation testing (does the witness have teeth) → determinism → dependency graph. A brick a host registers itself (`AddAshlarSdk(sdk => sdk.RegisterBrick<T>())`) is not checked: the default host instantiates it into the brick registry without reading a certificate. The gate is a required CI check on `master` (`cert-gate`), and every ADMIT/REJECT it has reached is a row in [`docs/certification-evidence.md`](docs/certification-evidence.md).
 3. **Your infrastructure.** Runs as a CLI, an HTTP API, containers, or embedded in your own host. Local-first: local model routing (Ollama; mock/offline behind an explicit `ASHLAR_ALLOW_MOCK=1`) is the default route and cloud providers are opt-in targets; the API refuses to start on a network exposure profile without auth. There is no hosted Ashlar service.
 
 **New in 0.4.0** (25 October 2026): audited GitHub tools for your agents and your CI, all open source.
@@ -128,7 +128,7 @@ The trust loop is *how* "auditable" and "certified" are true rather than asserte
 
 Status, honestly:
 
-- **The gate is CI-proven.** `cert-gate` (`bash scripts/run-cert-gate.sh`) is a required status check on `master` alongside build integrity (`build-core`), shell syntax verification (`shell-lint`), docs link validation (`lychee (README + docs)`), and the full-platform readiness gate (`Readiness summary`); each ADMIT/REJECT it has proven is a ledger row with the CI run in [`docs/certification-evidence.md`](docs/certification-evidence.md).
+- **The gate runs in CI.** `cert-gate` (`bash scripts/run-cert-gate.sh`) is a required status check on `master` alongside build integrity (`build-core`), shell syntax verification (`shell-lint`), docs link validation (`lychee (README + docs)`), and the full-platform readiness gate (`Readiness summary`); each ADMIT/REJECT it has reached is a ledger row with the CI run in [`docs/certification-evidence.md`](docs/certification-evidence.md).
 - **The in-process autonomy loop is spike-grade and ships in hold mode.** `HoldAdmission=true` by default: it certifies fully and admits nothing until you flip it. Its evidence is local spike runs (ledger rows P2 through S5), it needs Docker plus a local Ollama model, and the ledger records the holes it exposed (including an equivalent-mutant soundness gap in S5). Do not read "certified" as "safe to run unattended" yet.
 - **The operator-governed self-extend path (A0–A5) is the supported one.** A node's background-agent extender proposes changes against its own policy, and every proposal faces the same admission gate — with a real in-process **build course** (a proposal that does not compile is never admissible) and, when applied through the shipped DI registration, a **post-apply canary that auto-rolls-back** a change that fails verification. That canary is not unconditional: `SelfExtendAdmissionBridge` takes it as an optional parameter defaulting to `null`, and an admitted proposal is rolled back only `when verification is not null`. `AddCertificationInfrastructure` supplies one, so the supported wiring has it — a host constructing the bridge by hand and passing nothing gets no canary and no rollback. It ships **sealed** (a fresh project changes nothing after deploy). You raise the dial deliberately, one node at a time, with `ashlar policy set self_extend proposing` (propose & hold for review) or `self-extending` (auto-admit within budget, canary-gated). Two safety front doors: `ashlar background-agent report` (what ran overnight, and what was held/admitted/reverted) and `ashlar background-agent disarm` (emergency stop → Passive, no restart). See [`docs/RunningASelfExtendingNode.md`](docs/RunningASelfExtendingNode.md).
 
@@ -137,7 +137,7 @@ Where to read and what to run:
 | Want | Go to |
 |------|-------|
 | The invariants and the gate legs | [`docs/trust-loop/ashlar-trust-loop-spec.md`](docs/trust-loop/ashlar-trust-loop-spec.md) |
-| What has actually been proven, and how | [`docs/certification-evidence.md`](docs/certification-evidence.md) (rows cite the test or spike and the CI run; "Known v0 limitations" at the end) |
+| What has actually been tested, and how | [`docs/certification-evidence.md`](docs/certification-evidence.md) (rows cite the test or spike and the CI run; "Known v0 limitations" at the end) |
 | The governed model pipeline every proposal flows through | [`docs/governed-pipeline.md`](docs/governed-pipeline.md) |
 | A complete, tracked objective + witness + recorded proposal | [`samples/autonomy-objectives/README.md`](samples/autonomy-objectives/README.md) |
 | Fly one real iteration yourself (Docker; Ollama only for `-Live`/`-SweepLive`; a spike, not a supported entry point) | [`spikes/autonomy-first-flight/run-first-flight.ps1`](spikes/autonomy-first-flight/run-first-flight.ps1) — read [`spikes/README.md`](spikes/README.md) first |
@@ -148,7 +148,7 @@ Where to read and what to run:
 
 - **Embed and build on it.** Distribute Ashlar as NuGet packages, HTTP API, CLI containers, or source integration. Embed the runtime in your application via `services.AddAshlar()` for AI workflow execution with built-in audit trails and certification. Two limits: a brick you register yourself runs without a certificate check unless you call the verifier ([`consumer-template/CONSUMING.md`](consumer-template/CONSUMING.md#certification-what-this-template-binds-and-what-it-does-not)), and the gate store, ledger and `.ashpkg` support (`Ashlar.Manifest`) is not published as a NuGet library: it ships only inside the `Ashlar.CLI` and `Ashlar.API` hosts.
 - **Control before capability.** Nothing is trusted because a model said so: proposals pass a gate, execution can be confined to attested containers, and admission is held until an operator flips it. Trust tiers, policy packs, and pause/resume sit on the execution path, not beside it.
-- **Proof, not claims.** The audit trail is queryable (`/api/trust/dashboard`, `/api/copilot/tasks`), the certificate is checkable (`cert-gate`), and the evidence ledger cites the run that proved each row.
+- **Evidence, not claims.** The audit trail is queryable (`/api/trust/dashboard`, `/api/copilot/tasks`), the certificate is checkable (`cert-gate`), and the evidence ledger cites the run behind each row.
 - **Data sovereignty.** Cloud providers are opt-in execution targets, not dependencies. Air-gapped and self-hosted deployments are first-class; the API fails closed on network exposure without auth.
 - **Composable distribution.** Use the kernel via NuGet, run the CLI/API directly, deploy containers/compose, or federate trusted peers through mesh.
 
@@ -170,7 +170,7 @@ docker run --rm -p 127.0.0.1:8080:8080 ashlar:quickstart
 
 Open `http://localhost:8080`. The portal loads straight to a working experience. Post a task (via the chat or run panel), see your first receipt with plain-English audit entries. No provider fork, no setup wizard — the mock is already baked in.
 
-> **Honesty:** This receipt is a **post-execution audit record** (not admit-before-run). Mock provider = smoke-only plumbing, not production gate proof. Gate admission proof: CI `cert-gate`, design partner demos, admit/reject ledger.
+> **Honesty:** This receipt is a **post-execution audit record** (not admit-before-run). Mock provider = smoke-only plumbing, not production gate evidence. Gate admission evidence: CI `cert-gate`, design partner demos, admit/reject ledger.
 
 The image has no auth; publish on all interfaces (`-p 8080:8080`) only behind auth + TLS — see [Security Defaults](#security-defaults) and `SECURITY.md`.
 
@@ -194,7 +194,7 @@ bash scripts/demo-receipt.sh
 
 Starts the API with mock provider, posts a canned task, prints a receipt, and gives you the URLs. Fails fast if the SDK is missing — does NOT silently install .NET.
 
-> **Honesty:** Receipt = post-execution audit record, not admit-before-run. Mock = smoke-only plumbing, not gate proof.
+> **Honesty:** Receipt = post-execution audit record, not admit-before-run. Mock = smoke-only plumbing, not gate evidence.
 
 ### Lane 1 — Try (run the portal)
 

@@ -23,7 +23,7 @@ One page. If a claim isn't here, don't invent it.
 - Compose from admitted pieces  
 
 **Careful (honesty):**
-- "Deterministic" only when the gate proves it for that behavior  
+- "Deterministic" only when the gate has checked it for that behavior  
 - "Certified" = artifact + gate (not a diploma vibe for friends — prefer *checked before it runs*)  
 - Cross-model = **behavioral equivalence** (same required behavior), not identical outputs  
 
@@ -53,7 +53,7 @@ Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety ch
 - Token savings — only with its scope and a link to [`docs/benchmarks/token-benchmark.md`](../benchmarks/token-benchmark.md) (decisions log D9): "in our benchmark, one brick call cost 87–94% less than an agent using the official GitHub MCP server's tools, on three workloads with caching on" (not the 96–98% raw-API figure). Never as a general figure  
 - Cloud PAYG — **waitlist only**  
 - Human-governed self-extend — sealed/hold by default (not unattended GA)  
-- **Prompt certification (vision):** prompt packs verified for **same required behavior** across approved models (witness/tests) — not byte-identical output; swap models safely when proven  
+- **Prompt certification (vision):** prompt packs verified for **same required behavior** across approved models (witness/tests) — not byte-identical output; swap models once the gate has checked the swap  
 - Learning Harness — architecture / principle; **not** shipped GTM unlock  
 - Protocols (MCP/A2A/gRPC), adapters, orchestration mechanics — supported, **not headline**
 
@@ -76,8 +76,11 @@ Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety ch
 | Dogfood PASS from CI artifacts alone | Artifacts ≠ landed ledger rows |
 | lim-7/8/9 closed ⇒ autonomy unlocked | Cert-path ≠ E2E unlock |
 | Paid tiers weaken the gate | Permanent covenant |
+| Classification levels, clearances, compartments, Bell–LaPadula or "multilevel security", a "reference monitor", cross-domain, or safe for classified or compartmented work | These terms promise evaluated assurance: proof that data can't leak between levels in every state and under attack. Ashlar has tests, not proofs. Describe data controls in privacy terms (personal data, local-only, approved destinations) and as checks, not guarantees |
+| "Can't leak", "secrets never land on disk", "secrets stay secret" | Absolute confidentiality needs proof. Say what the mechanism does: audit records keep hashes of arguments and results, not the values |
+| "Proven" or "proof" for a CI or test result | Tests check the cases they cover. Say tested or checked, or "listed with the CI run that produced it" |
 
-**Public verbs until Dogfood unlock:** **Run · Prove · Control · Share** *(not Learn)*
+**Public verbs until Dogfood unlock:** **Run · Record · Control · Share** *(not Learn)*
 
 ### Dogfood unlock (before Learn / autonomy marketing)
 1. Scorecard windows (see `docs/dogfood-scorecard.md`)  
