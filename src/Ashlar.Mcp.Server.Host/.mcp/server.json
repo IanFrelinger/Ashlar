@@ -1,12 +1,12 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "description": "Ashlar bricks over MCP: allowlisted, deterministic .NET bricks with one audit record per call.",
-  "name": "io.github.ianfrelinger/ashlar",
+  "name": "io.github.IanFrelinger/ashlar",
   "version": "__PACKAGE_VERSION__",
   "packages": [
     {
       "registryType": "nuget",
-      "registryBaseUrl": "https://api.nuget.org",
+      "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "Ashlar.Mcp.Server.Host",
       "version": "__PACKAGE_VERSION__",
       "transport": {

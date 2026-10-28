@@ -29,7 +29,7 @@ Ashlar is a local-first .NET runtime for auditable AI workflows you embed: gener
 **New in 0.4.0** (25 October 2026): audited GitHub tools for your agents and your CI, all open source.
 
 - **A free check for PR blockers.** The [`actions/pr-blockers`](actions/pr-blockers/README.md) GitHub Action runs the `github.blockers` brick on pull requests and writes the verdict, and every blocker with its evidence link, to the job summary. No account, no API key, no telemetry: it reads GitHub with the job's own token.
-- **Bricks as audited tools in your editor.** The MCP brick host (`dnx Ashlar.Mcp.Server.Host@0.4.1 --yes`) exposes only the bricks you allowlist to VS Code with GitHub Copilot, Claude Code, Cursor and Visual Studio, and writes one audit record per call, refusals included. It registers its GitHub bricks itself, so the certification gate does not check them (item 2 above). See [`src/Ashlar.Mcp.Server.Host`](src/Ashlar.Mcp.Server.Host/README.md).
+- **Bricks as audited tools in your editor.** The MCP brick host (`dnx Ashlar.Mcp.Server.Host@0.4.2 --yes`) exposes only the bricks you allowlist to VS Code with GitHub Copilot, Claude Code, Cursor and Visual Studio, and writes one audit record per call, refusals included. It registers its GitHub bricks itself, so the certification gate does not check them (item 2 above). See [`src/Ashlar.Mcp.Server.Host`](src/Ashlar.Mcp.Server.Host/README.md).
 - **Verdicts, not API dumps.** [`Ashlar.Bricks.GitHub`](src/Ashlar.Bricks.GitHub/README.md) answers "what is blocking this pull request or release?" with a verdict and its evidence. In our benchmark, one brick call cost 87–94% less than an agent using the official GitHub MCP server's tools, on three workloads with caching on ([method and results](docs/benchmarks/token-benchmark.md)). The [accuracy study](docs/benchmarks/blockers-accuracy.md) publishes the misses: 1.0.0 named 21 of 111 true blockers, and 1.1.0 named 211 of 211 across 100 pull requests in 10 public repositories.
 
 **See a receipt in 3 commands** (no keys, no decisions):
@@ -324,11 +324,11 @@ Run these from the repo root. Stacks that bind-mount the repository (agent serve
 
 The self-extending agent in these stacks is **Passive by default** (observe only): it is armed by the aggressiveness mode file (`ashlar background-agent mode set --value active`; path `ASHLAR_AGENT_MODE_PATH`), and a missing file or an unrecognised value reads as Passive. See [`docs/SelfHostedAgentServer.md`](docs/SelfHostedAgentServer.md).
 
-Validate a pipeline template from a mounted workspace with the release CLI image (`:0.4.1`):
+Validate a pipeline template from a mounted workspace with the release CLI image (`:0.4.2`):
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/ianfrelinger/nexo-cli:0.4.1 \
+  ghcr.io/ianfrelinger/nexo-cli:0.4.2 \
   pipeline validate --template /work/path/to/template.json
 ```
 
@@ -368,8 +368,8 @@ Ship Ashlar from published container images and compose files. Host-native scrip
 
 | Image | Use |
 |-------|-----|
-| `ghcr.io/ianfrelinger/nexo-cli:0.4.1` | **Operator tag for the `v0.4.1` release.** Immutable and multi-arch (linux/amd64 and linux/arm64); `deploy/node.yml` pins its digest. |
-| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.4.1` (or a digest) for anything durable. |
+| `ghcr.io/ianfrelinger/nexo-cli:0.4.2` | **Operator tag for the `v0.4.2` release.** Immutable and multi-arch (linux/amd64 and linux/arm64); `deploy/node.yml` pins its digest. |
+| `ghcr.io/ianfrelinger/nexo-cli:latest` | Rolling tag, republished on every `master` push — fine for "just try it", but it moves and can be GC'd, so pin `:0.4.2` (or a digest) for anything durable. |
 | Build from `.docker/Dockerfile.quickstart` | Single-container API + portal smoke path with mock-friendly defaults. |
 | Build from `.docker/Dockerfile.api` | API image used by compose stacks. |
 

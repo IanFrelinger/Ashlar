@@ -1,6 +1,6 @@
 # Ashlar.Mcp.Server.Host
 
-<!-- mcp-name: io.github.ianfrelinger/ashlar -->
+<!-- mcp-name: io.github.IanFrelinger/ashlar -->
 
 An MCP server over stdio that exposes **Ashlar bricks** (typed, deterministic .NET units of work) and
 read-only repository tools to any MCP client: VS Code / GitHub Copilot, Claude Code, Cursor, Visual Studio.
