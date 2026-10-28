@@ -2,7 +2,7 @@
 
 Falsifiable proof ledger for atom certification, general generation, composition certification, and dogfood. Each row cites how it was proven and the CI run (when applicable).
 
-Version pin: `0.4.1` (`ci/published-version` and repo `VERSION`, set together on the release commit). nuget.org still lists `0.4.0` until `v0.4.1` is published. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
+Version pin: `0.4.2` (`ci/published-version` and repo `VERSION`, set together on the release commit). nuget.org still lists `0.4.1` until `v0.4.2` is published. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
 
 ## Proof index
 

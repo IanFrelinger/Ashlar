@@ -186,12 +186,14 @@ Trusted Publishing: register **`release.yml`** and **`release-nuget.yml`** as ne
 2. Workflow **Summary** — image `sha-*` tags, NuGet version, cross-verify status.
 3. Artifact **`nuget-packages-<version>`** — includes **`nuget-publish-manifest.json`** and per-`.nupkg` **`.sha256.txt`** for audit / manual hash checks.
 4. Optional **`nuget-sbom-<version>`** if **`NUGET_RELEASE_SBOM=true`** on the repo.
-5. **List the MCP host in the official MCP Registry** (owner: needs a GitHub login). Once nuget.org shows the new
-   `Ashlar.Mcp.Server.Host` version, take `.mcp/server.json` out of that `.nupkg` (the pack step fills in the
-   version), save it as `server.json` in an empty folder, and there run `mcp-publisher login github`, then
-   `mcp-publisher publish`. The registry confirms ownership by finding `mcp-name: io.github.ianfrelinger/ashlar` in
-   the package README; that line ships from the first release after 0.4.0, so 0.4.0 itself cannot be listed. Check
-   with `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ianfrelinger/ashlar"`.
+5. **List the MCP host in the official MCP Registry** (owner: needs a GitHub login; `mcp-publisher login github`
+   prints a code to approve at github.com/login/device). Once nuget.org shows the new `Ashlar.Mcp.Server.Host`
+   version, take `.mcp/server.json` out of that `.nupkg` (the pack step fills in the version), save it as
+   `server.json` in an empty folder, and there run `mcp-publisher login github`, then `mcp-publisher publish`.
+   Names are case-sensitive: a GitHub login grants only `io.github.IanFrelinger/*`, and the registry confirms
+   ownership by finding exactly `mcp-name: io.github.IanFrelinger/ashlar` in the package README. That spelling
+   ships from 0.4.2, so 0.4.0 and 0.4.1 cannot be listed. Check with
+   `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IanFrelinger/ashlar"`.
 
 ## If something went wrong
 
