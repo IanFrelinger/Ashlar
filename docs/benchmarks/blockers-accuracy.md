@@ -114,7 +114,7 @@ These three sources agreed on every pull request in this sample where more than 
 
 On all 24 pull requests where GitHub's `reviewDecision` was `REVIEW_REQUIRED`, the brick reported "Required
 approvals" as an unknown ("Branch protection is not readable with this token… the pull request has 0
-approving review(s)"), not as a blocker. Examples: [modelcontextprotocol/csharp-sdk#1934], [cli/cli#14816],
+approving review(s)"), not as a blocker. Examples: [modelcontextprotocol/csharp-sdk#1934], cli/cli#14816,
 [dotnet/efcore#39405], [microsoft/semantic-kernel#14661]; the full list is in the per-PR table below. **Cause:**
 the brick reads the approval count only from branch protection. **Fix:** GraphQL `reviewDecision`, or the
 `pull_request` rule's `required_approving_review_count` from `rules/branches/{base}`. The native arm found 18 of
@@ -123,7 +123,7 @@ blocker, and the brick's whole answer was "blocked by a branch rule this read co
 
 ### F3. Required checks that never ran are missed, or reported as an unidentified rule (0 of 66 found)
 
-On [cli/cli#14816], [dotnet/efcore#39405] and [microsoft/semantic-kernel#14661], the brick's only blocker was
+On cli/cli#14816, [dotnet/efcore#39405] and [microsoft/semantic-kernel#14661], the brick's only blocker was
 "GitHub reports merging as blocked by a branch rule this read could not identify". GitHub names the rule
 publicly: for example, cli/cli requires `build (macos-latest)`, `build (ubuntu-latest)` and
 `build (windows-latest)`, and none had run on #14816's head commit. On the other 10 pull requests with
@@ -295,7 +295,7 @@ were no fabricated or unsupported claims.
 | [dotnet/efcore#38960] | blocked-failing-ci | blocked: review_required | 0 / 1 / 1 | 1 / 0 / 0 |
 | [dotnet/efcore#39407] | blocked-pending-ci | blocked: review_required, check_pending | 1 / 1 / 3 | 2 / 0 / 0 |
 | [microsoft/semantic-kernel#14641] | blocked-pending-ci | blocked: behind, review_required, check_pending ×3 | 1 / 4 / 1 | 2 / 3 / 0 |
-| [cli/cli#14816] | blocked-review | blocked: review_required, check_pending ×3 | 0 / 4 / 1 | 3 / 1 / 0 |
+| cli/cli#14816 (removed upstream) | blocked-review | blocked: review_required, check_pending ×3 | 0 / 4 / 1 | 3 / 1 / 0 |
 | [dotnet/efcore#39405] | blocked-review | blocked: review_required, check_pending ×12 | 0 / 13 / 1 | 13 / 0 / 0 |
 | [microsoft/semantic-kernel#14661] | blocked-review | blocked: review_required, check_pending ×3 | 0 / 4 / 1 | 1 / 3 / 0 |
 | [modelcontextprotocol/csharp-sdk#1934] | blocked-review | blocked: review_required | 0 / 1 / 1 | 1 / 0 / 0 |
@@ -316,6 +316,10 @@ were no fabricated or unsupported claims.
 | [modelcontextprotocol/python-sdk#3754] | closed | closed | 0 / 0 / 0 | 0 / 0 / 0 |
 | [cli/cli#11926] | merged | merged | 0 / 0 / 0 | 0 / 0 / 0 |
 
+cli/cli#14816 has since been removed from GitHub: it answers 404 as a pull request and as an issue (checked
+27 October 2026), so it is cited without a link. Its row, and the findings above that cite it, come from the
+captured snapshot.
+
 [cli/cli#11926]: https://github.com/cli/cli/pull/11926
 [cli/cli#12942]: https://github.com/cli/cli/pull/12942
 [cli/cli#13013]: https://github.com/cli/cli/pull/13013
@@ -323,7 +327,6 @@ were no fabricated or unsupported claims.
 [cli/cli#13899]: https://github.com/cli/cli/pull/13899
 [cli/cli#14196]: https://github.com/cli/cli/pull/14196
 [cli/cli#14716]: https://github.com/cli/cli/pull/14716
-[cli/cli#14816]: https://github.com/cli/cli/pull/14816
 [dotnet/efcore#38960]: https://github.com/dotnet/efcore/pull/38960
 [dotnet/efcore#39321]: https://github.com/dotnet/efcore/pull/39321
 [dotnet/efcore#39350]: https://github.com/dotnet/efcore/pull/39350
