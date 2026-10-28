@@ -23,10 +23,10 @@ jobs:
   blockers:
     runs-on: ubuntu-24.04
     steps:
-      - uses: IanFrelinger/Ashlar/actions/pr-blockers@v0.4.1
+      - uses: IanFrelinger/Ashlar/actions/pr-blockers@v0.4.2
 ```
 
-Pin a release tag such as `v0.4.1`, or a commit SHA, for a reproducible run. The action builds the brick from
+Pin a release tag such as `v0.4.2`, or a commit SHA, for a reproducible run. The action builds the brick from
 its own checkout, so `@master` picks up brick fixes as soon as they merge.
 
 | Input | Default | Meaning |

@@ -43,6 +43,28 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   against, and `scripts/ci/verify-mutation-manifests-current.py` now reads `spec010-*.json` manifests as well as
   `spec007-*.json`.
 
+## [0.4.2] - 2026-10-28
+
+A patch release so the official MCP Registry can list the MCP brick host. Only its `.mcp/server.json` and package
+README change. There are no code changes, no public API changes, and no change to what any deployment profile does
+by default.
+
+### Fixed — the MCP Registry name and `server.json`
+
+- The MCP brick host's registry name is now `io.github.IanFrelinger/ashlar`, in the GitHub account's exact
+  capitals, both in `.mcp/server.json` and in the `mcp-name:` line of `Ashlar.Mcp.Server.Host`'s package README.
+  The registry matches names case-sensitively. A GitHub login grants only `io.github.IanFrelinger/*`, and the
+  README line must repeat the name exactly. A publish of the lowercase `io.github.ianfrelinger/ashlar` from
+  0.4.1 was refused with a 403.
+- `.mcp/server.json` names NuGet by its v3 service index, `https://api.nuget.org/v3/index.json`, the only base
+  URL the registry accepts for `nuget` packages, and moves to the current schema, `2025-12-11`. Neither change
+  alters what an MCP client runs.
+
+### Changed — docs
+
+- `docs/benchmarks/blockers-accuracy.md` cites cli/cli#14816, since removed from GitHub, without a link (#892).
+- `docs/RELEASE_RUNBOOK.md`'s MCP Registry step names the case-sensitive rule and the corrected name.
+
 ## [0.4.1] - 2026-10-27
 
 A patch release. It ships `github.blockers` 1.2.0, which re-reads mergeability GitHub had not computed yet, and the
@@ -52,7 +74,9 @@ change to what any deployment profile does by default.
 ### Changed — package READMEs
 
 - `Ashlar.Mcp.Server.Host`'s package README carries `mcp-name: io.github.ianfrelinger/ashlar`, the line the official MCP
-  Registry looks for before it lists a server (#886). 0.4.0 cannot be listed; 0.4.1 can.
+  Registry looks for before it lists a server (#886). 0.4.0 cannot be listed. **Correction:** 0.4.1 cannot be
+  listed either. The registry matches names case-sensitively, and this lowercase name is not the GitHub
+  account's spelling. 0.4.2 fixes it.
 - The repository README, which is packed into every package, leads with the D1 tagline and the 0.4.0 entry points
   (#883, #884), and says "tested", not "proven", for CI results (#887).
 
