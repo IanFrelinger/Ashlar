@@ -36,6 +36,11 @@ on:
     paths:
       - ".github/workflows/full-platform-readiness-gate.yml"
       - ".docker/Dockerfile.*"
+      # The CLI image's entrypoint (.docker/Dockerfile.cli copies it in) and the private-mesh demo that the
+      # docker-cli-image lane runs on that image. Before these, editing either one skipped the lane that tests it.
+      - ".docker/node-entrypoint.sh"
+      - "scripts/demo/private-mesh-demo.sh"
+      - "deploy/compose/docker-compose.private-mesh-demo.yml"
       - "scripts/setup/**"
       - "scripts/install/**"
       - "application/src/Ashlar.CLI/**"
@@ -198,6 +203,10 @@ jobs:
           READINESS_PATHS=(
             ".github/workflows/full-platform-readiness-gate.yml"
             ".docker/Dockerfile.*"
+            # The CLI image's entrypoint and the private-mesh demo - see the push trigger above.
+            ".docker/node-entrypoint.sh"
+            "scripts/demo/private-mesh-demo.sh"
+            "deploy/compose/docker-compose.private-mesh-demo.yml"
             "scripts/setup/**"
             "scripts/install/**"
             "application/src/Ashlar.CLI/**"
@@ -615,7 +624,7 @@ jobs:
           retention-days: 14
 
   # ─────────────────────────────────────────────────────────────────────
-  # Docker CLI image: build + discover + dry-run
+  # Docker CLI image: build + discover + the private-mesh demo
   # ─────────────────────────────────────────────────────────────────────
   docker-cli-image:
     name: "Docker CLI image — build · smoke · discover"
@@ -644,6 +653,16 @@ jobs:
           docker run --rm \
             -e ASHLAR_ALLOW_MOCK=1 \
             ashlar-cli:readiness bootstrap check --json
+
+      # Three nodes of this image share one signed package over HTTP (docs/PrivateMeshDemo.md): node-a seals
+      # and serves it, node-b trusts node-a and holds it for review, node-c refuses it, and a tampered copy fails
+      # verification. The step fails when any check does. It takes under a minute; the timeout bounds a hung
+      # compose. reusable-container-publish.yml runs the same demo on the pushed image before tagging it.
+      - name: "Smoke — private mesh demo"
+        timeout-minutes: 10
+        env:
+          ASHLAR_IMAGE: ashlar-cli:readiness
+        run: bash scripts/demo/private-mesh-demo.sh
 
   # ─────────────────────────────────────────────────────────────────────
   # All production Docker images: build + smoke

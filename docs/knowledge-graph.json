@@ -17,7 +17,7 @@
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 833,
     "declared_facts": 5461,
-    "workflows": 63
+    "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -8867,14 +8867,6 @@
     {
       "file": ".github/workflows/pr-blockers-action.yml",
       "name": "PR blockers action",
-      "triggers": [
-        "pull_request",
-        "workflow_dispatch"
-      ]
-    },
-    {
-      "file": ".github/workflows/private-mesh-demo.yml",
-      "name": "Private mesh demo",
       "triggers": [
         "pull_request",
         "workflow_dispatch"

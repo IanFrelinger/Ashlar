@@ -3,7 +3,8 @@
 #
 # Tag layout per image:
 #   sha-<12>  immutable, pushed on every run and smoke-tested before anything else is tagged
-#   latest    master/main only, rebuilt (nexo-cli: linux/amd64 + linux/arm64 unless skip_multi_arch)
+#             (nexo-cli: --help, then the private-mesh demo on amd64)
+#   latest   master/main only, rebuilt (nexo-cli: linux/amd64 + linux/arm64 unless skip_multi_arch)
 #   X.Y.Z     v* tags only; a manifest retag of the smoke-tested sha-<12> digest, never a rebuild,
 #             so it resolves to exactly the bytes that passed smoke (nexo-cli's sha tag is built
 #             multi-arch on v* tags so the semver tag covers the same platforms as :latest)
@@ -110,6 +111,15 @@ jobs:
         shell: bash
         run: |
           docker run --rm "${SHA_TAG}" --help
+
+      # Three nodes of the image just pushed share one signed package (scripts/demo/private-mesh-demo.sh,
+      # docs/PrivateMeshDemo.md). It runs before :latest is rebuilt or a version tag is pointed at this
+      # digest, so a commit that breaks sealing, serving, pulling, trust or tamper detection publishes
+      # neither. The runner is amd64, so the arm64 image is not exercised.
+      - name: Private mesh demo against the published image
+        timeout-minutes: 10
+        shell: bash
+        run: ASHLAR_IMAGE="${SHA_TAG}" bash scripts/demo/private-mesh-demo.sh
 
       - name: Publish latest (amd64 + arm64) on main
         if: >-

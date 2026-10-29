@@ -25,8 +25,10 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   edited after sealing fails verification. It runs the published 0.4.2 image by default and takes about 20 seconds.
   The walkthrough, `docs/PrivateMeshDemo.md`, also says what the demo doesn't show: the receiving node uses the
   origin's signed gate results and doesn't re-run the tests.
-- **CI:** the `Private mesh demo` workflow builds the node image from the pull request and runs the demo when mesh,
-  packaging or gate code changes. No CI job ran two nodes over HTTP before.
+- **CI:** the readiness gate's Docker CLI image lane runs the demo on the image it builds from a pull request, so a
+  change that breaks sharing between nodes fails `Readiness summary` and can't merge. Editing the image's entrypoint
+  or the demo now triggers that lane too. Image publishing runs the demo on the pushed `sha-` image before `:latest`
+  or a version tag moves. No CI job ran two nodes over HTTP before.
 
 ### Fixed — docs that overstated federation
 
