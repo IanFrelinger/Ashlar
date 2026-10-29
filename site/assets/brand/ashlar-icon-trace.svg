@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- The Trace mark alone, centred on cream; the same paths as in ashlar-logo-flat.svg. -->
+  <rect width="512" height="512" fill="#F7F2E5"/>
+  <g transform="translate(38.5 44.5) scale(1.5)"><path d="M145 0 L193 45 L135 103 L164 130 L164 138 L83 138 L40 180 L0 140 Z" fill="#1b2b22"/><path d="M202 54 L290 140 L202 224 L144 167 L144 153 L182 153 L182 123 L158 99 Z" fill="#76896c"/><path d="M89 154 L131 154 L131 176 L190 236 L143 282 L50 190 Z" fill="#b78543"/></g>
+</svg>

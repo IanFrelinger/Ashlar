@@ -10,8 +10,5 @@
     <text x="40" y="140" letter-spacing="0.01em">Ashlar</text>
   </g>
 
-  <g transform="translate(710 110)">
-    <circle cx="0" cy="0" r="42" fill="#F7F2E5" stroke="#2B2420" stroke-width="19"/>
-    <circle cx="0" cy="0" r="16" fill="#2B2420"/>
-  </g>
+  <g transform="translate(658.5 60) scale(0.355)"><path d="M145 0 L193 45 L135 103 L164 130 L164 138 L83 138 L40 180 L0 140 Z" fill="#1b2b22"/><path d="M202 54 L290 140 L202 224 L144 167 L144 153 L182 153 L182 123 L158 99 Z" fill="#76896c"/><path d="M89 154 L131 154 L131 176 L190 236 L143 282 L50 190 Z" fill="#b78543"/></g>
 </svg>
