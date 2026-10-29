@@ -820,8 +820,8 @@ The Learning Harness supports **distributed learning without universal trust:**
 1. Node A learns a rule and packages it as signed `.ashpkg` with evidence chain
 2. Node A publishes to fleet catalog (per `docs/Federation.md`)
 3. Node B discovers package via peer sync / LAN multicast
-4. Node B re-verifies under local policy (signature, evidence, compatibility)
-5. If accepted: Node B installs under canary (even if Node A flew it successfully)
+4. Node B verifies the signatures and decides under local policy, using Node A's signed evidence; it does not re-run the tests
+5. If accepted: Node B writes it to the tree. Imports skip the post-apply canary, which runs only on a node's own self-extend cycles (corrected 2026-10-29; see `docs/Federation.md`)
 
 **Key:** Signing proves provenance; local gates enforce safety. Each node decides independently whether to trust a peer's learned rule.
 

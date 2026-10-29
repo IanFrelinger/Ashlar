@@ -1,0 +1,56 @@
+# Private-mesh demo: three Ashlar nodes on one machine, sharing one signed brick package.
+#
+#   node-a  serves the package it sealed with its own key (GET http://node-a:7420/mesh/v1/index)
+#   node-b  trusts node-a's key: pulls the package, verifies it, and holds it for a person to approve
+#   node-c  does not trust node-a's key: refuses the same package
+#
+# Don't start this file by hand. scripts/demo/private-mesh-demo.sh seeds each node's state volume (keys, a
+# project and its policy, node-a's package) before it brings the nodes up, then checks every scene.
+# Walkthrough: docs/PrivateMeshDemo.md.
+#
+# The image defaults to the published 0.4.2 node image, pinned by digest like deploy/node.yml. Set
+# ASHLAR_IMAGE to run a local build instead; CI does. No port is published to the host: the nodes talk to
+# each other on the demo's own network only.
+name: ashlar-private-mesh-demo
+
+x-node: &node
+  image: ${ASHLAR_IMAGE:-ghcr.io/ianfrelinger/nexo-cli@sha256:e143323cdb90321b9bcb62706183bb140ae474c03c94a2faad1c2752b9a9a0db}
+  command: ["background-agent", "daemon"]
+  networks: [mesh]
+
+services:
+  node-a:
+    <<: *node
+    environment:
+      ASHLAR_NODE_NAME: node-a
+      ASHLAR_MESH_SERVE_PORT: "7420"
+    volumes:
+      - node-a:/data/state
+
+  node-b:
+    <<: *node
+    environment:
+      ASHLAR_NODE_NAME: node-b
+      ASHLAR_MESH_PEERS: http://node-a:7420
+      ASHLAR_MESH_PULL_PROJECT: /data/state/project
+      ASHLAR_MESH_PULL_INTERVAL_SECONDS: "3"
+    volumes:
+      - node-b:/data/state
+
+  node-c:
+    <<: *node
+    environment:
+      ASHLAR_NODE_NAME: node-c
+      ASHLAR_MESH_PEERS: http://node-a:7420
+      ASHLAR_MESH_PULL_PROJECT: /data/state/project
+      ASHLAR_MESH_PULL_INTERVAL_SECONDS: "3"
+    volumes:
+      - node-c:/data/state
+
+volumes:
+  node-a:
+  node-b:
+  node-c:
+
+networks:
+  mesh:

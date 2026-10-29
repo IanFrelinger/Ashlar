@@ -29,7 +29,7 @@ Invoked from [`mesh-lab-verify.sh`](../scripts/mesh-lab-verify.sh) after network
 
 ## CI
 
-Included in [`.github/workflows/mesh-lab-gate.yml`](../.github/workflows/mesh-lab-gate.yml) on every PR that touches mesh lab paths.
+[`.github/workflows/mesh-lab-gate.yml`](../.github/workflows/mesh-lab-gate.yml) runs this lab only when started by hand. Its automatic triggers have been off since 2026-08-11; the comment at the top of the workflow says why.
 
 ## Revision history
 

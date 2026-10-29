@@ -11,6 +11,8 @@ and policy.
 > [`docs/commercial/mesh-add-on-sku.md`](commercial/mesh-add-on-sku.md) and the "Mesh (director/hub)"
 > subsystem row). This page is only about the hub-less peer surface.
 
+To watch it work, run the [private-mesh demo](PrivateMeshDemo.md): three nodes on one machine, about 20 seconds.
+
 ## The one invariant
 
 **The network is transport; the seal is the trust.** A package is an Ed25519-signed `.ashpkg`
@@ -128,8 +130,9 @@ Client certs are validated against the fleet CA with **custom-root trust** — a
 a fleet identity. This is defence in depth *on top of* the package seal (which still decides what
 runs), and it is **fail-closed**: a half-specified TLS config (require-client-cert without a server
 cert, only one of cert/key, or mTLS without a CA) makes the serve endpoint **refuse to start rather
-than fall back to plaintext**. mTLS pairs naturally with configured/tailnet peers (a known roster);
-LAN multicast stays the plaintext zero-config path.
+than fall back to plaintext**. mTLS works with configured peers listed as `https://` URLs in
+`ASHLAR_MESH_PEERS`. Tailnet and LAN-multicast peers are always reached over plain `http://`, so they can't
+pull from a node that requires TLS; LAN multicast stays the plaintext zero-config path.
 
 ## The strategy seam
 
