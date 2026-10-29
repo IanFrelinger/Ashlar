@@ -17,6 +17,26 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — a three-node private-mesh demo
+
+- **`scripts/demo/private-mesh-demo.sh`** runs three nodes from `deploy/compose/docker-compose.private-mesh-demo.yml`.
+  node-a seals and serves a brick package. node-b, which trusts node-a's key, verifies it and holds it until a person
+  approves, then records that decision under its own key. node-c, which doesn't trust node-a, refuses it, and a copy
+  edited after sealing fails verification. It runs the published 0.4.2 image by default and takes about 20 seconds.
+  The walkthrough, `docs/PrivateMeshDemo.md`, also says what the demo doesn't show: the receiving node uses the
+  origin's signed gate results and doesn't re-run the tests.
+- **CI:** the `Private mesh demo` workflow builds the node image from the pull request and runs the demo when mesh,
+  packaging or gate code changes. No CI job ran two nodes over HTTP before.
+
+### Fixed — docs that overstated federation
+
+- `docs/Federation.md` no longer says mTLS pairs with tailnet peers. Tailnet and LAN-multicast peers are always
+  reached over plain `http://`, so mTLS needs `https://` entries in `ASHLAR_MESH_PEERS`.
+- `docs/MeshPhase13DataPlaneFederation.md` no longer says the mesh lab gate runs on every PR; it has been
+  manual-only since 2026-08-11.
+- `docs/audits/2026-09-completion-roadmap.md` no longer says an accepted import installs under the canary; imports
+  skip it.
+
 ### Added — privacy labels and the privacy rule (SPEC-010 PR 1)
 
 - **`Ashlar.Abstractions.Security`: privacy labels, the privacy rule and the read set.** `PrivacyLabel` is a
