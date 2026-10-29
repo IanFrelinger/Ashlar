@@ -14,7 +14,7 @@ This directory contains the professional commercial marketing landing page for A
 The site follows the official brand guidelines from `assets/brand/BRAND.md`:
 
 - **Palette:** ink `#2B2420`, cream `#F7F2E5`, oat `#EFE8D8`, sage `#7E8F6E`, gold `#D1A23C`, clay `#C96F4A`, olive `#4A5540`
-- **Official mark:** Node-"o" (bullseye + gold scribble ring); the header uses `ashlar-logo-flat.svg` (wordmark and mark), the favicon `ashlar-icon-github-clean.svg` (the mark alone)
+- **Official mark:** Trace (three fitted pieces); the header uses `ashlar-logo-flat.svg` (wordmark and mark), the favicon `ashlar-icon-trace.svg` (the mark alone)
 - **Gold usage:** Certification-related only (cert gate badge), never decorative
 - **Voice:** Precise, technical, premium craft — open-core commercialization, not hypey AI agent startup
 
@@ -76,8 +76,8 @@ npx http-server .
 
 The page references only official brand assets:
 - `assets/brand/ashlar-logo-flat.svg` — header logo (wordmark and mark)
-- `assets/brand/ashlar-icon-github-clean.svg` — favicon (the mark alone), copied from the repository's `assets/brand/`
-- `ashlar-og-flat-1200x630.png` — OpenGraph social card, served from the repository's `assets/brand/` on raw.githubusercontent.com
+- `assets/brand/ashlar-icon-trace.svg` — favicon (the Trace mark alone), copied from the repository's `assets/brand/`
+- `ashlar-og-flat-1200x630.png` — OpenGraph social card, served from the repository's `assets/brand/` on raw.githubusercontent.com and rendered from `og-card-generator.html` with the same lockup
 
 The terminal mock-up (`assets/brand/ashlar-terminal-preview.svg` at the repository root) is no longer on the page: it
 shows the pre-rename "nexo" banner, v0.2.0 and invented counts.
