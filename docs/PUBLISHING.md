@@ -151,7 +151,7 @@ Webhook: set secret **`RELEASE_NOTIFICATION_WEBHOOK_URL`** (not a variable) — 
 
 ## Container image (separate track)
 
-The CLI image is published by `.github/workflows/container-image-publish.yml` to **GHCR**. Tag releases also build images via **`release.yml`**. **`reusable-container-publish.yml`** smoke-tests **ashlar-cli** (`--help`) and **ashlar-api** (`/health`) on the **immutable `sha-*`** image after push.
+The CLI image is published by `.github/workflows/container-image-publish.yml` to **GHCR**. Tag releases also build images via **`release.yml`**. **`reusable-container-publish.yml`** smoke-tests **ashlar-cli** (`--help`, then the private-mesh demo in `scripts/demo/private-mesh-demo.sh`) and **ashlar-api** (`/health`) on the **immutable `sha-*`** image after push, before `:latest` or a version tag moves.
 
 ## What you must maintain over time
 

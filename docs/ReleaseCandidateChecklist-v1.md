@@ -34,7 +34,7 @@ Use this checklist to move from "locally passing" to "release-ready with evidenc
   - [ ] `setup-gate-summary-<os>.txt`
   - [ ] `setup-gate-ephemeral-summary-*.txt`
   - [ ] container image gate summary + smoke logs
-  - [ ] published image smoke log (`docker run ... --help` in publish workflow)
+  - [ ] published image smoke log (`docker run ... --help` and the private-mesh demo in the publish workflow)
   - [ ] runtime release lane logs (core, visual, chaos)
   - [ ] runtime SLO evidence JSON (`.ashlar/runtime/release-gate/last-run/evidence.json`)
   - [ ] runtime SLO evidence markdown (`.ashlar/runtime/release-gate/last-run/evidence.md`)

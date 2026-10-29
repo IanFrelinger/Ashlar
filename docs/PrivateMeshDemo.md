@@ -47,8 +47,14 @@ docker build --file .docker/Dockerfile.cli --tag ashlar-cli:local .
 ASHLAR_IMAGE=ashlar-cli:local bash scripts/demo/private-mesh-demo.sh
 ```
 
-The `Private mesh demo` workflow does the same on pull requests that change the mesh, packaging or gate code, so a
-change that breaks sharing between nodes fails before it merges.
+CI runs the demo in two places:
+
+- **Pull requests.** The Docker CLI image lane of the Full Platform Readiness Gate builds the image from the pull
+  request and runs the demo on it. The lane runs when a pull request touches the runtime's core code, the image or
+  the demo, on every push to master, in the weekly run, and in the readiness run before a release. A failure fails
+  `Readiness summary`, a required check, so a change that breaks sharing between nodes can't merge.
+- **Image publishing.** `reusable-container-publish.yml` runs the demo on the `sha-` image it has just pushed. Only
+  if the demo passes does the workflow rebuild `:latest` or point a version tag at that image.
 
 ## Going further
 

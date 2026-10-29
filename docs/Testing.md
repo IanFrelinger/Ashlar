@@ -350,7 +350,7 @@ The `full-platform-readiness-gate.yml` workflow runs setup → discovery → dry
 
 - **Native:** Ubuntu, macOS, Windows (setup scripts, CLI build, `ashlar doctor`, `ashlar bootstrap check`, `ci verify`, smoke tests)
 - **Container:** Ubuntu, Alpine, Debian (Docker test images with CLI + test projects pre-built)
-- **Docker CLI image:** build from `Dockerfile.cli` + smoke + discover
+- **Docker CLI image:** build from `Dockerfile.cli` + smoke + discover + the private-mesh demo (`scripts/demo/private-mesh-demo.sh`: three nodes of the image share one signed package)
 - **SDK sample:** `docs/samples/StableSdkHostSample/` built as compatibility smoke check
 
 Trigger manually: `make test-readiness-gate` or `gh workflow run "Full Platform Readiness Gate" --ref <branch>`. Most repo workflows are **manual-first**; see `.github/workflows/README.md`.
