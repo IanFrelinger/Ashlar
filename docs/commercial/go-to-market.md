@@ -4,6 +4,8 @@ How Ashlar is positioned, priced and distributed. The open-versus-paid boundary 
 [`LICENSING.md`](../../LICENSING.md) and [`docs/OpenCoreBoundary.md`](../OpenCoreBoundary.md); this page does not
 change it. Public copy follows [`docs/marketing/claims-cheat-sheet.md`](../marketing/claims-cheat-sheet.md).
 
+The offer, pricing and delivery decisions below are planning decisions. **Autonomy and design-partner marketing/pilot remain on HOLD** under the [dogfood scorecard](../dogfood-scorecard.md) until its criteria are met or the owner explicitly revises the hold. D1–D10 do not record a waiver. Internal read-only prototype work and evidence-pack evaluation are separate gates; neither establishes readiness for a pilot, autonomy claims, customer adoption or regulatory compliance.
+
 ## Decisions log (added 2026-10-25)
 
 On 2026-10-25 the owner delegated the go-to-market decisions and approved every recommended default, D1–D10.
