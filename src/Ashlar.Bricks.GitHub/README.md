@@ -67,6 +67,8 @@ Console.WriteLine($"CI Status: {status}, Failures: {failureCount}");
 
 ### GitHubBlockersBrick
 
+The existing blocker outputs now include a versioned, read-only PR evidence snapshot (`evidencePack`), a matching `evidenceMarkdown` report, and a separate conservative `assurance` decision. See the [schema and trust limits](../../docs/release-evidence.md); unreadable mandatory policy can remain unknown even when the existing GitHub verdict is ready.
+
 Answers "what is blocking this pull request or release?". Each blocker comes with a link to its evidence, and
 anything that could not be read is listed as an unknown with the reason, never read as "passed".
 

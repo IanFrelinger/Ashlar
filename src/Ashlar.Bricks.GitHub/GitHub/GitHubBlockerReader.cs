@@ -27,9 +27,22 @@ internal sealed class GitHubBlockerReader
     public async Task<BlockerSnapshot> ReadAsync(GitHubTarget target)
     {
         var unknowns = new List<Unknown>();
-        return target.Kind == GitHubTargetKind.PullRequest
-            ? new BlockerSnapshot(target, await ReadPullRequestAsync(target, unknowns).ConfigureAwait(false), null, unknowns)
-            : new BlockerSnapshot(target, null, await ReadReleaseAsync(target, unknowns).ConfigureAwait(false), unknowns);
+        if (target.Kind != GitHubTargetKind.PullRequest)
+            return new BlockerSnapshot(target, null, await ReadReleaseAsync(target, unknowns).ConfigureAwait(false), unknowns);
+        var facts = await ReadPullRequestAsync(target, unknowns).ConfigureAwait(false);
+        if (facts is null || facts.Closed || facts.Merged)
+            return new BlockerSnapshot(target, facts, null, unknowns);
+        var final = await RereadAsync(target).ConfigureAwait(false);
+        var consistency = final is null ? "unknown"
+            : !string.Equals(final.Head?.Sha, facts.HeadSha, StringComparison.OrdinalIgnoreCase)
+              || !string.Equals(final.Base?.Sha, facts.BaseSha, StringComparison.OrdinalIgnoreCase)
+              || !string.Equals(final.Base?.Ref, facts.BaseRef, StringComparison.Ordinal)
+              || final.Draft != facts.Draft || final.Merged != facts.Merged
+              || (final.State.Value == ItemState.Closed) != facts.Closed
+              || final.Mergeable != facts.Mergeable
+              || !string.Equals(final.MergeableState?.StringValue, facts.MergeableState, StringComparison.OrdinalIgnoreCase)
+                ? "changed" : "stable";
+        return new BlockerSnapshot(target, facts, null, unknowns, consistency);
     }
 
     private async Task<PullRequestFacts?> ReadPullRequestAsync(GitHubTarget t, List<Unknown> unknowns)
@@ -38,6 +51,11 @@ internal sealed class GitHubBlockerReader
             notFound: "The pull request was not found, or is not visible to this token.").ConfigureAwait(false);
         if (pr is null)
             return null;
+        if (string.IsNullOrWhiteSpace(pr.Head?.Sha) || string.IsNullOrWhiteSpace(pr.Base?.Ref))
+        {
+            unknowns.Add(new Unknown("Pull-request identity", "GitHub returned an incomplete head or base reference."));
+            return null;
+        }
 
         foreach (var wait in MergeableRereadDelays)
         {
@@ -51,7 +69,7 @@ internal sealed class GitHubBlockerReader
         if (pr.Merged || closed)
         {
             return new PullRequestFacts(pr.HtmlUrl, pr.Title, closed, pr.Merged, pr.Draft, pr.Mergeable,
-                pr.MergeableState?.StringValue, pr.Base.Ref, Array.Empty<ReviewFact>(), null, new ProtectionFacts(Array.Empty<string>(), 0));
+                pr.MergeableState?.StringValue, pr.Base.Ref, Array.Empty<ReviewFact>(), null, new ProtectionFacts(Array.Empty<string>(), 0), pr.Head?.Sha, pr.Base?.Sha);
         }
 
         var reviews = await Try(() => _client.PullRequest.Review.GetAll(t.Owner, t.Repo, t.Number), "Reviews", unknowns).ConfigureAwait(false);
@@ -67,9 +85,9 @@ internal sealed class GitHubBlockerReader
             pr.Mergeable,
             pr.MergeableState?.StringValue,
             pr.Base.Ref,
-            reviews?.Select(r => new ReviewFact(r.User?.Login ?? "(unknown user)", r.State.StringValue, r.HtmlUrl, r.SubmittedAt)).ToList(),
+            reviews?.Select(r => new ReviewFact(r.User?.Login ?? "(unknown user)", r.State.StringValue, r.HtmlUrl, r.SubmittedAt, r.CommitId)).ToList(),
             ci,
-            protection);
+            protection, pr.Head.Sha, pr.Base.Sha);
     }
 
     /// <summary>A failed re-read keeps the first read's answer, whose unknown mergeability is already reported.</summary>
@@ -139,9 +157,9 @@ internal sealed class GitHubBlockerReader
         var statuses = await Try(() => _client.Repository.Status.GetCombined(t.Owner, t.Repo, sha), "Commit statuses", unknowns).ConfigureAwait(false);
         return new CiFacts(
             sha,
-            checks?.CheckRuns.Select(c => new CheckFact(c.Name, c.Status.StringValue, c.Conclusion?.StringValue, c.HtmlUrl)).ToList(),
+            checks?.CheckRuns?.Select(c => new CheckFact(c.Name, c.Status.StringValue, c.Conclusion?.StringValue, c.HtmlUrl)).ToList(),
             checks?.TotalCount ?? 0,
-            statuses?.Statuses.Select(s => new StatusFact(s.Context, s.State.StringValue, s.TargetUrl, s.Description)).ToList(),
+            statuses?.Statuses?.Select(s => new StatusFact(s.Context, s.State.StringValue, s.TargetUrl, s.Description)).ToList(),
             statuses?.TotalCount ?? 0);
     }
 
@@ -155,6 +173,12 @@ internal sealed class GitHubBlockerReader
         var adminApprovals = await ReadRequiredApprovalsAsync(t, branch).ConfigureAwait(false);
         var rules = await ReadRulesAsync(t, branch).ConfigureAwait(false);
 
+        var unsupportedRules = rules?.Where(r => r.Type is not ("required_status_checks" or "pull_request"))
+            .Select(r => r.Type!).Distinct(StringComparer.Ordinal).ToList();
+        var rulesAdditionalReviews = rules?.Where(r => r.Type == "pull_request").Any(r =>
+            r.Parameters!.RequireCodeOwnerReviews != false || r.Parameters.RequireLastPushApproval != false || r.Parameters.DismissStaleReviews != false) != false;
+        var ruleOriginsKnown = rules is not null && rules.Where(r => r.Type == "required_status_checks")
+            .SelectMany(r => r.Parameters!.RequiredStatusChecks!).All(c => c.IntegrationIdRead && (c.IntegrationId is null or -1));
         var rulesChecks = rules?
             .Where(r => r.Type == "required_status_checks")
             .SelectMany(r => r.Parameters?.RequiredStatusChecks ?? [])
@@ -165,22 +189,23 @@ internal sealed class GitHubBlockerReader
             ? null
             : rules.Where(r => r.Type == "pull_request").Select(r => r.Parameters?.RequiredApprovingReviewCount ?? 0).DefaultIfEmpty(0).Max();
 
+        var pull = await ReadPullRequestGraphAsync(t, headSha).ConfigureAwait(false);
         if (adminChecks is not null && adminApprovals is not null)
         {
             return new ProtectionFacts(
-                adminChecks.Union(rulesChecks ?? [], StringComparer.Ordinal).ToList(),
-                Math.Max(adminApprovals.Value, rulesApprovals ?? 0));
+                adminChecks.Names.Union(rulesChecks ?? [], StringComparer.Ordinal).ToList(),
+                Math.Max(adminApprovals.Count, rulesApprovals ?? 0), pull?.ReviewDecision, RulesRead: rules is not null,
+                RequiredCheckOriginsKnown: adminChecks.OriginsKnown && ruleOriginsKnown, UnsupportedRules: unsupportedRules, AdditionalReviewRules: adminApprovals.AdditionalRules || rulesAdditionalReviews);
         }
 
         var summaryChecks = adminChecks is null ? await ReadProtectionSummaryChecksAsync(t, branch).ConfigureAwait(false) : adminChecks;
-        var pull = await ReadPullRequestGraphAsync(t, headSha).ConfigureAwait(false);
-
         IReadOnlyList<string>? checks = null;
         if (summaryChecks is not null && rulesChecks is not null)
-            checks = summaryChecks.Union(rulesChecks, StringComparer.Ordinal).Union(pull?.RequiredContexts ?? [], StringComparer.Ordinal).ToList();
+            checks = summaryChecks.Names.Union(rulesChecks, StringComparer.Ordinal).Union(pull?.RequiredContexts ?? [], StringComparer.Ordinal).ToList();
 
-        int? approvals = adminApprovals is null ? rulesApprovals : rulesApprovals is null ? null : Math.Max(adminApprovals.Value, rulesApprovals.Value);
-        return new ProtectionFacts(checks, approvals, pull?.ReviewDecision, ApprovalsPartial: adminApprovals is null && approvals is not null);
+        int? approvals = adminApprovals is null ? rulesApprovals : rulesApprovals is null ? null : Math.Max(adminApprovals.Count, rulesApprovals.Value);
+        return new ProtectionFacts(checks, approvals, pull?.ReviewDecision, ApprovalsPartial: adminApprovals is null && approvals is not null, RulesRead: rules is not null,
+            RequiredCheckOriginsKnown: summaryChecks?.OriginsKnown == true && ruleOriginsKnown, UnsupportedRules: unsupportedRules, AdditionalReviewRules: adminApprovals?.AdditionalRules != false || rulesAdditionalReviews);
     }
 
     private async Task<List<RuleDto>?> ReadRulesAsync(GitHubTarget t, string branch)
@@ -188,9 +213,11 @@ internal sealed class GitHubBlockerReader
         try
         {
             var response = await _client.Connection.Get<List<RuleDto>>(
-                new Uri($"repos/{t.Owner}/{t.Repo}/rules/branches/{branch}", UriKind.Relative),
+                new Uri($"repos/{t.Owner}/{t.Repo}/rules/branches/{Uri.EscapeDataString(branch)}", UriKind.Relative),
                 new Dictionary<string, string> { ["per_page"] = "100" }).ConfigureAwait(false);
-            return response.Body ?? [];
+            return response.Body is { Count: < 100 } rules && rules.All(r => !string.IsNullOrWhiteSpace(r.Type)
+                && (r.Type != "required_status_checks" || r.Parameters?.RequiredStatusChecks is { } checks && checks.All(c => !string.IsNullOrWhiteSpace(c.Context)))
+                && (r.Type != "pull_request" || r.Parameters?.RequiredApprovingReviewCount is >= 0)) ? rules : null;
         }
         catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
         {
@@ -199,21 +226,20 @@ internal sealed class GitHubBlockerReader
     }
 
     // The public branch summary: protection.required_status_checks, readable without admin rights.
-    private async Task<IReadOnlyList<string>?> ReadProtectionSummaryChecksAsync(GitHubTarget t, string branch)
+    private async Task<RequiredChecksRead?> ReadProtectionSummaryChecksAsync(GitHubTarget t, string branch)
     {
         try
         {
             var response = await _client.Connection.Get<BranchDto>(
-                new Uri($"repos/{t.Owner}/{t.Repo}/branches/{branch}", UriKind.Relative), null).ConfigureAwait(false);
+                new Uri($"repos/{t.Owner}/{t.Repo}/branches/{Uri.EscapeDataString(branch)}", UriKind.Relative), null).ConfigureAwait(false);
             if (response.Body is null)
                 return null;
             var required = response.Body.Protection?.RequiredStatusChecks;
-            if (required is null || string.Equals(required.EnforcementLevel, "off", StringComparison.OrdinalIgnoreCase))
-                return [];
-            return (required.Contexts ?? [])
-                .Concat((required.Checks ?? []).Select(c => c.Context).OfType<string>())
-                .Distinct(StringComparer.Ordinal)
-                .ToList();
+            if (required is null)
+                return response.Body.Protected == false ? new RequiredChecksRead([], true) : null;
+            if (string.Equals(required.EnforcementLevel, "off", StringComparison.OrdinalIgnoreCase))
+                return new RequiredChecksRead([], true);
+            return ReadCheckNames(required);
         }
         catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
         {
@@ -248,6 +274,8 @@ internal sealed class GitHubBlockerReader
             if (pull is null || response.Body!.Errors is { Count: > 0 })
                 return null;
             var commit = pull.Commits?.Nodes?.FirstOrDefault()?.Commit;
+            if (commit is null || !string.Equals(commit.Oid, headSha, StringComparison.OrdinalIgnoreCase))
+                return null;
             var required = commit is not null && string.Equals(commit.Oid, headSha, StringComparison.OrdinalIgnoreCase)
                 ? (commit.StatusCheckRollup?.Contexts?.Nodes ?? [])
                     .Where(c => c.IsRequired == true)
@@ -255,7 +283,7 @@ internal sealed class GitHubBlockerReader
                     .OfType<string>()
                     .ToList()
                 : new List<string>();
-            return new PullRequestGraph(pull.ReviewDecision ?? "NONE", required);
+            return string.IsNullOrWhiteSpace(pull.ReviewDecision) ? null : new PullRequestGraph(pull.ReviewDecision, required);
         }
         catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
         {
@@ -267,16 +295,17 @@ internal sealed class GitHubBlockerReader
 
     // Branch protection is readable only with admin rights. GitHub answers 404 with "not protected" or "not enabled"
     // when the rule does not exist, which is a fact (none required); any other failure leaves it unknown.
-    private async Task<IReadOnlyList<string>?> ReadRequiredChecksAsync(GitHubTarget t, string branch)
+    private async Task<RequiredChecksRead?> ReadRequiredChecksAsync(GitHubTarget t, string branch)
     {
         try
         {
-            var required = await _client.Repository.Branch.GetRequiredStatusChecks(t.Owner, t.Repo, branch).ConfigureAwait(false);
-            return required.Contexts?.ToList() ?? new List<string>();
+            var response = await _client.Connection.Get<RequiredStatusChecksDto>(
+                new Uri($"repos/{t.Owner}/{t.Repo}/branches/{Uri.EscapeDataString(branch)}/protection/required_status_checks", UriKind.Relative), null).ConfigureAwait(false);
+            return response.Body is null ? null : ReadCheckNames(response.Body);
         }
         catch (NotFoundException ex) when (SaysRuleAbsent(ex))
         {
-            return Array.Empty<string>();
+            return new RequiredChecksRead([], true);
         }
         catch (Exception ex) when (IsReadFailure(ex))
         {
@@ -284,22 +313,45 @@ internal sealed class GitHubBlockerReader
         }
     }
 
-    private async Task<int?> ReadRequiredApprovalsAsync(GitHubTarget t, string branch)
+    private sealed record RequiredChecksRead(IReadOnlyList<string> Names, bool OriginsKnown);
+
+    private static RequiredChecksRead? ReadCheckNames(RequiredStatusChecksDto required)
+    {
+        if (required.Contexts is null && required.Checks is null)
+            return null;
+        if (required.Checks?.Any(c => string.IsNullOrWhiteSpace(c.Context)) == true)
+            return null;
+        var names = (required.Contexts ?? []).Concat((required.Checks ?? []).Select(c => c.Context!))
+            .Distinct(StringComparer.Ordinal).ToList();
+        var originsKnown = names.Count == 0 || required.Checks is not null
+            && names.All(n => required.Checks.Any(c => c.Context == n))
+            && required.Checks.All(c => c.AppIdRead && (c.AppId is null or -1));
+        return new RequiredChecksRead(names, originsKnown);
+    }
+
+    private async Task<ApprovalsRead?> ReadRequiredApprovalsAsync(GitHubTarget t, string branch)
     {
         try
         {
-            var reviews = await _client.Repository.Branch.GetReviewEnforcement(t.Owner, t.Repo, branch).ConfigureAwait(false);
-            return reviews.RequiredApprovingReviewCount;
+            var response = await _client.Connection.Get<RuleParametersDto>(
+                new Uri($"repos/{t.Owner}/{t.Repo}/branches/{Uri.EscapeDataString(branch)}/protection/required_pull_request_reviews", UriKind.Relative), null).ConfigureAwait(false);
+            var reviews = response.Body;
+            return reviews?.RequiredApprovingReviewCount is >= 0
+                ? new ApprovalsRead(reviews.RequiredApprovingReviewCount.Value,
+                    reviews.RequireCodeOwnerReviews != false || reviews.RequireLastPushApproval != false || reviews.DismissStaleReviews != false)
+                : null;
         }
         catch (NotFoundException ex) when (SaysRuleAbsent(ex))
         {
-            return 0;
+            return new ApprovalsRead(0, false);
         }
         catch (Exception ex) when (IsReadFailure(ex))
         {
             return null;
         }
     }
+
+    private sealed record ApprovalsRead(int Count, bool AdditionalRules);
 
     private static bool SaysRuleAbsent(ApiException ex) =>
         ex.Message.Contains("not protected", StringComparison.OrdinalIgnoreCase)
@@ -324,17 +376,17 @@ internal sealed class GitHubBlockerReader
         }
     }
 
-    private static bool IsReadFailure(Exception ex) => ex is ApiException or HttpRequestException or TaskCanceledException;
+    private static bool IsReadFailure(Exception ex) => ex is ApiException or HttpRequestException or TaskCanceledException || IsParseFailure(ex);
 
     private static bool IsParseFailure(Exception ex) =>
-        ex is System.Runtime.Serialization.SerializationException or InvalidCastException or FormatException or ArgumentException;
+        ex is System.Runtime.Serialization.SerializationException or System.Text.Json.JsonException or InvalidCastException or FormatException or ArgumentException;
 
     private static string Describe(Exception ex) => ex switch
     {
         RateLimitExceededException rate => $"GitHub's rate limit is exhausted until {rate.Reset:u}; pass a token for a higher limit.",
         AuthorizationException => "GitHub refused the token (401).",
-        ApiException api => $"GitHub answered {(int)api.StatusCode} {api.StatusCode}: {api.Message}",
+        ApiException api => $"GitHub answered {(int)api.StatusCode} {api.StatusCode}; response content is omitted.",
         TaskCanceledException => "The request timed out.",
-        _ => $"The request failed: {ex.Message}",
+        _ => "The request failed or returned a malformed response; response content is omitted.",
     };
 }

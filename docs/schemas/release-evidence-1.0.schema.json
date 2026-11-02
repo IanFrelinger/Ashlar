@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/IanFrelinger/Ashlar/blob/master/docs/schemas/release-evidence-1.0.schema.json",
+  "title": "Ashlar read-only pull-request evidence 1.0",
+  "description": "Sequential, time-bound observations. A passing scoped assurance decision neither authorizes a release nor proves regulatory compliance. Additional fields are permitted for additive compatibility.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "repository",
+    "pullRequest",
+    "url",
+    "headSha",
+    "baseRef",
+    "baseSha",
+    "collectionStartedAt",
+    "collectedAt",
+    "ashlarVersion",
+    "brickVersion",
+    "auditId",
+    "scope",
+    "authorization",
+    "verdict",
+    "assurance",
+    "findings",
+    "limitations",
+    "freshness"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^[^/\\s]+/[^/\\s]+$"
+    },
+    "pullRequest": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://github\\.com/[^/]+/[^/]+/pull/[1-9][0-9]*$"
+    },
+    "headSha": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "baseRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "baseSha": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "collectionStartedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collectedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ashlarVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "brickVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "auditId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Null unless an existing audit ID has actually been established by the collecting host."
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorization": {
+      "type": "object",
+      "required": [
+        "credential",
+        "effectivePermissions",
+        "authenticatedActor"
+      ],
+      "properties": {
+        "credential": {
+          "type": "string",
+          "enum": [
+            "supplied-to-client",
+            "not-supplied-to-brick"
+          ]
+        },
+        "effectivePermissions": {
+          "const": "not-enumerated"
+        },
+        "authenticatedActor": {
+          "const": "unknown"
+        }
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "blocked",
+        "unknown",
+        "merged",
+        "closed"
+      ]
+    },
+    "assurance": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "unknown",
+        "not-applicable"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "required",
+          "explanation",
+          "sources"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Identifier within this snapshot; no stability across collection order changes is promised."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "unknown"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://"
+            }
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "required": [
+        "collectionConsistency",
+        "revalidation"
+      ],
+      "properties": {
+        "collectionConsistency": {
+          "type": "string",
+          "enum": [
+            "stable",
+            "changed",
+            "unknown",
+            "not-checked"
+          ]
+        },
+        "revalidation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "assurance": {
+            "const": "pass"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "headSha": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "freshness": {
+            "properties": {
+              "collectionConsistency": {
+                "const": "stable"
+              }
+            }
+          },
+          "findings": {
+            "items": {
+              "if": {
+                "properties": {
+                  "required": {
+                    "const": true
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "status": {
+                    "const": "pass"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

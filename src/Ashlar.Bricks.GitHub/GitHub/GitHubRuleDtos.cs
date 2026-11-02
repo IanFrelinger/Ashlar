@@ -14,16 +14,43 @@ internal sealed class RuleParametersDto
 {
     public int? RequiredApprovingReviewCount { get; set; }
 
+    public bool? RequireCodeOwnerReviews { get; set; }
+
+    public bool? RequireLastPushApproval { get; set; }
+
+    public bool? DismissStaleReviews { get; set; }
+
     public IReadOnlyList<StatusCheckDto>? RequiredStatusChecks { get; set; }
 }
 
 internal sealed class StatusCheckDto
 {
     public string? Context { get; set; }
+
+    private long? _appId;
+    private long? _integrationId;
+
+    public long? AppId
+    {
+        get => _appId;
+        set { _appId = value; AppIdRead = true; }
+    }
+
+    public long? IntegrationId
+    {
+        get => _integrationId;
+        set { _integrationId = value; IntegrationIdRead = true; }
+    }
+
+    public bool AppIdRead { get; private set; }
+
+    public bool IntegrationIdRead { get; private set; }
 }
 
 internal sealed class BranchDto
 {
+    public bool? Protected { get; set; }
+
     public BranchProtectionDto? Protection { get; set; }
 }
 

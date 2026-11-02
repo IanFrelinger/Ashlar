@@ -5,7 +5,7 @@ Usage: pr_blockers.py -- <command that starts Ashlar.Mcp.Server.Host> [args...]
 
 Environment:
   ASHLAR_PR_BLOCKERS_URL     pull request or release-tag URL (required)
-  ASHLAR_GITHUB_TOKEN        token passed to the brick as githubToken (optional)
+  ASHLAR_GITHUB_TOKEN        host-held read credential (optional; never sent in tool arguments)
   ASHLAR_FAIL_ON_BLOCKED     "true" to exit 1 when the verdict is "blocked"
   ASHLAR_PR_BLOCKERS_TIMEOUT seconds before the server is abandoned (default 180)
   GITHUB_STEP_SUMMARY, GITHUB_OUTPUT  set by the runner; skipped when absent
@@ -16,15 +16,21 @@ protocol error, timeout, server exited). An unanswered question is never reporte
 from __future__ import annotations
 
 import json
+import math
 import os
+from pathlib import Path
 import queue
+import re
 import subprocess
 import sys
+import tempfile
 import threading
+import time
 
 PROTOCOL_VERSION = "2025-06-18"
 TOOL = "github_blockers"
 BRICK_ID = "github.blockers"
+VERDICTS = {"blocked", "ready", "unknown", "merged", "closed"}
 
 
 class NoAnswer(Exception):
@@ -38,9 +44,15 @@ def _reader(stream, sink: "queue.Queue[str | None]") -> None:
 
 
 class Server:
-    def __init__(self, command: list[str], timeout: float) -> None:
+    def __init__(self, command: list[str], timeout: float, token: str, repository: str) -> None:
         env = dict(os.environ)
         env["Ashlar__Mcp__Bricks__ExposedBrickIds__0"] = BRICK_ID
+        if token:
+            env["ASHLAR_GITHUB_TOKEN"] = token
+            env["ASHLAR_GITHUB_REPOSITORY"] = repository
+        else:
+            env.pop("ASHLAR_GITHUB_TOKEN", None)
+            env.pop("ASHLAR_GITHUB_REPOSITORY", None)
         self.timeout = timeout
         self.proc = subprocess.Popen(
             command,
@@ -61,9 +73,10 @@ class Server:
 
     def request(self, rid: int, method: str, params: dict) -> dict:
         self.send({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
+        deadline = time.monotonic() + self.timeout
         while True:
             try:
-                line = self.lines.get(timeout=self.timeout)
+                line = self.lines.get(timeout=max(0, deadline - time.monotonic()))
             except queue.Empty:
                 raise NoAnswer(f"no response to {method} within {self.timeout:g}s")
             if line is None:
@@ -75,11 +88,16 @@ class Server:
                 message = json.loads(line)
             except json.JSONDecodeError:
                 raise NoAnswer(f"server wrote a non-JSON line to stdout: {line[:200]}")
+            if not isinstance(message, dict):
+                raise NoAnswer("server returned a non-object JSON-RPC message")
             if "method" in message or message.get("id") != rid:
                 continue
             if "error" in message:
                 raise NoAnswer(f"{method} failed: {json.dumps(message['error'])}")
-            return message.get("result") or {}
+            result = message.get("result")
+            if not isinstance(result, dict):
+                raise NoAnswer(f"{method} returned no object result")
+            return result
 
     def close(self) -> None:
         try:
@@ -88,20 +106,29 @@ class Server:
             self.proc.wait(timeout=10)
         except Exception:
             self.proc.kill()
+            self.proc.wait()
 
 
 def ask(command: list[str], url: str, token: str, timeout: float) -> dict:
-    server = Server(command, timeout)
+    target = re.fullmatch(r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/(?:pull/[1-9][0-9]*|releases/tag/[^\s]+)", url)
+    if not target:
+        raise NoAnswer("a supported github.com pull request or release URL is required")
+    server = Server(command, timeout, token, target[1])
     try:
-        server.request(1, "initialize", {
+        initialized = server.request(1, "initialize", {
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {},
             "clientInfo": {"name": "ashlar-pr-blockers-action", "version": "1"},
         })
+        if initialized.get("protocolVersion") != PROTOCOL_VERSION:
+            raise NoAnswer("server did not negotiate the supported MCP protocol version")
         server.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
         arguments = {"url": url}
-        if token:
-            arguments["githubToken"] = token
+        # Credentials are inherited by the host, outside model-visible tool arguments.
+        # The token parameter remains for caller compatibility; the host receives the environment.
+        check_name = os.environ.get("ASHLAR_COLLECTION_CHECK_NAME", "").strip()
+        if check_name:
+            arguments["collectionCheckName"] = check_name
         result = server.request(2, "tools/call", {"name": TOOL, "arguments": arguments})
     finally:
         server.close()
@@ -115,13 +142,20 @@ def ask(command: list[str], url: str, token: str, timeout: float) -> dict:
             payload = json.loads(text)
         except json.JSONDecodeError:
             raise NoAnswer(f"{TOOL} returned text that is not JSON: {text[:200]}")
-    if not isinstance(payload.get("outputs"), dict) or not payload["outputs"].get("verdict"):
-        raise NoAnswer(f"{TOOL} returned no verdict: {json.dumps(payload)[:500]}")
+    if not isinstance(payload, dict) or not isinstance(payload.get("outputs"), dict):
+        raise NoAnswer(f"{TOOL} returned no outputs")
+    if payload["outputs"].get("verdict") not in VERDICTS:
+        raise NoAnswer(f"{TOOL} returned no supported verdict")
+    audit_id = payload.get("auditId", "")
+    if not isinstance(audit_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{0,200}", audit_id):
+        raise NoAnswer("invalid audit id")
     return payload
 
 
 def summary_markdown(url: str, payload: dict) -> str:
     out = payload["outputs"]
+    if isinstance(out.get("evidenceMarkdown"), str):
+        return out["evidenceMarkdown"].rstrip() + f"\n\nAudit id: `{payload.get('auditId', '?')}`.\n"
     lines = [f"## Ashlar `{BRICK_ID}`: **{out['verdict']}**", "", f"Asked about {url}.", ""]
     answer = out.get("answer")
     if answer:
@@ -137,6 +171,30 @@ def summary_markdown(url: str, payload: dict) -> str:
         f"audit id `{payload.get('auditId', '?')}`.</sub>"
     )
     return "\n".join(lines) + "\n"
+
+
+def write_evidence(payload: dict, markdown: str) -> dict[str, str]:
+    """Export only the compact contract, never raw API content or tool arguments."""
+    pack = payload["outputs"].get("evidencePack")
+    if pack is None:  # Older hosts remain usable; absence is never passing assurance.
+        return {}
+    if not isinstance(pack, dict) or pack.get("schemaVersion") != "1.0":
+        raise NoAnswer("unsupported release evidence schema")
+    assurance = pack.get("assurance")
+    if assurance not in {"pass", "fail", "unknown", "not-applicable"}:
+        raise NoAnswer("missing release evidence assurance")
+    if pack.get("verdict") != payload["outputs"]["verdict"]:
+        raise NoAnswer("conflicting release evidence verdict")
+    pack = dict(pack, auditId=payload.get("auditId"))
+    directory = Path(os.environ.get("ASHLAR_EVIDENCE_DIRECTORY") or
+                     str(Path(os.environ.get("RUNNER_TEMP", ".")) / "ashlar-release-evidence"))
+    directory.mkdir(parents=True, exist_ok=True)
+    directory = Path(tempfile.mkdtemp(prefix="snapshot-", dir=directory))
+    json_path, markdown_path = directory / "release-evidence.json", directory / "release-evidence.md"
+    json_path.write_text(json.dumps(pack, indent=2, ensure_ascii=True, allow_nan=False) + "\n", encoding="utf-8")
+    markdown_path.write_text(markdown, encoding="utf-8")
+    return {"evidence-json": str(json_path.resolve()), "evidence-markdown": str(markdown_path.resolve()),
+            "assurance": assurance}
 
 
 def append(path_var: str, text: str) -> None:
@@ -157,24 +215,31 @@ def main(argv: list[str]) -> int:
         return 2
     token = os.environ.get("ASHLAR_GITHUB_TOKEN", "")
     fail_on_blocked = os.environ.get("ASHLAR_FAIL_ON_BLOCKED", "false").strip().lower() == "true"
-    timeout = float(os.environ.get("ASHLAR_PR_BLOCKERS_TIMEOUT", "180"))
-
     try:
+        timeout = float(os.environ.get("ASHLAR_PR_BLOCKERS_TIMEOUT", "180"))
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise NoAnswer("timeout must be finite and positive")
         payload = ask(command, url, token, timeout)
-    except (NoAnswer, OSError) as e:
-        print(f"::error::Ashlar {BRICK_ID} gave no answer: {e}")
-        append("GITHUB_STEP_SUMMARY", f"## Ashlar `{BRICK_ID}`: no answer\n\n{e}\n")
+        markdown = summary_markdown(url, payload)
+        evidence_outputs = write_evidence(payload, markdown)
+    except (NoAnswer, OSError, ValueError) as e:
+        # Do not echo host errors: third-party text may contain credentials or workflow commands.
+        print(f"::error::Ashlar {BRICK_ID} gave no valid answer ({type(e).__name__}).")
+        append("GITHUB_STEP_SUMMARY", f"## Ashlar `{BRICK_ID}`: no valid answer\n\nCollection or export failed; no assurance decision is available.\n")
         append("GITHUB_OUTPUT", "verdict=error\n")
         return 2
 
     out = payload["outputs"]
     verdict = out["verdict"]
     blockers = out.get("blockers") or []
-    markdown = summary_markdown(url, payload)
-    print(markdown)
+    print(f"Ashlar {BRICK_ID}: {verdict}")
     append("GITHUB_STEP_SUMMARY", markdown)
     append("GITHUB_OUTPUT",
            f"verdict={verdict}\nblocker-count={len(blockers)}\naudit-id={payload.get('auditId', '')}\n")
+    for key, value in evidence_outputs.items():
+        if "\n" in value or "\r" in value:
+            raise NoAnswer("invalid output path")
+        append("GITHUB_OUTPUT", f"{key}={value}\n")
     if verdict == "blocked" and fail_on_blocked:
         print(f"::error::{len(blockers)} blocker(s) on {url}")
         return 1

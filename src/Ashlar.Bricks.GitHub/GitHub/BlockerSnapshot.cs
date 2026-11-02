@@ -7,7 +7,7 @@ internal sealed record CheckFact(string Name, string Status, string? Conclusion,
 
 internal sealed record StatusFact(string Context, string State, string? Url, string? Description);
 
-internal sealed record ReviewFact(string User, string State, string? Url, DateTimeOffset? SubmittedAt);
+internal sealed record ReviewFact(string User, string State, string? Url, DateTimeOffset? SubmittedAt, string? CommitSha = null);
 
 /// <summary>CI on one commit: check runs and legacy commit statuses, with what could not be read.</summary>
 internal sealed record CiFacts(
@@ -32,7 +32,11 @@ internal sealed record ProtectionFacts(
     IReadOnlyList<string>? RequiredChecks,
     int? RequiredApprovals,
     string? ReviewDecision = null,
-    bool ApprovalsPartial = false);
+    bool ApprovalsPartial = false,
+    bool RulesRead = true,
+    bool RequiredCheckOriginsKnown = true,
+    IReadOnlyList<string>? UnsupportedRules = null,
+    bool AdditionalReviewRules = false);
 
 internal sealed record PullRequestFacts(
     string Url,
@@ -45,7 +49,9 @@ internal sealed record PullRequestFacts(
     string BaseRef,
     IReadOnlyList<ReviewFact>? Reviews,
     CiFacts? Ci,
-    ProtectionFacts Protection);
+    ProtectionFacts Protection,
+    string? HeadSha = null,
+    string? BaseSha = null);
 
 internal sealed record ReleaseFacts(
     string Tag,
@@ -62,4 +68,5 @@ internal sealed record BlockerSnapshot(
     GitHubTarget Target,
     PullRequestFacts? PullRequest,
     ReleaseFacts? Release,
-    IReadOnlyList<Unknown> Unknowns);
+    IReadOnlyList<Unknown> Unknowns,
+    string CollectionConsistency = "not-checked");

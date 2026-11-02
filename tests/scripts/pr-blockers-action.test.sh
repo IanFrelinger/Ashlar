@@ -57,7 +57,8 @@ check "notifications/initialized follows initialize" \
 check "tools/call names github_blockers with the url" \
   'sed -n 4p "${LOG}" | grep -q "\"name\": \"github_blockers\"" && sed -n 4p "${LOG}" | grep -q "\"url\": \"https://github.com/o/r/pull/7\""' \
   "$(sed -n 4p "${LOG}")"
-check "the token travels as githubToken" 'sed -n 4p "${LOG}" | grep -q "\"githubToken\": \"tok-123\""' "$(sed -n 4p "${LOG}")"
+check "the token stays outside tool arguments and is scoped in the host environment" \
+  '! grep -q tok-123 "${LOG}" && sed -n 1p "${LOG}" | grep -q '\''"env.CredentialPresent": true'\'' && sed -n 1p "${LOG}" | grep -q '\''"env.Repository": "o/r"'\''' "$(cat "${LOG}")"
 check "a server notification before the response is skipped" '[[ "${OUTPUTS}" == *"verdict=ready"* ]]' "${OUTPUTS}"
 check "summary carries the brick's answer and audit id" \
   '[[ "${SUMMARY}" == *"**Ready** to merge."* && "${SUMMARY}" == *"audit-ready"* ]]' "${SUMMARY}"

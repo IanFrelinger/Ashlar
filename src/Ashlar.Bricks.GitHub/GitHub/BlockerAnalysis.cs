@@ -220,7 +220,7 @@ internal static class BlockerAnalysis
             {
                 reported.Add(check.Name);
                 if (!string.Equals(check.Status, "completed", StringComparison.OrdinalIgnoreCase))
-                    problems.Add((check.Name, $"The check {Quote(check.Name)} is still {check.Status.Replace('_', ' ')}.", Link(check.Url) ?? commitUrl));
+                    problems.Add((check.Name, $"The check {Quote(check.Name)} is still {SafeCheckStatus(check.Status)}.", Link(check.Url) ?? commitUrl));
                 else if (check.Conclusion is { } conclusion && FailedConclusions.Contains(conclusion))
                     problems.Add((check.Name, $"The check {Quote(check.Name)} concluded {conclusion.Replace('_', ' ')}.", Link(check.Url) ?? commitUrl));
             }
@@ -235,7 +235,7 @@ internal static class BlockerAnalysis
             foreach (var status in ci.Statuses)
             {
                 reported.Add(status.Context);
-                var state = status.State.ToLowerInvariant();
+                var state = status.State?.ToLowerInvariant();
                 if (state == "pending")
                     problems.Add((status.Context, $"The status {Quote(status.Context)} is still pending.", Link(status.Url) ?? commitUrl));
                 else if (state is "failure" or "error")
@@ -266,6 +266,9 @@ internal static class BlockerAnalysis
                 blockers.Add(new Blocker($"The required check {Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.", commitUrl));
         }
     }
+
+    private static string SafeCheckStatus(string status) => status is "queued" or "in_progress" or "waiting" or "pending" or "requested"
+        ? status.Replace('_', ' ') : Quote(status);
 
     /// <summary>
     /// A string read from GitHub as one inline code span: control, format (bidi) and line-separator characters become
@@ -311,7 +314,7 @@ internal static class BlockerAnalysis
     internal static string? Link(string? url)
     {
         if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) || !string.IsNullOrEmpty(uri.UserInfo))
             return null;
         return uri.AbsoluteUri.Replace("(", "%28", StringComparison.Ordinal).Replace(")", "%29", StringComparison.Ordinal)
             .Replace(" ", "%20", StringComparison.Ordinal);
