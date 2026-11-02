@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json",
+      "sha256": "52c57a0a7a768afc8d85c64c4f5e137f0e4acb89274f1bee640bc7afb01b5402"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e02-required-external-status.json",
+      "sha256": "e57a1b04aabd3e977ffa47e718a6000bcecad18c3ce97c13b937f9979c99efbb"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e03-two-approvals.json",
+      "sha256": "77346ac74145d689d514bc1ce26ca806a19ee42968bde39b493321fd8cd441ee"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e04-mixed-optional-ci.json",
+      "sha256": "05523845799d6cde5173f834f406808ebb8011b69f2d5b884bc33ffee5a97a88"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json",
+      "sha256": "f1df5db2c45d0dd664c2dc8b56c8bcee617474e8ed592b8e8b2afa4fdc8560b9"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e06-merge-conflict.json",
+      "sha256": "dfcd9df7ed2740c955cee3b61a8b26173405e53ed1abaf7b0186bc2ec6ca5d46"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e07-draft-pr.json",
+      "sha256": "50e93b3f9612731f547be661fc2fa5c5ca361f2ffc24f4fce755a15f860636ee"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json",
+      "sha256": "f0a26df85db34516d239f379318b787b6d7ef13491757b5ba17a7d39edfc1e44"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json",
+      "sha256": "c08a0799b182ad1d163d4cb635e6ba3f56ea6969d4c215ac40af2c1df0d6499a"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json",
+      "sha256": "1b60d1fcb7d95484bf787e7327d4b99a8179187a670c6a24bc3e851dec2524f5"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json",
+      "sha256": "1eaee85f305726b234a4e504f68237e381dcf692ce52bb275dda5f09a22f464c"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json",
+      "sha256": "bdae216b83abec009749a5740f435ae98c65eacabb70bbbb6eb49af8faaca4aa"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json",
+      "sha256": "61ba8d11cad00a01adaf41333d3d522917052854f26c83fc93108ad1dfc4bb8c"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json",
+      "sha256": "f52c503d9439f3c5d610e28529921b56a33cf32ed49bad4df2381797140f4f5f"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json",
+      "sha256": "961b076d2cd3c4e143ff68fa6a4b3d8a668f1f235d606216526ed6d2c3d6d29b"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json",
+      "sha256": "cf64726d1a4387e0caaded56327be4c83eab3e99ed7c13db26436c8928473d12"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json",
+      "sha256": "476a706553b88a11d5ff3ab95293f1966e3d1631b6a70782a8b699a6f0f86a78"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json",
+      "sha256": "1100d9625c8813c6022afaa6c46bec46dbb3a9721c814914856d035620cd6d3d"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e19-rate-limited-policy.json",
+      "sha256": "f7f35d6eee2cd4e768dde60572b4b889835e042d8169a13ca785fbb30b70a084"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e20-review-transport-timeout.json",
+      "sha256": "ff9cd5dad3dfbed2c229c4cd0e59d3ecc619316588a3c08ee6d61983796f5210"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e21-malformed-policy-json.json",
+      "sha256": "015f5eec24c28ee0e5f6410a0cc2860442fa1495b46dfac633afc870fbeff242"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json",
+      "sha256": "b24cc09240b186d446fb460d0661a4d39637681eadc0009ad0e811dc8dc00180"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json",
+      "sha256": "f88a57d604e9c121d762c2b25fa98d0aef73b6ed41419bffc761edf02bca35c6"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json",
+      "sha256": "2b0b91b34f6d18f05419b27456b59521fd4b2ee47f9942e7421d484583ea8fc9"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e25-approval-on-older-commit.json",
+      "sha256": "74d257e6eebd6648585be88adc2b8f3b8e7aa6e15d3d75f8e884effc4bb491b0"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json",
+      "sha256": "72afad0c4f020300a97e9051a2ac593bff9fd02443063a55a072e803ab54c08b"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e27-hostile-check-metadata.json",
+      "sha256": "a3e5ba93c8a8477002bf427e845331db0feefa0a762b3b4645e47724e4ec9a96"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json",
+      "sha256": "8bd8681f7c6a99196d4e6853a92a07bc1ee4c48848662773b4afb6a5afb23fd4"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json",
+      "sha256": "469feda8f2a8d181297c78c89b8d67b00c84e60881239b9da546a42949823604"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json",
+      "sha256": "6f507bef7ed10911240a46eb4ff70f277aefe60641b4cb67f473e6e5cbcfe27a"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json",
+      "sha256": "92a61455b4355273bc5dbc29b5f57763983e1304a4fb65888f6b83f2a69ea781"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json",
+      "sha256": "a0b198d807ea02d149bc4ab88ab7c7de9f95452c06c6a465b65bea2908a9df63"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json",
+      "sha256": "4d8949b8492bef17b10a782feb9ca9bc620db6852aa4ff5ddeb2bd5b560e1e27"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json",
+      "sha256": "955451e323116cc2ccdbd9fe2104cb9eb615e516451c45382ac309570cf61804"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json",
+      "sha256": "44f263061bedeeae66afcbe914bc267a95e92f76eb51bfaf75314540e05cdba0"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json",
+      "sha256": "328a8fe737ecf96aa33233bb0835bc1adf5f634b471e2c2090c46ef7160e4dfd"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-01/capture.json",
+      "sha256": "cd7ed2257483f1d6a8448a5562ae68bae09688826454347fc58d3f9663dfe623"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-02/capture.json",
+      "sha256": "7bb305920cd6d67f9988b16acd4ca20255777e86b1ee1a5be1c63d42e62320c6"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-03/capture.json",
+      "sha256": "94197fd3e30fb004e20144185a300ce6109338f32661b08690e23d257f2c15a4"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-04/capture.json",
+      "sha256": "3e3e6bc770f622bdf94458ed6ef8cbaa16d350461384e71d416a2f731caf0a06"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-05/capture.json",
+      "sha256": "564729e5c5c56d3fad3a628f436a9a0876583c43cfb7971107fa755a6d682529"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/public-06/capture.json",
+      "sha256": "eb49fff1548d4f49442ed5399c0a24c23fac6d8956db3a659d8766046f227198"
+    }
+  ]
+}

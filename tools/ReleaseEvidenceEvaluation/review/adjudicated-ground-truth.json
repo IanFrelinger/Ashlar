@@ -1,0 +1,4058 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "fixture_manifest_sha256": "7f13a41177dd6b0e639ead8dd173ab2556d2fb96683716a10d258d50b1d06ea5",
+  "public_manifest_sha256": "9d8829144bd3ae96c882cdc19275857e7cd08803e5d09300a44d339a0abe3703",
+  "review_process": {
+    "ai_only": true,
+    "blinded_to_candidate_outputs": true,
+    "adjudicated": true,
+    "independent_reviews": 2,
+    "human_reviews": 0,
+    "independence_limitations": "Separate AI-agent contexts, both frozen before cross-review and candidate execution. Possible same-model-family correlated errors. No human, customer or authorized pilot validation."
+  },
+  "adjudication": {
+    "status": "resolved",
+    "conflicts": []
+  },
+  "protocol_sha256": "ac707d94a3c6968d9ddd79363ccfc3fef0d757dc17e9430bc327181782f21ab5",
+  "cases": [
+    {
+      "id": "e01-no-configured-requirements",
+      "raw_sources": {
+        "cases/e01-no-configured-requirements.json": "52c57a0a7a768afc8d85c64c4f5e137f0e4acb89274f1bee640bc7afb01b5402"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/1/body/state",
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/1/body/mergeable",
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/0/body/head/sha",
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/0/body/base/sha",
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/1/body/head/sha",
+            "cases/e01-no-configured-requirements.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "no-additional-policy",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "cases/e01-no-configured-requirements.json#/routes/4/responses/0/body",
+            "cases/e01-no-configured-requirements.json#/routes/5/responses/0/body",
+            "cases/e01-no-configured-requirements.json#/routes/6/responses/0/body",
+            "cases/e01-no-configured-requirements.json#/routes/7/responses/0/body"
+          ],
+          "observed_satisfaction": "established",
+          "requirement": "No configured CI/review/ruleset requirement in authored scenario; absence corroborated by unprotected branch and empty effective rules"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Authenticated policy intent and API facts establish no classic protection or effective rules, an open non-draft PR, stable identity, and clean mergeability. Empty combined status is not a configured requirement.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e02-required-external-status",
+      "raw_sources": {
+        "cases/e02-required-external-status.json": "e57a1b04aabd3e977ffa47e718a6000bcecad18c3ce97c13b937f9979c99efbb"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e02-required-external-status.json#/routes/0/responses/1/body/state",
+            "cases/e02-required-external-status.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e02-required-external-status.json#/routes/0/responses/1/body/mergeable",
+            "cases/e02-required-external-status.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e02-required-external-status.json#/routes/0/responses/0/body/head/sha",
+            "cases/e02-required-external-status.json#/routes/0/responses/0/body/base/sha",
+            "cases/e02-required-external-status.json#/routes/0/responses/1/body/head/sha",
+            "cases/e02-required-external-status.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/b01c033147c58e030ae0f356026f57f54fcdda2b/status"
+          ],
+          "fact_ids": [
+            "cases/e02-required-external-status.json#/routes/4/responses/0/body/checks/0",
+            "cases/e02-required-external-status.json#/routes/3/responses/0/body/statuses/0"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "circleci: build from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The sole mandatory unbound CircleCI status is success at the current head; zero required reviews and no ruleset additions are established.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e03-two-approvals",
+      "raw_sources": {
+        "cases/e03-two-approvals.json": "77346ac74145d689d514bc1ce26ca806a19ee42968bde39b493321fd8cd441ee"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e03-two-approvals.json#/routes/0/responses/1/body/state",
+            "cases/e03-two-approvals.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e03-two-approvals.json#/routes/0/responses/1/body/mergeable",
+            "cases/e03-two-approvals.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e03-two-approvals.json#/routes/0/responses/0/body/head/sha",
+            "cases/e03-two-approvals.json#/routes/0/responses/0/body/base/sha",
+            "cases/e03-two-approvals.json#/routes/0/responses/1/body/head/sha",
+            "cases/e03-two-approvals.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e03-two-approvals.json#/routes/5/responses/0/body",
+            "cases/e03-two-approvals.json#/routes/1/responses/0/body",
+            "cases/e03-two-approvals.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "2 approving review(s); no code-owner, latest-push or stale-dismissal condition"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Two distinct current-head approvals match a two-review requirement, and GitHub effective decision is APPROVED. No code-owner, latest-push or CI requirement remains.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e04-mixed-optional-ci",
+      "raw_sources": {
+        "cases/e04-mixed-optional-ci.json": "05523845799d6cde5173f834f406808ebb8011b69f2d5b884bc33ffee5a97a88"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/1/body/state",
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/1/body/mergeable",
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/0/body/head/sha",
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/0/body/base/sha",
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/1/body/head/sha",
+            "cases/e04-mixed-optional-ci.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/5d52012209c48040e1077abbe3a54dacb514cd94/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e04-mixed-optional-ci.json#/routes/4/responses/0/body/checks/0",
+            "cases/e04-mixed-optional-ci.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "ci / unit from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Only ci / unit is required and it passed. Optional docs failure, neutral audit and pending Jenkins status do not create mandatory blockers.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e05-required-check-failure",
+      "raw_sources": {
+        "cases/e05-required-check-failure.json": "f1df5db2c45d0dd664c2dc8b56c8bcee617474e8ed592b8e8b2afa4fdc8560b9"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/0/responses/1/body/state",
+            "cases/e05-required-check-failure.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/0/responses/1/body/mergeable",
+            "cases/e05-required-check-failure.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/0/responses/0/body/head/sha",
+            "cases/e05-required-check-failure.json#/routes/0/responses/0/body/base/sha",
+            "cases/e05-required-check-failure.json#/routes/0/responses/1/body/head/sha",
+            "cases/e05-required-check-failure.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/35c179df616e95bc2ddcaa2cba4be00101a33370/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/4/responses/0/body/checks/0",
+            "cases/e05-required-check-failure.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "ci / unit from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-ci-failure",
+          "finding": "Required ci / unit failed",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/35c179df616e95bc2ddcaa2cba4be00101a33370/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/4/responses/0/body/checks/0",
+            "cases/e05-required-check-failure.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Required ci / unit completed with failure on the current head. An unrelated successful status cannot satisfy that requirement.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e06-merge-conflict",
+      "raw_sources": {
+        "cases/e06-merge-conflict.json": "dfcd9df7ed2740c955cee3b61a8b26173405e53ed1abaf7b0186bc2ec6ca5d46"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e06-merge-conflict.json#/routes/0/responses/1/body/state",
+            "cases/e06-merge-conflict.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e06-merge-conflict.json#/routes/0/responses/1/body/mergeable",
+            "cases/e06-merge-conflict.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/head/sha",
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/base/sha",
+            "cases/e06-merge-conflict.json#/routes/0/responses/1/body/head/sha",
+            "cases/e06-merge-conflict.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "no-additional-policy",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "cases/e06-merge-conflict.json#/routes/4/responses/0/body",
+            "cases/e06-merge-conflict.json#/routes/5/responses/0/body",
+            "cases/e06-merge-conflict.json#/routes/6/responses/0/body",
+            "cases/e06-merge-conflict.json#/routes/7/responses/0/body"
+          ],
+          "observed_satisfaction": "established",
+          "requirement": "No configured CI/review/ruleset requirement in authored scenario; absence corroborated by unprotected branch and empty effective rules"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "merge-conflict",
+          "finding": "PR has mergeable=false and dirty merge state",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/mergeable",
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=dirty; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "A dirty PR with mergeable=false establishes conflict independently of CI/review policy.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e07-draft-pr",
+      "raw_sources": {
+        "cases/e07-draft-pr.json": "50e93b3f9612731f547be661fc2fa5c5ca361f2ffc24f4fce755a15f860636ee"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/state",
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/mergeable",
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e07-draft-pr.json#/routes/0/responses/0/body/head/sha",
+            "cases/e07-draft-pr.json#/routes/0/responses/0/body/base/sha",
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/head/sha",
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/status"
+          ],
+          "fact_ids": [
+            "cases/e07-draft-pr.json#/routes/4/responses/0/body/checks/0",
+            "cases/e07-draft-pr.json#/routes/3/responses/0/body/statuses/0"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "buildkite/release from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "draft",
+          "finding": "PR remains draft=true",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e07-draft-pr.json#/routes/0/responses/0/body/draft",
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/draft"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=draft; draft=true",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Draft=true establishes a blocker despite successful mandatory Buildkite status.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e08-review-threshold",
+      "raw_sources": {
+        "cases/e08-review-threshold.json": "f0a26df85db34516d239f379318b787b6d7ef13491757b5ba17a7d39edfc1e44"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e08-review-threshold.json#/routes/0/responses/1/body/state",
+            "cases/e08-review-threshold.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e08-review-threshold.json#/routes/0/responses/1/body/mergeable",
+            "cases/e08-review-threshold.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e08-review-threshold.json#/routes/0/responses/0/body/head/sha",
+            "cases/e08-review-threshold.json#/routes/0/responses/0/body/base/sha",
+            "cases/e08-review-threshold.json#/routes/0/responses/1/body/head/sha",
+            "cases/e08-review-threshold.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/1/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "2 approving review(s); enabled conditions: require_code_owner_reviews, require_last_push_approval"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED under a two-approval policy with only one approval",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/1/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "review-conditions",
+          "finding": "Individual code-owner eligibility and latest-push reviewer/pusher relationship are not independently captured",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews"
+          ],
+          "fact_ids": [
+            "cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/1/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "One observed approval cannot satisfy the two-review policy; GitHub effective decision is REVIEW_REQUIRED. Code-owner and latest-push conditions additionally lack individual proof.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e09-changes-requested",
+      "raw_sources": {
+        "cases/e09-changes-requested.json": "c08a0799b182ad1d163d4cb635e6ba3f56ea6969d4c215ac40af2c1df0d6499a"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e09-changes-requested.json#/routes/0/responses/1/body/state",
+            "cases/e09-changes-requested.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e09-changes-requested.json#/routes/0/responses/1/body/mergeable",
+            "cases/e09-changes-requested.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e09-changes-requested.json#/routes/0/responses/0/body/head/sha",
+            "cases/e09-changes-requested.json#/routes/0/responses/0/body/base/sha",
+            "cases/e09-changes-requested.json#/routes/0/responses/1/body/head/sha",
+            "cases/e09-changes-requested.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e09-changes-requested.json#/routes/5/responses/0/body",
+            "cases/e09-changes-requested.json#/routes/1/responses/0/body",
+            "cases/e09-changes-requested.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "1 approving review(s); no code-owner, latest-push or stale-dismissal condition"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "changes-requested",
+          "finding": "Later same-reviewer changes request and GitHub CHANGES_REQUESTED block required reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "cases/e09-changes-requested.json#/routes/1/responses/0/body/1",
+            "cases/e09-changes-requested.json#/routes/8/responses/0/body/data/repository/pull_request/review_decision",
+            "cases/e09-changes-requested.json#/routes/5/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The later CHANGES_REQUESTED review supersedes the same member approval, and GitHub effective decision independently confirms changes requested under required-review policy.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e10-behind-strict-base",
+      "raw_sources": {
+        "cases/e10-behind-strict-base.json": "1b60d1fcb7d95484bf787e7327d4b99a8179187a670c6a24bc3e851dec2524f5"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/state",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/mergeable",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e10-behind-strict-base.json#/routes/0/responses/0/body/head/sha",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/0/body/base/sha",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/head/sha",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/15c780bf53d3fb1249b6291702668dc62e91ae10/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e10-behind-strict-base.json#/routes/4/responses/0/body/checks/0",
+            "cases/e10-behind-strict-base.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "ci / integration from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "strict-base-behind",
+          "finding": "Final PR is behind under strict=true status policy",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e10-behind-strict-base.json#/routes/4/responses/0/body/strict",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/mergeable_state"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=behind; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "A behind PR fails explicit strict=true up-to-date policy despite successful CI.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e11-queued-check",
+      "raw_sources": {
+        "cases/e11-queued-check.json": "1eaee85f305726b234a4e504f68237e381dcf692ce52bb275dda5f09a22f464c"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e11-queued-check.json#/routes/0/responses/1/body/state",
+            "cases/e11-queued-check.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e11-queued-check.json#/routes/0/responses/1/body/mergeable",
+            "cases/e11-queued-check.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e11-queued-check.json#/routes/0/responses/0/body/head/sha",
+            "cases/e11-queued-check.json#/routes/0/responses/0/body/base/sha",
+            "cases/e11-queued-check.json#/routes/0/responses/1/body/head/sha",
+            "cases/e11-queued-check.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/8f7e63fa795edc1ddea4ce1ba6444c33a288aeb1/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e11-queued-check.json#/routes/4/responses/0/body/checks/0",
+            "cases/e11-queued-check.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "ci / unit from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-ci-queued",
+          "finding": "Required ci / unit is queued without conclusion",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/8f7e63fa795edc1ddea4ce1ba6444c33a288aeb1/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e11-queued-check.json#/routes/4/responses/0/body/checks/0",
+            "cases/e11-queued-check.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Required check is queued with null conclusion; it has not passed and GitHub reports blocked.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e12-missing-rule-context",
+      "raw_sources": {
+        "cases/e12-missing-rule-context.json": "bdae216b83abec009749a5740f435ae98c65eacabb70bbbb6eb49af8faaca4aa"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/0/responses/1/body/state",
+            "cases/e12-missing-rule-context.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/0/responses/1/body/mergeable",
+            "cases/e12-missing-rule-context.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/0/responses/0/body/head/sha",
+            "cases/e12-missing-rule-context.json#/routes/0/responses/0/body/base/sha",
+            "cases/e12-missing-rule-context.json#/routes/0/responses/1/body/head/sha",
+            "cases/e12-missing-rule-context.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/6/responses/0/body/0/parameters/required_status_checks/0"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "security / scan from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-context-missing",
+          "finding": "Required security / scan is absent from complete current-head checks/statuses",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/check-runs",
+            "GET /repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/status"
+          ],
+          "fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/6/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/2/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/3/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Effective rules explicitly require security / scan, and complete check/status data establish its absence. Optional unit success cannot satisfy it.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e13-conflicting-same-name",
+      "raw_sources": {
+        "cases/e13-conflicting-same-name.json": "61ba8d11cad00a01adaf41333d3d522917052854f26c83fc93108ad1dfc4bb8c"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/1/body/state",
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/1/body/mergeable",
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/0/body/head/sha",
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/0/body/base/sha",
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/1/body/head/sha",
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/4/responses/0/body/checks/0",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body/check_runs/0",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body/check_runs/1"
+          ],
+          "observed_satisfaction": "conflicting-results; GitHub merge blocked",
+          "requirement": "ci / unit from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub merge state is blocked while both same-name entries are required and one fails",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "same-name-resolution",
+          "finding": "Different Apps share the required unbound name; the exact cross-App selection semantics are not established by a producer identity-bearing GitHub result",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/4/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The same-name runs have conflicting conclusions, but GitHub marks both corresponding same-name entries required and reports blocked. A failure is observed; selecting the successful producer cannot prove readiness. Exact cross-app rule resolution remains a limitation.",
+      "confidence": {
+        "overall": "medium",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e14-running-no-conclusion",
+      "raw_sources": {
+        "cases/e14-running-no-conclusion.json": "f52c503d9439f3c5d610e28529921b56a33cf32ed49bad4df2381797140f4f5f"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/1/body/state",
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/1/body/mergeable",
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/0/body/head/sha",
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/0/body/base/sha",
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/1/body/head/sha",
+            "cases/e14-running-no-conclusion.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/0426efec7d5c1abb9ac4dd0be9afa8357551c89a/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/4/responses/0/body/checks/0",
+            "cases/e14-running-no-conclusion.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "ci / integration from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-ci-running",
+          "finding": "Required integration check is in progress with no conclusion",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/0426efec7d5c1abb9ac4dd0be9afa8357551c89a/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/4/responses/0/body/checks/0",
+            "cases/e14-running-no-conclusion.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Required integration check is in progress with no conclusion. A separate successful lint check does not satisfy it.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e15-anonymous-graphql",
+      "raw_sources": {
+        "cases/e15-anonymous-graphql.json": "961b076d2cd3c4e143ff68fa6a4b3d8a668f1f235d606216526ed6d2c3d6d29b"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/1/body/state",
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/1/body/mergeable",
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/0/body/head/sha",
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/0/body/base/sha",
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/1/body/head/sha",
+            "cases/e15-anonymous-graphql.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e15-anonymous-graphql.json#/routes/5/responses/0/body",
+            "cases/e15-anonymous-graphql.json#/routes/1/responses/0/body",
+            "cases/e15-anonymous-graphql.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unknown",
+          "requirement": "1 approving review(s); no code-owner, latest-push or stale-dismissal condition"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "effective-review-eligibility",
+          "finding": "One MEMBER approval is observed, but effective eligibility/write permission cannot be established without a usable GitHub review decision or permission evidence",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e15-anonymous-graphql.json#/routes/1/responses/0/body",
+            "cases/e15-anonymous-graphql.json#/routes/5/responses/0/body",
+            "cases/e15-anonymous-graphql.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance.",
+        "Authored fixture supplies classic policy 200 anonymously although documented fine-grained classic policy reads require Administration permission; treat the supplied wire facts as synthetic assumptions, not proof such anonymous access is available in production."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The one raw approval is present but MEMBER affiliation does not establish repository write permission or GitHub effective eligibility. GraphQL authentication is unavailable. Do not invent a missing-review blocker, and do not claim ready from an unverified approval.",
+      "confidence": {
+        "overall": "medium",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e16-policy-permission-denied",
+      "raw_sources": {
+        "cases/e16-policy-permission-denied.json": "cf64726d1a4387e0caaded56327be4c83eab3e99ed7c13db26436c8928473d12"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/1/body/state",
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/1/body/mergeable",
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/0/body/head/sha",
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/0/body/base/sha",
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/1/body/head/sha",
+            "cases/e16-policy-permission-denied.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "applicable-policy-unreadable",
+          "finding": "403 policy, rules and branch responses prevent complete mandatory-rule discovery",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "cases/e16-policy-permission-denied.json#/routes/4/responses/0/body",
+            "cases/e16-policy-permission-denied.json#/routes/5/responses/0/body",
+            "cases/e16-policy-permission-denied.json#/routes/6/responses/0/body",
+            "cases/e16-policy-permission-denied.json#/routes/7/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Applicable classic and ruleset policy are inaccessible. Clean merge summary and a successful visible optional check cannot establish absence of hidden mandatory rules.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e17-private-pr-not-found",
+      "raw_sources": {
+        "cases/e17-private-pr-not-found.json": "476a706553b88a11d5ff3ab95293f1966e3d1631b6a70782a8b699a6f0f86a78"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "identity-and-policy-unobservable",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "cases/e17-private-pr-not-found.json#/routes/0/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/4/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/5/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/6/responses/0/body"
+          ],
+          "observed_satisfaction": "unknown",
+          "requirement": "A readable PR identity and applicable policy are needed before any readiness statement"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "private-target-unreadable",
+          "finding": "404 Not Found discloses no PR identity, state or requirements",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "GET /repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e17-private-pr-not-found.json#/routes/0/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/1/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/2/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/4/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/5/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/6/responses/0/body",
+            "cases/e17-private-pr-not-found.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "unknown"
+        ],
+        "observed_summary_basis": "Unavailable PR",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "404 Not Found discloses no PR identity or policy. It does not establish a closed or nonexistent PR, so readiness and assurance remain unknown rather than not-applicable.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e18-checks-and-reviews-denied",
+      "raw_sources": {
+        "cases/e18-checks-and-reviews-denied.json": "1100d9625c8813c6022afaa6c46bec46dbb3a9721c814914856d035620cd6d3d"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/1/body/state",
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/1/body/mergeable",
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/0/body/head/sha",
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/0/body/base/sha",
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/1/body/head/sha",
+            "cases/e18-checks-and-reviews-denied.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "cases/e18-checks-and-reviews-denied.json#/routes/4/responses/0/body/checks/0"
+          ],
+          "observed_satisfaction": "unknown",
+          "requirement": "ci / unit from any allowed source"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e18-checks-and-reviews-denied.json#/routes/5/responses/0/body",
+            "cases/e18-checks-and-reviews-denied.json#/routes/1/responses/0/body",
+            "cases/e18-checks-and-reviews-denied.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unknown",
+          "requirement": "1 approving review(s); no code-owner, latest-push or stale-dismissal condition"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "required-check-and-review-denied",
+          "finding": "Known mandatory ci / unit and one approval cannot be verified because checks/reviews are denied and GraphQL reports FORBIDDEN",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "GET /repos/eval/fixture/commits/81d2a3305a8c57bbf01dadf5d5573be59f1be965/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e18-checks-and-reviews-denied.json#/routes/1/responses/0/body",
+            "cases/e18-checks-and-reviews-denied.json#/routes/2/responses/0/body",
+            "cases/e18-checks-and-reviews-denied.json#/routes/4/responses/0/body",
+            "cases/e18-checks-and-reviews-denied.json#/routes/5/responses/0/body",
+            "cases/e18-checks-and-reviews-denied.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The known mandatory check and review cannot be inspected because both endpoints are denied and GraphQL has a resource error. Empty status data do not prove the required check absent.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e19-rate-limited-policy",
+      "raw_sources": {
+        "cases/e19-rate-limited-policy.json": "f7f35d6eee2cd4e768dde60572b4b889835e042d8169a13ca785fbb30b70a084"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/1/body/state",
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/1/body/mergeable",
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/0/body/head/sha",
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/0/body/base/sha",
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/1/body/head/sha",
+            "cases/e19-rate-limited-policy.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "rate-limited-policy",
+          "finding": "403 with rate-limit remaining 0 prevents effective rules discovery",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "cases/e19-rate-limited-policy.json#/routes/6/responses/0/status",
+            "cases/e19-rate-limited-policy.json#/routes/6/responses/0/headers",
+            "cases/e19-rate-limited-policy.json#/routes/6/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Rate exhaustion prevents effective rules discovery; absent classic protection cannot establish no ruleset requirements.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e20-review-transport-timeout",
+      "raw_sources": {
+        "cases/e20-review-transport-timeout.json": "ff9cd5dad3dfbed2c229c4cd0e59d3ecc619316588a3c08ee6d61983796f5210"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/1/body/state",
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/1/body/mergeable",
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/0/body/head/sha",
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/0/body/base/sha",
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/1/body/head/sha",
+            "cases/e20-review-transport-timeout.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e20-review-transport-timeout.json#/routes/5/responses/0/body",
+            "cases/e20-review-transport-timeout.json#/routes/1/responses/0/fault",
+            "cases/e20-review-transport-timeout.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "1 approving review(s); no code-owner, latest-push or stale-dismissal condition"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "review-inventory-timeout",
+          "finding": "The REST review inventory timed out; detailed review provenance and completeness are unavailable.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews"
+          ],
+          "fact_ids": [
+            "cases/e20-review-transport-timeout.json#/routes/1/responses/0/fault"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance.",
+        "Review-list transport timed out; individual review identity/content are unavailable. The effective APPROVED decision supplies the single-review policy fact independently."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The simple mandatory review policy is operationally satisfied by current-head GitHub APPROVED, with clean mergeability and complete visible policy. The review-list timeout leaves requested individual review provenance unavailable, so scoped evidence-pack assurance is unknown. No merge blocker is invented from this collection failure.",
+      "confidence": {
+        "overall": "medium",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e21-malformed-policy-json",
+      "raw_sources": {
+        "cases/e21-malformed-policy-json.json": "015f5eec24c28ee0e5f6410a0cc2860442fa1495b46dfac633afc870fbeff242"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/1/body/state",
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/1/body/mergeable",
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/0/body/head/sha",
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/0/body/base/sha",
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/1/body/head/sha",
+            "cases/e21-malformed-policy-json.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "malformed-policy",
+          "finding": "HTTP200 effective rule bytes are malformed JSON; full policy cannot be established",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "cases/e21-malformed-policy-json.json#/routes/6/responses/0/rawBody"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Malformed effective-rule JSON is not an empty policy response. Its partial bytes do not establish a complete active rule or permit positive assurance.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e22-truncated-second-page",
+      "raw_sources": {
+        "cases/e22-truncated-second-page.json": "b24cc09240b186d446fb460d0661a4d39637681eadc0009ad0e811dc8dc00180"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e22-truncated-second-page.json#/routes/0/responses/1/body/state",
+            "cases/e22-truncated-second-page.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e22-truncated-second-page.json#/routes/0/responses/1/body/mergeable",
+            "cases/e22-truncated-second-page.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e22-truncated-second-page.json#/routes/0/responses/0/body/head/sha",
+            "cases/e22-truncated-second-page.json#/routes/0/responses/0/body/base/sha",
+            "cases/e22-truncated-second-page.json#/routes/0/responses/1/body/head/sha",
+            "cases/e22-truncated-second-page.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "cases/e22-truncated-second-page.json#/routes/4/responses/0/body/checks/0"
+          ],
+          "observed_satisfaction": "unknown",
+          "requirement": "security / scan from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "truncated-required-result",
+          "finding": "Advertised second check page is truncated before conclusion; required scan result cannot be recovered",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/992d9348f6457fa0f6e044b566565be80b47dc01/check-runs",
+            "GET /repos/eval/fixture/commits/992d9348f6457fa0f6e044b566565be80b47dc01/check-runs?per_page=100&page=2",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "cases/e22-truncated-second-page.json#/routes/2/responses/0/headers/Link",
+            "cases/e22-truncated-second-page.json#/routes/2/responses/0/body/total_count",
+            "cases/e22-truncated-second-page.json#/routes/9/responses/0/rawBody",
+            "cases/e22-truncated-second-page.json#/routes/4/responses/0/body/checks/0"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Policy establishes security / scan is required, but its second-page result is truncated. GraphQL requirement flags and the scan name do not recover its conclusion. Missing result is unknown, not confirmed missing/failing.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e23-head-moves-during-read",
+      "raw_sources": {
+        "cases/e23-head-moves-during-read.json": "f88a57d604e9c121d762c2b25fa98d0aef73b6ed41419bffc761edf02bca35c6"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/state",
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/mergeable",
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/0/body/head/sha",
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/0/body/base/sha",
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/head/sha",
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "changed-during-collection",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/4/responses/0/body/checks/0"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "ci / unit from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "new-head-required-check-missing",
+          "finding": "Final head has no runs/statuses for required ci / unit; old-head success cannot satisfy it",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/check-runs",
+            "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/status"
+          ],
+          "fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/head/sha",
+            "cases/e23-head-moves-during-read.json#/routes/4/responses/0/body/checks/0",
+            "cases/e23-head-moves-during-read.json#/routes/9/responses/0/body",
+            "cases/e23-head-moves-during-read.json#/routes/10/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "mixed-head-snapshot",
+          "finding": "Initial-head observations cannot jointly describe the final-head collection",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/0/body/head/sha",
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/head/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked",
+          "unknown"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Head changed during collection and the final-head routes explicitly contain no required check; final PR is blocked. The old-head success cannot support the new head. Distinguish full scenario facts from whether a client requested the new-head routes.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e24-base-moves-during-read",
+      "raw_sources": {
+        "cases/e24-base-moves-during-read.json": "2b0b91b34f6d18f05419b27456b59521fd4b2ee47f9942e7421d484583ea8fc9"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/state",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/mergeable",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/0/body/head/sha",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/0/body/base/sha",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/head/sha",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "changed-during-collection",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/ef8620798f8719494e3a027e336a39625e73c896/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/4/responses/0/body/checks/0",
+            "cases/e24-base-moves-during-read.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "ci / integration from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "strict-base-behind",
+          "finding": "Final PR is behind under strict=true status policy",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/4/responses/0/body/strict",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/mergeable_state"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "base-changed",
+          "finding": "Base changed during collection; prior evidence cannot establish an unchanged-base snapshot",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/0/body/base/sha",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/base/sha",
+            "cases/e24-base-moves-during-read.json#/routes/7/responses/0/body/commit/sha",
+            "cases/e24-base-moves-during-read.json#/routes/7/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked",
+          "unknown"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=behind; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The protected base changed, and final PR is behind under explicit strict=true policy. Stable head SHA does not remove this blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e25-approval-on-older-commit",
+      "raw_sources": {
+        "cases/e25-approval-on-older-commit.json": "74d257e6eebd6648585be88adc2b8f3b8e7aa6e15d3d75f8e884effc4bb491b0"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/1/body/state",
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/1/body/mergeable",
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/0/body/head/sha",
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/0/body/base/sha",
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/1/body/head/sha",
+            "cases/e25-approval-on-older-commit.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e25-approval-on-older-commit.json#/routes/5/responses/0/body",
+            "cases/e25-approval-on-older-commit.json#/routes/1/responses/0/body",
+            "cases/e25-approval-on-older-commit.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "1 approving review(s); no code-owner, latest-push or stale-dismissal condition"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance.",
+        "Approval references an older commit. The merge policy permits it, but this is not an assertion that a human reviewed the exact latest diff."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "An older approval can remain valid when stale-dismissal and latest-push rules are disabled. GitHub effective decision remains APPROVED for the current PR; no mandatory exact-head approval rule is present. This supports scoped merge evidence, not a human claim that the latest changes were reviewed.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e26-facts-change-same-head",
+      "raw_sources": {
+        "cases/e26-facts-change-same-head.json": "72afad0c4f020300a97e9051a2ac593bff9fd02443063a55a072e803ab54c08b"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/1/body/state",
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/1/body/mergeable",
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/0/body/head/sha",
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/0/body/base/sha",
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/1/body/head/sha",
+            "cases/e26-facts-change-same-head.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/4/responses/0/body/checks/0",
+            "cases/e26-facts-change-same-head.json#/routes/2/responses/1/body/check_runs/0"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "ci / unit from any allowed source"
+        },
+        {
+          "id": "required-reviews",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/5/responses/0/body",
+            "cases/e26-facts-change-same-head.json#/routes/1/responses/1/body",
+            "cases/e26-facts-change-same-head.json#/routes/8/responses/1/body"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "1 approving review(s); no code-owner, latest-push or stale-dismissal condition"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "later-required-ci-failure",
+          "finding": "Later same-head rerun of required ci / unit failed",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/4/responses/0/body/checks/0",
+            "cases/e26-facts-change-same-head.json#/routes/2/responses/1/body/check_runs/0"
+          ]
+        },
+        {
+          "id": "later-changes-requested",
+          "finding": "Later review and GitHub decision request changes",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/1/responses/1/body/1",
+            "cases/e26-facts-change-same-head.json#/routes/8/responses/1/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "facts-changed-same-head",
+          "finding": "Checks and review decision changed during collection despite stable head/base identity.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/2/responses/0/body",
+            "cases/e26-facts-change-same-head.json#/routes/2/responses/1/body",
+            "cases/e26-facts-change-same-head.json#/routes/8/responses/0/body",
+            "cases/e26-facts-change-same-head.json#/routes/8/responses/1/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance.",
+        "Later scripted responses are full-scenario facts; candidate transcripts must distinguish unrequested later reads from actually observed facts. Final PR summary still records blocked."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked",
+          "unknown"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The complete scenario records later same-head CI failure, changes requested, and final blocked PR summary. Head/base equality cannot justify a passing interval-wide claim. Later facts are scenario ground truth even if the request transcript omits rereads.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e27-hostile-check-metadata",
+      "raw_sources": {
+        "cases/e27-hostile-check-metadata.json": "a3e5ba93c8a8477002bf427e845331db0feefa0a762b3b4645e47724e4ec9a96"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/1/body/state",
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/1/body/mergeable",
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/0/body/head/sha",
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/0/body/base/sha",
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/1/body/head/sha",
+            "cases/e27-hostile-check-metadata.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/426c3064d268cc95a6a5626641c4cce68d550222/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e27-hostile-check-metadata.json#/routes/4/responses/0/body/checks/0",
+            "cases/e27-hostile-check-metadata.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "ci / unit from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance.",
+        "Optional check name contains hostile Markdown/HTML/workflow-command text and details_url uses javascript:. Render as inert text; do not emit an actionable source URL."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Required ci / unit passed. The failed hostile optional check is not required. Its unsafe URL and command-like metadata are inert data that require safe rendering, not a merge blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e28-malformed-pr-source-metadata",
+      "raw_sources": {
+        "cases/e28-malformed-pr-source-metadata.json": "8bd8681f7c6a99196d4e6853a92a07bc1ee4c48848662773b4afb6a5afb23fd4"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/1/body/state",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/1/body/mergeable",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/0/body/head/sha",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/0/body/base/sha",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/1/body/head/sha",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "metadata-validation-limited",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "no-additional-policy",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "cases/e28-malformed-pr-source-metadata.json#/routes/4/responses/0/body",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/5/responses/0/body",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/6/responses/0/body",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/7/responses/0/body"
+          ],
+          "observed_satisfaction": "established-subject-to-metadata-validation",
+          "requirement": "No configured CI/review/ruleset requirement in authored scenario; absence corroborated by unprotected branch and empty effective rules"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "malformed-identity-metadata",
+          "finding": "Head ref contains an invalid newline and PR html_url uses javascript:; provenance/identity metadata need validation before a positive operational conclusion",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/0/body/head/ref",
+            "cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/0/body/html_url"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance.",
+        "Well-formed target/number/repository/SHA are observed, but malformed ref/URL remain distinct metadata integrity limitations. Hostile title is inert display data."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "Malformed PR source URL and an impossible newline-bearing head ref limit trustworthy metadata identity despite well-formed SHAs and a clean summary. Conservative readiness remains unknown pending validation; no merge blocker is invented from malicious display text.",
+      "confidence": {
+        "overall": "medium",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e29-app-bound-and-deployment-rule",
+      "raw_sources": {
+        "cases/e29-app-bound-and-deployment-rule.json": "469feda8f2a8d181297c78c89b8d67b00c84e60881239b9da546a42949823604"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/1/body/state",
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/1/body/mergeable",
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/0/body/head/sha",
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/0/body/base/sha",
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/1/body/head/sha",
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/commits/ee90d0ebec2b37ef365f5dc0b3af424400daf359/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/6/responses/0/body/0/parameters/required_status_checks/0",
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/2/responses/0/body/check_runs/0",
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/2/responses/0/body/check_runs/1"
+          ],
+          "observed_satisfaction": "satisfied-by-required-App-44444-on-observed-head",
+          "requirement": "ci / unit from App 44444"
+        },
+        {
+          "id": "production-deployment",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/6/responses/0/body/1"
+          ],
+          "observed_satisfaction": "unknown",
+          "requirement": "A successful deployment to production is mandatory"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "required-deployment-unobserved",
+          "finding": "No deployment/status response establishes required production deployment satisfaction",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "cases/e29-app-bound-and-deployment-rule.json#/routes/6/responses/0/body/1"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance.",
+        "App binding is resolvable in this fixture: App 44444 success is required and App 55555 failure is optional. Deployment coverage remains unsupported."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=clean; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "App 44444 is the required source and its current-head check passed; the failed app 55555 run is not required. Mandatory production deployment has no captured satisfaction evidence, so passing assurance is unsupported.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "e30-required-collection-check",
+      "raw_sources": {
+        "cases/e30-required-collection-check.json": "6f507bef7ed10911240a46eb4ff70f277aefe60641b4cb67f473e6e5cbcfe27a"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/0/responses/1/body/state",
+            "cases/e30-required-collection-check.json#/routes/0/responses/1/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must be open and non-draft"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/0/responses/1/body/mergeable",
+            "cases/e30-required-collection-check.json#/routes/0/responses/1/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "coherent-identity",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/0/responses/0/body/head/sha",
+            "cases/e30-required-collection-check.json#/routes/0/responses/0/body/base/sha",
+            "cases/e30-required-collection-check.json#/routes/0/responses/1/body/head/sha",
+            "cases/e30-required-collection-check.json#/routes/0/responses/1/body/base/sha"
+          ],
+          "observed_satisfaction": "satisfied-within-snapshot",
+          "requirement": "Mandatory evidence must refer to the final observed repository/PR/head/base"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/4/responses/0/body/checks/0",
+            "cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "ci / unit from any allowed source"
+        },
+        {
+          "id": "required-check-2",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/4/responses/0/body/checks/1",
+            "cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/1"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "Ashlar release evidence from any allowed source"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "own-required-check-incomplete",
+          "finding": "Ashlar release evidence is mandatory and still in progress",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/check-runs"
+          ],
+          "fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/4/responses/0/body/checks/1",
+            "cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/1"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Synthetic authored API scenario, not live or customer evidence.",
+        "Scope is observed GitHub merge requirements; a human retains release responsibility.",
+        "Before/after identity equality does not provide atomic checks/reviews or future-state assurance."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Final PR mergeable_state=blocked; draft=false",
+        "limitations": "Legacy summary compatibility does not certify conservative readiness. A legacy ready when readiness is unknown remains unsupported-ready. Freshness cases may conservatively return unknown."
+      },
+      "reasoning": "The collector own check is explicitly required and remains in progress without conclusion. Excluding it from mandatory evidence cannot establish passing assurance at collection time.",
+      "confidence": {
+        "overall": "high",
+        "limits": "Labels refer to immutable full scenario; synthetics depend on authored intent and are not empirical public/customer policy."
+      },
+      "kind": "synthetic",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "public-01",
+      "raw_sources": {
+        "public/public-01/routes.json": "92a61455b4355273bc5dbc29b5f57763983e1304a4fb65888f6b83f2a69ea781",
+        "public/public-01/capture.json": "cd7ed2257483f1d6a8448a5562ae68bae09688826454347fc58d3f9663dfe623"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/900"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/0/responses/0/body/state",
+            "public/public-01/routes.json#/routes/0/responses/0/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must remain open and leave draft before merging"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/900"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-01/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ],
+          "observed_satisfaction": "unsatisfied-on-observed-head",
+          "requirement": "cert-gate must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-2",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ],
+          "observed_satisfaction": "unsatisfied-on-observed-head",
+          "requirement": "build-core must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-3",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/2",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/11"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "shell-lint must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-4",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repositories/1031633230/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs?page=2"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/3",
+            "public/public-01/routes.json#/routes/3/responses/0/body/check_runs/2"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "lychee (README + docs) must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-5",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "unsatisfied-on-observed-head",
+          "requirement": "Readiness summary must pass from GitHub App 15368"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-check-1-failure",
+          "finding": "cert-gate is required and completed with failure on observed head from the expected App",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ]
+        },
+        {
+          "id": "required-check-2-failure",
+          "finding": "build-core is required and completed with failure on observed head from the expected App",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ]
+        },
+        {
+          "id": "required-check-5-failure",
+          "finding": "Readiness summary is required and completed with failure on observed head from the expected App",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-denied",
+          "finding": "Classic required status/review policy reads are denied with 403; branch metadata and effective rules reveal some requirements but cannot prove complete classic policy coverage",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/7/responses/0/status",
+            "public/public-01/routes.json#/routes/8/responses/0/status"
+          ]
+        },
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/900"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Open PR with blocked merge summary",
+        "limitations": "Compatibility is separate from conservative readiness and does not resolve missing classic policy."
+      },
+      "reasoning": "A directly observed blocker is sufficient for blocked/fail. Mandatory checks and effective review requirements are cited independently; permission gaps remain unknown even where visible checks pass. Optional CI is not promoted to a blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "High confidence in blocked/fail; policy inventory is intentionally incomplete due denied endpoints."
+      },
+      "kind": "public",
+      "adjudication": {
+        "status": "resolved"
+      },
+      "corroborating_summaries": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/900"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-02",
+      "raw_sources": {
+        "public/public-02/routes.json": "a0b198d807ea02d149bc4ab88ab7c7de9f95452c06c6a465b65bea2908a9df63",
+        "public/public-02/capture.json": "7bb305920cd6d67f9988b16acd4ca20255777e86b1ee1a5be1c63d42e62320c6"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/0/responses/0/body/state",
+            "public/public-02/routes.json#/routes/0/responses/0/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must remain open and leave draft before merging"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-02/routes.json#/routes/2/responses/0/body/check_runs/23"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "cert-gate must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-2",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-02/routes.json#/routes/2/responses/0/body/check_runs/27"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "build-core must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-3",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/2",
+            "public/public-02/routes.json#/routes/3/responses/0/body/check_runs/13"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "shell-lint must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-4",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/3",
+            "public/public-02/routes.json#/routes/3/responses/0/body/check_runs/9"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "lychee (README + docs) must pass from GitHub App 15368"
+        },
+        {
+          "id": "required-check-5",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "public/public-02/routes.json#/routes/2/responses/0/body/check_runs/0",
+            "public/public-02/routes.json#/routes/2/responses/0/body/check_runs/12"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "Readiness summary must pass from GitHub App 15368"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "merge-conflict",
+          "finding": "mergeable=false and dirty establish a merge conflict",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-denied",
+          "finding": "Classic required status/review policy reads are denied with 403; branch metadata and effective rules reveal some requirements but cannot prove complete classic policy coverage",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/7/responses/0/status",
+            "public/public-02/routes.json#/routes/8/responses/0/status"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR-reported base SHA differs from the separately read current named branch SHA. Both stayed stable during the interval; the capture does not establish why they differ or exact current-base CI coverage.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853",
+            "GET /repos/IanFrelinger/Ashlar/branches/master"
+          ],
+          "fact_ids": [
+            "public/public-02/routes.json#/routes/0/responses/1/body/base/sha",
+            "public/public-02/routes.json#/routes/6/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Open PR with dirty merge summary",
+        "limitations": "Compatibility is separate from conservative readiness and does not resolve missing classic policy."
+      },
+      "reasoning": "A directly observed blocker is sufficient for blocked/fail. Mandatory checks and effective review requirements are cited independently; permission gaps remain unknown even where visible checks pass. Optional CI is not promoted to a blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "High confidence in blocked/fail; policy inventory is intentionally incomplete due denied endpoints."
+      },
+      "kind": "public",
+      "adjudication": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "public-03",
+      "raw_sources": {
+        "public/public-03/routes.json": "4d8949b8492bef17b10a782feb9ca9bc620db6852aa4ff5ddeb2bd5b560e1e27",
+        "public/public-03/capture.json": "94197fd3e30fb004e20144185a300ce6109338f32661b08690e23d257f2c15a4"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/state",
+            "public/public-03/routes.json#/routes/0/responses/0/body/draft"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "PR must remain open and leave draft before merging"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-03/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-03/routes.json#/routes/2/responses/0/body/check_runs/10"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "build (macos-latest) must pass; any source is allowed"
+        },
+        {
+          "id": "required-check-2",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-03/routes.json#/routes/2/responses/0/body/check_runs/11"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "build (ubuntu-latest) must pass; any source is allowed"
+        },
+        {
+          "id": "required-check-3",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/2",
+            "public/public-03/routes.json#/routes/2/responses/0/body/check_runs/8"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "build (windows-latest) must pass; any source is allowed"
+        },
+        {
+          "id": "effective-required-review",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "GitHub effective review decision requires review before merge"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "draft",
+          "finding": "PR is explicitly draft",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-denied",
+          "finding": "Classic required status/review policy reads are denied with 403; branch metadata and effective rules reveal some requirements but cannot prove complete classic policy coverage",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "GET /repos/cli/cli/branches/trunk/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/6/responses/0/status",
+            "public/public-03/routes.json#/routes/7/responses/0/status"
+          ]
+        },
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR-reported base SHA differs from the separately read current named branch SHA. Both stayed stable during the interval; the capture does not establish why they differ or exact current-base CI coverage.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781",
+            "GET /repos/cli/cli/branches/trunk"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/1/body/base/sha",
+            "public/public-03/routes.json#/routes/5/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection.",
+        "Effective copilot_code_review rule is observed; capture does not establish its enforcement implications or completion. No extra blocker is inferred from it.",
+        "Active copilot_code_review rule retained; its satisfaction/merge-blocking applicability is not established from this capture."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Open PR with blocked merge summary and draft flag and REVIEW_REQUIRED decision",
+        "limitations": "Compatibility is separate from conservative readiness and does not resolve missing classic policy."
+      },
+      "reasoning": "A directly observed blocker is sufficient for blocked/fail. Mandatory checks and effective review requirements are cited independently; permission gaps remain unknown even where visible checks pass. Optional CI is not promoted to a blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "High confidence in blocked/fail; policy inventory is intentionally incomplete due denied endpoints."
+      },
+      "kind": "public",
+      "adjudication": {
+        "status": "resolved"
+      },
+      "corroborating_summaries": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-04",
+      "raw_sources": {
+        "public/public-04/routes.json": "955451e323116cc2ccdbd9fe2104cb9eb615e516451c45382ac309570cf61804",
+        "public/public-04/capture.json": "3e3e6bc770f622bdf94458ed6ef8cbaa16d350461384e71d416a2f731caf0a06"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/0/responses/0/body/state",
+            "public/public-04/routes.json#/routes/0/responses/0/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must remain open and leave draft before merging"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-04/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-04/routes.json#/routes/2/responses/0/body/check_runs/7"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "build (macos-latest) must pass; any source is allowed"
+        },
+        {
+          "id": "required-check-2",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-04/routes.json#/routes/2/responses/0/body/check_runs/4"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "build (ubuntu-latest) must pass; any source is allowed"
+        },
+        {
+          "id": "required-check-3",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/2",
+            "public/public-04/routes.json#/routes/2/responses/0/body/check_runs/1"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "build (windows-latest) must pass; any source is allowed"
+        },
+        {
+          "id": "effective-required-review",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "GitHub effective review decision requires review before merge"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-denied",
+          "finding": "Classic required status/review policy reads are denied with 403; branch metadata and effective rules reveal some requirements but cannot prove complete classic policy coverage",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "GET /repos/cli/cli/branches/trunk/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/6/responses/0/status",
+            "public/public-04/routes.json#/routes/7/responses/0/status"
+          ]
+        },
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR-reported base SHA differs from the separately read current named branch SHA. Both stayed stable during the interval; the capture does not establish why they differ or exact current-base CI coverage.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845",
+            "GET /repos/cli/cli/branches/trunk"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/0/responses/1/body/base/sha",
+            "public/public-04/routes.json#/routes/5/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection.",
+        "Effective copilot_code_review rule is observed; capture does not establish its enforcement implications or completion. No extra blocker is inferred from it.",
+        "Active copilot_code_review rule retained; its satisfaction/merge-blocking applicability is not established from this capture."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Open PR with blocked merge summary and REVIEW_REQUIRED decision",
+        "limitations": "Compatibility is separate from conservative readiness and does not resolve missing classic policy."
+      },
+      "reasoning": "A directly observed blocker is sufficient for blocked/fail. Mandatory checks and effective review requirements are cited independently; permission gaps remain unknown even where visible checks pass. Optional CI is not promoted to a blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "High confidence in blocked/fail; policy inventory is intentionally incomplete due denied endpoints."
+      },
+      "kind": "public",
+      "adjudication": {
+        "status": "resolved"
+      },
+      "corroborating_summaries": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-05",
+      "raw_sources": {
+        "public/public-05/routes.json": "44f263061bedeeae66afcbe914bc267a95e92f76eb51bfaf75314540e05cdba0",
+        "public/public-05/capture.json": "564729e5c5c56d3fad3a628f436a9a0876583c43cfb7971107fa755a6d682529"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/0/responses/0/body/state",
+            "public/public-05/routes.json#/routes/0/responses/0/body/draft"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "PR must remain open and leave draft before merging"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-05/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=3"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/8/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-05/routes.json#/routes/4/responses/0/body/check_runs/13"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "license/cla must pass; any source is allowed"
+        },
+        {
+          "id": "required-check-2",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/8/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-05/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "Build Analysis must pass from GitHub App 216604"
+        },
+        {
+          "id": "effective-required-review",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/12/responses/0/body/data/repository/pull_request/review_decision"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "GitHub effective review decision requires review before merge"
+        },
+        {
+          "id": "organization-review-policy",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/11/responses/0/body/2/parameters"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "Organization policy requires one approval and approval of latest reviewable push by a different person; extra approval for unattributed changes is enabled"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/12/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-denied",
+          "finding": "Classic required status/review policy reads are denied with 403; branch metadata and effective rules reveal some requirements but cannot prove complete classic policy coverage",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main/protection/required_status_checks",
+            "GET /repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/9/responses/0/status",
+            "public/public-05/routes.json#/routes/10/responses/0/status"
+          ]
+        },
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR-reported base SHA differs from the separately read current named branch SHA. Both stayed stable during the interval; the capture does not establish why they differ or exact current-base CI coverage.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790",
+            "GET /repos/dotnet/runtime/branches/main"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/0/responses/1/body/base/sha",
+            "public/public-05/routes.json#/routes/8/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection.",
+        "Active deletion rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active non_fast_forward rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active creation rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Open PR with blocked merge summary and REVIEW_REQUIRED decision",
+        "limitations": "Compatibility is separate from conservative readiness and does not resolve missing classic policy."
+      },
+      "reasoning": "A directly observed blocker is sufficient for blocked/fail. Mandatory checks and effective review requirements are cited independently; permission gaps remain unknown even where visible checks pass. Optional CI is not promoted to a blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "High confidence in blocked/fail; policy inventory is intentionally incomplete due denied endpoints."
+      },
+      "kind": "public",
+      "adjudication": {
+        "status": "resolved"
+      },
+      "corroborating_summaries": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-06",
+      "raw_sources": {
+        "public/public-06/routes.json": "328a8fe737ecf96aa33233bb0835bc1adf5f634b471e2c2090c46ef7160e4dfd",
+        "public/public-06/capture.json": "eb49fff1548d4f49442ed5399c0a24c23fac6d8956db3a659d8766046f227198"
+      },
+      "mandatory_requirements": [
+        {
+          "id": "open-nondraft",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/state",
+            "public/public-06/routes.json#/routes/0/responses/0/body/draft"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "PR must remain open and leave draft before merging"
+        },
+        {
+          "id": "no-conflict",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-06/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ],
+          "observed_satisfaction": "satisfied",
+          "requirement": "A merge commit must be cleanly creatable"
+        },
+        {
+          "id": "required-check-1",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=3"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-06/routes.json#/routes/4/responses/0/body/check_runs/5"
+          ],
+          "observed_satisfaction": "satisfied-on-observed-head",
+          "requirement": "license/cla must pass; any source is allowed"
+        },
+        {
+          "id": "required-check-2",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=4"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ],
+          "observed_satisfaction": "unsatisfied-on-observed-head",
+          "requirement": "Build Analysis must pass from GitHub App 216604"
+        },
+        {
+          "id": "effective-required-review",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/13/responses/0/body/data/repository/pull_request/review_decision"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "GitHub effective review decision requires review before merge"
+        },
+        {
+          "id": "organization-review-policy",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/12/responses/0/body/2/parameters"
+          ],
+          "observed_satisfaction": "unsatisfied",
+          "requirement": "Organization policy requires one approval and approval of latest reviewable push by a different person; extra approval for unattributed changes is enabled"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "draft",
+          "finding": "PR is explicitly draft",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "id": "required-check-2-pending",
+          "finding": "Required Build Analysis is in progress with null conclusion",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=4"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/13/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-denied",
+          "finding": "Classic required status/review policy reads are denied with 403; branch metadata and effective rules reveal some requirements but cannot prove complete classic policy coverage",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main/protection/required_status_checks",
+            "GET /repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/10/responses/0/status",
+            "public/public-06/routes.json#/routes/11/responses/0/status"
+          ]
+        },
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR-reported base SHA differs from the separately read current named branch SHA. Both stayed stable during the interval; the capture does not establish why they differ or exact current-base CI coverage.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812",
+            "GET /repos/dotnet/runtime/branches/main"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/1/body/base/sha",
+            "public/public-06/routes.json#/routes/9/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection.",
+        "Active deletion rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active non_fast_forward rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active creation rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": "Open PR with blocked merge summary and draft flag and REVIEW_REQUIRED decision",
+        "limitations": "Compatibility is separate from conservative readiness and does not resolve missing classic policy."
+      },
+      "reasoning": "A directly observed blocker is sufficient for blocked/fail. Mandatory checks and effective review requirements are cited independently; permission gaps remain unknown even where visible checks pass. Optional CI is not promoted to a blocker.",
+      "confidence": {
+        "overall": "high",
+        "limits": "High confidence in blocked/fail; policy inventory is intentionally incomplete due denied endpoints."
+      },
+      "kind": "public",
+      "adjudication": {
+        "status": "resolved"
+      },
+      "corroborating_summaries": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ]
+    }
+  ],
+  "fixture_manifest_hash_kind": "SHA256 of input-manifest.json file bytes binding all 36 cases",
+  "authored_manifest_file_sha256": "fe89972acb6361058238d52f6bcabb655b6dc253ff9899d50023337a8abc73d3",
+  "independent_review_status": "both original files frozen; all procedural disagreements resolved before candidate execution",
+  "fixture_dataset_digest": "6327defe56d0ad1d7f7d6f60e44b8d9837638e555a492920246cb6401715a6d9",
+  "review_files": {
+    "first": {
+      "path": "review/ground-truth.json",
+      "sha256": "99abb8861b2502d31be4d247fa1e60942bc91f11b157f92939138929ef9d3010"
+    },
+    "second": {
+      "path": "review/second-ground-truth.json",
+      "sha256": "121cf1bdb0873fd4ee59124c453411e075c5569f59a9637ac23b182271b94894"
+    }
+  },
+  "reference_root": "tools/ReleaseEvidenceEvaluation",
+  "assurance_scope_note": "Operational readiness evaluates observed mandatory GitHub merge requirements. Scoped evidence-pack assurance additionally refuses a pass when requested material review provenance is absent, even if an authoritative GitHub summary establishes simple policy satisfaction. This distinction resolves e20 and is explicit, not silently equated with operational readiness.",
+  "adjudication_record": "review/adjudication.json"
+}

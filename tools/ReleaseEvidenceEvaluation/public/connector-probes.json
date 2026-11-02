@@ -1,0 +1,41 @@
+{
+  "recordedAt": "2026-11-02T00:53:11.727Z",
+  "note": "Transport/capability probes before final case collection. No labels or candidate outputs. Connector success statuses/headers not exposed; not mixed into final replay routes.",
+  "probes": [
+    {
+      "path": "/repos/IanFrelinger/Ashlar/pulls?state=open&sort=updated&direction=desc&per_page=3",
+      "result": "connector succeeded; raw discovery parsed in memory; body omitted from retained probe",
+      "httpStatus": null
+    },
+    {
+      "path": "/repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs?per_page=100",
+      "result": "connector succeeded; total_count40; entire output excluded from retained probe",
+      "httpStatus": null
+    },
+    {
+      "path": "/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+      "result": {
+        "error": "GitHub API error 403: {\"message\":\"Resource not accessible by integration\",\"documentation_url\":\"https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection\",\"status\":\"403\"}",
+        "error_code": "FORBIDDEN",
+        "error_data": {
+          "message": "Resource not accessible by integration",
+          "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+          "status": "403"
+        }
+      },
+      "httpStatus": 403,
+      "statusSource": "actual GitHub error_data"
+    },
+    {
+      "path": "/graphql",
+      "result": {
+        "error": "HTTPError: 400: GitHub Fetch URL is not an allowed public GitHub repository or search endpoint. (Response: None)",
+        "error_code": "INVALID_ARGUMENT"
+      },
+      "httpStatus": null,
+      "connectorStatus": 400,
+      "statusSource": "connector endpoint allowlist rejection; no upstream request"
+    }
+  ],
+  "decision": "Final cases use inherited proxy transport throughout because connector cannot expose successful HTTP status/pagination headers or issue the GraphQL query."
+}

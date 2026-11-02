@@ -1,0 +1,1927 @@
+{
+  "schema_version": 1,
+  "review_process": {
+    "ai_only": true,
+    "blinded_to_candidate_outputs": true,
+    "adjudicated": true,
+    "independent_reviews": 2,
+    "human_reviews": 0,
+    "independence_limitations": "Separate AI-agent contexts, both frozen before cross-review and candidate execution. Possible same-model-family correlated errors. No human, customer or authorized pilot validation."
+  },
+  "candidate_outputs_seen": false,
+  "candidate_executed": false,
+  "candidate_commit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "fixture_manifest_sha256": "7f13a41177dd6b0e639ead8dd173ab2556d2fb96683716a10d258d50b1d06ea5",
+  "frozen_original_reviews": {
+    "first": {
+      "path": "review/ground-truth.json",
+      "sha256": "99abb8861b2502d31be4d247fa1e60942bc91f11b157f92939138929ef9d3010"
+    },
+    "second": {
+      "path": "review/second-ground-truth.json",
+      "sha256": "121cf1bdb0873fd4ee59124c453411e075c5569f59a9637ac23b182271b94894"
+    }
+  },
+  "agreement": {
+    "cases": 36,
+    "conservative_readiness": {
+      "agree": 36,
+      "total": 36
+    },
+    "scoped_assurance": {
+      "agree": 35,
+      "total": 36
+    },
+    "same_both_labels": 35
+  },
+  "adjudication": {
+    "status": "resolved",
+    "conflicts": []
+  },
+  "method": "Both original files preserved. Compare outcomes and semantic requirements/blockers/unknowns after independent SHA freeze; do not treat synonymous IDs or split-versus-combined requirement formatting as substantive disagreements. Each material scope, identity, completeness or blocker-denominator difference is listed below. All 36 comparisons are retained.",
+  "common_schema_normalization": "Use first-review stable blocker IDs and evaluation-root-relative references; normalize mandatory requirement text to requirement. First review splits subject and coherent-identity checks; second groups subject conditions. Equivalent policy count, app binding and observations retain their raw references; naming/text differences are not separate disagreements. Public duplicate repository and organization review policies are combined by applicable strict conditions, never by summing approval counts.",
+  "disagreements": [
+    {
+      "case_id": "e13-conflicting-same-name",
+      "field": "blocker_identity_and_unknowns",
+      "first_review": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub merge state is blocked while both same-name entries are required and one fails",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body"
+          ]
+        },
+        {
+          "id": "same-name-resolution",
+          "finding": "Different Apps share the required unbound name; the exact cross-App selection semantics are not established by a producer identity-bearing GitHub result",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/4/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "second_review": [
+        {
+          "id": "ci-unit-failed",
+          "finding": "A required same-name ci / unit from app 222 failed while app 111 succeeded.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs",
+            "POST /graphql",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/2/responses/0/body/check_runs/0",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/2/responses/0/body/check_runs/1",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/4/responses/0/body"
+          ]
+        }
+      ],
+      "resolution": "Retain one generic GitHub merge-block finding and the exact cross-App resolution unknown. Do not count a second producer-specific failure.",
+      "rationale": "Both reviewers agree blocked/fail. Raw same-name flags lack producer IDs. A failing run and GitHub blocked are definite; a claim that this exact App independently supplies the mandatory blocker is less well established than the generic blockage.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "e20-review-transport-timeout",
+      "field": "expected_scoped_assurance",
+      "first_review": "pass",
+      "second_review": "unknown",
+      "resolution": "unknown; operational readiness remains ready",
+      "rationale": "GitHub APPROVED at the stable current head establishes the simple one-review policy without inventing a second policy requirement. The requested material REST review inventory timed out, so the evidence pack cannot substantiate its review-provenance inventory. Adjudication adopts the second reviewer conservative assurance scope; first reviewer explicitly accepted this scope choice. Collection/export availability remains a separate metric.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "e23-head-moves-during-read",
+      "field": "legacy_compatibility.allowable_verdicts",
+      "first_review": [
+        "blocked",
+        "unknown"
+      ],
+      "second_review": [
+        "blocked"
+      ],
+      "resolution": [
+        "blocked",
+        "unknown"
+      ],
+      "rationale": "Final facts are blocked. A conservative unknown explicitly acknowledging observed freshness failure is an acceptable legacy compatibility fallback. Ready remains unsupported and is not added to allowable verdicts. Operational ground truth remains blocked/fail.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "e24-base-moves-during-read",
+      "field": "legacy_compatibility.allowable_verdicts",
+      "first_review": [
+        "blocked",
+        "unknown"
+      ],
+      "second_review": [
+        "blocked"
+      ],
+      "resolution": [
+        "blocked",
+        "unknown"
+      ],
+      "rationale": "Final facts are blocked. A conservative unknown explicitly acknowledging observed freshness failure is an acceptable legacy compatibility fallback. Ready remains unsupported and is not added to allowable verdicts. Operational ground truth remains blocked/fail.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "e26-facts-change-same-head",
+      "field": "freshness_unknown",
+      "first_review": [],
+      "second_review": [
+        {
+          "id": "facts-changed-same-head",
+          "finding": "Checks and review decision changed during collection despite stable head/base identity.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/2/responses/1/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/8/responses/1/body"
+          ]
+        }
+      ],
+      "resolution": "Retain the changed-facts limitation as an explicit unknown alongside later confirmed blockers.",
+      "rationale": "The later failure and changes request are determinate; unknown refers to interval coherence and whether a consumer has reread mutable facts, not to the later blocker truth. Head equality does not establish fact stability.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "e26-facts-change-same-head",
+      "field": "legacy_compatibility.allowable_verdicts",
+      "first_review": [
+        "blocked",
+        "unknown"
+      ],
+      "second_review": [
+        "blocked"
+      ],
+      "resolution": [
+        "blocked",
+        "unknown"
+      ],
+      "rationale": "Final facts are blocked. A conservative unknown explicitly acknowledging observed freshness failure is an acceptable legacy compatibility fallback. Ready remains unsupported and is not added to allowable verdicts. Operational ground truth remains blocked/fail.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-01",
+      "field": "blocker_denominator",
+      "first_review": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/900"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        },
+        {
+          "id": "required-check-1-failure",
+          "finding": "cert-gate is required and completed with failure on observed head from the expected App",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ]
+        },
+        {
+          "id": "required-check-2-failure",
+          "finding": "build-core is required and completed with failure on observed head from the expected App",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ]
+        },
+        {
+          "id": "required-check-5-failure",
+          "finding": "Readiness summary is required and completed with failure on observed head from the expected App",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "second_review": [
+        {
+          "id": "required-ci-1",
+          "finding": "Required cert-gate has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ]
+        },
+        {
+          "id": "required-ci-2",
+          "finding": "Required build-core has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ]
+        },
+        {
+          "id": "required-ci-5",
+          "finding": "Required Readiness summary has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "resolution": "Move generic blocked summary into corroborating_summaries; count only concrete independently observed blocker findings.",
+      "rationale": "The GitHub blocked summary corroborates the separately identified failed required checks, draft or review requirement. Counting the broad summary as another missed blocker would duplicate the same obstruction and inflate the denominator.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-01",
+      "field": "test_merge_result_coverage",
+      "first_review": [
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/900"
+          ],
+          "fact_ids": [
+            "public/public-01/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        }
+      ],
+      "second_review": [],
+      "resolution": "Retain test-merge result coverage as unknown, without adding a blocker.",
+      "rationale": "A non-null test merge commit exists in raw PR metadata, but this dataset has no check/status responses for it. Successful head jobs alone do not prove coverage of every potentially applicable GitHub CI target. This does not erase positive observed blockers.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-02",
+      "field": "base_identity_coverage",
+      "first_review": [],
+      "second_review": [
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853",
+            "GET /repos/IanFrelinger/Ashlar/branches/master"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "resolution": "Retain a precise base-identity difference limitation, without claiming that base changed during collection or independently proves behind.",
+      "rationale": "A difference is directly observable, but both interval pairs are stable. It does not itself imply a strict-base blocker because full strict policy is unavailable.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-03",
+      "field": "blocker_denominator",
+      "first_review": [
+        {
+          "id": "draft",
+          "finding": "PR is explicitly draft",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "second_review": [
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/cli/cli/pulls/14781/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/1/responses/0/body"
+          ]
+        },
+        {
+          "id": "draft",
+          "finding": "The PR is a draft.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/0/responses/1/body/draft"
+          ]
+        }
+      ],
+      "resolution": "Move generic blocked summary into corroborating_summaries; count only concrete independently observed blocker findings.",
+      "rationale": "The GitHub blocked summary corroborates the separately identified failed required checks, draft or review requirement. Counting the broad summary as another missed blocker would duplicate the same obstruction and inflate the denominator.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-03",
+      "field": "test_merge_result_coverage",
+      "first_review": [
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        }
+      ],
+      "second_review": [],
+      "resolution": "Retain test-merge result coverage as unknown, without adding a blocker.",
+      "rationale": "A non-null test merge commit exists in raw PR metadata, but this dataset has no check/status responses for it. Successful head jobs alone do not prove coverage of every potentially applicable GitHub CI target. This does not erase positive observed blockers.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-03",
+      "field": "base_identity_coverage",
+      "first_review": [],
+      "second_review": [
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781",
+            "GET /repos/cli/cli/branches/trunk"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/5/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "resolution": "Retain a precise base-identity difference limitation, without claiming that base changed during collection or independently proves behind.",
+      "rationale": "A difference is directly observable, but both interval pairs are stable. It does not itself imply a strict-base blocker because full strict policy is unavailable.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-03",
+      "field": "active_rule_inventory_notes",
+      "first_review": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection.",
+        "Effective copilot_code_review rule is observed; capture does not establish its enforcement implications or completion. No extra blocker is inferred from it."
+      ],
+      "second_review": [
+        "Active copilot_code_review rule retained; its satisfaction/merge-blocking applicability is not established from this capture."
+      ],
+      "resolution": "Retain complete raw-rule applicability limitations; do not invent another merge blocker.",
+      "rationale": "Automatic Copilot review configuration, ref creation/deletion/force-update constraints and the less restrictive duplicate repository pull-request rule are retained as policy context. The concrete mandatory review blocker remains GitHub REVIEW_REQUIRED and, where visible, the stricter organization approval rule. Zero-approval repository rule is not independently labeled violated merely because the organization rule requires review.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-04",
+      "field": "blocker_denominator",
+      "first_review": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "second_review": [
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/cli/cli/pulls/14845/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/1/responses/0/body"
+          ]
+        }
+      ],
+      "resolution": "Move generic blocked summary into corroborating_summaries; count only concrete independently observed blocker findings.",
+      "rationale": "The GitHub blocked summary corroborates the separately identified failed required checks, draft or review requirement. Counting the broad summary as another missed blocker would duplicate the same obstruction and inflate the denominator.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-04",
+      "field": "test_merge_result_coverage",
+      "first_review": [
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845"
+          ],
+          "fact_ids": [
+            "public/public-04/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        }
+      ],
+      "second_review": [],
+      "resolution": "Retain test-merge result coverage as unknown, without adding a blocker.",
+      "rationale": "A non-null test merge commit exists in raw PR metadata, but this dataset has no check/status responses for it. Successful head jobs alone do not prove coverage of every potentially applicable GitHub CI target. This does not erase positive observed blockers.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-04",
+      "field": "base_identity_coverage",
+      "first_review": [],
+      "second_review": [
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845",
+            "GET /repos/cli/cli/branches/trunk"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/5/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "resolution": "Retain a precise base-identity difference limitation, without claiming that base changed during collection or independently proves behind.",
+      "rationale": "A difference is directly observable, but both interval pairs are stable. It does not itself imply a strict-base blocker because full strict policy is unavailable.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-04",
+      "field": "active_rule_inventory_notes",
+      "first_review": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection.",
+        "Effective copilot_code_review rule is observed; capture does not establish its enforcement implications or completion. No extra blocker is inferred from it."
+      ],
+      "second_review": [
+        "Active copilot_code_review rule retained; its satisfaction/merge-blocking applicability is not established from this capture."
+      ],
+      "resolution": "Retain complete raw-rule applicability limitations; do not invent another merge blocker.",
+      "rationale": "Automatic Copilot review configuration, ref creation/deletion/force-update constraints and the less restrictive duplicate repository pull-request rule are retained as policy context. The concrete mandatory review blocker remains GitHub REVIEW_REQUIRED and, where visible, the stricter organization approval rule. Zero-approval repository rule is not independently labeled violated merely because the organization rule requires review.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-05",
+      "field": "blocker_denominator",
+      "first_review": [
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/12/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "second_review": [
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/dotnet/runtime/pulls/136790/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/12/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/1/responses/0/body"
+          ]
+        }
+      ],
+      "resolution": "Move generic blocked summary into corroborating_summaries; count only concrete independently observed blocker findings.",
+      "rationale": "The GitHub blocked summary corroborates the separately identified failed required checks, draft or review requirement. Counting the broad summary as another missed blocker would duplicate the same obstruction and inflate the denominator.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-05",
+      "field": "test_merge_result_coverage",
+      "first_review": [
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790"
+          ],
+          "fact_ids": [
+            "public/public-05/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        }
+      ],
+      "second_review": [],
+      "resolution": "Retain test-merge result coverage as unknown, without adding a blocker.",
+      "rationale": "A non-null test merge commit exists in raw PR metadata, but this dataset has no check/status responses for it. Successful head jobs alone do not prove coverage of every potentially applicable GitHub CI target. This does not erase positive observed blockers.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-05",
+      "field": "base_identity_coverage",
+      "first_review": [],
+      "second_review": [
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790",
+            "GET /repos/dotnet/runtime/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/8/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "resolution": "Retain a precise base-identity difference limitation, without claiming that base changed during collection or independently proves behind.",
+      "rationale": "A difference is directly observable, but both interval pairs are stable. It does not itself imply a strict-base blocker because full strict policy is unavailable.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-05",
+      "field": "active_rule_inventory_notes",
+      "first_review": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection."
+      ],
+      "second_review": [
+        "Active deletion rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active non_fast_forward rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active creation rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured."
+      ],
+      "resolution": "Retain complete raw-rule applicability limitations; do not invent another merge blocker.",
+      "rationale": "Automatic Copilot review configuration, ref creation/deletion/force-update constraints and the less restrictive duplicate repository pull-request rule are retained as policy context. The concrete mandatory review blocker remains GitHub REVIEW_REQUIRED and, where visible, the stricter organization approval rule. Zero-approval repository rule is not independently labeled violated merely because the organization rule requires review.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-06",
+      "field": "blocker_denominator",
+      "first_review": [
+        {
+          "id": "draft",
+          "finding": "PR is explicitly draft",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "id": "github-merge-block",
+          "finding": "GitHub reports the merge blocked; no additional specific cause inferred from this summary",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        },
+        {
+          "id": "required-check-2-pending",
+          "finding": "Required Build Analysis is in progress with null conclusion",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=4"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "Effective GitHub review decision is REVIEW_REQUIRED",
+          "source_routes": [
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/13/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "second_review": [
+        {
+          "id": "required-ci-2",
+          "finding": "Required Build Analysis has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "POST /graphql",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=4"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/13/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/dotnet/runtime/pulls/136812/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/13/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/1/responses/0/body"
+          ]
+        },
+        {
+          "id": "draft",
+          "finding": "The PR is a draft.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/0/responses/1/body/draft"
+          ]
+        }
+      ],
+      "resolution": "Move generic blocked summary into corroborating_summaries; count only concrete independently observed blocker findings.",
+      "rationale": "The GitHub blocked summary corroborates the separately identified failed required checks, draft or review requirement. Counting the broad summary as another missed blocker would duplicate the same obstruction and inflate the denominator.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-06",
+      "field": "test_merge_result_coverage",
+      "first_review": [
+        {
+          "id": "test-merge-checks-unobserved",
+          "finding": "Capture lists head check results but contains no test-merge check/status routes; no inference that head-only success proves all applicable CI",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/merge_commit_sha"
+          ]
+        }
+      ],
+      "second_review": [],
+      "resolution": "Retain test-merge result coverage as unknown, without adding a blocker.",
+      "rationale": "A non-null test merge commit exists in raw PR metadata, but this dataset has no check/status responses for it. Successful head jobs alone do not prove coverage of every potentially applicable GitHub CI target. This does not erase positive observed blockers.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-06",
+      "field": "base_identity_coverage",
+      "first_review": [],
+      "second_review": [
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812",
+            "GET /repos/dotnet/runtime/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/9/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "resolution": "Retain a precise base-identity difference limitation, without claiming that base changed during collection or independently proves behind.",
+      "rationale": "A difference is directly observable, but both interval pairs are stable. It does not itself imply a strict-base blocker because full strict policy is unavailable.",
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-06",
+      "field": "active_rule_inventory_notes",
+      "first_review": [
+        "AI review; human release responsibility remains.",
+        "Upstream proxy identity and token scopes are not observable.",
+        "Final head/base equality bounds identity only; checks and reviews were not captured atomically.",
+        "Classic policy permissions are incomplete; hidden requirements may remain.",
+        "PR base.sha differs from observed base-branch tip despite stable before/after values. This is a captured identity discrepancy, not evidence that base moved during collection."
+      ],
+      "second_review": [
+        "Active deletion rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active non_fast_forward rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active creation rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured."
+      ],
+      "resolution": "Retain complete raw-rule applicability limitations; do not invent another merge blocker.",
+      "rationale": "Automatic Copilot review configuration, ref creation/deletion/force-update constraints and the less restrictive duplicate repository pull-request rule are retained as policy context. The concrete mandatory review blocker remains GitHub REVIEW_REQUIRED and, where visible, the stricter organization approval rule. Zero-approval repository rule is not independently labeled violated merely because the organization rule requires review.",
+      "status": "resolved"
+    }
+  ],
+  "case_comparisons": [
+    {
+      "case_id": "e01-no-configured-requirements",
+      "first": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e02-required-external-status",
+      "first": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e03-two-approvals",
+      "first": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e04-mixed-optional-ci",
+      "first": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e05-required-check-failure",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-failure"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "ci-unit-failed"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-failure"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e06-merge-conflict",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "merge-conflict"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "merge-conflict"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "merge-conflict"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e07-draft-pr",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "draft"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "draft"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "draft"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e08-review-threshold",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required"
+        ],
+        "unknown_ids": [
+          "review-conditions"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required"
+        ],
+        "unknown_ids": [
+          "review-special-conditions"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required"
+        ],
+        "unknown_ids": [
+          "review-conditions"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e09-changes-requested",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "changes-requested"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "changes-requested"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "changes-requested"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e10-behind-strict-base",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "strict-base-behind"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "behind-base"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "strict-base-behind"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e11-queued-check",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-queued"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "ci-unit-pending"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-queued"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e12-missing-rule-context",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-context-missing"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-context-missing"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-context-missing"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e13-conflicting-same-name",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "github-merge-block"
+        ],
+        "unknown_ids": [
+          "same-name-resolution"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "ci-unit-failed"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "github-merge-block"
+        ],
+        "unknown_ids": [
+          "same-name-resolution"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e14-running-no-conclusion",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-running"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "ci-integration-pending"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-running"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e15-anonymous-graphql",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "effective-review-eligibility"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "github-review-decision-unavailable"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "effective-review-eligibility"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e16-policy-permission-denied",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "applicable-policy-unreadable"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "policy-unavailable"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "applicable-policy-unreadable"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e17-private-pr-not-found",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "private-target-unreadable"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "target-unreadable"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "private-target-unreadable"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e18-checks-and-reviews-denied",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "required-check-and-review-denied"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "required-evidence-denied"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "required-check-and-review-denied"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e19-rate-limited-policy",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "rate-limited-policy"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "active-rules-rate-limited"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "rate-limited-policy"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e20-review-transport-timeout",
+      "first": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "ready",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "review-inventory-timeout"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "ready",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "review-inventory-timeout"
+        ]
+      },
+      "label_agreement": false,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e21-malformed-policy-json",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "malformed-policy"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "malformed-active-rules"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "malformed-policy"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e22-truncated-second-page",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "truncated-required-result"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "required-check-page-incomplete"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "truncated-required-result"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e23-head-moves-during-read",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "new-head-required-check-missing"
+        ],
+        "unknown_ids": [
+          "mixed-head-snapshot"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "final-head-required-context-missing"
+        ],
+        "unknown_ids": [
+          "identity-changed"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "new-head-required-check-missing"
+        ],
+        "unknown_ids": [
+          "mixed-head-snapshot"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e24-base-moves-during-read",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "strict-base-behind"
+        ],
+        "unknown_ids": [
+          "base-changed"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "behind-base"
+        ],
+        "unknown_ids": [
+          "base-changed"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "strict-base-behind"
+        ],
+        "unknown_ids": [
+          "base-changed"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e25-approval-on-older-commit",
+      "first": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e26-facts-change-same-head",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "later-required-ci-failure",
+          "later-changes-requested"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "ci-unit-failed",
+          "changes-requested"
+        ],
+        "unknown_ids": [
+          "facts-changed-same-head"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "later-required-ci-failure",
+          "later-changes-requested"
+        ],
+        "unknown_ids": [
+          "facts-changed-same-head"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e27-hostile-check-metadata",
+      "first": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "blocker_ids": [],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e28-malformed-pr-source-metadata",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "malformed-identity-metadata"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "malformed-pr-provenance"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "malformed-identity-metadata"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e29-app-bound-and-deployment-rule",
+      "first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "required-deployment-unobserved"
+        ]
+      },
+      "second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "deployment-unobserved"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "blocker_ids": [],
+        "unknown_ids": [
+          "required-deployment-unobserved"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "e30-required-collection-check",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "own-required-check-incomplete"
+        ],
+        "unknown_ids": []
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-collection-check-pending"
+        ],
+        "unknown_ids": []
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "own-required-check-incomplete"
+        ],
+        "unknown_ids": []
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-01",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "github-merge-block",
+          "required-check-1-failure",
+          "required-check-2-failure",
+          "required-check-5-failure"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-1",
+          "required-ci-2",
+          "required-ci-5"
+        ],
+        "unknown_ids": [
+          "classic-policy-inaccessible"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-check-1-failure",
+          "required-check-2-failure",
+          "required-check-5-failure"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-02",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "merge-conflict"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "merge-conflict"
+        ],
+        "unknown_ids": [
+          "classic-policy-inaccessible",
+          "base-identity-differs"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "merge-conflict"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "base-identity-differs"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-03",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "draft",
+          "github-merge-block",
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required",
+          "draft"
+        ],
+        "unknown_ids": [
+          "classic-policy-inaccessible",
+          "base-identity-differs"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "draft",
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved",
+          "base-identity-differs"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-04",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "github-merge-block",
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-inaccessible",
+          "base-identity-differs"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved",
+          "base-identity-differs"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-05",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "github-merge-block",
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-inaccessible",
+          "base-identity-differs"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved",
+          "base-identity-differs"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    },
+    {
+      "case_id": "public-06",
+      "first": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "draft",
+          "github-merge-block",
+          "required-check-2-pending",
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved"
+        ]
+      },
+      "second": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "required-ci-2",
+          "review-required",
+          "draft"
+        ],
+        "unknown_ids": [
+          "classic-policy-inaccessible",
+          "base-identity-differs"
+        ]
+      },
+      "adjudicated": {
+        "readiness": "blocked",
+        "assurance": "fail",
+        "blocker_ids": [
+          "draft",
+          "required-check-2-pending",
+          "review-required"
+        ],
+        "unknown_ids": [
+          "classic-policy-denied",
+          "test-merge-checks-unobserved",
+          "base-identity-differs"
+        ]
+      },
+      "label_agreement": true,
+      "status": "resolved"
+    }
+  ],
+  "adjudicated_labels": {
+    "path": "review/adjudicated-ground-truth.json",
+    "sha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1"
+  },
+  "limits": [
+    "Two AI-agent reviews are not human/customer validation. Same-family correlation remains possible.",
+    "Synthetic fixtures are authored scenarios rather than empirical repository outcomes. Public captures preserve observed incomplete authorization.",
+    "Unknown evidence remains unknown; procedural resolution is not a claim that every underlying policy or future state is known.",
+    "Scoped assurance choice in e20 is stricter than simple operational-policy satisfaction and is disclosed."
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "state": "inputs-labels-adjudication-and-tools-frozen-before-candidate-decisions",
+  "frozen_at": "2026-11-02T01:07:44.825135+00:00",
+  "candidate_commit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "synthetic_cases": 30,
+  "public_cases": 6,
+  "independent_ai_reviews": 2,
+  "human_reviews": 0,
+  "candidate_outputs_exist": false,
+  "policy": "Original labels/raw bytes retained; explicit repaired reruns use same labels and disclose actual candidate. No marketing, pilot or autonomy hold lifted.",
+  "files": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/input-manifest.json",
+      "sha256": "7f13a41177dd6b0e639ead8dd173ab2556d2fb96683716a10d258d50b1d06ea5"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/synthetic-manifest.json",
+      "sha256": "c0ce21bc622b188e0f566b462af7c4af0d5191b9d7b2ba1abfbb9e6061362053"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public/manifest.json",
+      "sha256": "9d8829144bd3ae96c882cdc19275857e7cd08803e5d09300a44d339a0abe3703"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/ground-truth-protocol.md",
+      "sha256": "ac707d94a3c6968d9ddd79363ccfc3fef0d757dc17e9430bc327181782f21ab5"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/second-preregistration.md",
+      "sha256": "0f8462c6592b2087b86bd872cd95a54bf56ca36706e68d2a94cedcda80085cc9"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/ground-truth.json",
+      "sha256": "99abb8861b2502d31be4d247fa1e60942bc91f11b157f92939138929ef9d3010"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/second-ground-truth.json",
+      "sha256": "121cf1bdb0873fd4ee59124c453411e075c5569f59a9637ac23b182271b94894"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/adjudication.json",
+      "sha256": "0936686d3514d9e19a56b5e9403370d229400dda5b1a04a2bf0550c768e7205b"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/adjudicated-ground-truth.json",
+      "sha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/SCORING.md",
+      "sha256": "5c3b4a5af2a9418e65cf2b60127beadfd37b53bf1662ae8045dd4174999b83df"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/score.py",
+      "sha256": "87a014cdb9877eca7299e715a68e9e7a16066e5c7c961187c095d4b0e1f146f9"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/test_score.py",
+      "sha256": "71e442385428d9ab7d71e0194565af556a4b2e75dee21029eeeb9f4a32484e57"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/Program.cs",
+      "sha256": "625edec21c047a43d55ddbd2c69d116fa74596d1eaa9ac0a20e5a3b97ac4ad95"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/ReleaseEvidenceEvaluation.csproj",
+      "sha256": "088c22acafac10982668d23c216f73af5de87688a6a5a8b34ccc914196e25d9b"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/run-replay.sh",
+      "sha256": "58414c77817b5e1148a9750ee2602b4eef36e2b90411217cd5d1cd09fe834b9b"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/README.md",
+      "sha256": "4d14b756a4668e9dbff353a593ac8085bb7b8fe9ad9f42667abd7238800a1dfd"
+    }
+  ]
+}

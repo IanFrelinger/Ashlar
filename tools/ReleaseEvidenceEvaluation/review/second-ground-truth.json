@@ -1,0 +1,3093 @@
+{
+  "schema_version": 1,
+  "reviewer": "second blinded AI agent",
+  "candidate_commit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "fixture_manifest_sha256": "7f13a41177dd6b0e639ead8dd173ab2556d2fb96683716a10d258d50b1d06ea5",
+  "public_manifest_sha256": "9d8829144bd3ae96c882cdc19275857e7cd08803e5d09300a44d339a0abe3703",
+  "synthetic_author_reported_dataset_digest": "6327defe56d0ad1d7f7d6f60e44b8d9837638e555a492920246cb6401715a6d9",
+  "review_process": {
+    "ai_only": true,
+    "blinded_to_candidate_outputs": true,
+    "blinded_to_first_reviewer_labels_until_freeze": true,
+    "adjudicated": false,
+    "independence_limitations": "Separate AI agent context; possible same-model-family correlated errors. Not human/customer validation."
+  },
+  "adjudication": {
+    "status": "pending",
+    "conflicts": []
+  },
+  "cases": [
+    {
+      "id": "e01-no-configured-requirements",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json",
+          "sha256": "52c57a0a7a768afc8d85c64c4f5e137f0e4acb89274f1bee640bc7afb01b5402"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "no-branch-requirements",
+          "requirement": "No classic branch check/review requirement and no active branch rule applies.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json#/routes/7/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e01-no-configured-requirements.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Authenticated policy responses explicitly establish an unprotected branch with no active rules. An empty combined status reports pending but has no mandatory contexts; it is not a blocker.",
+      "confidence": "high"
+    },
+    {
+      "id": "e02-required-external-status",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e02-required-external-status.json",
+          "sha256": "e57a1b04aabd3e977ffa47e718a6000bcecad18c3ce97c13b937f9979c99efbb"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e02-required-external-status.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-circleci",
+          "requirement": "circleci: build must succeed on the current head.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/b01c033147c58e030ae0f356026f57f54fcdda2b/status",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e02-required-external-status.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e02-required-external-status.json#/routes/3/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e02-required-external-status.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e02-required-external-status.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The explicit required external status succeeded on the stable current head and no review requirement applies.",
+      "confidence": "high"
+    },
+    {
+      "id": "e03-two-approvals",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e03-two-approvals.json",
+          "sha256": "77346ac74145d689d514bc1ce26ca806a19ee42968bde39b493321fd8cd441ee"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e03-two-approvals.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "Two qualifying approvals are required; GitHub must consider the review policy approved.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e03-two-approvals.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e03-two-approvals.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e03-two-approvals.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e03-two-approvals.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Two current-head approvals accompany GitHub APPROVED, with count two and no additional review conditions. No required CI context exists.",
+      "confidence": "high"
+    },
+    {
+      "id": "e04-mixed-optional-ci",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e04-mixed-optional-ci.json",
+          "sha256": "05523845799d6cde5173f834f406808ebb8011b69f2d5b884bc33ffee5a97a88"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e04-mixed-optional-ci.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must succeed on the current head.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/5d52012209c48040e1077abbe3a54dacb514cd94/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e04-mixed-optional-ci.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e04-mixed-optional-ci.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e04-mixed-optional-ci.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e04-mixed-optional-ci.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Required unit CI succeeded. The failed docs check, neutral audit and pending jenkins status are explicitly optional and do not block this policy.",
+      "confidence": "high"
+    },
+    {
+      "id": "e05-required-check-failure",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json",
+          "sha256": "f1df5db2c45d0dd664c2dc8b56c8bcee617474e8ed592b8e8b2afa4fdc8560b9"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must succeed on the current head.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/35c179df616e95bc2ddcaa2cba4be00101a33370/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "ci-unit-failed",
+          "finding": "Required ci / unit completed with failure.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/35c179df616e95bc2ddcaa2cba4be00101a33370/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e05-required-check-failure.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The mandatory unit check failed; optional external success does not satisfy it.",
+      "confidence": "high"
+    },
+    {
+      "id": "e06-merge-conflict",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e06-merge-conflict.json",
+          "sha256": "dfcd9df7ed2740c955cee3b61a8b26173405e53ed1abaf7b0186bc2ec6ca5d46"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e06-merge-conflict.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "merge-conflict",
+          "finding": "GitHub reports mergeable false and dirty: merge conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e06-merge-conflict.json#/routes/0/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e06-merge-conflict.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "A direct merge conflict blocks the PR independently of the absence of policy requirements.",
+      "confidence": "high"
+    },
+    {
+      "id": "e07-draft-pr",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e07-draft-pr.json",
+          "sha256": "50e93b3f9612731f547be661fc2fa5c5ca361f2ffc24f4fce755a15f860636ee"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e07-draft-pr.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ci-buildkite",
+          "requirement": "buildkite/release must succeed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/status"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e07-draft-pr.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e07-draft-pr.json#/routes/3/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "draft",
+          "finding": "The PR is a draft.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e07-draft-pr.json#/routes/0/responses/0/body/draft"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e07-draft-pr.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The required status succeeded but a draft PR is not merge ready.",
+      "confidence": "high"
+    },
+    {
+      "id": "e08-review-threshold",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json",
+          "sha256": "f0a26df85db34516d239f379318b787b6d7ef13491757b5ba17a7d39edfc1e44"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "Two qualifying approvals plus code-owner and most-recent-push approval are required.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "review-required",
+          "finding": "Only one approval is visible against required count two; GitHub says REVIEW_REQUIRED.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "review-special-conditions",
+          "finding": "Code-owner identity and whether a non-pusher approved the most recent push cannot be established individually.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/1/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e08-review-threshold.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "A confirmed approval-count deficit establishes failure; special review conditions are also mandatory and must not be inferred from one numeric approval.",
+      "confidence": "high"
+    },
+    {
+      "id": "e09-changes-requested",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json",
+          "sha256": "c08a0799b182ad1d163d4cb635e6ba3f56ea6969d4c215ac40af2c1df0d6499a"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "A qualifying approval without an effective changes request is required.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "changes-requested",
+          "finding": "The same reviewer superseded an approval with CHANGES_REQUESTED, confirmed by GitHub.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json#/routes/1/responses/0/body/1",
+            "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e09-changes-requested.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The effective review decision requests changes, so the earlier approval cannot establish readiness.",
+      "confidence": "high"
+    },
+    {
+      "id": "e10-behind-strict-base",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json",
+          "sha256": "1b60d1fcb7d95484bf787e7327d4b99a8179187a670c6a24bc3e851dec2524f5"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-integration",
+          "requirement": "ci / integration must succeed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/15c780bf53d3fb1249b6291702668dc62e91ae10/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/2/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "strict-base",
+          "requirement": "Strict required checks require the head to be up to date with the protected base.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "behind-base",
+          "finding": "GitHub reports behind while strict required-status policy is enabled.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/0/responses/1/body/mergeable_state",
+            "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/4/responses/0/body/strict"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e10-behind-strict-base.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Integration success does not satisfy the independent strict up-to-date-base condition.",
+      "confidence": "high"
+    },
+    {
+      "id": "e11-queued-check",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json",
+          "sha256": "1eaee85f305726b234a4e504f68237e381dcf692ce52bb275dda5f09a22f464c"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must reach an accepted successful conclusion.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/8f7e63fa795edc1ddea4ce1ba6444c33a288aeb1/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "ci-unit-pending",
+          "finding": "Required ci / unit is queued with no conclusion.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/8f7e63fa795edc1ddea4ce1ba6444c33a288aeb1/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json#/routes/2/responses/0/body/check_runs/0",
+            "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json#/routes/4/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e11-queued-check.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Queued mandatory work has not satisfied the gate at the snapshot; its future outcome is unknown.",
+      "confidence": "high"
+    },
+    {
+      "id": "e12-missing-rule-context",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json",
+          "sha256": "bdae216b83abec009749a5740f435ae98c65eacabb70bbbb6eb49af8faaca4aa"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-security",
+          "requirement": "Active branch rule requires security / scan.",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/check-runs",
+            "GET /repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/status"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/3/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-context-missing",
+          "finding": "security / scan is required by the ruleset but missing from complete current-head check/status responses.",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/check-runs",
+            "GET /repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/status"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/3/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e12-missing-rule-context.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Classic protection is absent, but the active ruleset supplies a mandatory check that has not run. Optional unit success cannot replace it.",
+      "confidence": "high"
+    },
+    {
+      "id": "e13-conflicting-same-name",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json",
+          "sha256": "61ba8d11cad00a01adaf41333d3d522917052854f26c83fc93108ad1dfc4bb8c"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit is required without an app restriction; both same-name rollup entries are marked required.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "POST /graphql",
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/2/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "ci-unit-failed",
+          "finding": "A required same-name ci / unit from app 222 failed while app 111 succeeded.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs",
+            "POST /graphql",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/2/responses/0/body/check_runs/0",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/2/responses/0/body/check_runs/1",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/4/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Same-name outcomes from different apps must not be collapsed into one success. Both raw GraphQL entries explicitly say required; there is no app-bound exemption."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e13-conflicting-same-name.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The conflict cannot support pass. The failing provider is mandatory under the unbound policy and both GraphQL required flags; the other provider success does not override it.",
+      "confidence": "high"
+    },
+    {
+      "id": "e14-running-no-conclusion",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json",
+          "sha256": "f52c503d9439f3c5d610e28529921b56a33cf32ed49bad4df2381797140f4f5f"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-integration",
+          "requirement": "ci / integration must reach an accepted successful conclusion.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/0426efec7d5c1abb9ac4dd0be9afa8357551c89a/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "ci-integration-pending",
+          "finding": "Required integration check remains in progress with null conclusion.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/0426efec7d5c1abb9ac4dd0be9afa8357551c89a/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json#/routes/2/responses/0/body/check_runs/0",
+            "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json#/routes/4/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e14-running-no-conclusion.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The required running check has not satisfied its gate; the successful optional lint job is insufficient.",
+      "confidence": "high"
+    },
+    {
+      "id": "e15-anonymous-graphql",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json",
+          "sha256": "961b076d2cd3c4e143ff68fa6a4b3d8a668f1f235d606216526ed6d2c3d6d29b"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "One qualifying approval must satisfy GitHub review policy.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unknown"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "github-review-decision-unavailable",
+          "finding": "Anonymous GraphQL is 401. A MEMBER approval does not itself establish the reviewer permission eligibility used by GitHub.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/5/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e15-anonymous-graphql.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Policy count is visible, but GitHub review approval cannot be established from membership and count alone. Clean merge summary is only legacy compatibility.",
+      "confidence": "medium"
+    },
+    {
+      "id": "e16-policy-permission-denied",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json",
+          "sha256": "cf64726d1a4387e0caaded56327be4c83eab3e99ed7c13db26436c8928473d12"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "policy-unavailable",
+          "finding": "Check policy, review policy, active branch rules and base-branch evidence all return permission 403.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json#/routes/7/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e16-policy-permission-denied.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The clean GitHub summary and optional successful check cannot establish mandatory requirements that the authorization context cannot read.",
+      "confidence": "high"
+    },
+    {
+      "id": "e17-private-pr-not-found",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json",
+          "sha256": "476a706553b88a11d5ff3ab95293f1966e3d1631b6a70782a8b699a6f0f86a78"
+        }
+      ],
+      "mandatory_requirements": [],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "target-unreadable",
+          "finding": "PR identity and all evidence endpoints return Not Found under a token without repository access.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "GET /repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json#/routes/0/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json#/routes/6/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "unknown"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e17-private-pr-not-found.json#/routes/0/responses/0/status"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "A permission-masked 404 cannot distinguish inaccessible repository/PR from absence; no readiness or assurance can be established. Candidate collection failure is separately counted.",
+      "confidence": "high"
+    },
+    {
+      "id": "e18-checks-and-reviews-denied",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json",
+          "sha256": "1100d9625c8813c6022afaa6c46bec46dbb3a9721c814914856d035620cd6d3d"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must succeed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/81d2a3305a8c57bbf01dadf5d5573be59f1be965/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/2/responses/0/body"
+          ],
+          "observed_satisfaction": "unknown"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "One qualifying approval is required.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unknown"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "required-evidence-denied",
+          "finding": "Required checks and reviews are denied; GraphQL contains FORBIDDEN and null PR.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "GET /repos/eval/fixture/commits/81d2a3305a8c57bbf01dadf5d5573be59f1be965/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e18-checks-and-reviews-denied.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Known requirements have inaccessible satisfaction evidence. A clean summary cannot override the permission gap.",
+      "confidence": "high"
+    },
+    {
+      "id": "e19-rate-limited-policy",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e19-rate-limited-policy.json",
+          "sha256": "f7f35d6eee2cd4e768dde60572b4b889835e042d8169a13ca785fbb30b70a084"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e19-rate-limited-policy.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "active-rules-rate-limited",
+          "finding": "Active branch rules return a rate-limit 403, so ruleset requirements are unknown.",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e19-rate-limited-policy.json#/routes/6/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e19-rate-limited-policy.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Known absence of classic protection does not establish absence of active rules when that endpoint is rate limited.",
+      "confidence": "high"
+    },
+    {
+      "id": "e20-review-transport-timeout",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e20-review-transport-timeout.json",
+          "sha256": "ff9cd5dad3dfbed2c229c4cd0e59d3ecc619316588a3c08ee6d61983796f5210"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e20-review-transport-timeout.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "One qualifying approval is required; current-head GraphQL APPROVED establishes GitHub policy satisfaction.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e20-review-transport-timeout.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e20-review-transport-timeout.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "review-inventory-timeout",
+          "finding": "The REST review inventory timed out; detailed review provenance and completeness are unavailable.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e20-review-transport-timeout.json#/routes/1/responses/0/fault"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e20-review-transport-timeout.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Current-head GitHub APPROVED and a clean merge summary establish operational satisfaction of the explicit simple review policy. The timed-out required evidence inventory prevents a complete scoped assurance pass.",
+      "confidence": "medium"
+    },
+    {
+      "id": "e21-malformed-policy-json",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e21-malformed-policy-json.json",
+          "sha256": "015f5eec24c28ee0e5f6410a0cc2860442fa1495b46dfac633afc870fbeff242"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e21-malformed-policy-json.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "malformed-active-rules",
+          "finding": "The active-rule endpoint body is truncated invalid JSON; no complete ruleset policy can be established.",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e21-malformed-policy-json.json#/routes/6/responses/0/rawBody"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e21-malformed-policy-json.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "A policy fragment naming a gate is not a valid complete mandatory-rule document, and it cannot be treated as an empty policy.",
+      "confidence": "high"
+    },
+    {
+      "id": "e22-truncated-second-page",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json",
+          "sha256": "b24cc09240b186d446fb460d0661a4d39637681eadc0009ad0e811dc8dc00180"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-security",
+          "requirement": "security / scan is required.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unknown"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "required-check-page-incomplete",
+          "finding": "The check total is two, first page contains only optional unit, Link points to a second page, and the second page truncates the required check before conclusion.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/992d9348f6457fa0f6e044b566565be80b47dc01/check-runs",
+            "GET /repos/eval/fixture/commits/992d9348f6457fa0f6e044b566565be80b47dc01/check-runs?per_page=100&page=2",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json#/routes/9/responses/0/rawBody",
+            "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json#/routes/4/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e22-truncated-second-page.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The mandatory security result may exist on the unreadable page. It is neither proved missing nor proved successful, so no blocker is invented and no readiness is granted.",
+      "confidence": "high"
+    },
+    {
+      "id": "e23-head-moves-during-read",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json",
+          "sha256": "f88a57d604e9c121d762c2b25fa98d0aef73b6ed41419bffc761edf02bca35c6"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must succeed on the final current head, not the initial head.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/c86c530ceec250ed8d89290820140f41d5095f78/check-runs",
+            "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/check-runs",
+            "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/status",
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "final-head-required-context-missing",
+          "finding": "Final head has no check runs or statuses for the required ci / unit; final GitHub summary is blocked.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/check-runs",
+            "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/status",
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/0/responses/1/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "identity-changed",
+          "finding": "Head changed during collection; the initial successful check is for another commit and cannot prove final-head assurance.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/commits/c86c530ceec250ed8d89290820140f41d5095f78/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/0/responses/0/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/2/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Final-head raw facts establish an unmet mandatory check, in addition to the collection freshness limitation.",
+      "confidence": "high"
+    },
+    {
+      "id": "e24-base-moves-during-read",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json",
+          "sha256": "2b0b91b34f6d18f05419b27456b59521fd4b2ee47f9942e7421d484583ea8fc9"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-integration",
+          "requirement": "ci / integration must succeed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/ef8620798f8719494e3a027e336a39625e73c896/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/2/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "strict-base",
+          "requirement": "Strict checks require the PR to be up to date with the current protected base.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/0/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/7/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "behind-base",
+          "finding": "The final base moved and final GitHub state is behind with strict policy enabled.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/0/responses/1/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/4/responses/0/body/strict",
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/7/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "base-changed",
+          "finding": "Base identity changed during the collection; a single coherent initial snapshot cannot certify the final state.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/0/responses/0/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/base/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Final behind status under strict protection proves a blocker. Initial successful CI does not erase the freshness issue.",
+      "confidence": "high"
+    },
+    {
+      "id": "e25-approval-on-older-commit",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e25-approval-on-older-commit.json",
+          "sha256": "74d257e6eebd6648585be88adc2b8f3b8e7aa6e15d3d75f8e884effc4bb491b0"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e25-approval-on-older-commit.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "One qualifying approval is required; stale dismissal and last-push approval are disabled.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e25-approval-on-older-commit.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e25-approval-on-older-commit.json#/routes/1/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e25-approval-on-older-commit.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "The REST approval belongs to an older commit; it must not be presented as approval of the current code. GitHub APPROVED at the current head confirms that this configured policy still accepts it."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e25-approval-on-older-commit.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The policy does not require a new approval for every head. The old-commit approval and current-head GitHub APPROVED are compatible when stale dismissal and last-push approval are both disabled. A false universal current-head approval rule would invent a blocker.",
+      "confidence": "medium"
+    },
+    {
+      "id": "e26-facts-change-same-head",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json",
+          "sha256": "72afad0c4f020300a97e9051a2ac593bff9fd02443063a55a072e803ab54c08b"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must remain successful at the final observation.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/2/responses/1/body"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "A qualifying approval without effective changes request is required.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/8/responses/1/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "ci-unit-failed",
+          "finding": "The later same-head required ci / unit rerun failed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs",
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/2/responses/1/body/check_runs/0",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/4/responses/0/body"
+          ]
+        },
+        {
+          "id": "changes-requested",
+          "finding": "A later review requests changes and final GraphQL confirms CHANGES_REQUESTED.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1/reviews",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/1/responses/1/body/1",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/8/responses/1/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "facts-changed-same-head",
+          "finding": "Checks and review decision changed during collection despite stable head/base identity.",
+          "source_routes": [
+            "GET /repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/2/responses/1/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/8/responses/1/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e26-facts-change-same-head.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The later evidence establishes two blockers. A stable head cannot validate an earlier approval or earlier passing check after these observed changes.",
+      "confidence": "high"
+    },
+    {
+      "id": "e27-hostile-check-metadata",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e27-hostile-check-metadata.json",
+          "sha256": "a3e5ba93c8a8477002bf427e845331db0feefa0a762b3b4645e47724e4ec9a96"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e27-hostile-check-metadata.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must succeed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/426c3064d268cc95a6a5626641c4cce68d550222/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e27-hostile-check-metadata.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e27-hostile-check-metadata.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e27-hostile-check-metadata.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [
+        "Optional check metadata contains hostile Markdown, workflow-command text and javascript URLs. It is untrusted data: display must escape text and must not emit an active unsafe link."
+      ],
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e27-hostile-check-metadata.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The required unit check succeeded and the hostile failed check is explicitly optional. Metadata injection is an export-safety evaluation dimension, not an additional merge policy.",
+      "confidence": "high"
+    },
+    {
+      "id": "e28-malformed-pr-source-metadata",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json",
+          "sha256": "8bd8681f7c6a99196d4e6853a92a07bc1ee4c48848662773b4afb6a5afb23fd4"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "no-branch-requirements",
+          "requirement": "Branch has no classic protection or active rules.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/7/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "malformed-pr-provenance",
+          "finding": "PR html_url uses javascript and the head ref contains a newline forbidden in a Git ref; provenance metadata is malformed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/0/body/html_url",
+            "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/0/body/head/ref"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "The valid requested API target and SHAs are retained, but corrupted source/ref metadata prevents unqualified identity assurance. Hostile title is data and must be escaped."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e28-malformed-pr-source-metadata.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "Malformed identity/source metadata cannot establish an unqualified conservative ready or assurance pass even though the mergeable summary is clean and policy requirements are absent.",
+      "confidence": "medium"
+    },
+    {
+      "id": "e29-app-bound-and-deployment-rule",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json",
+          "sha256": "469feda8f2a8d181297c78c89b8d67b00c84e60881239b9da546a42949823604"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit-app",
+          "requirement": "ci / unit must be provided by app/integration 44444.",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+            "GET /repos/eval/fixture/commits/ee90d0ebec2b37ef365f5dc0b3af424400daf359/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json#/routes/2/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "production-deployment",
+          "requirement": "Active rule requires deployment to production.",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json#/routes/6/responses/0/body/1"
+          ],
+          "observed_satisfaction": "unknown"
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "deployment-unobserved",
+          "finding": "No deployment result is captured for the mandatory production environment.",
+          "source_routes": [
+            "GET /repos/eval/fixture/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json#/routes/6/responses/0/body/1"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Deployment policy is outside the evaluated CI/review evidence scope. The app-bound CI requirement can be matched to app 44444; same-name failure from app 55555 is optional and must not become a blocker."
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e29-app-bound-and-deployment-rule.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The matching required app succeeded, but an unsupported mandatory deployment rule has no satisfaction evidence. The clean legacy summary does not establish readiness.",
+      "confidence": "high"
+    },
+    {
+      "id": "e30-required-collection-check",
+      "kind": "synthetic",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json",
+          "sha256": "6f507bef7ed10911240a46eb4ff70f277aefe60641b4cb67f473e6e5cbcfe27a"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/eval/fixture/pulls/1"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-unit",
+          "requirement": "ci / unit must succeed.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "collection-check",
+          "requirement": "Ashlar release evidence is an explicitly mandatory check.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/check-runs",
+            "POST /graphql"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/1",
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/8/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-collection-check-pending",
+          "finding": "The mandatory Ashlar release evidence check is in progress with no conclusion.",
+          "source_routes": [
+            "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+            "GET /repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/4/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/1"
+          ]
+        }
+      ],
+      "unknowns": [],
+      "unsupported_policy_identity_limitations": [],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/cases/e30-required-collection-check.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Compatibility describes the final observed GitHub PR summary only; it does not prove independently evaluated mandatory requirements."
+        ]
+      },
+      "reasoning": "The evaluator collection check has no policy exemption. Excluding its self-referential pending result would omit an explicit mandatory gate.",
+      "confidence": "high"
+    },
+    {
+      "id": "public-01",
+      "kind": "public",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json",
+          "sha256": "92a61455b4355273bc5dbc29b5f57763983e1304a4fb65888f6b83f2a69ea781"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-01/capture.json",
+          "sha256": "cd7ed2257483f1d6a8448a5562ae68bae09688826454347fc58d3f9663dfe623"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/900"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-1",
+          "requirement": "cert-gate must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ci-2",
+          "requirement": "build-core must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ci-3",
+          "requirement": "shell-lint must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/2",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/11"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-4",
+          "requirement": "lychee (README + docs) must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repositories/1031633230/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs?page=2"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/3",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/3/responses/0/body/check_runs/2"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-5",
+          "requirement": "Readiness summary must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-ci-1",
+          "finding": "Required cert-gate has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ]
+        },
+        {
+          "id": "required-ci-2",
+          "finding": "Required build-core has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ]
+        },
+        {
+          "id": "required-ci-5",
+          "finding": "Required Readiness summary has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-inaccessible",
+          "finding": "Classic required-status and required-review policy return permission 403; branch summary and active rules do not prove full policy completeness.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/rules/branches/master?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/7/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/9/responses/0/body"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "No request Authorization header was supplied; inherited proxy may inject upstream identity. Effective token scope is unknown, so these are public metadata captures under observed visibility, not proof of anonymous access."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Full policy is restricted; observed blockers are independently retained."
+        ]
+      },
+      "reasoning": "At least one positive observed blocker proves the PR is blocked within scope. Policy permission gaps and any unsupported rule remain explicit unknowns; they do not erase known failures and cannot support a pass.",
+      "confidence": "high"
+    },
+    {
+      "id": "public-02",
+      "kind": "public",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json",
+          "sha256": "a0b198d807ea02d149bc4ab88ab7c7de9f95452c06c6a465b65bea2908a9df63"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-02/capture.json",
+          "sha256": "7bb305920cd6d67f9988b16acd4ca20255777e86b1ee1a5be1c63d42e62320c6"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ci-1",
+          "requirement": "cert-gate must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/2/responses/0/body/check_runs/23"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-2",
+          "requirement": "build-core must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/2/responses/0/body/check_runs/27"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-3",
+          "requirement": "shell-lint must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/2",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/3/responses/0/body/check_runs/13"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-4",
+          "requirement": "lychee (README + docs) must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/3",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/3/responses/0/body/check_runs/9"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-5",
+          "requirement": "Readiness summary must pass on the current head from app 15368.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "POST /graphql",
+            "GET /repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/2/responses/0/body/check_runs/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/2/responses/0/body/check_runs/12"
+          ],
+          "observed_satisfaction": "satisfied"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "merge-conflict",
+          "finding": "GitHub reports mergeable false and dirty.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/0/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-inaccessible",
+          "finding": "Classic required-status and required-review policy return permission 403; branch summary and active rules do not prove full policy completeness.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+            "GET /repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+            "GET /repos/IanFrelinger/Ashlar/branches/master",
+            "GET /repos/IanFrelinger/Ashlar/rules/branches/master?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/7/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/9/responses/0/body"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/IanFrelinger/Ashlar/pulls/853",
+            "GET /repos/IanFrelinger/Ashlar/branches/master"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/6/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "No request Authorization header was supplied; inherited proxy may inject upstream identity. Effective token scope is unknown, so these are public metadata captures under observed visibility, not proof of anonymous access."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Full policy is restricted; observed blockers are independently retained."
+        ]
+      },
+      "reasoning": "At least one positive observed blocker proves the PR is blocked within scope. Policy permission gaps and any unsupported rule remain explicit unknowns; they do not erase known failures and cannot support a pass.",
+      "confidence": "high"
+    },
+    {
+      "id": "public-03",
+      "kind": "public",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json",
+          "sha256": "4d8949b8492bef17b10a782feb9ca9bc620db6852aa4ff5ddeb2bd5b560e1e27"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-03/capture.json",
+          "sha256": "94197fd3e30fb004e20144185a300ce6109338f32661b08690e23d257f2c15a4"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ci-1",
+          "requirement": "build (macos-latest) must pass on the current head.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "POST /graphql",
+            "GET /repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/2/responses/0/body/check_runs/10"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-2",
+          "requirement": "build (ubuntu-latest) must pass on the current head.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "POST /graphql",
+            "GET /repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/2/responses/0/body/check_runs/11"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-3",
+          "requirement": "build (windows-latest) must pass on the current head.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "POST /graphql",
+            "GET /repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/2",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/2/responses/0/body/check_runs/8"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "GitHub review policy must be satisfied.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/cli/cli/rules/branches/trunk?per_page=100",
+            "GET /repos/cli/cli/pulls/14781/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/1/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/cli/cli/pulls/14781/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/1/responses/0/body"
+          ]
+        },
+        {
+          "id": "draft",
+          "finding": "The PR is a draft.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/0/responses/1/body/draft"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-inaccessible",
+          "finding": "Classic required-status and required-review policy return permission 403; branch summary and active rules do not prove full policy completeness.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "GET /repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/rules/branches/trunk?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/7/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/8/responses/0/body"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14781",
+            "GET /repos/cli/cli/branches/trunk"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/5/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Active copilot_code_review rule retained; its satisfaction/merge-blocking applicability is not established from this capture.",
+        "No request Authorization header was supplied; inherited proxy may inject upstream identity. Effective token scope is unknown, so these are public metadata captures under observed visibility, not proof of anonymous access."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Full policy is restricted; observed blockers are independently retained."
+        ]
+      },
+      "reasoning": "At least one positive observed blocker proves the PR is blocked within scope. Policy permission gaps and any unsupported rule remain explicit unknowns; they do not erase known failures and cannot support a pass.",
+      "confidence": "high"
+    },
+    {
+      "id": "public-04",
+      "kind": "public",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json",
+          "sha256": "955451e323116cc2ccdbd9fe2104cb9eb615e516451c45382ac309570cf61804"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-04/capture.json",
+          "sha256": "3e3e6bc770f622bdf94458ed6ef8cbaa16d350461384e71d416a2f731caf0a06"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-1",
+          "requirement": "build (macos-latest) must pass on the current head.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "POST /graphql",
+            "GET /repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/2/responses/0/body/check_runs/7"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-2",
+          "requirement": "build (ubuntu-latest) must pass on the current head.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "POST /graphql",
+            "GET /repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/2/responses/0/body/check_runs/4"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-3",
+          "requirement": "build (windows-latest) must pass on the current head.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk",
+            "POST /graphql",
+            "GET /repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/5/responses/0/body/protection/required_status_checks/checks/2",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/2/responses/0/body/check_runs/1"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "GitHub review policy must be satisfied.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/cli/cli/rules/branches/trunk?per_page=100",
+            "GET /repos/cli/cli/pulls/14845/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/1/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/cli/cli/pulls/14845/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/1/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-inaccessible",
+          "finding": "Classic required-status and required-review policy return permission 403; branch summary and active rules do not prove full policy completeness.",
+          "source_routes": [
+            "GET /repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "GET /repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+            "GET /repos/cli/cli/branches/trunk",
+            "GET /repos/cli/cli/rules/branches/trunk?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/6/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/7/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/5/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/8/responses/0/body"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/cli/cli/pulls/14845",
+            "GET /repos/cli/cli/branches/trunk"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/5/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Active copilot_code_review rule retained; its satisfaction/merge-blocking applicability is not established from this capture.",
+        "No request Authorization header was supplied; inherited proxy may inject upstream identity. Effective token scope is unknown, so these are public metadata captures under observed visibility, not proof of anonymous access."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Full policy is restricted; observed blockers are independently retained."
+        ]
+      },
+      "reasoning": "At least one positive observed blocker proves the PR is blocked within scope. Policy permission gaps and any unsupported rule remain explicit unknowns; they do not erase known failures and cannot support a pass.",
+      "confidence": "high"
+    },
+    {
+      "id": "public-05",
+      "kind": "public",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json",
+          "sha256": "44f263061bedeeae66afcbe914bc267a95e92f76eb51bfaf75314540e05cdba0"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-05/capture.json",
+          "sha256": "564729e5c5c56d3fad3a628f436a9a0876583c43cfb7971107fa755a6d682529"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-1",
+          "requirement": "license/cla must pass on the current head.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "POST /graphql",
+            "GET /repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=3"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/8/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/12/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/4/responses/0/body/check_runs/13"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-2",
+          "requirement": "Build Analysis must pass on the current head from app 216604.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "POST /graphql",
+            "GET /repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/8/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/12/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "GitHub review policy must be satisfied.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100",
+            "GET /repos/dotnet/runtime/pulls/136790/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/12/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/11/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/1/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ruleset-review-2",
+          "requirement": "Active pull-request rule: {\"allowed_merge_methods\":[\"squash\",\"merge\",\"rebase\"],\"dismiss_stale_reviews_on_push\":false,\"require_code_owner_review\":false,\"require_extra_approval_for_unattributed_changes\":true,\"require_last_push_approval\":true,\"required_approving_review_count\":1,\"required_review_thread_resolution\":false,\"required_reviewers\":[]}",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/11/responses/0/body/2"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ruleset-review-4",
+          "requirement": "Active pull-request rule: {\"allowed_merge_methods\":[\"merge\",\"squash\",\"rebase\"],\"dismiss_stale_reviews_on_push\":false,\"dismissal_restriction\":{\"allowed_actors\":[],\"enabled\":false},\"require_code_owner_review\":false,\"require_extra_approval_for_unattributed_changes\":true,\"require_last_push_approval\":false,\"required_approving_review_count\":0,\"required_review_thread_resolution\":false,\"required_reviewers\":[]}",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/11/responses/0/body/4"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/dotnet/runtime/pulls/136790/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/12/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/1/responses/0/body"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-inaccessible",
+          "finding": "Classic required-status and required-review policy return permission 403; branch summary and active rules do not prove full policy completeness.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main/protection/required_status_checks",
+            "GET /repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/8/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/11/responses/0/body"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136790",
+            "GET /repos/dotnet/runtime/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/8/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Active deletion rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active non_fast_forward rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active creation rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "No request Authorization header was supplied; inherited proxy may inject upstream identity. Effective token scope is unknown, so these are public metadata captures under observed visibility, not proof of anonymous access."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Full policy is restricted; observed blockers are independently retained."
+        ]
+      },
+      "reasoning": "At least one positive observed blocker proves the PR is blocked within scope. Policy permission gaps and any unsupported rule remain explicit unknowns; they do not erase known failures and cannot support a pass.",
+      "confidence": "high"
+    },
+    {
+      "id": "public-06",
+      "kind": "public",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json",
+          "sha256": "328a8fe737ecf96aa33233bb0835bc1adf5f634b471e2c2090c46ef7160e4dfd"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public/public-06/capture.json",
+          "sha256": "eb49fff1548d4f49442ed5399c0a24c23fac6d8956db3a659d8766046f227198"
+        }
+      ],
+      "mandatory_requirements": [
+        {
+          "id": "merge-subject",
+          "requirement": "PR must be open, out of draft and mergeable without conflict.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/0/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ci-1",
+          "requirement": "license/cla must pass on the current head.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "POST /graphql",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=3"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/13/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/4/responses/0/body/check_runs/5"
+          ],
+          "observed_satisfaction": "satisfied"
+        },
+        {
+          "id": "ci-2",
+          "requirement": "Build Analysis must pass on the current head from app 216604.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "POST /graphql",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=4"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/13/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "review-approval",
+          "requirement": "GitHub review policy must be satisfied.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100",
+            "GET /repos/dotnet/runtime/pulls/136812/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/13/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/12/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/1/responses/0/body"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ruleset-review-2",
+          "requirement": "Active pull-request rule: {\"allowed_merge_methods\":[\"squash\",\"merge\",\"rebase\"],\"dismiss_stale_reviews_on_push\":false,\"require_code_owner_review\":false,\"require_extra_approval_for_unattributed_changes\":true,\"require_last_push_approval\":true,\"required_approving_review_count\":1,\"required_review_thread_resolution\":false,\"required_reviewers\":[]}",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/12/responses/0/body/2"
+          ],
+          "observed_satisfaction": "unmet"
+        },
+        {
+          "id": "ruleset-review-4",
+          "requirement": "Active pull-request rule: {\"allowed_merge_methods\":[\"merge\",\"squash\",\"rebase\"],\"dismiss_stale_reviews_on_push\":false,\"dismissal_restriction\":{\"allowed_actors\":[],\"enabled\":false},\"require_code_owner_review\":false,\"require_extra_approval_for_unattributed_changes\":true,\"require_last_push_approval\":false,\"required_approving_review_count\":0,\"required_review_thread_resolution\":false,\"required_reviewers\":[]}",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/12/responses/0/body/4"
+          ],
+          "observed_satisfaction": "unmet"
+        }
+      ],
+      "confirmed_blockers": [
+        {
+          "id": "required-ci-2",
+          "finding": "Required Build Analysis has a non-passing observed result.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main",
+            "POST /graphql",
+            "GET /repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=4"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/13/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ]
+        },
+        {
+          "id": "review-required",
+          "finding": "GitHub reports REVIEW_REQUIRED; no qualifying approval is present in captured reviews.",
+          "source_routes": [
+            "POST /graphql",
+            "GET /repos/dotnet/runtime/pulls/136812/reviews"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/13/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/1/responses/0/body"
+          ]
+        },
+        {
+          "id": "draft",
+          "finding": "The PR is a draft.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/0/responses/1/body/draft"
+          ]
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "classic-policy-inaccessible",
+          "finding": "Classic required-status and required-review policy return permission 403; branch summary and active rules do not prove full policy completeness.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/branches/main/protection/required_status_checks",
+            "GET /repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+            "GET /repos/dotnet/runtime/branches/main",
+            "GET /repos/dotnet/runtime/rules/branches/main?per_page=100"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/10/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/11/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/9/responses/0/body",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/12/responses/0/body"
+          ]
+        },
+        {
+          "id": "base-identity-differs",
+          "finding": "The PR base SHA differs from the current named branch SHA; exact current-base assurance cannot be inferred from stable PR identity alone.",
+          "source_routes": [
+            "GET /repos/dotnet/runtime/pulls/136812",
+            "GET /repos/dotnet/runtime/branches/main"
+          ],
+          "fact_ids": [
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/0/responses/1/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/9/responses/1/body/commit/sha"
+          ]
+        }
+      ],
+      "unsupported_policy_identity_limitations": [
+        "Active deletion rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active non_fast_forward rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "Active creation rule is retained; applicability to a normal PR merge/ref update requires actor and merge-operation context not captured.",
+        "No request Authorization header was supplied; inherited proxy may inject upstream identity. Effective token scope is unknown, so these are public metadata captures under observed visibility, not proof of anonymous access."
+      ],
+      "expected_conservative_readiness": "blocked",
+      "expected_scoped_assurance": "fail",
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "blocked"
+        ],
+        "observed_summary_basis": [
+          "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json#/routes/0/responses/1/body/mergeable_state"
+        ],
+        "limitations": [
+          "Full policy is restricted; observed blockers are independently retained."
+        ]
+      },
+      "reasoning": "At least one positive observed blocker proves the PR is blocked within scope. Policy permission gaps and any unsupported rule remain explicit unknowns; they do not erase known failures and cannot support a pass.",
+      "confidence": "high"
+    }
+  ],
+  "reviewer_raw_manifest_sha256": "bf5348a90540cb4d5857faba6fe7612b4ab19351deac8d87897f295c13e33f8f",
+  "frozen_at": "2026-11-02 before candidate execution and before first-review label inspection"
+}
