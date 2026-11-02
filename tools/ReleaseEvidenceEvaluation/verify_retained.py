@@ -16,6 +16,9 @@ EVALUATION_PATH = Path("tools/ReleaseEvidenceEvaluation")
 FROZEN_REVIEW_RECORDS = tuple(EVALUATION_PATH / "review" / name for name in (
     "ground-truth-protocol.md", "second-preregistration.md", "ground-truth.json",
     "second-ground-truth.json", "adjudication.json"))
+SUPPLEMENTAL_REVIEW_NAMES = (
+    "first-ground-truth.json", "second-ground-truth.json", "first-preregistration.md",
+    "second-preregistration.md", "adjudication.json")
 
 
 def require(condition: object, message: str) -> None:
@@ -36,17 +39,44 @@ def retained_path(directory: Path, manifest: dict, key: str) -> Path:
     return path if path.is_absolute() else directory / path
 
 
-def verify_retained(repo_root: Path, results_root: Path | None = None) -> list[str]:
+def study_paths(repo_root: Path, study_root: Path | None) -> tuple[Path, Path]:
+    requested = EVALUATION_PATH if study_root is None else study_root
+    absolute = (requested if requested.is_absolute() else repo_root / requested).resolve()
+    try:
+        relative = absolute.relative_to(repo_root)
+    except ValueError as exc:
+        raise score.InvalidEvaluation("Study root must remain inside the repository") from exc
+    return absolute, relative
+
+
+def review_records(study: Path, freeze: dict) -> tuple[Path, ...]:
+    if study == EVALUATION_PATH:
+        return FROZEN_REVIEW_RECORDS
+    declared = freeze.get("required_review_records")
+    require(isinstance(declared, list) and bool(declared) and
+            all(isinstance(path, str) and path for path in declared),
+            "Supplemental freeze requires a nonempty required_review_records list")
+    require(len(declared) == len(set(declared)), "Duplicate required review record")
+    expected = {str(study / "review" / name) for name in SUPPLEMENTAL_REVIEW_NAMES}
+    require(expected <= set(declared), "Supplemental freeze omits a required independent review record")
+    paths = tuple(Path(path) for path in declared)
+    require(all(not path.is_absolute() and ".." not in path.parts for path in paths),
+            "Required review records must use repository-relative paths")
+    return paths
+
+
+def verify_retained(repo_root: Path, results_root: Path | None = None, *,
+                    study_root: Path | None = None) -> list[str]:
     """Regenerate every report into temporary files, preserving nonzero findings."""
     repo_root = repo_root.resolve()
-    evaluation = repo_root / EVALUATION_PATH
+    evaluation, study = study_paths(repo_root, study_root)
     results_root = results_root if results_root is not None else evaluation / "results"
     freeze = score.load_json(evaluation / "review/pre-execution-freeze.json")
     require(freeze.get("schema_version") == 1, "Unsupported pre-execution freeze schema")
     frozen_files = score.index_rows(freeze.get("files"), "path", "pre-execution frozen files")
     canonical = {
-        "manifest": EVALUATION_PATH / "input-manifest.json",
-        "labels": EVALUATION_PATH / "review/adjudicated-ground-truth.json",
+        "manifest": study / "input-manifest.json",
+        "labels": study / "review/adjudicated-ground-truth.json",
     }
     hashes: dict[str, str] = {}
     for name, relative in canonical.items():
@@ -55,7 +85,7 @@ def verify_retained(repo_root: Path, results_root: Path | None = None) -> list[s
         checked_file(repo_root / relative, hashes[name], f"canonical frozen {name}")
     # Tool hashes describe the initial execution. Repaired code and later wrapper fixes
     # deliberately differ; only the unchanged inputs and independent review records bind here.
-    for relative in FROZEN_REVIEW_RECORDS:
+    for relative in review_records(study, freeze):
         require(relative.as_posix() in frozen_files, f"Pre-execution freeze lacks {relative}")
         checked_file(repo_root / relative, frozen_files[relative.as_posix()]["sha256"], "frozen pre-output review record")
 
@@ -115,9 +145,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--results-root", type=Path)
+    parser.add_argument("--study-root", type=Path,
+                        help="Study directory inside the repository; defaults to the original 36-case study")
     args = parser.parse_args()
     try:
-        verified = verify_retained(args.repo_root, args.results_root)
+        verified = verify_retained(args.repo_root, args.results_root, study_root=args.study_root)
         print(f"Verified {len(verified)} retained evaluation run(s): {', '.join(verified)}")
         print("Nonzero baseline findings are retained; this check verifies evidence consistency, not zero error rates.")
         return 0
