@@ -1,0 +1,99 @@
+{
+  "validationCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "producerCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "fullNet8": {
+    "total": 3931,
+    "executed": 3931,
+    "passed": 3931,
+    "failed": 0,
+    "error": 0,
+    "timeout": 0,
+    "aborted": 0,
+    "inconclusive": 0,
+    "passedButRunAborted": 0,
+    "notRunnable": 0,
+    "notExecuted": 0,
+    "disconnected": 0,
+    "warning": 0,
+    "completed": 0,
+    "inProgress": 0,
+    "pending": 0
+  },
+  "focusedNet10": {
+    "total": 174,
+    "executed": 174,
+    "passed": 174,
+    "failed": 0,
+    "error": 0,
+    "timeout": 0,
+    "aborted": 0,
+    "inconclusive": 0,
+    "passedButRunAborted": 0,
+    "notRunnable": 0,
+    "notExecuted": 0,
+    "disconnected": 0,
+    "warning": 0,
+    "completed": 0,
+    "inProgress": 0,
+    "pending": 0
+  },
+  "mutations": [
+    {
+      "id": "metadata-accepts-unverified-identity",
+      "commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "mutantFailed": 5,
+      "executed": 36,
+      "restoredPassed": 36
+    },
+    {
+      "id": "freshness-allows-stale-ready",
+      "commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "mutantFailed": 4,
+      "executed": 36,
+      "restoredPassed": 36
+    },
+    {
+      "id": "pagination-reverses-link-guard",
+      "commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "mutantFailed": 16,
+      "executed": 36,
+      "restoredPassed": 36
+    },
+    {
+      "id": "provider-name-alone-becomes-proof",
+      "commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "mutantFailed": 6,
+      "executed": 26,
+      "restoredPassed": 26
+    },
+    {
+      "id": "pending-required-result-loses-failure",
+      "commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "mutantFailed": 8,
+      "executed": 26,
+      "restoredPassed": 26
+    },
+    {
+      "id": "required-github-suite-selector-dropped",
+      "commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "mutantFailed": 1,
+      "executed": 3,
+      "restoredPassed": 3
+    },
+    {
+      "id": "selftest-outbound-primitive-unlisted",
+      "commit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+      "mutantFailed": 1,
+      "executed": 1,
+      "restoredPassed": 1
+    },
+    {
+      "id": "partial-ci-wrongly-proves-absence",
+      "commit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+      "mutantFailed": 2,
+      "executed": 36,
+      "restoredPassed": 36
+    }
+  ],
+  "verification": "Counters independently parsed from actual retained TRX files; every restored-source porcelain proof empty."
+}

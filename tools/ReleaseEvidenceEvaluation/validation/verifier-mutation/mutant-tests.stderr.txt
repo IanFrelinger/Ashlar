@@ -1,0 +1,36 @@
+F....FF
+======================================================================
+FAIL: test_changed_report_bytes_and_changed_canonical_labels_are_refused (__main__.RetainedEvidenceControls.test_changed_report_bytes_and_changed_canonical_labels_are_refused)
+----------------------------------------------------------------------
+score.InvalidEvaluation: Cannot re-score baseline-111111111: Invalid evaluation: Annotation ground-truth hash differs from frozen labels
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout/tools/ReleaseEvidenceEvaluation/test_verify_retained.py", line 113, in test_changed_report_bytes_and_changed_canonical_labels_are_refused
+    with self.assertRaisesRegex(score.InvalidEvaluation, "Changed canonical frozen labels"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "Changed canonical frozen labels" does not match "Cannot re-score baseline-111111111: Invalid evaluation: Annotation ground-truth hash differs from frozen labels"
+
+======================================================================
+FAIL: test_source_manifest_and_public_capture_metadata_are_frozen (__main__.RetainedEvidenceControls.test_source_manifest_and_public_capture_metadata_are_frozen) (name='artificial-source-manifest.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout/tools/ReleaseEvidenceEvaluation/test_verify_retained.py", line 135, in test_source_manifest_and_public_capture_metadata_are_frozen
+    with self.assertRaisesRegex(score.InvalidEvaluation, error):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: InvalidEvaluation not raised
+
+======================================================================
+FAIL: test_source_manifest_and_public_capture_metadata_are_frozen (__main__.RetainedEvidenceControls.test_source_manifest_and_public_capture_metadata_are_frozen) (name='artificial-public-capture.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout/tools/ReleaseEvidenceEvaluation/test_verify_retained.py", line 135, in test_source_manifest_and_public_capture_metadata_are_frozen
+    with self.assertRaisesRegex(score.InvalidEvaluation, error):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: InvalidEvaluation not raised
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.828s
+
+FAILED (failures=3)

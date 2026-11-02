@@ -161,3 +161,14 @@ host .NET, Docker or candidate decisions. It covers success, collector failure, 
 and ownership-repair failures. The initial wrapper fails the nonzero-result preservation
 regression; the corrected wrapper passes all five harness checks. These checks are not PR
 snapshots and do not increase the evaluation sample size.
+
+## Post-output self-test correction
+
+The first full .NET 8 certification run at `7bf31595b` ran 3,931 tests: 3,930 passed and
+the egress-inventory convention failed on the transport self-test's `HttpMessageInvoker`.
+At `5b01673b`, only that self-test was changed to call the same private in-memory dispatcher
+directly, without constructing an HTTP client primitive. No egress exemption or inventory limit
+was weakened. The production client factory and actual candidate replay path are unchanged,
+as are all frozen inputs, labels and retained outputs. The original tool hash remains in the
+pre-execution record. The final producer evaluated remains `b4b77b7f4`; later validation records
+identify their actual checkout separately.

@@ -1,0 +1,49 @@
+{
+  "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+  "finalCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "mutations": [
+    {
+      "id": "metadata-accepts-unverified-identity",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/GitHubBlockerReader.cs",
+      "old": "private static bool ValidPullMetadata(PullRequest pr, GitHubTarget target) =>\n        pr.Number == target.Number\n        && !string.IsNullOrWhiteSpace(pr.HtmlUrl)\n        && !pr.HtmlUrl.Any(char.IsControl)\n        && GitHubTarget.TryParse(pr.HtmlUrl, out var reported, out _)\n        && reported!.Kind == GitHubTargetKind.PullRequest\n        && string.Equals(reported.Owner, target.Owner, StringComparison.OrdinalIgnoreCase)\n        && string.Equals(reported.Repo, target.Repo, StringComparison.OrdinalIgnoreCase)\n        && reported.Number == target.Number\n        && (pr.Head?.Ref is null || ValidBranchRef(pr.Head.Ref))\n        && pr.Base?.Ref is { } baseRef && ValidBranchRef(baseRef)\n        && (pr.Base.Repository?.FullName is not { } baseRepository\n            || string.Equals(baseRepository, target.Owner + \"/\" + target.Repo, StringComparison.OrdinalIgnoreCase));",
+      "new": "private static bool ValidPullMetadata(PullRequest pr, GitHubTarget target) => true;",
+      "filter": "FullyQualifiedName~GitHubEvaluationRegressionTests"
+    },
+    {
+      "id": "freshness-allows-stale-ready",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/BlockerAnalysis.cs",
+      "old": "verdict == Ready && snapshot.CollectionConsistency is \"changed\" or \"unknown\"",
+      "new": "verdict == Ready && snapshot.CollectionConsistency == \"mutation-never-observed\"",
+      "filter": "FullyQualifiedName~GitHubEvaluationRegressionTests"
+    },
+    {
+      "id": "pagination-reverses-link-guard",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/GitHubBlockerReader.cs",
+      "old": "!ValidCheckPage(next, path, canonicalPath) || !seen.Add(next.AbsoluteUri)",
+      "new": "ValidCheckPage(next, path, canonicalPath) || !seen.Add(next.AbsoluteUri)",
+      "filter": "FullyQualifiedName~GitHubEvaluationRegressionTests"
+    },
+    {
+      "id": "provider-name-alone-becomes-proof",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/ReleaseEvidencePack.cs",
+      "old": "var originKnown = pr.Protection.RequiredCheckOriginsKnown;",
+      "new": "var originKnown = true;",
+      "filter": "FullyQualifiedName~GitHubProviderAssuranceRegressionTests"
+    },
+    {
+      "id": "pending-required-result-loses-failure",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/ReleaseEvidencePack.cs",
+      "old": ": absent || pending ? \"fail\" : isCollection ? \"unknown\"",
+      "new": ": absent || pending ? \"unknown\" : isCollection ? \"unknown\"",
+      "filter": "FullyQualifiedName~GitHubProviderAssuranceRegressionTests"
+    },
+    {
+      "id": "required-github-suite-selector-dropped",
+      "path": "scripts/cert-gate-config.sh",
+      "old": "|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests",
+      "new": "",
+      "filter": "FullyQualifiedName~CertGateFilterCoverageTests",
+      "noBuild": true
+    }
+  ]
+}

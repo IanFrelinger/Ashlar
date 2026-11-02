@@ -1,0 +1,1 @@
+["dotnet", "test", "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj", "--framework", "net10.0", "--filter", "FullyQualifiedName~GitHubProviderAssuranceRegressionTests", "--no-restore", "--nologo", "-v", "minimal", "-m:2", "-p:NuGetAudit=false", "--logger", "trx;LogFileName=pending-required-result-loses-failure-red.trx", "--results-directory", "/evidence"]

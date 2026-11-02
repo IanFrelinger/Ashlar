@@ -1,0 +1,14 @@
+{
+  "schemaPath": "docs/schemas/release-evidence-1.0.schema.json",
+  "schemaSha256": "e0a0cd8996c50fc0de021b4c68d6a83946053482dfb67857ca5b387b3d8c4c4b",
+  "library": "jsonschema",
+  "libraryVersion": "4.26.0",
+  "validator": "Draft202012Validator with FormatChecker",
+  "validatedPacks": {
+    "repaired-7bf31595b": 36,
+    "baseline-47a7c8506": 35,
+    "final-b4b77b7f4": 36
+  },
+  "pairedMarkdownReports": 107,
+  "scope": "structural/format validity, not evidence truth or fresh API state"
+}

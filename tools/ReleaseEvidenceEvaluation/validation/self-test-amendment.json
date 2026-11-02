@@ -1,0 +1,9 @@
+{
+  "path": "tools/ReleaseEvidenceEvaluation/Program.cs",
+  "frozenSha256": "625edec21c047a43d55ddbd2c69d116fa74596d1eaa9ac0a20e5a3b97ac4ad95",
+  "allThreeAccuracyRunsProgramSha256": "625edec21c047a43d55ddbd2c69d116fa74596d1eaa9ac0a20e5a3b97ac4ad95",
+  "subsequentSelfTestCorrectionCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "subsequentProgramSha256": "1c973a9034d0adcdda5c194296337763ee0c49b9ef9f4ff5232507b2ea9084bf",
+  "diffSha256": "d9579ee7bb994cba0d4f84e876d29d18f0dbed9c5249a5dc642696f081d4f659",
+  "scope": "TransportSelfTestAsync only plus forwarding method on the private ReplayHandler; actual candidate execution/handler SendAsync unchanged"
+}

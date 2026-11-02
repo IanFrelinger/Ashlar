@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "candidateCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "mutations": [
+    {
+      "id": "selftest-outbound-primitive-unlisted",
+      "candidateCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+      "path": "tools/ReleaseEvidenceEvaluation/Program.cs",
+      "filter": "FullyQualifiedName~EgressGuardConventionTests.F1_no_file_has_more_outbound_paths_than_its_pin",
+      "patchSha256": "418bf673b5977210d2e2053cdc981193363b25b7000de67fd05a97985344c7ca",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 1,
+          "executed": 1,
+          "passed": 0,
+          "failed": 1,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Certification.EgressGuardConventionTests.F1_no_file_has_more_outbound_paths_than_its_pin"
+        ],
+        "log": "selftest-outbound-primitive-unlisted-red.log",
+        "trx": "selftest-outbound-primitive-unlisted-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 1,
+          "executed": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "selftest-outbound-primitive-unlisted-green.log",
+        "trx": "selftest-outbound-primitive-unlisted-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "partial-ci-wrongly-proves-absence",
+      "candidateCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/BlockerAnalysis.cs",
+      "filter": "FullyQualifiedName~GitHubEvaluationRegressionTests",
+      "patchSha256": "6669fb4bff8735709cdbaf4c0a9d13308b525f7dcc31a12e52450f58555a93dc",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 34,
+          "failed": 2,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.A_failed_or_inconsistent_later_page_cannot_prove_a_required_check_absent(secondPage: \"{\\\"total_count\\\":3,\\\"check_runs\\\":[]}\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.A_failed_or_inconsistent_later_page_cannot_prove_a_required_check_absent(secondPage: \"__unreadable__\")"
+        ],
+        "log": "partial-ci-wrongly-proves-absence-red.log",
+        "trx": "partial-ci-wrongly-proves-absence-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 36,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "partial-ci-wrongly-proves-absence-green.log",
+        "trx": "partial-ci-wrongly-proves-absence-green.trx"
+      },
+      "verdict": "KILLED"
+    }
+  ],
+  "preflight": {
+    "exitCode": 0,
+    "counts": {
+      "total": 1,
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "failedTests": [],
+    "log": "final-F1-preflight.log",
+    "trx": "final-F1-preflight.trx"
+  },
+  "finalCertGate": {
+    "candidateCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+    "exitCode": 0,
+    "log": "final-5b-net8-cert-gate.log",
+    "trx": "final-5b-net8-cert-gate.trx"
+  },
+  "toolBuild": {
+    "exitCode": 0,
+    "log": "final-tool-build.log"
+  },
+  "toolSelfTest": {
+    "exitCode": 0,
+    "log": "final-tool-selftest.log"
+  },
+  "finalFocusedGreen": {
+    "candidateCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+    "exitCode": 0,
+    "counts": {
+      "total": 174,
+      "executed": 174,
+      "passed": 174,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "failedTests": [],
+    "log": "final-github-177-green.log",
+    "trx": "final-github-177-green.trx"
+  },
+  "producerCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "finalValidationCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "focusedFilterCountNote": "Actual final NET10 four-GitHub-suite filter executed 174 tests; artifact filenames containing 177 reflect the planned filter and remain unchanged. All 3 CertGateFilterCoverageTests passed in the final NET8 required gate.",
+  "initialRepairMutationEvidence": {
+    "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+    "summary": "initial-six-summary-retained.json",
+    "confirmedKills": 6
+  },
+  "totalConfirmedMutationKills": 8,
+  "finalCleanPorcelainProof": "final-finish-porcelain.txt"
+}

@@ -1,0 +1,12 @@
+{
+  "reason": "Authorized validation reference changed after initial driver loaded; checkout boundary already passed, so obsolete build stopped rather than relabelled",
+  "initialMutationCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+  "supersededValidationCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "newValidationCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "producerCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "completedMutationCount": 6,
+  "initialSummarySha256": "737f4fa6b2d2032bd2391275ca9980961abb6cc7ecedeee103e4675ec237690b",
+  "partialBuildSha256": "dbe9832ad265d61a341ec25a18d8a911851b23547c63ac52f5944fecf5cec7ee",
+  "obsoleteTestRunStarted": false,
+  "gitShimInstalled": false
+}

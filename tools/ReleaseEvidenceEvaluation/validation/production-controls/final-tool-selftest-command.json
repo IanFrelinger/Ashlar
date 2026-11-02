@@ -1,0 +1,1 @@
+["dotnet", "tools/ReleaseEvidenceEvaluation/bin/Debug/net10.0/Ashlar.ReleaseEvidenceEvaluation.dll", "--self-test"]

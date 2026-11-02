@@ -112,6 +112,16 @@ mergeability, an observed optional failure can still be treated as a blocker. Th
 false-fail risk was found in source review outside this fixed sample and is not counted as a
 measured case. Provider-aware classification and bounded recollection are the next useful accuracy work.
 
+## Engineering validation
+
+The [validation record](../../tools/ReleaseEvidenceEvaluation/validation/README.md) identifies
+actual checkout commits, commands, environment, test outcomes, retained initial failures and
+mutation proofs. The final required .NET 8 gate passed **3,931/3,931**, with zero skipped;
+the core solution built successfully and all **48** repository gates passed. These checks
+are separate from the accuracy sample. Its CI wrapper verifies
+retained evidence consistency; it does not silently treat the baseline's failures as passing
+accuracy or evaluate arbitrary future production changes against old result artifacts.
+
 ## Timing observations
 
 A fresh application-cache run of the real source-built MCP host and Action client produced both

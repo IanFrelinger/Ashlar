@@ -1,0 +1,18 @@
+{
+  "producerCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "validationCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "command": [
+    "git",
+    "diff",
+    "--exit-code",
+    "b4b77b7f47975c64873dd8dc458329a584228d36",
+    "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+    "--",
+    "src/Ashlar.Bricks.GitHub",
+    "src/Ashlar.Mcp.Server.Host",
+    "actions/pr-blockers/pr_blockers.py"
+  ],
+  "exitCode": 0,
+  "stdout": "",
+  "scope": "Producer paths unchanged; subsequent tool change only affects TransportSelfTestAsync dispatch, not actual candidate replay."
+}
