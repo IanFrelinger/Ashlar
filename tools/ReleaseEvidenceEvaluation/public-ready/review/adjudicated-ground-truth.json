@@ -1,0 +1,868 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "fixture_manifest_sha256": "17e01f26dff07b58d004b43ae12c5c3959e6a58b36b0a22ef56b0aa107919035",
+  "capture_manifest_sha256": "84191b5f1fa6f5acc7743c8ed0ce8852ed6e6a1f2df0c97513880f31e599fc2d",
+  "review_process": {
+    "ai_only": true,
+    "human_review": false,
+    "reviewer": "AI cross-review of first-independent-AI and second-independent-AI-reviewer",
+    "blinded_to_candidate_outputs": true,
+    "production_code_not_inspected": true,
+    "unit_tests_not_inspected": true,
+    "candidate_not_executed_by_reviewers": true,
+    "independent_passes_blinded_before_freeze": true,
+    "cross_reviewed_frozen_originals": true,
+    "adjudicated": true,
+    "adjudication_date": "2026-11-02",
+    "original_review_records": [
+      {
+        "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/first-ground-truth.json",
+        "sha256": "a6a3854776e04ed83f65b9bab635acd31d6b491304ca8674d0d079e6710107bf"
+      },
+      {
+        "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/second-ground-truth.json",
+        "sha256": "18647576e44e4157bd53e06aa444ca715150cfa796bfb1e5f34743ee5b19ac4d"
+      },
+      {
+        "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/first-preregistration.md",
+        "sha256": "2fa23c98b9937d43b3312fa0a9af239a56c75e7a08ec1c8c6692e33e33ad43d7"
+      },
+      {
+        "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/second-preregistration.md",
+        "sha256": "abb030d5d5b6b467d0ba4e67df1e5cd8a7f9d6456edf7a152432744aad1ab0fe"
+      }
+    ],
+    "limitations": [
+      "AI-only independent passes and cross-review, with no human adjudication.",
+      "Reviewers may share a model family; correlated errors remain possible.",
+      "Timing and blinding are recorded process declarations, not cryptographic proof.",
+      "Public clean-metadata selection is not ground truth or evidence of general accuracy."
+    ]
+  },
+  "adjudication": {
+    "status": "resolved",
+    "conflicts": [],
+    "record": "tools/ReleaseEvidenceEvaluation/public-ready/review/adjudication.json",
+    "rationale": "Both reviewers agree after pre-output semantic cross-review. Preserve original unknown labels as historical independent records; do not infer a GitHub base-SHA equality rule. jq policy absence is established from repeated unprotected branch observations plus a successful empty effective-rules response. cli policy completeness remains unknown independently of the SHA difference."
+  },
+  "scope": "Three supplemental public GitHub PR captures from two actual public repositories, judged under the original bounded GitHub mandatory-requirement scope. AI-only review, with no customer, compliance, release-approval, or general-accuracy claim. Original 36-case benchmark untouched.",
+  "documentation_semantics": [
+    {
+      "url": "https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request",
+      "checked": "mergeable=true and merge_commit_sha describe GitHub test merge creation, not complete policy satisfaction."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch",
+      "checked": "Returns all active applicable rules across configuration levels for a branch name; evaluate/disabled rules are excluded. It is a ruleset view, not successful access to denied classic protection endpoints."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/branches/branches#get-a-branch",
+      "checked": "The protected branch state distinguishes branches protected by protections or rulesets from unprotected branches."
+    },
+    {
+      "url": "https://docs.github.com/en/copilot/using-github-copilot/code-review/using-copilot-code-review",
+      "checked": "Copilot review assessments are distinct from configured required approvals. The observed copilot_code_review rule does not by itself prove a separate mandatory approval or a failed merge gate."
+    },
+    {
+      "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks",
+      "checked": "Semantics retained from the pre-output ground-truth protocol: successful required check conclusions, exact applicable SHA, and head versus test merge applicability."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database#checking-mergeability-of-pull-requests",
+      "checked": "GET PR starts test merge candidate creation; GitHub recommends polling GET PR until mergeable is true or false. Both initial/final captures use GET and return non-null true."
+    },
+    {
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches",
+      "checked": "Strict required checks require the branch to be up to date; loose checks do not. With required status checks disabled, collaborators may merge regardless of up-to-dateness. No universal PR.base.sha == branch-tip invariant is stated."
+    },
+    {
+      "url": "https://docs.github.com/en/graphql/reference/pulls#pullrequest",
+      "checked": "baseRefName/baseRefOid identify the associated base ref; mergeable describes existence of merge conflicts. The documentation does not impose equality of associated base OID with every contemporaneous branch endpoint observation."
+    }
+  ],
+  "cases": [
+    {
+      "id": "public-ready-01",
+      "repository": "cli/cli",
+      "pull_request": 14716,
+      "source_url": "https://github.com/cli/cli/pull/14716",
+      "raw_files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json": "8d653b33e4a88675ec7e1994258dc0210aefb7cc12f112ef0e63e0354895d986",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/routes.json": "a66311bba9488a24f515a163032977f305399424789100607b79c6cffb53e149",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/sha256.json": "41ed28bd3016a4ef9cd1f94fa3bf0c248975fec5845d76ed3da7eeab6d8aca02"
+      },
+      "capture_interval": {
+        "startedAt": "2026-11-02T03:05:42.454444Z",
+        "finishedAt": "2026-11-02T03:05:46.214381Z",
+        "durationSeconds": 3.759937,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "head_sha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+        "base_ref": "trunk",
+        "pr_base_sha": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45",
+        "branch_tip_sha": "9490d204a2ba95434153dedce99898ce9f281426",
+        "pr_initial_final_equal": true,
+        "branch_initial_final_equal": true,
+        "base_sha_views_agree": false,
+        "test_merge_sha": "a8b115aa12d8956a9853cdcaa13086f2f67da95c",
+        "interpretation": "PR-associated base SHA and current branch-tip SHA are retained as distinct observations. Their inequality alone is neither a merge blocker nor a mandatory unknown. Repository, head SHA and base branch name remain coherent; repeated GET responses report mergeable=true. No stronger exact-test-merge-parent attribution requirement is added."
+      },
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "mandatory_requirements": [
+        {
+          "id": "public-ready-01:required-check-1",
+          "requirement": "build (macos-latest) is required by the captured branch protection summary and GraphQL is_required flag.",
+          "scope": "Captured unchanged head commit, with non_admins enforcement and null app binding visible in branch summary. Complete policy coverage remains a separate material unknown.",
+          "observed_status": "satisfied-at-captured-head",
+          "source_routes": [
+            "/repos/cli/cli/branches/trunk",
+            "/graphql",
+            "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs"
+          ],
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks/contexts/0",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks/checks/0",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection/required_status_checks/contexts/0",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes/5",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/9/name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/9/head_sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/9/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/9/conclusion"
+          ],
+          "rationale": "Exact required context has a completed successful check on the same captured head and is_required=true for the PR. No base-SHA equality gate is inferred; this observed success does not enumerate denied protected-policy configuration."
+        },
+        {
+          "id": "public-ready-01:required-check-2",
+          "requirement": "build (ubuntu-latest) is required by the captured branch protection summary and GraphQL is_required flag.",
+          "scope": "Captured unchanged head commit, with non_admins enforcement and null app binding visible in branch summary. Complete policy coverage remains a separate material unknown.",
+          "observed_status": "satisfied-at-captured-head",
+          "source_routes": [
+            "/repos/cli/cli/branches/trunk",
+            "/graphql",
+            "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs"
+          ],
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks/contexts/1",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks/checks/1",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection/required_status_checks/contexts/1",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes/2",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/10/name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/10/head_sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/10/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/10/conclusion"
+          ],
+          "rationale": "Exact required context has a completed successful check on the same captured head and is_required=true for the PR. No base-SHA equality gate is inferred; this observed success does not enumerate denied protected-policy configuration."
+        },
+        {
+          "id": "public-ready-01:required-check-3",
+          "requirement": "build (windows-latest) is required by the captured branch protection summary and GraphQL is_required flag.",
+          "scope": "Captured unchanged head commit, with non_admins enforcement and null app binding visible in branch summary. Complete policy coverage remains a separate material unknown.",
+          "observed_status": "satisfied-at-captured-head",
+          "source_routes": [
+            "/repos/cli/cli/branches/trunk",
+            "/graphql",
+            "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs"
+          ],
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks/contexts/2",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks/checks/2",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection/required_status_checks/contexts/2",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes/4",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/11/name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/11/head_sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/11/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/11/conclusion"
+          ],
+          "rationale": "Exact required context has a completed successful check on the same captured head and is_required=true for the PR. No base-SHA equality gate is inferred; this observed success does not enumerate denied protected-policy configuration."
+        }
+      ],
+      "confirmed_blockers": [],
+      "unknowns": [
+        {
+          "id": "public-ready-01:incomplete-protected-policy",
+          "issue": "Applicable classic protection is enabled, but complete status/review policy configuration is not discoverable from the captured successful responses.",
+          "material": true,
+          "source_routes": [
+            "/repos/cli/cli/branches/trunk",
+            "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews"
+          ],
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protected",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/enabled",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protected",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection/enabled",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/8/response/body",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision"
+          ],
+          "rationale": "The branch summary names three required checks and non_admins enforcement, but omits strict/up-to-date and required-review settings; both dedicated reads return 403. APPROVED and successful named head checks are positive bounded observations, but do not enumerate all protected-branch requirements. The assumption is incomplete policy coverage, not assumed hidden rule existence or a failed hidden requirement. The visible copilot_code_review rule does not by itself create a required approval or failure."
+        }
+      ],
+      "policy_discovery": {
+        "summary": "Repeated branch summaries establish protected=true/enabled=true, three required check names with null app bindings and non_admins enforcement. Successful active rules show copilot_code_review but do not expose denied classic policy details. Full strict/up-to-date and review-policy configuration remain unknown. No specific hidden rule or failure is presumed.",
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protected",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protected",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/8/response/body",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status"
+        ]
+      },
+      "observations": {
+        "checks": {
+          "pages": 1,
+          "observed_count": 16,
+          "stated_total": 16,
+          "all_on_captured_head": true,
+          "conclusions": [
+            "skipped",
+            "success"
+          ]
+        },
+        "review_decision": "APPROVED",
+        "raw_review_count": 1,
+        "combined_status": "pending with total_count=0 and empty statuses; this aggregate alone establishes no mandatory failure",
+        "freshness_limit": "Initial/final PR and branch identities are repeated, while review/check/policy states are not jointly sampled atomically. No observed state change is invented, and no arbitrary check age threshold is inferred."
+      },
+      "sourced_raw_pointers": [
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/number",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/draft",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/merged",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/ref",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable_state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/merge_commit_sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/draft",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable_state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/8/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/collection",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/authorizationContext",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/1/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/3/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/4/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/repo/full_name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status"
+      ],
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision"
+        ],
+        "rationale": "Both repeated REST PR summaries are open, non-draft, mergeable=true and clean, with APPROVED effective review state. Historical GitHub-summary readiness permits ready. This compatibility annotation is independent of mandatory-policy completeness and was not inferred from producer behavior."
+      },
+      "rationale": "GitHub operational readiness is clean and approved, and all three explicitly required head checks succeed. Conservative readiness and scoped assurance remain unknown solely because protection is enabled while complete classic status/review policy discovery is denied. Differing PR-associated base and branch-tip SHAs are recorded attribution limits, not invented equality or strict-update requirements. No confirmed blocker is established.",
+      "confidence": {
+        "label": "high",
+        "limit": "Confidence concerns the explicitly bounded pre-output adjudicated interpretation. It does not establish live state, exact test-merge parent provenance, general accuracy, customer outcomes, or release safety."
+      },
+      "observed_github_operational_status": {
+        "readiness": "ready-as-captured-github-summary",
+        "state": "open",
+        "draft": false,
+        "mergeable": true,
+        "mergeable_state": "clean",
+        "effective_review_decision": "APPROVED",
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/draft",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision"
+        ]
+      },
+      "collection_limitations": [
+        {
+          "id": "public-ready-01:base-attribution-limit",
+          "description": "The associated PR base SHA differs from the contemporaneous branch-tip SHA. Exact test-merge parent provenance is not captured. This limits a stronger claim about a specific current-base input; it does not establish stale mandatory evidence, a merge conflict, a strict up-to-date rule, or an unknown mandatory fact under the original bounded GitHub scope.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/ref",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/repo/full_name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/commit/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/commit/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable"
+          ]
+        },
+        {
+          "id": "public-ready-01:non-atomic-observations",
+          "description": "Only PR/branch identities are repeated. Reviews, checks and policies are observations within a short collection interval, not an atomic transaction. No contrary state transition is observed.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/collection",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/endpointInventory"
+          ]
+        },
+        {
+          "id": "public-ready-01:unobservable-transport-identity",
+          "description": "No Authorization was supplied by capture code; proxy upstream identity and scopes remain unobservable. This is preserved as transport provenance. It does not negate successful public branch/rules evidence or imply a hidden mandatory rule.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/authorizationContext"
+          ]
+        },
+        {
+          "id": "public-ready-01:denied-policy-endpoints",
+          "description": "Dedicated classic status/review policy endpoint bodies are unavailable because both return HTTP 403. These are denied endpoint facts, never synthetic empty responses. Their materiality depends on independently captured policy coverage.",
+          "prevents_ready_or_pass": true,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/body/message",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/body/message"
+          ]
+        },
+        {
+          "id": "public-ready-01:test-merge-coverage-limit",
+          "description": "Only head checks/statuses were requested; the captured test merge SHA was not queried. A check posted on a test merge can be relevant under GitHub semantics, but no such result or distinct mandatory test-merge requirement is established. This is a conditional evidence limitation, not an invented independent failure or universal extra gate. Protected-policy completeness already independently yields unknown.",
+          "prevents_ready_or_pass": "not-independently-adjudicated",
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/merge_commit_sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/merge_commit_sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/path"
+          ]
+        }
+      ],
+      "adjudication": {
+        "status": "resolved",
+        "conflicts": [],
+        "original_first_readiness": "unknown",
+        "original_first_assurance": "unknown",
+        "original_second_readiness": "unknown",
+        "original_second_assurance": "unknown",
+        "semantic_correction": true,
+        "verdict_changed": false,
+        "rationale": "Retain unknown/unknown for incomplete protected-policy discovery. Narrow the original explanations: differing base SHA values are not an independent mandatory gate, and the unqueried test merge is a conditional coverage limit rather than a newly imposed requirement."
+      }
+    },
+    {
+      "id": "public-ready-02",
+      "repository": "jqlang/jq",
+      "pull_request": 3432,
+      "source_url": "https://github.com/jqlang/jq/pull/3432",
+      "raw_files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json": "d0c06311f1fcc47f90c86b400655b596517b8c582efe719c652dfa4b70c6871f",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/routes.json": "f552d1435b114bf7894a877b608ae7dad3642317cd8c21a6f25074be05789b31",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/sha256.json": "a5bad801141c51f6675e5ce1495b7c56715bbfddb4364fc7e13f1d2c72fd529c"
+      },
+      "capture_interval": {
+        "startedAt": "2026-11-02T03:05:46.218258Z",
+        "finishedAt": "2026-11-02T03:05:49.409869Z",
+        "durationSeconds": 3.191611,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+        "base_ref": "master",
+        "pr_base_sha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+        "branch_tip_sha": "992db9b7e5e3059b764bf430bd97716829e99578",
+        "pr_initial_final_equal": true,
+        "branch_initial_final_equal": true,
+        "base_sha_views_agree": false,
+        "test_merge_sha": "72c692614d6ea3235f86730822b493f41bef40ac",
+        "interpretation": "PR-associated base SHA and current branch-tip SHA are retained as distinct observations. Their inequality alone is neither a merge blocker nor a mandatory unknown. Repository, head SHA and base branch name remain coherent; repeated GET responses report mergeable=true. No stronger exact-test-merge-parent attribution requirement is added."
+      },
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "mandatory_requirements": [],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "policy_discovery": {
+        "summary": "Applicable mandatory branch policy is established absent for the captured base branch name: both branch responses report protected=false and protection.enabled=false with empty required contexts/checks; the complete effective-rules response is HTTP 200 with []; all captured GraphQL contexts are is_required=false. Dedicated policy reads remain denied transport observations, but are not an independent unknown about mandatory policy when this successful absence evidence is present.",
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protected",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protected",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protection",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/9/response/body",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/status",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/status"
+        ],
+        "mandatory_branch_policy": "none-established-by-independent-absence-evidence"
+      },
+      "observations": {
+        "checks": {
+          "pages": 2,
+          "observed_count": 32,
+          "stated_total": 32,
+          "all_on_captured_head": true,
+          "conclusions": [
+            "skipped",
+            "success"
+          ]
+        },
+        "review_decision": "APPROVED",
+        "raw_review_count": 24,
+        "combined_status": "pending with total_count=0 and empty statuses; this aggregate alone establishes no mandatory failure",
+        "freshness_limit": "Initial/final PR and branch identities are repeated, while review/check/policy states are not jointly sampled atomically. No observed state change is invented, and no arbitrary check age threshold is inferred."
+      },
+      "sourced_raw_pointers": [
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/number",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/draft",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/merged",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/ref",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable_state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/merge_commit_sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/draft",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable_state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/9/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/review_decision",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/collection",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/authorizationContext",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/2/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/3/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/1/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/4/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/5/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/repo/full_name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection/required_status_checks",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/status"
+      ],
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/review_decision"
+        ],
+        "rationale": "Both repeated REST PR summaries are open, non-draft, mergeable=true and clean, with APPROVED effective review state. Historical GitHub-summary readiness permits ready. This compatibility annotation is independent of mandatory-policy completeness and was not inferred from producer behavior."
+      },
+      "rationale": "Ready/pass under the original bounded GitHub mandatory-requirement scope: the PR is open/non-draft, repository/head/base-ref identity is coherent and unchanged, initial/final GET responses say mergeable=true and clean, and repeated unprotected branch observations plus a complete successful empty effective-rules response establish no applicable mandatory branch gates. Every visible check succeeds or is skipped, and effective review state is APPROVED. The associated PR base SHA differs from the branch tip; retain that exact-base attribution limitation without adding an equality/up-to-date prerequisite. The 403 endpoint facts do not override independently established policy absence. This is bounded snapshot assurance, not product-release approval.",
+      "confidence": {
+        "label": "high",
+        "limit": "Confidence concerns the explicitly bounded pre-output adjudicated interpretation. It does not establish live state, exact test-merge parent provenance, general accuracy, customer outcomes, or release safety."
+      },
+      "observed_github_operational_status": {
+        "readiness": "ready-as-captured-github-summary",
+        "state": "open",
+        "draft": false,
+        "mergeable": true,
+        "mergeable_state": "clean",
+        "effective_review_decision": "APPROVED",
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/draft",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/review_decision"
+        ]
+      },
+      "collection_limitations": [
+        {
+          "id": "public-ready-02:base-attribution-limit",
+          "description": "The associated PR base SHA differs from the contemporaneous branch-tip SHA. Exact test-merge parent provenance is not captured. This limits a stronger claim about a specific current-base input; it does not establish stale mandatory evidence, a merge conflict, a strict up-to-date rule, or an unknown mandatory fact under the original bounded GitHub scope.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/ref",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/repo/full_name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/commit/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/commit/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable"
+          ]
+        },
+        {
+          "id": "public-ready-02:non-atomic-observations",
+          "description": "Only PR/branch identities are repeated. Reviews, checks and policies are observations within a short collection interval, not an atomic transaction. No contrary state transition is observed.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/collection",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/endpointInventory"
+          ]
+        },
+        {
+          "id": "public-ready-02:unobservable-transport-identity",
+          "description": "No Authorization was supplied by capture code; proxy upstream identity and scopes remain unobservable. This is preserved as transport provenance. It does not negate successful public branch/rules evidence or imply a hidden mandatory rule.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/authorizationContext"
+          ]
+        },
+        {
+          "id": "public-ready-02:denied-policy-endpoints",
+          "description": "Dedicated classic status/review policy endpoint bodies are unavailable because both return HTTP 403. These are denied endpoint facts, never synthetic empty responses. Their materiality depends on independently captured policy coverage.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/body/message",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/body/message"
+          ]
+        }
+      ],
+      "review_observations": {
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/1/response/body/2",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432/reviews",
+            "value": {
+              "id": 3663939769,
+              "node_id": "PRR_kwDOAE3WVc7aY0i5",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-3663939769",
+              "state": "APPROVED",
+              "commit_id": "a853fd8409e7d750ee8faf44fbe9733c7376b162",
+              "submitted_at": "2026-01-15T04:43:28Z",
+              "author_association": "CONTRIBUTOR",
+              "user": {
+                "login": "nicowilliams"
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/review_decision",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "APPROVED"
+          }
+        ],
+        "rationale": "The only raw APPROVED review is on an older commit, while the effective review decision is APPROVED. No mandatory approval count/current-head approval rule is observed, so the older raw approval is not a blocker and is not treated as proof of an invented policy."
+      },
+      "non_blocking_observations": [
+        {
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/rebaseable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": true
+            }
+          ],
+          "rationale": "rebaseable=false does not establish a mandatory merge-method restriction. The same response says mergeable=true; no applicable rebase-only policy is observed."
+        }
+      ],
+      "adjudication": {
+        "status": "resolved",
+        "conflicts": [],
+        "original_first_readiness": "unknown",
+        "original_first_assurance": "unknown",
+        "original_second_readiness": "unknown",
+        "original_second_assurance": "unknown",
+        "semantic_correction": true,
+        "verdict_changed": true,
+        "rationale": "Correct both frozen unknown/unknown labels to ready/pass before output inspection. Both originals overextended coherent-identity wording into an unstated exact-current-base attribution prerequisite. Documented GET/poll mergeability, unchanged head/base-ref, no mandatory policy, and no observed failure suffice for the original scope. No policy or score-driven requirement is introduced."
+      }
+    },
+    {
+      "id": "public-ready-03",
+      "repository": "jqlang/jq",
+      "pull_request": 3641,
+      "source_url": "https://github.com/jqlang/jq/pull/3641",
+      "raw_files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json": "3490c9aed9a8487afef3476136f04b15f45a563fe05472715f899c4a325e386e",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/routes.json": "9a1740635e856f4c52a9e1402d0939ff06bb495db99c01d2b7778e5596f77483",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/sha256.json": "0d049c79416c5b4c6bff868d81758006134314ee56a150f91b87be60e297f06a"
+      },
+      "capture_interval": {
+        "startedAt": "2026-11-02T03:05:49.415316Z",
+        "finishedAt": "2026-11-02T03:05:52.292477Z",
+        "durationSeconds": 2.877161,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "head_sha": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+        "base_ref": "master",
+        "pr_base_sha": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac",
+        "branch_tip_sha": "992db9b7e5e3059b764bf430bd97716829e99578",
+        "pr_initial_final_equal": true,
+        "branch_initial_final_equal": true,
+        "base_sha_views_agree": false,
+        "test_merge_sha": "c24bd63077a16201633e08d96e37e653f615b96d",
+        "interpretation": "PR-associated base SHA and current branch-tip SHA are retained as distinct observations. Their inequality alone is neither a merge blocker nor a mandatory unknown. Repository, head SHA and base branch name remain coherent; repeated GET responses report mergeable=true. No stronger exact-test-merge-parent attribution requirement is added."
+      },
+      "expected_conservative_readiness": "ready",
+      "expected_scoped_assurance": "pass",
+      "mandatory_requirements": [],
+      "confirmed_blockers": [],
+      "unknowns": [],
+      "policy_discovery": {
+        "summary": "Applicable mandatory branch policy is established absent for the captured base branch name: both branch responses report protected=false and protection.enabled=false with empty required contexts/checks; the complete effective-rules response is HTTP 200 with []; all captured GraphQL contexts are is_required=false. Dedicated policy reads remain denied transport observations, but are not an independent unknown about mandatory policy when this successful absence evidence is present.",
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protected",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protected",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protection",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/8/response/body",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/status",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/status"
+        ],
+        "mandatory_branch_policy": "none-established-by-independent-absence-evidence"
+      },
+      "observations": {
+        "checks": {
+          "pages": 1,
+          "observed_count": 29,
+          "stated_total": 29,
+          "all_on_captured_head": true,
+          "conclusions": [
+            "skipped",
+            "success"
+          ]
+        },
+        "review_decision": "APPROVED",
+        "raw_review_count": 1,
+        "combined_status": "pending with total_count=0 and empty statuses; this aggregate alone establishes no mandatory failure",
+        "freshness_limit": "Initial/final PR and branch identities are repeated, while review/check/policy states are not jointly sampled atomically. No observed state change is invented, and no arbitrary check age threshold is inferred."
+      },
+      "sourced_raw_pointers": [
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/number",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/draft",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/merged",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/ref",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable_state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/merge_commit_sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/draft",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable_state",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/8/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/collection",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/authorizationContext",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/2/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/1/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/3/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/4/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/repo/full_name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection/required_status_checks",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/status"
+      ],
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/review_decision"
+        ],
+        "rationale": "Both repeated REST PR summaries are open, non-draft, mergeable=true and clean, with APPROVED effective review state. Historical GitHub-summary readiness permits ready. This compatibility annotation is independent of mandatory-policy completeness and was not inferred from producer behavior."
+      },
+      "rationale": "Ready/pass under the original bounded GitHub mandatory-requirement scope: the PR is open/non-draft, repository/head/base-ref identity is coherent and unchanged, initial/final GET responses say mergeable=true and clean, and repeated unprotected branch observations plus a complete successful empty effective-rules response establish no applicable mandatory branch gates. Every visible check succeeds or is skipped, and effective review state is APPROVED. The associated PR base SHA differs from the branch tip; retain that exact-base attribution limitation without adding an equality/up-to-date prerequisite. The 403 endpoint facts do not override independently established policy absence. This is bounded snapshot assurance, not product-release approval.",
+      "confidence": {
+        "label": "high",
+        "limit": "Confidence concerns the explicitly bounded pre-output adjudicated interpretation. It does not establish live state, exact test-merge parent provenance, general accuracy, customer outcomes, or release safety."
+      },
+      "observed_github_operational_status": {
+        "readiness": "ready-as-captured-github-summary",
+        "state": "open",
+        "draft": false,
+        "mergeable": true,
+        "mergeable_state": "clean",
+        "effective_review_decision": "APPROVED",
+        "source_facts": [
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/draft",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable_state",
+          "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/review_decision"
+        ]
+      },
+      "collection_limitations": [
+        {
+          "id": "public-ready-03:base-attribution-limit",
+          "description": "The associated PR base SHA differs from the contemporaneous branch-tip SHA. Exact test-merge parent provenance is not captured. This limits a stronger claim about a specific current-base input; it does not establish stale mandatory evidence, a merge conflict, a strict up-to-date rule, or an unknown mandatory fact under the original bounded GitHub scope.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/ref",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/repo/full_name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/head/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/base/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/name",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/commit/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/commit/sha",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable"
+          ]
+        },
+        {
+          "id": "public-ready-03:non-atomic-observations",
+          "description": "Only PR/branch identities are repeated. Reviews, checks and policies are observations within a short collection interval, not an atomic transaction. No contrary state transition is observed.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/collection",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/endpointInventory"
+          ]
+        },
+        {
+          "id": "public-ready-03:unobservable-transport-identity",
+          "description": "No Authorization was supplied by capture code; proxy upstream identity and scopes remain unobservable. This is preserved as transport provenance. It does not negate successful public branch/rules evidence or imply a hidden mandatory rule.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/authorizationContext"
+          ]
+        },
+        {
+          "id": "public-ready-03:denied-policy-endpoints",
+          "description": "Dedicated classic status/review policy endpoint bodies are unavailable because both return HTTP 403. These are denied endpoint facts, never synthetic empty responses. Their materiality depends on independently captured policy coverage.",
+          "prevents_ready_or_pass": false,
+          "source_facts": [
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/body/message",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/status",
+            "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/body/message"
+          ]
+        }
+      ],
+      "review_observations": {
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/1/response/body/0",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641/reviews",
+            "value": {
+              "id": 5408749026,
+              "node_id": "PRR_kwDOAE3WVc8AAAABQmL14g",
+              "html_url": "https://github.com/jqlang/jq/pull/3641#pullrequestreview-5408749026",
+              "state": "APPROVED",
+              "commit_id": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+              "submitted_at": "2026-10-04T23:32:54Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "owenthereal"
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "APPROVED"
+          }
+        ],
+        "rationale": "A current-head raw approval and effective APPROVED are both present. No mandatory approval policy is inferred merely from receiving an approval."
+      },
+      "adjudication": {
+        "status": "resolved",
+        "conflicts": [],
+        "original_first_readiness": "unknown",
+        "original_first_assurance": "unknown",
+        "original_second_readiness": "unknown",
+        "original_second_assurance": "unknown",
+        "semantic_correction": true,
+        "verdict_changed": true,
+        "rationale": "Correct both frozen unknown/unknown labels to ready/pass before output inspection. Both originals overextended coherent-identity wording into an unstated exact-current-base attribution prerequisite. Documented GET/poll mergeability, unchanged head/base-ref, no mandatory policy, and no observed failure suffice for the original scope. No policy or score-driven requirement is introduced."
+      }
+    }
+  ],
+  "scope_definition": {
+    "observed_github_operational_readiness": "The captured GitHub PR state is open/non-draft and reports mergeable=true with clean merge state. This is a bounded API observation; it alone is insufficient where mandatory policy discovery remains incomplete.",
+    "conservative_readiness": "Ready when the captured open PR has coherent repository/head/base-ref identity, sufficient applicable branch-policy discovery, observably satisfied mandatory requirements, and no material unknown or confirmed blocker. Unknown when a necessary mandatory-policy fact remains unestablished. No unstated rule requires PR-associated base SHA to equal contemporaneous branch-tip SHA.",
+    "scoped_assurance": "Pass means sufficient captured evidence supports the applicable mandatory GitHub requirements within this bounded snapshot. It is not exact-parent provenance for every test merge, product testing, release safety, or actor-specific permission signoff. Stronger base-specific attribution would require an explicit requirement and evidence scope; none is added here.",
+    "pre_output_semantic_correction": "Both independent originals labeled all cases unknown. Cross-review found their jq identity rationale had imposed a stronger exact-current-base attribution prerequisite than the original scope requires. The originals are preserved; the two jq cases are corrected to ready/pass before any candidate output."
+  }
+}

@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "fixture_manifest_sha256": "17e01f26dff07b58d004b43ae12c5c3959e6a58b36b0a22ef56b0aa107919035",
+  "capture_manifest_sha256": "84191b5f1fa6f5acc7743c8ed0ce8852ed6e6a1f2df0c97513880f31e599fc2d",
+  "status": "resolved",
+  "conflicts": [],
+  "review_process": {
+    "ai_only": true,
+    "human_adjudication": false,
+    "original_passes_frozen_before_cross_review": true,
+    "both_original_reviewers_agree": true,
+    "blinded_to_candidate_outputs": true,
+    "candidate_outputs_inspected": false,
+    "production_code_not_inspected": true,
+    "unit_tests_not_inspected": true,
+    "before_candidate_replay_outputs": true,
+    "date": "2026-11-02",
+    "limitation": "AI-only review with possible shared-model correlated errors; no human or customer claim."
+  },
+  "preserved_originals": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/first-ground-truth.json",
+      "sha256": "a6a3854776e04ed83f65b9bab635acd31d6b491304ca8674d0d079e6710107bf"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/second-ground-truth.json",
+      "sha256": "18647576e44e4157bd53e06aa444ca715150cfa796bfb1e5f34743ee5b19ac4d"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/first-preregistration.md",
+      "sha256": "2fa23c98b9937d43b3312fa0a9af239a56c75e7a08ec1c8c6692e33e33ad43d7"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/second-preregistration.md",
+      "sha256": "abb030d5d5b6b467d0ba4e67df1e5cd8a7f9d6456edf7a152432744aad1ab0fe"
+    }
+  ],
+  "method_sources": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/ground-truth-protocol.md",
+      "sha256": "ac707d94a3c6968d9ddd79363ccfc3fef0d757dc17e9430bc327181782f21ab5"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/SCORING.md",
+      "sha256": "5c3b4a5af2a9418e65cf2b60127beadfd37b53bf1662ae8045dd4174999b83df"
+    }
+  ],
+  "scope_resolution": {
+    "observed_github_operational_readiness": "The captured GitHub PR state is open/non-draft and reports mergeable=true with clean merge state. This is a bounded API observation; it alone is insufficient where mandatory policy discovery remains incomplete.",
+    "conservative_readiness": "Ready when the captured open PR has coherent repository/head/base-ref identity, sufficient applicable branch-policy discovery, observably satisfied mandatory requirements, and no material unknown or confirmed blocker. Unknown when a necessary mandatory-policy fact remains unestablished. No unstated rule requires PR-associated base SHA to equal contemporaneous branch-tip SHA.",
+    "scoped_assurance": "Pass means sufficient captured evidence supports the applicable mandatory GitHub requirements within this bounded snapshot. It is not exact-parent provenance for every test merge, product testing, release safety, or actor-specific permission signoff. Stronger base-specific attribution would require an explicit requirement and evidence scope; none is added here.",
+    "pre_output_semantic_correction": "Both independent originals labeled all cases unknown. Cross-review found their jq identity rationale had imposed a stronger exact-current-base attribution prerequisite than the original scope requires. The originals are preserved; the two jq cases are corrected to ready/pass before any candidate output."
+  },
+  "resolved_interpretive_issues": [
+    {
+      "id": "base-sha-equality-not-a-requirement",
+      "original_interpretation": "Both independent passes used the differing PR-associated base SHA and current branch-tip SHA as a mandatory identity unknown in every case.",
+      "alternatives_considered": [
+        "Retain unknown under a stronger contract requiring attribution of every observation to a specific current base commit.",
+        "Use the original bounded GitHub mandatory-requirement scope; preserve the difference as a limitation without inventing equal-SHA or test-merge-parent-proof requirements."
+      ],
+      "resolution": "Use the original bounded scope. No explicit stronger scope exists in the protocol; associated-base/current-tip inequality does not itself establish an identity failure, strict-update requirement, failed requirement, or unknown mandatory fact.",
+      "effect": "public-ready-02 and public-ready-03 corrected to ready/pass before any candidate output; public-ready-01 remains unknown for independent policy-discovery reasons.",
+      "documentation": [
+        {
+          "url": "https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database#checking-mergeability-of-pull-requests",
+          "checked": "GET PR starts test merge candidate creation; GitHub recommends polling GET PR until mergeable is true or false. Both initial/final captures use GET and return non-null true."
+        },
+        {
+          "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches",
+          "checked": "Strict required checks require the branch to be up to date; loose checks do not. With required status checks disabled, collaborators may merge regardless of up-to-dateness. No universal PR.base.sha == branch-tip invariant is stated."
+        },
+        {
+          "url": "https://docs.github.com/en/graphql/reference/pulls#pullrequest",
+          "checked": "baseRefName/baseRefOid identify the associated base ref; mergeable describes existence of merge conflicts. The documentation does not impose equality of associated base OID with every contemporaneous branch endpoint observation."
+        }
+      ],
+      "caution": "The cited docs do not promise every REST base.sha is equal to contemporaneous branch-tip SHA, nor do they explicitly document all caching/lag behavior. The correction does not assert a specific cause for the observed inequality."
+    },
+    {
+      "id": "jq-403-versus-positive-policy-absence",
+      "resolution": "Retain both 403 denials as unknown endpoint-body/transport observations. Repeated protected=false/enabled=false with complete successful empty effective rules establish no applicable mandatory branch gates for the captured branch name. Therefore do not invent hidden policy or force unknown solely from denied detail endpoints. GraphQL is_required=false corroborates absence for all returned contexts.",
+      "cases": [
+        "public-ready-02",
+        "public-ready-03"
+      ]
+    },
+    {
+      "id": "cli-enabled-protection-incomplete-policy",
+      "resolution": "Keep unknown/unknown because protection is affirmatively enabled but complete classic status/review configuration remains undiscoverable. The assumption is that the visible branch summary and successful active rules do not enumerate classic protection in full, not that an undisclosed specific rule exists or failed. Named required head checks are satisfied; no confirmed blocker is present.",
+      "cases": [
+        "public-ready-01"
+      ]
+    },
+    {
+      "id": "test-merge-conditional-evidence",
+      "resolution": "The second pass listed unqueried test-merge status as a separate material unknown; the first did not. Resolve it as a conditional collection limit, not a universal new mandatory requirement. It cannot create a blocker or prevent pass for unprotected jq with no mandatory gates. cli remains unknown independently of how the conditional test-merge evidence is assessed.",
+      "cases": [
+        "public-ready-01",
+        "public-ready-02",
+        "public-ready-03"
+      ]
+    }
+  ],
+  "case_resolutions": [
+    {
+      "id": "public-ready-01",
+      "original_first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "confirmed_blockers": []
+      },
+      "original_second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "confirmed_blockers": []
+      },
+      "resolved": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "confirmed_blockers": [],
+        "legacy_allowable_verdicts": [
+          "ready"
+        ]
+      },
+      "status": "resolved",
+      "rationale": "Retain unknown/unknown for incomplete protected-policy discovery. Narrow the original explanations: differing base SHA values are not an independent mandatory gate, and the unqueried test merge is a conditional coverage limit rather than a newly imposed requirement.",
+      "source_facts": [
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/ref",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/repo/full_name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/8/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes"
+      ]
+    },
+    {
+      "id": "public-ready-02",
+      "original_first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "confirmed_blockers": []
+      },
+      "original_second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "confirmed_blockers": []
+      },
+      "resolved": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "confirmed_blockers": [],
+        "legacy_allowable_verdicts": [
+          "ready"
+        ]
+      },
+      "status": "resolved",
+      "rationale": "Correct both frozen unknown/unknown labels to ready/pass before output inspection. Both originals overextended coherent-identity wording into an unstated exact-current-base attribution prerequisite. Documented GET/poll mergeability, unchanged head/base-ref, no mandatory policy, and no observed failure suffice for the original scope. No policy or score-driven requirement is introduced.",
+      "source_facts": [
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/ref",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/repo/full_name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection/required_status_checks",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/9/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes"
+      ]
+    },
+    {
+      "id": "public-ready-03",
+      "original_first": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "confirmed_blockers": []
+      },
+      "original_second": {
+        "readiness": "unknown",
+        "assurance": "unknown",
+        "confirmed_blockers": []
+      },
+      "resolved": {
+        "readiness": "ready",
+        "assurance": "pass",
+        "confirmed_blockers": [],
+        "legacy_allowable_verdicts": [
+          "ready"
+        ]
+      },
+      "status": "resolved",
+      "rationale": "Correct both frozen unknown/unknown labels to ready/pass before output inspection. Both originals overextended coherent-identity wording into an unstated exact-current-base attribution prerequisite. Documented GET/poll mergeability, unchanged head/base-ref, no mandatory policy, and no observed failure suffice for the original scope. No policy or score-driven requirement is introduced.",
+      "source_facts": [
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/ref",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/repo/full_name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/head/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/base/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/name",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/commit/sha",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protected",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protection/enabled",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection/required_status_checks",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/8/response/body",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/status",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes"
+      ]
+    }
+  ],
+  "documentation_semantics": [
+    {
+      "url": "https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request",
+      "checked": "mergeable=true and merge_commit_sha describe GitHub test merge creation, not complete policy satisfaction."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch",
+      "checked": "Returns all active applicable rules across configuration levels for a branch name; evaluate/disabled rules are excluded. It is a ruleset view, not successful access to denied classic protection endpoints."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/branches/branches#get-a-branch",
+      "checked": "The protected branch state distinguishes branches protected by protections or rulesets from unprotected branches."
+    },
+    {
+      "url": "https://docs.github.com/en/copilot/using-github-copilot/code-review/using-copilot-code-review",
+      "checked": "Copilot review assessments are distinct from configured required approvals. The observed copilot_code_review rule does not by itself prove a separate mandatory approval or a failed merge gate."
+    },
+    {
+      "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks",
+      "checked": "Semantics retained from the pre-output ground-truth protocol: successful required check conclusions, exact applicable SHA, and head versus test merge applicability."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database#checking-mergeability-of-pull-requests",
+      "checked": "GET PR starts test merge candidate creation; GitHub recommends polling GET PR until mergeable is true or false. Both initial/final captures use GET and return non-null true."
+    },
+    {
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches",
+      "checked": "Strict required checks require the branch to be up to date; loose checks do not. With required status checks disabled, collaborators may merge regardless of up-to-dateness. No universal PR.base.sha == branch-tip invariant is stated."
+    },
+    {
+      "url": "https://docs.github.com/en/graphql/reference/pulls#pullrequest",
+      "checked": "baseRefName/baseRefOid identify the associated base ref; mergeable describes existence of merge conflicts. The documentation does not impose equality of associated base OID with every contemporaneous branch endpoint observation."
+    }
+  ],
+  "validation": {
+    "first_original": {
+      "pointer_occurrences": 241,
+      "fact_value_pairs": 228
+    },
+    "second_original": {
+      "pointer_occurrences": 209,
+      "fact_value_pairs": 0
+    },
+    "adjudicated": {
+      "pointer_occurrences": 275,
+      "fact_value_pairs": 6
+    },
+    "raw_file_hashes_verified": 9,
+    "original_review_hashes_verified": {
+      "tools/ReleaseEvidenceEvaluation/public-ready/review/first-ground-truth.json": "a6a3854776e04ed83f65b9bab635acd31d6b491304ca8674d0d079e6710107bf",
+      "tools/ReleaseEvidenceEvaluation/public-ready/review/second-ground-truth.json": "18647576e44e4157bd53e06aa444ca715150cfa796bfb1e5f34743ee5b19ac4d",
+      "tools/ReleaseEvidenceEvaluation/public-ready/review/first-preregistration.md": "2fa23c98b9937d43b3312fa0a9af239a56c75e7a08ec1c8c6692e33e33ad43d7",
+      "tools/ReleaseEvidenceEvaluation/public-ready/review/second-preregistration.md": "abb030d5d5b6b467d0ba4e67df1e5cd8a7f9d6456edf7a152432744aad1ab0fe"
+    },
+    "score_validate_labels": "passed",
+    "adjudication": {
+      "pointer_occurrences": 60,
+      "fact_value_pairs": 0
+    }
+  },
+  "counts": {
+    "cases": 3,
+    "conservative_readiness": {
+      "unknown": 1,
+      "ready": 2
+    },
+    "scoped_assurance": {
+      "unknown": 1,
+      "pass": 2
+    },
+    "confirmed_blockers": 0,
+    "material_unknowns": 1,
+    "policy_derived_mandatory_requirements": 3
+  },
+  "adjudicated_labels": {
+    "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/adjudicated-ground-truth.json",
+    "sha256": "56bb3ef07b040e87de45d3fa304e694ec4a34d43d3dbc69eb77d9abc2b5b2bc1"
+  },
+  "freeze_statement": "The original independent records are unchanged. This explicit semantic correction and final labels are frozen before any candidate replay output is inspected or available to these reviewers; the correction is not based on producer results, tests, or desired benchmark performance."
+}

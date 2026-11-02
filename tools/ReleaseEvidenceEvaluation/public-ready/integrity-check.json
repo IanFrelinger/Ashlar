@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "caseCount": 3,
+  "rawCaseHashesVerified": true,
+  "prHeadBaseStableAll": true,
+  "prOpenNonDraftMergeableCleanAtBothEnds": true,
+  "actualNextPagesRetained": true,
+  "checkRunIdsUnique": true,
+  "retainedValuesNotSynthesized": true,
+  "privateContentFieldsOmitted": true,
+  "requestCredentialsNotReadOrRetained": true,
+  "policyDenialsNotReplaced": true,
+  "labelsOrCandidateOutputsProduced": false,
+  "knownLimits": [
+    "Successful connector discovery calls do not expose HTTP status/headers; direct HTTP used consistently for final case routes.",
+    "Proxy upstream identity unknown; no anonymous-access claim.",
+    "Sequential endpoints are not an atomic snapshot; stable PR/head/base does not prove all checks/reviews/rules remained current.",
+    "GraphQL contexts query is first100 without pageInfo/pagination; completeness beyond this is not established.",
+    "No fully verified passing assurance is asserted by data author."
+  ]
+}

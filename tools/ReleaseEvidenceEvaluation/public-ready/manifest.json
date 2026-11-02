@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "1.0",
+  "frozenAt": "2026-11-02T03:07:19.380663+00:00",
+  "caseCount": 3,
+  "repositoryCount": 2,
+  "selection": "Three live public PRs selected using source API metadata (open, non-draft, mergeable=true, mergeable_state=clean and successful CI/approved-review search), before followup candidate results or reviewer labels. Search is not ground truth.",
+  "authorization": "No Authorization supplied by capture code, no credentials read/persisted; inherited proxy upstream identity not observable. Effective scopes unknown. Plugin discovery permissions do not describe final HTTP route transport identity.",
+  "captureMethod": "Sequential cases; max4 concurrent independent metadata requests; exact original GraphQL query contract; initial/final PR and base-branch identity; actual HTTP statuses and allowed headers; followactualLink pagination;0retries.",
+  "machine": {
+    "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14"
+  },
+  "scope": "Metadata capture only; no candidate execution and no expected verdict/assurance/blocker labels. Operational-clean facts are observations; label review remains separate.",
+  "sourceFiles": {
+    "tools/ReleaseEvidenceEvaluation/public-ready/capture-public-ready.py": "70767c4a1e629fe5e453de2489ebc02070fe8e2fa3ba5ab7bca863941bfc5f36",
+    "tools/ReleaseEvidenceEvaluation/public-ready/discovery.json": "29645e0175ca71dd4f221f03ff1af48b6c2094523845cacd357af084259d1d5c"
+  },
+  "cases": [
+    {
+      "id": "public-ready-01",
+      "repository": "cli/cli",
+      "pullRequest": 14716,
+      "sourceUrl": "https://github.com/cli/cli/pull/14716",
+      "collection": {
+        "startedAt": "2026-11-02T03:05:42.454444Z",
+        "finishedAt": "2026-11-02T03:05:46.214381Z",
+        "durationSeconds": 3.759937,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+          "baseSha": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45",
+          "baseRef": "trunk"
+        },
+        "final": {
+          "headSha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+          "baseSha": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45",
+          "baseRef": "trunk"
+        }
+      },
+      "branchIdentity": {
+        "initial": "9490d204a2ba95434153dedce99898ce9f281426",
+        "final": "9490d204a2ba95434153dedce99898ce9f281426"
+      },
+      "observations": {
+        "initialPrState": "open",
+        "finalPrState": "open",
+        "initialMergeableState": "clean",
+        "finalMergeableState": "clean",
+        "checkPageCount": 1,
+        "checkRunCount": 16,
+        "checkTotalCount": 16,
+        "reviewCount": 1,
+        "checkStates": [
+          "completed:skipped",
+          "completed:success"
+        ],
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json": "8d653b33e4a88675ec7e1994258dc0210aefb7cc12f112ef0e63e0354895d986",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/routes.json": "a66311bba9488a24f515a163032977f305399424789100607b79c6cffb53e149",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/sha256.json": "41ed28bd3016a4ef9cd1f94fa3bf0c248975fec5845d76ed3da7eeab6d8aca02"
+      }
+    },
+    {
+      "id": "public-ready-02",
+      "repository": "jqlang/jq",
+      "pullRequest": 3432,
+      "sourceUrl": "https://github.com/jqlang/jq/pull/3432",
+      "collection": {
+        "startedAt": "2026-11-02T03:05:46.218258Z",
+        "finishedAt": "2026-11-02T03:05:49.409869Z",
+        "durationSeconds": 3.191611,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "65f4b31f9148dced73f782ff21c024539776eae6",
+          "baseSha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+          "baseRef": "master"
+        },
+        "final": {
+          "headSha": "65f4b31f9148dced73f782ff21c024539776eae6",
+          "baseSha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+          "baseRef": "master"
+        }
+      },
+      "branchIdentity": {
+        "initial": "992db9b7e5e3059b764bf430bd97716829e99578",
+        "final": "992db9b7e5e3059b764bf430bd97716829e99578"
+      },
+      "observations": {
+        "initialPrState": "open",
+        "finalPrState": "open",
+        "initialMergeableState": "clean",
+        "finalMergeableState": "clean",
+        "checkPageCount": 2,
+        "checkRunCount": 32,
+        "checkTotalCount": 32,
+        "reviewCount": 24,
+        "checkStates": [
+          "completed:skipped",
+          "completed:success"
+        ],
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json": "d0c06311f1fcc47f90c86b400655b596517b8c582efe719c652dfa4b70c6871f",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/routes.json": "f552d1435b114bf7894a877b608ae7dad3642317cd8c21a6f25074be05789b31",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/sha256.json": "a5bad801141c51f6675e5ce1495b7c56715bbfddb4364fc7e13f1d2c72fd529c"
+      }
+    },
+    {
+      "id": "public-ready-03",
+      "repository": "jqlang/jq",
+      "pullRequest": 3641,
+      "sourceUrl": "https://github.com/jqlang/jq/pull/3641",
+      "collection": {
+        "startedAt": "2026-11-02T03:05:49.415316Z",
+        "finishedAt": "2026-11-02T03:05:52.292477Z",
+        "durationSeconds": 2.877161,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+          "baseSha": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac",
+          "baseRef": "master"
+        },
+        "final": {
+          "headSha": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+          "baseSha": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac",
+          "baseRef": "master"
+        }
+      },
+      "branchIdentity": {
+        "initial": "992db9b7e5e3059b764bf430bd97716829e99578",
+        "final": "992db9b7e5e3059b764bf430bd97716829e99578"
+      },
+      "observations": {
+        "initialPrState": "open",
+        "finalPrState": "open",
+        "initialMergeableState": "clean",
+        "finalMergeableState": "clean",
+        "checkPageCount": 1,
+        "checkRunCount": 29,
+        "checkTotalCount": 29,
+        "reviewCount": 1,
+        "checkStates": [
+          "completed:skipped",
+          "completed:success"
+        ],
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json": "3490c9aed9a8487afef3476136f04b15f45a563fe05472715f899c4a325e386e",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/routes.json": "9a1740635e856f4c52a9e1402d0939ff06bb495db99c01d2b7778e5596f77483",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/sha256.json": "0d049c79416c5b4c6bff868d81758006134314ee56a150f91b87be60e297f06a"
+      }
+    }
+  ]
+}
