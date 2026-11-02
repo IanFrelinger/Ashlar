@@ -3,12 +3,12 @@
 Workflows in this directory are **manual-first** to reduce duplicate CI load, surprise
 minute costs, and branch-noise on `cursor/**` and other integration branches. The full,
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
-the summary of the 62 files (counted 2026-10-25, after `pr-blockers-action.yml` was added) is:
+the summary of the 62 files (recounted 2026-11-02, after the project inventory guard gained a PR trigger) is:
 
 - **21 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
   `full-platform-readiness-gate`, `layer-boundary`, `shell-lint`, `uat-gate`; `layer-boundary`
   carries `paths: "**"`, which matches everything); thirteen path-filtered
-  (kernel/application/security/coverage/testing-strategy/other path-scoped gates); and one
+  (kernel/application/security/coverage/testing-strategy/project inventory/other path-scoped gates); and one
   label-driven, `release-staging-on-label`. `full-platform-readiness-gate` filters
   paths *inside* the workflow (a `changes` job) so its `Readiness summary` check always reports:
   heavy platform lanes run only when a core path changed, otherwise the summary passes in ~1 min.
@@ -16,7 +16,7 @@ the summary of the 62 files (counted 2026-10-25, after `pr-blockers-action.yml` 
   not start a second full platform matrix alongside the PR run.
 - **18 run on `push` and/or `schedule` only** (path-filtered, typically `master`/`main`/`cursor/**`),
   all with `workflow_dispatch` as well — post-merge signals such as `compose-gate`,
-  `grpc-transport-gate`, `onboarding-docs-guard`, `container-image-publish`.
+  `grpc-transport-gate`, `onboarding-quickstart-gate`, `container-image-publish`.
 - **18 are `workflow_dispatch` only** (`mesh-lab-tls-gate` joined them 2026-09-13), including
   `cross-platform-tests` and `prod-dry-run-pr` despite their names: run them from the
   Actions tab or with `gh workflow run "<Workflow name>" --ref <branch>`.

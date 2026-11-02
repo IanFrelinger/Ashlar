@@ -2,7 +2,7 @@
 
 This file describes what CI **actually does** on this repository: which workflow files exist, what triggers each one, and which checks branch protection **really** requires. Workflow YAML controls when checks run; GitHub branch protection (a repository setting, not YAML) controls which check names must be green before merge. Where the two disagree, this file follows the settings and says so.
 
-Snapshot: **62 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), 2026-10-25 after `pr-blockers-action.yml` was added; 61 recounted 2026-10-03 after `products-gate.yml` was removed with the product-split scaffolds (parked on `archive/parked-2026-10-03`). It was 62 from 2026-09-13; before that this line read 58, verified 2026-09-04, while the trigger map below said 58 too; both were stale. Includes `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
+Snapshot: **62 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), recounted 2026-11-02 after the project inventory guard gained a PR trigger (`pr-blockers-action.yml` was added 2026-10-25); 61 recounted 2026-10-03 after `products-gate.yml` was removed with the product-split scaffolds (parked on `archive/parked-2026-10-03`). It was 62 from 2026-09-13; before that this line read 58, verified 2026-09-04, while the trigger map below said 58 too; both were stale. Includes `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
 
 > **Companion:** `docs/HowGatesGoQuiet.md` — the ways a check in this repository has stopped
 > answering while still looking like it was. Read it before adding a gate, and before believing one.
@@ -103,8 +103,8 @@ Counts by trigger class (62 files, counted 2026-10-25):
 
 | Class | Count | Meaning |
 | --- | --- | --- |
-| Runs on `pull_request` | 20 | 7 run on every PR (`build-gate`, `cert-gate`, `docs-link-check`, `full-platform-readiness-gate` — path filter inside the workflow, `layer-boundary` — `paths: "**"`, `shell-lint`, `uat-gate`), 12 path-filtered (including `runtime-portability-gate` and `pr-blockers-action`; `products-gate` was the twelfth until 2026-10-03), 1 label-driven (`release-staging-on-label`). *Corrected 2026-09-13: this row read 17 with a six-name unfiltered set that omitted `build-gate`; recounted from the workflow files.* |
-| Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 19 | Post-merge / scheduled signal; never blocks a PR. *Corrected 2026-10-03: this row read 18, so the five rows summed to one fewer than the file count; recounted from the workflow files.* |
+| Runs on `pull_request` | 21 | 7 run on every PR (`build-gate`, `cert-gate`, `docs-link-check`, `full-platform-readiness-gate` — path filter inside the workflow, `layer-boundary` — `paths: "**"`, `shell-lint`, `uat-gate`), 13 path-filtered (including `runtime-portability-gate`, `pr-blockers-action`, and the project inventory guard added 2026-11-02), 1 label-driven (`release-staging-on-label`). *Corrected 2026-09-13: this row read 17 with a six-name unfiltered set that omitted `build-gate`; recounted from the workflow files.* |
+| Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 18 | Post-merge / scheduled signal; never blocks a PR. *Recounted 2026-11-02 after the project inventory guard gained a PR trigger. Corrected 2026-10-03: this row read 18, so the five rows summed to one fewer than the file count; recounted from the workflow files.* |
 | `workflow_dispatch` only | 18 | Manual lanes (mesh labs, multi-env Docker suites, ship/ops/perf, release plumbing) |
 | Tag / release event | 2 | `release.yml` (`v*.*.*` tags), `devlog-ghost-release.yml` (`release: published`) |
 | Reusable (`workflow_call`) | 3 | `reusable-*` |
@@ -135,6 +135,7 @@ Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `f
 | `pr-blockers-action.yml` | PR blockers action / `Ashlar PR blockers (dogfood)` | paths: the workflow, `actions/pr-blockers/**`, `src/Ashlar.Mcp.Server.Host/**`, `src/Ashlar.Bricks.GitHub/**` | dispatch (with a `url` input) — **advisory**; runs the free `actions/pr-blockers` action with the real MCP brick host and fails only when no verdict comes back |
 | `orchestration-build-gate.yml` | Orchestration build gate / `build-orchestration-tests` | paths: `src/Ashlar.Orchestration/**`, `src/Ashlar.Tests.Orchestration/**`, `src/Ashlar.Tests.Infrastructure/**`, `src/Ashlar.Hosting/AshlarKernelRegistrar*.cs`, the workflow file | push `master`/`main`, dispatch |
 | `mcp-a2a-gate.yml` | MCP + A2A protocol gate | paths: `src/Ashlar.Mcp.*`, `src/Ashlar.Transport.A2A*`, `Ashlar.API` | push (also `application/**` branches), dispatch |
+| `onboarding-docs-guard.yml` | Onboarding Docs Guard / `guard` | paths: `**/*.csproj`, `docs/ProjectTiers.md`, the workflow; checks project inventory before merge | push (broader onboarding/docs/script paths), dispatch |
 
 **AI Pipeline ownership:** automatic Kernel Tier A invokes `make kernel-gate`, then
 `make meai-pipeline-gate`, which tests `Ashlar.Tests.AI.Pipeline` on net8.0 Release. Native readiness
@@ -164,7 +165,6 @@ All of these also accept `workflow_dispatch`. Branch filters are `master`, `main
 | `friend-mesh-prefab-gate.yml` | Friend mesh prefab gate | friend-mesh compose, `.docker/Dockerfile.api`, `Ashlar.API` |
 | `grpc-transport-gate.yml` | gRPC transport gate | `src/Ashlar.Transport.Grpc/**`, `src/Ashlar.Tests.Transport/**` |
 | `dogfood-continuous-proof.yml` | Dogfood continuous proof | `master`; **weekday schedule** (06:00 UTC); read-only ledger probe |
-| `onboarding-docs-guard.yml` | Onboarding Docs Guard | README, `docs/**/*.md`, `scripts/*.sh`, `scripts/*.ps1`, `Makefile`, `**/*.csproj` (ProjectTiers guard) |
 | `onboarding-quickstart-gate.yml` | onboarding-quickstart-gate | README, GettingStarted, setup/install scripts, CLI; **weekly schedule** |
 | `optimize-agent-cluster-gate.yml` | Optimize Agent Cluster Gate | `apps/runtime-studio/**`, `scripts/sandbox/**`, CLI |
 | `pack-hosting-graph-alignment.yml` | Pack hosting graph alignment | `master`/`main`; `src/**/*.csproj`, pack scripts, NugetOrgRestoreVerify sample |

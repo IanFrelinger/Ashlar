@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Ashlar.Mcp.Server.Tests;
 
+[Collection(DeploymentProfileEnvironmentCollection.Name)]
 public sealed class AshlarMcpServerServiceCollectionExtensionsTests
 {
     private static IConfiguration Config(params (string Key, string Value)[] pairs)
@@ -66,6 +67,7 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
     [Fact]
     public void Enabled_under_airgapped_profile_fails_options_validation()
     {
+        var originalProfile = Environment.GetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable);
         Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, "airgapped");
         try
         {
@@ -78,13 +80,14 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, null);
+            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, originalProfile);
         }
     }
 
     [Fact]
     public void Disabled_under_airgapped_profile_is_valid()
     {
+        var originalProfile = Environment.GetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable);
         Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, "airgapped");
         try
         {
@@ -96,13 +99,14 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, null);
+            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, originalProfile);
         }
     }
 
     [Fact]
     public void Enabled_under_secure_workstation_profile_is_valid_for_local_ide()
     {
+        var originalProfile = Environment.GetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable);
         Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, "secure-workstation");
         try
         {
@@ -115,7 +119,7 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, null);
+            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, originalProfile);
         }
     }
 
@@ -134,6 +138,7 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
     [Fact]
     public void Enabled_http_transport_under_secure_workstation_fails_options_validation()
     {
+        var originalProfile = Environment.GetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable);
         Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, "secure-workstation");
         try
         {
@@ -153,7 +158,7 @@ public sealed class AshlarMcpServerServiceCollectionExtensionsTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, null);
+            Environment.SetEnvironmentVariable(ValidateAshlarMcpServerOptions.DeploymentProfileVariable, originalProfile);
         }
     }
 }

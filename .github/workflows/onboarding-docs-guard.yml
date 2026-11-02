@@ -1,6 +1,12 @@
 name: Onboarding Docs Guard
 
 on:
+  # Project inventory drift must be caught before a new project reaches master.
+  pull_request:
+    paths:
+      - "**/*.csproj"
+      - "docs/ProjectTiers.md"
+      - ".github/workflows/onboarding-docs-guard.yml"
   push:
     branches:
       - master
