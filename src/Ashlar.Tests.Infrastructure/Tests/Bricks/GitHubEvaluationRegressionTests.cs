@@ -218,6 +218,8 @@ public sealed class GitHubEvaluationRegressionTests
 
         var output = await Execute(api);
 
+        output.Get<string>("verdict").Should().Be("unknown");
+        output.Get<string>("answer").Should().NotContain("has not reported");
         output.Get<string>("assurance").Should().Be("unknown");
         api.CheckRequests.Should().HaveCount(2);
         output.Get<string>("evidenceMarkdown").Should().Contain("not observed in incomplete CI results");

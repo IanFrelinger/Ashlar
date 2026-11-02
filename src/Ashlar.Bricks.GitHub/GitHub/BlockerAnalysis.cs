@@ -272,7 +272,12 @@ internal static class BlockerAnalysis
         if (required is not null && ci.Checks is not null && ci.Statuses is not null)
         {
             foreach (var name in required.Where(n => !reported.Contains(n)).OrderBy(n => n, StringComparer.Ordinal))
-                blockers.Add(new Blocker($"The required check {Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.", commitUrl));
+            {
+                if (ci.ChecksReadComplete && ci.ChecksReported == ci.Checks.Count && ci.StatusesReported == ci.Statuses.Count)
+                    blockers.Add(new Blocker($"The required check {Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.", commitUrl));
+                else
+                    unknowns.Add(new Unknown("Required check", $"The required check {Quote(name)} was not observed in incomplete CI results; whether it reported is unknown."));
+            }
         }
     }
 
