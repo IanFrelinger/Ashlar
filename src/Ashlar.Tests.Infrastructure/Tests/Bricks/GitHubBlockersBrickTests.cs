@@ -136,7 +136,7 @@ public sealed class GitHubBlockersBrickTests
 
         answer.Verdict.Should().Be("blocked");
         answer.Blockers.Should().ContainSingle().Which.Should().Be(new Blocker(
-            "The required check `cert-gate` has not reported on 0123456789ab.", $"https://github.com/o/r/commit/{Sha}"));
+            "The required check `cert-gate` has not reported on 0123456789ab.", $"https://github.com/o/r/commit/{Sha}", "fail"));
         answer.Notes.Should().ContainSingle().Which.Evidence.Should().Be("https://github.com/o/r/runs/2");
         answer.Unknowns.Should().BeEmpty();
     }
@@ -150,7 +150,7 @@ public sealed class GitHubBlockersBrickTests
         var blocked = Analyze(OpenPr(ci: ci, state: "blocked", protection: unreadable));
         blocked.Verdict.Should().Be("blocked");
         blocked.Blockers.Should().ContainSingle().Which.Should().Be(
-            new Blocker("The check `build` concluded failure.", "https://github.com/o/r/runs/1"));
+            new Blocker("The check `build` concluded failure.", "https://github.com/o/r/runs/1", "unknown"));
         blocked.Unknowns.Select(u => u.What).Should().BeEquivalentTo("Required approvals", "Which checks are required");
 
         var unstable = Analyze(OpenPr(ci: ci, state: "unstable", protection: unreadable));
@@ -345,7 +345,8 @@ public sealed class GitHubBlockersBrickTests
         output.Get<string>("verdict").Should().Be("blocked");
         Reasons(output, "blockers", "reason").Should().Equal("0 of 1 required approving reviews.");
         Reasons(output, "notes", "text").Should().Contain("The check `coverage` concluded failure. It is not required, so it does not block the merge.");
-        Reasons(output, "unknowns", "what").Should().BeEmpty();
+        // This older fixture omitted observed app IDs while binding requirements to app 15368.
+        Reasons(output, "unknowns", "what").Should().Contain("Required check origin");
     }
 
     [Fact]
@@ -396,9 +397,9 @@ public sealed class GitHubBlockersBrickTests
     }
 
     [Fact]
-    public async Task Without_graphql_the_public_required_check_lists_still_decide_and_the_review_rule_stays_unknown()
+    public async Task Without_graphql_or_provider_metadata_the_branch_block_is_reported_without_inventing_an_attribution()
     {
-        // cli/cli#14816 read anonymously: GraphQL needs a token, so only the review decision is lost.
+        // This older name-only fixture omits provider metadata; report GitHub's block and the unknown details.
         const string sha = "6235af8fddba186b2ded7c686c24fe83289f7c46";
         var github = OpenPullWithoutAdmin("cli", "cli", 14816, sha, "trunk",
                 checkRuns: [("lint", "failure")])
@@ -408,9 +409,9 @@ public sealed class GitHubBlockersBrickTests
 
         var output = await Brick(github).ExecuteAsync(Input("https://github.com/cli/cli/pull/14816"), ImplementationType.Deterministic, Context());
 
-        Reasons(output, "blockers", "reason").Should().Equal("The required check `build (ubuntu-latest)` has not reported on 6235af8fddba.");
+        Reasons(output, "blockers", "reason").Should().Equal("GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset).");
         Reasons(output, "notes", "text").Should().Contain("The check `lint` concluded failure. It is not required, so it does not block the merge.");
-        Reasons(output, "unknowns", "what").Should().Equal("Required approvals");
+        Reasons(output, "unknowns", "what").Should().BeEquivalentTo("Required approvals", "Required check origin");
     }
 
     [Fact]
@@ -742,7 +743,7 @@ public sealed class GitHubBlockersBrickTests
         var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
             .Json("/repos/o/r/rules/branches/master", """[{"type":"required_status_checks","parameters":{"required_status_checks":[{"context":"build","integration_id":123}]}}]""");
         var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
-        output.Get<string>("verdict").Should().Be("ready");
+        output.Get<string>("verdict").Should().Be("unknown");
         output.Get<string>("assurance").Should().Be("unknown");
         JsonSerializer.Serialize(output.Get<object>("evidencePack")).Should().Contain("required-check-origin");
     }
@@ -788,7 +789,7 @@ public sealed class GitHubBlockersBrickTests
         var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
             .Json("/repos/o/r/rules/branches/master", "[{\"type\":\"required_status_checks\",\"parameters\":{\"required_status_checks\":[{\"context\":\"build\"" + binding + "}]}}]");
         var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
-        output.Get<string>("verdict").Should().Be("ready");
+        output.Get<string>("verdict").Should().Be(expected == "pass" ? "ready" : "unknown");
         output.Get<string>("assurance").Should().Be(expected);
     }
 
@@ -802,7 +803,7 @@ public sealed class GitHubBlockersBrickTests
             .Json("/repos/o/r/rules/branches/master", "[]")
             .Json("/repos/o/r/branches/master/protection/required_status_checks", "{\"contexts\":[\"build\"],\"checks\":[{\"context\":\"build\"" + binding + "}]}");
         var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
-        output.Get<string>("verdict").Should().Be("ready");
+        output.Get<string>("verdict").Should().Be(expected == "pass" ? "ready" : "unknown");
         output.Get<string>("assurance").Should().Be(expected);
     }
 

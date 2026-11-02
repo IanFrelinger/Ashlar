@@ -3,7 +3,10 @@ namespace Ashlar.Bricks.GitHub;
 /// <summary>A fact the reader could not establish, and why. An unknown is never silently read as "fine".</summary>
 internal sealed record Unknown(string What, string Why);
 
-internal sealed record CheckFact(string Name, string Status, string? Conclusion, string? Url);
+internal sealed record CheckFact(string Name, string Status, string? Conclusion, string? Url, long? AppId = null);
+
+/// <summary>One policy source's context binding. Null is any provider only when OriginKnown is true.</summary>
+internal sealed record RequiredCheckRequirement(string Name, long? AppId, bool OriginKnown);
 
 internal sealed record StatusFact(string Context, string State, string? Url, string? Description);
 
@@ -37,7 +40,8 @@ internal sealed record ProtectionFacts(
     bool RulesRead = true,
     bool RequiredCheckOriginsKnown = true,
     IReadOnlyList<string>? UnsupportedRules = null,
-    bool AdditionalReviewRules = false);
+    bool AdditionalReviewRules = false,
+    IReadOnlyList<RequiredCheckRequirement>? CheckRequirements = null);
 
 internal sealed record PullRequestFacts(
     string Url,

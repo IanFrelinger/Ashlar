@@ -50,7 +50,7 @@ internal static class ReleaseEvidence
         {
             var blocker = answer.Blockers[i];
             var unsettled = IsUnsettledCiBlocker(pr, blocker);
-            var provenUnmet = IsProvenUnmetCiBlocker(pr, blocker);
+            var provenUnmet = blocker.AssuranceStatus is { } verified ? verified == "fail" : IsProvenUnmetCiBlocker(pr, blocker);
             // A caller may identify this collection job. A proven required pending job is currently
             // unmet; unreadable policy/provider/CI leaves the circular requirement unknown.
             if (!string.IsNullOrWhiteSpace(collectionCheckName) && blocker.Reason.Contains(BlockerAnalysis.Quote(collectionCheckName), StringComparison.Ordinal)
@@ -61,14 +61,14 @@ internal static class ReleaseEvidence
                     provenUnmet
                         ? "The required collection check is pending; its circular requirement is currently unmet."
                         : "The collection job is pending and its requirement is circular or could not be established.", blocker.Evidence);
-            else if (IsUnverifiedOriginCiBlocker(pr, blocker))
+            else if (blocker.AssuranceStatus == "unknown" || blocker.AssuranceStatus is null && IsUnverifiedOriginCiBlocker(pr, blocker))
                 Add("blocker-" + (i + 1), "unknown", "The legacy verdict reports: " + blocker.Reason
-                    + " Its app/provider identity was not verified against the required check; this does not establish a failed requirement.", blocker.Evidence);
+                    + " Required policy, app/provider identity or complete CI could not be verified; this does not establish a failed requirement.", blocker.Evidence);
             else if (MissingRequiredCheckName(pr, blocker) is { } missing && !IsCompleteCi(pr?.Ci))
                 Add("blocker-" + (i + 1), "unknown", "The required check " + BlockerAnalysis.Quote(missing)
                     + " was not observed in incomplete CI results; this does not establish whether it reported.", blocker.Evidence);
             else
-                Add("blocker-" + (i + 1), unsettled && !provenUnmet ? "unknown" : "fail",
+                Add("blocker-" + (i + 1), blocker.AssuranceStatus ?? (unsettled && !provenUnmet ? "unknown" : "fail"),
                     blocker.Reason, blocker.Evidence);
         }
         for (var i = 0; i < answer.Unknowns.Count; i++)
@@ -101,8 +101,9 @@ internal static class ReleaseEvidence
             Add("rulesets", pr.Protection.RulesRead ? "pass" : "unknown",
                 pr.Protection.RulesRead ? "Active branch rules were read (this collector evaluates check and review requirements only)."
                     : "Active rules were unavailable, malformed or at the pagination limit; absence of rules was not established.", policySources[2]);
-            if (pr.Protection.RequiredChecks is { Count: > 0 } && !pr.Protection.RequiredCheckOriginsKnown)
-                Add("required-check-origin", "unknown", "Required check app/provider bindings could not be verified; a matching check name alone is insufficient.", policySources);
+            if (pr.Protection.RequiredChecks?.Any(name => RequiredCheckEvaluation.Requirements(pr.Protection, name)
+                .Any(r => !r.OriginKnown || RequiredCheckEvaluation.Observe(r, pr.Ci).AmbiguousOrigin)) == true)
+                Add("required-check-origin", "unknown", "Some required check app/provider bindings or observed producers could not be verified; a matching check name alone is insufficient.", policySources);
             foreach (var rule in pr.Protection.UnsupportedRules ?? [])
                 Add("unsupported-rule-" + findings.Count, "unknown", "Detected mandatory rule " + BlockerAnalysis.Quote(rule) + " is outside this collector's supported policy evaluation.", policySources[2]);
             var approvalKnown = pr.Protection.ReviewDecision == "APPROVED"
@@ -126,33 +127,33 @@ internal static class ReleaseEvidence
             if (pr.Protection.RequiredChecks is { } required)
             {
                 foreach (var name in required.Distinct(StringComparer.Ordinal))
+                foreach (var binding in RequiredCheckEvaluation.Requirements(pr.Protection, name))
                 {
-                    var checks = pr.Ci?.Checks?.Where(c => string.Equals(c.Name, name, StringComparison.Ordinal)).ToList() ?? [];
-                    var statuses = pr.Ci?.Statuses?.Where(s => string.Equals(s.Context, name, StringComparison.Ordinal)).ToList() ?? [];
+                    var observed = RequiredCheckEvaluation.Observe(binding, pr.Ci);
                     var isCollection = !string.IsNullOrWhiteSpace(collectionCheckName) && name == collectionCheckName;
-                    var allPassed = checks.All(c => c.Status == "completed" && c.Conclusion is "success" or "neutral" or "skipped")
-                        && statuses.All(s => s.State == "success");
-                    var absent = checks.Count + statuses.Count == 0;
-                    var knownFailure = checks.Any(c => c.Status == "completed" && c.Conclusion is
-                        "failure" or "timed_out" or "cancelled" or "action_required" or "startup_failure" or "stale")
-                        || statuses.Any(s => s.State is "failure" or "error");
-                    var originKnown = pr.Protection.RequiredCheckOriginsKnown;
-                    var complete = IsCompleteCi(pr.Ci);
-                    var pending = checks.Any(c => IsKnownPendingState(c.Status))
-                        || statuses.Any(s => string.Equals(s.State, "pending", StringComparison.OrdinalIgnoreCase));
-                    var status = !originKnown ? "unknown" : knownFailure ? "fail" : !complete ? "unknown"
-                        : absent || pending ? "fail" : isCollection ? "unknown" : allPassed ? "pass" : "unknown";
+                    var label = "Required check " + BlockerAnalysis.Quote(name)
+                        + (binding.AppId is { } app ? $" from GitHub App {app}" : "");
+                    var status = isCollection && observed.Status == "pass" ? "unknown" : observed.Status;
+                    var checks = observed.AmbiguousOrigin
+                        ? pr.Ci?.Checks?.Where(c => c.Name == name && (RequiredCheckEvaluation.Matches(binding, c) || RequiredCheckEvaluation.Ambiguous(binding, c))).ToArray() ?? []
+                        : observed.Checks;
+                    var statuses = observed.AmbiguousOrigin
+                        ? pr.Ci?.Statuses?.Where(c => c.Context == name && (RequiredCheckEvaluation.Matches(binding, c) || RequiredCheckEvaluation.Ambiguous(binding, c))).ToArray() ?? []
+                        : observed.Statuses;
                     var links = checks.Select(c => BlockerAnalysis.Link(c.Url) ?? commit)
                         .Concat(statuses.Select(s => BlockerAnalysis.Link(s.Url) ?? commit)).DefaultIfEmpty(commit).Distinct(StringComparer.Ordinal).ToArray();
                     Add("required-check-" + (findings.Count + 1), status,
-                        !originKnown ? "Observations named " + BlockerAnalysis.Quote(name) + " could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement."
-                            : absent && !complete ? "The required check " + BlockerAnalysis.Quote(name) + " was not observed in incomplete CI results; this does not establish whether it reported."
-                            : !complete && !knownFailure ? "CI results for required check " + BlockerAnalysis.Quote(name) + " were incomplete; satisfaction could not be established."
-                            : isCollection && !knownFailure ? "Required collection check " + BlockerAnalysis.Quote(name)
-                                + (absent || pending ? " is circular and currently unmet; it must complete outside this snapshot." : " is circular; it must complete outside this snapshot.")
-                            : absent ? "Required check " + BlockerAnalysis.Quote(name) + " has not reported on the observed head."
-                            : pending && !knownFailure ? "Required check " + BlockerAnalysis.Quote(name) + " is pending; its requirement is currently unmet."
-                            : "Observed required check " + BlockerAnalysis.Quote(name) + (allPassed ? " has a passing conclusion." : knownFailure ? " has a failed or conflicting conclusion." : " has no recognized passing conclusion."), links);
+                        !binding.OriginKnown ? label + " has missing or conflicting app/provider policy metadata; its requirement could not be verified."
+                            : observed.KnownFailure ? label + " has a failed or conflicting conclusion from the required provider."
+                            : observed.AmbiguousOrigin ? label + " has same-name observations with unverified app/provider identity; they cannot establish satisfaction or failure."
+                            : !observed.Complete && observed.Absent ? "The required check " + BlockerAnalysis.Quote(name) + " was not observed in incomplete CI results; this does not establish whether it reported."
+                            : !observed.Complete ? label + " has incomplete CI results; satisfaction could not be established."
+                            : isCollection ? label + (observed.Absent || observed.Pending
+                                ? " is circular and currently unmet; it must complete outside this snapshot."
+                                : " is circular; it must complete outside this snapshot.")
+                            : observed.Absent ? label + " has not reported on the observed head."
+                            : observed.Pending ? label + " is pending; its requirement is currently unmet."
+                            : label + (observed.Status == "pass" ? " has a passing conclusion." : " has no recognized passing conclusion."), links);
                 }
             }
         }
@@ -165,7 +166,7 @@ internal static class ReleaseEvidence
             answer.Verdict, assurance, findings,
             ["Human release decision required; this pack does not prove compliance or authorize a release.",
              "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
-             "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+             "GitHub rules are not fully reimplemented: deployment, merge-queue, legacy-status provider identity, signatures, bypass permissions and custom rules require separate review.",
              "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
              "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."],
             new EvidenceFreshness(snapshot.CollectionConsistency, "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."));

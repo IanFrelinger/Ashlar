@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Bricks;
 
-public sealed class GitHubProviderAssuranceRegressionTests
+public sealed partial class GitHubProviderAssuranceRegressionTests
 {
     private const string Head = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private const string Base = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
