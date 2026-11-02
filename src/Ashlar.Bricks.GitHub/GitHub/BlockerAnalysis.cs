@@ -20,8 +20,9 @@ internal sealed record BlockerAnswer(
 /// Turns what was read into an answer. Pure: no I/O, so every rule here is tested without GitHub.
 /// </summary>
 /// <remarks>
-/// Verdicts: <c>blocked</c> (at least one blocker), <c>unknown</c> (no blocker found, but something that could hide one
-/// was not read), <c>ready</c>, and for pull requests <c>merged</c> and <c>closed</c>. A failing check that is not
+/// Verdicts: <c>blocked</c> (at least one blocker), <c>unknown</c> (the current decision cannot be established,
+/// including exhausted recollection even when failed observations remain), <c>ready</c>, and for pull requests
+/// <c>merged</c> and <c>closed</c>. A failing check that is not
 /// required is a note, never a blocker. Only when neither branch protection nor the public required-check lists could
 /// be read does GitHub's own <c>mergeable_state</c> decide whether a failing check blocks: <c>clean</c>,
 /// <c>unstable</c> and <c>has_hooks</c> mean GitHub would allow the merge, so failures are notes.
@@ -65,12 +66,13 @@ internal static class BlockerAnalysis
         else
             verdict = UnknownVerdict;
 
-        // A previously clean summary is not a current positive when the final PR read
-        // changed or could not establish the same inputs. Preserve confirmed blockers
-        // and the legacy policy-readability behavior on stable snapshots.
-        if (verdict == Ready && snapshot.CollectionConsistency is "changed" or "unknown")
+        // A stale positive cannot establish readiness. After the bounded recollection is
+        // exhausted, neither positive nor negative facts establish the current PR decision;
+        // retain those facts under their observed head while reporting an unknown verdict.
+        if ((verdict == Ready || snapshot.CollectionAttempts > 1 && verdict == Blocked)
+            && snapshot.CollectionConsistency is "changed" or "unknown")
         {
-            unknowns.Add(new Unknown("Collection freshness", "The final pull-request read changed or could not verify the initial head, base and mergeability facts; collect again."));
+            unknowns.Add(new Unknown("Collection freshness", "The final pull-request read changed or could not verify the collected head, base and mergeability facts; collect again."));
             verdict = UnknownVerdict;
         }
 

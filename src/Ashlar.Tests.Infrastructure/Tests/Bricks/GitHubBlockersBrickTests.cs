@@ -679,15 +679,17 @@ public sealed class GitHubBlockersBrickTests
     }
 
     [Fact]
-    public async Task A_head_change_during_collection_is_detected_without_relabeling_old_evidence()
+    public async Task A_head_change_is_recollected_without_relabeling_old_checks()
     {
         var github = WithGreenOpenPrRoutes(new StubGitHub()
             .Sequence("/repos/o/r/pulls/7", (HttpStatusCode.OK, PullJson("true", "clean")),
                 (HttpStatusCode.OK, PullJson("true", "clean").Replace(Sha, new string('b', 40), StringComparison.Ordinal))));
         var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
         var pack = JsonSerializer.SerializeToElement(output.Get<object>("evidencePack"));
-        pack.GetProperty("headSha").GetString().Should().Be(Sha);
-        pack.GetProperty("freshness").GetProperty("collectionConsistency").GetString().Should().Be("changed");
+        pack.GetProperty("headSha").GetString().Should().Be(new string('b', 40));
+        pack.GetProperty("freshness").GetProperty("collectionConsistency").GetString().Should().Be("stable");
+        pack.GetProperty("freshness").GetProperty("collectionAttempts").GetInt32().Should().Be(2);
+        github.Requests.Should().Contain(u => u.AbsolutePath == $"/repos/o/r/commits/{new string('b', 40)}/check-runs");
         output.Get<string>("assurance").Should().Be("unknown");
     }
 

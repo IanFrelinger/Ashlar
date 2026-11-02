@@ -190,6 +190,12 @@
         "revalidation"
       ],
       "properties": {
+        "collectionAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2,
+          "description": "Full collection attempts; at most one recollection after an observed PR change. Optional for older schema 1.0 producers."
+        },
         "collectionConsistency": {
           "type": "string",
           "enum": [

@@ -8,6 +8,7 @@
     "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests",
     "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests",
     "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubReadAccessTests",
+    "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests",
     "Ashlar.Tests.Infrastructure.Tests.Certification",
     "AstMutationEngineTests"
   ],
@@ -19,8 +20,8 @@
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 839,
-    "declared_facts": 5533,
+    "test_files_declaring_facts": 840,
+    "declared_facts": 5546,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4927,6 +4928,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
       "declared_facts": 9,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/GitHubRecollectionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
+      "declared_facts": 13,
       "in_cert_gate_filter": false
     },
     {

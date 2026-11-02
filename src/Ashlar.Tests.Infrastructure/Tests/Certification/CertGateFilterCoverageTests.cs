@@ -91,6 +91,7 @@ public sealed class CertGateFilterCoverageTests
             typeof(Bricks.GitHubReadAccessTests),
             typeof(Bricks.GitHubEvaluationRegressionTests),
             typeof(Bricks.GitHubProviderAssuranceRegressionTests),
+            typeof(Bricks.GitHubRecollectionTests),
         };
         foreach (var suite in suites)
             selectors.Should().Contain(s => suite.FullName!.Contains(s, StringComparison.Ordinal),
