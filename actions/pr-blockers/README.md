@@ -136,6 +136,13 @@ self-check is circular and unsatisfied (`fail`); unverifiable requirements remai
 name alone never waives policy. A trigger after CI also does not freeze
 external state or solve all required-workflow/ruleset policy cases.
 
+The collector matches required app bindings per context. A failed same-name check from a known
+different app is advisory; missing or ambiguous provider identity stays unknown. If compared PR facts
+change during collection, it recollects once with fresh checks, reviews and policy. A second unstable
+or unverifiable collection returns unknown. The JSON and report include collection-attempt metadata.
+This can add a second set of API calls and up to four mergeability waits (eight seconds total);
+network latency and caller deadlines still apply. See the [contract and freshness limits](../../docs/release-evidence.md).
+
 ## Credentials, privacy, and integrity
 
 The client passes the token to the host environment, scoped to the selected repository, rather than in

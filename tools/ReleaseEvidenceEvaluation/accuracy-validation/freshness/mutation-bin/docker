@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == run ]]; then
+ shift
+ exec /workspace/scratch/docker-with-ca/docker run --name ashlar-accuracy-freshness-mutations --network none --memory 6g --security-opt no-new-privileges --mount type=bind,src=/workspace/scratch/accuracy-freshness-evidence,dst=/evidence "$@"
+fi
+exec /workspace/scratch/docker-with-ca/docker "$@"

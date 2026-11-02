@@ -28,7 +28,7 @@ out of passing assurance decisions.
 | `assurance` | Conservative `pass`, `fail`, `unknown`, or `not-applicable` for the supported observed requirements |
 | `findings` | Objects with per-snapshot `id`, `status` (`pass`, `fail`, `unknown`), `required`, `explanation`, and source URL array `sources` |
 | `limitations` | What this collector did not inspect or establish |
-| `freshness` | Final PR identity comparison and the revalidation contract |
+| `freshness` | Final PR identity comparison, optional `collectionAttempts` (1 or 2), and the revalidation contract |
 
 A confirmed unsatisfied requirement gives `fail`. This includes a required check that is still pending,
 or a required context proven absent from complete CI results, when its policy and provider requirement
@@ -60,10 +60,17 @@ explicitly reporting check rows for a different head is rejected. Commit-status 
 Review listing uses Octokit's paginated list path. Branch rules
 are requested with `per_page=100`; a response at that limit is unknown rather than assumed complete.
 Malformed rule parameters are unknown. Active rule types this collector does not evaluate are
-mandatory unknown findings. App-bound required checks are also unknown until their provider identity
-can be established; omitted provider metadata is also unknown, while explicit null denotes an unbound provider.
-A matching name alone establishes neither satisfaction nor failure of an app-bound requirement. The
-legacy name-based verdict can therefore still be blocked while scoped assurance records an unknown.
+mandatory unknown findings. Required contexts retain their individual app bindings from classic
+protection and rulesets. An observed check's positive integer `app.id` must match a bound requirement;
+a same-name result from a known different app is advisory for that requirement. Unknown bindings and
+ambiguous same-name observations remain unknown. Status `creator.id` is a user identity, not an app ID,
+so legacy status results cannot prove a bound app's identity. Multiple policy sources remain conjunctive;
+an unbound source never erases another source's binding or uncertainty.
+
+Explicit null denotes an unbound provider; classic protection also documents `app_id: -1` as any app.
+Omitted, malformed or conflicting metadata remains unknown. Ruleset `integration_id: -1` is not
+documented as that wildcard and remains unknown. Numeric strings, booleans and fractions do not
+establish provider IDs. One unknown context does not mask an independently observed failed requirement.
 
 Approving-review counts alone do not establish code-owner, last-push, or stale-review requirements.
 GitHub's head-matching GraphQL review decision is used when available; otherwise an incompletely
@@ -82,12 +89,27 @@ The legacy verdict still reports GitHub's existing check semantics. This input d
 requirement or grant permission to merge.
 
 A final PR read compares head SHA, base SHA/reference, draft/open state and mergeability with the
-initial read. If either commit identity is missing or malformed, or the PR changes or cannot be re-read, assurance is unknown and original evidence is
-kept under the original head. This cannot detect every concurrent check, review or rule update.
-An otherwise `ready` legacy verdict also becomes `unknown` when the final read changes or cannot
-verify the initial facts. Confirmed blockers and merged/closed semantics remain unchanged. Malformed
+attempt's initial read. One valid observed change starts one complete recollection, reusing the changed
+PR as its new anchor. Earlier checks, reviews, policy and read errors are discarded. A matching head
+alone does not skip recollection when other compared facts change. Each attempt may poll uncomputed
+mergeability twice, two seconds apart: at most two full collections and four waits (eight seconds).
+These waits do not bound API/network latency.
+
+An unreadable or invalid first final read does not trigger an authorization/service retry. If the second
+attempt changes again or cannot be verified, top-level verdict and assurance are unknown; individual
+failed observations remain attributed to that attempt's head. Stable recollection can produce a new
+ready or blocked result. Merged/closed results retain terminal semantics. Malformed
 API-owned PR identity URLs and branch references are reported as unknown; display titles alone do not
 invalidate identity and are not copied into the pack.
+Brick contract version `1.4.0` retains output names and verdict vocabulary while correcting provider
+attribution and adding bounded recollection. Missing provider evidence can make an earlier legacy
+answer unknown; removing a wrong-app blocker can make a legacy answer ready while assurance remains
+unknown for other requirements. Use assurance for gating.
+
+This does not detect every concurrent check, review or rule update. A difference between the observed
+PR base SHA and a separately observed branch tip is not itself a blocker. Strict up-to-date requirements
+are evaluated from policy and GitHub's reported mergeability, not an invented SHA-equality rule.
+No merge-result testing is implied.
 Even a stable, matching commit is a time-bound snapshot: recollect when relevant facts might have
 changed. No fixed validity period or atomic GitHub snapshot is promised.
 
@@ -96,8 +118,8 @@ changed. No fixed validity period or atomic GitHub snapshot is promised.
 Use a repository-scoped read-only GitHub token in the supported host configuration, outside model
 arguments when possible. Anonymous collection is possible for public repositories but has lower
 rate limits and cannot establish every policy fact. No customer repository access is implied by
-this documentation. Collection requires several sequential API calls, plus up to two 2-second waits
-for mergeability; network latency, pagination, throttling and timeouts add to that. Only github.com
+this documentation. Collection requires several sequential API calls, repeated once after a detected
+change, plus up to four 2-second waits for mergeability; network latency, pagination, throttling and timeouts add to that. Only github.com
 is supported; GitHub Enterprise hosts are rejected.
 The existing release-tag path makes one extra repository-metadata read only when a canonical-ID
 pagination link needs that identity; an unavailable or mismatched lookup leaves the remaining pages unknown.

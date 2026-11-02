@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Changed — provider-aware and recollected release evidence
+
+- Brick contract `1.4.0` checks each required context's app binding independently. Wrong-app failures
+  are advisory, malformed or ambiguous provider identities stay unknown, and known failures remain visible.
+- A detected PR change triggers one complete recollection. Earlier facts are discarded; another change
+  or an unverifiable second attempt yields an unknown decision. Schema 1.0 adds optional collection-attempt metadata.
+- The original evaluation remains frozen. Three additional public captures have separate pre-output
+  AI review/adjudication; one original label has a separately retained user review. Readiness holds remain.
+
 ### Fixed — release-evidence evaluation findings
 
 - Queued checks with null timestamps no longer crash collection. Check-run pagination retains

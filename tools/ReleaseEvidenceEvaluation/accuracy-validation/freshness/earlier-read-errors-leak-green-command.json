@@ -1,0 +1,22 @@
+{
+  "arguments": [
+    "dotnet",
+    "test",
+    "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+    "-f",
+    "net10.0",
+    "--filter",
+    "FullyQualifiedName~GitHubRecollectionTests",
+    "--nologo",
+    "-v",
+    "minimal",
+    "--logger",
+    "trx;LogFileName=earlier-read-errors-leak-green.trx",
+    "--results-directory",
+    "/evidence"
+  ],
+  "cwd": "/repo",
+  "environmentOverrides": {
+    "NuGetAudit": "false"
+  }
+}

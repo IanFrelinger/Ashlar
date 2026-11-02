@@ -1,0 +1,14 @@
+.......F.
+======================================================================
+FAIL: test_supplemental_missing_labels_reviews_or_reports_is_not_skipped (__main__.RetainedEvidenceControls.test_supplemental_missing_labels_reviews_or_reports_is_not_skipped) (declaration=['tools/ReleaseEvidenceEvaluation/public-ready/review/adjudication.json'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout/tools/ReleaseEvidenceEvaluation/test_verify_retained.py", line 202, in test_supplemental_missing_labels_reviews_or_reports_is_not_skipped
+    with self.assertRaisesRegex(score.InvalidEvaluation, "required_review_records|independent review record"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: InvalidEvaluation not raised
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.409s
+
+FAILED (failures=1)

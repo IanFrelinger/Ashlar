@@ -1,5 +1,14 @@
 # Additional public operational-clean PR captures
 
+The separate pre-output reviews and adjudication are now frozen in `review/`. Both original
+AI reviews remain retained; adjudication corrected an unsupported base-SHA equality assumption
+before execution. Final labels are two jq ready/pass cases and one cli unknown/unknown case.
+Baseline and integrated results match those verdicts. See the [follow-up report](../../../docs/benchmarks/release-evidence-accuracy-followup-2026-11-02.md).
+
+Retained `results/` are **offline replay artifacts**. Pack timestamps describe replay time,
+not a fresh GitHub read. Do not use them to gate an actual release. Raw intervals below
+remain actual collection times. This is not protected ready-PR or customer validation.
+
 Three public, open PR metadata snapshots were captured on **2026-11-02**, before followup
 candidate execution or expected-label review. These observations supplement, and do not modify,
 the original frozen 36-case evaluation. The data author produced no expected verdict, assurance,

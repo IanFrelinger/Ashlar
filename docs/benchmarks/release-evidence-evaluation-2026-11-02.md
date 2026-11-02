@@ -1,5 +1,9 @@
 # Release-evidence evaluation — 2026-11-02
 
+Subsequent work: the [accuracy follow-up](release-evidence-accuracy-followup-2026-11-02.md)
+retains this study unchanged, reports a separate candidate and adds public ready-state cases.
+The metrics and remaining gaps below refer to this earlier candidate.
+
 Status: evaluation executed, findings repaired and the unchanged-corpus final run scored.
 The final candidate has no false-passing assurance or `ready` verdict on known-blocked cases
 in this sample. Blocker coverage remains incomplete, and legacy `ready` still occurs when
